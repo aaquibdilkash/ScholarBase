@@ -1,0 +1,176 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- PHASE 1: BLOG ENGINE ---
+model Article {
+  id        String           @id @default(uuid())
+  title     String
+  slug      String           @unique
+  excerpt   String?
+  content   String           @db.Text
+  published Boolean          @default(false)
+  authorId  String
+  author    User             @relation(fields: [authorId], references: [id])
+  comments  ArticleComment[]
+  likes     ArticleLike[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+// --- PHASE 2: SUPERVISOR RATINGS ---
+model Supervisor {
+  id          String   @id @default(uuid())
+  name        String
+  university  String
+  department  String
+  reviews     Review[]
+  createdAt   DateTime @default(now())
+}
+
+model Review {
+  id           String     @id @default(uuid())
+  feedback     String     @db.Text
+  rating       Int        
+  turnaround   String     
+  supervisorId String
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id])
+  userId       String
+  author       User       @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+// --- PHASE 3: FEED ENGINE ---
+model SocialPost {
+  id        String          @id @default(uuid())
+  content   String          @db.Text
+  imageUrl  String?   
+  authorId  String
+  author    User            @relation(fields: [authorId], references: [id])
+  comments  SocialComment[]
+  likes     SocialLike[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+// --- INTERACTIONS ---
+
+model ArticleComment {
+  id        String           @id @default(uuid())
+  content   String           @db.Text
+  articleId String
+  article   Article          @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User             @relation(fields: [authorId], references: [id])
+  parentId  String?
+  parent    ArticleComment?  @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ArticleComment[] @relation("ArticleReplies")
+  createdAt DateTime         @default(now())
+}
+
+model ArticleLike {
+  id        String   @id @default(uuid())
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  @@unique([articleId, userId])
+}
+
+model SocialComment {
+  id           String          @id @default(uuid())
+  content      String          @db.Text
+  socialPostId String
+  socialPost   SocialPost      @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User            @relation(fields: [authorId], references: [id])
+  parentId     String?
+  parent       SocialComment?  @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      SocialComment[] @relation("SocialReplies")
+  createdAt    DateTime        @default(now())
+}
+
+model SocialLike {
+  id           String     @id @default(uuid())
+  socialPostId String
+  socialPost   SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  @@unique([socialPostId, userId])
+}
+
+// --- USER & SOCIAL GRAPH ---
+
+model User {
+  id              String           @id 
+  email           String           @unique
+  name            String?  
+  avatarUrl       String?
+  articles        Article[]    
+  socialPosts     SocialPost[] 
+  articleComments ArticleComment[]
+  articleLikes    ArticleLike[]
+  socialComments  SocialComment[]
+  socialLikes     SocialLike[]
+  reviews         Review[]
+  followers       Follows[]        @relation("followers")
+  following       Follows[]        @relation("following")
+  createdAt       DateTime         @default(now())
+  events         ResearchEvent[]
+  admissions     PhdAdmission[]
+  vacancies      JobVacancy[]
+}
+
+model Follows {
+  followerId  String
+  follower    User @relation("following", fields: [followerId], references: [id])
+  followingId String
+  following   User @relation("followers", fields: [followingId], references: [id])
+  @@id([followerId, followingId])
+}
+
+model ResearchEvent {
+  id               String    @id @default(cuid())
+  title            String    // e.g., "International Conference on Management"
+  date             DateTime  // When the event actually happens
+  location         String    // Physical location or "Virtual"
+  description      String
+  deadline         DateTime? // Last date for abstract submission/registration
+  notificationLink String?   // Link to the official brochure/call for papers
+  applyLink        String?   // Direct link to the submission portal (e.g., EasyChair/Mendeley)
+  createdAt        DateTime  @default(now())
+  authorId         String
+  author           User      @relation(fields: [authorId], references: [id])
+}
+
+model PhdAdmission {
+  id               String    @id @default(cuid())
+  university       String    // e.g., "Jamia Millia Islamia"
+  department       String    // e.g., "Management and Finance"
+  deadline         DateTime  // Last date to apply
+  description      String
+  notificationLink String?   // Official university notification PDF/circular
+  applyLink        String?   // Direct link to the admission application portal
+  createdAt        DateTime  @default(now())
+  authorId         String
+  author           User      @relation(fields: [authorId], references: [id])
+}
+
+model JobVacancy {
+  id               String    @id @default(cuid())
+  title            String    // e.g., "Assistant Professor (Finance)"
+  institution      String
+  type             String    // Guest, Adhoc, Permanent, Contractual
+  deadline         DateTime  // Last date to apply
+  description      String
+  notificationLink String?   // Link to the official advertisement/PDF
+  applyLink        String?   // Link to the application portal or designated email
+  createdAt        DateTime  @default(now())
+  authorId         String
+  author           User      @relation(fields: [authorId], references: [id])
+}
