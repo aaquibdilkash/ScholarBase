@@ -1,9 +1,10 @@
-import { createSocialPost } from "./actions"; // Adjust path if you moved this to /actions/feed.ts
+import { createSocialPost } from "@/app/actions/feed";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import Link from "next/link";
+import Image from "next/image";
 
 export default async function FeedPage({
   searchParams,
@@ -54,18 +55,24 @@ export default async function FeedPage({
   };
 
   return (
-    <main className="max-w-2xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-8">
-        Scholar Feed
-      </h1>
+    <main className="mx-auto max-w-3xl py-6">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+            Scholar Feed
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Short research updates from the community.
+          </p>
+        </div>
+      </div>
 
-      {/* Tab Navigation as Clean Pills */}
-      <div className="flex gap-2 mb-8 bg-slate-100 p-1.5 rounded-2xl w-fit">
+      <div className="mb-8 inline-flex rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm">
         <Link
           href="/feed"
           className={`px-6 py-2 rounded-xl font-semibold transition-all ${
             !isFollowingTab
-              ? "bg-white text-slate-900 shadow-sm"
+              ? "bg-slate-950 text-white shadow-sm"
               : "text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -75,7 +82,7 @@ export default async function FeedPage({
           href="/feed?tab=following"
           className={`px-6 py-2 rounded-xl font-semibold transition-all ${
             isFollowingTab
-              ? "bg-white text-slate-900 shadow-sm"
+              ? "bg-slate-950 text-white shadow-sm"
               : "text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -83,21 +90,17 @@ export default async function FeedPage({
         </Link>
       </div>
 
-      {/* Post Creation Box */}
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-10">
+      <div className="sb-surface-strong mb-10 p-6 md:p-7">
         <form action={createSocialPost} className="flex flex-col gap-4">
           <textarea
             name="content"
             placeholder="What are you researching today?"
-            className="w-full resize-none border-none focus:ring-0 p-2 text-slate-800 bg-transparent placeholder:text-slate-400 text-lg outline-none"
+            className="w-full resize-none border-none bg-transparent p-2 text-lg text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
             rows={3}
             required
           />
           <div className="flex justify-end border-t border-slate-100 pt-4">
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-600/20"
-            >
+            <button type="submit" className="sb-button-accent">
               Post Update
             </button>
           </div>
@@ -107,22 +110,22 @@ export default async function FeedPage({
       {/* Sleek Feed Items */}
       <div className="flex flex-col gap-6">
         {posts.map((post) => (
-          <article
-            key={post.id}
-            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 transition-all hover:shadow-md hover:border-blue-200"
-          >
+          <article key={post.id} className="sb-card sb-card-hover">
             {/* Header: Author Info */}
             <div className="flex items-center gap-4 mb-4">
               <Link href={`/scholar/${post.authorId}`} className="shrink-0">
                 <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
                   {post.author.avatarUrl ? (
-                    <img
+                    <Image
                       src={post.author.avatarUrl}
                       alt="Author"
+                      width={48}
+                      height={48}
+                      unoptimized
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="font-bold text-slate-400 text-lg">
+                    <span className="font-semibold text-slate-400 text-lg">
                       {post.author.name?.charAt(0).toUpperCase() || "?"}
                     </span>
                   )}
@@ -131,11 +134,11 @@ export default async function FeedPage({
               <div>
                 <Link
                   href={`/scholar/${post.authorId}`}
-                  className="font-bold text-slate-900 hover:text-blue-600 hover:underline transition"
+                  className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
                 >
                   {post.author.name || "Scholar"}
                 </Link>
-                <div className="text-xs text-slate-500 font-medium mt-0.5">
+                <div className="mt-0.5 text-xs font-medium text-slate-500">
                   {post.author.handle && (
                     <span className="mr-2">@{post.author.handle}</span>
                   )}
@@ -146,7 +149,7 @@ export default async function FeedPage({
 
             {/* Body: Clickable Post Content */}
             <Link href={`/feed/${post.id}`} className="block group">
-              <p className="text-slate-800 whitespace-pre-wrap mb-4 leading-relaxed group-hover:text-slate-600 transition-colors">
+              <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600">
                 {post.content}
               </p>
             </Link>
@@ -162,7 +165,7 @@ export default async function FeedPage({
 
               <Link
                 href={`/feed/${post.id}`}
-                className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-700"
               >
                 <svg
                   className="w-5 h-5"
@@ -184,8 +187,8 @@ export default async function FeedPage({
         ))}
 
         {posts.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-3xl border border-slate-200 border-dashed">
-            <p className="text-slate-500 font-medium">
+          <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
+            <p className="font-medium text-slate-500">
               No posts to show right now.
             </p>
           </div>

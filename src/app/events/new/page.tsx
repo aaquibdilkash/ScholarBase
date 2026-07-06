@@ -2,99 +2,81 @@ import { createResearchEvent } from "@/app/actions/opportunities";
 
 export default function NewEventPage() {
   return (
-    <main className="max-w-xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">
-        List a Research Event / Conference
-      </h1>
-      <form action={createResearchEvent} className="flex flex-col gap-4">
+    <main className="mx-auto max-w-4xl py-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          List a Research Event / Conference
+        </h1>
+        <p className="mt-2 text-slate-600">
+          Add conferences, calls, and events that matter to researchers.
+        </p>
+      </div>
+      <form
+        action={createResearchEvent}
+        className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+      >
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Conference Title
-          </label>
+          <label className="sb-label">Conference Title</label>
           <input
             name="title"
             placeholder="e.g., Annual Conference on Financial Econometrics"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
             required
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Event Date
-            </label>
-            <input
-              type="date"
-              name="date"
-              className="w-full p-3 border rounded-lg"
-              required
-            />
+            <label className="sb-label">Event Date</label>
+            <input type="date" name="date" className="sb-input" required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              Location
-            </label>
+            <label className="sb-label">Location</label>
             <input
               name="location"
               placeholder="e.g., New Delhi, India or Virtual"
-              className="w-full p-3 border rounded-lg"
+              className="sb-input"
               required
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Submission Deadline (Optional)
-          </label>
-          <input
-            type="date"
-            name="deadline"
-            className="w-full p-3 border rounded-lg"
-          />
+          <label className="sb-label">Submission Deadline (Optional)</label>
+          <input type="date" name="deadline" className="sb-input" />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Description / Tracks
-          </label>
+          <label className="sb-label">Description / Tracks</label>
           <textarea
             name="description"
             placeholder="Briefly describe the theme of the conference and presentation tracks..."
-            className="w-full p-3 border rounded-lg h-32"
+            className="sb-input h-32"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Official Brochure URL (Optional)
-          </label>
+          <label className="sb-label">Official Brochure URL (Optional)</label>
           <input
             type="url"
             name="notificationLink"
             placeholder="https://university.edu/brochure.pdf"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Submission Portal URL (Optional)
-          </label>
+          <label className="sb-label">Submission Portal URL (Optional)</label>
           <input
             type="url"
             name="applyLink"
             placeholder="https://easychair.org/cfp/..."
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition mt-2"
-        >
+        <button type="submit" className="sb-button-accent mt-2 self-end">
           Publish Event
         </button>
       </form>

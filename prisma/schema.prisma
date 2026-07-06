@@ -65,6 +65,7 @@ model ArticleComment {
   author    User             @relation(fields: [authorId], references: [id])
   parent    ArticleComment?  @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   ArticleComment[] @relation("ArticleReplies")
+  likes     ArticleCommentLike[]
 }
 
 model ArticleLike {
@@ -88,6 +89,27 @@ model SocialComment {
   parent       SocialComment?  @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      SocialComment[] @relation("SocialReplies")
   socialPost   SocialPost      @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+  likes        SocialCommentLike[]
+}
+
+model ArticleCommentLike {
+  id        String         @id @default(uuid())
+  commentId String
+  userId    String
+  comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model SocialCommentLike {
+  id        String        @id @default(uuid())
+  commentId String
+  userId    String
+  comment   SocialComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
 }
 
 model SocialLike {
@@ -111,6 +133,7 @@ model User {
   articles        Article[]
   articleComments ArticleComment[]
   articleLikes    ArticleLike[]
+  articleCommentLikes ArticleCommentLike[]
   following       Follows[]        @relation("following")
   followers       Follows[]        @relation("followers")
   vacancies       JobVacancy[]
@@ -119,6 +142,7 @@ model User {
   reviews         Review[]
   socialComments  SocialComment[]
   socialLikes     SocialLike[]
+  socialCommentLikes SocialCommentLike[]
   socialPosts     SocialPost[]
 }
 

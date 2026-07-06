@@ -7,33 +7,35 @@ export default async function BlogIndex() {
   });
 
   return (
-    <main className="max-w-5xl mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Research Blog
-        </h1>
-        <Link
-          href="/blog/new"
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200 whitespace-nowrap"
-        >
+    <main className="mx-auto max-w-6xl py-6">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+            Research Blog
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Essays, notes, and longer-form research reflections.
+          </p>
+        </div>
+        <Link href="/blog/new" className="sb-button-accent whitespace-nowrap">
           + New Article
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid gap-6 md:grid-cols-2">
         {articles.map((article) => (
           <Link
             key={article.id}
             href={`/blog/${article.slug}`}
-            className="group border border-slate-200/60 rounded-2xl p-6 bg-white shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 hover:border-blue-100 transition-all duration-300 flex flex-col"
+            className="sb-card sb-card-hover group flex flex-col"
           >
-            <h2 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors leading-tight">
+            <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
               {article.title}
             </h2>
-            <p className="text-sm text-slate-500 line-clamp-3 leading-relaxed flex-grow">
+            <p className="flex-grow text-sm leading-relaxed text-slate-600 line-clamp-3">
               {article.excerpt}
             </p>
-            <div className="mt-6 pt-4 border-t border-slate-50 flex items-center text-sm font-semibold text-blue-600">
+            <div className="mt-6 flex items-center border-t border-slate-100 pt-4 text-sm font-semibold text-blue-700">
               Read Article{" "}
               <span className="ml-1 group-hover:translate-x-1 transition-transform">
                 →

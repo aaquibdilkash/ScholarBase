@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/app/actions/profile";
+import { BrandMark } from "@/components/BrandMark";
 
 type UserData = {
   name: string | null;
@@ -35,68 +36,61 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   return (
     <form
       action={handleSubmit}
-      className="space-y-6 bg-white p-8 rounded-2xl border shadow-sm"
+      className="sb-surface-strong space-y-6 p-8 md:p-10"
     >
       {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100">
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
           {error}
         </div>
       )}
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
-          Full Name
-        </label>
+        <label className="sb-label">Full Name</label>
         <input
           name="name"
           defaultValue={user.name || ""}
           required
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition"
+          className="sb-input"
           placeholder="e.g. Dr. Jane Smith"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
-          Scholar Handle
-        </label>
+        <label className="sb-label">Scholar Handle</label>
         <div className="relative">
-          <span className="absolute left-4 top-3.5 text-slate-400 font-medium">
+          <span className="absolute left-4 top-3.5 font-medium text-slate-400">
             @
           </span>
           <input
             name="handle"
             defaultValue={user.handle || ""}
-            className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition"
+            className="sb-input pl-9"
             placeholder="janesmith"
           />
         </div>
-        <p className="text-xs text-slate-500 mt-2">
-          This will be your unique identifier on ScholarBase.
+        <p className="mt-2 text-xs text-slate-500">
+          This will be your unique identifier on{" "}
+          <BrandMark className="font-semibold" />.
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
-          Bio / About Me
-        </label>
+        <label className="sb-label">Bio / About Me</label>
         <textarea
           name="bio"
           defaultValue={user.bio || ""}
           rows={4}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition resize-none"
+          className="sb-input resize-none"
           placeholder="Share your research interests, current institution, and academic goals..."
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
-          Avatar URL (Temporary)
-        </label>
+        <label className="sb-label">Avatar URL (Temporary)</label>
         <input
           name="avatarUrl"
           defaultValue={user.avatarUrl || ""}
-          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition"
+          className="sb-input"
           placeholder="https://example.com/my-photo.jpg"
         />
       </div>
@@ -105,7 +99,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         <button
           type="submit"
           disabled={isPending}
-          className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="sb-button-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? "Saving..." : "Save Profile"}
         </button>

@@ -2,38 +2,42 @@ import { createJobVacancy } from "@/app/actions/opportunities";
 
 export default function NewVacancyPage() {
   return (
-    <main className="max-w-xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">Post an Academic Vacancy</h1>
-      <form action={createJobVacancy} className="flex flex-col gap-4">
+    <main className="mx-auto max-w-4xl py-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          Post an Academic Vacancy
+        </h1>
+        <p className="mt-2 text-slate-600">
+          Share trustworthy openings for the academic community.
+        </p>
+      </div>
+      <form
+        action={createJobVacancy}
+        className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+      >
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Job Title
-          </label>
+          <label className="sb-label">Job Title</label>
           <input
             name="title"
             placeholder="e.g., Assistant Professor (Contractual)"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Institution / College
-          </label>
+          <label className="sb-label">Institution / College</label>
           <input
             name="institution"
             placeholder="e.g., Delhi University"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Appointment Type
-          </label>
-          <select name="type" className="w-full p-3 border rounded-lg bg-white">
+          <label className="sb-label">Appointment Type</label>
+          <select name="type" className="sb-input bg-white">
             <option value="Permanent">Permanent</option>
             <option value="Adhoc">Adhoc</option>
             <option value="Guest Faculty">Guest Faculty</option>
@@ -42,57 +46,47 @@ export default function NewVacancyPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Last Date to Apply
-          </label>
-          <input
-            type="date"
-            name="deadline"
-            className="w-full p-3 border rounded-lg"
-            required
-          />
+          <label className="sb-label">Last Date to Apply</label>
+          <input type="date" name="deadline" className="sb-input" required />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="sb-label">
             Details (Pay Scale, Qualifications)
           </label>
           <textarea
             name="description"
             placeholder="Detail the eligibility metrics (e.g., UGC regulations compliance, API score requirements)..."
-            className="w-full p-3 border rounded-lg h-32"
+            className="sb-input h-32"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="sb-label">
             Official Advertisement link (Optional)
           </label>
           <input
             type="url"
             name="notificationLink"
             placeholder="https://institution.org/jobs/advt-2026.pdf"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="sb-label">
             Application Link / Email (Optional)
           </label>
           <input
             type="url"
             name="applyLink"
             placeholder="https://recruitment.portal or mailto:hr@inst.edu"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition mt-2"
-        >
+        <button type="submit" className="sb-button-accent mt-2 self-end">
           Post Vacancy
         </button>
       </form>

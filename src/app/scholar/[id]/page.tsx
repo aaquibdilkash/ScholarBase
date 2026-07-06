@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-// import Image from "next/image"; // Commented out until you implement file uploads
+import Image from "next/image";
 
 export default async function ScholarProfile({
   params,
@@ -34,16 +34,19 @@ export default async function ScholarProfile({
   const isOwnProfile = currentUser?.id === profile.id;
 
   return (
-    <main className="max-w-3xl mx-auto py-12 px-4">
+    <main className="mx-auto max-w-4xl py-6">
       {/* Profile Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6 border-b pb-10">
+      <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-10 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-6">
           {/* Avatar Placeholder / Image */}
-          <div className="w-24 h-24 rounded-full bg-slate-200 border-2 border-white shadow-md flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="w-24 h-24 rounded-full bg-slate-200 border-2 border-white shadow-md flex items-center justify-center overflow-hidden shrink-0">
             {profile.avatarUrl ? (
-              <img
+              <Image
                 src={profile.avatarUrl}
                 alt={profile.name || "User"}
+                width={96}
+                height={96}
+                unoptimized
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -54,13 +57,13 @@ export default async function ScholarProfile({
           </div>
 
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
               {profile.name}
             </h1>
-            <p className="text-blue-600 font-medium mb-1">
+            <p className="mb-1 font-medium text-blue-700">
               {profile.handle ? `@${profile.handle}` : "No handle set"}
             </p>
-            <p className="text-slate-500 text-sm">
+            <p className="text-sm text-slate-500">
               {profile.followers.length} followers
             </p>
           </div>
@@ -69,8 +72,8 @@ export default async function ScholarProfile({
         <div className="flex gap-3">
           {isOwnProfile ? (
             <Link
-              href="/settings/profile"
-              className="px-5 py-2 text-sm font-semibold border border-slate-300 rounded-xl hover:bg-slate-50 transition"
+              href={`/scholar/${profile.id}/settings`}
+              className="sb-button-soft"
             >
               Edit Profile
             </Link>
@@ -85,8 +88,8 @@ export default async function ScholarProfile({
       {/* Bio Section */}
       {profile.bio && (
         <div className="mb-12">
-          <h2 className="text-lg font-bold text-slate-900 mb-2">About</h2>
-          <p className="text-slate-700 leading-relaxed bg-white p-5 rounded-xl border shadow-sm">
+          <h2 className="mb-2 text-lg font-semibold text-slate-950">About</h2>
+          <p className="sb-card leading-relaxed text-slate-700">
             {profile.bio}
           </p>
         </div>
@@ -95,7 +98,7 @@ export default async function ScholarProfile({
       {/* Content Tabs / Sections */}
       <div className="space-y-12">
         <section>
-          <h2 className="text-xl font-bold mb-4 text-slate-900">
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
             Research Articles
           </h2>
           {profile.articles.length > 0 ? (
@@ -104,35 +107,39 @@ export default async function ScholarProfile({
                 <Link
                   href={`/blog/${a.slug}`}
                   key={a.id}
-                  className="block p-5 border rounded-xl bg-white hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
+                  className="sb-card sb-card-hover group block"
                 >
-                  <h3 className="font-semibold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
                     {a.title}
                   </h3>
-                  <p className="text-sm text-slate-600 mt-2 line-clamp-2">{a.excerpt}</p>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                    {a.excerpt}
+                  </p>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-slate-500 italic bg-slate-50 p-6 rounded-xl text-center border border-dashed">
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
               No articles published yet.
             </p>
           )}
         </section>
 
         <section>
-          <h2 className="text-xl font-bold mb-4 text-slate-900">Feed Posts</h2>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Feed Posts
+          </h2>
           <div className="space-y-4">
             {profile.socialPosts.map((p) => (
               <Link
                 href={`/feed/${p.id}`}
                 key={p.id}
-                className="block p-5 border rounded-xl bg-white shadow-sm hover:shadow-md hover:border-blue-200 transition-all group"
+                className="sb-card sb-card-hover group block"
               >
-                <p className="text-slate-800 whitespace-pre-wrap line-clamp-3">
+                <p className="line-clamp-3 whitespace-pre-wrap text-slate-800">
                   {p.content}
                 </p>
-                <p className="text-xs text-slate-400 mt-3 font-medium group-hover:text-blue-500 transition-colors">
+                <p className="mt-3 text-xs font-medium text-slate-400 transition-colors group-hover:text-blue-700">
                   View post & comments →
                 </p>
               </Link>

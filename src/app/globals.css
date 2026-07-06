@@ -2,8 +2,12 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f0e8;
+  --foreground: #15202b;
+  --muted: #5f6b75;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-strong: rgba(255, 255, 255, 0.92);
+  --border: rgba(21, 32, 43, 0.08);
 }
 
 @theme inline {
@@ -13,8 +17,81 @@
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background:
+      radial-gradient(
+        circle at top left,
+        rgba(255, 255, 255, 0.92),
+        transparent 35%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(29, 78, 216, 0.08),
+        transparent 28%
+      ),
+      linear-gradient(180deg, #faf7f1 0%, #f4f0e8 34%, #eef2f7 100%);
+    color: var(--foreground);
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(29, 78, 216, 0.18);
+    color: var(--foreground);
+  }
+}
+
+@layer components {
+  .sb-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .sb-surface {
+    @apply rounded-[28px] border border-white/70 bg-white/75 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
+  }
+
+  .sb-surface-strong {
+    @apply rounded-[28px] border border-slate-200/70 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)];
+  }
+
+  .sb-heading {
+    @apply text-4xl font-semibold tracking-tight text-slate-950 md:text-5xl;
+  }
+
+  .sb-subtitle {
+    @apply text-base leading-7 text-slate-600 md:text-lg;
+  }
+
+  .sb-card {
+    @apply rounded-[24px] border border-slate-200/70 bg-white/90 p-6 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300;
+  }
+
+  .sb-card-hover {
+    @apply hover:-translate-y-1 hover:border-blue-100 hover:shadow-[0_14px_40px_rgba(15,23,42,0.08)];
+  }
+
+  .sb-label {
+    @apply mb-2 block text-sm font-semibold tracking-wide text-slate-700;
+  }
+
+  .sb-input {
+    @apply w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10;
+  }
+
+  .sb-button-primary {
+    @apply inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md;
+  }
+
+  .sb-button-accent {
+    @apply inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-md;
+  }
+
+  .sb-button-soft {
+    @apply inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50;
+  }
 }

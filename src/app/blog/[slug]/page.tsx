@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import Link from "next/link";
+import { RichContent } from "@/components/content/RichContent";
 
 export default async function ArticlePage({
   params,
@@ -17,7 +18,11 @@ export default async function ArticlePage({
       likes: true,
       comments: {
         where: { parentId: null },
-        include: { author: true, replies: { include: { author: true } } },
+        include: {
+          author: true,
+          likes: true,
+          replies: { include: { author: true, likes: true } },
+        },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -26,30 +31,29 @@ export default async function ArticlePage({
   if (!article) notFound();
 
   return (
-    <main className="max-w-4xl mx-auto py-10 px-4">
+    <main className="mx-auto max-w-5xl py-6">
       <Link
         href="/blog"
-        className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 mb-8 transition-colors"
+        className="inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700 mb-8"
       >
         ← Back to Blog
       </Link>
 
-      {/* The Article Paper Card */}
-      <article className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-12 mb-8">
-        <header className="mb-10 pb-8 border-b border-slate-100">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-6">
+      <article className="sb-surface-strong mb-8 p-8 md:p-12">
+        <header className="mb-10 border-b border-slate-100 pb-8">
+          <h1 className="mb-6 text-4xl font-semibold leading-tight tracking-tight text-slate-950 md:text-5xl">
             {article.title}
           </h1>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-lg font-semibold text-blue-700">
               {article.author.name?.charAt(0) || "S"}
             </div>
             <div>
               <Link
                 href={`/scholar/${article.author.id}`}
-                className="font-bold hover:underline"
+                className="font-semibold text-slate-950 hover:underline"
               >
-                <p className="text-slate-900 font-semibold">
+                <p className="font-semibold text-slate-950">
                   {article.author.name}
                 </p>
               </Link>
@@ -63,11 +67,11 @@ export default async function ArticlePage({
           </div>
         </header>
 
-        <div className="prose prose-slate prose-lg md:prose-xl max-w-none mb-12 prose-headings:text-slate-900 prose-a:text-blue-600 hover:prose-a:text-blue-500">
-          {article.content}
+        <div className="prose prose-slate prose-lg md:prose-xl max-w-none mb-12 prose-headings:text-slate-950 prose-a:text-blue-700 hover:prose-a:text-blue-600">
+          <RichContent content={article.content} />
         </div>
 
-        <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+        <div className="border-t border-slate-100 pt-6 flex items-center justify-between">
           <LikeButton
             targetId={article.id}
             type="article"
@@ -76,9 +80,10 @@ export default async function ArticlePage({
         </div>
       </article>
 
-      {/* The Discussions Card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-12">
-        <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussions</h3>
+      <div className="sb-surface-strong p-8 md:p-12">
+        <h3 className="mb-6 text-2xl font-semibold text-slate-950">
+          Discussions
+        </h3>
         <CommentSection
           comments={article.comments}
           targetId={article.id}

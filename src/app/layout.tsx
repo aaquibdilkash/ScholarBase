@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
+import { getCurrentUser } from "@/lib/auth";
+import { ensureUserProfile } from "@/lib/users";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,27 +21,29 @@ export const metadata: Metadata = {
   description: "The academic hub for scholars and researchers.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await getCurrentUser();
+
+  if (user) {
+    await ensureUserProfile(user);
+  }
+
   return (
     <html lang="en">
-      {/* 1. Added the font variables to the body 
-        2. Set antialiased for crisp text
-        3. Enforced a soft, premium light-gray background (bg-slate-50) 
-      */}
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-slate-50 text-slate-900 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased text-slate-900 min-h-screen`}
       >
         <div className="flex min-h-screen">
-          <Sidebar />
+          <Sidebar user={user} />
 
           <div className="flex-1 flex flex-col min-w-0">
             <Navbar />
 
-            <main className="p-8 flex-1">{children}</main>
+            <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>
           </div>
         </div>
       </body>

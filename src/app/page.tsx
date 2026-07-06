@@ -8,48 +8,53 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
-      <div className="space-y-6">
-        <h1 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight">
-          The Academic Hub for <br className="hidden md:block" />
-          <span className="text-blue-600">Scholars & Researchers</span>
-        </h1>
+    <div className="mx-auto flex min-h-[calc(100vh-12rem)] max-w-6xl flex-col justify-center px-0 py-6">
+      <section className="sb-surface overflow-hidden">
+        <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="p-8 md:p-12 lg:p-14">
+            <div className="mb-6 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
+              Research community platform
+            </div>
 
-        <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          Connect with peers, track your publications, find the right
-          supervisor, and discover PhD admissions and JRF vacancies all in one
-          place.
-        </p>
+            <h1 className="sb-heading max-w-3xl">
+              The academic hub for scholars, supervisors, and opportunities.
+            </h1>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-          {user ? (
-            <Link
-              href="/feed"
-              className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm"
-            >
-              Go to Your Feed
-            </Link>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition shadow-sm"
-              >
-                Join the Community
-              </Link>
-              <Link
-                href="/blog"
-                className="px-8 py-3 bg-white text-slate-700 font-semibold rounded-xl border border-slate-200 hover:bg-slate-50 transition shadow-sm"
-              >
-                Read Research Blogs
-              </Link>
-            </>
-          )}
+            <p className="sb-subtitle mt-6 max-w-2xl">
+              Connect with peers, publish your research, track supervisors, and
+              discover PhD admissions, academic events, and vacancies in one
+              focused workspace.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+              {user ? (
+                <Link href="/feed" className="sb-button-accent">
+                  Go to Your Feed
+                </Link>
+              ) : (
+                <>
+                  <Link href="/login" className="sb-button-accent">
+                    Join the Community
+                  </Link>
+                  <Link href="/blog" className="sb-button-soft">
+                    Read Research Blogs
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-white/70 bg-white/55 p-8 md:p-10 lg:border-l lg:border-t-0">
+            <div className="grid gap-4">
+              <StatCard title="Research Posts" value="Fast updates" />
+              <StatCard title="Supervisor Reviews" value="Verified notes" />
+              <StatCard title="Opportunities" value="Always current" />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Feature Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 text-left w-full">
+      <div className="mt-8 grid w-full gap-6 md:grid-cols-3 text-left">
         <FeatureCard
           title="Share Research"
           description="Publish blogs, discuss empirical findings, and build your academic portfolio."
@@ -67,6 +72,17 @@ export default async function HomePage() {
   );
 }
 
+function StatCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-[24px] border border-slate-200/70 bg-white p-6 shadow-sm">
+      <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+        {title}
+      </p>
+      <p className="mt-3 text-2xl font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
 function FeatureCard({
   title,
   description,
@@ -75,9 +91,9 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md transition">
-      <h3 className="text-xl font-bold text-slate-900 mb-2">{title}</h3>
-      <p className="text-slate-600 leading-relaxed">{description}</p>
+    <div className="sb-card sb-card-hover">
+      <h3 className="mb-2 text-lg font-semibold text-slate-950">{title}</h3>
+      <p className="leading-relaxed text-slate-600">{description}</p>
     </div>
   );
 }

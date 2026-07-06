@@ -1,27 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandMark } from "@/components/BrandMark";
+import { signOut } from "@/app/actions/auth";
 
-export default function Sidebar() {
+type SidebarUser = {
+  id: string;
+  email?: string | null;
+} | null;
+
+type SidebarProps = {
+  user: SidebarUser;
+};
+
+export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Auto-collapse on mobile screens when the component mounts
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 768) {
-        setIsCollapsed(true);
-      } else {
-        setIsCollapsed(false);
-      }
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setIsCollapsed(mobile);
     };
 
-    // Set initial state
     handleResize();
-
-    // Listen for window size changes
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -32,7 +38,7 @@ export default function Sidebar() {
       href: "/feed",
       icon: (
         <svg
-          className="w-6 h-6 shrink-0"
+          className="h-6 w-6 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -51,7 +57,7 @@ export default function Sidebar() {
       href: "/blog",
       icon: (
         <svg
-          className="w-6 h-6 shrink-0"
+          className="h-6 w-6 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -70,7 +76,7 @@ export default function Sidebar() {
       href: "/supervisor",
       icon: (
         <svg
-          className="w-6 h-6 shrink-0"
+          className="h-6 w-6 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -89,7 +95,7 @@ export default function Sidebar() {
       href: "/events",
       icon: (
         <svg
-          className="w-6 h-6 shrink-0"
+          className="h-6 w-6 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -108,7 +114,7 @@ export default function Sidebar() {
       href: "/admissions",
       icon: (
         <svg
-          className="w-6 h-6 shrink-0"
+          className="h-6 w-6 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -133,7 +139,7 @@ export default function Sidebar() {
       href: "/vacancies",
       icon: (
         <svg
-          className="w-6 h-6 shrink-0"
+          className="h-6 w-6 shrink-0"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -149,97 +155,200 @@ export default function Sidebar() {
     },
   ];
 
-  return (
-    <aside
-      className={`border-r border-slate-200/60 h-screen sticky top-0 py-6 bg-white flex flex-col gap-8 transition-all duration-300 ease-in-out z-20 ${
+  const asideClasses = isMobile
+    ? `fixed inset-y-0 left-0 z-50 w-72 border-r border-white/60 bg-white/90 px-6 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 ease-in-out ${
+        isCollapsed ? "-translate-x-full" : "translate-x-0"
+      }`
+    : `sticky top-0 z-20 flex h-screen flex-col gap-8 border-r border-white/60 bg-white/70 py-6 backdrop-blur-xl transition-all duration-300 ease-in-out ${
         isCollapsed ? "w-20 px-3" : "w-64 px-6"
-      }`}
-    >
-      {/* Header & Toggle Button */}
-      <div
-        className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}
-      >
-        {!isCollapsed && (
-          <Link
-            href="/"
-            className="text-2xl font-extrabold tracking-tight text-slate-900 truncate"
-          >
-            Scholar<span className="text-blue-600">Base</span>
-          </Link>
-        )}
+      }`;
 
+  const profileHref = user ? `/scholar/${user.id}` : "/login";
+
+  return (
+    <>
+      {isMobile && isCollapsed && (
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-          aria-label="Toggle Sidebar"
+          type="button"
+          onClick={() => setIsCollapsed(false)}
+          className="fixed left-4 top-20 z-50 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white/95 text-slate-900 shadow-lg shadow-slate-200/70 backdrop-blur md:hidden"
+          aria-label="Open navigation"
         >
-          {isCollapsed ? (
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-              />
-            </svg>
-          )}
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
         </button>
-      </div>
+      )}
 
-      {/* Navigation Links */}
-      <nav className="flex flex-col gap-2">
-        {menuItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+      {isMobile && !isCollapsed && (
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(true)}
+          className="fixed inset-0 z-40 bg-slate-950/25 md:hidden"
+          aria-label="Close navigation overlay"
+        />
+      )}
 
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`flex items-center rounded-xl font-semibold transition-all duration-200 overflow-hidden ${
-                isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3"
-              } ${
-                isActive
-                  ? "bg-blue-50 text-blue-700 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-              title={isCollapsed ? item.name : ""}
-            >
-              <div className={isActive ? "text-blue-600" : "text-slate-400"}>
-                {item.icon}
-              </div>
-
-              {/* Text fades out and collapses when sidebar closes */}
-              <span
-                className={`whitespace-nowrap transition-all duration-300 ${
-                  isCollapsed ? "opacity-0 w-0 hidden" : "opacity-100 w-auto"
-                }`}
-              >
-                {item.name}
-              </span>
+      <aside className={asideClasses}>
+        <div
+          className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}
+        >
+          {!isCollapsed && (
+            <Link href="/" className="text-2xl font-semibold tracking-tight">
+              <BrandMark />
             </Link>
-          );
-        })}
-      </nav>
-    </aside>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="rounded-2xl border border-slate-200/70 bg-white/80 p-2.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-2">
+          {menuItems.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center overflow-hidden rounded-2xl font-semibold transition-all duration-200 ${
+                  isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3"
+                } ${
+                  isActive
+                    ? "bg-blue-50/90 text-blue-700 shadow-sm"
+                    : "text-slate-600 hover:bg-white/80 hover:text-slate-900"
+                }`}
+                title={isCollapsed ? item.name : ""}
+                onClick={() => {
+                  if (isMobile) {
+                    setIsCollapsed(true);
+                  }
+                }}
+              >
+                <div className={isActive ? "text-blue-600" : "text-slate-400"}>
+                  {item.icon}
+                </div>
+
+                <span
+                  className={`whitespace-nowrap transition-all duration-300 ${
+                    isCollapsed ? "hidden w-0 opacity-0" : "w-auto opacity-100"
+                  }`}
+                >
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto border-t border-slate-200/70 pt-4">
+          {user ? (
+            isCollapsed ? (
+              <div className="flex flex-col items-center gap-3">
+                <Link
+                  href={profileHref}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white shadow-sm"
+                  aria-label={
+                    user.email ? `Open ${user.email}` : "Open profile"
+                  }
+                  title={user.email ?? "Open profile"}
+                >
+                  {user.email?.charAt(0).toUpperCase() || "@"}
+                </Link>
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                    aria-label="Sign out"
+                  >
+                    ⎋
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Link
+                  href={profileHref}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/70"
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+                    {user.email?.charAt(0).toUpperCase() || "@"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-slate-950">
+                      {user.email || "Open profile"}
+                    </span>
+                    <span className="block truncate text-xs text-slate-500">
+                      Open your scholar profile
+                    </span>
+                  </span>
+                </Link>
+
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Sign Out
+                  </button>
+                </form>
+              </div>
+            )
+          ) : (
+            <Link
+              href="/login"
+              className="sb-button-accent w-full justify-center"
+            >
+              Log In
+            </Link>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }

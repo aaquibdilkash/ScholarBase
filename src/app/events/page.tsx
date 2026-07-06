@@ -7,49 +7,50 @@ export default async function EventsPage() {
   });
 
   return (
-    <main className="max-w-5xl mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Research Events & Conferences
-        </h1>
-        <Link
-          href="/events/new"
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200"
-        >
+    <main className="mx-auto max-w-6xl py-6">
+      <div className="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+            Research Events & Conferences
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Conferences, calls, and academic gatherings worth tracking.
+          </p>
+        </div>
+        <Link href="/events/new" className="sb-button-accent whitespace-nowrap">
           + Add Event
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {events.map((event) => (
           <div
             key={event.id}
-            // PREMIUM UI: Clean border, white bg, gentle lift and soft diffuse shadow on hover
-            className="group border border-slate-200/60 rounded-2xl p-6 bg-white shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 hover:border-blue-100 transition-all duration-300 flex flex-col"
+            className="sb-card sb-card-hover group flex flex-col"
           >
             <div className="mb-4">
-              <span className="bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full tracking-wide">
+              <span className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold tracking-wide text-blue-700">
                 {event.location}
               </span>
             </div>
 
-            <h2 className="text-xl font-bold text-slate-900 mb-2 leading-tight">
+            <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950">
               {event.title}
             </h2>
-            <p className="text-slate-600 font-medium text-sm mb-4">
+            <p className="mb-4 text-sm font-medium text-slate-600">
               Event Date:{" "}
               {new Date(event.date).toLocaleDateString(undefined, {
                 dateStyle: "medium",
               })}
             </p>
 
-            <p className="text-sm text-slate-500 line-clamp-3 mb-6 flex-grow leading-relaxed">
+            <p className="mb-6 text-sm leading-relaxed text-slate-600 line-clamp-3">
               {event.description}
             </p>
 
-            <div className="mt-auto pt-5 border-t border-slate-100">
+            <div className="mt-auto border-t border-slate-100 pt-5">
               {event.deadline && (
-                <div className="flex items-center gap-2 text-sm text-red-600 font-bold mb-5 bg-red-50/50 p-3 rounded-xl border border-red-100/50">
+                <div className="mb-5 flex items-center gap-2 rounded-2xl border border-red-100/50 bg-red-50/50 p-3 text-sm font-semibold text-red-600">
                   <svg
                     className="w-4 h-4"
                     fill="none"
@@ -73,7 +74,7 @@ export default async function EventsPage() {
                     href={event.notificationLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 text-center text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 py-2.5 rounded-xl transition-colors duration-200"
+                    className="flex-1 rounded-2xl bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
                   >
                     Brochure
                   </a>
@@ -84,7 +85,7 @@ export default async function EventsPage() {
                     href={event.applyLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 text-center text-sm font-semibold text-white bg-slate-900 hover:bg-black py-2.5 rounded-xl transition-colors duration-200"
+                    className="flex-1 rounded-2xl bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
                   >
                     Submit
                   </a>

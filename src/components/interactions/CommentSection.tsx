@@ -2,11 +2,20 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createComment } from "@/app/actions/comments";
+import { CommentLikeButton } from "@/components/interactions/CommentLikeButton";
 
 // Define the exact shape Prisma is sending down
 type User = { id: string; name: string | null; avatarUrl: string | null };
-type Reply = { id: string; content: string; createdAt: Date; author: User };
+type Like = { id: string };
+type Reply = {
+  id: string;
+  content: string;
+  createdAt: Date;
+  author: User;
+  likes: Like[];
+};
 type Comment = Reply & { replies: Reply[] };
 
 interface CommentSectionProps {
@@ -72,9 +81,12 @@ export function CommentSection({
             >
               <div className="w-10 h-10 rounded-full bg-slate-100 border overflow-hidden hover:ring-2 hover:ring-blue-200 transition">
                 {comment.author.avatarUrl ? (
-                  <img
+                  <Image
                     src={comment.author.avatarUrl}
                     alt="User"
+                    width={40}
+                    height={40}
+                    unoptimized
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -103,6 +115,13 @@ export function CommentSection({
                 <p className="text-slate-700 text-sm whitespace-pre-wrap">
                   {comment.content}
                 </p>
+                <div className="mt-3 flex items-center justify-end">
+                  <CommentLikeButton
+                    commentId={comment.id}
+                    type={type}
+                    initialLikes={comment.likes.length}
+                  />
+                </div>
               </div>
 
               {/* Toggle Reply Box Button */}
@@ -154,9 +173,12 @@ export function CommentSection({
                       >
                         <div className="w-8 h-8 rounded-full bg-slate-100 border overflow-hidden hover:ring-2 hover:ring-blue-200 transition">
                           {reply.author.avatarUrl ? (
-                            <img
+                            <Image
                               src={reply.author.avatarUrl}
                               alt="User"
+                              width={32}
+                              height={32}
+                              unoptimized
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -184,6 +206,13 @@ export function CommentSection({
                         <p className="text-slate-700 text-sm whitespace-pre-wrap">
                           {reply.content}
                         </p>
+                        <div className="mt-3 flex items-center justify-end">
+                          <CommentLikeButton
+                            commentId={reply.id}
+                            type={type}
+                            initialLikes={reply.likes.length}
+                          />
+                        </div>
                       </div>
                     </div>
                   ))}

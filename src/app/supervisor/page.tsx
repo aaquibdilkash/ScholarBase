@@ -1,5 +1,6 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
+import { BrandMark } from "@/components/BrandMark";
 
 export default async function SupervisorDirectory({
   searchParams,
@@ -12,27 +13,26 @@ export default async function SupervisorDirectory({
   });
 
   return (
-    <main className="max-w-4xl mx-auto py-10 px-4">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
+    <main className="mx-auto max-w-5xl py-6">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 mb-2">
+          <h1 className="mb-2 text-3xl font-semibold tracking-tight text-slate-950">
             Find a Supervisor
           </h1>
-          <p className="text-slate-500">
+          <p className="text-slate-600">
             Read and share mentorship experiences from fellow scholars.
           </p>
         </div>
         <Link
           href="/supervisor/add"
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200 whitespace-nowrap"
+          className="sb-button-accent whitespace-nowrap"
         >
           + Add Supervisor
         </Link>
       </div>
 
-      <form className="mb-10 relative">
-        {/* Decorative search icon */}
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+      <form className="relative mb-10">
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
           <svg
             className="h-5 w-5 text-slate-400"
             fill="none"
@@ -50,27 +50,27 @@ export default async function SupervisorDirectory({
         <input
           name="q"
           placeholder="Search by professor's name..."
-          className="w-full pl-12 p-4 bg-white border border-slate-200/80 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder:text-slate-400"
+          className="sb-input pl-12"
           defaultValue={q}
         />
       </form>
 
       {supervisors.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid gap-6 md:grid-cols-2">
           {supervisors.map((s) => (
             <Link
               key={s.id}
               href={`/supervisor/${s.id}`}
-              className="group bg-white border border-slate-200/60 rounded-2xl p-6 shadow-sm hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 hover:border-blue-100 transition-all duration-300 flex flex-col"
+              className="sb-card sb-card-hover group flex flex-col"
             >
-              <h2 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">
+              <h2 className="mb-1 text-xl font-semibold text-slate-950 group-hover:text-blue-700 transition-colors">
                 {s.name}
               </h2>
-              <p className="text-sm font-medium text-slate-500 flex-grow">
+              <p className="flex-grow text-sm font-medium text-slate-500">
                 {s.university}
               </p>
 
-              <div className="mt-6 pt-4 border-t border-slate-50 flex items-center text-sm font-semibold text-blue-600">
+              <div className="mt-6 flex items-center border-t border-slate-100 pt-4 text-sm font-semibold text-blue-700">
                 View Recommendations{" "}
                 <span className="ml-1 group-hover:translate-x-1 transition-transform">
                   →
@@ -80,8 +80,8 @@ export default async function SupervisorDirectory({
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 px-6 border-2 border-dashed border-slate-200 rounded-3xl bg-white shadow-sm flex flex-col items-center">
-          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-5">
+        <div className="flex flex-col items-center rounded-[28px] border border-dashed border-slate-200 bg-white/80 px-6 py-16 text-center shadow-sm">
+          <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
             <svg
               className="w-8 h-8 text-slate-400"
               fill="none"
@@ -96,14 +96,11 @@ export default async function SupervisorDirectory({
               ></path>
             </svg>
           </div>
-          <p className="text-slate-600 mb-6 text-lg font-medium">
-            Couldn't find the supervisor you're looking for?
+          <p className="mb-6 text-lg font-medium text-slate-600">
+            Couldn&apos;t find the supervisor you&apos;re looking for?
           </p>
-          <Link
-            href="/supervisor/add"
-            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors shadow-sm"
-          >
-            Add them to ScholarBase
+          <Link href="/supervisor/add" className="sb-button-primary">
+            Add them to <BrandMark className="font-semibold" />
           </Link>
         </div>
       )}

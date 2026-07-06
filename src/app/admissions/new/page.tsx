@@ -2,87 +2,77 @@ import { createPhdAdmission } from "@/app/actions/opportunities";
 
 export default function NewAdmissionPage() {
   return (
-    <main className="max-w-xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-bold mb-6">
-        Add PhD Admission Notification
-      </h1>
-      <form action={createPhdAdmission} className="flex flex-col gap-4">
+    <main className="mx-auto max-w-4xl py-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          Add PhD Admission Notification
+        </h1>
+        <p className="mt-2 text-slate-600">
+          Share verified admission calls for the community.
+        </p>
+      </div>
+      <form
+        action={createPhdAdmission}
+        className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+      >
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            University / Institute
-          </label>
+          <label className="sb-label">University / Institute</label>
           <input
             name="university"
             placeholder="e.g., Jamia Millia Islamia"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Department / Faculty
-          </label>
+          <label className="sb-label">Department / Faculty</label>
           <input
             name="department"
             placeholder="e.g., Department of Management Studies"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Last Date to Apply
-          </label>
-          <input
-            type="date"
-            name="deadline"
-            className="w-full p-3 border rounded-lg"
-            required
-          />
+          <label className="sb-label">Last Date to Apply</label>
+          <input type="date" name="deadline" className="sb-input" required />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Seat Matrix / Eligibility Notes
-          </label>
+          <label className="sb-label">Seat Matrix / Eligibility Notes</label>
           <textarea
             name="description"
             placeholder="Specify JRF/NET exemptions, tentative seats, or specialization availability..."
-            className="w-full p-3 border rounded-lg h-32"
+            className="sb-input h-32"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="sb-label">
             Notification Circular URL (Optional)
           </label>
           <input
             type="url"
             name="notificationLink"
             placeholder="https://university.edu/admission-notice.pdf"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Application Portal URL (Optional)
-          </label>
+          <label className="sb-label">Application Portal URL (Optional)</label>
           <input
             type="url"
             name="applyLink"
             placeholder="https://jmicoe.in"
-            className="w-full p-3 border rounded-lg"
+            className="sb-input"
           />
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 transition mt-2"
-        >
+        <button type="submit" className="sb-button-accent mt-2 self-end">
           Post Notification
         </button>
       </form>

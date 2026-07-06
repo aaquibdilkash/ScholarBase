@@ -3,7 +3,12 @@ import prisma from "@/lib/db";
 import { redirect } from "next/navigation";
 import EditProfileForm from "@/components/profile/EditProfileForm";
 
-export default async function ProfileSettingsPage() {
+export default async function ScholarSettingsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -13,7 +18,10 @@ export default async function ProfileSettingsPage() {
     redirect("/login");
   }
 
-  // Fetch their current profile from Prisma
+  if (user.id !== id) {
+    redirect(`/scholar/${user.id}/settings`);
+  }
+
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
   });
@@ -23,10 +31,12 @@ export default async function ProfileSettingsPage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto py-12 px-4">
+    <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Edit Profile</h1>
-        <p className="text-slate-500 mt-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          Edit Profile
+        </h1>
+        <p className="mt-2 text-slate-600">
           Update your academic information and handle.
         </p>
       </div>
