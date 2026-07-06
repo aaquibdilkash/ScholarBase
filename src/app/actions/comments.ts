@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
+import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
 
 export async function createComment(
     formData: FormData,
@@ -17,12 +18,80 @@ export async function createComment(
     if (!content) return
 
     if (type === 'article') {
-        await prisma.articleComment.create({
+        const comment = await prisma.articleComment.create({
             data: { content, articleId: targetId, authorId: user.id, parentId },
         })
+
+        const target = parentId
+            ? await prisma.articleComment.findUnique({
+                where: { id: parentId },
+                select: { authorId: true },
+            })
+            : await prisma.article.findUnique({
+                where: { id: targetId },
+                select: { authorId: true },
+            })
+
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId,
+                actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'article',
+                targetId: comment.id,
+                title: parentId
+                    ? `${user.email?.split('@')[0] || 'Someone'} replied to your comment`
+                    : `${user.email?.split('@')[0] || 'Someone'} commented on your article`,
+                body: content,
+            })
+        }
+
+        await notifyMentionedUsers({
+            actorId: user.id,
+            content,
+            type: 'mention',
+            targetType: 'comment',
+            targetId: comment.id,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+            bodyFactory: () => content,
+        })
     } else {
-        await prisma.socialComment.create({
+        const comment = await prisma.socialComment.create({
             data: { content, socialPostId: targetId, authorId: user.id, parentId },
+        })
+
+        const target = parentId
+            ? await prisma.socialComment.findUnique({
+                where: { id: parentId },
+                select: { authorId: true },
+            })
+            : await prisma.socialPost.findUnique({
+                where: { id: targetId },
+                select: { authorId: true },
+            })
+
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId,
+                actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'post',
+                targetId: comment.id,
+                title: parentId
+                    ? `${user.email?.split('@')[0] || 'Someone'} replied to your comment`
+                    : `${user.email?.split('@')[0] || 'Someone'} commented on your post`,
+                body: content,
+            })
+        }
+
+        await notifyMentionedUsers({
+            actorId: user.id,
+            content,
+            type: 'mention',
+            targetType: 'comment',
+            targetId: comment.id,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+            bodyFactory: () => content,
         })
     }
 

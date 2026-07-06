@@ -27,9 +27,22 @@ export default function Sidebar({ user }: SidebarProps) {
       setIsCollapsed(mobile);
     };
 
+    const handleToggle = () => {
+      if (window.innerWidth < 768) {
+        setIsCollapsed((current) => !current);
+      }
+    };
+
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("sb-toggle-sidebar", handleToggle as EventListener);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener(
+        "sb-toggle-sidebar",
+        handleToggle as EventListener,
+      );
+    };
   }, []);
 
   const menuItems = [
@@ -71,6 +84,7 @@ export default function Sidebar({ user }: SidebarProps) {
         </svg>
       ),
     },
+
     {
       name: "Supervisors",
       href: "/supervisor",
@@ -153,6 +167,44 @@ export default function Sidebar({ user }: SidebarProps) {
         </svg>
       ),
     },
+    {
+      name: "Notifications",
+      href: "/notifications",
+      icon: (
+        <svg
+          className="h-6 w-6 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.172V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.172c0 .538-.214 1.055-.595 1.438L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+          />
+        </svg>
+      ),
+    },
+    {
+      name: "Help",
+      href: "/help",
+      icon: (
+        <svg
+          className="h-6 w-6 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M8.257 13.257A6 6 0 1114 6h-1a3 3 0 00-3 3v1m0 4h.01M12 18h.01"
+          />
+        </svg>
+      ),
+    },
   ];
 
   const asideClasses = isMobile
@@ -167,29 +219,6 @@ export default function Sidebar({ user }: SidebarProps) {
 
   return (
     <>
-      {isMobile && isCollapsed && (
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(false)}
-          className="fixed left-4 top-20 z-50 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white/95 text-slate-900 shadow-lg shadow-slate-200/70 backdrop-blur md:hidden"
-          aria-label="Open navigation"
-        >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-      )}
-
       {isMobile && !isCollapsed && (
         <button
           type="button"
@@ -212,7 +241,7 @@ export default function Sidebar({ user }: SidebarProps) {
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="rounded-2xl border border-slate-200/70 bg-white/80 p-2.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
+            className="hidden rounded-2xl border border-slate-200/70 bg-white/80 p-2.5 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900 md:inline-flex"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isCollapsed ? (

@@ -1,72 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Superscript from "@tiptap/extension-superscript";
-import Subscript from "@tiptap/extension-subscript";
-import Placeholder from "@tiptap/extension-placeholder";
+import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { RichContent } from "@/components/content/RichContent";
+
+const Editor = dynamic(() => import("@/components/blog/Editor"), {
+  ssr: false,
+  loading: () => <p>Loading editor...</p>,
+});
 
 type ArticleComposerProps = {
   action: (formData: FormData) => void | Promise<void>;
 };
-
-function ToolbarButton({
-  active,
-  label,
-  onClick,
-}: {
-  active?: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 export function ArticleComposer({ action }: ArticleComposerProps) {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
 
-  const liveContent =
-    content || "<p>Start writing to see the live article preview.</p>";
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Superscript,
-      Subscript,
-      Placeholder.configure({
-        placeholder:
-          "Write your article here. Use the toolbar for formatting like a document editor.",
-      }),
-    ],
-    content: "",
-    onUpdate: ({ editor: currentEditor }) => {
-      setContent(currentEditor.getHTML());
-    },
-    editorProps: {
-      attributes: {
-        class:
-          "min-h-[26rem] rounded-[24px] border border-slate-200 bg-white px-5 py-4 text-slate-800 outline-none prose prose-slate max-w-none focus:border-blue-300",
-      },
-    },
-    immediatelyRender: false,
-  });
+  const previewContent = useMemo(
+    () => content || "<p>Start writing to see the live article preview.</p>",
+    [content],
+  );
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
@@ -96,63 +51,24 @@ export function ArticleComposer({ action }: ArticleComposerProps) {
         </div>
 
         <div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <label className="sb-label mb-0">Content</label>
-            <div className="flex flex-wrap gap-2">
-              <ToolbarButton
-                label="Bold"
-                active={editor?.isActive("bold")}
-                onClick={() => editor?.chain().focus().toggleBold().run()}
-              />
-              <ToolbarButton
-                label="Italic"
-                active={editor?.isActive("italic")}
-                onClick={() => editor?.chain().focus().toggleItalic().run()}
-              />
-              <ToolbarButton
-                label="Sup"
-                active={editor?.isActive("superscript")}
-                onClick={() =>
-                  editor?.chain().focus().toggleSuperscript().run()
-                }
-              />
-              <ToolbarButton
-                label="Sub"
-                active={editor?.isActive("subscript")}
-                onClick={() => editor?.chain().focus().toggleSubscript().run()}
-              />
-              <ToolbarButton
-                label="H2"
-                active={editor?.isActive("heading", { level: 2 })}
-                onClick={() =>
-                  editor?.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-              />
-              <ToolbarButton
-                label="List"
-                active={editor?.isActive("bulletList")}
-                onClick={() => editor?.chain().focus().toggleBulletList().run()}
-              />
-              <ToolbarButton
-                label="Quote"
-                active={editor?.isActive("blockquote")}
-                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-              />
-            </div>
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              CKEditor
+            </span>
           </div>
 
-          <input
-            type="hidden"
-            name="content"
-            value={editor?.getHTML() ?? content}
-          />
+          <input type="hidden" name="content" value={content} />
 
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-            <EditorContent editor={editor} />
+            <Editor
+              value={content}
+              onChange={setContent}
+            />
           </div>
 
           <p className="mt-2 text-xs text-slate-500">
-            This is a lightweight rich-text editor with live preview. It stays
+            This is a CKEditor writing surface with a live preview. It stays
             fast while giving you document-style formatting.
           </p>
         </div>
@@ -185,7 +101,7 @@ export function ArticleComposer({ action }: ArticleComposerProps) {
           </p>
 
           <div className="prose prose-slate max-w-none prose-headings:text-slate-950 prose-a:text-blue-700 hover:prose-a:text-blue-600">
-            <RichContent content={liveContent} />
+            <RichContent content={previewContent} />
           </div>
         </div>
       </section>
