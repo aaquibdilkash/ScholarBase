@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { signOut } from "@/app/actions";
+import { signOut } from "@/app/login/actions";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -12,7 +12,6 @@ export default async function Navbar() {
     <nav className="border-b border-slate-200/60 bg-white sticky top-0 z-10">
       {/* Changed max-w-5xl to w-full and px-8 to perfectly align with your main content padding */}
       <div className="w-full px-8 h-16 flex items-center justify-between">
-        
         {/* Left Side: Empty or Breadcrumbs (since Logo is in Sidebar) 
             I left the logo here just in case you need it for mobile later, 
             but in a desktop view, you might want to hide it using 'md:hidden' 

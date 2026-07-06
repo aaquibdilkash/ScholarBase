@@ -72,9 +72,14 @@ export default async function SupervisorPage({
                 <span className="bg-blue-50 text-blue-700 text-sm font-bold px-3 py-1 rounded-full">
                   {r.rating}/5 Stars
                 </span>
-                <span className="text-sm font-medium text-slate-400 ml-auto">
-                  By {r.author?.name || "Anonymous Scholar"}
-                </span>
+                <Link
+                  href={`/scholar/${r.author.id}`}
+                  className="font-bold hover:underline"
+                >
+                  <span className="text-sm font-medium text-slate-400 ml-auto">
+                    By {r.author?.name || "Anonymous Scholar"}
+                  </span>
+                </Link>
               </div>
               <p className="text-slate-700 leading-relaxed mt-2">
                 {r.feedback}

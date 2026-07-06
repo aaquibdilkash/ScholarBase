@@ -45,9 +45,15 @@ export default async function ArticlePage({
               {article.author.name?.charAt(0) || "S"}
             </div>
             <div>
-              <p className="text-slate-900 font-semibold">
-                {article.author.name}
-              </p>
+              <Link
+                href={`/scholar/${article.author.id}`}
+                className="font-bold hover:underline"
+              >
+                <p className="text-slate-900 font-semibold">
+                  {article.author.name}
+                </p>
+              </Link>
+
               <p className="text-sm text-slate-500">
                 {new Date(article.createdAt).toLocaleDateString(undefined, {
                   dateStyle: "medium",

@@ -29,7 +29,7 @@ export default function AddSupervisorPage() {
             </label>
             <input
               name="name"
-              placeholder="e.g., Prof. Pankaj Kumar Gupta"
+              placeholder="e.g., Prof. John Smith"
               className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900 placeholder:text-slate-400"
               required
             />
