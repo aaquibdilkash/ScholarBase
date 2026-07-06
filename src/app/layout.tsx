@@ -5,6 +5,8 @@ import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureUserProfile } from "@/lib/users";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +48,8 @@ export default async function RootLayout({
             <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>
           </div>
         </div>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
