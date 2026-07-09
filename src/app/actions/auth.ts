@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -38,24 +39,15 @@ export async function signup(formData: FormData) {
 export async function signInWithGoogle() {
     const supabase = await createClient()
 
-    // const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    // 1. Dynamically determine the exact URL based on the environment
-    const getURL = () => {
-        let url =
-            process?.env?.NEXT_PUBLIC_SITE_URL ?? // 1. Production URL
-            process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // 2. Vercel Preview URL
-            'http://localhost:3000'; // 3. Local Development
+    // 1. Read the exact domain (Notice the 'await' added here for Next.js 15+)
+    const headersList = await headers()
+    const host = headersList.get('host') // e.g., "scholar-base-preview.vercel.app"
 
-        // Vercel environment variables don't include "https://", so we must append it
-        url = url.startsWith('http') ? url : `https://${url}`;
+    // 2. Determine if we are on live Vercel (https) or local laptop (http)
+    const protocol = host?.includes('localhost') ? 'http' : 'https'
 
-        // Strip trailing slash if present so it doesn't break the path string
-        url = url.endsWith('/') ? url.slice(0, -1) : url;
-
-        return url;
-    };
-
-    const baseUrl = getURL();
+    // 3. Assemble the exact, flawless base URL
+    const baseUrl = `${protocol}://${host}`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
