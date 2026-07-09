@@ -38,7 +38,24 @@ export async function signup(formData: FormData) {
 export async function signInWithGoogle() {
     const supabase = await createClient()
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    // 1. Dynamically determine the exact URL based on the environment
+    const getURL = () => {
+        let url =
+            process?.env?.NEXT_PUBLIC_SITE_URL ?? // 1. Production URL
+            process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // 2. Vercel Preview URL
+            'http://localhost:3000'; // 3. Local Development
+
+        // Vercel environment variables don't include "https://", so we must append it
+        url = url.startsWith('http') ? url : `https://${url}`;
+
+        // Strip trailing slash if present so it doesn't break the path string
+        url = url.endsWith('/') ? url.slice(0, -1) : url;
+
+        return url;
+    };
+
+    const baseUrl = getURL();
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
