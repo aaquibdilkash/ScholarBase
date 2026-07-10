@@ -8,13 +8,16 @@ import { CommentLikeButton } from "@/components/interactions/CommentLikeButton";
 
 // Define the exact shape Prisma is sending down
 type User = { id: string; name: string | null; avatarUrl: string | null };
-type Like = { id: string };
+type Like = { userId: string };
 type Reply = {
   id: string;
   content: string;
   createdAt: Date;
   author: User;
   likes: Like[];
+  _count: {
+    likes: number;
+  };
 };
 type Comment = Reply & { replies: Reply[] };
 
@@ -22,12 +25,14 @@ interface CommentSectionProps {
   comments: Comment[];
   targetId: string;
   type: "post" | "article";
+  currentUserId: string | null;
 }
 
 export function CommentSection({
   comments,
   targetId,
   type,
+  currentUserId,
 }: CommentSectionProps) {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const mainFormRef = useRef<HTMLFormElement>(null);
@@ -119,7 +124,8 @@ export function CommentSection({
                   <CommentLikeButton
                     commentId={comment.id}
                     type={type}
-                    initialLikes={comment.likes.length}
+                    initialLikes={comment._count.likes}
+                    initialIsLiked={comment.likes.length > 0}
                   />
                 </div>
               </div>
@@ -210,7 +216,8 @@ export function CommentSection({
                           <CommentLikeButton
                             commentId={reply.id}
                             type={type}
-                            initialLikes={reply.likes.length}
+                            initialLikes={reply._count.likes}
+                            initialIsLiked={reply.likes.length > 0}
                           />
                         </div>
                       </div>

@@ -5,13 +5,13 @@ import { ensureUserProfile } from '@/lib/users'
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
-    const next = searchParams.get('next') ?? '/blog'
+    const next = searchParams.get('next') ?? '/feed'
     const safeRedirect = (() => {
         try {
             const target = new URL(next, origin)
-            return target.origin === origin ? target : new URL('/blog', origin)
+            return target.origin === origin ? target : new URL('/feed', origin)
         } catch {
-            return new URL('/blog', origin)
+            return new URL('/feed', origin)
         }
     })()
 

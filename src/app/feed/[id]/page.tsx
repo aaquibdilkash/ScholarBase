@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import Image from "next/image";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function SinglePostPage({
   params,
@@ -11,30 +12,89 @@ export default async function SinglePostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const user = await getCurrentUser();
 
   // Fetch the post deeply to include top-level comments and their nested replies
   const post = await prisma.socialPost.findUnique({
     where: { id },
-    include: {
-      author: true,
-      likes: true,
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      authorId: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+        },
+      },
+      likes: {
+        where: { userId: user?.id },
+        select: { userId: true },
+      },
       comments: {
-        where: { parentId: null }, // Only fetch top-level comments first
-        include: {
-          author: true,
-          likes: true,
+        where: { parentId: null },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          likes: {
+            where: { userId: user?.id },
+            select: { userId: true },
+          },
           replies: {
-            // Fetch the nested replies
-            include: { author: true, likes: true },
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatarUrl: true,
+                },
+              },
+              likes: {
+                where: { userId: user?.id },
+                select: { userId: true },
+              },
+              _count: {
+                select: {
+                  likes: true,
+                },
+              },
+            },
             orderBy: { createdAt: "asc" },
+          },
+          _count: {
+            select: {
+              likes: true,
+            },
           },
         },
         orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: {
+          likes: true,
+          comments: true,
+        },
       },
     },
   });
 
   if (!post) notFound();
+
+  const isLiked = !!user && post.likes.length > 0;
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -112,7 +172,8 @@ export default async function SinglePostPage({
           <LikeButton
             targetId={post.id}
             type="post"
-            initialLikes={post.likes.length}
+            initialLikes={post._count.likes}
+            initialIsLiked={isLiked}
           />
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
             <svg
@@ -128,7 +189,7 @@ export default async function SinglePostPage({
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-            {post.comments.length} Comments
+            {post._count.comments} Comments
           </div>
         </div>
       </article>
@@ -141,6 +202,7 @@ export default async function SinglePostPage({
           comments={post.comments}
           targetId={post.id}
           type="post"
+          currentUserId={user?.id ?? null}
         />
       </div>
     </main>

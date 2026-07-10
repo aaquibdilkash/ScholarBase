@@ -114,6 +114,33 @@ export async function toggleCommentLike(commentId: string, type: 'article' | 'po
                 data: { commentId, userId: user.id },
             })
         }
+
+        const isLiked =
+            !existing &&
+                (await prisma.articleCommentLike.findUnique({
+                    where: { commentId_userId: { commentId, userId: user.id } },
+                    select: { id: true },
+                }))
+                ? true
+                : !!existing
+
+        // After toggle, compute fresh count
+        const likeCount = await prisma.articleCommentLike.count({
+            where: { commentId },
+        })
+
+        // Normalize isLiked by checking existence after toggle
+        const likeExistsAfter = await prisma.articleCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } },
+            select: { id: true },
+        })
+
+        revalidatePath('/blog/[slug]', 'page')
+        revalidatePath('/feed/[id]', 'page')
+        revalidatePath('/blog')
+        revalidatePath('/feed')
+
+        return { isLiked: !!likeExistsAfter, likeCount }
     } else {
         const existing = await prisma.socialCommentLike.findUnique({
             where: { commentId_userId: { commentId, userId: user.id } },
@@ -126,10 +153,21 @@ export async function toggleCommentLike(commentId: string, type: 'article' | 'po
                 data: { commentId, userId: user.id },
             })
         }
-    }
 
-    revalidatePath('/blog/[slug]', 'page')
-    revalidatePath('/feed/[id]', 'page')
-    revalidatePath('/blog')
-    revalidatePath('/feed')
+        const likeCount = await prisma.socialCommentLike.count({
+            where: { commentId },
+        })
+
+        const likeExistsAfter = await prisma.socialCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } },
+            select: { id: true },
+        })
+
+        revalidatePath('/blog/[slug]', 'page')
+        revalidatePath('/feed/[id]', 'page')
+        revalidatePath('/blog')
+        revalidatePath('/feed')
+
+        return { isLiked: !!likeExistsAfter, likeCount }
+    }
 }

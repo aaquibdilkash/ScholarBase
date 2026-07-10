@@ -5,30 +5,92 @@ import { CommentSection } from "@/components/interactions/CommentSection";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 
+import { getCurrentUser } from "@/lib/auth";
+
 export default async function ArticlePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const user = await getCurrentUser();
   const article = await prisma.article.findUnique({
     where: { slug },
-    include: {
-      author: true,
-      likes: true,
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      createdAt: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      likes: {
+        where: { userId: user?.id },
+        select: { userId: true },
+      },
       comments: {
         where: { parentId: null },
-        include: {
-          author: true,
-          likes: true,
-          replies: { include: { author: true, likes: true } },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          likes: {
+            where: { userId: user?.id },
+            select: { userId: true },
+          },
+          replies: {
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatarUrl: true,
+                },
+              },
+              likes: {
+                where: { userId: user?.id },
+                select: { userId: true },
+              },
+              _count: {
+                select: {
+                  likes: true,
+                },
+              },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          _count: {
+            select: {
+              likes: true,
+            },
+          },
         },
         orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: {
+          likes: true,
+        },
       },
     },
   });
 
   if (!article) notFound();
+
+  const isLiked = !!user && article.likes.length > 0;
 
   return (
     <main className="mx-auto max-w-5xl py-6">
@@ -75,7 +137,8 @@ export default async function ArticlePage({
           <LikeButton
             targetId={article.id}
             type="article"
-            initialLikes={article.likes.length}
+            initialLikes={article._count.likes}
+            initialIsLiked={isLiked}
           />
         </div>
       </article>
@@ -88,6 +151,7 @@ export default async function ArticlePage({
           comments={article.comments}
           targetId={article.id}
           type="article"
+          currentUserId={user?.id ?? null}
         />
       </div>
     </main>

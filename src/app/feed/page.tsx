@@ -54,6 +54,8 @@ export default async function FeedPage({
     }).format(date);
   };
 
+  const userLikes = new Set(posts.flatMap(p => p.likes).filter(l => l.userId === user.id).map(l => l.socialPostId));
+
   return (
     <main className="mx-auto max-w-3xl py-6">
       <div className="mb-8 flex items-end justify-between gap-4">
@@ -160,7 +162,7 @@ export default async function FeedPage({
                 targetId={post.id}
                 type="post"
                 initialLikes={post.likes.length}
-                // Optional: If LikeButton accepts a prop for whether current user liked it, pass it here!
+                initialIsLiked={userLikes.has(post.id)}
               />
 
               <Link

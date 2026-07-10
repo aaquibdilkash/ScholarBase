@@ -5,8 +5,10 @@ import { requireCurrentUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
-export async function toggleLike(targetId: string, type: 'article' | 'post') {
+export async function toggleLike(targetId: string, type: 'article' | 'post'): Promise<boolean> {
     const user = await requireCurrentUser('Log in to show appreciation for this research.')
+
+    let isLiked = false;
 
     if (type === 'article') {
         const existing = await prisma.articleLike.findUnique({
@@ -14,8 +16,10 @@ export async function toggleLike(targetId: string, type: 'article' | 'post') {
         })
         if (existing) {
             await prisma.articleLike.delete({ where: { id: existing.id } })
+            isLiked = false
         } else {
             await prisma.articleLike.create({ data: { articleId: targetId, userId: user.id } })
+            isLiked = true
             const article = await prisma.article.findUnique({
                 where: { id: targetId },
                 select: { authorId: true, title: true },
@@ -39,8 +43,10 @@ export async function toggleLike(targetId: string, type: 'article' | 'post') {
         })
         if (existing) {
             await prisma.socialLike.delete({ where: { id: existing.id } })
+            isLiked = false
         } else {
             await prisma.socialLike.create({ data: { socialPostId: targetId, userId: user.id } })
+            isLiked = true
             const post = await prisma.socialPost.findUnique({
                 where: { id: targetId },
                 select: { authorId: true, content: true },
@@ -62,4 +68,6 @@ export async function toggleLike(targetId: string, type: 'article' | 'post') {
 
     revalidatePath('/blog')
     revalidatePath('/feed')
+
+    return isLiked
 }

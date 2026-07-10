@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ensureUserProfile } from "@/lib/users";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import NextTopLoader from "nextjs-toploader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
   title: "ScholarBase",
   description: "The academic hub for scholars and researchers.",
 };
+
 
 export default async function RootLayout({
   children,
@@ -39,6 +41,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased text-slate-900 min-h-screen`}
       >
+        <NextTopLoader />
         <div className="flex min-h-screen">
           <Sidebar user={user} />
 
