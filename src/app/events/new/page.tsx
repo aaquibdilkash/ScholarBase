@@ -1,9 +1,16 @@
 import { createResearchEvent } from "@/app/actions/opportunities";
+import Link from "next/link";
 
 export default function NewEventPage() {
   return (
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
+        <Link
+          href="/events"
+          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
+        >
+          ← Back to Events
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
           List a Research Event / Conference
         </h1>
@@ -57,22 +64,24 @@ export default function NewEventPage() {
         </div>
 
         <div>
-          <label className="sb-label">Official Brochure URL (Optional)</label>
+          <label className="sb-label">Official Brochure URL</label>
           <input
             type="url"
             name="notificationLink"
             placeholder="https://university.edu/brochure.pdf"
             className="sb-input"
+            required
           />
         </div>
 
         <div>
-          <label className="sb-label">Submission Portal URL (Optional)</label>
+          <label className="sb-label">Submission Portal URL</label>
           <input
             type="url"
             name="applyLink"
             placeholder="https://easychair.org/cfp/..."
             className="sb-input"
+            required
           />
         </div>
 

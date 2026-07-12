@@ -44,7 +44,7 @@ export function CommentLikeButton({
   initialIsLiked,
 }: {
   commentId: string;
-  type: "article" | "post";
+  type: "article" | "post" | "vacancy" | "admission" | "event" | "supervisor" | "recommendation";
   initialLikes: number;
   initialIsLiked: boolean;
 }) {

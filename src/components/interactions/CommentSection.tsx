@@ -15,6 +15,7 @@ type Reply = {
   createdAt: Date;
   author: User;
   likes: Like[];
+  parentId: string | null;
   _count: {
     likes: number;
   };
@@ -24,7 +25,7 @@ type Comment = Reply & { replies: Reply[] };
 interface CommentSectionProps {
   comments: Comment[];
   targetId: string;
-  type: "post" | "article";
+  type: "post" | "article" | "vacancy" | "admission" | "event" | "supervisor" | "recommendation";
   currentUserId: string | null;
 }
 
@@ -39,7 +40,7 @@ export function CommentSection({
 
   // Wrapper for the main top-level comment
   const handleMainComment = async (formData: FormData) => {
-    await createComment(formData, targetId, type);
+    await createComment(formData, targetId, type, undefined);
     mainFormRef.current?.reset(); // Clear the text area after sending
   };
 
@@ -52,32 +53,36 @@ export function CommentSection({
     }).format(new Date(date));
   };
 
+  const topLevelComments = comments.filter((comment) => !comment.parentId);
+
   return (
     <div className="space-y-8">
       {/* Form: Add a Top-Level Comment */}
-      <form ref={mainFormRef} action={handleMainComment} className="flex gap-4">
-        <div className="flex-1 flex flex-col gap-2">
-          <textarea
-            name="content"
-            placeholder="Share your thoughts on this..."
-            required
-            rows={2}
-            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
-          />
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition"
-            >
-              Post Comment
-            </button>
+      {currentUserId && (
+        <form ref={mainFormRef} action={handleMainComment} className="flex gap-4">
+          <div className="flex-1 flex flex-col gap-2">
+            <textarea
+              name="content"
+              placeholder="Share your thoughts on this..."
+              required
+              rows={2}
+              className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
+            />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition"
+              >
+                Post Comment
+              </button>
+            </div>
           </div>
-        </div>
-      </form>
+        </form>
+      )}
 
       {/* The Comment Thread */}
       <div className="space-y-6">
-        {comments.map((comment) => (
+        {topLevelComments.map((comment) => (
           <div key={comment.id} className="flex gap-4 group">
             {/* Clickable Avatar for Parent Comment */}
             <Link
@@ -131,19 +136,21 @@ export function CommentSection({
               </div>
 
               {/* Toggle Reply Box Button */}
-              <button
-                onClick={() =>
-                  setActiveReplyId(
-                    activeReplyId === comment.id ? null : comment.id,
-                  )
-                }
-                className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
-              >
-                Reply
-              </button>
+              {currentUserId && (
+                <button
+                  onClick={() =>
+                    setActiveReplyId(
+                      activeReplyId === comment.id ? null : comment.id,
+                    )
+                  }
+                  className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
+                >
+                  Reply
+                </button>
+              )}
 
               {/* The Reply Input Box (Only visible if active) */}
-              {activeReplyId === comment.id && (
+              {currentUserId && activeReplyId === comment.id && (
                 <form
                   action={async (formData) => {
                     await createComment(formData, targetId, type, comment.id); // Pass parentId
@@ -229,7 +236,7 @@ export function CommentSection({
           </div>
         ))}
 
-        {comments.length === 0 && (
+        {topLevelComments.length === 0 && (
           <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
             <p className="text-slate-500 font-medium">
               No comments yet. Start the academic discussion!

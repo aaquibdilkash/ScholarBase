@@ -111,7 +111,7 @@ export default async function NotificationsPage() {
                   {notification.body}
                 </p>
                 <p className="mt-2 text-xs font-medium text-slate-500">
-                  {new Date(notification.createdAt).toLocaleString()}
+                  {new Date(notification.createdAt).toLocaleString("en-US")}
                 </p>
               </div>
             </div>

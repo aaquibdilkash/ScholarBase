@@ -18,18 +18,67 @@ export default async function ScholarProfile({
 
   const profile = await prisma.user.findUnique({
     where: { id },
-    include: {
-      articles: true,
-      socialPosts: true,
-      followers: true,
+    select: {
+      id: true,
+      name: true,
+      handle: true,
+      avatarUrl: true,
+      bio: true,
+      followers: {
+        where: {
+          followerId: currentUser?.id,
+        },
+        select: {
+          followerId: true,
+        },
+      },
+      articles: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          excerpt: true,
+        },
+      },
+      socialPosts: {
+        select: {
+          id: true,
+          content: true,
+        },
+      },
+      vacancies: {
+        select: {
+          id: true,
+          title: true,
+          institution: true,
+        },
+      },
+      admissions: {
+        select: {
+          id: true,
+          university: true,
+          department: true,
+        },
+      },
+      events: {
+        select: {
+          id: true,
+          title: true,
+          location: true,
+          date: true,
+        },
+      },
+      _count: {
+        select: {
+          followers: true,
+        },
+      },
     },
   });
 
   if (!profile) notFound();
 
-  const isFollowing = currentUser
-    ? profile.followers.some((f) => f.followerId === currentUser.id)
-    : false;
+  const isFollowing = !!profile.followers.length;
 
   const isOwnProfile = currentUser?.id === profile.id;
 
@@ -64,7 +113,7 @@ export default async function ScholarProfile({
               {profile.handle ? `@${profile.handle}` : "No handle set"}
             </p>
             <p className="text-sm text-slate-500">
-              {profile.followers.length} followers
+              {profile._count.followers} followers
             </p>
           </div>
         </div>
@@ -145,6 +194,91 @@ export default async function ScholarProfile({
               </Link>
             ))}
           </div>
+        </section>
+
+        
+        <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Job Vacancies
+          </h2>
+          {profile.vacancies.length > 0 ? (
+            <div className="space-y-4">
+              {profile.vacancies.map((v) => (
+                <Link
+                  href={`/vacancies`}
+                  key={v.id}
+                  className="sb-card sb-card-hover group block"
+                >
+                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
+                    {v.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                    {v.institution}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No job vacancies posted yet.
+            </p>
+          )}
+        </section>
+
+                <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            PhD Admissions
+          </h2>
+          {profile.admissions.length > 0 ? (
+            <div className="space-y-4">
+              {profile.admissions.map((a) => (
+                <Link
+                  href={`/admissions`}
+                  key={a.id}
+                  className="sb-card sb-card-hover group block"
+                >
+                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
+                    {a.university}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                    {a.department}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No PhD admissions posted yet.
+            </p>
+          )}
+        </section>
+
+                <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Research Events
+          </h2>
+          {profile.events.length > 0 ? (
+            <div className="space-y-4">
+              {profile.events.map((e) => (
+                <Link
+                  href={`/events`}
+                  key={e.id}
+                  className="sb-card sb-card-hover group block"
+                >
+                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
+                    {e.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                    {e.location} - {new Date(e.date).toLocaleDateString("en-US")}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No research events posted yet.
+            </p>
+          )}
         </section>
       </div>
     </main>

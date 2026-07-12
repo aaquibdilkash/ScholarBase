@@ -22,24 +22,14 @@ model Article {
 }
 
 model Supervisor {
-  id         String   @id @default(uuid())
-  name       String
-  university String
-  department String
-  createdAt  DateTime @default(now())
-  reviews    Review[]
-}
-
-model Review {
-  id           String     @id @default(uuid())
-  feedback     String
-  rating       Int
-  turnaround   String
-  supervisorId String
-  createdAt    DateTime   @default(now())
-  userId       String
-  supervisor   Supervisor @relation(fields: [supervisorId], references: [id])
-  author       User       @relation(fields: [userId], references: [id])
+  id           String             @id @default(uuid())
+  name         String
+  university   String
+  department   String
+  createdAt    DateTime           @default(now())
+  likes        SupervisorLike[]
+  comments     SupervisorComment[]
+  recommendations Recommendation[]
 }
 
 model SocialPost {
@@ -129,25 +119,52 @@ model User {
   avatarUrl       String?
   handle          String?          @unique // New: Optional for now so it doesn't break existing users
   bio             String?                  // New: For the editable profile
-  createdAt       DateTime         @default(now())  
+  createdAt       DateTime         @default(now())
+
   articles        Article[]
   articleComments ArticleComment[]
   articleLikes    ArticleLike[]
   articleCommentLikes ArticleCommentLike[]
+
   following       Follows[]        @relation("following")
   followers       Follows[]        @relation("followers")
+
   vacancies       JobVacancy[]
   admissions      PhdAdmission[]
   events          ResearchEvent[]
-  reviews         Review[]
+
   socialComments  SocialComment[]
   socialLikes     SocialLike[]
   socialCommentLikes SocialCommentLike[]
   socialPosts     SocialPost[]
+
+  // Trending interactions (likes + comments)
+  jobVacancyLikes       JobVacancyLike[]
+  jobVacancyComments    JobVacancyComment[]
+  jobVacancyCommentLikes JobVacancyCommentLike[]
+
+  phdAdmissionLikes       PhdAdmissionLike[]
+  phdAdmissionComments    PhdAdmissionComment[]
+  phdAdmissionCommentLikes PhdAdmissionCommentLike[]
+
+  researchEventLikes       ResearchEventLike[]
+  researchEventComments    ResearchEventComment[]
+  researchEventCommentLikes ResearchEventCommentLike[]
+
+  supervisorLikes        SupervisorLike[]
+  supervisorComments     SupervisorComment[]
+  supervisorCommentLikes SupervisorCommentLike[]
+
+  recommendations         Recommendation[]
+  recommendationLikes     RecommendationLike[]
+  recommendationComments  RecommendationComment[]
+  recommendationCommentLikes RecommendationCommentLike[]
+
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
   supportRequests       SupportRequest[]
 }
+
 
 model Notification {
   id          String   @id @default(uuid())
@@ -192,7 +209,7 @@ model Follows {
 }
 
 model ResearchEvent {
-  id               String    @id @default(cuid())
+  id               String             @id @default(cuid())
   title            String
   date             DateTime
   location         String
@@ -200,34 +217,243 @@ model ResearchEvent {
   deadline         DateTime?
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime           @default(now())
   authorId         String
-  author           User      @relation(fields: [authorId], references: [id])
+  author           User               @relation(fields: [authorId], references: [id])
+
+  likes    ResearchEventLike[]
+  comments ResearchEventComment[]
+}
+
+model ResearchEventLike {
+  id               String        @id @default(uuid())
+  researchEventId String
+  userId           String
+
+  researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id])
+
+  @@unique([researchEventId, userId])
+}
+
+model ResearchEventComment {
+
+  id               String                  @id @default(uuid())
+  content          String
+  researchEventId String
+  authorId         String
+  parentId         String?
+  createdAt        DateTime                @default(now())
+
+  researchEvent    ResearchEvent           @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
+  author           User                    @relation(fields: [authorId], references: [id])
+
+  parent  ResearchEventComment? @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ResearchEventComment[] @relation("ResearchEventReplies")
+
+  likes ResearchEventCommentLike[]
+}
+
+model ResearchEventCommentLike {
+
+  id        String                 @id @default(uuid())
+  commentId String
+  userId    String
+  comment   ResearchEventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                   @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
 }
 
 model PhdAdmission {
-  id               String   @id @default(cuid())
+  id               String              @id @default(cuid())
   university       String
   department       String
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime            @default(now())
   authorId         String
-  author           User     @relation(fields: [authorId], references: [id])
+  author           User                @relation(fields: [authorId], references: [id])
+
+  likes    PhdAdmissionLike[]
+  comments PhdAdmissionComment[]
+}
+
+model PhdAdmissionLike {
+  id             String        @id @default(uuid())
+  phdAdmissionId String
+  userId         String
+
+  phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@unique([phdAdmissionId, userId])
+}
+
+
+model PhdAdmissionComment {
+  id               String             @id @default(uuid())
+  content          String
+  phdAdmissionId   String
+  authorId         String
+  parentId         String?
+  createdAt        DateTime           @default(now())
+
+  phdAdmission     PhdAdmission      @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
+  author           User              @relation(fields: [authorId], references: [id])
+
+  parent  PhdAdmissionComment? @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
+
+  likes PhdAdmissionCommentLike[]
+}
+
+model PhdAdmissionCommentLike {
+
+  id        String               @id @default(uuid())
+  commentId String
+  userId    String
+  comment   PhdAdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
 }
 
 model JobVacancy {
-  id               String   @id @default(cuid())
+  id               String           @id @default(cuid())
   title            String
   institution      String
-  type             String
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime @default(now())
+  createdAt        DateTime         @default(now())
   authorId         String
-  author           User     @relation(fields: [authorId], references: [id])
+  author           User             @relation(fields: [authorId], references: [id])
+
+  likes    JobVacancyLike[]
+  comments JobVacancyComment[]
 }
+
+model JobVacancyLike {
+  id           String      @id @default(uuid())
+  jobVacancyId String
+  userId       String
+
+  jobVacancy   JobVacancy  @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id])
+
+  @@unique([jobVacancyId, userId])
+}
+
+
+model JobVacancyComment {
+  id           String          @id @default(uuid())
+  content      String
+  jobVacancyId String
+  authorId     String
+  parentId     String?
+  createdAt    DateTime       @default(now())
+
+  jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
+  author     User        @relation(fields: [authorId], references: [id])
+
+  parent  JobVacancyComment? @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies JobVacancyComment[] @relation("JobVacancyReplies")
+
+  likes JobVacancyCommentLike[]
+}
+
+model JobVacancyCommentLike {
+
+  id        String             @id @default(uuid())
+  commentId String
+  userId    String
+  comment   JobVacancyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model SupervisorLike {
+  id           String     @id @default(uuid())
+  supervisorId String
+  userId       String
+  supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@unique([supervisorId, userId])
+}
+
+model SupervisorComment {
+  id           String                @id @default(uuid())
+  content      String
+  supervisorId String
+  authorId     String
+  parentId     String?
+  createdAt    DateTime              @default(now())
+  supervisor   Supervisor            @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  author       User                  @relation(fields: [authorId], references: [id])
+  parent       SupervisorComment?    @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      SupervisorComment[]   @relation("SupervisorReplies")
+  likes        SupervisorCommentLike[]
+}
+
+model SupervisorCommentLike {
+  id        String            @id @default(uuid())
+  commentId String
+  userId    String
+  comment   SupervisorComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model Recommendation {
+  id           String                  @id @default(uuid())
+  content      String
+  supervisorId String
+  authorId     String
+  createdAt    DateTime                @default(now())
+  supervisor   Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  author       User                    @relation(fields: [authorId], references: [id])
+  likes        RecommendationLike[]
+  comments     RecommendationComment[]
+}
+
+model RecommendationLike {
+  id               String         @id @default(uuid())
+  recommendationId String
+  userId           String
+  recommendation   Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id])
+
+  @@unique([recommendationId, userId])
+}
+
+model RecommendationComment {
+  id               String                  @id @default(uuid())
+  content          String
+  recommendationId String
+  authorId         String
+  parentId         String?
+  createdAt        DateTime                @default(now())
+  recommendation   Recommendation          @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  author           User                    @relation(fields: [authorId], references: [id])
+  parent           RecommendationComment?  @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies          RecommendationComment[] @relation("RecommendationReplies")
+  likes            RecommendationCommentLike[]
+}
+
+model RecommendationCommentLike {
+  id        String                @id @default(uuid())
+  commentId String
+  userId    String
+  comment   RecommendationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                  @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+

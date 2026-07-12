@@ -1,9 +1,16 @@
 import { createJobVacancy } from "@/app/actions/opportunities";
+import Link from "next/link";
 
 export default function NewVacancyPage() {
   return (
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
+        <Link
+          href="/vacancies"
+          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
+        >
+          ← Back to Vacancies
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
           Post an Academic Vacancy
         </h1>
@@ -35,15 +42,7 @@ export default function NewVacancyPage() {
           />
         </div>
 
-        <div>
-          <label className="sb-label">Appointment Type</label>
-          <select name="type" className="sb-input bg-white">
-            <option value="Permanent">Permanent</option>
-            <option value="Adhoc">Adhoc</option>
-            <option value="Guest Faculty">Guest Faculty</option>
-            <option value="Contractual">Contractual</option>
-          </select>
-        </div>
+
 
         <div>
           <label className="sb-label">Last Date to Apply</label>
@@ -64,25 +63,27 @@ export default function NewVacancyPage() {
 
         <div>
           <label className="sb-label">
-            Official Advertisement link (Optional)
+            Official Advertisement link
           </label>
           <input
             type="url"
             name="notificationLink"
             placeholder="https://institution.org/jobs/advt-2026.pdf"
             className="sb-input"
+            required
           />
         </div>
 
         <div>
           <label className="sb-label">
-            Application Link / Email (Optional)
+            Application Link / Email
           </label>
           <input
             type="url"
             name="applyLink"
             placeholder="https://recruitment.portal or mailto:hr@inst.edu"
             className="sb-input"
+            required
           />
         </div>
 

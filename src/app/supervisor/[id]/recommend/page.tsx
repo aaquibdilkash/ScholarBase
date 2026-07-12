@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { createReview } from "@/app/actions/reviews";
+import { createRecommendation } from "@/app/actions/recommendations";
 import Link from "next/link";
 
 export default function RecommendSupervisor({
@@ -30,7 +30,7 @@ export default function RecommendSupervisor({
 
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10">
         <form
-          action={async (fd) => await createReview(fd, id)}
+          action={async (fd) => await createRecommendation(fd, id)}
           className="flex flex-col gap-6"
         >
           <div>

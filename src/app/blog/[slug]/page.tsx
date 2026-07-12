@@ -4,6 +4,7 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
+import { CommentIcon } from "@/components/icons/CommentIcon";
 
 import { getCurrentUser } from "@/lib/auth";
 
@@ -83,6 +84,7 @@ export default async function ArticlePage({
       _count: {
         select: {
           likes: true,
+          comments: true,
         },
       },
     },
@@ -121,7 +123,7 @@ export default async function ArticlePage({
               </Link>
 
               <p className="text-sm text-slate-500">
-                {new Date(article.createdAt).toLocaleDateString(undefined, {
+                {new Date(article.createdAt).toLocaleDateString("en-US", {
                   dateStyle: "medium",
                 })}
               </p>
@@ -133,13 +135,17 @@ export default async function ArticlePage({
           <RichContent content={article.content} />
         </div>
 
-        <div className="border-t border-slate-100 pt-6 flex items-center justify-between">
+        <div className="border-t border-slate-100 pt-6 flex items-center gap-6">
           <LikeButton
             targetId={article.id}
             type="article"
             initialLikes={article._count.likes}
             initialIsLiked={isLiked}
           />
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+            <CommentIcon className="w-5 h-5" />
+            {article._count.comments} Comments
+          </div>
         </div>
       </article>
 

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createArticle } from "@/app/actions/blog";
 import { BrandMark } from "@/components/BrandMark";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
+import Link from "next/link";
 
 export default async function NewArticlePage() {
   const supabase = await createClient();
@@ -21,6 +22,12 @@ export default async function NewArticlePage() {
   return (
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
+        <Link
+          href="/blog"
+          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
+        >
+          ← Back to Blog
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
           Write an Article
         </h1>

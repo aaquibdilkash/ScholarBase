@@ -3,39 +3,7 @@
 import { toggleLike } from "@/app/actions/interactions";
 import { useState, useTransition } from "react";
 
-const EmptyHeart = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="feather feather-heart"
-  >
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-  </svg>
-);
-
-const FilledHeart = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="feather feather-heart"
-  >
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-  </svg>
-);
+import { HeartIcon } from "../icons/HeartIcon";
 
 export function LikeButton({
   targetId,
@@ -44,7 +12,7 @@ export function LikeButton({
   initialIsLiked,
 }: {
   targetId: string;
-  type: "article" | "post";
+  type: "article" | "post" | "vacancy" | "admission" | "event" | "supervisor" | "recommendation";
   initialLikes: number;
   initialIsLiked: boolean;
 }) {
@@ -72,7 +40,7 @@ export function LikeButton({
       onClick={handleClick}
       className="text-sm font-medium hover:text-blue-600 transition flex items-center gap-2"
     >
-      {isLiked ? <FilledHeart /> : <EmptyHeart />} {likeCount}
+      <HeartIcon filled={isLiked} /> {likeCount}
     </button>
   );
 }

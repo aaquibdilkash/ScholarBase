@@ -15,8 +15,12 @@ export async function createResearchEvent(formData: FormData) {
     const description = readFormValue(formData, 'description')
     const deadlineInput = readOptionalFormValue(formData, 'deadline')
     const deadline = deadlineInput ? new Date(deadlineInput) : null
-    const notificationLink = readOptionalFormValue(formData, 'notificationLink')
-    const applyLink = readOptionalFormValue(formData, 'applyLink')
+    const notificationLink = readFormValue(formData, 'notificationLink')
+    const applyLink = readFormValue(formData, 'applyLink')
+
+    if (!notificationLink || !applyLink) {
+      throw new Error('Notification and Apply links are required.')
+    }
 
     await prisma.researchEvent.create({
         data: { title, date, location, description, deadline, notificationLink, applyLink, authorId: user.id },
@@ -33,8 +37,12 @@ export async function createPhdAdmission(formData: FormData) {
     const department = readFormValue(formData, 'department')
     const deadline = new Date(readFormValue(formData, 'deadline'))
     const description = readFormValue(formData, 'description')
-    const notificationLink = readOptionalFormValue(formData, 'notificationLink')
-    const applyLink = readOptionalFormValue(formData, 'applyLink')
+    const notificationLink = readFormValue(formData, 'notificationLink')
+    const applyLink = readFormValue(formData, 'applyLink')
+
+    if (!notificationLink || !applyLink) {
+        throw new Error('Notification and Apply links are required.')
+    }
 
     await prisma.phdAdmission.create({
         data: { university, department, deadline, description, notificationLink, applyLink, authorId: user.id },
@@ -49,14 +57,17 @@ export async function createJobVacancy(formData: FormData) {
 
     const title = readFormValue(formData, 'title')
     const institution = readFormValue(formData, 'institution')
-    const type = readFormValue(formData, 'type')
     const deadline = new Date(readFormValue(formData, 'deadline'))
     const description = readFormValue(formData, 'description')
-    const notificationLink = readOptionalFormValue(formData, 'notificationLink')
-    const applyLink = readOptionalFormValue(formData, 'applyLink')
+    const notificationLink = readFormValue(formData, 'notificationLink')
+    const applyLink = readFormValue(formData, 'applyLink')
+
+    if (!notificationLink || !applyLink) {
+        throw new Error('Notification and Apply links are required.')
+    }
 
     await prisma.jobVacancy.create({
-        data: { title, institution, type, deadline, description, notificationLink, applyLink, authorId: user.id },
+        data: { title, institution, deadline, description, notificationLink, applyLink, authorId: user.id },
     })
 
     revalidatePath('/vacancies')

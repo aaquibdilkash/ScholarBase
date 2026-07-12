@@ -1,9 +1,16 @@
 import { createPhdAdmission } from "@/app/actions/opportunities";
+import Link from "next/link";
 
 export default function NewAdmissionPage() {
   return (
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
+        <Link
+          href="/admissions"
+          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
+        >
+          ← Back to Admissions
+        </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
           Add PhD Admission Notification
         </h1>
@@ -52,23 +59,25 @@ export default function NewAdmissionPage() {
 
         <div>
           <label className="sb-label">
-            Notification Circular URL (Optional)
+            Notification Circular URL
           </label>
           <input
             type="url"
             name="notificationLink"
             placeholder="https://university.edu/admission-notice.pdf"
             className="sb-input"
+            required
           />
         </div>
 
         <div>
-          <label className="sb-label">Application Portal URL (Optional)</label>
+          <label className="sb-label">Application Portal URL</label>
           <input
             type="url"
             name="applyLink"
             placeholder="https://jmicoe.in"
             className="sb-input"
+            required
           />
         </div>
 

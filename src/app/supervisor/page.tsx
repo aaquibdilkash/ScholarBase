@@ -1,16 +1,44 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
+import { getTrendingSupervisors } from "@/lib/trending";
+import { TrendingList } from "@/components/feed/TrendingList";
+import { SupervisorCard } from "./components/SupervisorCard";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function SupervisorDirectory({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const { q } = await searchParams;
-  const supervisors = await prisma.supervisor.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
-  });
+  const { q, tab } = await searchParams;
+  const isTrendingTab = tab === "trending";
+
+  const user = await getCurrentUser();
+
+  const supervisors = isTrendingTab
+    ? []
+    : await prisma.supervisor.findMany({
+        where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+        include: {
+          recommendations: true,
+          likes: {
+            where: {
+              userId: user?.id,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+              likes: true,
+            },
+          },
+        },
+      });
+
+  const trendingItems = isTrendingTab
+    ? await getTrendingSupervisors(user?.id)
+    : [];
 
   return (
     <main className="mx-auto max-w-5xl py-6">
@@ -31,52 +59,65 @@ export default async function SupervisorDirectory({
         </Link>
       </div>
 
-      <form className="relative mb-10">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-          <svg
-            className="h-5 w-5 text-slate-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-        </div>
-        <input
-          name="q"
-          placeholder="Search by professor's name..."
-          className="sb-input pl-12"
-          defaultValue={q}
-        />
-      </form>
+      <div className="mb-8 inline-flex rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm">
+        <Link
+          href="/supervisor"
+          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+            !isTrendingTab
+              ? "bg-slate-950 text-white shadow-sm"
+              : "text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          All
+        </Link>
+        <Link
+          href="/supervisor?tab=trending"
+          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
+            isTrendingTab
+              ? "bg-slate-950 text-white shadow-sm"
+              : "text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          Trending
+        </Link>
+      </div>
 
-      {supervisors.length > 0 ? (
+      {!isTrendingTab && (
+        <form className="relative mb-10">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+            <svg
+              className="h-5 w-5 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <input
+            name="q"
+            placeholder="Search by professor's name..."
+            className="sb-input pl-12"
+            defaultValue={q}
+          />
+        </form>
+      )}
+
+      {isTrendingTab ? (
+        <TrendingList items={trendingItems} />
+      ) : supervisors.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2">
           {supervisors.map((s) => (
-            <Link
+            <SupervisorCard
               key={s.id}
-              href={`/supervisor/${s.id}`}
-              className="sb-card sb-card-hover group flex flex-col"
-            >
-              <h2 className="mb-1 text-xl font-semibold text-slate-950 group-hover:text-blue-700 transition-colors">
-                {s.name}
-              </h2>
-              <p className="flex-grow text-sm font-medium text-slate-500">
-                {s.university}
-              </p>
-
-              <div className="mt-6 flex items-center border-t border-slate-100 pt-4 text-sm font-semibold text-blue-700">
-                View Recommendations{" "}
-                <span className="ml-1 group-hover:translate-x-1 transition-transform">
-                  →
-                </span>
-              </div>
-            </Link>
+              supervisor={s}
+              currentUserId={user?.id}
+            />
           ))}
         </div>
       ) : (
@@ -99,7 +140,10 @@ export default async function SupervisorDirectory({
           <p className="mb-6 text-lg font-medium text-slate-600">
             Couldn&apos;t find the supervisor you&apos;re looking for?
           </p>
-          <Link href="/supervisor/add" className="sb-button-primary">
+          <Link
+            href="/supervisor/add"
+            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300"
+          >
             Add them to <BrandMark className="font-semibold" />
           </Link>
         </div>

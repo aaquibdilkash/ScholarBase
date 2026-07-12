@@ -29,6 +29,7 @@ export async function createArticle(formData: FormData) {
             excerpt,
             slug,
             authorId: user.id,
+            published: true,
         },
     })
 
