@@ -120,11 +120,11 @@ export default async function RecommendationPage({
           </div>
         </header>
         <p className="mb-2 text-sm font-semibold text-slate-900">
-          Mentorship Rating: {recommendation.rating}
+          {`Mentorship Rating: ${recommendation.rating}/5`}
         </p>
 
         <p className="mb-8 text-slate-600 whitespace-pre-wrap">
-          Mentorship Feedback: {recommendation.feedback}
+          {`Mentorship Feedback: ${recommendation.feedback}`}
         </p>
 
         <div className="border-t border-slate-100 pt-6 flex items-center gap-6">

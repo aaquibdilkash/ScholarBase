@@ -71,7 +71,13 @@ export function RecommendationCard({
           </p>
         </div>
       </div>
-      <p className="mb-4 text-sm text-slate-500">{recommendation.feedback}</p>
+      <p className="mb-2 text-sm font-semibold text-slate-900">
+          {`Mentorship Rating: ${recommendation.rating}/5`}
+        </p>
+
+        <p className="mb-8 text-slate-600 whitespace-pre-wrap">
+          {`Mentorship Feedback: ${recommendation.feedback}`}
+        </p>
 
       <div className="mt-auto border-t border-slate-100 pt-4 flex justify-end items-center">
         <div className="flex items-center gap-4">
