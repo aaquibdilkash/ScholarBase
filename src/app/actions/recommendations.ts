@@ -13,13 +13,10 @@ export async function createRecommendation(formData: FormData, supervisorId: str
     const feedback = readFormValue(formData, 'feedback')
     const rating = Number.parseInt(readFormValue(formData, 'rating'), 10)
 
-    // Recommendation model currently stores only `content`.
-    // Merge review + recommendation by encoding rating into the content.
-    const content = `Mentorship rating: ${rating}/5\n\n${feedback}`
-
     await prisma.recommendation.create({
         data: {
-            content,
+            rating,
+            feedback,
             supervisorId,
             authorId: user.id,
         },
@@ -27,3 +24,4 @@ export async function createRecommendation(formData: FormData, supervisorId: str
 
     redirect(`/supervisor/${supervisorId}`)
 }
+

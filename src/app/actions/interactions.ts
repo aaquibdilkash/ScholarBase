@@ -161,7 +161,7 @@ export async function toggleLike(
 
             const recommendation = await prisma.recommendation.findUnique({
                 where: { id: targetId },
-                select: { authorId: true, content: true },
+                select: { authorId: true, feedback: true },
             })
 
             if (recommendation?.authorId) {
@@ -172,7 +172,7 @@ export async function toggleLike(
                     targetType: 'recommendation',
                     targetId,
                     title: `${user.email?.split('@')[0] || 'Someone'} liked your recommendation`,
-                    body: recommendation.content.slice(0, 120),
+                    body: recommendation.feedback.slice(0, 120),
                 })
             }
         }

@@ -87,6 +87,8 @@ export default async function SupervisorPage({
     );
 
   const isLiked = supervisor.likes.length > 0;
+  const hasUserRecommendation =
+    !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
 
   return (
     <main className="max-w-4xl mx-auto py-10 px-4">
@@ -114,26 +116,31 @@ export default async function SupervisorPage({
             )}
           </div>
 
-          <Link
-            href={`/supervisor/${supervisor.id}/recommend`}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200 whitespace-nowrap"
-          >
-            + Recommend
-          </Link>
+          {!hasUserRecommendation && (
+            <Link
+              href={`/supervisor/${supervisor.id}/recommend`}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200 whitespace-nowrap"
+            >
+              + Recommend
+            </Link>
+          )}
         </div>
         <div className="mt-6 border-t border-slate-100 pt-6 flex items-center justify-end">
-            <LikeButton
-                targetId={supervisor.id}
-                type="supervisor"
-                initialLikes={supervisor._count.likes}
-                initialIsLiked={isLiked}
-            />
+          <LikeButton
+            targetId={supervisor.id}
+            type="supervisor"
+            initialLikes={supervisor._count.likes}
+            initialIsLiked={isLiked}
+          />
         </div>
       </div>
 
       {/* Recommendations List */}
       <div className="space-y-6 mb-12">
-        <h3 className="text-2xl font-bold text-slate-900 mb-6" id="recommendations">
+        <h3
+          className="text-2xl font-bold text-slate-900 mb-6"
+          id="recommendations"
+        >
           Recommendations ({supervisor.recommendations.length})
         </h3>
 
@@ -156,9 +163,7 @@ export default async function SupervisorPage({
       </div>
 
       <div id="comments">
-        <h3 className="text-2xl font-bold text-slate-900 mb-6">
-          Discussion
-        </h3>
+        <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
         <CommentSection
           comments={supervisor.comments}
           targetId={supervisor.id}

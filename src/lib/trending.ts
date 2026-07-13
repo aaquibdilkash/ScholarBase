@@ -178,11 +178,7 @@ export async function getTrendingSupervisors(userId?: string) {
 
         const avgRating =
             supervisor.recommendations.reduce((sum, rec) => {
-                // Rating is encoded at the start of `content`:
-                // "Mentorship rating: X/5\n\n..."
-                const match = rec.content.match(/Mentorship rating:\s*(\d+)\/5/)
-                const rating = match ? Number.parseInt(match[1]!, 10) : 0
-                return sum + rating
+                return sum + rec.rating
             }, 0) / recommendationCount
 
         const score = avgRating * Math.log(recommendationCount + 1)

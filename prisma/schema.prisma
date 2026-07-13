@@ -26,11 +26,13 @@ model Supervisor {
   name         String
   university   String
   department   String
+  about        String?
   createdAt    DateTime           @default(now())
   likes        SupervisorLike[]
   comments     SupervisorComment[]
   recommendations Recommendation[]
 }
+
 
 model SocialPost {
   id        String          @id @default(uuid())
@@ -413,7 +415,8 @@ model SupervisorCommentLike {
 
 model Recommendation {
   id           String                  @id @default(uuid())
-  content      String
+  rating       Int
+  feedback     String
   supervisorId String
   authorId     String
   createdAt    DateTime                @default(now())
@@ -424,6 +427,7 @@ model Recommendation {
 
   @@unique([authorId, supervisorId])
 }
+
 
 model RecommendationLike {
   id               String         @id @default(uuid())

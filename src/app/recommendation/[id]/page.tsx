@@ -119,23 +119,12 @@ export default async function RecommendationPage({
             </p>
           </div>
         </header>
-
         <p className="mb-2 text-sm font-semibold text-slate-900">
-          {(() => {
-            const match = recommendation.content.match(
-              /Mentorship rating:\s*(\d+)\/5/,
-            );
-            const rating = match ? Number.parseInt(match[1]!, 10) : null;
-            return rating
-              ? `Mentorship rating: ${rating}/5`
-              : "Mentorship rating";
-          })()}
+          Mentorship Rating: {recommendation.rating}
         </p>
+
         <p className="mb-8 text-slate-600 whitespace-pre-wrap">
-          {recommendation.content.replace(
-            /Mentorship rating:\s*\d+\/5\n\n?/,
-            "",
-          )}
+          Mentorship Feedback: {recommendation.feedback}
         </p>
 
         <div className="border-t border-slate-100 pt-6 flex items-center gap-6">
