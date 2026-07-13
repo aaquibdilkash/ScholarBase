@@ -94,7 +94,7 @@ export function EventCard({ event }: { event: EventWithAuthor }) {
                         </a>
                     )}
                 </div>
-                <TrendingItemFooter item={event} />
+                <TrendingItemFooter item={{...event, type: 'event'}} />
             </div>
         </div>
     )

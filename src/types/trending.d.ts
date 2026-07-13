@@ -1,5 +1,5 @@
 
-import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost } from "@prisma/client";
+import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, SocialLike, ArticleLike, JobVacancyLike, PhdAdmissionLike, ResearchEventLike, SupervisorLike } from "@prisma/client";
 
 type TrendingItemBase = {
     score: number;
@@ -11,16 +11,21 @@ type TrendingItemBase = {
     isLiked: boolean;
 };
 
-export type TrendingSupervisor = Omit<Supervisor, 'createdAt'> & {
+export type TrendingSupervisor = Supervisor & {
     recommendations: Recommendation[];
     score: number;
     type: 'supervisor';
+    likes: SupervisorLike[];
+    _count: {
+        comments: number;
+        likes: number;
+    };
 };
 
 export type TrendingItem =
-    | (Omit<JobVacancy, 'authorId'> & TrendingItemBase & { type: 'vacancy' })
-    | (Omit<PhdAdmission, 'authorId'> & TrendingItemBase & { type: 'admission' })
-    | (Omit<ResearchEvent, 'authorId'> & TrendingItemBase & { type: 'event' })
-    | (Omit<Article, 'authorId'> & TrendingItemBase & { type: 'article' })
-    | (Omit<SocialPost, 'authorId'> & TrendingItemBase & { type: 'social-post' })
+    | (JobVacancy & TrendingItemBase & { type: 'vacancy', likes: JobVacancyLike[] })
+    | (PhdAdmission & TrendingItemBase & { type: 'admission', likes: PhdAdmissionLike[] })
+    | (ResearchEvent & TrendingItemBase & { type: 'event', likes: ResearchEventLike[] })
+    | (Article & TrendingItemBase & { type: 'article', likes: ArticleLike[] })
+    | (SocialPost & TrendingItemBase & { type: 'social-post', likes: SocialLike[] })
     | TrendingSupervisor;

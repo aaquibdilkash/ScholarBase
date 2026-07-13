@@ -127,7 +127,7 @@ const AdmissionDetailPage = async ({
               href={admission.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="sb-button"
+              className="sb-button-accent"
             >
               View Circular
             </a>

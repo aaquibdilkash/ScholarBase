@@ -34,9 +34,9 @@ export default async function BlogIndex({
         },
       });
 
-  const trendingItems = isTrendingTab
+  const trendingItems = (isTrendingTab
     ? await getTrendingArticles(user?.id)
-    : [];
+    : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (
     <main className="mx-auto max-w-6xl py-6">

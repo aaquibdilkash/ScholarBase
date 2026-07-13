@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { AdmissionsList } from "./components/AdmissionsList";
 import { getTrendingAdmissions } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
+import { TrendingItem } from "@/types/trending";
 
 export default async function AdmissionsPage({
   searchParams,
@@ -32,9 +33,9 @@ export default async function AdmissionsPage({
         },
       });
 
-  const trendingItems = isTrendingTab
+  const trendingItems = (isTrendingTab
     ? await getTrendingAdmissions(user?.id)
-    : [];
+    : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (
     <main className="mx-auto max-w-6xl py-6">
@@ -79,7 +80,7 @@ export default async function AdmissionsPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems} />
+        <TrendingList items={trendingItems as TrendingItem[]} />
       ) : (
         <AdmissionsList admissions={admissions} />
       )}

@@ -89,7 +89,7 @@ export function VacancyCard({ vacancy }: { vacancy: VacancyWithAuthor }) {
             </a>
           )}
         </div>
-        <TrendingItemFooter item={vacancy} />
+        <TrendingItemFooter item={{...vacancy, type: 'vacancy'}} />
       </div>
     </div>
   );

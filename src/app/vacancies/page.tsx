@@ -31,9 +31,9 @@ export default async function VacanciesPage({
         },
       });
 
-  const trendingItems = isTrendingTab
+  const trendingItems = (isTrendingTab
     ? await getTrendingVacancies(user?.id)
-    : [];
+    : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (
     <main className="mx-auto max-w-6xl py-6">

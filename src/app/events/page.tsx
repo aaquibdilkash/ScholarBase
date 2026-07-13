@@ -31,7 +31,9 @@ export default async function EventsPage({
         },
       });
 
-  const trendingItems = isTrendingTab ? await getTrendingEvents(user?.id) : [];
+  const trendingItems = (isTrendingTab
+    ? await getTrendingEvents(user?.id)
+    : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (
     <main className="mx-auto max-w-6xl py-6">

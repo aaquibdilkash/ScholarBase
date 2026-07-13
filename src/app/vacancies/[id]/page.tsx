@@ -127,7 +127,7 @@ const VacancyDetailPage = async ({
               href={vacancy.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="sb-button"
+              className="sb-button-accent"
             >
               View Details
             </a>

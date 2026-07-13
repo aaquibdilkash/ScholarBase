@@ -40,6 +40,7 @@ export default async function SinglePostPage({
           id: true,
           content: true,
           createdAt: true,
+          parentId: true,
           author: {
             select: {
               id: true,
@@ -56,6 +57,7 @@ export default async function SinglePostPage({
               id: true,
               content: true,
               createdAt: true,
+              parentId: true,
               author: {
                 select: {
                   id: true,

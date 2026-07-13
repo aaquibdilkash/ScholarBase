@@ -36,9 +36,9 @@ export default async function SupervisorDirectory({
         },
       });
 
-  const trendingItems = isTrendingTab
+  const trendingItems = (isTrendingTab
     ? await getTrendingSupervisors(user?.id)
-    : [];
+    : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (
     <main className="mx-auto max-w-5xl py-6">

@@ -421,6 +421,8 @@ model Recommendation {
   author       User                    @relation(fields: [authorId], references: [id])
   likes        RecommendationLike[]
   comments     RecommendationComment[]
+
+  @@unique([authorId, supervisorId])
 }
 
 model RecommendationLike {

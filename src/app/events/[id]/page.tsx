@@ -144,7 +144,7 @@ const EventDetailPage = async ({
               href={event.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="sb-button"
+              className="sb-button-accent"
             >
               View Brochure
             </a>

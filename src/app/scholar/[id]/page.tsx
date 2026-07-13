@@ -196,7 +196,6 @@ export default async function ScholarProfile({
           </div>
         </section>
 
-        
         <section>
           <h2 className="mb-4 text-xl font-semibold text-slate-950">
             Job Vacancies
@@ -205,7 +204,7 @@ export default async function ScholarProfile({
             <div className="space-y-4">
               {profile.vacancies.map((v) => (
                 <Link
-                  href={`/vacancies`}
+                  href={`/vacancies/${v.id}`}
                   key={v.id}
                   className="sb-card sb-card-hover group block"
                 >
@@ -225,7 +224,7 @@ export default async function ScholarProfile({
           )}
         </section>
 
-                <section>
+        <section>
           <h2 className="mb-4 text-xl font-semibold text-slate-950">
             PhD Admissions
           </h2>
@@ -233,7 +232,7 @@ export default async function ScholarProfile({
             <div className="space-y-4">
               {profile.admissions.map((a) => (
                 <Link
-                  href={`/admissions`}
+                  href={`/admissions/${a.id}`}
                   key={a.id}
                   className="sb-card sb-card-hover group block"
                 >
@@ -253,7 +252,7 @@ export default async function ScholarProfile({
           )}
         </section>
 
-                <section>
+        <section>
           <h2 className="mb-4 text-xl font-semibold text-slate-950">
             Research Events
           </h2>
@@ -261,7 +260,7 @@ export default async function ScholarProfile({
             <div className="space-y-4">
               {profile.events.map((e) => (
                 <Link
-                  href={`/events`}
+                  href={`/events/${e.id}`}
                   key={e.id}
                   className="sb-card sb-card-hover group block"
                 >
@@ -269,7 +268,8 @@ export default async function ScholarProfile({
                     {e.title}
                   </h3>
                   <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                    {e.location} - {new Date(e.date).toLocaleDateString("en-US")}
+                    {e.location} -{" "}
+                    {new Date(e.date).toLocaleDateString("en-US")}
                   </p>
                 </Link>
               ))}
