@@ -7,7 +7,8 @@ import { notifyUserById } from '@/lib/notifications'
 
 export async function toggleLike(
     targetId: string,
-    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation'
+    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help'
+
 ): Promise<boolean> {
     const user = await requireCurrentUser('Log in to show appreciation for this research.')
 
@@ -205,6 +206,35 @@ export async function toggleLike(
                 })
             }
         }
+    } else if (type === 'help') {
+        const existing = await prisma.helpPostLike.findUnique({
+            where: { helpPostId_userId: { helpPostId: targetId, userId: user.id } },
+        })
+
+        if (existing) {
+            await prisma.helpPostLike.delete({ where: { id: existing.id } })
+            isLiked = false
+        } else {
+            await prisma.helpPostLike.create({ data: { helpPostId: targetId, userId: user.id } })
+            isLiked = true
+
+            const helpPost = await prisma.helpPost.findUnique({
+                where: { id: targetId },
+                select: { authorId: true, title: true },
+            })
+
+            if (helpPost?.authorId) {
+                await notifyUserById({
+                    recipientId: helpPost.authorId,
+                    actorId: user.id,
+                    type: 'help-post-liked',
+                    targetType: 'help',
+                    targetId,
+                    title: `${user.email?.split('@')[0] || 'Someone'} liked your help post`,
+                    body: helpPost.title,
+                })
+            }
+        }
     }
 
     revalidatePath('/blog')
@@ -214,6 +244,7 @@ export async function toggleLike(
     revalidatePath('/events')
     revalidatePath('/supervisor')
     revalidatePath('/recommendation')
+    revalidatePath('/help')
 
     return isLiked
 }

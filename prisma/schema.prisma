@@ -114,8 +114,69 @@ model SocialLike {
   @@unique([socialPostId, userId])
 }
 
+model HelpPost {
+  id          String                 @id @default(uuid())
+  title       String
+  subject     String
+  category    String
+  message     String
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  authorId    String
+  author      User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  likes       HelpPostLike[]
+  comments    HelpPostComment[]
+}
+
+model HelpPostLike {
+  id         String    @id @default(uuid())
+  helpPostId String
+  userId     String
+
+  helpPost  HelpPost  @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@unique([helpPostId, userId])
+}
+
+model HelpPostComment {
+  id         String    @id @default(uuid())
+  content    String
+  helpPostId String
+  authorId   String
+  parentId   String?
+  createdAt  DateTime  @default(now())
+
+  helpPost   HelpPost  @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
+  author     User      @relation(fields: [authorId], references: [id])
+
+  parent     HelpPostComment? @relation("HelpPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    HelpPostComment[] @relation("HelpPostReplies")
+
+  likes      HelpPostCommentLike[]
+}
+
+model HelpPostCommentLike {
+  id        String @id @default(uuid())
+  commentId String
+  userId    String
+
+  comment   HelpPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
 model User {
+  
   id              String           @id
+
+  helpPosts       HelpPost[]
+  helpPostLikes   HelpPostLike[]
+  helpPostComments HelpPostComment[]
+  helpPostCommentLikes HelpPostCommentLike[]
+
   email           String           @unique
   name            String?
   avatarUrl       String?
@@ -164,7 +225,7 @@ model User {
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
-  supportRequests       SupportRequest[]
+  
 }
 
 
@@ -186,20 +247,7 @@ model Notification {
   @@index([recipientId, readAt])
 }
 
-model SupportRequest {
-  id        String   @id @default(uuid())
-  subject   String
-  category  String
-  message   String
-  email     String
-  userId    String?
-  status    String   @default("open")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([status, createdAt])
-}
 
 model Follows {
   followerId  String

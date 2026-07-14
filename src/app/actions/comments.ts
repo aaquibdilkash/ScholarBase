@@ -6,7 +6,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
 
-type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation';
+type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help';
 
 export async function createComment(
     formData: FormData,
@@ -19,7 +19,34 @@ export async function createComment(
     const content = readFormValue(formData, 'content')
     if (!content) return
 
-    if (type === 'article') {
+    if (type === 'help') {
+        const comment = await prisma.helpPostComment.create({
+            data: { content, helpPostId: targetId, authorId: user.id, parentId },
+        })
+
+        const target = parentId
+            ? await prisma.helpPostComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.helpPost.findUnique({ where: { id: targetId }, select: { authorId: true } })
+
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId,
+                actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'help',
+                targetId: comment.id,
+                title: parentId ? `Someone replied to your comment` : `Someone commented on your help post`,
+                body: content,
+            })
+        }
+
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+    }
+
+    else if (type === 'article') {
         const comment = await prisma.articleComment.create({
             data: { content, articleId: targetId, authorId: user.id, parentId },
         })
@@ -153,7 +180,7 @@ export async function createComment(
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
     }
-    
+
     else if (type === 'supervisor') {
         const comment = await prisma.supervisorComment.create({
             data: { content, supervisorId: targetId, authorId: user.id, parentId },
@@ -196,6 +223,7 @@ export async function createComment(
     revalidatePath('/admissions/[id]', 'page')
     revalidatePath('/supervisor/[id]', 'page')
     revalidatePath('/recommendation/[id]', 'page')
+    revalidatePath('/help/[id]', 'page')
 }
 
 export async function toggleCommentLike(commentId: string, type: CommentType) {
@@ -310,6 +338,22 @@ export async function toggleCommentLike(commentId: string, type: CommentType) {
             where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
         })
         revalidatePath('/recommendation/[id]', 'page')
+        return { isLiked: !!likeExistsAfter, likeCount }
+    }
+
+    else if (type === 'help') {
+        const existing = await prisma.helpPostCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } },
+        })
+
+        if (existing) await prisma.helpPostCommentLike.delete({ where: { id: existing.id } })
+        else await prisma.helpPostCommentLike.create({ data: { commentId, userId: user.id } })
+
+        const likeCount = await prisma.helpPostCommentLike.count({ where: { commentId } })
+        const likeExistsAfter = await prisma.helpPostCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
+        })
+        revalidatePath('/help/[id]', 'page')
         return { isLiked: !!likeExistsAfter, likeCount }
     }
 

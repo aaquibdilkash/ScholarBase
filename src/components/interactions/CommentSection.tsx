@@ -25,7 +25,16 @@ type Comment = Reply & { replies: Reply[] };
 interface CommentSectionProps {
   comments: Comment[];
   targetId: string;
-  type: "post" | "article" | "vacancy" | "admission" | "event" | "supervisor" | "recommendation";
+  type:
+    | "post"
+    | "article"
+    | "vacancy"
+    | "admission"
+    | "event"
+    | "supervisor"
+    | "recommendation"
+    | "help";
+
   currentUserId: string | null;
 }
 
@@ -59,7 +68,11 @@ export function CommentSection({
     <div className="space-y-8">
       {/* Form: Add a Top-Level Comment */}
       {currentUserId && (
-        <form ref={mainFormRef} action={handleMainComment} className="flex gap-4">
+        <form
+          ref={mainFormRef}
+          action={handleMainComment}
+          className="flex gap-4"
+        >
           <div className="flex-1 flex flex-col gap-2">
             <textarea
               name="content"

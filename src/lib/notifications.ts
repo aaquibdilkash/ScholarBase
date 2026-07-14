@@ -1,7 +1,7 @@
 import prisma from '@/lib/db'
 import { normalizeHandle } from '@/lib/form'
 
-export type NotificationTargetType = 'article' | 'post' | 'comment' | 'follow' | 'support' | 'vacancy' | 'admission' | 'event' | 'recommendation'
+export type NotificationTargetType = 'article' | 'post' | 'comment' | 'follow' | 'vacancy' | 'admission' | 'event' | 'recommendation' | 'help'
 
 export async function createNotification({
     recipientId,

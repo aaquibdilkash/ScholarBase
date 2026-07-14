@@ -5,6 +5,16 @@ import { useState, useTransition } from "react";
 
 import { HeartIcon } from "../icons/HeartIcon";
 
+type LikeType =
+  | "article"
+  | "post"
+  | "vacancy"
+  | "admission"
+  | "event"
+  | "supervisor"
+  | "recommendation"
+  | "help";
+
 export function LikeButton({
   targetId,
   type,
@@ -12,7 +22,8 @@ export function LikeButton({
   initialIsLiked,
 }: {
   targetId: string;
-  type: "article" | "post" | "vacancy" | "admission" | "event" | "supervisor" | "recommendation";
+  type: LikeType;
+
   initialLikes: number;
   initialIsLiked: boolean;
 }) {

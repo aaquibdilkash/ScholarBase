@@ -3,14 +3,22 @@ import Link from "next/link";
 
 type FooterItem = {
   id: string;
-  type: "vacancy" | "admission" | "event";
+  type: "vacancy" | "admission" | "event" | "help";
   _count: { likes: number; comments: number };
   isLiked: boolean;
 };
 
 export function TrendingItemFooter({ item }: { item: FooterItem }) {
   const { type, id } = item;
-  const detailUrl = `/${type === "vacancy" ? "vacancies" : type === "admission" ? "admissions" : "events"}/${id}`;
+  const detailUrl = `/${
+    type === "vacancy"
+      ? "vacancies"
+      : type === "admission"
+      ? "admissions"
+      : type === "help"
+      ? "help"
+      : "events"
+  }/${id}`;
 
   return (
     <div className="flex items-center gap-6">
