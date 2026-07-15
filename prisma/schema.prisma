@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 model Article {
@@ -22,17 +22,16 @@ model Article {
 }
 
 model Supervisor {
-  id           String             @id @default(uuid())
-  name         String
-  university   String
-  department   String
-  about        String?
-  createdAt    DateTime           @default(now())
-  likes        SupervisorLike[]
-  comments     SupervisorComment[]
+  id              String              @id @default(uuid())
+  name            String
+  university      String
+  department      String
+  about           String?
+  createdAt       DateTime            @default(now())
+  likes           SupervisorLike[]
+  comments        SupervisorComment[]
   recommendations Recommendation[]
 }
-
 
 model SocialPost {
   id        String          @id @default(uuid())
@@ -47,16 +46,16 @@ model SocialPost {
 }
 
 model ArticleComment {
-  id        String           @id @default(uuid())
+  id        String               @id @default(uuid())
   content   String
   articleId String
   authorId  String
   parentId  String?
-  createdAt DateTime         @default(now())
-  article   Article          @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  author    User             @relation(fields: [authorId], references: [id])
-  parent    ArticleComment?  @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies   ArticleComment[] @relation("ArticleReplies")
+  createdAt DateTime             @default(now())
+  article   Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author    User                 @relation(fields: [authorId], references: [id])
+  parent    ArticleComment?      @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ArticleComment[]     @relation("ArticleReplies")
   likes     ArticleCommentLike[]
 }
 
@@ -71,16 +70,16 @@ model ArticleLike {
 }
 
 model SocialComment {
-  id           String          @id @default(uuid())
+  id           String              @id @default(uuid())
   content      String
   socialPostId String
   authorId     String
   parentId     String?
-  createdAt    DateTime        @default(now())
-  author       User            @relation(fields: [authorId], references: [id])
-  parent       SocialComment?  @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      SocialComment[] @relation("SocialReplies")
-  socialPost   SocialPost      @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+  createdAt    DateTime            @default(now())
+  author       User                @relation(fields: [authorId], references: [id])
+  parent       SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      SocialComment[]     @relation("SocialReplies")
+  socialPost   SocialPost          @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
   likes        SocialCommentLike[]
 }
 
@@ -115,46 +114,46 @@ model SocialLike {
 }
 
 model HelpPost {
-  id          String                 @id @default(uuid())
-  title       String
-  subject     String
-  category    String
-  message     String
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  authorId    String
-  author      User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  title     String
+  subject   String
+  category  String
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  likes       HelpPostLike[]
-  comments    HelpPostComment[]
+  likes    HelpPostLike[]
+  comments HelpPostComment[]
 }
 
 model HelpPostLike {
-  id         String    @id @default(uuid())
+  id         String @id @default(uuid())
   helpPostId String
   userId     String
 
-  helpPost  HelpPost  @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id])
+  helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
 
   @@unique([helpPostId, userId])
 }
 
 model HelpPostComment {
-  id         String    @id @default(uuid())
+  id         String   @id @default(uuid())
   content    String
   helpPostId String
   authorId   String
   parentId   String?
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime @default(now())
 
-  helpPost   HelpPost  @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
-  author     User      @relation(fields: [authorId], references: [id])
+  helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id])
 
-  parent     HelpPostComment? @relation("HelpPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies    HelpPostComment[] @relation("HelpPostReplies")
+  parent  HelpPostComment?  @relation("HelpPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies HelpPostComment[] @relation("HelpPostReplies")
 
-  likes      HelpPostCommentLike[]
+  likes HelpPostCommentLike[]
 }
 
 model HelpPostCommentLike {
@@ -162,75 +161,82 @@ model HelpPostCommentLike {
   commentId String
   userId    String
 
-  comment   HelpPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User             @relation(fields: [userId], references: [id])
+  comment HelpPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
 }
 
 model User {
-  
-  id              String           @id
+  id String @id
 
-  helpPosts       HelpPost[]
-  helpPostLikes   HelpPostLike[]
-  helpPostComments HelpPostComment[]
+  helpPosts            HelpPost[]
+  helpPostLikes        HelpPostLike[]
+  helpPostComments     HelpPostComment[]
   helpPostCommentLikes HelpPostCommentLike[]
 
-  email           String           @unique
-  name            String?
-  avatarUrl       String?
-  handle          String?          @unique // New: Optional for now so it doesn't break existing users
-  bio             String?                  // New: For the editable profile
-  createdAt       DateTime         @default(now())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  handle    String?  @unique // New: Optional for now so it doesn't break existing users
+  bio       String? // New: For the editable profile
+  createdAt DateTime @default(now())
 
-  articles        Article[]
-  articleComments ArticleComment[]
-  articleLikes    ArticleLike[]
+  articles            Article[]
+  articleComments     ArticleComment[]
+  articleLikes        ArticleLike[]
   articleCommentLikes ArticleCommentLike[]
 
-  following       Follows[]        @relation("following")
-  followers       Follows[]        @relation("followers")
+  following Follows[] @relation("following")
+  followers Follows[] @relation("followers")
 
-  vacancies       JobVacancy[]
-  admissions      PhdAdmission[]
-  events          ResearchEvent[]
+  vacancies  JobVacancy[]
+  admissions PhdAdmission[]
+  events     ResearchEvent[]
 
-  socialComments  SocialComment[]
-  socialLikes     SocialLike[]
+  socialComments     SocialComment[]
+  socialLikes        SocialLike[]
   socialCommentLikes SocialCommentLike[]
-  socialPosts     SocialPost[]
+  socialPosts        SocialPost[]
 
   // Trending interactions (likes + comments)
-  jobVacancyLikes       JobVacancyLike[]
-  jobVacancyComments    JobVacancyComment[]
+  jobVacancyLikes        JobVacancyLike[]
+  jobVacancyComments     JobVacancyComment[]
   jobVacancyCommentLikes JobVacancyCommentLike[]
 
-  phdAdmissionLikes       PhdAdmissionLike[]
-  phdAdmissionComments    PhdAdmissionComment[]
+  phdAdmissionLikes        PhdAdmissionLike[]
+  phdAdmissionComments     PhdAdmissionComment[]
   phdAdmissionCommentLikes PhdAdmissionCommentLike[]
 
-  researchEventLikes       ResearchEventLike[]
-  researchEventComments    ResearchEventComment[]
+  researchEventLikes        ResearchEventLike[]
+  researchEventComments     ResearchEventComment[]
   researchEventCommentLikes ResearchEventCommentLike[]
 
   supervisorLikes        SupervisorLike[]
   supervisorComments     SupervisorComment[]
   supervisorCommentLikes SupervisorCommentLike[]
 
-  recommendations         Recommendation[]
-  recommendationLikes     RecommendationLike[]
-  recommendationComments  RecommendationComment[]
+  recommendations            Recommendation[]
+  recommendationLikes        RecommendationLike[]
+  recommendationComments     RecommendationComment[]
   recommendationCommentLikes RecommendationCommentLike[]
+
+  researchTools            ResearchTool[]
+  researchToolLikes        ResearchToolLike[]
+  researchToolComments     ResearchToolComment[]
+  researchToolCommentLikes ResearchToolCommentLike[]
+
+  journals            Journal[]
+  journalLikes        JournalLike[]
+  journalComments     JournalComment[]
+  journalCommentLikes JournalCommentLike[]
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
-  
 }
 
-
 model Notification {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   recipientId String
   actorId     String
   type        String
@@ -239,15 +245,113 @@ model Notification {
   title       String
   body        String
   readAt      DateTime?
-  createdAt   DateTime @default(now())
-  recipient   User     @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  actor       User     @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  recipient   User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, createdAt])
   @@index([recipientId, readAt])
 }
 
+model ResearchTool {
+  id          String                @id @default(uuid())
+  name        String
+  website     String
+  use         String
+  description String
+  authorId    String
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  author      User                  @relation(fields: [authorId], references: [id])
+  comments    ResearchToolComment[]
+  likes       ResearchToolLike[]
+}
 
+model ResearchToolLike {
+  id             String       @id @default(uuid())
+  researchToolId String
+  userId         String
+  researchTool   ResearchTool @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([researchToolId, userId])
+}
+
+model ResearchToolComment {
+  id             String                    @id @default(uuid())
+  content        String
+  researchToolId String
+  authorId       String
+  parentId       String?
+  createdAt      DateTime                  @default(now())
+  researchTool   ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
+  author         User                      @relation(fields: [authorId], references: [id])
+  parent         ResearchToolComment?      @relation("ResearchToolReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        ResearchToolComment[]     @relation("ResearchToolReplies")
+  likes          ResearchToolCommentLike[]
+}
+
+model ResearchToolCommentLike {
+  id        String              @id @default(uuid())
+  commentId String
+  userId    String
+  comment   ResearchToolComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model Journal {
+  id           String           @id @default(uuid())
+  title        String
+  issn         String?
+  impactFactor Float?
+  scopus       String?
+  abdcCategory String?
+  publisher    String?
+  website      String?
+  authorId     String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  author       User             @relation(fields: [authorId], references: [id])
+  comments     JournalComment[]
+  likes        JournalLike[]
+  about        String?
+}
+
+model JournalLike {
+  id        String  @id @default(uuid())
+  journalId String
+  userId    String
+  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([journalId, userId])
+}
+
+model JournalComment {
+  id        String               @id @default(uuid())
+  content   String
+  journalId String
+  authorId  String
+  parentId  String?
+  createdAt DateTime             @default(now())
+  journal   Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  author    User                 @relation(fields: [authorId], references: [id])
+  parent    JournalComment?      @relation("JournalReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   JournalComment[]     @relation("JournalReplies")
+  likes     JournalCommentLike[]
+}
+
+model JournalCommentLike {
+  id        String         @id @default(uuid())
+  commentId String
+  userId    String
+  comment   JournalComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
 
 model Follows {
   followerId  String
@@ -259,7 +363,7 @@ model Follows {
 }
 
 model ResearchEvent {
-  id               String             @id @default(cuid())
+  id               String    @id @default(cuid())
   title            String
   date             DateTime
   location         String
@@ -267,162 +371,156 @@ model ResearchEvent {
   deadline         DateTime?
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime           @default(now())
+  createdAt        DateTime  @default(now())
   authorId         String
-  author           User               @relation(fields: [authorId], references: [id])
+  author           User      @relation(fields: [authorId], references: [id])
 
   likes    ResearchEventLike[]
   comments ResearchEventComment[]
 }
 
 model ResearchEventLike {
-  id               String        @id @default(uuid())
+  id              String @id @default(uuid())
   researchEventId String
-  userId           String
+  userId          String
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  user          User           @relation(fields: [userId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
 
   @@unique([researchEventId, userId])
 }
 
 model ResearchEventComment {
-
-  id               String                  @id @default(uuid())
-  content          String
+  id              String   @id @default(uuid())
+  content         String
   researchEventId String
-  authorId         String
-  parentId         String?
-  createdAt        DateTime                @default(now())
+  authorId        String
+  parentId        String?
+  createdAt       DateTime @default(now())
 
-  researchEvent    ResearchEvent           @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  author           User                    @relation(fields: [authorId], references: [id])
+  researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id])
 
-  parent  ResearchEventComment? @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parent  ResearchEventComment?  @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResearchEventComment[] @relation("ResearchEventReplies")
 
   likes ResearchEventCommentLike[]
 }
 
 model ResearchEventCommentLike {
-
-  id        String                 @id @default(uuid())
+  id        String               @id @default(uuid())
   commentId String
   userId    String
   comment   ResearchEventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                   @relation(fields: [userId], references: [id])
+  user      User                 @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
 }
 
 model PhdAdmission {
-  id               String              @id @default(cuid())
+  id               String   @id @default(cuid())
   university       String
   department       String
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime            @default(now())
+  createdAt        DateTime @default(now())
   authorId         String
-  author           User                @relation(fields: [authorId], references: [id])
+  author           User     @relation(fields: [authorId], references: [id])
 
   likes    PhdAdmissionLike[]
   comments PhdAdmissionComment[]
 }
 
 model PhdAdmissionLike {
-  id             String        @id @default(uuid())
+  id             String @id @default(uuid())
   phdAdmissionId String
   userId         String
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  user          User         @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
 
   @@unique([phdAdmissionId, userId])
 }
 
-
 model PhdAdmissionComment {
-  id               String             @id @default(uuid())
-  content          String
-  phdAdmissionId   String
-  authorId         String
-  parentId         String?
-  createdAt        DateTime           @default(now())
+  id             String   @id @default(uuid())
+  content        String
+  phdAdmissionId String
+  authorId       String
+  parentId       String?
+  createdAt      DateTime @default(now())
 
-  phdAdmission     PhdAdmission      @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  author           User              @relation(fields: [authorId], references: [id])
+  phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id])
 
-  parent  PhdAdmissionComment? @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parent  PhdAdmissionComment?  @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
 
   likes PhdAdmissionCommentLike[]
 }
 
 model PhdAdmissionCommentLike {
-
-  id        String               @id @default(uuid())
+  id        String              @id @default(uuid())
   commentId String
   userId    String
   comment   PhdAdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                 @relation(fields: [userId], references: [id])
+  user      User                @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
 }
 
 model JobVacancy {
-  id               String           @id @default(cuid())
+  id               String   @id @default(cuid())
   title            String
   institution      String
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime         @default(now())
+  createdAt        DateTime @default(now())
   authorId         String
-  author           User             @relation(fields: [authorId], references: [id])
+  author           User     @relation(fields: [authorId], references: [id])
 
   likes    JobVacancyLike[]
   comments JobVacancyComment[]
 }
 
 model JobVacancyLike {
-  id           String      @id @default(uuid())
+  id           String @id @default(uuid())
   jobVacancyId String
   userId       String
 
-  jobVacancy   JobVacancy  @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  user         User        @relation(fields: [userId], references: [id])
+  jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id])
 
   @@unique([jobVacancyId, userId])
 }
 
-
 model JobVacancyComment {
-  id           String          @id @default(uuid())
+  id           String   @id @default(uuid())
   content      String
   jobVacancyId String
   authorId     String
   parentId     String?
-  createdAt    DateTime       @default(now())
+  createdAt    DateTime @default(now())
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  author     User        @relation(fields: [authorId], references: [id])
+  author     User       @relation(fields: [authorId], references: [id])
 
-  parent  JobVacancyComment? @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parent  JobVacancyComment?  @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies JobVacancyComment[] @relation("JobVacancyReplies")
 
   likes JobVacancyCommentLike[]
 }
 
 model JobVacancyCommentLike {
-
-  id        String             @id @default(uuid())
+  id        String            @id @default(uuid())
   commentId String
   userId    String
   comment   JobVacancyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User               @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
 }
@@ -438,16 +536,16 @@ model SupervisorLike {
 }
 
 model SupervisorComment {
-  id           String                @id @default(uuid())
+  id           String                  @id @default(uuid())
   content      String
   supervisorId String
   authorId     String
   parentId     String?
-  createdAt    DateTime              @default(now())
-  supervisor   Supervisor            @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author       User                  @relation(fields: [authorId], references: [id])
-  parent       SupervisorComment?    @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      SupervisorComment[]   @relation("SupervisorReplies")
+  createdAt    DateTime                @default(now())
+  supervisor   Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  author       User                    @relation(fields: [authorId], references: [id])
+  parent       SupervisorComment?      @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      SupervisorComment[]     @relation("SupervisorReplies")
   likes        SupervisorCommentLike[]
 }
 
@@ -462,16 +560,19 @@ model SupervisorCommentLike {
 }
 
 model Recommendation {
-  id           String                  @id @default(uuid())
-  rating       Int
-  feedback     String
-  supervisorId String
-  authorId     String
-  createdAt    DateTime                @default(now())
-  supervisor   Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author       User                    @relation(fields: [authorId], references: [id])
-  likes        RecommendationLike[]
-  comments     RecommendationComment[]
+  id                   String                  @id @default(uuid())
+  rating               Int
+  feedback             String
+  turnaroundTimeDays  Int
+  responsivenessScore  Int
+  guidanceScore       Int
+  supervisorId         String
+  authorId             String
+  createdAt            DateTime                @default(now())
+  supervisor           Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  author               User                    @relation(fields: [authorId], references: [id])
+  likes                RecommendationLike[]
+  comments             RecommendationComment[]
 
   @@unique([authorId, supervisorId])
 }
@@ -488,16 +589,16 @@ model RecommendationLike {
 }
 
 model RecommendationComment {
-  id               String                  @id @default(uuid())
+  id               String                      @id @default(uuid())
   content          String
   recommendationId String
   authorId         String
   parentId         String?
-  createdAt        DateTime                @default(now())
-  recommendation   Recommendation          @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-  author           User                    @relation(fields: [authorId], references: [id])
-  parent           RecommendationComment?  @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies          RecommendationComment[] @relation("RecommendationReplies")
+  createdAt        DateTime                    @default(now())
+  recommendation   Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  author           User                        @relation(fields: [authorId], references: [id])
+  parent           RecommendationComment?      @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies          RecommendationComment[]     @relation("RecommendationReplies")
   likes            RecommendationCommentLike[]
 }
 
@@ -510,4 +611,3 @@ model RecommendationCommentLike {
 
   @@unique([commentId, userId])
 }
-

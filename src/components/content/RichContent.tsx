@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown";
 import sanitizeHtml from "sanitize-html";
 
 type RichContentProps = {
-  content: string;
+  content?: string | null;
   className?: string;
 };
 
@@ -54,12 +54,13 @@ function sanitizeRichHtml(content: string) {
 }
 
 export function RichContent({ content, className = "" }: RichContentProps) {
-  if (!content.trim()) {
+  const normalized = content?.trim();
+  if (!normalized) {
     return null;
   }
 
-  if (htmlLikePattern.test(content)) {
-    const safeHtml = sanitizeRichHtml(content);
+  if (htmlLikePattern.test(normalized)) {
+    const safeHtml = sanitizeRichHtml(normalized);
 
     return (
       <div

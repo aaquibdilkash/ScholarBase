@@ -11,10 +11,12 @@ export async function createSupervisor(formData: FormData) {
     const name = readFormValue(formData, 'name')
     const university = readFormValue(formData, 'university')
     const department = readFormValue(formData, 'department')
+    const about = readFormValue(formData, 'about')
 
     const supervisor = await prisma.supervisor.create({
-        data: { name, university, department },
+        data: { name, university, department, about },
     })
+
 
     redirect(`/supervisor/${supervisor.id}`)
 }

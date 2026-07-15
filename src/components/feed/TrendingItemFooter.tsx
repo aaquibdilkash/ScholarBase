@@ -3,7 +3,7 @@ import Link from "next/link";
 
 type FooterItem = {
   id: string;
-  type: "vacancy" | "admission" | "event" | "help";
+  type: "vacancy" | "admission" | "event" | "help" | "journal" | "researchTool";
   _count: { likes: number; comments: number };
   isLiked: boolean;
 };
@@ -14,10 +14,14 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
     type === "vacancy"
       ? "vacancies"
       : type === "admission"
-      ? "admissions"
-      : type === "help"
-      ? "help"
-      : "events"
+        ? "admissions"
+        : type === "help"
+          ? "help"
+          : type === "journal"
+            ? "journals"
+            : type === "researchTool"
+              ? "research-tools"
+              : "events"
   }/${id}`;
 
   return (

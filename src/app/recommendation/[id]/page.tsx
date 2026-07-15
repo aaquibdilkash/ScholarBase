@@ -123,6 +123,12 @@ export default async function RecommendationPage({
           {`Mentorship Rating: ${recommendation.rating}/5`}
         </p>
 
+        <div className="mb-6 text-sm text-slate-700 space-y-1">
+          <p>{`Turnaround Time: ${recommendation.turnaroundTimeDays} day(s)`}</p>
+          <p>{`Responsiveness: ${recommendation.responsivenessScore}/5`}</p>
+          <p>{`Guidance Quality: ${recommendation.guidanceScore}/5`}</p>
+        </div>
+
         <p className="mb-8 text-slate-600 whitespace-pre-wrap">
           {`Mentorship Feedback: ${recommendation.feedback}`}
         </p>

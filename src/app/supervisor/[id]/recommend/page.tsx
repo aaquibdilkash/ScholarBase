@@ -47,6 +47,57 @@ export default function RecommendSupervisor({
             </select>
           </div>
 
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Feedback Turnaround Time (days)
+              </label>
+              <input
+                type="number"
+                name="turnaroundTimeDays"
+                min={0}
+                step={1}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+                required
+                placeholder="e.g., 7"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Responsiveness (1-5)
+              </label>
+              <select
+                name="responsivenessScore"
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+                required
+              >
+                <option value="5">5 - Very responsive</option>
+                <option value="4">4 - Responsive</option>
+                <option value="3">3 - Average</option>
+                <option value="2">2 - Slow</option>
+                <option value="1">1 - Very slow</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Guidance Quality (1-5)
+              </label>
+              <select
+                name="guidanceScore"
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+                required
+              >
+                <option value="5">5 - Excellent guidance</option>
+                <option value="4">4 - Strong guidance</option>
+                <option value="3">3 - Adequate</option>
+                <option value="2">2 - Limited guidance</option>
+                <option value="1">1 - Poor guidance</option>
+              </select>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Your Feedback

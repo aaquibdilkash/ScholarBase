@@ -7,7 +7,7 @@ import { notifyUserById } from '@/lib/notifications'
 
 export async function toggleLike(
     targetId: string,
-    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help'
+    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool'
 
 ): Promise<boolean> {
     const user = await requireCurrentUser('Log in to show appreciation for this research.')
@@ -43,7 +43,11 @@ export async function toggleLike(
                 })
             }
         }
-    } else if (type === 'post') {
+        // Articles use slugs in the URL, so we clear the whole blog layout cache to be safe
+        revalidatePath('/blog', 'layout')
+    }
+
+    else if (type === 'post') {
         const existing = await prisma.socialLike.findUnique({
             where: { socialPostId_userId: { socialPostId: targetId, userId: user.id } },
         })
@@ -72,7 +76,11 @@ export async function toggleLike(
                 })
             }
         }
-    } else if (type === 'vacancy') {
+        revalidatePath('/feed')
+        revalidatePath(`/feed/${targetId}`)
+    }
+
+    else if (type === 'vacancy') {
         const existing = await prisma.jobVacancyLike.findUnique({
             where: { jobVacancyId_userId: { jobVacancyId: targetId, userId: user.id } },
         })
@@ -101,7 +109,11 @@ export async function toggleLike(
                 })
             }
         }
-    } else if (type === 'admission') {
+        revalidatePath('/vacancies')
+        revalidatePath(`/vacancies/${targetId}`)
+    }
+
+    else if (type === 'admission') {
         const existing = await prisma.phdAdmissionLike.findUnique({
             where: { phdAdmissionId_userId: { phdAdmissionId: targetId, userId: user.id } },
         })
@@ -129,7 +141,11 @@ export async function toggleLike(
                 })
             }
         }
-    } else if (type === 'supervisor') {
+        revalidatePath('/admissions')
+        revalidatePath(`/admissions/${targetId}`)
+    }
+
+    else if (type === 'supervisor') {
         const existing = await prisma.supervisorLike.findUnique({
             where: { supervisorId_userId: { supervisorId: targetId, userId: user.id } },
         })
@@ -148,7 +164,11 @@ export async function toggleLike(
 
             // TODO: How to notify a supervisor? They don't have a userId
         }
-    } else if (type === 'recommendation') {
+        revalidatePath('/supervisor')
+        revalidatePath(`/supervisor/${targetId}`)
+    }
+
+    else if (type === 'recommendation') {
         const existing = await prisma.recommendationLike.findUnique({
             where: { recommendationId_userId: { recommendationId: targetId, userId: user.id } },
         })
@@ -177,11 +197,14 @@ export async function toggleLike(
                 })
             }
         }
-    } else if (type === 'event') {
+        revalidatePath('/recommendation')
+        revalidatePath(`/recommendation/${targetId}`)
+    }
+
+    else if (type === 'event') {
         const existing = await prisma.researchEventLike.findUnique({
             where: { researchEventId_userId: { researchEventId: targetId, userId: user.id } },
         })
-
 
         if (existing) {
             await prisma.researchEventLike.delete({ where: { id: existing.id } })
@@ -206,7 +229,11 @@ export async function toggleLike(
                 })
             }
         }
-    } else if (type === 'help') {
+        revalidatePath('/events')
+        revalidatePath(`/events/${targetId}`)
+    }
+
+    else if (type === 'help') {
         const existing = await prisma.helpPostLike.findUnique({
             where: { helpPostId_userId: { helpPostId: targetId, userId: user.id } },
         })
@@ -235,114 +262,75 @@ export async function toggleLike(
                 })
             }
         }
+        revalidatePath('/help')
+        revalidatePath(`/help/${targetId}`)
     }
 
-    revalidatePath('/blog')
-    revalidatePath('/feed')
-    revalidatePath('/vacancies')
-    revalidatePath('/admissions')
-    revalidatePath('/events')
-    revalidatePath('/supervisor')
-    revalidatePath('/recommendation')
-    revalidatePath('/help')
+    else if (type === 'journal') {
+        const existing = await prisma.journalLike.findUnique({
+            where: { journalId_userId: { journalId: targetId, userId: user.id } },
+        })
+
+        if (existing) {
+            await prisma.journalLike.delete({ where: { id: existing.id } })
+            isLiked = false
+        } else {
+            await prisma.journalLike.create({ data: { journalId: targetId, userId: user.id } })
+            isLiked = true
+
+            const journal = await prisma.journal.findUnique({
+                where: { id: targetId },
+                select: { authorId: true, title: true },
+            })
+
+            if (journal?.authorId) {
+                await notifyUserById({
+                    recipientId: journal.authorId,
+                    actorId: user.id,
+                    type: 'journal-liked',
+                    targetType: 'journal',
+                    targetId,
+                    title: `${user.email?.split('@')[0] || 'Someone'} liked your journal`,
+                    body: journal.title,
+                })
+            }
+        }
+        revalidatePath('/journals')
+        revalidatePath(`/journals/${targetId}`)
+    }
+
+    else if (type === 'researchTool') {
+        const existing = await prisma.researchToolLike.findUnique({
+            where: { researchToolId_userId: { researchToolId: targetId, userId: user.id } },
+        })
+
+        if (existing) {
+            await prisma.researchToolLike.delete({ where: { id: existing.id } })
+            isLiked = false
+        } else {
+            await prisma.researchToolLike.create({ data: { researchToolId: targetId, userId: user.id } })
+            isLiked = true
+
+            const researchTool = await prisma.researchTool.findUnique({
+                where: { id: targetId },
+                select: { authorId: true, name: true },
+            })
+
+            if (researchTool?.authorId) {
+                await notifyUserById({
+                    recipientId: researchTool.authorId,
+                    actorId: user.id,
+                    type: 'research-tool-liked',
+                    targetType: 'researchTool',
+                    targetId,
+                    title: `${user.email?.split('@')[0] || 'Someone'} liked your research tool`,
+                    body: researchTool.name,
+                })
+            }
+        }
+        revalidatePath('/research-tools')
+        revalidatePath(`/research-tools/${targetId}`)
+    }
 
     return isLiked
-}
-
-
-export async function addComment(
-    targetId: string,
-    type: 'vacancy' | 'admission' | 'event',
-    content: string,
-    parentId?: string
-) {
-    const user = await requireCurrentUser('You must be logged in to comment.')
-
-    if (type === 'vacancy') {
-        const vacancy = await prisma.jobVacancy.findUnique({
-            where: { id: targetId },
-            select: { authorId: true, title: true },
-        })
-        if (!vacancy) throw new Error('Vacancy not found')
-
-        await prisma.jobVacancyComment.create({
-            data: {
-                jobVacancyId: targetId,
-                authorId: user.id,
-                content,
-                parentId,
-            },
-        })
-
-        if (vacancy.authorId) {
-            await notifyUserById({
-                recipientId: vacancy.authorId,
-                actorId: user.id,
-                type: 'vacancy-comment',
-                targetType: 'vacancy',
-                targetId,
-                title: `${user.email?.split('@')[0] || 'Someone'} commented on your vacancy posting`,
-                body: content,
-            })
-        }
-    } else if (type === 'admission') {
-        const admission = await prisma.phdAdmission.findUnique({
-            where: { id: targetId },
-            select: { authorId: true, university: true, department: true },
-        })
-        if (!admission) throw new Error('Admission not found')
-
-        await prisma.phdAdmissionComment.create({
-            data: {
-                phdAdmissionId: targetId,
-                authorId: user.id,
-                content,
-                parentId,
-            },
-        })
-
-        if (admission.authorId) {
-            await notifyUserById({
-                recipientId: admission.authorId,
-                actorId: user.id,
-                type: 'admission-comment',
-                targetType: 'admission',
-                targetId,
-                title: `${user.email?.split('@')[0] || 'Someone'} commented on your PhD admission posting`,
-                body: content,
-            })
-        }
-    } else if (type === 'event') {
-        const event = await prisma.researchEvent.findUnique({
-            where: { id: targetId },
-            select: { authorId: true, title: true },
-        })
-        if (!event) throw new Error('Event not found')
-
-        await prisma.researchEventComment.create({
-            data: {
-                researchEventId: targetId,
-                authorId: user.id,
-                content,
-                parentId,
-            },
-        })
-
-        if (event.authorId) {
-            await notifyUserById({
-                recipientId: event.authorId,
-                actorId: user.id,
-                type: 'event-comment',
-                targetType: 'event',
-                targetId,
-                title: `${user.email?.split('@')[0] || 'Someone'} commented on your event posting`,
-                body: content,
-            })
-        }
-    }
-
-    revalidatePath('/feed')
-    revalidatePath('/vacancies')
-    revalidatePath('/admissions')
-    revalidatePath('/events')
 }

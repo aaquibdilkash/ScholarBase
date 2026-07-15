@@ -52,6 +52,15 @@ export default function AddSupervisorPage() {
             />
           </div>
 
+          <div>
+            <label className="sb-label">About (Optional)</label>
+            <textarea
+              name="about"
+              placeholder="A short bio / research interests"
+              className="sb-input min-h-[120px] resize-y"
+            />
+          </div>
+
           <div className="pt-4 border-t border-slate-100 flex justify-end">
             <button type="submit" className="sb-button-accent">
               Add Supervisor

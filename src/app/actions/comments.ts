@@ -6,7 +6,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
 
-type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help';
+type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool';
 
 export async function createComment(
     formData: FormData,
@@ -44,6 +44,8 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        revalidatePath(`/help/${targetId}`)
     }
 
     else if (type === 'article') {
@@ -71,6 +73,9 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        // Target ID for articles is UUID, but route uses slug. Clearing the article layout is safest here.
+        revalidatePath('/blog/[slug]', 'page')
     }
 
     else if (type === 'post') {
@@ -98,6 +103,9 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        revalidatePath('/feed')
+        revalidatePath(`/feed/${targetId}`)
     }
 
     else if (type === 'event') {
@@ -125,6 +133,8 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        revalidatePath(`/events/${targetId}`)
     }
 
     else if (type === 'vacancy') {
@@ -152,6 +162,8 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        revalidatePath(`/vacancies/${targetId}`)
     }
 
     else if (type === 'admission') {
@@ -179,13 +191,16 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        revalidatePath(`/admissions/${targetId}`)
     }
 
     else if (type === 'supervisor') {
         const comment = await prisma.supervisorComment.create({
             data: { content, supervisorId: targetId, authorId: user.id, parentId },
         })
-        // Note: Supervisors don't have user accounts, so no notifications for now
+        
+        revalidatePath(`/supervisor/${targetId}`)
     }
 
     else if (type === 'recommendation') {
@@ -213,17 +228,67 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
+        
+        revalidatePath(`/recommendation/${targetId}`)
     }
 
-    // Refresh all possible pages so the new comment appears instantly
-    revalidatePath('/blog/[slug]', 'page')
-    revalidatePath('/feed')
-    revalidatePath('/events/[id]', 'page')
-    revalidatePath('/vacancies/[id]', 'page')
-    revalidatePath('/admissions/[id]', 'page')
-    revalidatePath('/supervisor/[id]', 'page')
-    revalidatePath('/recommendation/[id]', 'page')
-    revalidatePath('/help/[id]', 'page')
+    else if (type === 'journal') {
+        const comment = await prisma.journalComment.create({
+            data: { content, journalId: targetId, authorId: user.id, parentId },
+        })
+
+        const target = parentId
+            ? await prisma.journalComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.journal.findUnique({ where: { id: targetId }, select: { authorId: true } })
+
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId,
+                actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'journal',
+                targetId: comment.id,
+                title: parentId ? `Someone replied to your comment` : `Someone commented on your journal post`,
+                body: content,
+            })
+        }
+
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        
+        revalidatePath(`/journals/${targetId}`)
+    }
+
+    else if (type === 'researchTool') {
+        const comment = await prisma.researchToolComment.create({
+            data: { content, researchToolId: targetId, authorId: user.id, parentId },
+        })
+
+        const target = parentId
+            ? await prisma.researchToolComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.researchTool.findUnique({ where: { id: targetId }, select: { authorId: true } })
+
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId,
+                actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'researchTool',
+                targetId: comment.id,
+                title: parentId ? `Someone replied to your comment` : `Someone commented on your research tool`,
+                body: content,
+            })
+        }
+
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        
+        revalidatePath(`/research-tools/${targetId}`)
+    }
 }
 
 export async function toggleCommentLike(commentId: string, type: CommentType) {
@@ -354,6 +419,38 @@ export async function toggleCommentLike(commentId: string, type: CommentType) {
             where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
         })
         revalidatePath('/help/[id]', 'page')
+        return { isLiked: !!likeExistsAfter, likeCount }
+    }
+
+    else if (type === 'journal') {
+        const existing = await prisma.journalCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } },
+        })
+
+        if (existing) await prisma.journalCommentLike.delete({ where: { id: existing.id } })
+        else await prisma.journalCommentLike.create({ data: { commentId, userId: user.id } })
+
+        const likeCount = await prisma.journalCommentLike.count({ where: { commentId } })
+        const likeExistsAfter = await prisma.journalCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
+        })
+        revalidatePath('/journals/[id]', 'page')
+        return { isLiked: !!likeExistsAfter, likeCount }
+    }
+
+    else if (type === 'researchTool') {
+        const existing = await prisma.researchToolCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } },
+        })
+
+        if (existing) await prisma.researchToolCommentLike.delete({ where: { id: existing.id } })
+        else await prisma.researchToolCommentLike.create({ data: { commentId, userId: user.id } })
+
+        const likeCount = await prisma.researchToolCommentLike.count({ where: { commentId } })
+        const likeExistsAfter = await prisma.researchToolCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
+        })
+        revalidatePath('/research-tools/[id]', 'page')
         return { isLiked: !!likeExistsAfter, likeCount }
     }
 

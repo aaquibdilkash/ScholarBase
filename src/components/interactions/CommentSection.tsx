@@ -33,7 +33,9 @@ interface CommentSectionProps {
     | "event"
     | "supervisor"
     | "recommendation"
-    | "help";
+    | "help"
+    | "researchTool"
+    | "journal";
 
   currentUserId: string | null;
 }

@@ -52,7 +52,9 @@ export function CommentLikeButton({
     | "event"
     | "supervisor"
     | "recommendation"
-    | "help";
+    | "help"
+    | "researchTool"
+    | "journal";
   initialLikes: number;
   initialIsLiked: boolean;
 }) {

@@ -114,6 +114,12 @@ export default async function SupervisorPage({
                 {supervisor.department}
               </p>
             )}
+
+            {supervisor.about && (
+              <p className="mt-4 text-sm leading-6 text-slate-700">
+                {supervisor.about}
+              </p>
+            )}
           </div>
 
           {!hasUserRecommendation && (
