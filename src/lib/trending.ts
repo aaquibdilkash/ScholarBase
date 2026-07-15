@@ -14,8 +14,9 @@ function calculateTrendingScore(item: {
 
 async function getTrending<T extends { _count: { likes: number; comments: number }, likes?: { userId: string }[], createdAt: Date }>(
     fetcher: () => Promise<T[]>,
-    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post'
+    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool'
 ) {
+
 
     const items = await fetcher()
 
@@ -148,8 +149,51 @@ export async function getTrendingSocialPosts(userId?: string) {
     }), 'social-post')
 }
 
+export async function getTrendingJournals(userId?: string) {
+    const since = new Date()
+    since.setDate(since.getDate() - TRENDING_DAYS)
+
+    const commonInclude = {
+        author: true,
+        _count: {
+            select: {
+                likes: true,
+                comments: true,
+            },
+        },
+        likes: userId ? { where: { userId } } : false,
+    }
+
+    return getTrending(() => prisma.journal.findMany({
+        where: { createdAt: { gte: since } },
+        include: commonInclude,
+    }), 'journal')
+}
+
+export async function getTrendingResearchTools(userId?: string) {
+    const since = new Date()
+    since.setDate(since.getDate() - TRENDING_DAYS)
+
+    const commonInclude = {
+        author: true,
+        _count: {
+            select: {
+                likes: true,
+                comments: true,
+            },
+        },
+        likes: userId ? { where: { userId } } : false,
+    }
+
+    return getTrending(() => prisma.researchTool.findMany({
+        where: { createdAt: { gte: since } },
+        include: commonInclude,
+    }), 'researchTool')
+}
+
 export async function getTrendingSupervisors(userId?: string) {
     const supervisors = await prisma.supervisor.findMany({
+
         include: {
             // SupervisorCard needs recommendations to compute avg rating
             recommendations: true,

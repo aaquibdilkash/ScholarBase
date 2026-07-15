@@ -28,4 +28,7 @@ export type TrendingItem =
     | (ResearchEvent & TrendingItemBase & { type: 'event', likes: ResearchEventLike[] })
     | (Article & TrendingItemBase & { type: 'article', likes: ArticleLike[] })
     | (SocialPost & TrendingItemBase & { type: 'social-post', likes: SocialLike[] })
+    | (import("@prisma/client").Journal & TrendingItemBase & { type: 'journal', likes: import("@prisma/client").JournalLike[] })
+    | (import("@prisma/client").ResearchTool & TrendingItemBase & { type: 'researchTool', likes: import("@prisma/client").ResearchToolLike[] })
     | TrendingSupervisor;
+
