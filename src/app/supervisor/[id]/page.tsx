@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { RecommendationCard } from "@/app/supervisor/components/RecommendationCard";
+import { deleteSupervisor } from "@/app/actions/supervisors";
 
 export default async function SupervisorPage({
   params,
@@ -19,63 +20,28 @@ export default async function SupervisorPage({
       recommendations: {
         include: {
           author: true,
-          likes: {
-            where: {
-              userId: user?.id,
-            },
-          },
-          _count: {
-            select: {
-              comments: true,
-              likes: true,
-            },
-          },
+          likes: { where: { userId: user?.id } },
+          _count: { select: { comments: true, likes: true } },
         },
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
       },
       comments: {
         where: { parentId: null },
         include: {
           author: true,
-          likes: {
-            where: {
-              userId: user?.id,
-            },
-          },
-          _count: {
-            select: {
-              likes: true,
-            },
-          },
+          likes: { where: { userId: user?.id } },
+          _count: { select: { likes: true } },
           replies: {
             include: {
               author: true,
-              likes: {
-                where: {
-                  userId: user?.id,
-                },
-              },
-              _count: {
-                select: {
-                  likes: true,
-                },
-              },
+              likes: { where: { userId: user?.id } },
+              _count: { select: { likes: true } },
             },
           },
         },
       },
-      likes: {
-        where: {
-          userId: user?.id,
-        },
-      },
-      _count: {
-        select: {
-          likes: true,
-        },
-      },
+      likes: { where: { userId: user?.id } },
+      _count: { select: { likes: true } },
     },
   });
 
@@ -85,6 +51,11 @@ export default async function SupervisorPage({
         Supervisor not found
       </div>
     );
+
+  async function handleDelete() {
+    "use server";
+    await deleteSupervisor(supervisor!.id);
+  }
 
   const isLiked = supervisor.likes.length > 0;
   const hasUserRecommendation =
@@ -101,7 +72,7 @@ export default async function SupervisorPage({
 
       {/* Profile Header Card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 mb-8">
-        <div className=" flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
               {supervisor.name}
@@ -114,7 +85,6 @@ export default async function SupervisorPage({
                 {supervisor.department}
               </p>
             )}
-
             {supervisor.about && (
               <p className="mt-4 text-sm leading-6 text-slate-700">
                 {supervisor.about}
@@ -131,14 +101,32 @@ export default async function SupervisorPage({
             </Link>
           )}
         </div>
-        <div className="mt-6 border-t border-slate-100 pt-6 flex items-center justify-end">
-          <LikeButton
-            targetId={supervisor.id}
-            type="supervisor"
-            initialLikes={supervisor._count.likes}
-            initialIsLiked={isLiked}
-          />
-        </div>
+
+        {/* Management Controls */}
+        {user?.id && (
+          <div className="mt-6 border-t border-slate-100 pt-6 flex items-center justify-end gap-4">
+            <LikeButton
+              targetId={supervisor.id}
+              type="supervisor"
+              initialLikes={supervisor._count.likes}
+              initialIsLiked={isLiked}
+            />
+            <Link
+              href={`/supervisor/${supervisor.id}/edit`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-4 py-2 rounded-lg border border-blue-100"
+            >
+              Edit Profile
+            </Link>
+            <form action={handleDelete}>
+              <button
+                type="submit"
+                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-4 py-2 rounded-lg border border-red-100"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       {/* Recommendations List */}
@@ -149,7 +137,6 @@ export default async function SupervisorPage({
         >
           Recommendations ({supervisor.recommendations.length})
         </h3>
-
         {supervisor.recommendations.length === 0 ? (
           <p className="text-slate-500 bg-white p-8 rounded-2xl border border-slate-200/60 text-center">
             No recommendations yet. Be the first to share your experience!

@@ -46,7 +46,7 @@ export default async function EventsPage({
             Conferences, calls, and academic gatherings worth tracking.
           </p>
         </div>
-        <Link href="/events/new" className="sb-button-accent whitespace-nowrap">
+        <Link href="/events/add" className="sb-button-accent whitespace-nowrap">
           + Add Event
         </Link>
       </div>

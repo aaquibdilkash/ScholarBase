@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getResearchToolById } from "../../actions/researchTools";
 import { RichContent } from "@/components/content/RichContent";
+import { deleteResearchTool } from "@/app/actions/researchTools";
 
 const ResearchToolDetailPage = async ({
   params,
@@ -24,6 +25,12 @@ const ResearchToolDetailPage = async ({
     notFound();
   }
 
+  // Define the delete action outside of the JSX
+  async function handleDelete() {
+    "use server";
+    await deleteResearchTool(tool!.id);
+  }
+
   return (
     <main className="mx-auto max-w-3xl py-12 px-4 sm:px-6 lg:px-8">
       <Link
@@ -32,7 +39,28 @@ const ResearchToolDetailPage = async ({
       >
         ← Back to Research Tools
       </Link>
+
       <div className="sb-card p-6 md:p-8">
+        {/* Simplified Management Controls */}
+        {user?.id === tool.author.id && (
+          <div className="flex justify-end items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <Link
+              href={`/research-tools/${tool.id}/edit`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-md"
+            >
+              Edit Tool
+            </Link>
+            <form action={handleDelete}>
+              <button
+                type="submit"
+                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 mb-4">
           <Link href={`/scholar/${tool.author.id}`} className="shrink-0">
             <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">

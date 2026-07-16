@@ -47,7 +47,7 @@ export default async function VacanciesPage({
           </p>
         </div>
         <Link
-          href="/vacancies/new"
+          href="/vacancies/add"
           className="sb-button-accent whitespace-nowrap"
         >
           + Post Vacancy

@@ -95,7 +95,7 @@ export function RecommendationCard({
           />
           {/* 3. Moved the main recommendation link down here to match the SupervisorCard */}
           <Link
-            href={`/recommendation/${recommendation.id}`}
+            href={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
             className="text-sm font-medium hover:text-blue-600 transition flex items-center gap-2"
           >
             <CommentIcon className="h-5 w-5" /> {recommendation._count.comments}

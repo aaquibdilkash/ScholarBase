@@ -1,22 +1,23 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
+import Image from "next/image";
+import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import Image from "next/image";
-import { notFound } from "next/navigation";
 import { CommentIcon } from "@/components/icons/CommentIcon";
+import { deleteRecommendation } from "@/app/actions/recommendations";
 
-export default async function RecommendationPage({
+export default async function RecommendationDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; recommendationId: string }>;
 }) {
-  const { id } = await params;
+  const { id, recommendationId } = await params;
   const user = await getCurrentUser();
 
   const recommendation = await prisma.recommendation.findUnique({
-    where: { id },
+    where: { id: recommendationId },
     include: {
       author: true,
       supervisor: true,
@@ -25,46 +26,30 @@ export default async function RecommendationPage({
         orderBy: { createdAt: "asc" },
         include: {
           author: true,
-          likes: {
-            where: { userId: user?.id },
-          },
-          _count: {
-            select: {
-              likes: true,
-            },
-          },
+          likes: { where: { userId: user?.id } },
+          _count: { select: { likes: true } },
           replies: {
             orderBy: { createdAt: "asc" },
             include: {
               author: true,
-              likes: {
-                where: { userId: user?.id },
-              },
-              _count: {
-                select: {
-                  likes: true,
-                },
-              },
+              likes: { where: { userId: user?.id } },
+              _count: { select: { likes: true } },
             },
           },
         },
       },
-      likes: {
-        where: {
-          userId: user?.id,
-        },
-      },
-      _count: {
-        select: {
-          likes: true,
-          comments: true,
-        },
-      },
+      likes: { where: { userId: user?.id } },
+      _count: { select: { likes: true, comments: true } },
     },
   });
 
-  if (!recommendation) {
+  if (!recommendation || recommendation.supervisor.id !== id) {
     notFound();
+  }
+
+  async function handleDelete() {
+    "use server";
+    await deleteRecommendation(recommendation!.id);
   }
 
   const isLiked = !!user && recommendation.likes.length > 0;
@@ -79,6 +64,26 @@ export default async function RecommendationPage({
       </Link>
 
       <div className="sb-surface-strong p-8 md:p-12 rounded-xl">
+        {/* Simplified Management Controls */}
+        {user?.id === recommendation.authorId && (
+          <div className="flex justify-end items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <Link
+              href={`/supervisor/${id}/recommendation/${recommendationId}/edit`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-md"
+            >
+              Edit Recommendation
+            </Link>
+            <form action={handleDelete}>
+              <button
+                type="submit"
+                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )}
+
         <header className="flex items-center gap-3 mb-8">
           <Link href={`/scholar/${recommendation.author.id}`}>
             <div className="w-12 h-12 rounded-full bg-slate-100 border overflow-hidden hover:ring-2 hover:ring-blue-200 transition">
@@ -99,15 +104,9 @@ export default async function RecommendationPage({
             </div>
           </Link>
           <div>
-            <Link
-              href={`/scholar/${recommendation.author.id}`}
-              className="font-semibold text-slate-950 hover:underline"
-            >
-              <p className="font-semibold text-slate-950">
-                {recommendation.author.name}
-              </p>
-            </Link>
-
+            <p className="font-semibold text-slate-950">
+              {recommendation.author.name}
+            </p>
             <p className="text-sm text-slate-500">
               Recommends{" "}
               <Link
@@ -119,6 +118,7 @@ export default async function RecommendationPage({
             </p>
           </div>
         </header>
+
         <p className="mb-2 text-sm font-semibold text-slate-900">
           {`Mentorship Rating: ${recommendation.rating}/5`}
         </p>

@@ -2,7 +2,8 @@
 
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
-import { readFormValue, readOptionalFormValue } from '@/lib/form'
+import { readFormValue } from '@/lib/form'
+
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -27,6 +28,55 @@ export async function createResearchTool(formData: FormData) {
     revalidatePath('/research-tools')
     redirect('/research-tools')
 }
+
+export async function updateResearchTool(formData: FormData, toolId: string) {
+    const user = await requireCurrentUser('Log in to edit this research tool.')
+
+    const name = readFormValue(formData, 'name')
+    const website = readFormValue(formData, 'website')
+    const use = readFormValue(formData, 'use')
+    const description = readFormValue(formData, 'description')
+
+    const tool = await prisma.researchTool.findUnique({
+        where: { id: toolId },
+        select: { authorId: true },
+    })
+
+    if (!tool) return
+    if (tool.authorId !== user.id) {
+        throw new Error('Not authorized to edit this research tool.')
+    }
+
+    await prisma.researchTool.update({
+        where: { id: toolId },
+        data: { name, website, use, description },
+    })
+
+    revalidatePath('/research-tools')
+    revalidatePath(`/research-tools/${toolId}`)
+    redirect(`/research-tools/${toolId}`)
+}
+
+export async function deleteResearchTool(toolId: string) {
+    const user = await requireCurrentUser('Log in to delete this research tool.')
+
+    const tool = await prisma.researchTool.findUnique({
+        where: { id: toolId },
+        select: { authorId: true },
+    })
+
+    if (!tool) return
+    if (tool.authorId !== user.id) {
+        throw new Error('Not authorized to delete this research tool.')
+    }
+
+    await prisma.researchTool.delete({ where: { id: toolId } })
+
+    revalidatePath('/research-tools')
+    revalidatePath(`/research-tools/${toolId}`)
+    redirect('/research-tools')
+}
+
 
 export async function getResearchTools(userId?: string) {
     return prisma.researchTool.findMany({

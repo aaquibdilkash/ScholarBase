@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { createComment } from "@/app/actions/comments";
+import { createCommentClientWrapper } from "@/app/actions/comments.clientWrappers";
+
+import {
+  deleteCommentClientWrapper,
+  editCommentClientWrapper,
+} from "@/app/actions/comments.clientWrappers";
 import { CommentLikeButton } from "@/components/interactions/CommentLikeButton";
 
 // Define the exact shape Prisma is sending down
 type User = { id: string; name: string | null; avatarUrl: string | null };
 type Like = { userId: string };
+
 type Reply = {
   id: string;
   content: string;
@@ -16,10 +22,9 @@ type Reply = {
   author: User;
   likes: Like[];
   parentId: string | null;
-  _count: {
-    likes: number;
-  };
+  _count: { likes: number };
 };
+
 type Comment = Reply & { replies: Reply[] };
 
 interface CommentSectionProps {
@@ -36,7 +41,6 @@ interface CommentSectionProps {
     | "help"
     | "researchTool"
     | "journal";
-
   currentUserId: string | null;
 }
 
@@ -47,13 +51,7 @@ export function CommentSection({
   currentUserId,
 }: CommentSectionProps) {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
-  const mainFormRef = useRef<HTMLFormElement>(null);
-
-  // Wrapper for the main top-level comment
-  const handleMainComment = async (formData: FormData) => {
-    await createComment(formData, targetId, type, undefined);
-    mainFormRef.current?.reset(); // Clear the text area after sending
-  };
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -70,11 +68,13 @@ export function CommentSection({
     <div className="space-y-8">
       {/* Form: Add a Top-Level Comment */}
       {currentUserId && (
-        <form
-          ref={mainFormRef}
-          action={handleMainComment}
-          className="flex gap-4"
-        >
+        <form action={createCommentClientWrapper.bind(null)} className="flex gap-4">
+          <input type="hidden" name="_targetId" value={targetId} />
+          <input type="hidden" name="_type" value={type} />
+          <input type="hidden" name="_parentId" value="" />
+
+          <input type="hidden" name="_commentId" value="" />
+
           <div className="flex-1 flex flex-col gap-2">
             <textarea
               name="content"
@@ -137,17 +137,78 @@ export function CommentSection({
                     {formatDate(comment.createdAt)}
                   </span>
                 </div>
-                <p className="text-slate-700 text-sm whitespace-pre-wrap">
-                  {comment.content}
-                </p>
-                <div className="mt-3 flex items-center justify-end">
-                  <CommentLikeButton
-                    commentId={comment.id}
-                    type={type}
-                    initialLikes={comment._count.likes}
-                    initialIsLiked={comment.likes.length > 0}
-                  />
-                </div>
+
+                {editingId === comment.id ? (
+                  <form action={editCommentClientWrapper.bind(null)}>
+                    <input type="hidden" name="_commentId" value={comment.id} />
+                    <input type="hidden" name="_type" value={type} />
+
+                    <textarea
+                      name="content"
+                      defaultValue={comment.content}
+                      required
+                      rows={2}
+                      className="w-full p-3 mt-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
+                    />
+                    <div className="mt-3 flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="px-3 py-1.5 text-sm rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 text-sm bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <p className="text-slate-700 text-sm whitespace-pre-wrap">
+                      {comment.content}
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-end gap-3">
+                      {currentUserId && comment.author.id === currentUserId && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(comment.id)}
+                            className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                          >
+                            Edit
+                          </button>
+
+                          <form action={deleteCommentClientWrapper.bind(null)}>
+                            <input
+                              type="hidden"
+                              name="_commentId"
+                              value={comment.id}
+                            />
+                            <input type="hidden" name="_type" value={type} />
+                            <button
+                              type="submit"
+                              className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </form>
+                        </>
+                      )}
+
+                      <CommentLikeButton
+                        commentId={comment.id}
+                        type={type}
+                        initialLikes={comment._count.likes}
+                        initialIsLiked={comment.likes.length > 0}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Toggle Reply Box Button */}
@@ -164,15 +225,15 @@ export function CommentSection({
                 </button>
               )}
 
-              {/* The Reply Input Box (Only visible if active) */}
+              {/* The Reply Input Box */}
               {currentUserId && activeReplyId === comment.id && (
                 <form
-                  action={async (formData) => {
-                    await createComment(formData, targetId, type, comment.id); // Pass parentId
-                    setActiveReplyId(null); // Close the box
-                  }}
                   className="mt-3 flex gap-3 animate-in fade-in slide-in-from-top-2"
+                  action={createCommentClientWrapper.bind(null)}
                 >
+                  <input type="hidden" name="_targetId" value={targetId} />
+                  <input type="hidden" name="_type" value={type} />
+                  <input type="hidden" name="_parentId" value={comment.id} />
                   <textarea
                     name="content"
                     placeholder={`Reply to ${comment.author.name}...`}
@@ -220,7 +281,6 @@ export function CommentSection({
 
                       <div className="flex-1 bg-slate-50 p-3 rounded-2xl rounded-tl-none border border-slate-100">
                         <div className="flex items-baseline justify-between gap-2 mb-1">
-                          {/* Clickable Name for Reply */}
                           <Link
                             href={`/scholar/${reply.author.id}`}
                             className="font-bold text-sm text-slate-900 hover:text-blue-600 hover:underline"
@@ -231,17 +291,87 @@ export function CommentSection({
                             {formatDate(reply.createdAt)}
                           </span>
                         </div>
-                        <p className="text-slate-700 text-sm whitespace-pre-wrap">
-                          {reply.content}
-                        </p>
-                        <div className="mt-3 flex items-center justify-end">
-                          <CommentLikeButton
-                            commentId={reply.id}
-                            type={type}
-                            initialLikes={reply._count.likes}
-                            initialIsLiked={reply.likes.length > 0}
-                          />
-                        </div>
+
+                        {editingId === reply.id ? (
+                          <form action={editCommentClientWrapper.bind(null)}>
+                            <input
+                              type="hidden"
+                              name="_commentId"
+                              value={reply.id}
+                            />
+                            <input type="hidden" name="_type" value={type} />
+
+                            <textarea
+                              name="content"
+                              defaultValue={reply.content}
+                              required
+                              rows={2}
+                              className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
+                            />
+                            <div className="mt-3 flex items-center justify-end gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setEditingId(null)}
+                                className="px-3 py-1.5 text-sm rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                className="px-4 py-1.5 text-sm bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <>
+                            <p className="text-slate-700 text-sm whitespace-pre-wrap">
+                              {reply.content}
+                            </p>
+
+                            <div className="mt-3 flex items-center justify-end gap-3">
+                              {currentUserId &&
+                                reply.author.id === currentUserId && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingId(reply.id)}
+                                      className="text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
+                                    >
+                                      Edit
+                                    </button>
+
+                                    <form action={deleteCommentClientWrapper.bind(null)}>
+                                      <input
+                                        type="hidden"
+                                        name="_commentId"
+                                        value={reply.id}
+                                      />
+                                      <input
+                                        type="hidden"
+                                        name="_type"
+                                        value={type}
+                                      />
+                                      <button
+                                        type="submit"
+                                        className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors"
+                                      >
+                                        Delete
+                                      </button>
+                                    </form>
+                                  </>
+                                )}
+
+                              <CommentLikeButton
+                                commentId={reply.id}
+                                type={type}
+                                initialLikes={reply._count.likes}
+                                initialIsLiked={reply.likes.length > 0}
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}

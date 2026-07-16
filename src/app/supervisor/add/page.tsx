@@ -1,7 +1,5 @@
-"use client";
-
-import { createSupervisor } from "@/app/actions/supervisors";
 import Link from "next/link";
+import SupervisorForm from "@/app/supervisor/components/SupervisorForm";
 
 export default function AddSupervisorPage() {
   return (
@@ -22,51 +20,7 @@ export default function AddSupervisorPage() {
       </div>
 
       <div className="sb-surface-strong p-8 md:p-10">
-        <form action={createSupervisor} className="flex flex-col gap-6">
-          <div>
-            <label className="sb-label">Full Name</label>
-            <input
-              name="name"
-              placeholder="e.g., Prof. John Smith"
-              className="sb-input"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="sb-label">University / Institution</label>
-            <input
-              name="university"
-              placeholder="e.g., Jamia Millia Islamia"
-              className="sb-input"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="sb-label">Department (Optional)</label>
-            <input
-              name="department"
-              placeholder="e.g., Management and Finance"
-              className="sb-input"
-            />
-          </div>
-
-          <div>
-            <label className="sb-label">About (Optional)</label>
-            <textarea
-              name="about"
-              placeholder="A short bio / research interests"
-              className="sb-input min-h-[120px] resize-y"
-            />
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <button type="submit" className="sb-button-accent">
-              Add Supervisor
-            </button>
-          </div>
-        </form>
+        <SupervisorForm mode="create" />
       </div>
     </main>
   );

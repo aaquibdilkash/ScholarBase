@@ -40,7 +40,7 @@ export default async function ResearchPage({
           </p>
         </div>
         <Link
-          href="/research-tools/new"
+          href="/research-tools/add"
           className="sb-button-accent whitespace-nowrap"
         >
           + Add Research Tool

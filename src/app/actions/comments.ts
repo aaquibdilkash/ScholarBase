@@ -44,12 +44,13 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/help/${targetId}`)
     }
 
     else if (type === 'article') {
         const comment = await prisma.articleComment.create({
+
             data: { content, articleId: targetId, authorId: user.id, parentId },
         })
 
@@ -73,7 +74,7 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         // Target ID for articles is UUID, but route uses slug. Clearing the article layout is safest here.
         revalidatePath('/blog/[slug]', 'page')
     }
@@ -103,7 +104,7 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath('/feed')
         revalidatePath(`/feed/${targetId}`)
     }
@@ -133,7 +134,7 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/events/${targetId}`)
     }
 
@@ -162,7 +163,7 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/vacancies/${targetId}`)
     }
 
@@ -191,17 +192,18 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/admissions/${targetId}`)
     }
 
     else if (type === 'supervisor') {
-        const comment = await prisma.supervisorComment.create({
+        await prisma.supervisorComment.create({
             data: { content, supervisorId: targetId, authorId: user.id, parentId },
         })
-        
+
         revalidatePath(`/supervisor/${targetId}`)
     }
+
 
     else if (type === 'recommendation') {
         const comment = await prisma.recommendationComment.create({
@@ -228,7 +230,7 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/recommendation/${targetId}`)
     }
 
@@ -257,7 +259,7 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/journals/${targetId}`)
     }
 
@@ -286,8 +288,206 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        
+
         revalidatePath(`/research-tools/${targetId}`)
+    }
+}
+
+export async function editComment(
+    formData: FormData,
+    commentId: string,
+    type: CommentType
+) {
+    const user = await requireCurrentUser('Log in to edit this comment.')
+
+    const content = readFormValue(formData, 'content')
+    if (!content) return
+
+    // Update comment content for the correct model.
+    if (type === 'article') {
+        const comment = await prisma.articleComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.articleComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/blog/[slug]', 'page')
+    } else if (type === 'post') {
+        const comment = await prisma.socialComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.socialComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/feed')
+    } else if (type === 'event') {
+        const comment = await prisma.researchEventComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.researchEventComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/events/[id]', 'page')
+    } else if (type === 'vacancy') {
+        const comment = await prisma.jobVacancyComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.jobVacancyComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/vacancies/[id]', 'page')
+    } else if (type === 'admission') {
+        const comment = await prisma.phdAdmissionComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.phdAdmissionComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/admissions/[id]', 'page')
+    } else if (type === 'supervisor') {
+        const comment = await prisma.supervisorComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.supervisorComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/supervisor/[id]', 'page')
+    } else if (type === 'recommendation') {
+        const comment = await prisma.recommendationComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.recommendationComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/recommendation/[id]', 'page')
+    } else if (type === 'help') {
+        const comment = await prisma.helpPostComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.helpPostComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/help/[id]', 'page')
+    } else if (type === 'journal') {
+        const comment = await prisma.journalComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.journalComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/journals/[id]', 'page')
+    } else if (type === 'researchTool') {
+        const comment = await prisma.researchToolComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.researchToolComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/research-tools/[id]', 'page')
+    }
+}
+
+export async function deleteComment(commentId: string, type: CommentType) {
+    const user = await requireCurrentUser('Log in to delete this comment.')
+
+    if (type === 'article') {
+        const comment = await prisma.articleComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.articleComment.delete({ where: { id: commentId } })
+        revalidatePath('/blog/[slug]', 'page')
+        return
+    }
+
+    if (type === 'post') {
+        const comment = await prisma.socialComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.socialComment.delete({ where: { id: commentId } })
+        revalidatePath('/feed')
+        return
+    }
+
+    if (type === 'event') {
+        const comment = await prisma.researchEventComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.researchEventComment.delete({ where: { id: commentId } })
+        revalidatePath('/events/[id]', 'page')
+        return
+    }
+
+    if (type === 'vacancy') {
+        const comment = await prisma.jobVacancyComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.jobVacancyComment.delete({ where: { id: commentId } })
+        revalidatePath('/vacancies/[id]', 'page')
+        return
+    }
+
+    if (type === 'admission') {
+        const comment = await prisma.phdAdmissionComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.phdAdmissionComment.delete({ where: { id: commentId } })
+        revalidatePath('/admissions/[id]', 'page')
+        return
+    }
+
+    if (type === 'supervisor') {
+        const comment = await prisma.supervisorComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.supervisorComment.delete({ where: { id: commentId } })
+        revalidatePath('/supervisor/[id]', 'page')
+        return
+    }
+
+    if (type === 'recommendation') {
+        const comment = await prisma.recommendationComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.recommendationComment.delete({ where: { id: commentId } })
+        revalidatePath('/recommendation/[id]', 'page')
+        return
+    }
+
+    if (type === 'help') {
+        const comment = await prisma.helpPostComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.helpPostComment.delete({ where: { id: commentId } })
+        revalidatePath('/help/[id]', 'page')
+        return
+    }
+
+    if (type === 'journal') {
+        const comment = await prisma.journalComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.journalComment.delete({ where: { id: commentId } })
+        revalidatePath('/journals/[id]', 'page')
+        return
+    }
+
+    if (type === 'researchTool') {
+        const comment = await prisma.researchToolComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.researchToolComment.delete({ where: { id: commentId } })
+        revalidatePath('/research-tools/[id]', 'page')
+        return
     }
 }
 

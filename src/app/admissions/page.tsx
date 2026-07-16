@@ -49,7 +49,7 @@ export default async function AdmissionsPage({
           </p>
         </div>
         <Link
-          href="/admissions/new"
+          href="/admissions/add"
           className="sb-button-accent whitespace-nowrap"
         >
           + Post Admission

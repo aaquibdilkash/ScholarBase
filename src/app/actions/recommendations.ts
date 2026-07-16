@@ -57,3 +57,66 @@ export async function createRecommendation(formData: FormData, supervisorId: str
     redirect(`/supervisor/${supervisorId}`)
 }
 
+export async function updateRecommendation(formData: FormData, recommendationId: string) {
+    const user = await requireCurrentUser('Log in to edit this recommendation.')
+
+    const feedback = readFormValue(formData, 'feedback')
+    const rating = Number.parseInt(readFormValue(formData, 'rating'), 10)
+
+    const turnaroundTimeDays = Number.parseInt(
+        readFormValue(formData, 'turnaroundTimeDays'),
+        10,
+    )
+    const responsivenessScore = Number.parseInt(
+        readFormValue(formData, 'responsivenessScore'),
+        10,
+    )
+    const guidanceScore = Number.parseInt(
+        readFormValue(formData, 'guidanceScore'),
+        10,
+    )
+
+    const recommendation = await prisma.recommendation.findUnique({
+        where: { id: recommendationId },
+        select: { authorId: true, supervisorId: true },
+    })
+
+    if (!recommendation) return
+    if (recommendation.authorId !== user.id) {
+        throw new Error('Not authorized to edit this recommendation.')
+    }
+
+    await prisma.recommendation.update({
+        where: { id: recommendationId },
+        data: {
+            rating,
+            feedback,
+            turnaroundTimeDays,
+            responsivenessScore,
+            guidanceScore,
+        },
+    })
+
+    redirect(`/supervisor/${recommendation.supervisorId}/recommendation/${recommendationId}`)
+
+}
+
+export async function deleteRecommendation(recommendationId: string) {
+    const user = await requireCurrentUser('Log in to delete this recommendation.')
+
+    const recommendation = await prisma.recommendation.findUnique({
+        where: { id: recommendationId },
+        select: { authorId: true, supervisorId: true },
+    })
+
+    if (!recommendation) return
+    if (recommendation.authorId !== user.id) {
+        throw new Error('Not authorized to delete this recommendation.')
+    }
+
+    await prisma.recommendation.delete({ where: { id: recommendationId } })
+
+    redirect(`/supervisor/${recommendation.supervisorId}`)
+}
+
+

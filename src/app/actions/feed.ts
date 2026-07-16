@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
+import { redirect } from "next/navigation";
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 
 export async function createSocialPost(formData: FormData) {
@@ -42,3 +43,52 @@ export async function createSocialPost(formData: FormData) {
 
     revalidatePath('/feed')
 }
+
+export async function updateSocialPost(
+    formData: FormData,
+    postId: string
+) {
+    const user = await requireCurrentUser('Log in to edit this post.')
+
+    const content = readFormValue(formData, 'content')
+    if (!content) return
+
+    const post = await prisma.socialPost.findUnique({
+        where: { id: postId },
+        select: { authorId: true },
+    })
+
+    if (!post) return
+    if (post.authorId !== user.id) {
+        throw new Error('Not authorized to edit this post.')
+    }
+
+    await prisma.socialPost.update({
+        where: { id: postId },
+        data: { content },
+    })
+
+    revalidatePath('/feed')
+    revalidatePath(`/feed/${postId}`)
+    redirect(`/feed/${postId}`)
+}
+
+export async function deleteSocialPost(postId: string) {
+    const user = await requireCurrentUser('Log in to delete this post.')
+
+    const post = await prisma.socialPost.findUnique({
+        where: { id: postId },
+        select: { authorId: true },
+    })
+
+    if (!post) return
+    if (post.authorId !== user.id) {
+        throw new Error('Not authorized to delete this post.')
+    }
+
+    await prisma.socialPost.delete({ where: { id: postId } })
+
+    revalidatePath('/feed')
+    revalidatePath(`/feed/${postId}`)
+}
+

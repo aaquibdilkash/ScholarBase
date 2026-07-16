@@ -49,7 +49,7 @@ export default async function BlogIndex({
             Essays, notes, and longer-form research reflections.
           </p>
         </div>
-        <Link href="/blog/new" className="sb-button-accent whitespace-nowrap">
+        <Link href="/blog/add" className="sb-button-accent whitespace-nowrap">
           + New Article
         </Link>
       </div>

@@ -5,6 +5,7 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
+import { deleteSocialPost } from "@/app/actions/feed";
 
 export default async function SinglePostPage({
   params,
@@ -14,7 +15,6 @@ export default async function SinglePostPage({
   const { id } = await params;
   const user = await getCurrentUser();
 
-  // Fetch the post deeply to include top-level comments and their nested replies
   const post = await prisma.socialPost.findUnique({
     where: { id },
     select: {
@@ -42,11 +42,7 @@ export default async function SinglePostPage({
           createdAt: true,
           parentId: true,
           author: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
+            select: { id: true, name: true, avatarUrl: true },
           },
           likes: {
             where: { userId: user?.id },
@@ -59,42 +55,33 @@ export default async function SinglePostPage({
               createdAt: true,
               parentId: true,
               author: {
-                select: {
-                  id: true,
-                  name: true,
-                  avatarUrl: true,
-                },
+                select: { id: true, name: true, avatarUrl: true },
               },
               likes: {
                 where: { userId: user?.id },
                 select: { userId: true },
               },
-              _count: {
-                select: {
-                  likes: true,
-                },
-              },
+              _count: { select: { likes: true } },
             },
             orderBy: { createdAt: "asc" },
           },
-          _count: {
-            select: {
-              likes: true,
-            },
-          },
+          _count: { select: { likes: true } },
         },
         orderBy: { createdAt: "asc" },
       },
       _count: {
-        select: {
-          likes: true,
-          comments: true,
-        },
+        select: { likes: true, comments: true },
       },
     },
   });
 
   if (!post) notFound();
+
+  // Define the delete action outside the JSX
+  async function handleDelete() {
+    "use server";
+    await deleteSocialPost(post!.id);
+  }
 
   const isLiked = !!user && post.likes.length > 0;
 
@@ -166,9 +153,31 @@ export default async function SinglePostPage({
           </div>
         </div>
 
-        <p className="mb-8 whitespace-pre-wrap text-xl leading-relaxed text-slate-800">
-          {post.content}
-        </p>
+        <div className="mb-6">
+          <p className="whitespace-pre-wrap text-xl leading-relaxed text-slate-800">
+            {post.content}
+          </p>
+        </div>
+
+        {/* Simplified Management Controls */}
+        {user?.id === post.authorId && (
+          <div className="flex justify-end gap-3 mb-6 border-t border-slate-100 pt-4">
+            <Link
+              href={`/feed/${post.id}/edit`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-4 py-2 rounded-lg"
+            >
+              Edit Post
+            </Link>
+            <form action={handleDelete}>
+              <button
+                type="submit"
+                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-4 py-2 rounded-lg"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="flex items-center gap-6 border-t border-slate-100 pt-4">
           <LikeButton

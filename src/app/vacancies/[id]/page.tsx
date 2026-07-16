@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import Link from "next/link";
 import Image from "next/image";
+import { deleteJobVacancy } from "@/app/actions/opportunities";
 
 const VacancyDetailPage = async ({
   params,
@@ -49,6 +50,11 @@ const VacancyDetailPage = async ({
     notFound();
   }
 
+  async function handleDelete() {
+    "use server";
+    await deleteJobVacancy(vacancy!.id);
+  }
+
   return (
     <main className="mx-auto max-w-3xl py-12 px-4 sm:px-6 lg:px-8">
       <Link
@@ -57,7 +63,28 @@ const VacancyDetailPage = async ({
       >
         ← Back to Academic Vacancies
       </Link>
+
       <div className="sb-card p-6 md:p-8">
+        {/* Simplified Management Controls */}
+        {user?.id === vacancy.author.id && (
+          <div className="flex justify-end items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <Link
+              href={`/vacancies/${vacancy.id}/edit`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-md"
+            >
+              Edit Vacancy
+            </Link>
+            <form action={handleDelete}>
+              <button
+                type="submit"
+                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 mb-4">
           <Link href={`/scholar/${vacancy.author.id}`} className="shrink-0">
             <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
@@ -113,9 +140,9 @@ const VacancyDetailPage = async ({
               strokeLinejoin="round"
               strokeWidth="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
+            />
           </svg>
-          Last Date to Apply: Last Date to Apply:{" "}
+          Last Date to Apply:{" "}
           {new Date(vacancy.deadline).toLocaleDateString("en-US", {
             dateStyle: "medium",
           })}

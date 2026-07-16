@@ -76,3 +76,52 @@ export async function createHelpPost(formData: FormData) {
 
     redirect('/help')
 }
+
+export async function updateHelpPost(formData: FormData, helpPostId: string) {
+    const user = await requireCurrentUser()
+
+    const title = formData.get('title') as string
+    const subject = formData.get('subject') as string
+    const category = formData.get('category') as string
+    const message = formData.get('message') as string
+
+    if (!title || !subject || !category || !message) {
+        throw new Error('Please fill in all fields.')
+    }
+
+    const post = await prisma.helpPost.findUnique({
+        where: { id: helpPostId },
+        select: { authorId: true },
+    })
+
+    if (!post) return
+    if (post.authorId !== user.id) {
+        throw new Error('Not authorized to edit this help post.')
+    }
+
+    await prisma.helpPost.update({
+        where: { id: helpPostId },
+        data: { title, subject, category, message },
+    })
+
+    redirect(`/help/${helpPostId}`)
+}
+
+export async function deleteHelpPost(helpPostId: string) {
+    const user = await requireCurrentUser('Log in to delete this help post.')
+
+    const post = await prisma.helpPost.findUnique({
+        where: { id: helpPostId },
+        select: { authorId: true },
+    })
+
+    if (!post) return
+    if (post.authorId !== user.id) {
+        throw new Error('Not authorized to delete this help post.')
+    }
+
+    await prisma.helpPost.delete({ where: { id: helpPostId } })
+
+    redirect('/help')
+}
+

@@ -4,7 +4,6 @@ import { Journal, User } from "@prisma/client";
 import Link from "next/link";
 import Image from "next/image";
 import { TrendingItemFooter } from "@/components/feed/TrendingItemFooter";
-import { ClockIcon } from "@/components/icons/ClockIcon";
 
 type JournalWithAuthor = Journal & {
   author: User;

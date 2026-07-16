@@ -41,7 +41,7 @@ export default async function JournalsPage({
           </p>
         </div>
         <Link
-          href="/journals/new"
+          href="/journals/add"
           className="sb-button-accent whitespace-nowrap"
         >
           + Add Journal

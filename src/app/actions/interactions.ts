@@ -157,12 +157,7 @@ export async function toggleLike(
             await prisma.supervisorLike.create({ data: { supervisorId: targetId, userId: user.id } })
             isLiked = true
 
-            const supervisor = await prisma.supervisor.findUnique({
-                where: { id: targetId },
-                select: { name: true },
-            })
 
-            // TODO: How to notify a supervisor? They don't have a userId
         }
         revalidatePath('/supervisor')
         revalidatePath(`/supervisor/${targetId}`)

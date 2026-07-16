@@ -11,12 +11,15 @@ const Editor = dynamic(() => import("@/components/blog/Editor"), {
 
 type ArticleComposerProps = {
   action: (formData: FormData) => void | Promise<void>;
+  mode?: "create" | "edit";
+  initialValues?: { title: string; excerpt: string; content: string };
 };
 
-export function ArticleComposer({ action }: ArticleComposerProps) {
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
+export function ArticleComposer({ action, mode = "create", initialValues }: ArticleComposerProps) {
+  // Initialize state with initialValues if provided, otherwise empty strings
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [excerpt, setExcerpt] = useState(initialValues?.excerpt ?? "");
+  const [content, setContent] = useState(initialValues?.content ?? "");
 
   const previewContent = useMemo(
     () => content || "<p>Start writing to see the live article preview.</p>",
@@ -61,25 +64,18 @@ export function ArticleComposer({ action }: ArticleComposerProps) {
           <input type="hidden" name="content" value={content} />
 
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-            <Editor
-              value={content}
-              onChange={setContent}
-            />
+            <Editor value={content} onChange={setContent} />
           </div>
-
-          <p className="mt-2 text-xs text-slate-500">
-            This is a CKEditor writing surface with a live preview. It stays
-            fast while giving you document-style formatting.
-          </p>
         </div>
 
         <div className="flex justify-end border-t border-slate-100 pt-4">
           <button type="submit" className="sb-button-accent">
-            Publish Article
+            {mode === "edit" ? "Save Changes" : "Publish Article"}
           </button>
         </div>
       </form>
 
+      {/* Preview Section */}
       <section className="sb-surface-strong overflow-hidden border border-slate-200/70">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div>
@@ -91,7 +87,7 @@ export function ArticleComposer({ action }: ArticleComposerProps) {
             </h2>
           </div>
           <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-            Draft
+            {mode === "edit" ? "Editing" : "Draft"}
           </div>
         </div>
 

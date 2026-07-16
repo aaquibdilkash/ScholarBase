@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import Link from "next/link";
 import Image from "next/image";
+import { deletePhdAdmission } from "@/app/actions/opportunities";
 
 const AdmissionDetailPage = async ({
   params,
@@ -18,7 +19,7 @@ const AdmissionDetailPage = async ({
   } = await supabase.auth.getUser();
 
   const admission = await prisma.phdAdmission.findUnique({
-    where: { id: id },
+    where: { id },
     include: {
       author: true,
       comments: {
@@ -49,6 +50,11 @@ const AdmissionDetailPage = async ({
     notFound();
   }
 
+  async function handleDelete() {
+    "use server";
+    await deletePhdAdmission(admission!.id);
+  }
+
   return (
     <main className="mx-auto max-w-3xl py-12 px-4 sm:px-6 lg:px-8">
       <Link
@@ -57,7 +63,29 @@ const AdmissionDetailPage = async ({
       >
         ← Back to PhD Admissions
       </Link>
+
       <div className="sb-card p-6 md:p-8">
+        {/* Simplified Management Controls */}
+        {user?.id === admission.author.id && (
+          <div className="flex justify-end items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <Link
+              href={`/admissions/${admission.id}/edit`}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-md"
+            >
+              Edit Post
+            </Link>
+            <form action={handleDelete}>
+              <button
+                type="submit"
+                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
+              >
+                Delete
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Profile Card Section */}
         <div className="flex items-center gap-3 mb-4">
           <Link href={`/scholar/${admission.author.id}`} className="shrink-0">
             <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
@@ -90,13 +118,13 @@ const AdmissionDetailPage = async ({
           </div>
         </div>
 
+        {/* Content Section */}
         <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
           {admission.university}
         </h1>
         <p className="text-md font-medium text-blue-700 mb-6">
           {admission.department}
         </p>
-
         <p className="text-slate-800 whitespace-pre-wrap leading-relaxed mb-6">
           {admission.description}
         </p>
@@ -113,9 +141,9 @@ const AdmissionDetailPage = async ({
               strokeLinejoin="round"
               strokeWidth="2"
               d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
+            />
           </svg>
-          Closing Date: Closing Date:{" "}
+          Closing Date:{" "}
           {new Date(admission.deadline).toLocaleDateString("en-US", {
             dateStyle: "medium",
           })}
