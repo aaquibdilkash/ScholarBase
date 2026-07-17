@@ -82,7 +82,7 @@ export default async function FeedPage({
               : "text-slate-500 hover:text-slate-900"
           }`}
         >
-          All Posts
+          All
         </Link>
         <Link
           href="/feed?tab=following"

@@ -7,6 +7,8 @@ import { CommentSection } from "@/components/interactions/CommentSection";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentIcon } from "@/components/icons/CommentIcon";
 import { deleteRecommendation } from "@/app/actions/recommendations";
+import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 export default async function RecommendationDetailPage({
   params,
@@ -55,70 +57,50 @@ export default async function RecommendationDetailPage({
   const isLiked = !!user && recommendation.likes.length > 0;
 
   return (
-    <main className="max-w-4xl mx-auto py-10 px-4">
-      <Link
-        href={`/supervisor/${recommendation.supervisor.id}`}
-        className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 mb-8 transition-colors"
-      >
-        ← Back to Supervisor Profile
-      </Link>
-
-      <div className="sb-surface-strong p-8 md:p-12 rounded-xl">
-        {/* Simplified Management Controls */}
-        {user?.id === recommendation.authorId && (
-          <div className="flex justify-end items-center gap-4 mb-6 border-b border-slate-100 pb-4">
-            <Link
-              href={`/supervisor/${id}/recommendation/${recommendationId}/edit`}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-md"
-            >
-              Edit Recommendation
-            </Link>
-            <form action={handleDelete}>
-              <button
-                type="submit"
-                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
-              >
-                Delete
-              </button>
-            </form>
-          </div>
-        )}
-
-        <header className="flex items-center gap-3 mb-8">
-          <Link href={`/scholar/${recommendation.author.id}`}>
-            <div className="w-12 h-12 rounded-full bg-slate-100 border overflow-hidden hover:ring-2 hover:ring-blue-200 transition">
-              {recommendation.author.avatarUrl ? (
-                <Image
-                  src={recommendation.author.avatarUrl}
-                  alt="User"
-                  width={48}
-                  height={48}
-                  unoptimized
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center font-bold text-slate-500 text-lg">
-                  {recommendation.author.name?.charAt(0).toUpperCase() || "?"}
-                </div>
-              )}
-            </div>
-          </Link>
-          <div>
-            <p className="font-semibold text-slate-950">
-              {recommendation.author.name}
-            </p>
-            <p className="text-sm text-slate-500">
-              Recommends{" "}
-              <Link
-                href={`/supervisor/${recommendation.supervisor.id}`}
-                className="font-semibold text-slate-900 hover:text-blue-600 hover:underline"
-              >
-                {recommendation.supervisor.name}
-              </Link>
-            </p>
-          </div>
-        </header>
-
+    <DetailPageCardShell
+      backHref={`/supervisor/${recommendation.supervisor.id}`}
+      backLabel="Back to Supervisor Profile"
+      authorHref={`/scholar/${recommendation.author.id}`}
+      authorName={recommendation.author.name || "Scholar"}
+      authorHandle={recommendation.author.handle || undefined}
+      authorAvatarUrl={recommendation.author.avatarUrl || undefined}
+      footerLikeButton={
+        <LikeButton
+          targetId={recommendation.id}
+          type="recommendation"
+          initialLikes={recommendation._count.likes}
+          initialIsLiked={isLiked}
+        />
+      }
+      footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
+      footerCommentsCount={recommendation._count.comments}
+      discussion={
+        <div
+          id="comments"
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+        >
+          <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
+          <CommentSection
+            comments={recommendation.comments}
+            targetId={recommendation.id}
+            type="recommendation"
+            currentUserId={user?.id ?? null}
+          />
+        </div>
+      }
+      managementControls={
+        user?.id === recommendation.authorId ? (
+          <OwnerActionsDropdown
+            editHref={`/supervisor/${id}/recommendation/${recommendationId}/edit`}
+            onDelete={handleDelete}
+            isOwner={true}
+            editLabel="Edit Recommendation"
+            deleteLabel="Delete"
+          />
+        ) : null
+      }
+    >
+        
         <p className="mb-2 text-sm font-semibold text-slate-900">
           {`Mentorship Rating: ${recommendation.rating}/5`}
         </p>
@@ -133,32 +115,7 @@ export default async function RecommendationDetailPage({
           {`Mentorship Feedback: ${recommendation.feedback}`}
         </p>
 
-        <div className="border-t border-slate-100 pt-6 flex items-center gap-6">
-          <LikeButton
-            targetId={recommendation.id}
-            type="recommendation"
-            initialLikes={recommendation._count.likes}
-            initialIsLiked={isLiked}
-          />
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-            <CommentIcon className="w-5 h-5" />
-            {recommendation._count.comments} Comments
-          </div>
-        </div>
-      </div>
-
-      <div
-        id="comments"
-        className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
-      >
-        <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
-        <CommentSection
-          comments={recommendation.comments}
-          targetId={recommendation.id}
-          type="recommendation"
-          currentUserId={user?.id ?? null}
-        />
-      </div>
-    </main>
+        
+    </DetailPageCardShell>
   );
 }

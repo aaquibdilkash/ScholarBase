@@ -1,5 +1,5 @@
 
-import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, SocialLike, ArticleLike, JobVacancyLike, PhdAdmissionLike, ResearchEventLike, SupervisorLike } from "@prisma/client";
+import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, SocialLike, ArticleLike, JobVacancyLike, PhdAdmissionLike, ResearchEventLike, SupervisorLike, HelpPost, HelpPostLike } from "@prisma/client";
 
 type TrendingItemBase = {
     score: number;
@@ -30,5 +30,6 @@ export type TrendingItem =
     | (SocialPost & TrendingItemBase & { type: 'social-post', likes: SocialLike[] })
     | (import("@prisma/client").Journal & TrendingItemBase & { type: 'journal', likes: import("@prisma/client").JournalLike[] })
     | (import("@prisma/client").ResearchTool & TrendingItemBase & { type: 'researchTool', likes: import("@prisma/client").ResearchToolLike[] })
+    | (HelpPost & TrendingItemBase & { type: 'help-post', likes: HelpPostLike[] })
     | TrendingSupervisor;
 

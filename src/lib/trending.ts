@@ -14,7 +14,7 @@ function calculateTrendingScore(item: {
 
 async function getTrending<T extends { _count: { likes: number; comments: number }, likes?: { userId: string }[], createdAt: Date }>(
     fetcher: () => Promise<T[]>,
-    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool'
+    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool' | 'help-post'
 ) {
 
 
@@ -189,6 +189,27 @@ export async function getTrendingResearchTools(userId?: string) {
         where: { createdAt: { gte: since } },
         include: commonInclude,
     }), 'researchTool')
+}
+
+export async function getTrendingHelpPosts(userId?: string) {
+    const since = new Date()
+    since.setDate(since.getDate() - TRENDING_DAYS)
+
+    const commonInclude = {
+        author: true,
+        _count: {
+            select: {
+                likes: true,
+                comments: true,
+            },
+        },
+        likes: userId ? { where: { userId } } : false,
+    }
+
+    return getTrending(() => prisma.helpPost.findMany({
+        where: { createdAt: { gte: since } },
+        include: commonInclude,
+    }), 'help-post')
 }
 
 export async function getTrendingSupervisors(userId?: string) {

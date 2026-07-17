@@ -9,6 +9,8 @@ import { SocialPostCard } from "./SocialPostCard";
 import { JournalCard } from "@/app/journals/components/JournalCard";
 import { ResearchToolCard } from "@/app/research-tools/components/ResearchToolCard";
 
+import { HelpPostCard } from "@/app/help/components/HelpPostCard";
+
 export function TrendingList({ items }: { items: TrendingItem[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -34,6 +36,13 @@ export function TrendingList({ items }: { items: TrendingItem[] }) {
                 key={item.id}
                 post={item}
                 isLiked={item.isLiked}
+              />
+            );
+          case "help-post":
+            return (
+              <HelpPostCard
+                key={item.id}
+                helpPost={item}
               />
             );
           default:

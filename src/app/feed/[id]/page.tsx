@@ -1,11 +1,14 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+
+import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost } from "@/app/actions/feed";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 export default async function SinglePostPage({
   params,
@@ -77,145 +80,66 @@ export default async function SinglePostPage({
 
   if (!post) notFound();
 
-  // Define the delete action outside the JSX
+  const p = post;
+
   async function handleDelete() {
     "use server";
-    await deleteSocialPost(post!.id);
+    await deleteSocialPost(p.id);
   }
 
-  const isLiked = !!user && post.likes.length > 0;
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(date);
-  };
-
   return (
-    <main className="mx-auto max-w-3xl py-6">
-      <Link
-        href="/feed"
-        className="mb-8 inline-flex items-center text-sm font-semibold text-slate-500 transition-colors hover:text-blue-700"
-      >
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+    <DetailPageCardShell
+      backHref="/feed"
+      backLabel="Back to Feed"
+      authorHref={`/scholar/${p.author.id}`}
+      authorName={p.author.name || "Scholar"}
+      authorHandle={p.author.handle || undefined}
+      authorAvatarUrl={p.author.avatarUrl || undefined}
+      managementControls={
+        user?.id === p.authorId ? (
+          <OwnerActionsDropdown
+            editHref={`/feed/${p.id}/edit`}
+            onDelete={handleDelete}
+            isOwner={true}
+            editLabel="Edit Post"
+            deleteLabel="Delete"
           />
-        </svg>
-        Back to Feed
-      </Link>
-
-      <article className="sb-surface-strong mb-8 p-6 md:p-8">
-        <div className="mb-6 flex items-center gap-4">
-          <Link href={`/scholar/${post.authorId}`} className="shrink-0">
-            <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100">
-              {post.author.avatarUrl ? (
-                <Image
-                  src={post.author.avatarUrl}
-                  alt="Author"
-                  width={56}
-                  height={56}
-                  unoptimized
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-xl font-semibold text-slate-400">
-                  {post.author.name?.charAt(0).toUpperCase() || "?"}
-                </span>
-              )}
-            </div>
-          </Link>
-
-          <div>
-            <Link
-              href={`/scholar/${post.authorId}`}
-              className="text-lg font-semibold text-slate-950 transition hover:text-blue-700 hover:underline"
-            >
-              {post.author.name}
-            </Link>
-            <div className="mt-0.5 text-sm font-medium text-slate-500">
-              {post.author.handle && (
-                <span className="mr-2">@{post.author.handle}</span>
-              )}
-              <span>{formatDate(post.createdAt)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <p className="whitespace-pre-wrap text-xl leading-relaxed text-slate-800">
-            {post.content}
-          </p>
-        </div>
-
-        {/* Simplified Management Controls */}
-        {user?.id === post.authorId && (
-          <div className="flex justify-end gap-3 mb-6 border-t border-slate-100 pt-4">
-            <Link
-              href={`/feed/${post.id}/edit`}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-4 py-2 rounded-lg"
-            >
-              Edit Post
-            </Link>
-            <form action={handleDelete}>
-              <button
-                type="submit"
-                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-4 py-2 rounded-lg"
-              >
-                Delete
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="flex items-center gap-6 border-t border-slate-100 pt-4">
-          <LikeButton
-            targetId={post.id}
-            type="post"
-            initialLikes={post._count.likes}
-            initialIsLiked={isLiked}
-          />
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
-            {post._count.comments} Comments
-          </div>
-        </div>
-      </article>
-
-      <div className="sb-surface-strong p-6 md:p-8">
-        <h3 className="mb-6 text-xl font-semibold text-slate-950">
-          Discussion
-        </h3>
-        <CommentSection
-          comments={post.comments}
-          targetId={post.id}
+        ) : null
+      }
+      footerLikeButton={
+        <LikeButton
+          targetId={p.id}
           type="post"
-          currentUserId={user?.id ?? null}
+          initialLikes={p._count.likes}
+          initialIsLiked={!!p.likes?.length}
         />
+      }
+      footerCommentsHref={`/feed/${p.id}#comments`}
+      footerCommentsCount={p._count.comments}
+      discussion={
+        <div className="mt-12" id="comments">
+          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <CommentSection
+            comments={p.comments}
+            targetId={p.id}
+            type="post"
+            currentUserId={user?.id ?? null}
+          />
+        </div>
+      }
+    >
+      <p className="text-xl whitespace-pre-wrap leading-relaxed text-slate-800">
+        {p.content}
+      </p>
+
+      <div className="mt-4 text-sm font-medium text-slate-500">
+        {new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(p.createdAt)}
       </div>
-    </main>
+    </DetailPageCardShell>
   );
 }

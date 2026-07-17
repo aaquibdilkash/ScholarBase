@@ -1,12 +1,16 @@
 import { notFound } from "next/navigation";
-import { CommentSection } from "@/components/interactions/CommentSection";
-import { createClient } from "@/utils/supabase/server";
-import { LikeButton } from "@/components/interactions/LikeButton";
 import Link from "next/link";
-import Image from "next/image";
+
+import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { CommentSection } from "@/components/interactions/CommentSection";
+import { LikeButton } from "@/components/interactions/LikeButton";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { createClient } from "@/utils/supabase/server";
 import { getJournalById } from "../../actions/journals";
-import { RichContent } from "@/components/content/RichContent";
 import { deleteJournal } from "@/app/actions/journals";
+import { RichContent } from "@/components/content/RichContent";
+
+import Image from "next/image";
 
 const JournalDetailPage = async ({
   params,
@@ -21,139 +25,79 @@ const JournalDetailPage = async ({
 
   const journal = await getJournalById(id, user?.id);
 
-  if (!journal) {
-    notFound();
-  }
+  if (!journal) notFound();
 
-  // Define the delete action outside of the JSX
+  const j = journal;
+
   async function handleDelete() {
     "use server";
-    await deleteJournal(journal!.id);
+    await deleteJournal(j.id);
   }
 
   return (
-    <main className="mx-auto max-w-3xl py-12 px-4 sm:px-6 lg:px-8">
-      <Link
-        href="/journals"
-        className="inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700 mb-8"
-      >
-        ← Back to Journals
-      </Link>
-
-      <div className="sb-card p-6 md:p-8">
-        {/* Simplified Management Controls */}
-        {user?.id === journal.author.id && (
-          <div className="flex justify-end items-center gap-4 mb-6 border-b border-slate-100 pb-4">
-            <Link
-              href={`/journals/${journal.id}/edit`}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-3 py-1.5 rounded-md"
-            >
-              Edit Journal
-            </Link>
-            <form action={handleDelete}>
-              <button
-                type="submit"
-                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-3 py-1.5 rounded-md"
-              >
-                Delete
-              </button>
-            </form>
-          </div>
-        )}
-
-        <div className="flex items-center gap-3 mb-4">
-          <Link href={`/scholar/${journal.author.id}`} className="shrink-0">
-            <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
-              {journal.author.avatarUrl ? (
-                <Image
-                  src={journal.author.avatarUrl}
-                  alt="Author"
-                  width={48}
-                  height={48}
-                  unoptimized
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="font-semibold text-slate-400 text-lg">
-                  {journal.author.name?.charAt(0).toUpperCase() || "?"}
-                </span>
-              )}
-            </div>
-          </Link>
-          <div>
-            <Link
-              href={`/scholar/${journal.author.id}`}
-              className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
-            >
-              {journal.author.name || "Scholar"}
-            </Link>
-            <div className="mt-0.5 text-xs font-medium text-slate-500">
-              @{journal.author.handle}
-            </div>
-          </div>
-        </div>
-
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
-          {journal.title}
-        </h1>
-
-        <div className="mb-6">
-          {journal.issn && (
-            <p className="text-sm text-slate-500">ISSN: {journal.issn}</p>
-          )}
-        </div>
-
-        <RichContent content={journal.about} />
-
-        <div className="mt-3 flex items-center gap-4">
-          {journal.website && (
-            <a
-              href={journal.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-accent"
-            >
-              View Website
-            </a>
-          )}
-        </div>
-
-        <div className="border-t border-slate-200 pt-6 flex items-center gap-8 mt-8">
-          <LikeButton
-            targetId={journal.id}
-            type="journal"
-            initialLikes={journal._count.likes}
-            initialIsLiked={!!journal.likes?.length}
+    <DetailPageCardShell
+      backHref="/journals"
+      backLabel="Back to Journals"
+      authorHref={`/scholar/${j.author.id}`}
+      authorName={j.author.name || "Scholar"}
+      authorHandle={j.author.handle || undefined}
+      authorAvatarUrl={j.author.avatarUrl || undefined}
+      managementControls={
+        user?.id === j.author.id ? (
+          <OwnerActionsDropdown
+            editHref={`/journals/${j.id}/edit`}
+            onDelete={handleDelete}
+            isOwner={true}
+            editLabel="Edit Journal"
+            deleteLabel="Delete"
           />
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
-            {journal._count.comments} Comments
-          </div>
+        ) : null
+      }
+      footerLikeButton={
+        <LikeButton
+          targetId={j.id}
+          type="journal"
+          initialLikes={j._count.likes}
+          initialIsLiked={!!j.likes?.length}
+        />
+      }
+      footerCommentsHref={`/journals/${j.id}#comments`}
+      footerCommentsCount={j._count.comments}
+      discussion={
+        <div className="mt-12" id="comments">
+          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <CommentSection
+            comments={j.comments}
+            targetId={j.id}
+            type="journal"
+            currentUserId={user?.id ?? null}
+          />
         </div>
+      }
+    >
+      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+        {j.title}
+      </h1>
+
+      <div className="mb-6">
+        {j.issn && <p className="text-sm text-slate-500">ISSN: {j.issn}</p>}
       </div>
 
-      <div className="mt-12">
-        <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
-        <CommentSection
-          comments={journal.comments}
-          targetId={journal.id}
-          type="journal"
-          currentUserId={user?.id || null}
-        />
+      <RichContent content={j.about} />
+
+      <div className="mt-3 flex items-center gap-4">
+        {j.website && (
+          <a
+            href={j.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sb-button-accent"
+          >
+            View Website
+          </a>
+        )}
       </div>
-    </main>
+    </DetailPageCardShell>
   );
 };
 

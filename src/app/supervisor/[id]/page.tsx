@@ -1,10 +1,14 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
+
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { LikeButton } from "@/components/interactions/LikeButton";
+
 import { RecommendationCard } from "@/app/supervisor/components/RecommendationCard";
 import { deleteSupervisor } from "@/app/actions/supervisors";
+import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 export default async function SupervisorPage({
   params,
@@ -17,6 +21,8 @@ export default async function SupervisorPage({
   const supervisor = await prisma.supervisor.findUnique({
     where: { id },
     include: {
+      author: true,
+
       recommendations: {
         include: {
           author: true,
@@ -62,15 +68,49 @@ export default async function SupervisorPage({
     !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
 
   return (
-    <main className="max-w-4xl mx-auto py-10 px-4">
-      <Link
-        href="/supervisor"
-        className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 mb-8 transition-colors"
-      >
-        ← Back to Search
-      </Link>
-
-      {/* Profile Header Card */}
+    <DetailPageCardShell
+      backHref="/supervisor"
+      backLabel="Back to Search"
+      authorHref={`/scholar/${supervisor.authorId}`}
+      authorName={supervisor.author?.name || "Scholar"}
+      authorHandle={supervisor.author?.handle || undefined}
+      authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
+      footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
+      footerCommentsCount={supervisor.comments.length}
+      footerLikeButton={
+        <LikeButton
+          targetId={supervisor.id}
+          type="supervisor"
+          initialLikes={supervisor._count.likes}
+          initialIsLiked={isLiked}
+        />
+      }
+      managementControls={
+        user?.id === supervisor.authorId ? (
+          <OwnerActionsDropdown
+            editHref={`/supervisor/${supervisor.id}/edit`}
+            onDelete={handleDelete}
+            isOwner={true}
+            editLabel="Edit Profile"
+            deleteLabel="Delete"
+          />
+        ) : null
+      }
+      discussion={
+        <div
+          id="comments"
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+        >
+          <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
+          <CommentSection
+            comments={supervisor.comments}
+            targetId={supervisor.id}
+            type="supervisor"
+            currentUserId={user?.id ?? null}
+          />
+        </div>
+      }
+    >
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
@@ -94,39 +134,13 @@ export default async function SupervisorPage({
 
           {!hasUserRecommendation && (
             <Link
-              href={`/supervisor/${supervisor.id}/recommend`}
+              href={`/supervisor/${supervisor.id}/recommendation/add`}
               className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200 whitespace-nowrap"
             >
               + Recommend
             </Link>
           )}
         </div>
-
-        {/* Management Controls */}
-        {user?.id && (
-          <div className="mt-6 border-t border-slate-100 pt-6 flex items-center justify-end gap-4">
-            <LikeButton
-              targetId={supervisor.id}
-              type="supervisor"
-              initialLikes={supervisor._count.likes}
-              initialIsLiked={isLiked}
-            />
-            <Link
-              href={`/supervisor/${supervisor.id}/edit`}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50 px-4 py-2 rounded-lg border border-blue-100"
-            >
-              Edit Profile
-            </Link>
-            <form action={handleDelete}>
-              <button
-                type="submit"
-                className="text-xs font-bold text-red-600 hover:text-red-700 transition-colors bg-red-50 px-4 py-2 rounded-lg border border-red-100"
-              >
-                Delete
-              </button>
-            </form>
-          </div>
-        )}
       </div>
 
       {/* Recommendations List */}
@@ -154,16 +168,6 @@ export default async function SupervisorPage({
           </div>
         )}
       </div>
-
-      <div id="comments">
-        <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
-        <CommentSection
-          comments={supervisor.comments}
-          targetId={supervisor.id}
-          type="supervisor"
-          currentUserId={user?.id ?? null}
-        />
-      </div>
-    </main>
+    </DetailPageCardShell>
   );
 }

@@ -90,5 +90,6 @@ export async function deleteSocialPost(postId: string) {
 
     revalidatePath('/feed')
     revalidatePath(`/feed/${postId}`)
+    redirect('/feed')
 }
 

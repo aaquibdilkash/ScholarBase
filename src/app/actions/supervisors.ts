@@ -6,7 +6,7 @@ import { readFormValue } from '@/lib/form'
 import { redirect } from 'next/navigation'
 
 export async function createSupervisor(formData: FormData) {
-    await requireCurrentUser('Log in to add a supervisor entry.')
+    const user = await requireCurrentUser('Log in to add a supervisor entry.')
 
     const name = readFormValue(formData, 'name')
     const university = readFormValue(formData, 'university')
@@ -14,24 +14,37 @@ export async function createSupervisor(formData: FormData) {
     const about = readFormValue(formData, 'about')
 
     const supervisor = await prisma.supervisor.create({
-        data: { name, university, department, about },
+        data: {
+            name,
+            university,
+            department,
+            about,
+            // authorId is required in schema; set it explicitly from the current user
+            authorId: user.id,
+        },
     })
+
 
     redirect(`/supervisor/${supervisor.id}`)
 }
 
 export async function updateSupervisor(formData: FormData, supervisorId: string) {
-    await requireCurrentUser('Log in to edit this supervisor.')
-
+    const user = await requireCurrentUser('Log in to edit this supervisor.')
 
     const name = readFormValue(formData, 'name')
     const university = readFormValue(formData, 'university')
     const department = readFormValue(formData, 'department')
     const about = readFormValue(formData, 'about')
 
-    // NOTE: Prisma schema for Supervisor does not include authorId.
-    // Currently we allow editing/deleting to any authenticated user.
-    // If you add supervisor.authorId later, tighten authorization.
+    const supervisor = await prisma.supervisor.findUnique({
+        where: { id: supervisorId },
+        select: { authorId: true },
+    })
+
+    if (!supervisor) return
+    if (supervisor.authorId !== user.id) {
+        throw new Error('Not authorized to edit this supervisor.')
+    }
 
     await prisma.supervisor.update({
         where: { id: supervisorId },
@@ -42,9 +55,20 @@ export async function updateSupervisor(formData: FormData, supervisorId: string)
 }
 
 export async function deleteSupervisor(supervisorId: string) {
-    await requireCurrentUser('Log in to delete this supervisor.')
+    const user = await requireCurrentUser('Log in to delete this supervisor.')
+
+    const supervisor = await prisma.supervisor.findUnique({
+        where: { id: supervisorId },
+        select: { authorId: true },
+    })
+
+    if (!supervisor) return
+    if (supervisor.authorId !== user.id) {
+        throw new Error('Not authorized to delete this supervisor.')
+    }
 
     await prisma.supervisor.delete({ where: { id: supervisorId } })
     redirect('/supervisor')
 }
+
 

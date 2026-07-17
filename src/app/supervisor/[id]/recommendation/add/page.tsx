@@ -1,13 +1,15 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
 import RecommendationForm from "@/app/supervisor/components/RecommendationForm";
+import { notFound } from "next/navigation";
 
 export default async function RecommendSupervisorNew({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
+
   const supervisor = await prisma.supervisor.findUnique({
     where: { id },
     select: { name: true },

@@ -4,6 +4,7 @@ import { getTrendingArticles } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { createClient } from "@/utils/supabase/server";
 import { ArticleCard } from "@/components/blog/ArticleCard";
+import { ArticleList } from "./components/ArticleList";
 
 export default async function BlogIndex({
   searchParams,
@@ -80,11 +81,7 @@ export default async function BlogIndex({
       {isTrendingTab ? (
         <TrendingList items={trendingItems} />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {articles.map((article) => (
-            <ArticleCard key={article.id} article={article} />
-          ))}
-        </div>
+        <ArticleList articles={articles} />
       )}
     </main>
   );

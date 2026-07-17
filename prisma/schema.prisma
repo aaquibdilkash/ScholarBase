@@ -22,12 +22,17 @@ model Article {
 }
 
 model Supervisor {
-  id              String              @id @default(uuid())
-  name            String
-  university      String
-  department      String
-  about           String?
-  createdAt       DateTime            @default(now())
+  id         String   @id @default(uuid())
+  name       String
+  university String
+  department String
+  about      String?
+  createdAt  DateTime @default(now())
+
+  // Creator/owner of this supervisor profile
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
   likes           SupervisorLike[]
   comments        SupervisorComment[]
   recommendations Recommendation[]
@@ -233,6 +238,7 @@ model User {
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
+  supervisors           Supervisor[]
 }
 
 model Notification {
@@ -560,23 +566,22 @@ model SupervisorCommentLike {
 }
 
 model Recommendation {
-  id                   String                  @id @default(uuid())
-  rating               Int
-  feedback             String
+  id                  String                  @id @default(uuid())
+  rating              Int
+  feedback            String
   turnaroundTimeDays  Int
-  responsivenessScore  Int
+  responsivenessScore Int
   guidanceScore       Int
-  supervisorId         String
-  authorId             String
-  createdAt            DateTime                @default(now())
-  supervisor           Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author               User                    @relation(fields: [authorId], references: [id])
-  likes                RecommendationLike[]
-  comments             RecommendationComment[]
+  supervisorId        String
+  authorId            String
+  createdAt           DateTime                @default(now())
+  supervisor          Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  author              User                    @relation(fields: [authorId], references: [id])
+  likes               RecommendationLike[]
+  comments            RecommendationComment[]
 
   @@unique([authorId, supervisorId])
 }
-
 
 model RecommendationLike {
   id               String         @id @default(uuid())

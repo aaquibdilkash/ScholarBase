@@ -1,24 +1,29 @@
 "use client";
 
+import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
 import { HelpPost, User } from "@prisma/client";
 import { HelpPostCard } from "./HelpPostCard";
 
 type HelpPostWithAuthor = HelpPost & {
-    author: User;
-    isLiked: boolean;
-    _count: { likes: number; comments: number };
+  author: User;
+  likes: { userId: string }[];
+  _count: { likes: number; comments: number };
 };
 
-export function HelpPostList({
-  posts,
-}: {
-  posts: HelpPostWithAuthor[];
-}) {
+export function HelpPostList({ posts }: { posts: HelpPostWithAuthor[] }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {posts.map((post) => (
-        <HelpPostCard key={post.id} helpPost={post} />
-      ))}
-    </div>
+    <FilterableOpportunityList
+      items={posts}
+      placeholder="Search by title..."
+      filterFn={(post, query) =>
+        post.title.toLowerCase().includes(query.toLowerCase())
+      }
+      renderItem={(post) => (
+        <HelpPostCard
+          key={post.id}
+          helpPost={{ ...post, isLiked: (post.likes?.length ?? 0) > 0 }}
+        />
+      )}
+    />
   );
 }
