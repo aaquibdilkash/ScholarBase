@@ -29,7 +29,7 @@ export function AdmissionsList({
       renderItem={(item) => (
         <AdmissionCard
           key={item.id}
-          admission={{ ...item, isLiked: item.likes.length > 0 }}
+          admission={{ ...item, isLiked: (item.likes?.length ?? 0) > 0 }}
         />
       )}
     />

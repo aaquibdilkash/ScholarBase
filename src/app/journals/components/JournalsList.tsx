@@ -29,7 +29,7 @@ export function JournalsList({ journals }: { journals: JournalWithDetails[] }) {
       renderItem={(journal) => (
         <JournalCard
           key={journal.id}
-          journal={{ ...journal, isLiked: journal.likes.length > 0 }}
+          journal={{ ...journal, isLiked: (journal.likes?.length ?? 0) > 0 }}
         />
       )}
     />

@@ -29,7 +29,7 @@ export function VacanciesList({
       renderItem={(job) => (
         <VacancyCard
           key={job.id}
-          vacancy={{ ...job, isLiked: job.likes.length > 0 }}
+          vacancy={{ ...job, isLiked: (job.likes?.length ?? 0) > 0 }}
         />
       )}
     />

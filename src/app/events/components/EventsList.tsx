@@ -25,7 +25,7 @@ export function EventsList({ events }: { events: EventWithDetails[] }) {
       renderItem={(event) => (
         <EventCard
           key={event.id}
-          event={{ ...event, isLiked: event.likes.length > 0 }}
+          event={{ ...event, isLiked: (event.likes?.length ?? 0) > 0 }}
         />
       )}
     />
