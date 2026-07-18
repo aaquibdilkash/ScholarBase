@@ -1,9 +1,9 @@
 import Link from "next/link";
-import prisma from "@/lib/db";
 import { createClient } from "@/utils/supabase/server";
-import { VacanciesList } from "./components/VacanciesList";
+import { VacanciesList } from "@/components/vacancies/VacanciesList";
 import { getTrendingVacancies } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
+import { getVacancies } from "@/app/actions/vacancies";
 
 export default async function VacanciesPage({
   searchParams,
@@ -20,16 +20,7 @@ export default async function VacanciesPage({
 
   const vacancies = isTrendingTab
     ? []
-    : await prisma.jobVacancy.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
-        },
-      });
+    : await getVacancies(user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingVacancies(user?.id)
@@ -78,7 +69,7 @@ export default async function VacanciesPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems} />
+        <TrendingList items={trendingItems} currentUserId={user?.id} />
       ) : (
         <VacanciesList vacancies={vacancies} />
       )}

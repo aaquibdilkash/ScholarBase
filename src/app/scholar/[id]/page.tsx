@@ -1,9 +1,9 @@
-import prisma from "@/lib/db";
 import { createClient } from "@/utils/supabase/server";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { getProfile } from "@/app/actions/profile";
 
 export default async function ScholarProfile({
   params,
@@ -16,65 +16,7 @@ export default async function ScholarProfile({
     data: { user: currentUser },
   } = await supabase.auth.getUser();
 
-  const profile = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      handle: true,
-      avatarUrl: true,
-      bio: true,
-      followers: {
-        where: {
-          followerId: currentUser?.id,
-        },
-        select: {
-          followerId: true,
-        },
-      },
-      articles: {
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          excerpt: true,
-        },
-      },
-      socialPosts: {
-        select: {
-          id: true,
-          content: true,
-        },
-      },
-      vacancies: {
-        select: {
-          id: true,
-          title: true,
-          institution: true,
-        },
-      },
-      admissions: {
-        select: {
-          id: true,
-          university: true,
-          department: true,
-        },
-      },
-      events: {
-        select: {
-          id: true,
-          title: true,
-          location: true,
-          date: true,
-        },
-      },
-      _count: {
-        select: {
-          followers: true,
-        },
-      },
-    },
-  });
+  const profile = await getProfile(id, currentUser?.id);
 
   if (!profile) notFound();
 

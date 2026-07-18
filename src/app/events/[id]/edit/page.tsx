@@ -2,7 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
-import EventForm from "@/app/events/components/EventForm";
+import EventForm from "@/components/events/EventForm";
 
 export default async function EditEventPage({
   params,

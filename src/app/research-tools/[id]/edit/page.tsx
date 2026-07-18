@@ -2,7 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
-import ResearchToolForm from "@/app/research-tools/components/ResearchToolForm";
+import ResearchToolForm from "@/components/research-tools/ResearchToolForm";
 
 export default async function EditResearchToolPage({
   params,

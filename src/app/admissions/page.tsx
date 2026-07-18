@@ -1,11 +1,11 @@
 import Link from "next/link";
-import prisma from "@/lib/db";
 import { createClient } from "@/utils/supabase/server";
 
-import { AdmissionsList } from "./components/AdmissionsList";
+import { AdmissionsList } from "@/components/admissions/AdmissionsList";
 import { getTrendingAdmissions } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { TrendingItem } from "@/types/trending";
+import { getAdmissions } from "@/app/actions/admissions";
 
 export default async function AdmissionsPage({
   searchParams,
@@ -22,16 +22,7 @@ export default async function AdmissionsPage({
 
   const admissions = isTrendingTab
     ? []
-    : await prisma.phdAdmission.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
-        },
-      });
+    : await getAdmissions(user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingAdmissions(user?.id)
@@ -80,7 +71,10 @@ export default async function AdmissionsPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems as TrendingItem[]} />
+        <TrendingList
+          items={trendingItems as TrendingItem[]}
+          currentUserId={user?.id}
+        />
       ) : (
         <AdmissionsList admissions={admissions} currentUserId={user?.id} />
       )}

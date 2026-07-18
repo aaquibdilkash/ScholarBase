@@ -1,7 +1,7 @@
 import {
   createJobVacancy,
   updateJobVacancy,
-} from "@/app/actions/opportunities";
+} from "@/app/actions/vacancies";
 
 export type VacancyFormValues = {
   title: string;

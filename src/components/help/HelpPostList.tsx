@@ -10,7 +10,13 @@ type HelpPostWithAuthor = HelpPost & {
   _count: { likes: number; comments: number };
 };
 
-export function HelpPostList({ posts }: { posts: HelpPostWithAuthor[] }) {
+export function HelpPostList({
+  posts,
+  currentUserId,
+}: {
+  posts: HelpPostWithAuthor[];
+  currentUserId?: string;
+}) {
   return (
     <FilterableOpportunityList
       items={posts}
@@ -22,6 +28,7 @@ export function HelpPostList({ posts }: { posts: HelpPostWithAuthor[] }) {
         <HelpPostCard
           key={post.id}
           helpPost={{ ...post, isLiked: (post.likes?.length ?? 0) > 0 }}
+          currentUserId={currentUserId}
         />
       )}
     />

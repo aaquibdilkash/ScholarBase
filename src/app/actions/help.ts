@@ -4,15 +4,17 @@ import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
-export async function getHelpPosts() {
+export async function getHelpPosts(userId?: string) {
     return prisma.helpPost.findMany({
         orderBy: {
             createdAt: 'desc',
         },
         include: {
             author: true,
-            likes: true,
-            comments: true,
+            likes: userId ? { where: { userId } } : false,
+            _count: {
+                select: { likes: true, comments: true },
+            },
         },
     })
 }
@@ -124,4 +126,3 @@ export async function deleteHelpPost(helpPostId: string) {
 
     redirect('/help')
 }
-

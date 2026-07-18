@@ -1,5 +1,5 @@
 import Link from "next/link";
-import JournalForm from "@/app/journals/components/JournalForm";
+import JournalForm from "@/components/journals/JournalForm";
 
 export default function NewJournalPage() {
   return (

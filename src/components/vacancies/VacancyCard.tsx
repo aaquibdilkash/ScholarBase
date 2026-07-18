@@ -4,6 +4,7 @@ import { JobVacancy, User } from "@prisma/client";
 import { ClockIcon } from "@/components/icons/ClockIcon";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type VacancyWithAuthor = JobVacancy & {
   author: User;
@@ -11,7 +12,15 @@ type VacancyWithAuthor = JobVacancy & {
   _count: { likes: number; comments: number };
 };
 
-export function VacancyCard({ vacancy }: { vacancy: VacancyWithAuthor }) {
+export function VacancyCard({
+  vacancy,
+  currentUserId,
+}: {
+  vacancy: VacancyWithAuthor;
+  currentUserId?: string;
+}) {
+  const isOwner = currentUserId === vacancy.authorId;
+
   return (
     <ListPageCardShell
       authorHref={`/scholar/${vacancy.author.id}`}
@@ -19,6 +28,19 @@ export function VacancyCard({ vacancy }: { vacancy: VacancyWithAuthor }) {
       authorHandle={vacancy.author.handle || undefined}
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
       detailPageHref={`/vacancies/${vacancy.id}`}
+      managementControls={
+        isOwner && (
+          <OwnerActionsDropdown
+            editHref={`/vacancies/${vacancy.id}/edit`}
+            isOwner={true}
+            editLabel="Edit Vacancy"
+            deleteLabel="Delete"
+            onDelete={() => {
+              // TODO: wire delete action if available
+            }}
+          />
+        )
+      }
       footerLikeButton={
         <LikeButton
           targetId={vacancy.id}

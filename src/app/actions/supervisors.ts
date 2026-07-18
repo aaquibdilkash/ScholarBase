@@ -5,6 +5,60 @@ import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { redirect } from 'next/navigation'
 
+export async function getSupervisors(q?: string, userId?: string) {
+    return prisma.supervisor.findMany({
+        where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+        include: {
+          author: true,
+          recommendations: true,
+          likes: userId ? { where: { userId: userId } } : false,
+          _count: {
+            select: {
+              comments: true,
+              likes: true,
+            },
+          },
+        },
+      });
+}
+
+export async function getSupervisor(id: string, userId?: string) {
+    return prisma.supervisor.findUnique({
+        where: { id },
+        include: {
+          author: true,
+
+          recommendations: {
+            include: {
+              author: true,
+              likes: userId ? { where: { userId: userId } } : false,
+              _count: { select: { comments: true, likes: true } },
+            },
+            orderBy: { createdAt: "desc" },
+          },
+          comments: {
+            where: { parentId: null },
+            orderBy: { createdAt: "desc" },
+            include: {
+              author: true,
+              likes: userId ? { where: { userId: userId } } : false,
+              _count: { select: { likes: true } },
+              replies: {
+                orderBy: { createdAt: "desc" },
+                include: {
+                  author: true,
+                  likes: userId ? { where: { userId: userId } } : false,
+                  _count: { select: { likes: true } },
+                },
+              },
+            },
+          },
+          likes: userId ? { where: { userId: userId } } : false,
+          _count: { select: { likes: true } },
+        },
+      });
+}
+
 export async function createSupervisor(formData: FormData) {
     const user = await requireCurrentUser('Log in to add a supervisor entry.')
 
@@ -70,5 +124,3 @@ export async function deleteSupervisor(supervisorId: string) {
     await prisma.supervisor.delete({ where: { id: supervisorId } })
     redirect('/supervisor')
 }
-
-

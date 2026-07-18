@@ -1,0 +1,96 @@
+'use server'
+
+import prisma from '@/lib/db'
+import { requireCurrentUser } from '@/lib/auth'
+import { readFormValue } from '@/lib/form'
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
+
+export async function getVacancies(userId?: string) {
+    return prisma.jobVacancy.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+          author: true,
+          likes: userId ? { where: { userId: userId } } : false,
+          _count: {
+            select: { likes: true, comments: true },
+          },
+        },
+      });
+}
+
+export async function createJobVacancy(formData: FormData) {
+    const user = await requireCurrentUser('Please log in to submit details.')
+
+    const title = readFormValue(formData, 'title')
+    const institution = readFormValue(formData, 'institution')
+    const deadline = new Date(readFormValue(formData, 'deadline'))
+    const description = readFormValue(formData, 'description')
+    const notificationLink = readFormValue(formData, 'notificationLink')
+    const applyLink = readFormValue(formData, 'applyLink')
+
+    if (!notificationLink || !applyLink) {
+        throw new Error('Notification and Apply links are required.')
+    }
+
+    await prisma.jobVacancy.create({
+        data: { title, institution, deadline, description, notificationLink, applyLink, authorId: user.id },
+    })
+
+    revalidatePath('/vacancies')
+    redirect('/vacancies')
+}
+
+export async function updateJobVacancy(formData: FormData, vacancyId: string) {
+    const user = await requireCurrentUser('Log in to edit this vacancy.')
+
+    const title = readFormValue(formData, 'title')
+    const institution = readFormValue(formData, 'institution')
+    const deadline = new Date(readFormValue(formData, 'deadline'))
+    const description = readFormValue(formData, 'description')
+    const notificationLink = readFormValue(formData, 'notificationLink')
+    const applyLink = readFormValue(formData, 'applyLink')
+
+    if (!notificationLink || !applyLink) {
+        throw new Error('Notification and Apply links are required.')
+    }
+
+    const vacancy = await prisma.jobVacancy.findUnique({
+        where: { id: vacancyId },
+        select: { authorId: true },
+    })
+
+    if (!vacancy) return
+    if (vacancy.authorId !== user.id) {
+        throw new Error('Not authorized to edit this vacancy.')
+    }
+
+    await prisma.jobVacancy.update({
+        where: { id: vacancyId },
+        data: { title, institution, deadline, description, notificationLink, applyLink },
+    })
+
+    revalidatePath('/vacancies')
+    revalidatePath(`/vacancies/${vacancyId}`)
+    redirect(`/vacancies/${vacancyId}`)
+}
+
+export async function deleteJobVacancy(vacancyId: string) {
+    const user = await requireCurrentUser('Log in to delete this vacancy.')
+
+    const vacancy = await prisma.jobVacancy.findUnique({
+        where: { id: vacancyId },
+        select: { authorId: true },
+    })
+
+    if (!vacancy) return
+    if (vacancy.authorId !== user.id) {
+        throw new Error('Not authorized to delete this vacancy.')
+    }
+
+    await prisma.jobVacancy.delete({ where: { id: vacancyId } })
+
+    revalidatePath('/vacancies')
+    revalidatePath(`/vacancies/${vacancyId}`)
+    redirect('/vacancies')
+}

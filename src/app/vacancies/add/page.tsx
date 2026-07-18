@@ -1,5 +1,5 @@
 import Link from "next/link";
-import VacancyForm from "@/app/vacancies/components/VacancyForm";
+import VacancyForm from "@/components/vacancies/VacancyForm";
 
 export default function NewVacancyPage() {
   return (

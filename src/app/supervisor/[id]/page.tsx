@@ -1,12 +1,11 @@
-import prisma from "@/lib/db";
 import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { LikeButton } from "@/components/interactions/LikeButton";
 
-import { RecommendationCard } from "@/app/supervisor/components/RecommendationCard";
-import { deleteSupervisor } from "@/app/actions/supervisors";
+import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
+import { deleteSupervisor, getSupervisor } from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
@@ -18,38 +17,7 @@ export default async function SupervisorPage({
   const { id } = await params;
   const user = await getCurrentUser();
 
-  const supervisor = await prisma.supervisor.findUnique({
-    where: { id },
-    include: {
-      author: true,
-
-      recommendations: {
-        include: {
-          author: true,
-          likes: { where: { userId: user?.id } },
-          _count: { select: { comments: true, likes: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      comments: {
-        where: { parentId: null },
-        include: {
-          author: true,
-          likes: { where: { userId: user?.id } },
-          _count: { select: { likes: true } },
-          replies: {
-            include: {
-              author: true,
-              likes: { where: { userId: user?.id } },
-              _count: { select: { likes: true } },
-            },
-          },
-        },
-      },
-      likes: { where: { userId: user?.id } },
-      _count: { select: { likes: true } },
-    },
-  });
+  const supervisor = await getSupervisor(id, user?.id);
 
   if (!supervisor)
     return (
@@ -98,8 +66,8 @@ export default async function SupervisorPage({
       }
       discussion={
         <div
-          id="comments"
           className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          id="comments"
         >
           <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
           <CommentSection

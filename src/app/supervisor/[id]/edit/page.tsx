@@ -1,8 +1,7 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { requireCurrentUser } from "@/lib/auth";
-import SupervisorForm from "@/app/supervisor/components/SupervisorForm";
+import SupervisorForm from "@/components/supervisor/SupervisorForm";
 
 export default async function EditSupervisorPage({
   params,
@@ -10,10 +9,6 @@ export default async function EditSupervisorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  // Maintaining your pattern: allow any logged-in user to edit
-  const user = await requireCurrentUser(
-    "You must be logged in to edit this supervisor.",
-  );
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id },

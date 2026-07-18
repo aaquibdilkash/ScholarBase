@@ -2,7 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
-import AdmissionForm from "@/app/admissions/components/AdmissionForm";
+import AdmissionForm from "@/components/admissions/AdmissionForm";
 
 export default async function EditAdmissionPage({
   params,

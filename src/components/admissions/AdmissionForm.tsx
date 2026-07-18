@@ -1,7 +1,7 @@
 import {
   updatePhdAdmission,
   createPhdAdmission,
-} from "@/app/actions/opportunities";
+} from "@/app/actions/admissions";
 
 export type AdmissionFormValues = {
   university: string;

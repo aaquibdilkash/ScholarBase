@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ResearchToolForm from "@/app/research-tools/components/ResearchToolForm";
+import ResearchToolForm from "@/components/research-tools/ResearchToolForm";
 
 export default function NewResearchToolPage() {
   return (

@@ -72,10 +72,7 @@ export default async function RecommendationDetailPage({
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
       footerCommentsCount={recommendation._count.comments}
       discussion={
-        <div
-          id="comments"
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
-        >
+        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
           <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
           <CommentSection
             comments={recommendation.comments}

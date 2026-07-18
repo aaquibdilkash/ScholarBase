@@ -91,11 +91,7 @@ export async function getResearchTools(userId?: string) {
                     comments: true,
                 },
             },
-            likes: {
-                where: {
-                    userId: userId,
-                },
-            },
+            likes: userId ? { where: { userId } } : false,
         },
     });
 }
@@ -124,11 +120,7 @@ export async function getResearchToolById(toolId: string, userId?: string) {
                 },
                 orderBy: { createdAt: "desc" },
             },
-            likes: {
-                where: {
-                    userId: userId,
-                },
-            },
+            likes: userId ? { where: { userId } } : false,
             _count: {
                 select: {
                     likes: true,

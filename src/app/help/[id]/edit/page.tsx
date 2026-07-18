@@ -2,7 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
-import HelpPostForm from "@/app/help/components/HelpPostForm";
+import HelpPostForm from "@/components/help/HelpPostForm";
 
 export default async function EditHelpPostPage({
   params,

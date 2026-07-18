@@ -7,6 +7,101 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 
+export async function getArticles(q?: string, userId?: string) {
+    return prisma.article.findMany({
+        where: q
+          ? {
+              OR: [
+                {
+                  title: {
+                    contains: q,
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  author: {
+                    name: {
+                      contains: q,
+                      mode: "insensitive",
+                    },
+                  },
+                },
+              ],
+            }
+          : {},
+        orderBy: { createdAt: "desc" },
+        include: {
+          author: true,
+          likes: userId ? { where: { userId: userId } } : false,
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+            },
+          },
+        },
+      });
+}
+
+export async function getArticle(slug: string, userId?: string) {
+    return prisma.article.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      content: true,
+      createdAt: true,
+      authorId: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+        },
+      },
+      likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+      comments: {
+        where: { parentId: null },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          parentId: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+          replies: {
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              parentId: true,
+              author: {
+                select: { id: true, name: true, avatarUrl: true },
+              },
+              likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+              _count: { select: { likes: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          _count: { select: { likes: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      _count: {
+        select: { likes: true, comments: true },
+      },
+    },
+  });
+}
+
 export async function createArticle(formData: FormData) {
     const user = await requireCurrentUser('Log in to publish an article.')
 
@@ -44,7 +139,8 @@ export async function createArticle(formData: FormData) {
         }),
         notifyMentionedUsers({
             actorId: user.id,
-            content: `${title}\n${content}`,
+            content: `${title}
+${content}`,
             type: 'mention',
             targetType: 'article',
             targetId: slug,
@@ -128,4 +224,3 @@ export async function deleteArticle(articleId: string, slug: string) {
     revalidatePath(`/blog/${slug}`)
     redirect('/blog')
 }
-

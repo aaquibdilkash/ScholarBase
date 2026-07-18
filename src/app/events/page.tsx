@@ -1,9 +1,9 @@
 import Link from "next/link";
-import prisma from "@/lib/db";
 import { createClient } from "@/utils/supabase/server";
-import { EventsList } from "./components/EventsList";
+import { EventsList } from "@/components/events/EventsList";
 import { getTrendingEvents } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
+import { getEvents } from "@/app/actions/events";
 
 export default async function EventsPage({
   searchParams,
@@ -20,16 +20,7 @@ export default async function EventsPage({
 
   const events = isTrendingTab
     ? []
-    : await prisma.researchEvent.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
-        },
-      });
+    : await getEvents(user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingEvents(user?.id)
@@ -75,7 +66,7 @@ export default async function EventsPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems} />
+        <TrendingList items={trendingItems} currentUserId={user?.id} />
       ) : (
         <EventsList events={events} />
       )}

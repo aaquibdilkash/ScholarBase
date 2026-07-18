@@ -26,6 +26,7 @@ export type ListPageCardShellProps = {
 
   // link to the detail page
   detailPageHref: string;
+  bodyBottomContent?: ReactNode;
 };
 
 export default function ListPageCardShell({
@@ -41,6 +42,7 @@ export default function ListPageCardShell({
   className,
   bodyClassName,
   detailPageHref,
+  bodyBottomContent,
 }: ListPageCardShellProps) {
   return (
     <div className={clsx("sb-card p-6 md:p-8", className)}>
@@ -88,6 +90,8 @@ export default function ListPageCardShell({
       <Link href={detailPageHref} className={clsx("block group", bodyClassName)}>
         {children}
       </Link>
+
+      {bodyBottomContent}
 
       {/* Common footer */}
       <div className="border-t border-slate-200 pt-6 mt-8 flex items-center gap-8">

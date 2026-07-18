@@ -3,6 +3,8 @@
 import { HelpPost, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { deleteHelpPost } from "@/app/actions/help";
 
 type HelpPostWithAuthor = HelpPost & {
   author: User;
@@ -10,7 +12,15 @@ type HelpPostWithAuthor = HelpPost & {
   _count: { likes: number; comments: number };
 };
 
-export function HelpPostCard({ helpPost }: { helpPost: HelpPostWithAuthor }) {
+export function HelpPostCard({
+  helpPost,
+  currentUserId,
+}: {
+  helpPost: HelpPostWithAuthor;
+  currentUserId?: string;
+}) {
+  const isOwner = currentUserId === helpPost.authorId;
+
   return (
     <ListPageCardShell
       authorHref={`/scholar/${helpPost.author.id}`}
@@ -18,6 +28,19 @@ export function HelpPostCard({ helpPost }: { helpPost: HelpPostWithAuthor }) {
       authorHandle={helpPost.author.handle || undefined}
       authorAvatarUrl={helpPost.author.avatarUrl || undefined}
       detailPageHref={`/help/${helpPost.id}`}
+      managementControls={
+        isOwner && (
+          <OwnerActionsDropdown
+            editHref={`/help/${helpPost.id}/edit`}
+            isOwner={true}
+            editLabel="Edit Help Post"
+            deleteLabel="Delete"
+            onDelete={() => {
+              deleteHelpPost(helpPost.id);
+            }}
+          />
+        )
+      }
       footerLikeButton={
         <LikeButton
           targetId={helpPost.id}

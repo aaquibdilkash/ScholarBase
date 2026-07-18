@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { createClient } from "@/utils/supabase/server";
 import { getJournals } from "../actions/journals";
-import { JournalsList } from "./components/JournalsList";
+import { JournalsList } from "@/components/journals/JournalsList";
 import { getTrendingJournals } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 
@@ -72,7 +72,10 @@ export default async function JournalsPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={typedTrendingItems} />
+        <TrendingList
+          items={typedTrendingItems}
+          currentUserId={user?.id ?? ""}
+        />
       ) : (
         <JournalsList journals={journals} />
       )}

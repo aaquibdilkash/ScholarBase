@@ -2,7 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
-import VacancyForm from "@/app/vacancies/components/VacancyForm";
+import VacancyForm from "@/components/vacancies/VacancyForm";
 
 export default async function EditVacancyPage({
   params,

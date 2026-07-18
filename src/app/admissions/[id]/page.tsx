@@ -1,9 +1,8 @@
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { deletePhdAdmission } from "@/app/actions/opportunities";
+import { deletePhdAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
@@ -18,33 +17,7 @@ const AdmissionDetailPage = async ({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const admission = await prisma.phdAdmission.findUnique({
-    where: { id },
-    include: {
-      author: true,
-      comments: {
-        where: { parentId: null },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: { select: { likes: true } },
-          replies: {
-            include: {
-              author: true,
-              likes: user ? { where: { userId: user.id } } : false,
-              _count: { select: { likes: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      likes: user ? { where: { userId: user.id } } : false,
-      _count: {
-        select: { likes: true, comments: true },
-      },
-    },
-  });
+  const admission = await getAdmission(id, user?.id);
 
   if (!admission) {
     notFound();
@@ -85,7 +58,7 @@ const AdmissionDetailPage = async ({
       footerCommentsHref={`/admissions/${admission.id}#comments`}
       footerCommentsCount={admission._count.comments}
       discussion={
-        <div className="mt-12" id="comments">
+        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={admission.comments}

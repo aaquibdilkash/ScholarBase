@@ -61,7 +61,7 @@ const ResearchToolDetailPage = async ({
       footerCommentsHref={`/research-tools/${tool.id}#comments`}
       footerCommentsCount={tool._count.comments}
       discussion={
-        <div className="mt-12">
+        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={tool.comments}

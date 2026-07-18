@@ -1,10 +1,9 @@
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { LikeButton } from "@/components/interactions/LikeButton";
 
-import { deleteResearchEvent } from "@/app/actions/opportunities";
+import { deleteResearchEvent, getEvent } from "@/app/actions/events";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 
@@ -19,33 +18,7 @@ const EventDetailPage = async ({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const event = await prisma.researchEvent.findUnique({
-    where: { id: id },
-    include: {
-      author: true,
-      comments: {
-        where: { parentId: null },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: { select: { likes: true } },
-          replies: {
-            include: {
-              author: true,
-              likes: user ? { where: { userId: user.id } } : false,
-              _count: { select: { likes: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      likes: user ? { where: { userId: user.id } } : false,
-      _count: {
-        select: { likes: true, comments: true },
-      },
-    },
-  });
+  const event = await getEvent(id, user?.id);
 
   if (!event) {
     notFound();
@@ -84,7 +57,7 @@ const EventDetailPage = async ({
       footerCommentsHref={`/events/${event.id}#comments`}
       footerCommentsCount={event._count.comments}
       discussion={
-        <div className="mt-12" id="comments">
+        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={event.comments}

@@ -4,7 +4,7 @@ import { PhdAdmission, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { deletePhdAdmission } from "@/app/actions/opportunities";
+import { deletePhdAdmission } from "@/app/actions/admissions";
 
 type AdmissionWithAuthor = PhdAdmission & {
   author: User;

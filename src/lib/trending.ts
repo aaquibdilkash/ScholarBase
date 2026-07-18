@@ -140,7 +140,9 @@ export async function getTrendingSocialPosts(userId?: string) {
                 comments: true,
             },
         },
-        likes: userId ? { where: { userId } } : false,
+        // Always include likes for ownership checks; filter to current user only when userId exists
+        // (OwnerActionsDropdown relies on authorId, not likes, but other card logic expects `likes` to exist.)
+        likes: userId ? { where: { userId } } : undefined,
     }
 
     return getTrending(() => prisma.socialPost.findMany({
@@ -148,6 +150,7 @@ export async function getTrendingSocialPosts(userId?: string) {
         include: commonInclude,
     }), 'social-post')
 }
+
 
 export async function getTrendingJournals(userId?: string) {
     const since = new Date()

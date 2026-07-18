@@ -1,11 +1,10 @@
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { RichContent } from "@/components/content/RichContent";
 import { getCurrentUser } from "@/lib/auth";
-import { deleteArticle } from "@/app/actions/blog";
+import { deleteArticle, getArticle } from "@/app/actions/blog";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 export default async function ArticlePage({
@@ -16,71 +15,7 @@ export default async function ArticlePage({
   const { slug } = await params;
   const user = await getCurrentUser();
 
-  const article = await prisma.article.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      content: true,
-      createdAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true,
-        },
-      },
-      likes: {
-        where: { userId: user?.id },
-        select: { userId: true },
-      },
-      comments: {
-        where: { parentId: null },
-        select: {
-          id: true,
-          content: true,
-          createdAt: true,
-          parentId: true,
-          author: {
-            select: {
-              id: true,
-              name: true,
-              avatarUrl: true,
-            },
-          },
-          likes: {
-            where: { userId: user?.id },
-            select: { userId: true },
-          },
-          replies: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              parentId: true,
-              author: {
-                select: { id: true, name: true, avatarUrl: true },
-              },
-              likes: {
-                where: { userId: user?.id },
-                select: { userId: true },
-              },
-              _count: { select: { likes: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-          _count: { select: { likes: true } },
-        },
-        orderBy: { createdAt: "asc" },
-      },
-      _count: {
-        select: { likes: true, comments: true },
-      },
-    },
-  });
+  const article = await getArticle(slug, user?.id);
 
   if (!article) notFound();
 
@@ -122,7 +57,7 @@ export default async function ArticlePage({
       footerCommentsHref={`/blog/${a.slug}#comments`}
       footerCommentsCount={a._count.comments}
       discussion={
-        <div className="mt-12" id="comments">
+        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={a.comments}

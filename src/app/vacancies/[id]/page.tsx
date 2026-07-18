@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { deleteJobVacancy } from "@/app/actions/opportunities";
+import { deleteJobVacancy } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
@@ -85,7 +85,10 @@ const VacancyDetailPage = async ({
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}
       footerCommentsCount={vacancy._count.comments}
       discussion={
-        <div className="mt-12" id="comments">
+        <div
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          id="comments"
+        >
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={vacancy.comments}

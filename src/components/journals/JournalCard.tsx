@@ -3,6 +3,7 @@
 import { Journal, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type JournalWithAuthor = Journal & {
   author: User;
@@ -10,7 +11,15 @@ type JournalWithAuthor = Journal & {
   _count: { likes: number; comments: number };
 };
 
-export function JournalCard({ journal }: { journal: JournalWithAuthor }) {
+export function JournalCard({
+  journal,
+  currentUserId,
+}: {
+  journal: JournalWithAuthor;
+  currentUserId?: string;
+}) {
+  const isOwner = currentUserId === journal.authorId;
+
   return (
     <ListPageCardShell
       authorHref={`/scholar/${journal.author.id}`}
@@ -18,6 +27,19 @@ export function JournalCard({ journal }: { journal: JournalWithAuthor }) {
       authorHandle={journal.author.handle || undefined}
       authorAvatarUrl={journal.author.avatarUrl || undefined}
       detailPageHref={`/journals/${journal.id}`}
+      managementControls={
+        isOwner && (
+          <OwnerActionsDropdown
+            editHref={`/journals/${journal.id}/edit`}
+            isOwner={true}
+            editLabel="Edit Journal"
+            deleteLabel="Delete"
+            onDelete={() => {
+              // TODO: wire delete action if available
+            }}
+          />
+        )
+      }
       footerLikeButton={
         <LikeButton
           targetId={journal.id}

@@ -5,6 +5,61 @@ import { requireCurrentUser } from '@/lib/auth'
 import { normalizeHandle, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 
+export async function getProfile(profileId: string, currentUserId?: string) {
+    return prisma.user.findUnique({
+        where: { id: profileId },
+        select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+            bio: true,
+            followers: currentUserId ? { where: { followerId: currentUserId }, select: { followerId: true } } : { take: 0, select: { followerId: true } },
+            articles: {
+                select: {
+                    id: true,
+                    slug: true,
+                    title: true,
+                    excerpt: true,
+                },
+            },
+            socialPosts: {
+                select: {
+                    id: true,
+                    content: true,
+                },
+            },
+            vacancies: {
+                select: {
+                    id: true,
+                    title: true,
+                    institution: true,
+                },
+            },
+            admissions: {
+                select: {
+                    id: true,
+                    university: true,
+                    department: true,
+                },
+            },
+            events: {
+                select: {
+                    id: true,
+                    title: true,
+                    location: true,
+                    date: true,
+                },
+            },
+            _count: {
+                select: {
+                    followers: true,
+                },
+            },
+        },
+    });
+}
+
 export async function updateProfile(formData: FormData) {
     const user = await requireCurrentUser('Log in to update your profile.')
 

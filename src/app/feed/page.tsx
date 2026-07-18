@@ -1,12 +1,11 @@
-import { createSocialPost } from "@/app/actions/feed";
+import { createSocialPost, getFeed } from "@/app/actions/feed";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/db";
 import Link from "next/link";
 
 import { getTrendingSocialPosts } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { SocialPostCard } from "@/components/feed/SocialPostCard";
+import { FeedList } from "@/components/feed/FeedList";
 
 export default async function FeedPage({
   searchParams,
@@ -22,74 +21,15 @@ export default async function FeedPage({
 
   if (!user) redirect("/login");
 
-  const isFollowingTab = tab === "following";
   const isTrendingTab = tab === "trending";
-  const hasQuery = Boolean(q && q.trim().length > 0);
-  let followingIds: string[] = [];
-
-  // If on the following tab, get the IDs first
-  if (isFollowingTab) {
-    const following = await prisma.follows.findMany({
-      where: { followerId: user.id },
-      select: { followingId: true },
-    });
-    followingIds = following.map((f) => f.followingId);
-  }
-
+  
   const posts = isTrendingTab
     ? []
-    : await prisma.socialPost.findMany({
-        where: {
-          ...(isFollowingTab ? { authorId: { in: followingIds } } : {}),
-          ...(hasQuery
-            ? {
-                OR: [
-                  {
-                    content: {
-                      contains: q,
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    author: {
-                      name: {
-                        contains: q,
-                        mode: "insensitive",
-                      },
-                    },
-                  },
-                  {
-                    author: {
-                      handle: {
-                        contains: q,
-                        mode: "insensitive",
-                      },
-                    },
-                  },
-                ],
-              }
-            : {}),
-        },
-        include: {
-          author: true,
-          likes: true,
-          _count: {
-            select: { comments: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+    : await getFeed(user.id, tab, q);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingSocialPosts(user.id)
     : []) as unknown as import("@/types/trending").TrendingItem[];
-
-  const userLikes = new Set(
-    posts
-      .flatMap((p) => p.likes)
-      .filter((l) => l.userId === user.id)
-      .map((l) => l.socialPostId),
-  );
 
   return (
     <main className="mx-auto max-w-3xl py-6">
@@ -108,7 +48,7 @@ export default async function FeedPage({
         <Link
           href="/feed"
           className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            !isFollowingTab && !isTrendingTab
+            !tab
               ? "bg-slate-950 text-white shadow-sm"
               : "text-slate-500 hover:text-slate-900"
           }`}
@@ -118,7 +58,7 @@ export default async function FeedPage({
         <Link
           href="/feed?tab=following"
           className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            isFollowingTab
+            tab === "following"
               ? "bg-slate-950 text-white shadow-sm"
               : "text-slate-500 hover:text-slate-900"
           }`}
@@ -156,56 +96,18 @@ export default async function FeedPage({
         </div>
       )}
 
-      {!isTrendingTab && (
-        <form className="relative mb-10">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg
-              className="h-5 w-5 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          <input
-            name="q"
-            placeholder="Search posts..."
-            className="sb-input pl-12"
-            defaultValue={q}
-          />
-        </form>
-      )}
-
       {isTrendingTab ? (
-        <TrendingList key="trending" items={trendingItems} />
+        <TrendingList
+          key="trending"
+          items={trendingItems}
+          currentUserId={user.id}
+        />
       ) : (
-        <div
-          key={isFollowingTab ? "following" : "all"}
-          className="flex flex-col gap-6"
-        >
-          {posts.map((post) => (
-            <SocialPostCard
-              key={post.id}
-              post={post}
-              isLiked={userLikes.has(post.id)}
-              currentUserId={user.id}
-            />
-          ))}
-
-          {posts.length === 0 && (
-            <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
-              <p className="font-medium text-slate-500">
-                No posts to show right now.
-              </p>
-            </div>
-          )}
-        </div>
+        <FeedList
+          posts={posts}
+          currentUserId={user.id}
+          initialQuery={q ?? ""}
+        />
       )}
     </main>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { getResearchTools } from "../actions/researchTools";
-import { ResearchToolsList } from "./components/ResearchToolsList";
+import { ResearchToolsList } from "@/components/research-tools/ResearchToolsList";
 import { getTrendingResearchTools } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 
@@ -71,7 +71,7 @@ export default async function ResearchPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={typedTrendingItems} />
+        <TrendingList items={typedTrendingItems} currentUserId={user?.id ?? ""}/>
       ) : (
         <ResearchToolsList tools={tools} />
       )}

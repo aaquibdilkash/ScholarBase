@@ -1,5 +1,5 @@
 import Link from "next/link";
-import SupervisorForm from "@/app/supervisor/components/SupervisorForm";
+import SupervisorForm from "@/components/supervisor/SupervisorForm";
 
 export default function AddSupervisorPage() {
   return (

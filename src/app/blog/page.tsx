@@ -1,17 +1,17 @@
-import prisma from "@/lib/db";
 import Link from "next/link";
 import { getTrendingArticles } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { createClient } from "@/utils/supabase/server";
-import { ArticleCard } from "@/components/blog/ArticleCard";
-import { ArticleList } from "./components/ArticleList";
+import { ArticleList } from "@/components/blog/ArticleList";
+import { getArticles } from "@/app/actions/blog";
 
 export default async function BlogIndex({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab } = await searchParams;
+  const { tab, q } = await searchParams;
+
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -21,19 +21,7 @@ export default async function BlogIndex({
 
   const articles = isTrendingTab
     ? []
-    : await prisma.article.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: {
-            select: {
-              likes: true,
-              comments: true,
-            },
-          },
-        },
-      });
+    : await getArticles(q, user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingArticles(user?.id)
@@ -79,9 +67,13 @@ export default async function BlogIndex({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems} />
+        <TrendingList items={trendingItems} currentUserId={user?.id} />
       ) : (
-        <ArticleList articles={articles} currentUserId={user?.id} />
+        <ArticleList
+          articles={articles}
+          currentUserId={user?.id}
+          initialQuery={q ?? ""}
+        />
       )}
     </main>
   );

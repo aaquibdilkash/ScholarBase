@@ -1,5 +1,5 @@
 import Link from "next/link";
-import AdmissionForm from "@/app/admissions/components/AdmissionForm";
+import AdmissionForm from "@/components/admissions/AdmissionForm";
 
 export default function NewAdmissionPage() {
   return (

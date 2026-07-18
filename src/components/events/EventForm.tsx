@@ -1,7 +1,7 @@
 import {
   createResearchEvent,
   updateResearchEvent,
-} from "@/app/actions/opportunities";
+} from "@/app/actions/events";
 
 export type EventFormValues = {
   title: string;

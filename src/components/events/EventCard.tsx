@@ -4,7 +4,7 @@ import { ResearchEvent, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { deleteResearchEvent } from "@/app/actions/opportunities";
+import { deleteResearchEvent } from "@/app/actions/events";
 
 type EventWithAuthor = ResearchEvent & {
   author: User;

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import prisma from "@/lib/db";
 import { createClient } from "@/utils/supabase/server";
-import { HelpPostList } from "./components/HelpPostList";
+import { HelpPostList } from "@/components/help/HelpPostList";
 import { getTrendingHelpPosts } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
+import { getHelpPosts } from "@/app/actions/help";
 
 export default async function HelpPage({
   searchParams,
@@ -20,16 +20,7 @@ export default async function HelpPage({
 
   const posts = isTrendingTab
     ? []
-    : await prisma.helpPost.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
-        },
-      });
+    : await getHelpPosts(user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingHelpPosts(user?.id)
@@ -75,9 +66,9 @@ export default async function HelpPage({
       </div>
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems} />
+        <TrendingList items={trendingItems} currentUserId={user?.id ?? ""} />
       ) : (
-        <HelpPostList posts={posts} />
+        <HelpPostList posts={posts} currentUserId={user?.id} />
       )}
     </main>
   );

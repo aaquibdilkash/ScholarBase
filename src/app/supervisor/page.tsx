@@ -1,10 +1,11 @@
-import prisma from "@/lib/db";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { getTrendingSupervisors } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { SupervisorCard } from "./components/SupervisorCard";
+
+import { SupervisorsList } from "@/components/supervisor/SupervisorsList";
 import { getCurrentUser } from "@/lib/auth";
+import { getSupervisors } from "@/app/actions/supervisors";
 
 export default async function SupervisorDirectory({
   searchParams,
@@ -18,24 +19,7 @@ export default async function SupervisorDirectory({
 
   const supervisors = isTrendingTab
     ? []
-    : await prisma.supervisor.findMany({
-        where: q ? { name: { contains: q, mode: "insensitive" } } : {},
-        include: {
-          author: true,
-          recommendations: true,
-          likes: {
-            where: {
-              userId: user?.id,
-            },
-          },
-          _count: {
-            select: {
-              comments: true,
-              likes: true,
-            },
-          },
-        },
-      });
+    : await getSupervisors(q, user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingSupervisors(user?.id)
@@ -84,44 +68,16 @@ export default async function SupervisorDirectory({
       </div>
 
       {!isTrendingTab && (
-        <form className="relative mb-10">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-            <svg
-              className="h-5 w-5 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-          <input
-            name="q"
-            placeholder="Search by professor's name..."
-            className="sb-input pl-12"
-            defaultValue={q}
-          />
-        </form>
+        <SupervisorsList
+          supervisors={supervisors}
+          currentUserId={user?.id}
+          initialQuery={q ?? ""}
+        />
       )}
 
       {isTrendingTab ? (
-        <TrendingList items={trendingItems} />
-      ) : supervisors.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2">
-          {supervisors.map((s) => (
-            <SupervisorCard
-              key={s.id}
-              supervisor={s}
-              currentUserId={user?.id}
-            />
-          ))}
-        </div>
-      ) : (
+        <TrendingList items={trendingItems} currentUserId={user?.id} />
+      ) : supervisors.length > 0 ? null : (
         <div className="flex flex-col items-center rounded-[28px] border border-dashed border-slate-200 bg-white/80 px-6 py-16 text-center shadow-sm">
           <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
             <svg

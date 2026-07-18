@@ -1,10 +1,9 @@
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { getCurrentUser } from "@/lib/auth";
-import { deleteSocialPost } from "@/app/actions/feed";
+import { deleteSocialPost, getPost } from "@/app/actions/feed";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 export default async function SinglePostPage({
@@ -15,65 +14,7 @@ export default async function SinglePostPage({
   const { id } = await params;
   const user = await getCurrentUser();
 
-  const post = await prisma.socialPost.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true,
-        },
-      },
-      likes: {
-        where: { userId: user?.id },
-        select: { userId: true },
-      },
-      comments: {
-        where: { parentId: null },
-        select: {
-          id: true,
-          content: true,
-          createdAt: true,
-          parentId: true,
-          author: {
-            select: { id: true, name: true, avatarUrl: true },
-          },
-          likes: {
-            where: { userId: user?.id },
-            select: { userId: true },
-          },
-          replies: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              parentId: true,
-              author: {
-                select: { id: true, name: true, avatarUrl: true },
-              },
-              likes: {
-                where: { userId: user?.id },
-                select: { userId: true },
-              },
-              _count: { select: { likes: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-          _count: { select: { likes: true } },
-        },
-        orderBy: { createdAt: "asc" },
-      },
-      _count: {
-        select: { likes: true, comments: true },
-      },
-    },
-  });
+  const post = await getPost(id, user?.id);
 
   if (!post) notFound();
 
@@ -114,7 +55,7 @@ export default async function SinglePostPage({
       footerCommentsHref={`/feed/${p.id}#comments`}
       footerCommentsCount={p._count.comments}
       discussion={
-        <div className="mt-12" id="comments">
+        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={p.comments}
