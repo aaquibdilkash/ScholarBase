@@ -15,8 +15,10 @@ type ArticleWithDetails = Article & {
 
 export function ArticleList({
   articles,
+  currentUserId,
 }: {
   articles: ArticleWithDetails[];
+  currentUserId?: string;
 }) {
   return (
     <FilterableOpportunityList
@@ -29,6 +31,7 @@ export function ArticleList({
         <ArticleCard
           key={article.id}
           article={article}
+          currentUserId={currentUserId}
         />
       )}
     />

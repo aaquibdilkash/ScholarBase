@@ -21,6 +21,7 @@ export default async function SupervisorDirectory({
     : await prisma.supervisor.findMany({
         where: q ? { name: { contains: q, mode: "insensitive" } } : {},
         include: {
+          author: true,
           recommendations: true,
           likes: {
             where: {

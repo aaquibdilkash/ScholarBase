@@ -12,6 +12,7 @@ type TrendingItemBase = {
 };
 
 export type TrendingSupervisor = Supervisor & {
+    author: User;
     recommendations: Recommendation[];
     score: number;
     type: 'supervisor';

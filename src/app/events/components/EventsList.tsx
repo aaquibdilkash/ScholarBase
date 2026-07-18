@@ -13,7 +13,7 @@ type EventWithDetails = ResearchEvent & {
   };
 };
 
-export function EventsList({ events }: { events: EventWithDetails[] }) {
+export function EventsList({ events, currentUserId }: { events: EventWithDetails[], currentUserId?: string }) {
   return (
     <FilterableOpportunityList
       items={events}
@@ -26,6 +26,7 @@ export function EventsList({ events }: { events: EventWithDetails[] }) {
         <EventCard
           key={event.id}
           event={{ ...event, isLiked: (event.likes?.length ?? 0) > 0 }}
+          currentUserId={currentUserId}
         />
       )}
     />

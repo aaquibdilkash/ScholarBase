@@ -1,7 +1,6 @@
 import prisma from "@/lib/db";
 import Link from "next/link";
 import RecommendationForm from "@/app/supervisor/components/RecommendationForm";
-import { notFound } from "next/navigation";
 
 export default async function RecommendSupervisorNew({
   params,

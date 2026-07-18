@@ -81,7 +81,7 @@ export default async function BlogIndex({
       {isTrendingTab ? (
         <TrendingList items={trendingItems} />
       ) : (
-        <ArticleList articles={articles} />
+        <ArticleList articles={articles} currentUserId={user?.id} />
       )}
     </main>
   );

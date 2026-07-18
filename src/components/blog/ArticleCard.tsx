@@ -1,54 +1,64 @@
-import { Article, ArticleLike } from "@prisma/client";
-import Link from "next/link";
+"use client";
+import { Article, ArticleLike, User } from "@prisma/client";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { CommentIcon } from "@/components/icons/CommentIcon";
+import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { deleteArticle } from "@/app/actions/blog";
 
-type ArticleWithCountsAndLikes = Article & {
+type ArticleWithDetails = Article & {
+  author: User;
+  likes: ArticleLike[];
   _count: {
     likes: number;
     comments: number;
   };
-  likes: ArticleLike[];
 };
 
 export function ArticleCard({
   article,
+  currentUserId,
 }: {
-  article: ArticleWithCountsAndLikes;
+  article: ArticleWithDetails;
+  currentUserId?: string;
 }) {
+  const isOwner = currentUserId === article.authorId;
   return (
-    <div key={article.id} className="sb-card sb-card-hover group flex flex-col">
-      <Link href={`/blog/${article.slug}`} className="flex-grow">
-        <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
-          {article.title}
-        </h2>
-        <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-          {article.excerpt}
-        </p>
-      </Link>
-      <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 text-sm font-semibold">
-        <div className="flex gap-4">
-          <LikeButton
-            targetId={article.id}
-            type="article"
-            initialLikes={article._count.likes}
-            initialIsLiked={!!article.likes?.length}
+    <ListPageCardShell
+      authorHref={`/scholar/${article.authorId}`}
+      authorName={article.author.name || "Scholar"}
+      authorHandle={article.author.handle || undefined}
+      authorAvatarUrl={article.author.avatarUrl || undefined}
+      detailPageHref={`/blog/${article.slug}`}
+      managementControls={
+        isOwner && (
+          <OwnerActionsDropdown
+            editHref={`/blog/${article.slug}/edit`}
+            isOwner={true}
+            editLabel="Edit Article"
+            deleteLabel="Delete"
+            onDelete={async () => {
+              await deleteArticle(article.id, article.slug);
+            }}
           />
-          <Link
-            href={`/blog/${article.slug}`}
-            className="flex items-center gap-1 text-slate-500 hover:text-blue-700"
-          >
-            <CommentIcon className="h-5 w-5" />
-            {article._count.comments}
-          </Link>
-        </div>
-        <Link href={`/blog/${article.slug}`} className="text-blue-700">
-          Read Article{" "}
-          <span className="ml-1 group-hover:translate-x-1 transition-transform">
-            →
-          </span>
-        </Link>
-      </div>
-    </div>
+        )
+      }
+      footerLikeButton={
+        <LikeButton
+          targetId={article.id}
+          type="article"
+          initialLikes={article._count.likes}
+          initialIsLiked={!!article.likes?.length}
+        />
+      }
+      footerCommentsHref={`/blog/${article.slug}`}
+      footerCommentsCount={article._count.comments}
+    >
+      <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+        {article.title}
+      </h2>
+      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
+        {article.excerpt}
+      </p>
+    </ListPageCardShell>
   );
 }

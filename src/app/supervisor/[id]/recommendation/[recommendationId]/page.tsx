@@ -1,11 +1,8 @@
 import prisma from "@/lib/db";
-import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { CommentIcon } from "@/components/icons/CommentIcon";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";

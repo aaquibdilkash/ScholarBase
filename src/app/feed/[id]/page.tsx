@@ -1,8 +1,5 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { CommentSection } from "@/components/interactions/CommentSection";

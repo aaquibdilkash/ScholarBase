@@ -15,8 +15,10 @@ type AdmissionWithDetails = PhdAdmission & {
 
 export function AdmissionsList({
   admissions,
+  currentUserId,
 }: {
   admissions: AdmissionWithDetails[];
+  currentUserId?: string;
 }) {
   return (
     <FilterableOpportunityList
@@ -30,6 +32,7 @@ export function AdmissionsList({
         <AdmissionCard
           key={item.id}
           admission={{ ...item, isLiked: (item.likes?.length ?? 0) > 0 }}
+          currentUserId={currentUserId}
         />
       )}
     />

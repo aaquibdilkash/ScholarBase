@@ -11,9 +11,9 @@ import { SocialPostCard } from "@/components/feed/SocialPostCard";
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab } = await searchParams;
+  const { tab, q } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -24,6 +24,7 @@ export default async function FeedPage({
 
   const isFollowingTab = tab === "following";
   const isTrendingTab = tab === "trending";
+  const hasQuery = Boolean(q && q.trim().length > 0);
   let followingIds: string[] = [];
 
   // If on the following tab, get the IDs first
@@ -38,7 +39,37 @@ export default async function FeedPage({
   const posts = isTrendingTab
     ? []
     : await prisma.socialPost.findMany({
-        where: isFollowingTab ? { authorId: { in: followingIds } } : undefined,
+        where: {
+          ...(isFollowingTab ? { authorId: { in: followingIds } } : {}),
+          ...(hasQuery
+            ? {
+                OR: [
+                  {
+                    content: {
+                      contains: q,
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    author: {
+                      name: {
+                        contains: q,
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                  {
+                    author: {
+                      handle: {
+                        contains: q,
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
+        },
         include: {
           author: true,
           likes: true,
@@ -125,6 +156,32 @@ export default async function FeedPage({
         </div>
       )}
 
+      {!isTrendingTab && (
+        <form className="relative mb-10">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+            <svg
+              className="h-5 w-5 text-slate-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <input
+            name="q"
+            placeholder="Search posts..."
+            className="sb-input pl-12"
+            defaultValue={q}
+          />
+        </form>
+      )}
+
       {isTrendingTab ? (
         <TrendingList key="trending" items={trendingItems} />
       ) : (
@@ -137,6 +194,7 @@ export default async function FeedPage({
               key={post.id}
               post={post}
               isLiked={userLikes.has(post.id)}
+              currentUserId={user.id}
             />
           ))}
 

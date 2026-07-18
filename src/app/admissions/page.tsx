@@ -82,7 +82,7 @@ export default async function AdmissionsPage({
       {isTrendingTab ? (
         <TrendingList items={trendingItems as TrendingItem[]} />
       ) : (
-        <AdmissionsList admissions={admissions} />
+        <AdmissionsList admissions={admissions} currentUserId={user?.id} />
       )}
     </main>
   );

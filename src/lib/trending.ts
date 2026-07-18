@@ -216,6 +216,7 @@ export async function getTrendingSupervisors(userId?: string) {
     const supervisors = await prisma.supervisor.findMany({
 
         include: {
+            author: true,
             // SupervisorCard needs recommendations to compute avg rating
             recommendations: true,
             likes: userId ? { where: { userId } } : undefined,

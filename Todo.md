@@ -1,0 +1,5 @@
+- [x] Add search bar UI to Feed page (non-trending tab) matching supervisor/blog style
+- [x] Update Feed page to read `q` from `searchParams`
+- [x] Apply Prisma filtering by `socialPost.content` (and author name/handle) for All + Following
+- [x] Ensure URL/query params work with existing `tab` logic
+- [x] Run lint/build (if available) to confirm no TS/ESLint errors
