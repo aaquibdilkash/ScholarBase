@@ -34,14 +34,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'help',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your help post`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -50,30 +50,46 @@ export async function createComment(
 
     else if (type === 'article') {
         const comment = await prisma.articleComment.create({
+      data: { content, articleId: targetId, authorId: user.id, parentId },
+    });
 
-            data: { content, articleId: targetId, authorId: user.id, parentId },
-        })
+    const article = await prisma.article.findUnique({
+      where: { id: targetId },
+      select: { slug: true, authorId: true },
+    });
 
-        const target = parentId
-            ? await prisma.articleComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
-            : await prisma.article.findUnique({ where: { id: targetId }, select: { authorId: true } })
+    if (article) {
+      const target = parentId
+        ? await prisma.articleComment.findUnique({
+            where: { id: parentId },
+            select: { authorId: true },
+          })
+        : article;
 
-        if (target?.authorId) {
-            await notifyUserById({
-                recipientId: target.authorId,
-                actorId: user.id,
-                type: parentId ? 'reply-created' : 'comment-created',
-                targetType: 'article',
-                targetId: comment.id,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your article`,
-                body: content,
-            })
-        }
+      if (target?.authorId) {
+        await notifyUserById({
+          recipientId: target.authorId,
+          actorId: user.id,
+          type: parentId ? "reply-created" : "comment-created",
+          targetType: "article",
+          targetId: article.slug,
+          title: parentId
+            ? `Someone replied to your comment`
+            : `Someone commented on your article`,
+          body: content,
+        });
+      }
+    }
 
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
+    await notifyMentionedUsers({
+          actorId: user.id,
+          content,
+          type: "mention",
+          targetType: "comment",
+          targetId: article.slug,
+          titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+          bodyFactory: () => content,
+        });
 
         // Target ID for articles is UUID, but route uses slug. Clearing the article layout is safest here.
         revalidatePath('/blog/[slug]', 'page')
@@ -94,14 +110,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'post',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your post`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -124,14 +140,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'event',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your event`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -153,14 +169,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'vacancy',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your vacancy`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -182,14 +198,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'admission',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your admission post`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -220,14 +236,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'recommendation',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your recommendation`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -249,14 +265,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'journal',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your journal post`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 
@@ -278,14 +294,14 @@ export async function createComment(
                 actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'researchTool',
-                targetId: comment.id,
+                targetId: targetId,
                 title: parentId ? `Someone replied to your comment` : `Someone commented on your research tool`,
                 body: content,
             })
         }
 
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: comment.id,
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
 

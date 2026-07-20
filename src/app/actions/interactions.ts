@@ -28,7 +28,7 @@ export async function toggleLike(
 
             const article = await prisma.article.findUnique({
                 where: { id: targetId },
-                select: { authorId: true, title: true },
+                select: { authorId: true, title: true, slug: true },
             })
 
             if (article?.authorId) {
@@ -37,7 +37,7 @@ export async function toggleLike(
                     actorId: user.id,
                     type: 'article-liked',
                     targetType: 'article',
-                    targetId,
+                    targetId: article.slug,
                     title: `${user.email?.split('@')[0] || 'Someone'} liked your article`,
                     body: article.title,
                 })

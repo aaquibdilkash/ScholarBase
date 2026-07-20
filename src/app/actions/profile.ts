@@ -322,6 +322,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
     }
 }
 
+
 export async function updateProfile(formData: FormData) {
     const supabaseUser = await requireCurrentUser('You must be logged in to update your profile.')
 
@@ -336,6 +337,16 @@ export async function updateProfile(formData: FormData) {
     const newHandle = readOptionalFormValue(formData, 'handle')
     const newName = readOptionalFormValue(formData, 'name')
     const newBio = readOptionalFormValue(formData, 'bio')
+
+    if (newHandle) {
+        const handleAvailable = await isHandleAvailable(newHandle);
+        if (!handleAvailable) {
+            return {
+                success: false,
+                message: "Handle is already taken."
+            }
+        }
+    }
 
     const updatedUser = await prisma.user.update({
         where: { id: user.id },
@@ -352,4 +363,19 @@ export async function updateProfile(formData: FormData) {
         success: true,
         message: 'Your profile has been updated successfully!',
     }
+}
+
+export async function isHandleAvailable(handle: string) {
+    const supabaseUser = await requireCurrentUser('You must be logged in to check handle availability.')
+    const normalizedHandle = normalizeHandle(handle);
+    const user = await prisma.user.findFirst({
+        where: {
+            handle: normalizedHandle,
+            id: {
+                not: supabaseUser.id
+            }
+        }
+    });
+
+    return !user;
 }

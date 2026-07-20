@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { updateProfile } from "@/app/actions/profile";
+import { updateProfile, isHandleAvailable as checkHandle } from "@/app/actions/profile";
 import { BrandMark } from "@/components/BrandMark";
 
 type UserData = {
@@ -12,10 +12,58 @@ type UserData = {
   avatarUrl: string | null;
 };
 
+// Simple debounce hook
+function useDebounce<T extends (...args: any[]) => void>(callback: T, delay: number) {
+  const callbackRef = useRef(callback);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  return useCallback((...args: Parameters<T>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      callbackRef.current(...args);
+    }, delay);
+  }, [delay]);
+}
+
+
 export default function EditProfileForm({ user }: { user: UserData }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [handle, setHandle] = useState(user.handle || "");
+  const [isHandleAvailable, setIsHandleAvailable] = useState<boolean | null>(null);
+  const [isHandleValid, setIsHandleValid] = useState(true);
+  const [isCheckingHandle, setIsCheckingHandle] = useState(false);
+
+  const debouncedCheckHandle = useDebounce(async (h: string) => {
+    if (h.length > 2) {
+      setIsCheckingHandle(true);
+      const available = await checkHandle(h);
+      setIsHandleAvailable(available);
+      setIsCheckingHandle(false);
+    } else {
+      setIsHandleAvailable(null);
+    }
+  }, 500);
+
+  useEffect(() => {
+    const regex = /^[a-zA-Z0-9_]+$/;
+    const isValid = regex.test(handle) || handle === "";
+    setIsHandleValid(isValid);
+
+    if (isValid && handle !== user.handle) {
+      debouncedCheckHandle(handle);
+    } else {
+      setIsHandleAvailable(null);
+    }
+  }, [handle, user.handle, debouncedCheckHandle]);
+
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true);
@@ -68,15 +116,40 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           </span>
           <input
             name="handle"
-            defaultValue={user.handle || ""}
-            className="sb-input pl-9"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            className={`sb-input pl-9 ${
+              !isHandleValid
+                ? "border-red-500"
+                : isHandleAvailable === true
+                ? "border-green-500"
+                : isHandleAvailable === false
+                ? "border-red-500"
+                : ""
+            }`}
             placeholder="janesmith"
           />
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          This will be your unique identifier on{" "}
-          <BrandMark className="font-semibold" />.
+          Only letters, numbers, and underscores are allowed.
         </p>
+        {!isHandleValid && (
+          <p className="mt-2 text-xs text-red-500">
+            Invalid characters in handle.
+          </p>
+        )}
+        {isCheckingHandle && (
+          <p className="mt-2 text-xs text-slate-500">Checking availability...</p>
+        )}
+        {isHandleAvailable !== null && !isCheckingHandle && (
+          <p
+            className={`mt-2 text-xs ${
+              isHandleAvailable ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {isHandleAvailable ? "Handle is available!" : "Handle is already taken."}
+          </p>
+        )}
       </div>
 
       <div>
@@ -103,7 +176,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       <div className="flex justify-end pt-4">
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || !isHandleValid || isCheckingHandle || isHandleAvailable === false}
           className="sb-button-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? "Saving..." : "Save Profile"}

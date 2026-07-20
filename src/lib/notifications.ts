@@ -1,150 +1,156 @@
-import prisma from '@/lib/db'
-import { normalizeHandle } from '@/lib/form'
+import { Notification } from "@prisma/client";
+import prisma from "@/lib/db";
 
-export type NotificationTargetType = 'article' | 'post' | 'comment' | 'follow' | 'vacancy' | 'admission' | 'event' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'supervisor'
+export function getNotificationLink(notification: Notification) {
+  if (!notification.targetType || !notification.targetId) {
+    return null;
+  }
 
-export async function createNotification({
-    recipientId,
-    actorId,
-    type,
-    targetType,
-    targetId,
-    title,
-    body,
-}: {
-    recipientId: string
-    actorId: string
-    type: string
-    targetType?: NotificationTargetType
-    targetId?: string
-    title: string
-    body: string
-}) {
-    if (recipientId === actorId) {
-        return
-    }
+  switch (notification.type) {
+    case "follow":
+      return `/scholar/${notification.actorId}`;
+    case "article-liked":
+    case "article-published":
+    case "comment-created":
+    case "reply-created":
+      if (notification.targetType === "article") {
+        return `/blog/${notification.targetId}`;
+      }
+      return null;
+    case "post-liked":
+    case "post-published":
+      return `/feed/${notification.targetId}`;
+    case "vacancy-liked":
+      return `/vacancies/${notification.targetId}`;
+    case "admission-liked":
+      return `/admissions/${notification.targetId}`;
+    case "event-liked":
+      return `/events/${notification.targetId}`;
+    case "recommendation-liked":
+      return `/recommendations/${notification.targetId}`;
+    case "help-post-liked":
+      return `/help/${notification.targetId}`;
+    case "journal-liked":
+      return `/journals/${notification.targetId}`;
+    case "research-tool-liked":
+      return `/research-tools/${notification.targetId}`;
+    case "mention":
+      if (notification.targetType === "article") {
+        return `/blog/${notification.targetId}`;
+      } else if (notification.targetType === "socialPost") {
+        return `/feed/${notification.targetId}`;
+      }
+      return null;
+    default:
+      return null;
+  }
+}
+
+type NotifyUserByIdParams = {
+  recipientId: string;
+  actorId: string;
+  type: string;
+  targetType: string;
+  targetId: string;
+  title: string;
+  body: string;
+};
+
+export async function notifyUserById(params: NotifyUserByIdParams) {
+  if (params.recipientId === params.actorId) return;
+
+  await prisma.notification.create({
+    data: {
+      recipientId: params.recipientId,
+      actorId: params.actorId,
+      type: params.type,
+      targetType: params.targetType,
+      targetId: params.targetId,
+      title: params.title,
+      body: params.body,
+    },
+  });
+}
+
+const MENTION_REGEX = /@(\w+)/g;
+
+type NotifyMentionedUsersParams = {
+  actorId: string;
+  content: string;
+  type: string;
+  targetType: string;
+  targetId: string;
+  titleFactory: (handle: string) => string;
+  bodyFactory: (handle: string) => string;
+};
+
+export async function notifyMentionedUsers(params: NotifyMentionedUsersParams) {
+  const mentions = params.content.match(MENTION_REGEX);
+  if (!mentions) return;
+
+  const mentionedHandles = mentions.map((mention) => mention.substring(1));
+
+  const mentionedUsers = await prisma.user.findMany({
+    where: {
+      handle: {
+        in: mentionedHandles,
+      },
+    },
+    select: {
+      id: true,
+      handle: true,
+    },
+  });
+
+  for (const user of mentionedUsers) {
+    if (user.id === params.actorId) continue;
+    if (!user.handle) continue;
 
     await prisma.notification.create({
-        data: {
-            recipientId,
-            actorId,
-            type,
-            targetType,
-            targetId,
-            title,
-            body,
-        },
-    })
+      data: {
+        recipientId: user.id,
+        actorId: params.actorId,
+        type: params.type,
+        targetType: params.targetType,
+        targetId: params.targetId,
+        title: params.titleFactory(user.handle),
+        body: params.bodyFactory(user.handle),
+      },
+    });
+  }
 }
 
-export async function notifyFollowersOfActivity({
-    actorId,
-    type,
-    targetType,
-    targetId,
-    title,
-    body,
-}: {
-    actorId: string
-    type: string
-    targetType: NotificationTargetType
-    targetId: string
-    title: string
-    body: string
-}) {
-    const followers = await prisma.follows.findMany({
-        where: { followingId: actorId },
-        select: { followerId: true },
-    })
+type NotifyFollowersOfActivityParams = {
+  actorId: string;
+  type: string;
+  targetType: string;
+  targetId: string;
+  title: string;
+  body: string;
+};
 
-    await Promise.all(
-        followers.map((follower) =>
-            createNotification({
-                recipientId: follower.followerId,
-                actorId,
-                type,
-                targetType,
-                targetId,
-                title,
-                body,
-            }),
-        ),
-    )
-}
+export async function notifyFollowersOfActivity(
+  params: NotifyFollowersOfActivityParams,
+) {
+  const followers = await prisma.follows.findMany({
+    where: { followingId: params.actorId },
+    select: { followerId: true },
+  });
 
-export async function notifyMentionedUsers({
-    actorId,
-    content,
-    type,
-    targetType,
-    targetId,
-    titleFactory,
-    bodyFactory,
-}: {
-    actorId: string
-    content: string
-    type: string
-    targetType: NotificationTargetType
-    targetId: string
-    titleFactory: (handle: string) => string
-    bodyFactory: (handle: string) => string
-}) {
-    const handles = Array.from(
-        new Set(
-            Array.from(content.matchAll(/@([a-zA-Z0-9._-]+)/g), (match) =>
-                normalizeHandle(match[1]),
-            ).filter((handle): handle is string => Boolean(handle)),
-        ),
-    )
+  if (followers.length === 0) return;
 
-    if (handles.length === 0) {
-        return
-    }
+  const notifications = followers.map((follower) => ({
+    recipientId: follower.followerId,
+    actorId: params.actorId,
+    type: params.type,
+    targetType: params.targetType,
+    targetId: params.targetId,
+    title: params.title,
+    body: params.body,
+  }));
 
-    const users = await prisma.user.findMany({
-        where: { handle: { in: handles } },
-        select: { id: true, handle: true },
-    })
-
-    await Promise.all(
-        users.map((mentioned) =>
-            createNotification({
-                recipientId: mentioned.id,
-                actorId,
-                type,
-                targetType,
-                targetId,
-                title: titleFactory(mentioned.handle || 'someone'),
-                body: bodyFactory(mentioned.handle || 'someone'),
-            }),
-        ),
-    )
-}
-
-export async function notifyUserById({
-    recipientId,
-    actorId,
-    type,
-    targetType,
-    targetId,
-    title,
-    body,
-}: {
-    recipientId: string
-    actorId: string
-    type: string
-    targetType: NotificationTargetType
-    targetId: string
-    title: string
-    body: string
-}) {
-    await createNotification({
-        recipientId,
-        actorId,
-        type,
-        targetType,
-        targetId,
-        title,
-        body,
-    })
+  await prisma.notification.createMany({
+    data: notifications,
+    skipDuplicates: true,
+  });
 }
