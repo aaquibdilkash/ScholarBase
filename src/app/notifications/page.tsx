@@ -134,7 +134,7 @@ export default async function NotificationsPage() {
           );
 
           if (link) {
-            return <Link href={link}>{content}</Link>;
+            return <Link key={notification.id} href={link}>{content}</Link>;
           }
 
           return content;

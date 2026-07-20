@@ -15,7 +15,7 @@ type UserData = {
 // Simple debounce hook
 function useDebounce<T extends (...args: any[]) => void>(callback: T, delay: number) {
   const callbackRef = useRef(callback);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     callbackRef.current = callback;

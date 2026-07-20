@@ -58,6 +58,8 @@ export async function createComment(
       select: { slug: true, authorId: true },
     });
 
+    if (!article) return
+
     if (article) {
       const target = parentId
         ? await prisma.articleComment.findUnique({
@@ -79,17 +81,17 @@ export async function createComment(
           body: content,
         });
       }
+      
+      await notifyMentionedUsers({
+        actorId: user.id,
+        content,
+        type: "mention",
+        targetType: "comment",
+        targetId: article.slug,
+        titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+        bodyFactory: () => content,
+      });
     }
-
-    await notifyMentionedUsers({
-          actorId: user.id,
-          content,
-          type: "mention",
-          targetType: "comment",
-          targetId: article.slug,
-          titleFactory: (handle) => `@${handle} was mentioned in a comment`,
-          bodyFactory: () => content,
-        });
 
         // Target ID for articles is UUID, but route uses slug. Clearing the article layout is safest here.
         revalidatePath('/blog/[slug]', 'page')
