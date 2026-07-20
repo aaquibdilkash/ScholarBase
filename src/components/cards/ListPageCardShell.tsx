@@ -119,7 +119,7 @@ export default function ListPageCardShell({
 
         <Link
           href={footerCommentsHref}
-          className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700 transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold text-black-500 hover:text-blue-700 transition-colors"
         >
           <svg
             className="w-5 h-5"
