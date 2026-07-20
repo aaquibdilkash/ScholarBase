@@ -14,55 +14,64 @@ export async function getFeed(userId: string, tab?: string, q?: string) {
 
     if (isFollowingTab) {
         const following = await prisma.follows.findMany({
-        where: { followerId: userId },
-        select: { followingId: true },
+            where: { followerId: userId },
+            select: { followingId: true },
         });
         followingIds = following.map((f) => f.followingId);
     }
 
     const posts = await prisma.socialPost.findMany({
         where: {
-          ...(isFollowingTab ? { authorId: { in: followingIds } } : {}),
-          ...(hasQuery
-            ? {
-                OR: [
-                  {
-                    content: {
-                      contains: q,
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    author: {
-                      name: {
-                        contains: q,
-                        mode: "insensitive",
-                      },
-                    },
-                  },
-                  {
-                    author: {
-                      handle: {
-                        contains: q,
-                        mode: "insensitive",
-                      },
-                    },
-                  },
-                ],
-              }
-            : {}),
+            ...(isFollowingTab ? { authorId: { in: followingIds } } : {}),
+            ...(hasQuery
+                ? {
+                    OR: [
+                        {
+                            content: {
+                                contains: q,
+                                mode: "insensitive",
+                            },
+                        },
+                        {
+                            author: {
+                                name: {
+                                    contains: q,
+                                    mode: "insensitive",
+                                },
+                            },
+                        },
+                        {
+                            author: {
+                                handle: {
+                                    contains: q,
+                                    mode: "insensitive",
+                                },
+                            },
+                        },
+                    ],
+                }
+                : {}),
         },
         include: {
-          author: true,
-          likes: {
-              where: { userId: userId }
-          },
-          _count: {
-            select: { comments: true, likes: true },
-          },
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            likes: {
+                where: { userId: userId }
+            },
+            _count: {
+                select: { comments: true, likes: true },
+            },
         },
         orderBy: { createdAt: "desc" },
-      });
+    });
 
     return posts;
 }
@@ -81,6 +90,12 @@ export async function getPost(id: string, userId?: string) {
                     name: true,
                     handle: true,
                     avatarUrl: true,
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
                 },
             },
             likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },

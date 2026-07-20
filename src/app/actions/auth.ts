@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { headers } from 'next/headers'
+import { getBaseUrl } from '@/lib/url'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -38,16 +38,7 @@ export async function signup(formData: FormData) {
 
 export async function signInWithGoogle() {
     const supabase = await createClient()
-
-    // 1. Read the exact domain (Notice the 'await' added here for Next.js 15+)
-    const headersList = await headers()
-    const host = headersList.get('host') // e.g., "scholar-base-preview.vercel.app"
-
-    // 2. Determine if we are on live Vercel (https) or local laptop (http)
-    const protocol = host?.includes('localhost') ? 'http' : 'https'
-
-    // 3. Assemble the exact, flawless base URL
-    const baseUrl = `${protocol}://${host}`
+    const baseUrl = await getBaseUrl()
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

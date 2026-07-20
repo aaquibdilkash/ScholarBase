@@ -11,7 +11,9 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSupervisor } from "@/app/actions/supervisors";
 
 type SupervisorCardProps = Supervisor & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   recommendations: Recommendation[];
   likes: SupervisorLike[];
   _count: {
@@ -42,11 +44,14 @@ export function SupervisorCard({
   const isLiked = !!supervisor.likes?.find(
     (like) => like.userId === currentUserId,
   );
+  const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
       authorHref={`/scholar/${supervisor.author.id}`}
       authorName={supervisor.author.name || "Supervisor"}
+      authorId={supervisor.author.id}
+      isFollowing={isFollowing}
       authorHandle={supervisor.author.handle || undefined}
       authorAvatarUrl={supervisor.author.avatarUrl || undefined}
       detailPageHref={`/supervisor/${supervisor.id}`}

@@ -7,7 +7,9 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type VacancyWithAuthor = JobVacancy & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   isLiked: boolean;
   _count: { likes: number; comments: number };
 };
@@ -20,11 +22,14 @@ export function VacancyCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === vacancy.authorId;
+  const isFollowing = (vacancy.author.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
       authorHref={`/scholar/${vacancy.author.id}`}
       authorName={vacancy.author.name || "Scholar"}
+      authorId={vacancy.author.id}
+      isFollowing={isFollowing}
       authorHandle={vacancy.author.handle || undefined}
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
       detailPageHref={`/vacancies/${vacancy.id}`}

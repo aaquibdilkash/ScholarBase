@@ -21,15 +21,20 @@ export default function EditProfileForm({ user }: { user: UserData }) {
     setIsPending(true);
     setError(null);
 
-    const result = await updateProfile(formData);
+    try {
+      const result = await updateProfile(formData);
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.success) {
+        // updateProfile currently only returns { success, message }
+        // Redirect back to their profile page after a successful save.
+        router.refresh();
+      } else {
+        setError(result?.message || "Failed to update profile.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update profile.");
+    } finally {
       setIsPending(false);
-    } else if (result?.success) {
-      // Redirect back to their profile page
-      router.push(`/scholar/${result.userId}`);
-      router.refresh();
     }
   }
 

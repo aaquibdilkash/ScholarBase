@@ -47,6 +47,8 @@ const AdmissionDetailPage = async ({
           />
         ) : null
       }
+      authorId={admission.author.id}
+      isFollowing={(admission.author as any)?.followers?.length ? true : false}
       footerLikeButton={
         <LikeButton
           targetId={admission.id}
@@ -58,7 +60,10 @@ const AdmissionDetailPage = async ({
       footerCommentsHref={`/admissions/${admission.id}#comments`}
       footerCommentsCount={admission._count.comments}
       discussion={
-        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
+        <div
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          id="comments"
+        >
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={admission.comments}

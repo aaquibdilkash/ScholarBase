@@ -1,9 +1,20 @@
 import { createClient } from "@/utils/supabase/server";
 import { FollowButton } from "@/components/interactions/FollowButton";
+import { ShareButton } from "@/components/interactions/ShareButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getProfile } from "@/app/actions/profile";
+import { ArticleCard } from "@/components/blog/ArticleCard";
+import { SocialPostCard } from "@/components/feed/SocialPostCard";
+import { VacancyCard } from "@/components/vacancies/VacancyCard";
+import { AdmissionCard } from "@/components/admissions/AdmissionCard";
+import { EventCard } from "@/components/events/EventCard";
+import { HelpPostCard } from "@/components/help/HelpPostCard";
+import { JournalCard } from "@/components/journals/JournalCard";
+import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
+import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
+import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 
 export default async function ScholarProfile({
   params,
@@ -20,14 +31,12 @@ export default async function ScholarProfile({
 
   if (!profile) notFound();
 
-  const isFollowing = !!profile.followers.length;
-
-  const isOwnProfile = currentUser?.id === profile.id;
+  const { isFollowing, isOwnProfile } = profile;
 
   return (
-    <main className="mx-auto max-w-4xl py-6">
+    <main className="mx-auto max-w-5xl py-6 px-4">
       {/* Profile Header */}
-      <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-10 md:flex-row md:items-center md:justify-between">
+      <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-10 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-6">
           {/* Avatar Placeholder / Image */}
           <div className="w-24 h-24 rounded-full bg-slate-200 border-2 border-white shadow-md flex items-center justify-center overflow-hidden shrink-0">
@@ -54,13 +63,11 @@ export default async function ScholarProfile({
             <p className="mb-1 font-medium text-blue-700">
               {profile.handle ? `@${profile.handle}` : "No handle set"}
             </p>
-            <p className="text-sm text-slate-500">
-              {profile._count.followers} followers
-            </p>
           </div>
         </div>
 
         <div className="flex gap-3">
+          <ShareButton label="Share profile" href={`/scholar/${profile.id}`} />
           {isOwnProfile ? (
             <Link
               href={`/scholar/${profile.id}/settings`}
@@ -80,7 +87,7 @@ export default async function ScholarProfile({
       {profile.bio && (
         <div className="mb-12">
           <h2 className="mb-2 text-lg font-semibold text-slate-950">About</h2>
-          <p className="sb-card leading-relaxed text-slate-700">
+          <p className="sb-card leading-relaxed text-slate-700 p-4">
             {profile.bio}
           </p>
         </div>
@@ -93,20 +100,11 @@ export default async function ScholarProfile({
             Research Articles
           </h2>
           {profile.articles.length > 0 ? (
-            <div className="space-y-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
               {profile.articles.map((a) => (
-                <Link
-                  href={`/blog/${a.slug}`}
-                  key={a.id}
-                  className="sb-card sb-card-hover group block"
-                >
-                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
-                    {a.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                    {a.excerpt}
-                  </p>
-                </Link>
+                <div key={a.id} className="flex-shrink-0 w-full snap-center">
+                  <ArticleCard article={a} currentUserId={currentUser?.id} />
+                </div>
               ))}
             </div>
           ) : (
@@ -120,22 +118,23 @@ export default async function ScholarProfile({
           <h2 className="mb-4 text-xl font-semibold text-slate-950">
             Feed Posts
           </h2>
-          <div className="space-y-4">
-            {profile.socialPosts.map((p) => (
-              <Link
-                href={`/feed/${p.id}`}
-                key={p.id}
-                className="sb-card sb-card-hover group block"
-              >
-                <p className="line-clamp-3 whitespace-pre-wrap text-slate-800">
-                  {p.content}
-                </p>
-                <p className="mt-3 text-xs font-medium text-slate-400 transition-colors group-hover:text-blue-700">
-                  View post & comments →
-                </p>
-              </Link>
-            ))}
-          </div>
+          {profile.socialPosts.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {profile.socialPosts.map((p) => (
+                <div key={p.id} className="flex-shrink-0 w-full snap-center">
+                  <SocialPostCard
+                    post={p}
+                    isLiked={p.likes.some((l) => l.userId === currentUser?.id)}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No feed posts yet.
+            </p>
+          )}
         </section>
 
         <section>
@@ -143,20 +142,17 @@ export default async function ScholarProfile({
             Job Vacancies
           </h2>
           {profile.vacancies.length > 0 ? (
-            <div className="space-y-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
               {profile.vacancies.map((v) => (
-                <Link
-                  href={`/vacancies/${v.id}`}
-                  key={v.id}
-                  className="sb-card sb-card-hover group block"
-                >
-                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
-                    {v.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                    {v.institution}
-                  </p>
-                </Link>
+                <div key={v.id} className="flex-shrink-0 w-full snap-center">
+                  <VacancyCard
+                    vacancy={{
+                      ...v,
+                      isLiked: v.likes.some((l) => l.userId === currentUser?.id),
+                    }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
               ))}
             </div>
           ) : (
@@ -171,20 +167,17 @@ export default async function ScholarProfile({
             PhD Admissions
           </h2>
           {profile.admissions.length > 0 ? (
-            <div className="space-y-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
               {profile.admissions.map((a) => (
-                <Link
-                  href={`/admissions/${a.id}`}
-                  key={a.id}
-                  className="sb-card sb-card-hover group block"
-                >
-                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
-                    {a.university}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                    {a.department}
-                  </p>
-                </Link>
+                <div key={a.id} className="flex-shrink-0 w-full snap-center">
+                  <AdmissionCard
+                    admission={{
+                      ...a,
+                      isLiked: a.likes.some((l) => l.userId === currentUser?.id),
+                    }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
               ))}
             </div>
           ) : (
@@ -199,26 +192,144 @@ export default async function ScholarProfile({
             Research Events
           </h2>
           {profile.events.length > 0 ? (
-            <div className="space-y-4">
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
               {profile.events.map((e) => (
-                <Link
-                  href={`/events/${e.id}`}
-                  key={e.id}
-                  className="sb-card sb-card-hover group block"
-                >
-                  <h3 className="text-lg font-semibold text-slate-950 transition-colors group-hover:text-blue-700">
-                    {e.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-sm text-slate-600">
-                    {e.location} -{" "}
-                    {new Date(e.date).toLocaleDateString("en-US")}
-                  </p>
-                </Link>
+                <div key={e.id} className="flex-shrink-0 w-full snap-center">
+                  <EventCard
+                    event={{
+                      ...e,
+                      isLiked: e.likes.some((l) => l.userId === currentUser?.id),
+                    }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
               ))}
             </div>
           ) : (
             <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
               No research events posted yet.
+            </p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Help Posts
+          </h2>
+          {profile.helpPosts.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {profile.helpPosts.map((h) => (
+                <div key={h.id} className="flex-shrink-0 w-full snap-center">
+                  <HelpPostCard
+                    helpPost={{
+                      ...h,
+                      isLiked: currentUser?.id
+                        ? h.likes.some((l) => l.userId === currentUser.id)
+                        : false,
+                    }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No help posts yet.
+            </p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Journals
+          </h2>
+          {profile.journals.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {profile.journals.map((j) => (
+                <div key={j.id} className="flex-shrink-0 w-full snap-center">
+                  <JournalCard
+                    journal={{
+                      ...j,
+                      isLiked: j.likes.some((l) => l.userId === currentUser?.id),
+                    }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No journals posted yet.
+            </p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Research Tools
+          </h2>
+          {profile.researchTools.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {profile.researchTools.map((r) => (
+                <div key={r.id} className="flex-shrink-0 w-full snap-center">
+                  <ResearchToolCard
+                    tool={{
+                      ...r,
+                      isLiked: r.likes.some((l) => l.userId === currentUser?.id),
+                    }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No research tools posted yet.
+            </p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Recommendations Given
+          </h2>
+          {profile.recommendations.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {profile.recommendations.map((r) => (
+                <div key={r.id} className="flex-shrink-0 w-full snap-center">
+                  <RecommendationCard
+                    recommendation={r}
+                    supervisor={r.supervisor}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No recommendations given yet.
+            </p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-xl font-semibold text-slate-950">
+            Supervisor Profiles
+          </h2>
+          {profile.supervisors.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {profile.supervisors.map((s) => (
+                <div key={s.id} className="flex-shrink-0 w-full snap-center">
+                  <SupervisorCard
+                    supervisor={{ ...s, recommendations: [] }}
+                    currentUserId={currentUser?.id}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
+              No supervisor profiles created yet.
             </p>
           )}
         </section>

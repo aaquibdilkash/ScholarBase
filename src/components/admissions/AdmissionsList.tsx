@@ -16,9 +16,11 @@ type AdmissionWithDetails = PhdAdmission & {
 export function AdmissionsList({
   admissions,
   currentUserId,
+  initialQuery,
 }: {
   admissions: AdmissionWithDetails[];
   currentUserId?: string;
+  initialQuery?: string;
 }) {
   return (
     <FilterableOpportunityList
@@ -35,6 +37,9 @@ export function AdmissionsList({
           currentUserId={currentUserId}
         />
       )}
+      initialQuery={initialQuery ?? ""}
+      queryParamKey="q"
+      basePath="/admissions"
     />
   );
 }

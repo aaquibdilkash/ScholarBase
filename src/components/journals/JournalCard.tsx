@@ -6,7 +6,9 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type JournalWithAuthor = Journal & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   isLiked: boolean;
   _count: { likes: number; comments: number };
 };
@@ -19,11 +21,14 @@ export function JournalCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === journal.authorId;
+  const isFollowing = (journal.author.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
       authorHref={`/scholar/${journal.author.id}`}
       authorName={journal.author.name || "Scholar"}
+      authorId={journal.author.id}
+      isFollowing={isFollowing}
       authorHandle={journal.author.handle || undefined}
       authorAvatarUrl={journal.author.avatarUrl || undefined}
       detailPageHref={`/journals/${journal.id}`}

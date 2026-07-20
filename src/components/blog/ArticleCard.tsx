@@ -6,7 +6,9 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
 
 type ArticleWithDetails = Article & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   likes: ArticleLike[];
   _count: {
     likes: number;
@@ -22,10 +24,13 @@ export function ArticleCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === article.authorId;
+  const isFollowing = (article.author.followers?.length ?? 0) > 0;
   return (
     <ListPageCardShell
       authorHref={`/scholar/${article.authorId}`}
       authorName={article.author.name || "Scholar"}
+      authorId={article.authorId}
+      isFollowing={isFollowing}
       authorHandle={article.author.handle || undefined}
       authorAvatarUrl={article.author.avatarUrl || undefined}
       detailPageHref={`/blog/${article.slug}`}

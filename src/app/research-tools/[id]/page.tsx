@@ -39,6 +39,8 @@ const ResearchToolDetailPage = async ({
       authorName={tool.author.name || "Scholar"}
       authorHandle={tool.author.handle || undefined}
       authorAvatarUrl={tool.author.avatarUrl || undefined}
+      authorId={tool.author.id}
+      isFollowing={!!tool.author.followers?.length}
       managementControls={
         user?.id === tool.author.id ? (
           <OwnerActionsDropdown

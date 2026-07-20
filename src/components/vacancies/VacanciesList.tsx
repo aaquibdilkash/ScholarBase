@@ -5,7 +5,9 @@ import { JobVacancy, JobVacancyLike, User } from "@prisma/client";
 import { VacancyCard } from "./VacancyCard";
 
 type VacancyWithDetails = JobVacancy & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   likes: JobVacancyLike[];
   _count: {
     likes: number;
@@ -15,8 +17,12 @@ type VacancyWithDetails = JobVacancy & {
 
 export function VacanciesList({
   vacancies,
+  currentUserId,
+  initialQuery,
 }: {
   vacancies: VacancyWithDetails[];
+  currentUserId?: string;
+  initialQuery?: string;
 }) {
   return (
     <FilterableOpportunityList
@@ -30,8 +36,12 @@ export function VacanciesList({
         <VacancyCard
           key={job.id}
           vacancy={{ ...job, isLiked: (job.likes?.length ?? 0) > 0 }}
+          currentUserId={currentUserId}
         />
       )}
+      initialQuery={initialQuery ?? ""}
+      queryParamKey="q"
+      basePath="/vacancies"
     />
   );
 }

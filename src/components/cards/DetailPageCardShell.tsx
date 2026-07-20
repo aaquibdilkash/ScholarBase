@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { FollowButton } from "@/components/interactions/FollowButton";
+import { ShareButton } from "@/components/interactions/ShareButton";
+
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
   inputs.filter(Boolean).join(" ");
@@ -16,6 +19,11 @@ export type DetailPageCardShellProps = {
 
   // Common header management (3 dots)
   managementControls?: ReactNode;
+
+  // Follow in header (when not owner)
+  // Optional because some existing detail pages (e.g. supervisor page) haven't been updated yet.
+  authorId?: string;
+  isFollowing?: boolean;
 
   children: ReactNode; // middle body
 
@@ -37,6 +45,8 @@ export default function DetailPageCardShell({
   authorName,
   authorHandle,
   authorAvatarUrl,
+  authorId,
+  isFollowing,
   managementControls,
   children,
   footerLikeButton,
@@ -46,6 +56,9 @@ export default function DetailPageCardShell({
   className,
   bodyClassName,
 }: DetailPageCardShellProps) {
+  // In current usage, `managementControls` is only passed for owners.
+  const isOwner = Boolean(managementControls);
+
   return (
     <main
       className={clsx(
@@ -97,35 +110,50 @@ export default function DetailPageCardShell({
             </div>
           </div>
 
-          {/* 3 dots dropdown (edit/delete) */}
-          <div className="flex items-center">{managementControls}</div>
+          {/* Right side: owner actions OR follow */}
+          <div className="flex items-center">
+            {isOwner ? (
+              managementControls
+            ) : (
+              // These are optional for some legacy pages; guard with safe fallbacks.
+              <FollowButton
+                targetId={authorId ?? ""}
+                isFollowing={Boolean(isFollowing)}
+              />
+            )}
+          </div>
         </div>
 
         {children}
 
         {/* Common footer */}
-        <div className="border-t border-slate-200 pt-6 mt-8 flex items-center gap-8">
-          {footerLikeButton}
+        {/* Order required: likes, comments, share */}
+        <div className="border-t border-slate-200 pt-6 mt-8 flex items-center gap-6">
+          <div className="flex items-center gap-6">
+            {footerLikeButton}
 
-          <Link
-            href={footerCommentsHref}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700 transition-colors"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <Link
+              href={footerCommentsHref}
+              className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-700 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
-            {footerCommentsCount} Comments
-          </Link>
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
+              {footerCommentsCount} Comments
+            </Link>
+          </div>
+
+          <ShareButton href={authorHref} label="Share" />
         </div>
       </div>
 

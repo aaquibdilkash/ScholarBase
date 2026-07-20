@@ -2,6 +2,8 @@
 import { LikeButton } from "@/components/interactions/LikeButton";
 import { Recommendation, RecommendationLike, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { deleteRecommendation } from "@/app/actions/recommendations";
 
 type RecommendationCardProps = Recommendation & {
   author: User;
@@ -25,6 +27,12 @@ export function RecommendationCard({
     (like) => like.userId === currentUserId,
   );
 
+  const isOwner = currentUserId === recommendation.author.id;
+
+  async function handleDelete() {
+    await deleteRecommendation(recommendation.id);
+  }
+
   return (
     <ListPageCardShell
       authorHref={`/scholar/${recommendation.author.id}`}
@@ -32,6 +40,15 @@ export function RecommendationCard({
       authorHandle={recommendation.author.handle || undefined}
       authorAvatarUrl={recommendation.author.avatarUrl || undefined}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
+      managementControls={
+        <OwnerActionsDropdown
+          editHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}/edit`}
+          onDelete={handleDelete}
+          isOwner={isOwner}
+          editLabel="Edit Recommendation"
+          deleteLabel="Delete Recommendation"
+        />
+      }
       footerLikeButton={
         <LikeButton
           targetId={recommendation.id}

@@ -1,16 +1,37 @@
 'use server'
 
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
-export async function getHelpPosts(userId?: string) {
+export async function getHelpPosts(q?: string, userId?: string) {
+    const where = q
+        ? {
+            OR: [
+                { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { subject: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { message: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            ],
+        }
+        : {};
+
     return prisma.helpPost.findMany({
+        where,
         orderBy: {
             createdAt: 'desc',
         },
         include: {
-            author: true,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
             likes: userId ? { where: { userId } } : false,
             _count: {
                 select: { likes: true, comments: true },
@@ -27,7 +48,14 @@ export async function getHelpPost(id: string, userId: string) {
     return prisma.helpPost.findUnique({
         where: { id },
         include: {
-            author: true,
+            author: {
+                include: {
+                    followers: {
+                        where: { followerId: userId },
+                        select: { followerId: true },
+                    },
+                },
+            },
             likes: { where: { userId } },
             _count: {
                 select: { likes: true, comments: true },

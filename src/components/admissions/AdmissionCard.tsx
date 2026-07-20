@@ -7,7 +7,9 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import { deletePhdAdmission } from "@/app/actions/admissions";
 
 type AdmissionWithAuthor = PhdAdmission & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   isLiked: boolean;
   _count: { likes: number; comments: number };
 };
@@ -20,10 +22,13 @@ export function AdmissionCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === admission.authorId;
+  const isFollowing = (admission.author.followers?.length ?? 0) > 0;
   return (
     <ListPageCardShell
       authorHref={`/scholar/${admission.author.id}`}
       authorName={admission.author.name || "Scholar"}
+      authorId={admission.author.id}
+      isFollowing={isFollowing}
       authorHandle={admission.author.handle || undefined}
       authorAvatarUrl={admission.author.avatarUrl || undefined}
       detailPageHref={`/admissions/${admission.id}`}

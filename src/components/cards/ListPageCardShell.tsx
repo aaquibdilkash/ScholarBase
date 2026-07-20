@@ -1,5 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { FollowButton } from "@/components/interactions/FollowButton"; // client component
+import { ShareButton } from "@/components/interactions/ShareButton";
+
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
   inputs.filter(Boolean).join(" ");
@@ -15,6 +18,10 @@ export type ListPageCardShellProps = {
   managementControls?: ReactNode;
 
   children: ReactNode; // middle body
+
+  // Follow in header (when not owner)
+  authorId?: string;
+  isFollowing?: boolean;
 
   // Common footer (like + comments)
   footerLikeButton?: ReactNode;
@@ -34,6 +41,8 @@ export default function ListPageCardShell({
   authorName,
   authorHandle,
   authorAvatarUrl,
+  authorId,
+  isFollowing,
   managementControls,
   children,
   footerLikeButton,
@@ -44,6 +53,8 @@ export default function ListPageCardShell({
   detailPageHref,
   bodyBottomContent,
 }: ListPageCardShellProps) {
+  const showManagementControls = Boolean(managementControls);
+
   return (
     <div className={clsx("sb-card p-6 md:p-8", className)}>
       {/* Common header */}
@@ -82,20 +93,29 @@ export default function ListPageCardShell({
           </div>
         </div>
 
-        {/* 3 dots dropdown (edit/delete) */}
-        <div className="flex items-center">{managementControls}</div>
+        {/* 3 dots dropdown (edit/delete) OR Follow (non-owner) */}
+        <div className="flex items-center">
+          {showManagementControls ? (
+            managementControls
+          ) : authorId ? (
+            <FollowButton targetId={authorId} isFollowing={!!isFollowing} />
+          ) : null}
+        </div>
       </div>
 
       {/* Clickable middle body */}
-      <Link href={detailPageHref} className={clsx("block group", bodyClassName)}>
+      <Link
+        href={detailPageHref}
+        className={clsx("block group", bodyClassName)}
+      >
         {children}
       </Link>
 
       {bodyBottomContent}
 
       {/* Common footer */}
-      <div className="border-t border-slate-200 pt-6 mt-8 flex items-center gap-8">
-        {footerLikeButton}
+      <div className="border-t border-slate-200 pt-6 mt-8 flex items-center gap-6">
+        <div className="flex items-center gap-6">{footerLikeButton}</div>
 
         <Link
           href={footerCommentsHref}
@@ -116,6 +136,8 @@ export default function ListPageCardShell({
           </svg>
           {footerCommentsCount} Comments
         </Link>
+
+        <ShareButton href={detailPageHref} label="Share" />
       </div>
     </div>
   );

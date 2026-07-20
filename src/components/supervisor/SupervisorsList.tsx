@@ -39,7 +39,7 @@ export function SupervisorsList({
       />
 
       {supervisors.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols">
           {supervisors.map((s) => (
             <SupervisorCard
               key={s.id}

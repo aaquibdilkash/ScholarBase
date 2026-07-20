@@ -34,11 +34,14 @@ export default async function SupervisorPage({
   const isLiked = supervisor.likes.length > 0;
   const hasUserRecommendation =
     !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
+  const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
 
   return (
     <DetailPageCardShell
       backHref="/supervisor"
       backLabel="Back to Search"
+      authorId={supervisor.authorId}
+      isFollowing={isFollowing}
       authorHref={`/scholar/${supervisor.authorId}`}
       authorName={supervisor.author?.name || "Scholar"}
       authorHandle={supervisor.author?.handle || undefined}
@@ -124,15 +127,18 @@ export default async function SupervisorPage({
             No recommendations yet. Be the first to share your experience!
           </p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {supervisor.recommendations.map((r) => (
-              <RecommendationCard
-                key={r.id}
-                recommendation={r}
-                supervisor={supervisor}
-                currentUserId={user?.id}
-              />
-            ))}
+          <div className="overflow-x-auto pb-4 snap-x snap-mandatory">
+            <div className="flex gap-6">
+              {supervisor.recommendations.map((r) => (
+                <div key={r.id} className="w-full flex-shrink-0 snap-center">
+                  <RecommendationCard
+                    recommendation={r}
+                    supervisor={supervisor}
+                    currentUserId={user?.id}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

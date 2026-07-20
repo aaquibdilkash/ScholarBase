@@ -7,7 +7,9 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
 
 type HelpPostWithAuthor = HelpPost & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   isLiked: boolean;
   _count: { likes: number; comments: number };
 };
@@ -20,11 +22,14 @@ export function HelpPostCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === helpPost.authorId;
+  const isFollowing = (helpPost.author.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
       authorHref={`/scholar/${helpPost.author.id}`}
       authorName={helpPost.author.name || "Scholar"}
+      authorId={helpPost.author.id}
+      isFollowing={isFollowing}
       authorHandle={helpPost.author.handle || undefined}
       authorAvatarUrl={helpPost.author.avatarUrl || undefined}
       detailPageHref={`/help/${helpPost.id}`}

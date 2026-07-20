@@ -1,22 +1,88 @@
 'use server'
 
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createClient } from '@/utils/supabase/server'
 
-export async function getVacancies(userId?: string) {
+export async function getVacancies(q?: string, userId?: string) {
+    const where = q
+        ? {
+            OR: [
+                { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { institution: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            ],
+        }
+        : {};
+
     return prisma.jobVacancy.findMany({
+        where,
         orderBy: { createdAt: "desc" },
         include: {
-          author: true,
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            likes: userId ? { where: { userId: userId } } : false,
+            _count: {
+                select: { likes: true, comments: true },
+            },
         },
-      });
+    });
+}
+
+export async function getVacancyById(id: string) {
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    return prisma.jobVacancy.findUnique({
+        where: { id: id },
+        include: {
+            author: {
+                include: {
+                    followers: user
+                        ? {
+                            where: { followerId: user.id },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            comments: {
+                where: { parentId: null },
+                include: {
+                    author: true,
+                    likes: user ? { where: { userId: user.id } } : false,
+                    _count: { select: { likes: true } },
+                    replies: {
+                        include: {
+                            author: true,
+                            likes: user ? { where: { userId: user.id } } : false,
+                            _count: { select: { likes: true } },
+                        },
+                        orderBy: { createdAt: "asc" },
+                    },
+                },
+                orderBy: { createdAt: "desc" },
+            },
+            likes: user ? { where: { userId: user.id } } : false,
+            _count: {
+                select: { likes: true, comments: true },
+            },
+        },
+    });
 }
 
 export async function createJobVacancy(formData: FormData) {

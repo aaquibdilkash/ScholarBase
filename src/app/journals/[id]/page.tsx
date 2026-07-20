@@ -38,6 +38,8 @@ const JournalDetailPage = async ({
       authorName={j.author.name || "Scholar"}
       authorHandle={j.author.handle || undefined}
       authorAvatarUrl={j.author.avatarUrl || undefined}
+      authorId={j.author.id}
+      isFollowing={!!j.author.followers?.length}
       managementControls={
         user?.id === j.author.id ? (
           <OwnerActionsDropdown

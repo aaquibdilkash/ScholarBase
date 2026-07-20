@@ -13,9 +13,11 @@ type HelpPostWithAuthor = HelpPost & {
 export function HelpPostList({
   posts,
   currentUserId,
+  initialQuery,
 }: {
   posts: HelpPostWithAuthor[];
   currentUserId?: string;
+  initialQuery?: string;
 }) {
   return (
     <FilterableOpportunityList
@@ -31,6 +33,9 @@ export function HelpPostList({
           currentUserId={currentUserId}
         />
       )}
+      initialQuery={initialQuery ?? ""}
+      queryParamKey="q"
+      basePath="/help"
     />
   );
 }

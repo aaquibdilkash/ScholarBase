@@ -34,6 +34,8 @@ export default async function HelpPostPage({
       authorName={post.author.name || "Scholar"}
       authorHandle={post.author.handle || undefined}
       authorAvatarUrl={post.author.avatarUrl || undefined}
+      authorId={post.author.id}
+      isFollowing={!!post.author.followers?.length}
       managementControls={
         user?.id === post.author.id ? (
           <OwnerActionsDropdown

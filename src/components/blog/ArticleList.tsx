@@ -35,7 +35,7 @@ export function ArticleList({
         initialQuery={initialQuery ?? ""}
         queryParamKey="q"
         basePath="/blog"
-        enableClientFiltering
+        enableClientFiltering={false}
         renderItem={(article) => (
           <ArticleCard
             key={article.id}

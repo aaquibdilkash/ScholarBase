@@ -54,13 +54,16 @@ export function FilterableOpportunityList<T>({
               `${basePath ?? window.location.pathname}` +
                 (params.toString().length > 0 ? `?${params.toString()}` : ""),
             );
+
+            // Ensure results refresh when navigating with only a query param.
+            router.refresh();
           }}
           className="sb-input"
         />
       </div>
 
       {inputOnly ? null : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols xl:grid-cols">
           {filteredItems.map((item) => renderItem(item))}
         </div>
       )}

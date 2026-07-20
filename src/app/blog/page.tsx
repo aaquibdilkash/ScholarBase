@@ -1,4 +1,4 @@
-import Link from "next/link";
+import ListPageShell from "@/components/layout/ListPageShell";
 import { getTrendingArticles } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { createClient } from "@/utils/supabase/server";
@@ -19,62 +19,30 @@ export default async function BlogIndex({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const articles = isTrendingTab
-    ? []
-    : await getArticles(q, user?.id);
+  const articles = isTrendingTab ? [] : await getArticles(q, user?.id);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingArticles(user?.id)
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (
-    <main className="mx-auto max-w-6xl py-6">
-      <div className="mb-8 flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-            Research Blog
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Essays, notes, and longer-form research reflections.
-          </p>
-        </div>
-        <Link href="/blog/add" className="sb-button-accent whitespace-nowrap">
-          + New Article
-        </Link>
-      </div>
-
-      <div className="mb-8 inline-flex rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm">
-        <Link
-          href="/blog"
-          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            !isTrendingTab
-              ? "bg-slate-950 text-white shadow-sm"
-              : "text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          All
-        </Link>
-        <Link
-          href="/blog?tab=trending"
-          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            isTrendingTab
-              ? "bg-slate-950 text-white shadow-sm"
-              : "text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          Trending
-        </Link>
-      </div>
-
-      {isTrendingTab ? (
-        <TrendingList items={trendingItems} currentUserId={user?.id} />
-      ) : (
+    <ListPageShell
+      title="Research Blog"
+      description="Essays, notes, and longer-form research reflections."
+      addHref="/blog/add"
+      addLabel="+ New Article"
+      tab={tab}
+      enableTrending={true}
+      allHref="/blog"
+      trendingHref="/blog?tab=trending"
+      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      all={
         <ArticleList
           articles={articles}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
         />
-      )}
-    </main>
+      }
+    />
   );
 }

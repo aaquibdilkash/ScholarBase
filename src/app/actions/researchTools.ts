@@ -1,5 +1,6 @@
 'use server'
 
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
@@ -78,13 +79,34 @@ export async function deleteResearchTool(toolId: string) {
 }
 
 
-export async function getResearchTools(userId?: string) {
+export async function getResearchTools(q?: string, userId?: string) {
+    const where = q
+        ? {
+            OR: [
+                { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { website: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { use: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            ],
+        }
+        : {};
+
     return prisma.researchTool.findMany({
+        where,
         orderBy: {
             createdAt: 'desc',
         },
         include: {
-            author: true,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
             _count: {
                 select: {
                     likes: true,
@@ -102,7 +124,16 @@ export async function getResearchToolById(toolId: string, userId?: string) {
             id: toolId,
         },
         include: {
-            author: true,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
             comments: {
                 where: { parentId: null },
                 include: {

@@ -6,9 +6,9 @@ import EditProfileForm from "@/components/profile/EditProfileForm";
 export default async function ScholarSettingsPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -31,7 +31,7 @@ export default async function ScholarSettingsPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6">
+    <main className="mx-auto max-w-5xl py-6 px-4">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
           Edit Profile

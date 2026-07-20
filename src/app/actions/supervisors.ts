@@ -9,7 +9,16 @@ export async function getSupervisors(q?: string, userId?: string) {
     return prisma.supervisor.findMany({
         where: q ? { name: { contains: q, mode: "insensitive" } } : {},
         include: {
-          author: true,
+          author:  {
+            include: {
+              followers: userId
+                ? {
+                    where: { followerId: userId },
+                    select: { followerId: true },
+                  }
+                : false,
+            },
+          },
           recommendations: true,
           likes: userId ? { where: { userId: userId } } : false,
           _count: {
@@ -26,7 +35,16 @@ export async function getSupervisor(id: string, userId?: string) {
     return prisma.supervisor.findUnique({
         where: { id },
         include: {
-          author: true,
+          author: {
+            include: {
+              followers: userId
+                ? {
+                    where: { followerId: userId },
+                    select: { followerId: true },
+                  }
+                : false,
+            },
+          },
 
           recommendations: {
             include: {

@@ -8,6 +8,7 @@ import NextTopLoader from "nextjs-toploader";
 import { ensureUserProfile } from "@/lib/users";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import { AppProviders } from "@/components/interactions/AppProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,7 +24,6 @@ export const metadata: Metadata = {
   title: "ScholarBase",
   description: "The academic hub for scholars and researchers.",
 };
-
 
 export default async function RootLayout({
   children,
@@ -42,15 +42,17 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased text-slate-900 min-h-screen`}
       >
         <NextTopLoader />
-        <div className="flex min-h-screen">
-          <Sidebar user={user} />
+        <AppProviders>
+          <div className="flex min-h-screen">
+            <Sidebar user={user} />
 
-          <div className="flex-1 flex flex-col min-w-0">
-            <Navbar />
+            <div className="flex-1 flex flex-col min-w-0">
+              <Navbar />
 
-            <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>
+              <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>
+            </div>
           </div>
-        </div>
+        </AppProviders>
         <SpeedInsights />
         <Analytics />
       </body>

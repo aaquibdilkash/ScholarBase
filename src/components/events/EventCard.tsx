@@ -7,7 +7,9 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 
 type EventWithAuthor = ResearchEvent & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   isLiked: boolean;
   _count: { likes: number; comments: number };
 };
@@ -20,10 +22,13 @@ export function EventCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === event.authorId;
+  const isFollowing = (event.author.followers?.length ?? 0) > 0;
   return (
     <ListPageCardShell
       authorHref={`/scholar/${event.author.id}`}
       authorName={event.author.name || "Scholar"}
+      authorId={event.author.id}
+      isFollowing={isFollowing}
       authorHandle={event.author.handle || undefined}
       authorAvatarUrl={event.author.avatarUrl || undefined}
       detailPageHref={`/events/${event.id}`}

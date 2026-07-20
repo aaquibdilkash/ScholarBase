@@ -5,7 +5,9 @@ import { Journal, JournalLike, User } from "@prisma/client";
 import { JournalCard } from "./JournalCard";
 
 type JournalWithDetails = Journal & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   likes: JournalLike[];
   _count: {
     likes: number;
@@ -13,7 +15,15 @@ type JournalWithDetails = Journal & {
   };
 };
 
-export function JournalsList({ journals }: { journals: JournalWithDetails[] }) {
+export function JournalsList({
+  journals,
+  currentUserId,
+  initialQuery,
+}: {
+  journals: JournalWithDetails[];
+  currentUserId?: string;
+  initialQuery?: string;
+}) {
   return (
     <FilterableOpportunityList
       items={journals}
@@ -30,8 +40,12 @@ export function JournalsList({ journals }: { journals: JournalWithDetails[] }) {
         <JournalCard
           key={journal.id}
           journal={{ ...journal, isLiked: (journal.likes?.length ?? 0) > 0 }}
+          currentUserId={currentUserId}
         />
       )}
+      initialQuery={initialQuery ?? ""}
+      queryParamKey="q"
+      basePath="/journals"
     />
   );
 }

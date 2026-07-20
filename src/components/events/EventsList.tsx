@@ -13,7 +13,15 @@ type EventWithDetails = ResearchEvent & {
   };
 };
 
-export function EventsList({ events, currentUserId }: { events: EventWithDetails[], currentUserId?: string }) {
+export function EventsList({
+  events,
+  currentUserId,
+  initialQuery,
+}: {
+  events: EventWithDetails[];
+  currentUserId?: string;
+  initialQuery?: string;
+}) {
   return (
     <FilterableOpportunityList
       items={events}
@@ -29,6 +37,9 @@ export function EventsList({ events, currentUserId }: { events: EventWithDetails
           currentUserId={currentUserId}
         />
       )}
+      initialQuery={initialQuery ?? ""}
+      queryParamKey="q"
+      basePath="/events"
     />
   );
 }

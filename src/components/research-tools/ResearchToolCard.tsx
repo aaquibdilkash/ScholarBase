@@ -6,7 +6,9 @@ import { LikeButton } from "@/components/interactions/LikeButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type ResearchToolWithAuthor = ResearchTool & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   isLiked: boolean;
   _count: { likes: number; comments: number };
 };
@@ -19,11 +21,14 @@ export function ResearchToolCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === tool.authorId;
+  const isFollowing = (tool.author.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
       authorHref={`/scholar/${tool.author.id}`}
       authorName={tool.author.name || "Scholar"}
+      authorId={tool.author.id}
+      isFollowing={isFollowing}
       authorHandle={tool.author.handle || undefined}
       authorAvatarUrl={tool.author.avatarUrl || undefined}
       detailPageHref={`/research-tools/${tool.id}`}

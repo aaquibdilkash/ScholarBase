@@ -1,5 +1,6 @@
 'use server'
 
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
@@ -98,13 +99,33 @@ export async function deleteJournal(journalId: string) {
 }
 
 
-export async function getJournals(userId?: string) {
+export async function getJournals(q?: string, userId?: string) {
+    const where = q
+        ? {
+            OR: [
+                { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { publisher: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { about: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            ],
+        }
+        : {};
+
     return prisma.journal.findMany({
+        where,
         orderBy: {
             createdAt: 'desc',
         },
         include: {
-            author: true,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
             _count: {
                 select: {
                     likes: true,
@@ -122,7 +143,16 @@ export async function getJournalById(journalId: string, userId?: string) {
             id: journalId,
         },
         include: {
-            author: true,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
             comments: {
                 where: { parentId: null },
                 include: {

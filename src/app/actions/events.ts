@@ -1,50 +1,80 @@
 'use server'
 
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-export async function getEvents(userId?: string) {
+export async function getEvents(q?: string, userId?: string) {
+    const where = q
+        ? {
+            OR: [
+                { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { location: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            ],
+        }
+        : {};
+
     return prisma.researchEvent.findMany({
+        where,
         orderBy: { createdAt: "desc" },
         include: {
-          author: true,
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            likes: userId ? { where: { userId: userId } } : false,
+            _count: {
+                select: { likes: true, comments: true },
+            },
         },
-      });
+    });
 }
 
 export async function getEvent(id: string, userId?: string) {
     return prisma.researchEvent.findUnique({
         where: { id: id },
         include: {
-          author: true,
-          comments: {
-            where: { parentId: null },
-            include: {
-              author: true,
-              likes: userId ? { where: { userId: userId } } : false,
-              _count: { select: { likes: true } },
-              replies: {
+            author: {
                 include: {
-                  author: true,
-                  likes: userId ? { where: { userId: userId } } : false,
-                  _count: { select: { likes: true } },
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
                 },
-                orderBy: { createdAt: "asc" },
-              },
             },
-            orderBy: { createdAt: "desc" },
-          },
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: {
-            select: { likes: true, comments: true },
-          },
+            comments: {
+                where: { parentId: null },
+                include: {
+                    author: true,
+                    likes: userId ? { where: { userId: userId } } : false,
+                    _count: { select: { likes: true } },
+                    replies: {
+                        include: {
+                            author: true,
+                            likes: userId ? { where: { userId: userId } } : false,
+                            _count: { select: { likes: true } },
+                        },
+                        orderBy: { createdAt: "asc" },
+                    },
+                },
+                orderBy: { createdAt: "desc" },
+            },
+            likes: userId ? { where: { userId: userId } } : false,
+            _count: {
+                select: { likes: true, comments: true },
+            },
         },
     });
 }

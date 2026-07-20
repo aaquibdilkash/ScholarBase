@@ -1,9 +1,8 @@
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { LikeButton } from "@/components/interactions/LikeButton";
-import { deleteJobVacancy } from "@/app/actions/vacancies";
+import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
@@ -17,34 +16,7 @@ const VacancyDetailPage = async ({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const vacancy = await prisma.jobVacancy.findUnique({
-    where: { id: id },
-    include: {
-      author: true,
-      comments: {
-        where: { parentId: null },
-        include: {
-          author: true,
-          likes: user ? { where: { userId: user.id } } : false,
-          _count: { select: { likes: true } },
-          replies: {
-            include: {
-              author: true,
-              likes: user ? { where: { userId: user.id } } : false,
-              _count: { select: { likes: true } },
-            },
-            orderBy: { createdAt: "asc" },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      likes: user ? { where: { userId: user.id } } : false,
-      _count: {
-        select: { likes: true, comments: true },
-      },
-    },
-  });
+  const vacancy = await getVacancyById(id);
 
   if (!vacancy) {
     notFound();
@@ -63,6 +35,8 @@ const VacancyDetailPage = async ({
       authorName={vacancy.author.name || "Scholar"}
       authorHandle={vacancy.author.handle || undefined}
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
+      authorId={vacancy.author.id}
+      isFollowing={(vacancy.author as any)?.followers?.length ? true : false}
       managementControls={
         user?.id === vacancy.author.id ? (
           <OwnerActionsDropdown
