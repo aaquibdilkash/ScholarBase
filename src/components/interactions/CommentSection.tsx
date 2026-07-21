@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { timeAgo } from "@/utils/time-ago";
 import { createCommentClientWrapper } from "@/app/actions/comments.clientWrappers";
 
 import {
@@ -20,6 +21,7 @@ type Reply = {
   id: string;
   content: string;
   createdAt: Date;
+  updatedAt: Date;
   author: User;
   likes: Like[];
   parentId: string | null;
@@ -53,15 +55,6 @@ export function CommentSection({
 }: CommentSectionProps) {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(date));
-  };
 
   const topLevelComments = comments.filter((comment) => !comment.parentId);
 
@@ -113,7 +106,6 @@ export function CommentSection({
             setActiveReplyId={setActiveReplyId}
             editingId={editingId}
             setEditingId={setEditingId}
-            formatDate={formatDate}
             isReply={false}
           />
         ))}
@@ -140,7 +132,6 @@ function CommentEntry({
   setActiveReplyId,
   editingId,
   setEditingId,
-  formatDate,
   isReply,
 }: {
   comment: Comment;
@@ -152,11 +143,14 @@ function CommentEntry({
   setActiveReplyId: (id: string | null) => void;
   editingId: string | null;
   setEditingId: (id: string | null) => void;
-  formatDate: (date: Date) => string;
   isReply: boolean;
 }) {
   const deleteFormRef = useRef<HTMLFormElement>(null);
   const isOwner = !!currentUserId && comment.author.id === currentUserId;
+  const wasEdited =
+    new Date(comment.updatedAt).getTime() -
+      new Date(comment.createdAt).getTime() >
+    1000;
 
   const handleReplySuccess = async (formData: FormData) => {
     await createCommentClientWrapper(formData);
@@ -219,7 +213,7 @@ function CommentEntry({
                 isReply ? "text-[11px] text-slate-400" : "text-xs text-slate-400"
               }`}
             >
-              {formatDate(comment.createdAt)}
+              {timeAgo(comment.createdAt)}
             </span>
           </div>
 
@@ -255,27 +249,32 @@ function CommentEntry({
               <p className="text-slate-700 text-sm whitespace-pre-wrap">
                 {comment.content}
               </p>
-              <div className="mt-3 flex items-center justify-end gap-3">
-                <CommentActionsDropdown
-                  isOwner={isOwner}
-                  onEdit={() => setEditingId(comment.id)}
-                  onDelete={() => deleteFormRef.current?.requestSubmit()}
-                />
-                <form
-                  ref={deleteFormRef}
-                  action={deleteCommentClientWrapper.bind(null)}
-                  className="hidden"
-                >
-                  <input type="hidden" name="_commentId" value={comment.id} />
-                  <input type="hidden" name="_type" value={type} />
-                  <button type="submit" />
-                </form>
-                <CommentLikeButton
-                  commentId={comment.id}
-                  type={type}
-                  initialLikes={comment._count.likes}
-                  initialIsLiked={comment.likes?.length > 0}
-                />
+              <div className="mt-3 flex items-center justify-between gap-3">
+                {wasEdited && (
+                  <span className="text-xs text-slate-400">Edited</span>
+                )}
+                <div className="flex items-center gap-3 ml-auto">
+                  <CommentActionsDropdown
+                    isOwner={isOwner}
+                    onEdit={() => setEditingId(comment.id)}
+                    onDelete={() => deleteFormRef.current?.requestSubmit()}
+                  />
+                  <form
+                    ref={deleteFormRef}
+                    action={deleteCommentClientWrapper.bind(null)}
+                    className="hidden"
+                  >
+                    <input type="hidden" name="_commentId" value={comment.id} />
+                    <input type="hidden" name="_type" value={type} />
+                    <button type="submit" />
+                  </form>
+                  <CommentLikeButton
+                    commentId={comment.id}
+                    type={type}
+                    initialLikes={comment._count.likes}
+                    initialIsLiked={comment.likes?.length > 0}
+                  />
+                </div>
               </div>
             </>
           )}
@@ -334,7 +333,6 @@ function CommentEntry({
                 setActiveReplyId={setActiveReplyId}
                 editingId={editingId}
                 setEditingId={setEditingId}
-                formatDate={formatDate}
                 isReply={true}
               />
             ))}
