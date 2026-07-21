@@ -68,6 +68,7 @@ export function SupervisorCard({
           />
         )
       }
+      createdDate={supervisor.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={supervisor.id}
@@ -92,12 +93,12 @@ export function SupervisorCard({
       <div className="rounded-xl border border-slate-100 bg-white p-3">
         <div className="text-sm">
           <span className="font-semibold">{avgRating}</span>
+      </div>
           <span className="text-slate-500"> / 5</span>
           <span className="text-slate-500 ml-2">
             ({recommendationCount} recommendations)
           </span>
         </div>
-      </div>
     </ListPageCardShell>
   );
 }

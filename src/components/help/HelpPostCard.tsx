@@ -46,6 +46,10 @@ export function HelpPostCard({
           />
         )
       }
+      createdDate={helpPost.createdAt}
+      editedDate={
+        helpPost.updatedAt > helpPost.createdAt ? helpPost.updatedAt : undefined
+      }
       footerLikeButton={
         <LikeButton
           targetId={helpPost.id}

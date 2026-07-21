@@ -45,6 +45,10 @@ export function JournalCard({
           />
         )
       }
+      createdDate={journal.createdAt}
+      editedDate={
+        journal.updatedAt > journal.createdAt ? journal.updatedAt : undefined
+      }
       footerLikeButton={
         <LikeButton
           targetId={journal.id}

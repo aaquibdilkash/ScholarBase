@@ -45,6 +45,7 @@ export function EventCard({
           />
         )
       }
+      createdDate={event.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={event.id}

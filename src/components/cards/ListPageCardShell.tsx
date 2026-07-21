@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton"; // client component
 import { ShareButton } from "@/components/interactions/ShareButton";
+import { formatTimeAgo } from "../../utils/time-ago";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -34,6 +35,9 @@ export type ListPageCardShellProps = {
   // link to the detail page
   detailPageHref: string;
   bodyBottomContent?: ReactNode;
+
+  editedDate?: Date | string;
+  createdDate: Date | string;
 };
 
 export default function ListPageCardShell({
@@ -52,6 +56,8 @@ export default function ListPageCardShell({
   bodyClassName,
   detailPageHref,
   bodyBottomContent,
+  editedDate,
+  createdDate,
 }: ListPageCardShellProps) {
   const showManagementControls = Boolean(managementControls);
 
@@ -111,10 +117,19 @@ export default function ListPageCardShell({
         {children}
       </Link>
 
+      <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
+        <span className="font-semibold text-slate-400"> Created {formatTimeAgo(createdDate)}</span>
+        {editedDate && (
+          <span className="font-semibold text-slate-400">
+            Edited {formatTimeAgo(editedDate)}
+          </span>
+        )}
+      </div>
+
       {bodyBottomContent}
 
       {/* Common footer */}
-      <div className="border-t border-slate-200 pt-6 mt-8 flex items-center gap-6">
+      <div className="border-t border-slate-200 pt-2 mt-2 flex items-center gap-6">
         <div className="flex items-center gap-6">{footerLikeButton}</div>
 
         <Link

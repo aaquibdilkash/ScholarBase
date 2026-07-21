@@ -37,6 +37,7 @@ const VacancyDetailPage = async ({
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
       authorId={vacancy.author.id}
       isFollowing={(vacancy.author as any)?.followers?.length ? true : false}
+      createdDate={vacancy.createdAt}
       managementControls={
         user?.id === vacancy.author.id ? (
           <OwnerActionsDropdown

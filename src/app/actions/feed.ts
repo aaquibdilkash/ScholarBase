@@ -83,6 +83,7 @@ export async function getPost(id: string, userId?: string) {
             id: true,
             content: true,
             createdAt: true,
+            updatedAt: true,
             authorId: true,
             author: {
                 select: {

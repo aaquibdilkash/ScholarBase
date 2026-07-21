@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { timeAgo } from "@/utils/time-ago";
+import { formatTimeAgo } from "@/utils/time-ago";
 import { createCommentClientWrapper } from "@/app/actions/comments.clientWrappers";
 
 import {
@@ -210,10 +210,12 @@ function CommentEntry({
             </Link>
             <span
               className={`font-medium ${
-                isReply ? "text-[11px] text-slate-400" : "text-xs text-slate-400"
+                isReply
+                  ? "text-[11px] text-slate-400"
+                  : "text-xs text-slate-400"
               }`}
             >
-              {timeAgo(comment.createdAt)}
+              {formatTimeAgo(comment.createdAt)}
             </span>
           </div>
 
@@ -251,7 +253,9 @@ function CommentEntry({
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">
                 {wasEdited && (
-                  <span className="text-xs text-slate-400">Edited</span>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {`Edited ${formatTimeAgo(comment.updatedAt)}`}
+                  </span>
                 )}
                 <div className="flex items-center gap-3 ml-auto">
                   <CommentActionsDropdown

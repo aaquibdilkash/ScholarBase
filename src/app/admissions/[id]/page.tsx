@@ -49,6 +49,7 @@ const AdmissionDetailPage = async ({
       }
       authorId={admission.author.id}
       isFollowing={(admission.author as any)?.followers?.length ? true : false}
+      createdDate={admission.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={admission.id}

@@ -46,6 +46,7 @@ export function VacancyCard({
           />
         )
       }
+      createdDate={vacancy.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={vacancy.id}

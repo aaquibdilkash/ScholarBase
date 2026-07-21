@@ -45,6 +45,7 @@ export function AdmissionCard({
           />
         )
       }
+      createdDate={admission.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={admission.id}

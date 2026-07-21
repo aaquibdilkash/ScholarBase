@@ -46,6 +46,8 @@ export default async function SinglePostPage({
       }
       authorId={p.authorId}
       isFollowing={(p.author as any)?.followers?.length ? true : false}
+      createdDate={p.createdAt}
+      editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
       footerLikeButton={
         <LikeButton
           targetId={p.id}

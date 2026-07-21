@@ -56,6 +56,7 @@ export function RecommendationCard({
           />
         )
       }
+      createdDate={recommendation.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={recommendation.id}

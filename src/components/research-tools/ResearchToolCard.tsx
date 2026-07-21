@@ -45,6 +45,8 @@ export function ResearchToolCard({
           />
         )
       }
+      createdDate={tool.createdAt}
+      editedDate={tool.updatedAt > tool.createdAt ? tool.updatedAt : undefined}
       footerLikeButton={
         <LikeButton
           targetId={tool.id}

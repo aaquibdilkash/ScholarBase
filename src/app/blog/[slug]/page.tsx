@@ -48,6 +48,8 @@ export default async function ArticlePage({
       }
       authorId={a.authorId}
       isFollowing={(a.author as any)?.followers?.length ? true : false}
+      createdDate={a.createdAt}
+      editedDate={a.updatedAt > a.createdAt ? a.updatedAt : undefined}
       footerLikeButton={
         <LikeButton
           targetId={a.id}

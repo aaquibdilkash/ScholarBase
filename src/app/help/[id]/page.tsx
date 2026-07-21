@@ -36,6 +36,8 @@ export default async function HelpPostPage({
       authorAvatarUrl={post.author.avatarUrl || undefined}
       authorId={post.author.id}
       isFollowing={!!post.author.followers?.length}
+      createdDate={post.createdAt}
+      editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
       managementControls={
         user?.id === post.author.id ? (
           <OwnerActionsDropdown
@@ -58,7 +60,10 @@ export default async function HelpPostPage({
       footerCommentsHref={`/help/${post.id}#comments`}
       footerCommentsCount={post._count.comments}
       discussion={
-        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
+        <div
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          id="comments"
+        >
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={post.comments}

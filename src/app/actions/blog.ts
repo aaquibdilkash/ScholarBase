@@ -62,6 +62,7 @@ export async function getArticle(slug: string, userId?: string) {
       excerpt: true,
       content: true,
       createdAt: true,
+      updatedAt: true,
       authorId: true,
       author: {
         select: {

@@ -40,6 +40,8 @@ const JournalDetailPage = async ({
       authorAvatarUrl={j.author.avatarUrl || undefined}
       authorId={j.author.id}
       isFollowing={!!j.author.followers?.length}
+      createdDate={j.createdAt}
+      editedDate={j.updatedAt > j.createdAt ? j.updatedAt : undefined}
       managementControls={
         user?.id === j.author.id ? (
           <OwnerActionsDropdown
@@ -62,7 +64,10 @@ const JournalDetailPage = async ({
       footerCommentsHref={`/journals/${j.id}#comments`}
       footerCommentsCount={j._count.comments}
       discussion={
-        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
+        <div
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          id="comments"
+        >
           <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
           <CommentSection
             comments={j.comments}

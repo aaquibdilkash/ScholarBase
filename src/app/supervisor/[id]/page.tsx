@@ -46,6 +46,7 @@ export default async function SupervisorPage({
       authorName={supervisor.author?.name || "Scholar"}
       authorHandle={supervisor.author?.handle || undefined}
       authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
+      createdDate={supervisor.createdAt}
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.comments.length}
       footerLikeButton={

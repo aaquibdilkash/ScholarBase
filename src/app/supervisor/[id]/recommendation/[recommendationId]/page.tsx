@@ -61,6 +61,7 @@ export default async function RecommendationDetailPage({
       authorName={recommendation.author.name || "Scholar"}
       authorHandle={recommendation.author.handle || undefined}
       authorAvatarUrl={recommendation.author.avatarUrl || undefined}
+      createdDate={recommendation.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={recommendation.id}
@@ -72,7 +73,10 @@ export default async function RecommendationDetailPage({
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
       footerCommentsCount={recommendation._count.comments}
       discussion={
-        <div className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl" id="comments">
+        <div
+          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          id="comments"
+        >
           <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
           <CommentSection
             comments={recommendation.comments}
@@ -94,22 +98,19 @@ export default async function RecommendationDetailPage({
         ) : null
       }
     >
-        
-        <p className="mb-2 text-sm font-semibold text-slate-900">
-          {`Mentorship Rating: ${recommendation.rating}/5`}
-        </p>
+      <p className="mb-2 text-sm font-semibold text-slate-900">
+        {`Mentorship Rating: ${recommendation.rating}/5`}
+      </p>
 
-        <div className="mb-6 text-sm text-slate-700 space-y-1">
-          <p>{`Turnaround Time: ${recommendation.turnaroundTimeDays} day(s)`}</p>
-          <p>{`Responsiveness: ${recommendation.responsivenessScore}/5`}</p>
-          <p>{`Guidance Quality: ${recommendation.guidanceScore}/5`}</p>
-        </div>
+      <div className="mb-6 text-sm text-slate-700 space-y-1">
+        <p>{`Turnaround Time: ${recommendation.turnaroundTimeDays} day(s)`}</p>
+        <p>{`Responsiveness: ${recommendation.responsivenessScore}/5`}</p>
+        <p>{`Guidance Quality: ${recommendation.guidanceScore}/5`}</p>
+      </div>
 
-        <p className="mb-8 text-slate-600 whitespace-pre-wrap">
-          {`Mentorship Feedback: ${recommendation.feedback}`}
-        </p>
-
-        
+      <p className="mb-8 text-slate-600 whitespace-pre-wrap">
+        {`Mentorship Feedback: ${recommendation.feedback}`}
+      </p>
     </DetailPageCardShell>
   );
 }

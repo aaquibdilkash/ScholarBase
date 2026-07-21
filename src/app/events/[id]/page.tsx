@@ -48,6 +48,7 @@ const EventDetailPage = async ({
       }
       authorId={event.author.id}
       isFollowing={(event.author as any)?.followers?.length ? true : false}
+      createdDate={event.createdAt}
       footerLikeButton={
         <LikeButton
           targetId={event.id}

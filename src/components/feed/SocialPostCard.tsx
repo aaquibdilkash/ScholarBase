@@ -51,6 +51,8 @@ export function SocialPostCard({
           />
         )
       }
+      createdDate={post.createdAt}
+      editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
       footerLikeButton={
         <LikeButton
           targetId={post.id}

@@ -57,6 +57,10 @@ export function ArticleCard({
       }
       footerCommentsHref={`/blog/${article.slug}`}
       footerCommentsCount={article._count.comments}
+      createdDate={article.createdAt}
+      editedDate={
+        article.updatedAt > article.createdAt ? article.updatedAt : undefined
+      }
     >
       <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
         {article.title}
