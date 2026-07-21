@@ -54,7 +54,8 @@ export function CommentLikeButton({
     | "recommendation"
     | "help"
     | "researchTool"
-    | "journal";
+    | "journal"
+    | "result";
   initialLikes: number;
   initialIsLiked: boolean;
 }) {

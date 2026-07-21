@@ -13,6 +13,7 @@ type CommentType =
     | 'help'
     | 'journal'
     | 'researchTool'
+    | 'result'
 
 export async function deleteCommentClientWrapper(formData: FormData) {
     const commentId = formData.get('_commentId')

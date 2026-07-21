@@ -1,0 +1,100 @@
+"use client";
+
+import { Result, User } from "@prisma/client";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { LikeButton } from "@/components/interactions/LikeButton";
+import { deleteResult } from "@/app/actions/results";
+
+type ResultWithAuthor = Result & {
+  author: User & {
+    followers?: { followerId: string }[];
+  };
+  isLiked: boolean;
+  _count: { likes: number; comments: number };
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  ADMISSION: "Admission Result",
+  VACANCY: "Vacancy Result",
+  EVENT: "Event Result",
+  EXAM: "Exam Result",
+  OTHER: "Other Result",
+};
+
+export function ResultCard({
+  result,
+  currentUserId,
+}: {
+  result: ResultWithAuthor;
+  currentUserId?: string;
+}) {
+  const isOwner = currentUserId === result.authorId;
+  const isFollowing = (result.author.followers?.length ?? 0) > 0;
+  return (
+    <ListPageCardShell
+      authorHref={`/scholar/${result.author.id}`}
+      authorName={result.author.name || "Scholar"}
+      authorId={result.author.id}
+      isFollowing={isFollowing}
+      authorHandle={result.author.handle || undefined}
+      authorAvatarUrl={result.author.avatarUrl || undefined}
+      detailPageHref={`/results/${result.id}`}
+      managementControls={
+        isOwner && (
+          <OwnerActionsDropdown
+            editHref={`/results/${result.id}/edit`}
+            isOwner={true}
+            onDelete={async () => {
+              await deleteResult(result.id);
+            }}
+            editLabel="Edit Result"
+            deleteLabel="Delete"
+          />
+        )
+      }
+      createdDate={result.createdAt}
+      editedDate={
+        result.updatedAt > result.createdAt ? result.updatedAt : undefined
+      }
+      footerLikeButton={
+        <LikeButton
+          targetId={result.id}
+          type="result"
+          initialLikes={result._count.likes}
+          initialIsLiked={result.isLiked}
+        />
+      }
+      footerCommentsHref={`/results/${result.id}`}
+      footerCommentsCount={result._count.comments}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+          {TYPE_LABELS[result.type] || result.type}
+        </span>
+        {result.category && (
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            {result.category}
+          </span>
+        )}
+      </div>
+
+      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+        {result.title}
+      </h2>
+
+      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
+        {result.description}
+      </p>
+
+      {(result.conductingBody || result.session) && (
+        <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
+          {result.conductingBody && (
+            <span>Conducting Body: {result.conductingBody}</span>
+          )}
+          {result.session && <span>Session: {result.session}</span>}
+        </div>
+      )}
+    </ListPageCardShell>
+  );
+}

@@ -25,6 +25,38 @@ export async function getProfile(profileId: string, currentUserId?: string) {
                     select: { followerId: true },
                 }
                 : false,
+        }
+    })
+
+    if (!userWithProfileData) return null
+
+    const { followers, ...rest } = userWithProfileData
+
+    return {
+        ...rest,
+        articles: [],
+        socialPosts: [],
+        vacancies: [],
+        admissions: [],
+        events: [],
+        helpPosts: [],
+        journals: [],
+        researchTools: [],
+        recommendations: [],
+        supervisors: [],
+        results: [],
+        isFollowing: !!followers?.length,
+        isOwnProfile: currentUserId === profileId,
+    }
+}
+
+export type ProfileSections = Awaited<ReturnType<typeof getProfileSections>>;
+
+export async function getProfileSections(profileId: string, currentUserId?: string) {
+    const userWithProfileData = await prisma.user.findUnique({
+        where: { id: profileId },
+        select: {
+            id: true,
             articles: {
                 take: 5,
                 orderBy: { createdAt: 'desc' },
@@ -313,18 +345,44 @@ export async function getProfile(profileId: string, currentUserId?: string) {
                     _count: { select: { likes: true, comments: true } }
                 }
             },
+            results: {
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    title: true,
+                    description: true,
+                    type: true,
+                    category: true,
+                    conductingBody: true,
+                    session: true,
+                    notificationLink: true,
+                    resultLink: true,
+                    authorId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            handle: true,
+                            avatarUrl: true,
+                            createdAt: true,
+                            email: true,
+                            bio: true,
+                            followers: currentUserId ? { where: { followerId: currentUserId } } : false
+                        }
+                    },
+                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, resultId: true } },
+                    _count: { select: { likes: true, comments: true } }
+                }
+            },
         }
     })
 
     if (!userWithProfileData) return null
 
-    const { followers, ...rest } = userWithProfileData
-
-    return {
-        ...rest,
-        isFollowing: !!followers?.length,
-        isOwnProfile: currentUserId === profileId,
-    }
+    return userWithProfileData;
 }
 
 

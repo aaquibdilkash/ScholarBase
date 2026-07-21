@@ -15,7 +15,8 @@ type LikeType =
   | "recommendation"
   | "help"
   | "journal"
-  | "researchTool";
+  | "researchTool"
+  | "result";
 
 export function LikeButton({
   targetId,

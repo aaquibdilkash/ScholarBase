@@ -6,7 +6,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
 
-type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool';
+type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result';
 
 export async function createComment(
     formData: FormData,
@@ -50,48 +50,48 @@ export async function createComment(
 
     else if (type === 'article') {
         const comment = await prisma.articleComment.create({
-      data: { content, articleId: targetId, authorId: user.id, parentId },
-    });
-
-    const article = await prisma.article.findUnique({
-      where: { id: targetId },
-      select: { slug: true, authorId: true },
-    });
-
-    if (!article) return
-
-    if (article) {
-      const target = parentId
-        ? await prisma.articleComment.findUnique({
-            where: { id: parentId },
-            select: { authorId: true },
-          })
-        : article;
-
-      if (target?.authorId) {
-        await notifyUserById({
-          recipientId: target.authorId,
-          actorId: user.id,
-          type: parentId ? "reply-created" : "comment-created",
-          targetType: "article",
-          targetId: article.slug,
-          title: parentId
-            ? `Someone replied to your comment`
-            : `Someone commented on your article`,
-          body: content,
+            data: { content, articleId: targetId, authorId: user.id, parentId },
         });
-      }
-      
-      await notifyMentionedUsers({
-        actorId: user.id,
-        content,
-        type: "mention",
-        targetType: "comment",
-        targetId: article.slug,
-        titleFactory: (handle) => `@${handle} was mentioned in a comment`,
-        bodyFactory: () => content,
-      });
-    }
+
+        const article = await prisma.article.findUnique({
+            where: { id: targetId },
+            select: { slug: true, authorId: true },
+        });
+
+        if (!article) return
+
+        if (article) {
+            const target = parentId
+                ? await prisma.articleComment.findUnique({
+                    where: { id: parentId },
+                    select: { authorId: true },
+                })
+                : article;
+
+            if (target?.authorId) {
+                await notifyUserById({
+                    recipientId: target.authorId,
+                    actorId: user.id,
+                    type: parentId ? "reply-created" : "comment-created",
+                    targetType: "article",
+                    targetId: article.slug,
+                    title: parentId
+                        ? `Someone replied to your comment`
+                        : `Someone commented on your article`,
+                    body: content,
+                });
+            }
+
+            await notifyMentionedUsers({
+                actorId: user.id,
+                content,
+                type: "mention",
+                targetType: "comment",
+                targetId: article.slug,
+                titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+                bodyFactory: () => content,
+            });
+        }
 
         // Target ID for articles is UUID, but route uses slug. Clearing the article layout is safest here.
         revalidatePath('/blog/[slug]', 'page')
@@ -309,6 +309,35 @@ export async function createComment(
 
         revalidatePath(`/research-tools/${targetId}`)
     }
+
+    else if (type === 'result') {
+        const comment = await prisma.resultComment.create({
+            data: { content, resultId: targetId, authorId: user.id, parentId },
+        })
+
+        const target = parentId
+            ? await prisma.resultComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.result.findUnique({ where: { id: targetId }, select: { authorId: true } })
+
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId,
+                actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'result',
+                targetId: targetId,
+                title: parentId ? `Someone replied to your comment` : `Someone commented on your result posting`,
+                body: content,
+            })
+        }
+
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+
+        revalidatePath(`/results/${targetId}`)
+    }
 }
 
 export async function editComment(
@@ -412,6 +441,15 @@ export async function editComment(
         if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
         await prisma.researchToolComment.update({ where: { id: commentId }, data: { content } })
         revalidatePath('/research-tools/[id]', 'page')
+    } else if (type === 'result') {
+        const comment = await prisma.resultComment.findUnique({
+            where: { id: commentId },
+            select: { authorId: true },
+        })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to edit this comment.')
+        await prisma.resultComment.update({ where: { id: commentId }, data: { content } })
+        revalidatePath('/results/[id]', 'page')
     }
 }
 
@@ -505,6 +543,15 @@ export async function deleteComment(commentId: string, type: CommentType) {
         if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
         await prisma.researchToolComment.delete({ where: { id: commentId } })
         revalidatePath('/research-tools/[id]', 'page')
+        return
+    }
+
+    if (type === 'result') {
+        const comment = await prisma.resultComment.findUnique({ where: { id: commentId }, select: { authorId: true } })
+        if (!comment) return
+        if (comment.authorId !== user.id) throw new Error('Not authorized to delete this comment.')
+        await prisma.resultComment.delete({ where: { id: commentId } })
+        revalidatePath('/results/[id]', 'page')
         return
     }
 }
@@ -669,6 +716,22 @@ export async function toggleCommentLike(commentId: string, type: CommentType) {
             where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
         })
         revalidatePath('/research-tools/[id]', 'page')
+        return { isLiked: !!likeExistsAfter, likeCount }
+    }
+
+    else if (type === 'result') {
+        const existing = await prisma.resultCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } },
+        })
+
+        if (existing) await prisma.resultCommentLike.delete({ where: { id: existing.id } })
+        else await prisma.resultCommentLike.create({ data: { commentId, userId: user.id } })
+
+        const likeCount = await prisma.resultCommentLike.count({ where: { commentId } })
+        const likeExistsAfter = await prisma.resultCommentLike.findUnique({
+            where: { commentId_userId: { commentId, userId: user.id } }, select: { id: true },
+        })
+        revalidatePath('/results/[id]', 'page')
         return { isLiked: !!likeExistsAfter, likeCount }
     }
 

@@ -1,4 +1,3 @@
-
 import prisma from '@/lib/db'
 
 const LIKE_WEIGHT = 1
@@ -14,7 +13,7 @@ function calculateTrendingScore(item: {
 
 async function getTrending<T extends { _count: { likes: number; comments: number }, likes?: { userId: string }[], createdAt: Date }>(
     fetcher: () => Promise<T[]>,
-    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool' | 'help-post'
+    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool' | 'help-post' | 'result'
 ) {
 
 
@@ -215,6 +214,27 @@ export async function getTrendingHelpPosts(userId?: string) {
     }), 'help-post')
 }
 
+export async function getTrendingResults(userId?: string) {
+    const since = new Date()
+    since.setDate(since.getDate() - TRENDING_DAYS)
+
+    const commonInclude = {
+        author: true,
+        _count: {
+            select: {
+                likes: true,
+                comments: true,
+            },
+        },
+        likes: userId ? { where: { userId } } : false,
+    }
+
+    return getTrending(() => prisma.result.findMany({
+        where: { createdAt: { gte: since } },
+        include: commonInclude,
+    }), 'result')
+}
+
 export async function getTrendingSupervisors(userId?: string) {
     const supervisors = await prisma.supervisor.findMany({
 
@@ -266,4 +286,3 @@ export async function getTrendingSupervisors(userId?: string) {
 
     return sortedSupervisors
 }
-

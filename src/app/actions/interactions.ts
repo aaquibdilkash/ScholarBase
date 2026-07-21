@@ -7,7 +7,7 @@ import { notifyUserById } from '@/lib/notifications'
 
 export async function toggleLike(
     targetId: string,
-    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool'
+    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result'
 
 ): Promise<boolean> {
     const user = await requireCurrentUser('Log in to show appreciation for this research.')
@@ -325,6 +325,39 @@ export async function toggleLike(
         }
         revalidatePath('/research-tools')
         revalidatePath(`/research-tools/${targetId}`)
+    }
+
+    else if (type === 'result') {
+        const existing = await prisma.resultLike.findUnique({
+            where: { resultId_userId: { resultId: targetId, userId: user.id } },
+        })
+
+        if (existing) {
+            await prisma.resultLike.delete({ where: { id: existing.id } })
+            isLiked = false
+        } else {
+            await prisma.resultLike.create({ data: { resultId: targetId, userId: user.id } })
+            isLiked = true
+
+            const result = await prisma.result.findUnique({
+                where: { id: targetId },
+                select: { authorId: true, title: true },
+            })
+
+            if (result?.authorId) {
+                await notifyUserById({
+                    recipientId: result.authorId,
+                    actorId: user.id,
+                    type: 'result-liked',
+                    targetType: 'result',
+                    targetId,
+                    title: `${user.email?.split('@')[0] || 'Someone'} liked your result posting`,
+                    body: result.title,
+                })
+            }
+        }
+        revalidatePath('/results')
+        revalidatePath(`/results/${targetId}`)
     }
 
     return isLiked

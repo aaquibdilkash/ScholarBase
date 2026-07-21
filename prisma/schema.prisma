@@ -239,6 +239,11 @@ model User {
   journalComments     JournalComment[]
   journalCommentLikes JournalCommentLike[]
 
+  results            Result[]
+  resultLikes        ResultLike[]
+  resultComments     ResultComment[]
+  resultCommentLikes ResultCommentLike[]
+
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
   supervisors           Supervisor[]
@@ -360,6 +365,64 @@ model JournalCommentLike {
   userId    String
   comment   JournalComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+}
+
+model Result {
+  id               String   @id @default(cuid())
+  title            String
+  description      String
+  type             String   // ADMISSION | VACANCY | EVENT | EXAM | OTHER
+  category         String?  // e.g. "NET", "JRF", "SET", "GATE"
+  conductingBody   String?  // e.g. "UGC", "NTA", "CBSE"
+  session          String?  // e.g. "June 2024", "December 2024"
+  notificationLink String?
+  resultLink       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  authorId         String
+  author           User     @relation(fields: [authorId], references: [id])
+
+  likes    ResultLike[]
+  comments ResultComment[]
+}
+
+model ResultLike {
+  id       String @id @default(uuid())
+  resultId String
+  userId   String
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([resultId, userId])
+}
+
+model ResultComment {
+  id        String   @id @default(uuid())
+  content   String
+  resultId  String
+  authorId  String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+
+  parent  ResultComment?  @relation("ResultReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies ResultComment[] @relation("ResultReplies")
+
+  likes ResultCommentLike[]
+}
+
+model ResultCommentLike {
+  id        String        @id @default(uuid())
+  commentId String
+  userId    String
+  comment   ResultComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
 }

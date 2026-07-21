@@ -43,7 +43,8 @@ interface CommentSectionProps {
     | "recommendation"
     | "help"
     | "researchTool"
-    | "journal";
+    | "journal"
+    | "result";
   currentUserId: string | null;
   postAuthorId?: string | null;
 }
