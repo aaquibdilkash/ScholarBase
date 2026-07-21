@@ -74,6 +74,7 @@ const JournalDetailPage = async ({
             targetId={j.id}
             type="journal"
             currentUserId={user?.id ?? null}
+            postAuthorId={j.author.id}
           />
         </div>
       }

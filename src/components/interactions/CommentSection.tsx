@@ -45,6 +45,7 @@ interface CommentSectionProps {
     | "researchTool"
     | "journal";
   currentUserId: string | null;
+  postAuthorId?: string | null;
 }
 
 export function CommentSection({
@@ -52,6 +53,7 @@ export function CommentSection({
   targetId,
   type,
   currentUserId,
+  postAuthorId,
 }: CommentSectionProps) {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -102,6 +104,7 @@ export function CommentSection({
             currentUserId={currentUserId}
             type={type}
             targetId={targetId}
+            postAuthorId={postAuthorId}
             activeReplyId={activeReplyId}
             setActiveReplyId={setActiveReplyId}
             editingId={editingId}
@@ -128,6 +131,7 @@ function CommentEntry({
   currentUserId,
   type,
   targetId,
+  postAuthorId,
   activeReplyId,
   setActiveReplyId,
   editingId,
@@ -139,6 +143,7 @@ function CommentEntry({
   currentUserId: string | null;
   type: CommentSectionProps["type"];
   targetId: string;
+  postAuthorId?: string | null;
   activeReplyId: string | null;
   setActiveReplyId: (id: string | null) => void;
   editingId: string | null;
@@ -202,12 +207,19 @@ function CommentEntry({
           }`}
         >
           <div className="flex items-baseline justify-between gap-2 mb-1">
-            <Link
-              href={`/scholar/${comment.author.id}`}
-              className="font-bold text-sm text-slate-900 hover:text-blue-600 hover:underline"
-            >
-              {comment.author.name}
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/scholar/${comment.author.id}`}
+                className="font-bold text-sm text-slate-900 hover:text-blue-600 hover:underline"
+              >
+                {comment.author.name}
+              </Link>
+              {postAuthorId && comment.author.id === postAuthorId && (
+                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-md">
+                  Author
+                </span>
+              )}
+            </div>
             <span
               className={`font-medium ${
                 isReply
@@ -215,7 +227,7 @@ function CommentEntry({
                   : "text-xs text-slate-400"
               }`}
             >
-              {formatTimeAgo(comment.createdAt)}
+              Created {formatTimeAgo(comment.createdAt)}
             </span>
           </div>
 
@@ -333,6 +345,7 @@ function CommentEntry({
                 currentUserId={currentUserId}
                 type={type}
                 targetId={targetId}
+                postAuthorId={postAuthorId}
                 activeReplyId={activeReplyId}
                 setActiveReplyId={setActiveReplyId}
                 editingId={editingId}

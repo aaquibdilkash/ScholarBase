@@ -75,6 +75,7 @@ const ResearchToolDetailPage = async ({
             targetId={tool.id}
             type="researchTool"
             currentUserId={user?.id || null}
+            postAuthorId={tool.author.id}
           />
         </div>
       }

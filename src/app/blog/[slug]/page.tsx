@@ -71,6 +71,7 @@ export default async function ArticlePage({
             targetId={a.id}
             type="article"
             currentUserId={user?.id ?? null}
+            postAuthorId={a.authorId}
           />
         </div>
       }

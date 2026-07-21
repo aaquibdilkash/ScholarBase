@@ -83,6 +83,7 @@ export default async function RecommendationDetailPage({
             targetId={recommendation.id}
             type="recommendation"
             currentUserId={user?.id ?? null}
+            postAuthorId={recommendation.authorId}
           />
         </div>
       }

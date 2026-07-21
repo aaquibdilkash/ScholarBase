@@ -69,6 +69,7 @@ export default async function SinglePostPage({
             targetId={p.id}
             type="post"
             currentUserId={user?.id ?? null}
+            postAuthorId={p.authorId}
           />
         </div>
       }

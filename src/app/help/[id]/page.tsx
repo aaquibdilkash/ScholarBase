@@ -70,6 +70,7 @@ export default async function HelpPostPage({
             targetId={post.id}
             type="help"
             currentUserId={user.id}
+            postAuthorId={post.author.id}
           />
         </div>
       }

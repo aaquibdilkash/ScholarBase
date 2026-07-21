@@ -70,6 +70,7 @@ const EventDetailPage = async ({
             targetId={event.id}
             type="event"
             currentUserId={user?.id || null}
+            postAuthorId={event.author.id}
           />
         </div>
       }

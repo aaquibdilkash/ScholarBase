@@ -79,6 +79,7 @@ export default async function SupervisorPage({
             targetId={supervisor.id}
             type="supervisor"
             currentUserId={user?.id ?? null}
+            postAuthorId={supervisor.authorId}
           />
         </div>
       }

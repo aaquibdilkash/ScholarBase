@@ -71,6 +71,7 @@ const AdmissionDetailPage = async ({
             targetId={admission.id}
             type="admission"
             currentUserId={user?.id || null}
+            postAuthorId={admission.author.id}
           />
         </div>
       }

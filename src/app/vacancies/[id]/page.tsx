@@ -70,6 +70,7 @@ const VacancyDetailPage = async ({
             targetId={vacancy.id}
             type="vacancy"
             currentUserId={user?.id || null}
+            postAuthorId={vacancy.author.id}
           />
         </div>
       }
