@@ -41,7 +41,7 @@ export function ResearchToolsList({
       renderItem={(tool) => (
         <ResearchToolCard
           key={tool.id}
-          tool={{ ...tool, isLiked: tool.likes.length > 0 }}
+          tool={{ ...tool, isLiked: (tool.likes?.length ?? 0) > 0 }}
           currentUserId={currentUserId}
         />
       )}

@@ -6,139 +6,148 @@ import { readFormValue } from '@/lib/form'
 import { redirect } from 'next/navigation'
 
 export async function getSupervisors(q?: string, userId?: string) {
-    return prisma.supervisor.findMany({
-        where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+  return prisma.supervisor.findMany({
+    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+    include: {
+      author: {
         include: {
-          author:  {
-            include: {
-              followers: userId
-                ? {
-                    where: { followerId: userId },
-                    select: { followerId: true },
-                  }
-                : false,
-            },
-          },
-          recommendations: true,
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: {
-            select: {
-              comments: true,
-              likes: true,
-            },
-          },
+          followers: userId
+            ? {
+              where: { followerId: userId },
+              select: { followerId: true },
+            }
+            : false,
         },
-      });
+      },
+      recommendations: true,
+      likes: userId ? { where: { userId: userId } } : false,
+      _count: {
+        select: {
+          comments: true,
+          likes: true,
+        },
+      },
+    },
+  });
 }
 
 export async function getSupervisor(id: string, userId?: string) {
-    return prisma.supervisor.findUnique({
-        where: { id },
+  return prisma.supervisor.findUnique({
+    where: { id },
+    include: {
+      author: {
+        include: {
+          followers: userId
+            ? {
+              where: { followerId: userId },
+              select: { followerId: true },
+            }
+            : false,
+        },
+      },
+
+      recommendations: {
         include: {
           author: {
             include: {
               followers: userId
                 ? {
-                    where: { followerId: userId },
-                    select: { followerId: true },
-                  }
+                  where: { followerId: userId },
+                  select: { followerId: true },
+                }
                 : false,
             },
           },
-
-          recommendations: {
-            include: {
-              author: true,
-              likes: userId ? { where: { userId: userId } } : false,
-              _count: { select: { comments: true, likes: true } },
-            },
-            orderBy: { createdAt: "desc" },
-          },
-          comments: {
-            where: { parentId: null },
+          likes: userId ? { where: { userId: userId } } : false,
+          _count: { select: { comments: true, likes: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+      comments: {
+        where: { parentId: null },
+        orderBy: { createdAt: "desc" },
+        include: {
+          author: true,
+          likes: userId ? { where: { userId: userId } } : false,
+          _count: { select: { likes: true } },
+          replies: {
             orderBy: { createdAt: "desc" },
             include: {
               author: true,
               likes: userId ? { where: { userId: userId } } : false,
               _count: { select: { likes: true } },
-              replies: {
-                orderBy: { createdAt: "desc" },
-                include: {
-                  author: true,
-                  likes: userId ? { where: { userId: userId } } : false,
-                  _count: { select: { likes: true } },
-                },
-              },
             },
           },
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: { select: { likes: true } },
         },
-      });
+      },
+      likes: userId ? { where: { userId: userId } } : false,
+      _count: { select: { likes: true } },
+    },
+  });
 }
 
 export async function createSupervisor(formData: FormData) {
-    const user = await requireCurrentUser('Log in to add a supervisor entry.')
+  const user = await requireCurrentUser('Log in to add a supervisor entry.')
 
-    const name = readFormValue(formData, 'name')
-    const university = readFormValue(formData, 'university')
-    const department = readFormValue(formData, 'department')
-    const about = readFormValue(formData, 'about')
+  const name = readFormValue(formData, 'name')
+  const university = readFormValue(formData, 'university')
+  const department = readFormValue(formData, 'department')
+  const about = readFormValue(formData, 'about')
 
-    const supervisor = await prisma.supervisor.create({
-        data: {
-            name,
-            university,
-            department,
-            about,
-            // authorId is required in schema; set it explicitly from the current user
-            authorId: user.id,
-        },
-    })
+  const supervisor = await prisma.supervisor.create({
+    data: {
+      name,
+      university,
+      department,
+      about,
+      // authorId is required in schema; set it explicitly from the current user
+      authorId: user.id,
+    },
+  })
 
 
-    redirect(`/supervisor/${supervisor.id}`)
+  redirect(`/supervisor/${supervisor.id}`)
 }
 
 export async function updateSupervisor(formData: FormData, supervisorId: string) {
-    const user = await requireCurrentUser('Log in to edit this supervisor.')
+  const user = await requireCurrentUser('Log in to edit this supervisor.')
 
-    const name = readFormValue(formData, 'name')
-    const university = readFormValue(formData, 'university')
-    const department = readFormValue(formData, 'department')
-    const about = readFormValue(formData, 'about')
+  const name = readFormValue(formData, 'name')
+  const university = readFormValue(formData, 'university')
+  const department = readFormValue(formData, 'department')
+  const about = readFormValue(formData, 'about')
 
-    const supervisor = await prisma.supervisor.findUnique({
-        where: { id: supervisorId },
-        select: { authorId: true },
-    })
+  const supervisor = await prisma.supervisor.findUnique({
+    where: { id: supervisorId },
+    select: { authorId: true },
+  })
 
-    if (!supervisor) return
-    if (supervisor.authorId !== user.id) {
-        throw new Error('Not authorized to edit this supervisor.')
-    }
+  if (!supervisor) return
+  if (supervisor.authorId !== user.id) {
+    throw new Error('Not authorized to edit this supervisor.')
+  }
 
-    await prisma.supervisor.update({
-        where: { id: supervisorId },
-        data: { name, university, department, about },
-    })
+  await prisma.supervisor.update({
+    where: { id: supervisorId },
+    data: { name, university, department, about },
+  })
 
-    redirect(`/supervisor/${supervisorId}`)
+  redirect(`/supervisor/${supervisorId}`)
 }
 
 export async function deleteSupervisor(supervisorId: string) {
-    const user = await requireCurrentUser('Log in to delete this supervisor.')
+  const user = await requireCurrentUser('Log in to delete this supervisor.')
 
-    const supervisor = await prisma.supervisor.findUnique({
-        where: { id: supervisorId },
-        select: { authorId: true },
-    })
+  const supervisor = await prisma.supervisor.findUnique({
+    where: { id: supervisorId },
+    select: { authorId: true },
+  })
 
-    if (!supervisor) return
-    if (supervisor.authorId !== user.id) {
-        throw new Error('Not authorized to delete this supervisor.')
-    }
+  if (!supervisor) return
+  if (supervisor.authorId !== user.id) {
+    throw new Error('Not authorized to delete this supervisor.')
+  }
 
-    await prisma.supervisor.delete({ where: { id: supervisorId } })
-    redirect('/supervisor')
+  await prisma.supervisor.delete({ where: { id: supervisorId } })
+  redirect('/supervisor')
 }

@@ -6,7 +6,9 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 
 type RecommendationCardProps = Recommendation & {
-  author: User;
+  author: User & {
+    followers?: { followerId: string }[];
+  };
   likes: RecommendationLike[];
   _count: {
     comments: number;
@@ -28,6 +30,7 @@ export function RecommendationCard({
   );
 
   const isOwner = currentUserId === recommendation.author.id;
+  const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
 
   async function handleDelete() {
     await deleteRecommendation(recommendation.id);
@@ -37,17 +40,21 @@ export function RecommendationCard({
     <ListPageCardShell
       authorHref={`/scholar/${recommendation.author.id}`}
       authorName={recommendation.author.name || "Scholar"}
+      authorId={recommendation.author.id}
+      isFollowing={isFollowing}
       authorHandle={recommendation.author.handle || undefined}
       authorAvatarUrl={recommendation.author.avatarUrl || undefined}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       managementControls={
-        <OwnerActionsDropdown
-          editHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}/edit`}
-          onDelete={handleDelete}
-          isOwner={isOwner}
-          editLabel="Edit Recommendation"
-          deleteLabel="Delete Recommendation"
-        />
+        isOwner && (
+          <OwnerActionsDropdown
+            editHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}/edit`}
+            onDelete={handleDelete}
+            isOwner={isOwner}
+            editLabel="Edit Recommendation"
+            deleteLabel="Delete Recommendation"
+          />
+        )
       }
       footerLikeButton={
         <LikeButton

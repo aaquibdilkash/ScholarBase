@@ -14,6 +14,11 @@ export async function getProfile(profileId: string, currentUserId?: string) {
             handle: true,
             avatarUrl: true,
             bio: true,
+            _count: {
+                select: {
+                    followers: true,
+                },
+            },
             followers: currentUserId
                 ? {
                     where: { followerId: currentUserId },

@@ -31,7 +31,7 @@ export default async function SupervisorPage({
     await deleteSupervisor(supervisor!.id);
   }
 
-  const isLiked = supervisor.likes.length > 0;
+  const isLiked = supervisor.likes?.length > 0;
   const hasUserRecommendation =
     !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;

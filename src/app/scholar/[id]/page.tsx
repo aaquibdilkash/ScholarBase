@@ -60,8 +60,12 @@ export default async function ScholarProfile({
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
               {profile.name}
             </h1>
-            <p className="mb-1 font-medium text-blue-700">
+            <p className="font-medium text-blue-700">
               {profile.handle ? `@${profile.handle}` : "No handle set"}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {profile._count.followers}{" "}
+              {profile._count.followers === 1 ? "follower" : "followers"}
             </p>
           </div>
         </div>
@@ -148,7 +152,9 @@ export default async function ScholarProfile({
                   <VacancyCard
                     vacancy={{
                       ...v,
-                      isLiked: v.likes.some((l) => l.userId === currentUser?.id),
+                      isLiked: v.likes.some(
+                        (l) => l.userId === currentUser?.id,
+                      ),
                     }}
                     currentUserId={currentUser?.id}
                   />
@@ -173,7 +179,9 @@ export default async function ScholarProfile({
                   <AdmissionCard
                     admission={{
                       ...a,
-                      isLiked: a.likes.some((l) => l.userId === currentUser?.id),
+                      isLiked: a.likes.some(
+                        (l) => l.userId === currentUser?.id,
+                      ),
                     }}
                     currentUserId={currentUser?.id}
                   />
@@ -198,7 +206,9 @@ export default async function ScholarProfile({
                   <EventCard
                     event={{
                       ...e,
-                      isLiked: e.likes.some((l) => l.userId === currentUser?.id),
+                      isLiked: e.likes.some(
+                        (l) => l.userId === currentUser?.id,
+                      ),
                     }}
                     currentUserId={currentUser?.id}
                   />
@@ -250,7 +260,9 @@ export default async function ScholarProfile({
                   <JournalCard
                     journal={{
                       ...j,
-                      isLiked: j.likes.some((l) => l.userId === currentUser?.id),
+                      isLiked: j.likes.some(
+                        (l) => l.userId === currentUser?.id,
+                      ),
                     }}
                     currentUserId={currentUser?.id}
                   />
@@ -275,7 +287,9 @@ export default async function ScholarProfile({
                   <ResearchToolCard
                     tool={{
                       ...r,
-                      isLiked: r.likes.some((l) => l.userId === currentUser?.id),
+                      isLiked: r.likes.some(
+                        (l) => l.userId === currentUser?.id,
+                      ),
                     }}
                     currentUserId={currentUser?.id}
                   />

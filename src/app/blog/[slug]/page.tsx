@@ -76,6 +76,9 @@ export default async function ArticlePage({
       <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
         {article.title}
       </h1>
+      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
+        {article.excerpt}
+      </p>
 
       <div className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-500">
         <span>

@@ -39,7 +39,7 @@ export function FeedList({
           <SocialPostCard
             key={post.id}
             post={post}
-            isLiked={post.likes.length > 0}
+            isLiked={post.likes?.length > 0}
             currentUserId={currentUserId}
           />
         )}
@@ -55,7 +55,7 @@ export function FeedList({
           <SocialPostCard
             key={post.id}
             post={post}
-            isLiked={post.likes.length > 0}
+            isLiked={post.likes?.length > 0}
             currentUserId={currentUserId}
           />
         ))}

@@ -51,7 +51,7 @@ export default async function RecommendationDetailPage({
     await deleteRecommendation(recommendation!.id);
   }
 
-  const isLiked = !!user && recommendation.likes.length > 0;
+  const isLiked = !!user && recommendation.likes?.length > 0;
 
   return (
     <DetailPageCardShell

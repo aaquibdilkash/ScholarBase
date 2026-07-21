@@ -274,7 +274,7 @@ function CommentEntry({
                   commentId={comment.id}
                   type={type}
                   initialLikes={comment._count.likes}
-                  initialIsLiked={comment.likes.length > 0}
+                  initialIsLiked={comment.likes?.length > 0}
                 />
               </div>
             </>

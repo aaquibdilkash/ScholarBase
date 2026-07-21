@@ -59,6 +59,7 @@ export async function getArticle(slug: string, userId?: string) {
       id: true,
       slug: true,
       title: true,
+      excerpt: true,
       content: true,
       createdAt: true,
       authorId: true,
@@ -83,6 +84,7 @@ export async function getArticle(slug: string, userId?: string) {
           id: true,
           content: true,
           createdAt: true,
+          updatedAt: true,
           parentId: true,
           author: {
             select: {
@@ -97,6 +99,7 @@ export async function getArticle(slug: string, userId?: string) {
               id: true,
               content: true,
               createdAt: true,
+              updatedAt: true,
               parentId: true,
               author: {
                 select: { id: true, name: true, avatarUrl: true },
