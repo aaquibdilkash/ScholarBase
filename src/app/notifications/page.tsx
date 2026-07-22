@@ -81,67 +81,68 @@ export default async function NotificationsPage() {
         {notifications.map((notification) => {
           const link = getNotificationLink(notification);
           const content = (
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+                {notification.actor.avatarUrl ? (
+                  <Image
+                    src={notification.actor.avatarUrl}
+                    alt={notification.actor.name || "Actor"}
+                    width={48}
+                    height={48}
+                    unoptimized
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  notification.actor.name?.charAt(0).toUpperCase() || "@"
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-slate-950">
+                    {notification.title}
+                  </p>
+                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {typeLabel(notification.type)}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  {notification.body}
+                </p>
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                  {new Date(notification.createdAt).toLocaleString("en-US")}
+                </p>
+              </div>
+            </div>
+          );
+
+          const markReadButton = !notification.readAt && (
+            <form action={markNotificationRead.bind(null, notification.id)}>
+              <button
+                type="submit"
+                className="sb-button-soft whitespace-nowrap px-4 py-2"
+              >
+                Mark read
+              </button>
+            </form>
+          );
+
+          return (
             <div
               key={notification.id}
               className={`sb-card flex flex-col gap-4 md:flex-row md:items-start md:justify-between ${
                 notification.readAt ? "" : "border-blue-200 bg-blue-50/40"
               }`}
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
-                  {notification.actor.avatarUrl ? (
-                    <Image
-                      src={notification.actor.avatarUrl}
-                      alt={notification.actor.name || "Actor"}
-                      width={48}
-                      height={48}
-                      unoptimized
-                      className="h-full w-full rounded-full object-cover"
-                    />
-                  ) : (
-                    notification.actor.name?.charAt(0).toUpperCase() || "@"
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold text-slate-950">
-                      {notification.title}
-                    </p>
-                    <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      {typeLabel(notification.type)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                    {notification.body}
-                  </p>
-                  <p className="mt-2 text-xs font-medium text-slate-500">
-                    {new Date(notification.createdAt).toLocaleString("en-US")}
-                  </p>
-                </div>
-              </div>
-
-              {!notification.readAt && (
-                <form action={markNotificationRead.bind(null, notification.id)}>
-                  <button
-                    type="submit"
-                    className="sb-button-soft whitespace-nowrap px-4 py-2"
-                  >
-                    Mark read
-                  </button>
-                </form>
+              {link ? (
+                <Link href={link} className="flex-1">
+                  {content}
+                </Link>
+              ) : (
+                <div className="flex-1">{content}</div>
               )}
+              {markReadButton}
             </div>
           );
-
-          if (link) {
-            return (
-              <Link key={notification.id} href={link}>
-                {content}
-              </Link>
-            );
-          }
-
-          return content;
         })}
 
         {notifications.length === 0 && (

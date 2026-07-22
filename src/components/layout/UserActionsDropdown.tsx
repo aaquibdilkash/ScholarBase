@@ -5,7 +5,13 @@ import Link from "next/link";
 import { User } from "@supabase/supabase-js";
 import { signOut } from "@/app/actions/auth";
 
-export default function UserActionsDropdown({ user }: { user: User }) {
+export default function UserActionsDropdown({
+  user,
+  unreadCount = 0,
+}: {
+  user: User;
+  unreadCount?: number;
+}) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -67,10 +73,15 @@ export default function UserActionsDropdown({ user }: { user: User }) {
             <Link
               role="menuitem"
               href="/notifications"
-              className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
               onClick={() => setOpen(false)}
             >
               Notifications
+              {unreadCount > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold leading-none text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Link>
             <Link
               role="menuitem"

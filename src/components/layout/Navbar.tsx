@@ -4,12 +4,20 @@ import { BrandMark } from "@/components/BrandMark";
 import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
 import { signOut } from "@/app/actions/auth";
 import UserActionsDropdown from "./UserActionsDropdown";
+import prisma from "@/lib/db";
 
 export default async function Navbar() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  let unreadCount = 0;
+  if (user) {
+    unreadCount = await prisma.notification.count({
+      where: { recipientId: user.id, readAt: null },
+    });
+  }
 
   return (
     <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl">
@@ -44,7 +52,7 @@ export default async function Navbar() {
               <div className="hidden md:flex items-center gap-3 sm:gap-4">
                 <Link
                   href="/notifications"
-                  className="sb-button-soft p-2"
+                  className="sb-button-soft p-2 relative"
                   aria-label="Notifications"
                 >
                   <svg
@@ -60,6 +68,11 @@ export default async function Navbar() {
                       d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.172V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.172c0 .538-.214 1.055-.595 1.438L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
                     />
                   </svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <Link
                   href={`/scholar/${user.id}`}
@@ -75,7 +88,7 @@ export default async function Navbar() {
                 </form>
               </div>
               {/* Mobile view: dropdown */}
-              <UserActionsDropdown user={user} />
+              <UserActionsDropdown user={user} unreadCount={unreadCount} />
             </>
           ) : (
             <Link href="/login" className="sb-button-accent">
