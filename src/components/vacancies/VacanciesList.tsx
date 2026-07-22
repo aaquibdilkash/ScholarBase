@@ -1,16 +1,16 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { JobVacancy, JobVacancyLike, User } from "@prisma/client";
+import { JobVacancy, JobVacancyVote, User } from "@prisma/client";
 import { VacancyCard } from "./VacancyCard";
 
 type VacancyWithDetails = JobVacancy & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  likes: JobVacancyLike[];
+  votes: JobVacancyVote[];
   _count: {
-    likes: number;
+    votes: number;
     comments: number;
   };
 };
@@ -33,11 +33,7 @@ export function VacanciesList({
         vacancy.institution.toLowerCase().includes(query.toLowerCase())
       }
       renderItem={(job) => (
-        <VacancyCard
-          key={job.id}
-          vacancy={{ ...job, isLiked: (job.likes?.length ?? 0) > 0 }}
-          currentUserId={currentUserId}
-        />
+        <VacancyCard key={job.id} vacancy={job} currentUserId={currentUserId} />
       )}
       initialQuery={initialQuery ?? ""}
       queryParamKey="q"

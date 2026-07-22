@@ -2,7 +2,7 @@ import { getHelpPost } from "@/app/actions/help";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { requireCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteHelpPost } from "@/app/actions/help";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -19,6 +19,16 @@ export default async function HelpPostPage({
   if (!post) {
     notFound();
   }
+
+  const upvotes =
+    post.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    post.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (post.votes?.find((v: any) => v.userId === user.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   // Define the delete action outside the JSX
   async function handleDelete() {
@@ -49,12 +59,13 @@ export default async function HelpPostPage({
           />
         ) : null
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={post.id}
           type="help"
-          initialLikes={post._count.likes}
-          initialIsLiked={!!post.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/help/${post.id}#comments`}

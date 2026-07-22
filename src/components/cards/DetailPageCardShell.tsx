@@ -28,8 +28,8 @@ export type DetailPageCardShellProps = {
 
   children: ReactNode; // middle body
 
-  // Common footer (like + comments)
-  footerLikeButton?: ReactNode;
+  // Common footer (votes + comments)
+  footerVoteButton?: ReactNode;
   footerCommentsHref: string;
   footerCommentsCount: number;
 
@@ -53,7 +53,7 @@ export default function DetailPageCardShell({
   isFollowing,
   managementControls,
   children,
-  footerLikeButton,
+  footerVoteButton,
   footerCommentsHref,
   footerCommentsCount,
   discussion,
@@ -133,7 +133,9 @@ export default function DetailPageCardShell({
         {children}
 
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
-          <span className="font-semibold text-slate-400">Created {formatTimeAgo(createdDate)}</span>
+          <span className="font-semibold text-slate-400">
+            Created {formatTimeAgo(createdDate)}
+          </span>
           {editedDate && (
             <span className="font-semibold text-slate-400">
               Edited {formatTimeAgo(editedDate)}
@@ -142,10 +144,10 @@ export default function DetailPageCardShell({
         </div>
 
         {/* Common footer */}
-        {/* Order required: likes, comments, share */}
+        {/* Order required: votes, comments, share */}
         <div className="border-t border-slate-200 pt-2 mt-2 flex items-center gap-6">
           <div className="flex items-center gap-6">
-            {footerLikeButton}
+            {footerVoteButton}
 
             <Link
               href={footerCommentsHref}

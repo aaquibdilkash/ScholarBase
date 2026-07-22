@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 
 import { deleteResearchEvent, getEvent } from "@/app/actions/events";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -23,6 +23,16 @@ const EventDetailPage = async ({
   if (!event) {
     notFound();
   }
+
+  const upvotes =
+    event.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    event.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (event.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   return (
     <DetailPageCardShell
@@ -49,12 +59,13 @@ const EventDetailPage = async ({
       authorId={event.author.id}
       isFollowing={(event.author as any)?.followers?.length ? true : false}
       createdDate={event.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={event.id}
           type="event"
-          initialLikes={event._count.likes}
-          initialIsLiked={!!event.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/events/${event.id}#comments`}

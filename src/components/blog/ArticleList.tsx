@@ -1,16 +1,22 @@
+
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import type { Prisma } from "@prisma/client";
+import type { Article, User, VoteType } from "@prisma/client";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 
-type ArticleWithDetails = Prisma.ArticleGetPayload<{
-  include: {
-    author: true;
-    likes: false | { where: { userId: string } };
-    _count: { select: { likes: true; comments: true } };
+type ArticleWithDetails = Article & {
+  author: User & {
+    followers?: { followerId: string }[];
   };
-}>;
+  votes: {
+    userId: string;
+    voteType: VoteType;
+  }[];
+  _count: {
+    comments: number;
+  };
+};
 
 export function ArticleList({
   articles,

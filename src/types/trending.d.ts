@@ -1,13 +1,13 @@
-import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, SocialLike, ArticleLike, JobVacancyLike, PhdAdmissionLike, ResearchEventLike, SupervisorLike, HelpPost, HelpPostLike, Result, ResultLike } from "@prisma/client";
+import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, HelpPost, Result } from "@prisma/client";
 
 type TrendingItemBase = {
     score: number;
     _count: {
-        likes: number;
+        votes: number;
         comments: number;
     };
     author: User;
-    isLiked: boolean;
+    votes: any[];
 };
 
 export type TrendingSupervisor = Supervisor & {
@@ -15,21 +15,21 @@ export type TrendingSupervisor = Supervisor & {
     recommendations: Recommendation[];
     score: number;
     type: 'supervisor';
-    likes: SupervisorLike[];
+    votes: any[];
     _count: {
         comments: number;
-        likes: number;
+        votes: number;
     };
 };
 
 export type TrendingItem =
-    | (JobVacancy & TrendingItemBase & { type: 'vacancy', likes: JobVacancyLike[] })
-    | (PhdAdmission & TrendingItemBase & { type: 'admission', likes: PhdAdmissionLike[] })
-    | (ResearchEvent & TrendingItemBase & { type: 'event', likes: ResearchEventLike[] })
-    | (Article & TrendingItemBase & { type: 'article', likes: ArticleLike[] })
-    | (SocialPost & TrendingItemBase & { type: 'social-post', likes: SocialLike[] })
-    | (import("@prisma/client").Journal & TrendingItemBase & { type: 'journal', likes: import("@prisma/client").JournalLike[] })
-    | (import("@prisma/client").ResearchTool & TrendingItemBase & { type: 'researchTool', likes: import("@prisma/client").ResearchToolLike[] })
-    | (HelpPost & TrendingItemBase & { type: 'help-post', likes: HelpPostLike[] })
-    | (Result & TrendingItemBase & { type: 'result', likes: ResultLike[] })
+    | (JobVacancy & TrendingItemBase & { type: 'vacancy' })
+    | (PhdAdmission & TrendingItemBase & { type: 'admission' })
+    | (ResearchEvent & TrendingItemBase & { type: 'event' })
+    | (Article & TrendingItemBase & { type: 'article' })
+    | (SocialPost & TrendingItemBase & { type: 'social-post' })
+    | (import("@prisma/client").Journal & TrendingItemBase & { type: 'journal' })
+    | (import("@prisma/client").ResearchTool & TrendingItemBase & { type: 'researchTool' })
+    | (HelpPost & TrendingItemBase & { type: 'help-post' })
+    | (Result & TrendingItemBase & { type: 'result' })
     | TrendingSupervisor;

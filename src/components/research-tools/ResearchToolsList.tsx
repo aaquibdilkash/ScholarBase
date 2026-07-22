@@ -1,16 +1,16 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { ResearchTool, ResearchToolLike, User } from "@prisma/client";
+import { ResearchTool, User } from "@prisma/client";
 import { ResearchToolCard } from "./ResearchToolCard";
 
 type ResearchToolWithDetails = ResearchTool & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  likes: ResearchToolLike[];
+  votes: { userId: string }[];
   _count: {
-    likes: number;
+    votes: number;
     comments: number;
   };
 };
@@ -41,7 +41,7 @@ export function ResearchToolsList({
       renderItem={(tool) => (
         <ResearchToolCard
           key={tool.id}
-          tool={{ ...tool, isLiked: (tool.likes?.length ?? 0) > 0 }}
+          tool={tool}
           currentUserId={currentUserId}
         />
       )}

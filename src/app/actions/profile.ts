@@ -82,8 +82,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, articleId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 },
             },
             socialPosts: {
@@ -108,8 +108,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, socialPostId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 },
             },
             vacancies: {
@@ -137,8 +137,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, jobVacancyId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 },
             },
             admissions: {
@@ -166,8 +166,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, phdAdmissionId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 },
             },
             events: {
@@ -196,8 +196,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, researchEventId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 },
             },
             helpPosts: {
@@ -224,8 +224,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, helpPostId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 }
             },
             journals: {
@@ -256,8 +256,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, journalId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 }
             },
             researchTools: {
@@ -284,8 +284,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, researchToolId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 }
             },
             recommendations: {
@@ -314,8 +314,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, recommendationId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 }
             },
             supervisors: {
@@ -341,8 +341,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, supervisorId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 }
             },
             results: {
@@ -373,8 +373,8 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                             followers: currentUserId ? { where: { followerId: currentUserId } } : false
                         }
                     },
-                    likes: { where: { userId: currentUserId ?? '' }, select: { id: true, userId: true, resultId: true } },
-                    _count: { select: { likes: true, comments: true } }
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
                 }
             },
         }

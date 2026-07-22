@@ -3,15 +3,15 @@
 import { PhdAdmission, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deletePhdAdmission } from "@/app/actions/admissions";
 
 type AdmissionWithAuthor = PhdAdmission & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: any[];
+  _count: { votes: number; comments: number };
 };
 
 export function AdmissionCard({
@@ -23,6 +23,13 @@ export function AdmissionCard({
 }) {
   const isOwner = currentUserId === admission.authorId;
   const isFollowing = (admission.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    admission.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    null;
+  const upvoteCount =
+    admission.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    admission.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
   return (
     <ListPageCardShell
       authorHref={`/scholar/${admission.author.id}`}
@@ -46,12 +53,13 @@ export function AdmissionCard({
         )
       }
       createdDate={admission.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={admission.id}
           type="admission"
-          initialLikes={admission._count.likes}
-          initialIsLiked={admission.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/admissions/${admission.id}`}

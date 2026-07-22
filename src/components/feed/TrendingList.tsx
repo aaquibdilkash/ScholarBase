@@ -83,7 +83,6 @@ export function TrendingList({
               <SocialPostCard
                 key={item.id}
                 post={item}
-                isLiked={item.isLiked}
                 currentUserId={currentUserId}
               />
             );

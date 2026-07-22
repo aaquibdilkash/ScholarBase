@@ -1,11 +1,10 @@
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import Link from "next/link";
 
 type FooterItem = {
   id: string;
   type: "vacancy" | "admission" | "event" | "help" | "journal" | "researchTool";
-  _count: { likes: number; comments: number };
-  isLiked: boolean;
+  _count: { votes: number; comments: number };
 };
 
 export function TrendingItemFooter({ item }: { item: FooterItem }) {
@@ -26,11 +25,12 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
 
   return (
     <div className="flex items-center gap-6">
-      <LikeButton
+      <VoteButton
         targetId={item.id}
         type={item.type}
-        initialLikes={item._count.likes}
-        initialIsLiked={item.isLiked}
+        initialUpvotes={item._count.votes}
+        initialDownvotes={0}
+        initialUserVote={null}
       />
       <Link
         href={detailUrl}

@@ -2,15 +2,15 @@
 
 import { ResearchTool, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type ResearchToolWithAuthor = ResearchTool & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: any[];
+  _count: { votes: number; comments: number };
 };
 
 export function ResearchToolCard({
@@ -22,6 +22,12 @@ export function ResearchToolCard({
 }) {
   const isOwner = currentUserId === tool.authorId;
   const isFollowing = (tool.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    tool.votes?.find((v: any) => v.userId === currentUserId)?.voteType ?? null;
+  const upvoteCount =
+    tool.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    tool.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell
@@ -47,12 +53,13 @@ export function ResearchToolCard({
       }
       createdDate={tool.createdAt}
       editedDate={tool.updatedAt > tool.createdAt ? tool.updatedAt : undefined}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={tool.id}
           type="researchTool"
-          initialLikes={tool._count.likes}
-          initialIsLiked={tool.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}`}

@@ -33,9 +33,9 @@ export async function getVacancies(q?: string, userId?: string) {
                         : false,
                 },
             },
-            likes: userId ? { where: { userId: userId } } : false,
+            votes: userId ? { where: { userId: userId } } : false,
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
         },
     });
@@ -64,22 +64,22 @@ export async function getVacancyById(id: string) {
                 where: { parentId: null },
                 include: {
                     author: true,
-                    likes: user ? { where: { userId: user.id } } : false,
-                    _count: { select: { likes: true } },
+                    votes: user ? { where: { userId: user.id } } : false,
+                    _count: { select: { votes: true } },
                     replies: {
                         include: {
                             author: true,
-                            likes: user ? { where: { userId: user.id } } : false,
-                            _count: { select: { likes: true } },
+                            votes: user ? { where: { userId: user.id } } : false,
+                            _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
                 },
                 orderBy: { createdAt: "desc" },
             },
-            likes: user ? { where: { userId: user.id } } : false,
+            votes: user ? { where: { userId: user.id } } : false,
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
         },
     });

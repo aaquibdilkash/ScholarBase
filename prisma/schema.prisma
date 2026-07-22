@@ -6,6 +6,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
 model Article {
   id        String           @id @default(uuid())
   title     String
@@ -18,7 +23,7 @@ model Article {
   updatedAt DateTime         @updatedAt
   author    User             @relation(fields: [authorId], references: [id])
   comments  ArticleComment[]
-  likes     ArticleLike[]
+  votes     ArticleVote[]
 }
 
 model Supervisor {
@@ -33,7 +38,7 @@ model Supervisor {
   authorId String
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  likes           SupervisorLike[]
+  votes           SupervisorVote[]
   comments        SupervisorComment[]
   recommendations Recommendation[]
 }
@@ -46,7 +51,7 @@ model SocialPost {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   comments  SocialComment[]
-  likes     SocialLike[]
+  votes     SocialVote[]
   author    User            @relation(fields: [authorId], references: [id])
 }
 
@@ -62,17 +67,19 @@ model ArticleComment {
   author    User                 @relation(fields: [authorId], references: [id])
   parent    ArticleComment?      @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   ArticleComment[]     @relation("ArticleReplies")
-  likes     ArticleCommentLike[]
+  votes     ArticleCommentVote[]
 }
 
-model ArticleLike {
-  id        String  @id @default(uuid())
+model ArticleVote {
+  id        String    @id @default(uuid())
   articleId String
   userId    String
-  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id])
+  voteType  VoteType
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
 
   @@unique([articleId, userId])
+  @@index([articleId, voteType])
 }
 
 model SocialComment {
@@ -87,37 +94,43 @@ model SocialComment {
   parent       SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      SocialComment[]     @relation("SocialReplies")
   socialPost   SocialPost          @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
-  likes        SocialCommentLike[]
+  votes        SocialCommentVote[]
 }
 
-model ArticleCommentLike {
+model ArticleCommentVote {
   id        String         @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
-model SocialCommentLike {
+model SocialCommentVote {
   id        String        @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   SocialComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User          @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
-model SocialLike {
+model SocialVote {
   id           String     @id @default(uuid())
   socialPostId String
   userId       String
+  voteType     VoteType
   socialPost   SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id])
 
   @@unique([socialPostId, userId])
+  @@index([socialPostId, voteType])
 }
 
 model HelpPost {
@@ -131,19 +144,21 @@ model HelpPost {
   authorId  String
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  likes    HelpPostLike[]
+  votes    HelpPostVote[]
   comments HelpPostComment[]
 }
 
-model HelpPostLike {
-  id         String @id @default(uuid())
+model HelpPostVote {
+  id         String    @id @default(uuid())
   helpPostId String
   userId     String
+  voteType   VoteType
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id])
 
   @@unique([helpPostId, userId])
+  @@index([helpPostId, voteType])
 }
 
 model HelpPostComment {
@@ -161,39 +176,42 @@ model HelpPostComment {
   parent  HelpPostComment?  @relation("HelpPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies HelpPostComment[] @relation("HelpPostReplies")
 
-  likes HelpPostCommentLike[]
+  votes HelpPostCommentVote[]
 }
 
-model HelpPostCommentLike {
-  id        String @id @default(uuid())
+model HelpPostCommentVote {
+  id        String           @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
 
   comment HelpPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user    User            @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model User {
   id String @id
 
   helpPosts            HelpPost[]
-  helpPostLikes        HelpPostLike[]
+  helpPostVotes        HelpPostVote[]
   helpPostComments     HelpPostComment[]
-  helpPostCommentLikes HelpPostCommentLike[]
+  helpPostCommentVotes HelpPostCommentVote[]
 
-  email     String   @unique
-  name      String?
-  avatarUrl String?
-  handle    String?  @unique // New: Optional for now so it doesn't break existing users
-  bio       String? // New: For the editable profile
-  createdAt DateTime @default(now())
+  email       String   @unique
+  name        String?
+  avatarUrl   String?
+  handle      String?  @unique
+  bio         String?
+  reputation  Int      @default(0)
+  createdAt   DateTime @default(now())
 
   articles            Article[]
   articleComments     ArticleComment[]
-  articleLikes        ArticleLike[]
-  articleCommentLikes ArticleCommentLike[]
+  articleVotes        ArticleVote[]
+  articleCommentVotes ArticleCommentVote[]
 
   following Follows[] @relation("following")
   followers Follows[] @relation("followers")
@@ -203,46 +221,46 @@ model User {
   events     ResearchEvent[]
 
   socialComments     SocialComment[]
-  socialLikes        SocialLike[]
-  socialCommentLikes SocialCommentLike[]
+  socialVotes        SocialVote[]
+  socialCommentVotes SocialCommentVote[]
   socialPosts        SocialPost[]
 
-  // Trending interactions (likes + comments)
-  jobVacancyLikes        JobVacancyLike[]
+  // Trending interactions (votes + comments)
+  jobVacancyVotes        JobVacancyVote[]
   jobVacancyComments     JobVacancyComment[]
-  jobVacancyCommentLikes JobVacancyCommentLike[]
+  jobVacancyCommentVotes JobVacancyCommentVote[]
 
-  phdAdmissionLikes        PhdAdmissionLike[]
+  phdAdmissionVotes        PhdAdmissionVote[]
   phdAdmissionComments     PhdAdmissionComment[]
-  phdAdmissionCommentLikes PhdAdmissionCommentLike[]
+  phdAdmissionCommentVotes PhdAdmissionCommentVote[]
 
-  researchEventLikes        ResearchEventLike[]
+  researchEventVotes        ResearchEventVote[]
   researchEventComments     ResearchEventComment[]
-  researchEventCommentLikes ResearchEventCommentLike[]
+  researchEventCommentVotes ResearchEventCommentVote[]
 
-  supervisorLikes        SupervisorLike[]
+  supervisorVotes        SupervisorVote[]
   supervisorComments     SupervisorComment[]
-  supervisorCommentLikes SupervisorCommentLike[]
+  supervisorCommentVotes SupervisorCommentVote[]
 
-  recommendations            Recommendation[]
-  recommendationLikes        RecommendationLike[]
-  recommendationComments     RecommendationComment[]
-  recommendationCommentLikes RecommendationCommentLike[]
+  recommendations                Recommendation[]
+  recommendationVotes            RecommendationVote[]
+  recommendationComments         RecommendationComment[]
+  recommendationCommentVotes     RecommendationCommentVote[]
 
   researchTools            ResearchTool[]
-  researchToolLikes        ResearchToolLike[]
+  researchToolVotes        ResearchToolVote[]
   researchToolComments     ResearchToolComment[]
-  researchToolCommentLikes ResearchToolCommentLike[]
+  researchToolCommentVotes ResearchToolCommentVote[]
 
   journals            Journal[]
-  journalLikes        JournalLike[]
+  journalVotes        JournalVote[]
   journalComments     JournalComment[]
-  journalCommentLikes JournalCommentLike[]
+  journalCommentVotes JournalCommentVote[]
 
   results            Result[]
-  resultLikes        ResultLike[]
+  resultVotes        ResultVote[]
   resultComments     ResultComment[]
-  resultCommentLikes ResultCommentLike[]
+  resultCommentVotes ResultCommentVote[]
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
@@ -278,17 +296,19 @@ model ResearchTool {
   updatedAt   DateTime              @updatedAt
   author      User                  @relation(fields: [authorId], references: [id])
   comments    ResearchToolComment[]
-  likes       ResearchToolLike[]
+  votes       ResearchToolVote[]
 }
 
-model ResearchToolLike {
+model ResearchToolVote {
   id             String       @id @default(uuid())
   researchToolId String
   userId         String
+  voteType       VoteType
   researchTool   ResearchTool @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id])
 
   @@unique([researchToolId, userId])
+  @@index([researchToolId, voteType])
 }
 
 model ResearchToolComment {
@@ -303,17 +323,19 @@ model ResearchToolComment {
   author         User                      @relation(fields: [authorId], references: [id])
   parent         ResearchToolComment?      @relation("ResearchToolReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies        ResearchToolComment[]     @relation("ResearchToolReplies")
-  likes          ResearchToolCommentLike[]
+  votes          ResearchToolCommentVote[]
 }
 
-model ResearchToolCommentLike {
+model ResearchToolCommentVote {
   id        String              @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   ResearchToolComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model Journal {
@@ -330,18 +352,20 @@ model Journal {
   updatedAt    DateTime         @updatedAt
   author       User             @relation(fields: [authorId], references: [id])
   comments     JournalComment[]
-  likes        JournalLike[]
+  votes        JournalVote[]
   about        String?
 }
 
-model JournalLike {
-  id        String  @id @default(uuid())
+model JournalVote {
+  id        String    @id @default(uuid())
   journalId String
   userId    String
-  journal   Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  user      User    @relation(fields: [userId], references: [id])
+  voteType  VoteType
+  journal   Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
 
   @@unique([journalId, userId])
+  @@index([journalId, voteType])
 }
 
 model JournalComment {
@@ -356,17 +380,19 @@ model JournalComment {
   author    User                 @relation(fields: [authorId], references: [id])
   parent    JournalComment?      @relation("JournalReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   JournalComment[]     @relation("JournalReplies")
-  likes     JournalCommentLike[]
+  votes     JournalCommentVote[]
 }
 
-model JournalCommentLike {
+model JournalCommentVote {
   id        String         @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   JournalComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model Result {
@@ -384,19 +410,21 @@ model Result {
   authorId         String
   author           User     @relation(fields: [authorId], references: [id])
 
-  likes    ResultLike[]
+  votes    ResultVote[]
   comments ResultComment[]
 }
 
-model ResultLike {
-  id       String @id @default(uuid())
+model ResultVote {
+  id       String    @id @default(uuid())
   resultId String
   userId   String
+  voteType VoteType
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([resultId, userId])
+  @@index([resultId, voteType])
 }
 
 model ResultComment {
@@ -414,17 +442,19 @@ model ResultComment {
   parent  ResultComment?  @relation("ResultReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResultComment[] @relation("ResultReplies")
 
-  likes ResultCommentLike[]
+  votes ResultCommentVote[]
 }
 
-model ResultCommentLike {
+model ResultCommentVote {
   id        String        @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   ResultComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User          @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model Follows {
@@ -449,19 +479,21 @@ model ResearchEvent {
   authorId         String
   author           User      @relation(fields: [authorId], references: [id])
 
-  likes    ResearchEventLike[]
+  votes    ResearchEventVote[]
   comments ResearchEventComment[]
 }
 
-model ResearchEventLike {
-  id              String @id @default(uuid())
+model ResearchEventVote {
+  id              String    @id @default(uuid())
   researchEventId String
   userId          String
+  voteType        VoteType
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
   user          User          @relation(fields: [userId], references: [id])
 
   @@unique([researchEventId, userId])
+  @@index([researchEventId, voteType])
 }
 
 model ResearchEventComment {
@@ -479,17 +511,19 @@ model ResearchEventComment {
   parent  ResearchEventComment?  @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResearchEventComment[] @relation("ResearchEventReplies")
 
-  likes ResearchEventCommentLike[]
+  votes ResearchEventCommentVote[]
 }
 
-model ResearchEventCommentLike {
+model ResearchEventCommentVote {
   id        String               @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   ResearchEventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                 @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model PhdAdmission {
@@ -504,19 +538,21 @@ model PhdAdmission {
   authorId         String
   author           User     @relation(fields: [authorId], references: [id])
 
-  likes    PhdAdmissionLike[]
+  votes    PhdAdmissionVote[]
   comments PhdAdmissionComment[]
 }
 
-model PhdAdmissionLike {
-  id             String @id @default(uuid())
+model PhdAdmissionVote {
+  id             String    @id @default(uuid())
   phdAdmissionId String
   userId         String
+  voteType       VoteType
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id])
 
   @@unique([phdAdmissionId, userId])
+  @@index([phdAdmissionId, voteType])
 }
 
 model PhdAdmissionComment {
@@ -534,17 +570,19 @@ model PhdAdmissionComment {
   parent  PhdAdmissionComment?  @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
 
-  likes PhdAdmissionCommentLike[]
+  votes PhdAdmissionCommentVote[]
 }
 
-model PhdAdmissionCommentLike {
+model PhdAdmissionCommentVote {
   id        String              @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   PhdAdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model JobVacancy {
@@ -559,19 +597,21 @@ model JobVacancy {
   authorId         String
   author           User     @relation(fields: [authorId], references: [id])
 
-  likes    JobVacancyLike[]
+  votes    JobVacancyVote[]
   comments JobVacancyComment[]
 }
 
-model JobVacancyLike {
-  id           String @id @default(uuid())
+model JobVacancyVote {
+  id           String    @id @default(uuid())
   jobVacancyId String
   userId       String
+  voteType     VoteType
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id])
 
   @@unique([jobVacancyId, userId])
+  @@index([jobVacancyId, voteType])
 }
 
 model JobVacancyComment {
@@ -589,27 +629,31 @@ model JobVacancyComment {
   parent  JobVacancyComment?  @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies JobVacancyComment[] @relation("JobVacancyReplies")
 
-  likes JobVacancyCommentLike[]
+  votes JobVacancyCommentVote[]
 }
 
-model JobVacancyCommentLike {
+model JobVacancyCommentVote {
   id        String            @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   JobVacancyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User              @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
-model SupervisorLike {
+model SupervisorVote {
   id           String     @id @default(uuid())
   supervisorId String
   userId       String
+  voteType     VoteType
   supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id])
 
   @@unique([supervisorId, userId])
+  @@index([supervisorId, voteType])
 }
 
 model SupervisorComment {
@@ -624,17 +668,19 @@ model SupervisorComment {
   author       User                    @relation(fields: [authorId], references: [id])
   parent       SupervisorComment?      @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      SupervisorComment[]     @relation("SupervisorReplies")
-  likes        SupervisorCommentLike[]
+  votes        SupervisorCommentVote[]
 }
 
-model SupervisorCommentLike {
+model SupervisorCommentVote {
   id        String            @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   SupervisorComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User              @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }
 
 model Recommendation {
@@ -649,20 +695,22 @@ model Recommendation {
   createdAt           DateTime                @default(now())
   supervisor          Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author              User                    @relation(fields: [authorId], references: [id])
-  likes               RecommendationLike[]
+  votes               RecommendationVote[]
   comments            RecommendationComment[]
 
   @@unique([authorId, supervisorId])
 }
 
-model RecommendationLike {
+model RecommendationVote {
   id               String         @id @default(uuid())
   recommendationId String
   userId           String
+  voteType         VoteType
   recommendation   Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   user             User           @relation(fields: [userId], references: [id])
 
   @@unique([recommendationId, userId])
+  @@index([recommendationId, voteType])
 }
 
 model RecommendationComment {
@@ -677,15 +725,17 @@ model RecommendationComment {
   author           User                        @relation(fields: [authorId], references: [id])
   parent           RecommendationComment?      @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies          RecommendationComment[]     @relation("RecommendationReplies")
-  likes            RecommendationCommentLike[]
+  votes            RecommendationCommentVote[]
 }
 
-model RecommendationCommentLike {
+model RecommendationCommentVote {
   id        String                @id @default(uuid())
   commentId String
   userId    String
+  voteType  VoteType
   comment   RecommendationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                  @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
+  @@index([commentId, voteType])
 }

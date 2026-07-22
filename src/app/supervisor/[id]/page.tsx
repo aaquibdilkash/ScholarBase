@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { deleteSupervisor, getSupervisor } from "@/app/actions/supervisors";
@@ -31,7 +31,17 @@ export default async function SupervisorPage({
     await deleteSupervisor(supervisor!.id);
   }
 
-  const isLiked = supervisor.likes?.length > 0;
+  // Compute vote counts from votes array
+  const upvotes =
+    (supervisor.votes as any[])?.filter((v: any) => v.voteType === "UPVOTE")
+      .length ?? 0;
+  const downvotes =
+    (supervisor.votes as any[])?.filter((v: any) => v.voteType === "DOWNVOTE")
+      .length ?? 0;
+  const userVote =
+    ((supervisor.votes as any[])?.find((v: any) => v.userId === user?.id)
+      ?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
+
   const hasUserRecommendation =
     !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
@@ -49,12 +59,13 @@ export default async function SupervisorPage({
       createdDate={supervisor.createdAt}
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.comments.length}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={supervisor.id}
           type="supervisor"
-          initialLikes={supervisor._count.likes}
-          initialIsLiked={isLiked}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       managementControls={

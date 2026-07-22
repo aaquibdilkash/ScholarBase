@@ -2,7 +2,7 @@
 
 import { HelpPost, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
 
@@ -10,8 +10,8 @@ type HelpPostWithAuthor = HelpPost & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: any[];
+  _count: { votes: number; comments: number };
 };
 
 export function HelpPostCard({
@@ -23,6 +23,13 @@ export function HelpPostCard({
 }) {
   const isOwner = currentUserId === helpPost.authorId;
   const isFollowing = (helpPost.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    helpPost.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    null;
+  const upvoteCount =
+    helpPost.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    helpPost.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell
@@ -50,12 +57,13 @@ export function HelpPostCard({
       editedDate={
         helpPost.updatedAt > helpPost.createdAt ? helpPost.updatedAt : undefined
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={helpPost.id}
           type="help"
-          initialLikes={helpPost._count.likes}
-          initialIsLiked={helpPost.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/help/${helpPost.id}`}

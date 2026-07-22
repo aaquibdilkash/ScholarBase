@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { RichContent } from "@/components/content/RichContent";
 import { getCurrentUser } from "@/lib/auth";
@@ -19,8 +19,17 @@ export default async function ArticlePage({
 
   if (!article) notFound();
 
-  // keep TS happy: after notFound() this is safe to treat as non-null
   const a = article;
+
+  const upvotes =
+    a.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    a.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (a.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -50,12 +59,13 @@ export default async function ArticlePage({
       isFollowing={(a.author as any)?.followers?.length ? true : false}
       createdDate={a.createdAt}
       editedDate={a.updatedAt > a.createdAt ? a.updatedAt : undefined}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={a.id}
           type="article"
-          initialLikes={a._count.likes}
-          initialIsLiked={!!a.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/blog/${a.slug}#comments`}
@@ -94,12 +104,6 @@ export default async function ArticlePage({
       <div className="prose prose-slate prose-lg max-w-none mb-10 prose-headings:text-slate-950 prose-a:text-blue-700 hover:prose-a:text-blue-600">
         <RichContent content={article.content} />
       </div>
-
-      {/* Footer actions (like/comments) are handled by DetailPageCardShell */}
-
-      {/* <div className="hidden" aria-hidden>
-        <CommentIcon className="h-5 w-5" />
-      </div> */}
     </DetailPageCardShell>
   );
 }

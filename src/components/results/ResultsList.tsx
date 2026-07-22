@@ -1,14 +1,14 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { Result, ResultLike, User } from "@prisma/client";
+import { Result, User } from "@prisma/client";
 import { ResultCard } from "./ResultCard";
 
 type ResultWithDetails = Result & {
   author: User;
-  likes: ResultLike[];
+  votes: any[];
   _count: {
-    likes: number;
+    votes: number;
     comments: number;
   };
 };
@@ -35,11 +35,7 @@ export function ResultsList({
           false)
       }
       renderItem={(item) => (
-        <ResultCard
-          key={item.id}
-          result={{ ...item, isLiked: (item.likes?.length ?? 0) > 0 }}
-          currentUserId={currentUserId}
-        />
+        <ResultCard key={item.id} result={item} currentUserId={currentUserId} />
       )}
       initialQuery={initialQuery ?? ""}
       queryParamKey="q"

@@ -1,14 +1,14 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { PhdAdmission, PhdAdmissionLike, User } from "@prisma/client";
+import { PhdAdmission, User } from "@prisma/client";
 import { AdmissionCard } from "./AdmissionCard";
 
 type AdmissionWithDetails = PhdAdmission & {
   author: User;
-  likes: PhdAdmissionLike[];
+  votes: { userId: string }[];
   _count: {
-    likes: number;
+    votes: number;
     comments: number;
   };
 };
@@ -33,7 +33,7 @@ export function AdmissionsList({
       renderItem={(item) => (
         <AdmissionCard
           key={item.id}
-          admission={{ ...item, isLiked: (item.likes?.length ?? 0) > 0 }}
+          admission={item}
           currentUserId={currentUserId}
         />
       )}

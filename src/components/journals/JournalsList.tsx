@@ -1,16 +1,16 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { Journal, JournalLike, User } from "@prisma/client";
+import { Journal, User } from "@prisma/client";
 import { JournalCard } from "./JournalCard";
 
 type JournalWithDetails = Journal & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  likes: JournalLike[];
+  votes: { userId: string }[];
   _count: {
-    likes: number;
+    votes: number;
     comments: number;
   };
 };
@@ -39,7 +39,7 @@ export function JournalsList({
       renderItem={(journal) => (
         <JournalCard
           key={journal.id}
-          journal={{ ...journal, isLiked: (journal.likes?.length ?? 0) > 0 }}
+          journal={journal}
           currentUserId={currentUserId}
         />
       )}

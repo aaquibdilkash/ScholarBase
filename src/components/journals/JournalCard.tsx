@@ -2,15 +2,15 @@
 
 import { Journal, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type JournalWithAuthor = Journal & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: any[];
+  _count: { votes: number; comments: number };
 };
 
 export function JournalCard({
@@ -22,6 +22,13 @@ export function JournalCard({
 }) {
   const isOwner = currentUserId === journal.authorId;
   const isFollowing = (journal.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    journal.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    null;
+  const upvoteCount =
+    journal.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    journal.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell
@@ -49,12 +56,13 @@ export function JournalCard({
       editedDate={
         journal.updatedAt > journal.createdAt ? journal.updatedAt : undefined
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={journal.id}
           type="journal"
-          initialLikes={journal._count.likes}
-          initialIsLiked={journal.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/journals/${journal.id}`}

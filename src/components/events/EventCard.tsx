@@ -3,15 +3,15 @@
 import { ResearchEvent, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 
 type EventWithAuthor = ResearchEvent & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: any[];
+  _count: { votes: number; comments: number };
 };
 
 export function EventCard({
@@ -23,6 +23,12 @@ export function EventCard({
 }) {
   const isOwner = currentUserId === event.authorId;
   const isFollowing = (event.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    event.votes?.find((v: any) => v.userId === currentUserId)?.voteType ?? null;
+  const upvoteCount =
+    event.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    event.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
   return (
     <ListPageCardShell
       authorHref={`/scholar/${event.author.id}`}
@@ -46,12 +52,13 @@ export function EventCard({
         )
       }
       createdDate={event.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={event.id}
           type="event"
-          initialLikes={event._count.likes}
-          initialIsLiked={event.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/events/${event.id}`}

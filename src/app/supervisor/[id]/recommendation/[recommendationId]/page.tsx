@@ -2,7 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -25,20 +25,20 @@ export default async function RecommendationDetailPage({
         orderBy: { createdAt: "asc" },
         include: {
           author: true,
-          likes: { where: { userId: user?.id } },
-          _count: { select: { likes: true } },
+          votes: user ? { where: { userId: user.id } } : false,
+          _count: { select: { votes: true } },
           replies: {
             orderBy: { createdAt: "asc" },
             include: {
               author: true,
-              likes: { where: { userId: user?.id } },
-              _count: { select: { likes: true } },
+              votes: user ? { where: { userId: user.id } } : false,
+              _count: { select: { votes: true } },
             },
           },
         },
       },
-      likes: { where: { userId: user?.id } },
-      _count: { select: { likes: true, comments: true } },
+      votes: { where: { userId: user?.id ?? "" } },
+      _count: { select: { votes: true, comments: true } },
     },
   });
 
@@ -51,7 +51,17 @@ export default async function RecommendationDetailPage({
     await deleteRecommendation(recommendation!.id);
   }
 
-  const isLiked = !!user && recommendation.likes?.length > 0;
+  const upvotes =
+    recommendation.votes?.filter((v: any) => v.voteType === "UPVOTE").length ??
+    0;
+  const downvotes =
+    recommendation.votes?.filter((v: any) => v.voteType === "DOWNVOTE")
+      .length ?? 0;
+  const userVote =
+    (recommendation.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   return (
     <DetailPageCardShell
@@ -62,12 +72,13 @@ export default async function RecommendationDetailPage({
       authorHandle={recommendation.author.handle || undefined}
       authorAvatarUrl={recommendation.author.avatarUrl || undefined}
       createdDate={recommendation.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={recommendation.id}
           type="recommendation"
-          initialLikes={recommendation._count.likes}
-          initialIsLiked={isLiked}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}

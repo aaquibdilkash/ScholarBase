@@ -24,8 +24,8 @@ export type ListPageCardShellProps = {
   authorId?: string;
   isFollowing?: boolean;
 
-  // Common footer (like + comments)
-  footerLikeButton?: ReactNode;
+  // Common footer (vote + comments)
+  footerVoteButton?: ReactNode;
   footerCommentsHref: string;
   footerCommentsCount: number;
 
@@ -49,7 +49,7 @@ export default function ListPageCardShell({
   isFollowing,
   managementControls,
   children,
-  footerLikeButton,
+  footerVoteButton,
   footerCommentsHref,
   footerCommentsCount,
   className,
@@ -118,7 +118,10 @@ export default function ListPageCardShell({
       </Link>
 
       <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
-        <span className="font-semibold text-slate-400"> Created {formatTimeAgo(createdDate)}</span>
+        <span className="font-semibold text-slate-400">
+          {" "}
+          Created {formatTimeAgo(createdDate)}
+        </span>
         {editedDate && (
           <span className="font-semibold text-slate-400">
             Edited {formatTimeAgo(editedDate)}
@@ -130,7 +133,7 @@ export default function ListPageCardShell({
 
       {/* Common footer */}
       <div className="border-t border-slate-200 pt-2 mt-2 flex items-center gap-6">
-        <div className="flex items-center gap-6">{footerLikeButton}</div>
+        <div className="flex items-center gap-6">{footerVoteButton}</div>
 
         <Link
           href={footerCommentsHref}

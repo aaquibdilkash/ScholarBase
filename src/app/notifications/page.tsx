@@ -11,10 +11,10 @@ import { getNotificationLink } from "@/lib/notifications";
 
 function typeLabel(type: string) {
   switch (type) {
-    case "article-liked":
-      return "Article like";
-    case "post-liked":
-      return "Post like";
+    case "article-upvoted":
+      return "Article upvote";
+    case "post-upvoted":
+      return "Post upvote";
     case "comment-created":
       return "Comment";
     case "reply-created":
@@ -63,7 +63,7 @@ export default async function NotificationsPage() {
             Your activity feed
           </h1>
           <p className="mt-2 text-slate-600">
-            See likes, comments, follows, mentions, and other updates that
+            See votes, comments, follows, mentions, and other updates that
             matter to you.
           </p>
         </div>
@@ -134,7 +134,11 @@ export default async function NotificationsPage() {
           );
 
           if (link) {
-            return <Link key={notification.id} href={link}>{content}</Link>;
+            return (
+              <Link key={notification.id} href={link}>
+                {content}
+              </Link>
+            );
           }
 
           return content;
@@ -146,7 +150,7 @@ export default async function NotificationsPage() {
               No notifications yet
             </p>
             <p className="mt-2 text-slate-600">
-              Likes, comments, follows, mentions, and activity from people you
+              Votes, comments, follows, mentions, and activity from people you
               follow will appear here.
             </p>
           </div>

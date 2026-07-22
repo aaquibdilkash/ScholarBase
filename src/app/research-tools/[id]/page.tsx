@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { getResearchToolById } from "../../actions/researchTools";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchTool } from "@/app/actions/researchTools";
@@ -24,6 +24,16 @@ const ResearchToolDetailPage = async ({
   if (!tool) {
     notFound();
   }
+
+  const upvotes =
+    tool.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    tool.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (tool.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   // Define the delete action outside of the JSX
   async function handleDelete() {
@@ -54,12 +64,13 @@ const ResearchToolDetailPage = async ({
           />
         ) : null
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={tool.id}
           type="researchTool"
-          initialLikes={tool._count.likes}
-          initialIsLiked={!!tool.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}#comments`}

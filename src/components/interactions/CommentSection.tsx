@@ -10,12 +10,12 @@ import {
   deleteCommentClientWrapper,
   editCommentClientWrapper,
 } from "@/app/actions/comments.clientWrappers";
-import { CommentLikeButton } from "@/components/interactions/CommentLikeButton";
+import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import CommentActionsDropdown from "@/components/interactions/CommentActionsDropdown";
 
 // Define the exact shape Prisma is sending down
 type User = { id: string; name: string | null; avatarUrl: string | null };
-type Like = { userId: string };
+type Vote = { userId: string; voteType: "UPVOTE" | "DOWNVOTE" };
 
 type Reply = {
   id: string;
@@ -23,9 +23,9 @@ type Reply = {
   createdAt: Date;
   updatedAt: Date;
   author: User;
-  likes: Like[];
+  votes: Vote[];
   parentId: string | null;
-  _count: { likes: number };
+  _count: { votes: number };
 };
 
 type Comment = Reply & { replies: Reply[] };
@@ -285,11 +285,23 @@ function CommentEntry({
                     <input type="hidden" name="_type" value={type} />
                     <button type="submit" />
                   </form>
-                  <CommentLikeButton
+                  <CommentVoteButton
                     commentId={comment.id}
                     type={type}
-                    initialLikes={comment._count.likes}
-                    initialIsLiked={comment.likes?.length > 0}
+                    initialUpvotes={
+                      comment.votes?.filter((v: any) => v.voteType === "UPVOTE")
+                        .length ?? 0
+                    }
+                    initialDownvotes={
+                      comment.votes?.filter(
+                        (v: any) => v.voteType === "DOWNVOTE",
+                      ).length ?? 0
+                    }
+                    initialUserVote={
+                      (comment.votes?.find(
+                        (v: any) => v.userId === currentUserId,
+                      )?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null
+                    }
                   />
                 </div>
               </div>

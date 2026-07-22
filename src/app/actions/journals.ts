@@ -128,11 +128,11 @@ export async function getJournals(q?: string, userId?: string) {
             },
             _count: {
                 select: {
-                    likes: true,
+                    votes: true,
                     comments: true,
                 },
             },
-            likes: userId ? { where: { userId } } : false,
+            votes: userId ? { where: { userId } } : false,
         },
     });
 }
@@ -157,25 +157,25 @@ export async function getJournalById(journalId: string, userId?: string) {
                 where: { parentId: null },
                 include: {
                     author: true,
-                    likes: userId ? { where: { userId: userId } } : false,
-                    _count: { select: { likes: true } },
+                    votes: userId ? { where: { userId: userId } } : false,
+                    _count: { select: { votes: true } },
                     replies: {
                         include: {
                             author: true,
-                            likes: userId ? { where: { userId: userId } } : false,
-                            _count: { select: { likes: true } },
+                            votes: userId ? { where: { userId: userId } } : false,
+                            _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
                 },
                 orderBy: { createdAt: "desc" },
             },
-            likes: userId ? { where: { userId } } : false,
+            votes: userId ? { where: { userId } } : false,
 
 
             _count: {
                 select: {
-                    likes: true,
+                    votes: true,
                     comments: true,
                 },
             },

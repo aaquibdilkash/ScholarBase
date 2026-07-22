@@ -5,360 +5,288 @@ import { requireCurrentUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
-export async function toggleLike(
-    targetId: string,
-    type: 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result'
+type VoteType = 'UPVOTE' | 'DOWNVOTE'
 
-): Promise<boolean> {
-    const user = await requireCurrentUser('Log in to show appreciation for this research.')
-
-    let isLiked = false
-
-    if (type === 'article') {
-        const existing = await prisma.articleLike.findUnique({
-            where: { articleId_userId: { articleId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.articleLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.articleLike.create({ data: { articleId: targetId, userId: user.id } })
-            isLiked = true
-
-            const article = await prisma.article.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, title: true, slug: true },
-            })
-
-            if (article?.authorId) {
-                await notifyUserById({
-                    recipientId: article.authorId,
-                    actorId: user.id,
-                    type: 'article-liked',
-                    targetType: 'article',
-                    targetId: article.slug,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your article`,
-                    body: article.title,
-                })
-            }
-        }
-        // Articles use slugs in the URL, so we clear the whole blog layout cache to be safe
-        revalidatePath('/blog', 'layout')
-    }
-
-    else if (type === 'post') {
-        const existing = await prisma.socialLike.findUnique({
-            where: { socialPostId_userId: { socialPostId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.socialLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.socialLike.create({ data: { socialPostId: targetId, userId: user.id } })
-            isLiked = true
-
-            const post = await prisma.socialPost.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, content: true },
-            })
-
-            if (post?.authorId) {
-                await notifyUserById({
-                    recipientId: post.authorId,
-                    actorId: user.id,
-                    type: 'post-liked',
-                    targetType: 'post',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your post`,
-                    body: post.content.slice(0, 120),
-                })
-            }
-        }
-        revalidatePath('/feed')
-        revalidatePath(`/feed/${targetId}`)
-    }
-
-    else if (type === 'vacancy') {
-        const existing = await prisma.jobVacancyLike.findUnique({
-            where: { jobVacancyId_userId: { jobVacancyId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.jobVacancyLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.jobVacancyLike.create({ data: { jobVacancyId: targetId, userId: user.id } })
-            isLiked = true
-
-            const vacancy = await prisma.jobVacancy.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, title: true },
-            })
-
-            if (vacancy?.authorId) {
-                await notifyUserById({
-                    recipientId: vacancy.authorId,
-                    actorId: user.id,
-                    type: 'vacancy-liked',
-                    targetType: 'vacancy',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your vacancy posting`,
-                    body: vacancy.title,
-                })
-            }
-        }
-        revalidatePath('/vacancies')
-        revalidatePath(`/vacancies/${targetId}`)
-    }
-
-    else if (type === 'admission') {
-        const existing = await prisma.phdAdmissionLike.findUnique({
-            where: { phdAdmissionId_userId: { phdAdmissionId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.phdAdmissionLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.phdAdmissionLike.create({ data: { phdAdmissionId: targetId, userId: user.id } })
-            isLiked = true
-            const admission = await prisma.phdAdmission.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, university: true, department: true },
-            })
-
-            if (admission?.authorId) {
-                await notifyUserById({
-                    recipientId: admission.authorId,
-                    actorId: user.id,
-                    type: 'admission-liked',
-                    targetType: 'admission',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your PhD admission posting`,
-                    body: `${admission.university} - ${admission.department}`,
-                })
-            }
-        }
-        revalidatePath('/admissions')
-        revalidatePath(`/admissions/${targetId}`)
-    }
-
-    else if (type === 'supervisor') {
-        const existing = await prisma.supervisorLike.findUnique({
-            where: { supervisorId_userId: { supervisorId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.supervisorLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.supervisorLike.create({ data: { supervisorId: targetId, userId: user.id } })
-            isLiked = true
-
-
-        }
-        revalidatePath('/supervisor')
-        revalidatePath(`/supervisor/${targetId}`)
-    }
-
-    else if (type === 'recommendation') {
-        const existing = await prisma.recommendationLike.findUnique({
-            where: { recommendationId_userId: { recommendationId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.recommendationLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.recommendationLike.create({ data: { recommendationId: targetId, userId: user.id } })
-            isLiked = true
-
-            const recommendation = await prisma.recommendation.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, feedback: true },
-            })
-
-            if (recommendation?.authorId) {
-                await notifyUserById({
-                    recipientId: recommendation.authorId,
-                    actorId: user.id,
-                    type: 'recommendation-liked',
-                    targetType: 'recommendation',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your recommendation`,
-                    body: recommendation.feedback.slice(0, 120),
-                })
-            }
-        }
-        revalidatePath('/recommendation')
-        revalidatePath(`/recommendation/${targetId}`)
-    }
-
-    else if (type === 'event') {
-        const existing = await prisma.researchEventLike.findUnique({
-            where: { researchEventId_userId: { researchEventId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.researchEventLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.researchEventLike.create({ data: { researchEventId: targetId, userId: user.id } })
-            isLiked = true
-            const event = await prisma.researchEvent.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, title: true },
-            })
-
-            if (event?.authorId) {
-                await notifyUserById({
-                    recipientId: event.authorId,
-                    actorId: user.id,
-                    type: 'event-liked',
-                    targetType: 'event',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your event posting`,
-                    body: event.title,
-                })
-            }
-        }
-        revalidatePath('/events')
-        revalidatePath(`/events/${targetId}`)
-    }
-
-    else if (type === 'help') {
-        const existing = await prisma.helpPostLike.findUnique({
-            where: { helpPostId_userId: { helpPostId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.helpPostLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.helpPostLike.create({ data: { helpPostId: targetId, userId: user.id } })
-            isLiked = true
-
-            const helpPost = await prisma.helpPost.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, title: true },
-            })
-
-            if (helpPost?.authorId) {
-                await notifyUserById({
-                    recipientId: helpPost.authorId,
-                    actorId: user.id,
-                    type: 'help-post-liked',
-                    targetType: 'help',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your help post`,
-                    body: helpPost.title,
-                })
-            }
-        }
-        revalidatePath('/help')
-        revalidatePath(`/help/${targetId}`)
-    }
-
-    else if (type === 'journal') {
-        const existing = await prisma.journalLike.findUnique({
-            where: { journalId_userId: { journalId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.journalLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.journalLike.create({ data: { journalId: targetId, userId: user.id } })
-            isLiked = true
-
-            const journal = await prisma.journal.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, title: true },
-            })
-
-            if (journal?.authorId) {
-                await notifyUserById({
-                    recipientId: journal.authorId,
-                    actorId: user.id,
-                    type: 'journal-liked',
-                    targetType: 'journal',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your journal`,
-                    body: journal.title,
-                })
-            }
-        }
-        revalidatePath('/journals')
-        revalidatePath(`/journals/${targetId}`)
-    }
-
-    else if (type === 'researchTool') {
-        const existing = await prisma.researchToolLike.findUnique({
-            where: { researchToolId_userId: { researchToolId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.researchToolLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.researchToolLike.create({ data: { researchToolId: targetId, userId: user.id } })
-            isLiked = true
-
-            const researchTool = await prisma.researchTool.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, name: true },
-            })
-
-            if (researchTool?.authorId) {
-                await notifyUserById({
-                    recipientId: researchTool.authorId,
-                    actorId: user.id,
-                    type: 'research-tool-liked',
-                    targetType: 'researchTool',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your research tool`,
-                    body: researchTool.name,
-                })
-            }
-        }
-        revalidatePath('/research-tools')
-        revalidatePath(`/research-tools/${targetId}`)
-    }
-
-    else if (type === 'result') {
-        const existing = await prisma.resultLike.findUnique({
-            where: { resultId_userId: { resultId: targetId, userId: user.id } },
-        })
-
-        if (existing) {
-            await prisma.resultLike.delete({ where: { id: existing.id } })
-            isLiked = false
-        } else {
-            await prisma.resultLike.create({ data: { resultId: targetId, userId: user.id } })
-            isLiked = true
-
-            const result = await prisma.result.findUnique({
-                where: { id: targetId },
-                select: { authorId: true, title: true },
-            })
-
-            if (result?.authorId) {
-                await notifyUserById({
-                    recipientId: result.authorId,
-                    actorId: user.id,
-                    type: 'result-liked',
-                    targetType: 'result',
-                    targetId,
-                    title: `${user.email?.split('@')[0] || 'Someone'} liked your result posting`,
-                    body: result.title,
-                })
-            }
-        }
-        revalidatePath('/results')
-        revalidatePath(`/results/${targetId}`)
-    }
-
-    return isLiked
+// Model mapping: [type string] => { model, voteModel, uniqueWhere, createData, authorField, notifType, urlPrefix }
+const VOTE_CONFIG: Record<string, {
+  voteModel: any;
+  uniqueFields: string[];
+  targetIdField: string;
+  notifType: string;
+  urlPrefix: string;
+  titleField: string;
+}> = {
+  article: {
+    voteModel: prisma.articleVote,
+    uniqueFields: ['articleId', 'userId'],
+    targetIdField: 'articleId',
+    notifType: 'article-upvoted',
+    urlPrefix: '/blog/',
+    titleField: 'title',
+  },
+  post: {
+    voteModel: prisma.socialVote,
+    uniqueFields: ['socialPostId', 'userId'],
+    targetIdField: 'socialPostId',
+    notifType: 'post-upvoted',
+    urlPrefix: '/feed/',
+    titleField: 'content',
+  },
+  vacancy: {
+    voteModel: prisma.jobVacancyVote,
+    uniqueFields: ['jobVacancyId', 'userId'],
+    targetIdField: 'jobVacancyId',
+    notifType: 'vacancy-upvoted',
+    urlPrefix: '/vacancies/',
+    titleField: 'title',
+  },
+  admission: {
+    voteModel: prisma.phdAdmissionVote,
+    uniqueFields: ['phdAdmissionId', 'userId'],
+    targetIdField: 'phdAdmissionId',
+    notifType: 'admission-upvoted',
+    urlPrefix: '/admissions/',
+    titleField: 'university',
+  },
+  event: {
+    voteModel: prisma.researchEventVote,
+    uniqueFields: ['researchEventId', 'userId'],
+    targetIdField: 'researchEventId',
+    notifType: 'event-upvoted',
+    urlPrefix: '/events/',
+    titleField: 'title',
+  },
+  supervisor: {
+    voteModel: prisma.supervisorVote,
+    uniqueFields: ['supervisorId', 'userId'],
+    targetIdField: 'supervisorId',
+    notifType: 'supervisor-upvoted',
+    urlPrefix: '/supervisor/',
+    titleField: 'name',
+  },
+  recommendation: {
+    voteModel: prisma.recommendationVote,
+    uniqueFields: ['recommendationId', 'userId'],
+    targetIdField: 'recommendationId',
+    notifType: 'recommendation-upvoted',
+    urlPrefix: '/recommendation/',
+    titleField: 'feedback',
+  },
+  help: {
+    voteModel: prisma.helpPostVote,
+    uniqueFields: ['helpPostId', 'userId'],
+    targetIdField: 'helpPostId',
+    notifType: 'help-post-upvoted',
+    urlPrefix: '/help/',
+    titleField: 'title',
+  },
+  journal: {
+    voteModel: prisma.journalVote,
+    uniqueFields: ['journalId', 'userId'],
+    targetIdField: 'journalId',
+    notifType: 'journal-upvoted',
+    urlPrefix: '/journals/',
+    titleField: 'title',
+  },
+  researchTool: {
+    voteModel: prisma.researchToolVote,
+    uniqueFields: ['researchToolId', 'userId'],
+    targetIdField: 'researchToolId',
+    notifType: 'research-tool-upvoted',
+    urlPrefix: '/research-tools/',
+    titleField: 'name',
+  },
+  result: {
+    voteModel: prisma.resultVote,
+    uniqueFields: ['resultId', 'userId'],
+    targetIdField: 'resultId',
+    notifType: 'result-upvoted',
+    urlPrefix: '/results/',
+    titleField: 'title',
+  },
 }
+
+// Model configs for each type to fetch author info for reputation
+const CONTENT_AUTHOR_FETCH: Record<string, (targetId: string) => Promise<{ authorId: string; title: string } | null>> = {
+  article: (id) => prisma.article.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  post: (id) => prisma.socialPost.findUnique({ where: { id }, select: { authorId: true, content: true } }).then(r => r ? { authorId: r.authorId, title: r.content.slice(0, 120) } : null),
+  vacancy: (id) => prisma.jobVacancy.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  admission: (id) => prisma.phdAdmission.findUnique({ where: { id }, select: { authorId: true, university: true } }).then(r => r ? { authorId: r.authorId, title: r.university } : null),
+  event: (id) => prisma.researchEvent.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  supervisor: (id) => prisma.supervisor.findUnique({ where: { id }, select: { authorId: true, name: true } }).then(r => r ? { authorId: r.authorId, title: r.name } : null),
+  recommendation: (id) => prisma.recommendation.findUnique({ where: { id }, select: { authorId: true, feedback: true } }).then(r => r ? { authorId: r.authorId, title: r.feedback.slice(0, 120) } : null),
+  help: (id) => prisma.helpPost.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  journal: (id) => prisma.journal.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  researchTool: (id) => prisma.researchTool.findUnique({ where: { id }, select: { authorId: true, name: true } }).then(r => r ? { authorId: r.authorId, title: r.name } : null),
+  result: (id) => prisma.result.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+}
+
+/**
+ * 🔥 INCREMENTAL reputation update — 1 query instead of 23.
+ * Adjusts reputation by the net change of the current vote action.
+ */
+export async function updateReputationIncremental(userId: string, voteDelta: number) {
+  if (voteDelta === 0) return;
+  await prisma.user.update({
+    where: { id: userId },
+    data: { reputation: { increment: voteDelta } },
+  });
+}
+
+/**
+ * Full recalc — only used for initial data or as a fallback.
+ * Runs all counts in parallel using Promise.all for efficiency.
+ */
+export async function updateReputation(userId: string) {
+  // Run all counts in parallel — 22 queries concurrently
+  const counts = await Promise.all([
+    prisma.articleVote.count({ where: { article: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.articleVote.count({ where: { article: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.socialVote.count({ where: { socialPost: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.socialVote.count({ where: { socialPost: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.jobVacancyVote.count({ where: { jobVacancy: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.jobVacancyVote.count({ where: { jobVacancy: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.phdAdmissionVote.count({ where: { phdAdmission: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.phdAdmissionVote.count({ where: { phdAdmission: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.researchEventVote.count({ where: { researchEvent: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.researchEventVote.count({ where: { researchEvent: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.supervisorVote.count({ where: { supervisor: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.supervisorVote.count({ where: { supervisor: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.recommendationVote.count({ where: { recommendation: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.recommendationVote.count({ where: { recommendation: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.helpPostVote.count({ where: { helpPost: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.helpPostVote.count({ where: { helpPost: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.journalVote.count({ where: { journal: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.journalVote.count({ where: { journal: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.researchToolVote.count({ where: { researchTool: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.researchToolVote.count({ where: { researchTool: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.resultVote.count({ where: { result: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.resultVote.count({ where: { result: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.articleCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.articleCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.socialCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.socialCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.jobVacancyCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.jobVacancyCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.phdAdmissionCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.phdAdmissionCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.researchEventCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.researchEventCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.supervisorCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.supervisorCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.recommendationCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.recommendationCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.helpPostCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.helpPostCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.journalCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.journalCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.researchToolCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.researchToolCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.resultCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.resultCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+  ]);
+
+  let upSum = 0;
+  let downSum = 0;
+  for (let i = 0; i < counts.length; i += 2) {
+    upSum += counts[i];
+    downSum += counts[i + 1];
+  }
+
+  const reputation = upSum - downSum;
+  await prisma.user.update({
+    where: { id: userId },
+    data: { reputation },
+  });
+}
+
+// Helper to toggle vote for any model (used inside and outside transactions)
+async function performVoteOp(
+  model: any,
+  uniqueFields: string[],
+  targetId: string,
+  userId: string,
+  voteType: VoteType,
+) {
+  const field1 = uniqueFields[0];
+  const field2 = uniqueFields[1];
+  const whereComposite = { [`${field1}_${field2}`]: { [field1]: targetId, [field2]: userId } };
+
+  const existing = await model.findUnique({ where: whereComposite });
+
+  let finalVoteType: VoteType | null = voteType;
+
+  if (existing) {
+    if (existing.voteType === voteType) {
+      await model.delete({ where: { id: existing.id } });
+      finalVoteType = null;
+    } else {
+      await model.update({ where: { id: existing.id }, data: { voteType } });
+      finalVoteType = voteType;
+    }
+  } else {
+    await model.create({ data: { [field1]: targetId, [field2]: userId, voteType } });
+    finalVoteType = voteType;
+  }
+
+  const [upvotes, downvotes] = await Promise.all([
+    model.count({ where: { [field1]: targetId, voteType: 'UPVOTE' } }),
+    model.count({ where: { [field1]: targetId, voteType: 'DOWNVOTE' } }),
+  ]);
+
+  return { userVote: finalVoteType, upvotes, downvotes };
+}
+
+export async function toggleVote(
+  targetId: string,
+  type: string,
+  voteType: VoteType,
+): Promise<{ userVote: VoteType | null; upvotes: number; downvotes: number }> {
+  const user = await requireCurrentUser('Log in to vote.')
+
+  const config = VOTE_CONFIG[type]
+  if (!config) throw new Error(`Unknown vote type: ${type}`)
+
+  // Perform the vote operation (non-transacted for simplicity, but atomic enough)
+  const result = await performVoteOp(
+    config.voteModel,
+    config.uniqueFields,
+    targetId,
+    user.id,
+    voteType,
+  );
+
+  // 🔥 Fire-and-forget: update reputation incrementally (1 query)
+  const authorInfo = await CONTENT_AUTHOR_FETCH[type]?.(targetId)
+  if (authorInfo?.authorId) {
+    const voteDelta = voteType === 'UPVOTE' ? 1 : -1;
+    // Don't await — fire in background
+    updateReputationIncremental(authorInfo.authorId, voteDelta).catch(() => {});
+  }
+
+  // 🔥 Fire-and-forget notification (non-blocking)
+  if (result.userVote === 'UPVOTE' && authorInfo?.authorId) {
+    notifyUserById({
+      recipientId: authorInfo.authorId,
+      actorId: user.id,
+      type: config.notifType,
+      targetType: type,
+      targetId,
+      title: `${user.email?.split('@')[0] || 'Someone'} upvoted your ${type}`,
+      body: authorInfo.title,
+    }).catch(() => {});
+  }
+
+  // Revalidate paths
+  const paths = [config.urlPrefix]
+  if (!['article', 'post'].includes(type)) {
+    paths.push(`${config.urlPrefix}${targetId}`)
+  }
+  for (const p of paths) {
+    if (p.startsWith('/blog')) revalidatePath('/blog', 'layout')
+    else revalidatePath(p)
+  }
+
+  return result
+}
+

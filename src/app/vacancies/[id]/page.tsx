@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -21,6 +21,16 @@ const VacancyDetailPage = async ({
   if (!vacancy) {
     notFound();
   }
+
+  const upvotes =
+    vacancy.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    vacancy.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (vacancy.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -49,12 +59,13 @@ const VacancyDetailPage = async ({
           />
         ) : null
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={vacancy.id}
           type="vacancy"
-          initialLikes={vacancy._count.likes}
-          initialIsLiked={!!vacancy.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}

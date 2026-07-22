@@ -1,17 +1,17 @@
 import prisma from '@/lib/db'
 
-const LIKE_WEIGHT = 1
+const VOTE_WEIGHT = 1
 const COMMENT_WEIGHT = 2
 const TRENDING_DAYS = 7
 
 // We can add more complexity to this later, e.g. time decay
 function calculateTrendingScore(item: {
-    _count: { likes: number; comments: number }
+    _count: { votes: number; comments: number }
 }) {
-    return item._count.likes * LIKE_WEIGHT + item._count.comments * COMMENT_WEIGHT
+    return item._count.votes * VOTE_WEIGHT + item._count.comments * COMMENT_WEIGHT
 }
 
-async function getTrending<T extends { _count: { likes: number; comments: number }, likes?: { userId: string }[], createdAt: Date }>(
+async function getTrending<T extends { _count: { votes: number; comments: number }, votes?: { userId: string }[], createdAt: Date }>(
     fetcher: () => Promise<T[]>,
     type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool' | 'help-post' | 'result'
 ) {
@@ -19,7 +19,7 @@ async function getTrending<T extends { _count: { likes: number; comments: number
 
     const items = await fetcher()
 
-    const allItems = items.map(item => ({ ...item, type, isLiked: !!item.likes?.length }))
+    const allItems = items.map(item => ({ ...item, type }))
 
 
     const scoredItems = allItems.map(item => {
@@ -51,16 +51,25 @@ export async function getTrendingArticles(userId?: string) {
         author: true,
         _count: {
             select: {
-                likes: true,
+                votes: true,
                 comments: true,
             },
         },
-        likes: userId ? { where: { userId } } : false,
+        votes: userId ? { where: { userId } } : false,
     }
 
     return getTrending(() => prisma.article.findMany({
         where: { createdAt: { gte: since }, published: true },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: {
+                select: {
+                    votes: true,
+                    comments: true,
+                },
+            },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'article')
 }
 
@@ -68,20 +77,13 @@ export async function getTrendingVacancies(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.jobVacancy.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'vacancy')
 }
 
@@ -89,20 +91,13 @@ export async function getTrendingAdmissions(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.phdAdmission.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'admission')
 }
 
@@ -110,20 +105,13 @@ export async function getTrendingEvents(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.researchEvent.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'event')
 }
 
@@ -131,22 +119,13 @@ export async function getTrendingSocialPosts(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        // Always include likes for ownership checks; filter to current user only when userId exists
-        // (OwnerActionsDropdown relies on authorId, not likes, but other card logic expects `likes` to exist.)
-        likes: userId ? { where: { userId } } : undefined,
-    }
-
     return getTrending(() => prisma.socialPost.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'social-post')
 }
 
@@ -155,20 +134,13 @@ export async function getTrendingJournals(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.journal.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'journal')
 }
 
@@ -176,20 +148,13 @@ export async function getTrendingResearchTools(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.researchTool.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'researchTool')
 }
 
@@ -197,20 +162,13 @@ export async function getTrendingHelpPosts(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.helpPost.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'help-post')
 }
 
@@ -218,20 +176,13 @@ export async function getTrendingResults(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                likes: true,
-                comments: true,
-            },
-        },
-        likes: userId ? { where: { userId } } : false,
-    }
-
     return getTrending(() => prisma.result.findMany({
         where: { createdAt: { gte: since } },
-        include: commonInclude,
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
     }), 'result')
 }
 
@@ -242,18 +193,18 @@ export async function getTrendingSupervisors(userId?: string) {
             author: true,
             // SupervisorCard needs recommendations to compute avg rating
             recommendations: true,
-            likes: userId ? { where: { userId } } : undefined,
+            votes: { select: { userId: true, voteType: true } },
             _count: {
                 select: {
-                    likes: true,
+                    votes: true,
                     comments: true,
                 },
             },
         },
     })
 
-    const scoredSupervisors = supervisors.map((supervisor) => {
-        const likes = supervisor.likes ?? []
+    const scoredSupervisors = supervisors.map((supervisor: any) => {
+        const votes = supervisor.votes ?? []
         const recommendationCount = supervisor.recommendations?.length ?? 0
 
         if (recommendationCount === 0) {
@@ -261,12 +212,12 @@ export async function getTrendingSupervisors(userId?: string) {
                 ...supervisor,
                 score: 0,
                 type: 'supervisor',
-                likes,
+                votes,
             }
         }
 
         const avgRating =
-            supervisor.recommendations.reduce((sum, rec) => {
+            supervisor.recommendations.reduce((sum: number, rec: any) => {
                 return sum + rec.rating
             }, 0) / recommendationCount
 
@@ -276,13 +227,13 @@ export async function getTrendingSupervisors(userId?: string) {
             ...supervisor,
             score,
             type: 'supervisor',
-            likes,
+            votes,
         }
     })
 
-    const filteredSupervisors = scoredSupervisors.filter((s) => s.score > 0)
+    const filteredSupervisors = scoredSupervisors.filter((s: any) => s.score > 0)
 
-    const sortedSupervisors = filteredSupervisors.sort((a, b) => b.score - a.score)
+    const sortedSupervisors = filteredSupervisors.sort((a: any, b: any) => b.score - a.score)
 
     return sortedSupervisors
 }

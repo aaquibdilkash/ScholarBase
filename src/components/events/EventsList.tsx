@@ -1,14 +1,14 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { ResearchEvent, ResearchEventLike, User } from "@prisma/client";
+import { ResearchEvent, User } from "@prisma/client";
 import { EventCard } from "./EventCard";
 
 type EventWithDetails = ResearchEvent & {
   author: User;
-  likes: ResearchEventLike[];
+  votes: { userId: string }[];
   _count: {
-    likes: number;
+    votes: number;
     comments: number;
   };
 };
@@ -31,11 +31,7 @@ export function EventsList({
         event.location.toLowerCase().includes(query.toLowerCase())
       }
       renderItem={(event) => (
-        <EventCard
-          key={event.id}
-          event={{ ...event, isLiked: (event.likes?.length ?? 0) > 0 }}
-          currentUserId={currentUserId}
-        />
+        <EventCard key={event.id} event={event} currentUserId={currentUserId} />
       )}
       initialQuery={initialQuery ?? ""}
       queryParamKey="q"

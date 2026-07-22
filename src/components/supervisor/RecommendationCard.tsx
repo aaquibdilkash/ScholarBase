@@ -1,6 +1,6 @@
 "use client";
-import { LikeButton } from "@/components/interactions/LikeButton";
-import { Recommendation, RecommendationLike, User } from "@prisma/client";
+import { VoteButton } from "@/components/interactions/VoteButton";
+import { Recommendation, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
@@ -9,10 +9,10 @@ type RecommendationCardProps = Recommendation & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  likes: RecommendationLike[];
+  votes: any[];
   _count: {
     comments: number;
-    likes: number;
+    votes: number;
   };
 };
 
@@ -25,9 +25,15 @@ export function RecommendationCard({
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
-  const isLiked = !!recommendation.likes?.find(
-    (like) => like.userId === currentUserId,
-  );
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    recommendation.votes?.find((v: any) => v.userId === currentUserId)
+      ?.voteType ?? null;
+  const upvoteCount =
+    recommendation.votes?.filter((v: any) => v.voteType === "UPVOTE").length ??
+    0;
+  const downvoteCount =
+    recommendation.votes?.filter((v: any) => v.voteType === "DOWNVOTE")
+      .length ?? 0;
 
   const isOwner = currentUserId === recommendation.author.id;
   const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
@@ -57,12 +63,13 @@ export function RecommendationCard({
         )
       }
       createdDate={recommendation.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={recommendation.id}
           type="recommendation"
-          initialLikes={recommendation._count.likes}
-          initialIsLiked={isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}

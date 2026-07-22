@@ -1,17 +1,17 @@
 "use client";
 
-import { Result, User } from "@prisma/client";
+import { Result, User, ResultVote } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult } from "@/app/actions/results";
 
 type ResultWithAuthor = Result & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: ResultVote[];
+  _count: { votes: number; comments: number };
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -31,6 +31,13 @@ export function ResultCard({
 }) {
   const isOwner = currentUserId === result.authorId;
   const isFollowing = (result.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    result.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    null;
+  const upvoteCount =
+    result.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    result.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
   return (
     <ListPageCardShell
       authorHref={`/scholar/${result.author.id}`}
@@ -57,12 +64,13 @@ export function ResultCard({
       editedDate={
         result.updatedAt > result.createdAt ? result.updatedAt : undefined
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={result.id}
           type="result"
-          initialLikes={result._count.likes}
-          initialIsLiked={result.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/results/${result.id}`}

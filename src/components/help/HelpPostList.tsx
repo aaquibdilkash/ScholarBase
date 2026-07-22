@@ -6,8 +6,8 @@ import { HelpPostCard } from "./HelpPostCard";
 
 type HelpPostWithAuthor = HelpPost & {
   author: User;
-  likes: { userId: string }[];
-  _count: { likes: number; comments: number };
+  votes: { userId: string }[];
+  _count: { votes: number; comments: number };
 };
 
 export function HelpPostList({
@@ -29,7 +29,7 @@ export function HelpPostList({
       renderItem={(post) => (
         <HelpPostCard
           key={post.id}
-          helpPost={{ ...post, isLiked: (post.likes?.length ?? 0) > 0 }}
+          helpPost={post}
           currentUserId={currentUserId}
         />
       )}

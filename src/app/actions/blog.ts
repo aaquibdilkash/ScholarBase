@@ -41,10 +41,14 @@ export async function getArticles(q?: string, userId?: string) {
             : false,
         },
       },
-      likes: userId ? { where: { userId: userId } } : false,
+      votes: {
+        select: {
+          userId: true,
+          voteType: true,
+        },
+      },
       _count: {
         select: {
-          likes: true,
           comments: true,
         },
       },
@@ -78,7 +82,7 @@ export async function getArticle(slug: string, userId?: string) {
             : false,
         },
       },
-      likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+      votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
       comments: {
         where: { parentId: null },
         select: {
@@ -94,7 +98,7 @@ export async function getArticle(slug: string, userId?: string) {
               avatarUrl: true,
             },
           },
-          likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+          votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
           replies: {
             select: {
               id: true,
@@ -105,17 +109,17 @@ export async function getArticle(slug: string, userId?: string) {
               author: {
                 select: { id: true, name: true, avatarUrl: true },
               },
-              likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
-              _count: { select: { likes: true } },
+              votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+              _count: { select: { votes: true } },
             },
             orderBy: { createdAt: "asc" },
           },
-          _count: { select: { likes: true } },
+          _count: { select: { votes: true } },
         },
         orderBy: { createdAt: "asc" },
       },
       _count: {
-        select: { likes: true, comments: true },
+        select: { votes: true, comments: true },
       },
     },
   });
@@ -197,7 +201,6 @@ export async function updateArticle(
   let nextSlug = baseSlug
   let suffix = 1
 
-  // Keep the current slug if it matches; otherwise avoid collisions.
   const currentSlug = article.slug
   while (
     nextSlug !== currentSlug &&

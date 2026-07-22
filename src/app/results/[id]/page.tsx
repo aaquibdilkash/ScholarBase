@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 
 import { deleteResult, getResult } from "@/app/actions/results";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -32,6 +32,16 @@ const ResultDetailPage = async ({
     OTHER: "Other Result",
   };
 
+  const upvotes =
+    result.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    result.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (result.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
+
   return (
     <DetailPageCardShell
       backHref="/results"
@@ -60,12 +70,13 @@ const ResultDetailPage = async ({
       editedDate={
         result.updatedAt > result.createdAt ? result.updatedAt : undefined
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={result.id}
           type="result"
-          initialLikes={result._count.likes}
-          initialIsLiked={!!result.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/results/${result.id}#comments`}

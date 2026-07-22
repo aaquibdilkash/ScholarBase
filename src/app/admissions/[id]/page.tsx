@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { deletePhdAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -22,6 +22,16 @@ const AdmissionDetailPage = async ({
   if (!admission) {
     notFound();
   }
+
+  const upvotes =
+    admission.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    admission.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (admission.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -50,12 +60,13 @@ const AdmissionDetailPage = async ({
       authorId={admission.author.id}
       isFollowing={(admission.author as any)?.followers?.length ? true : false}
       createdDate={admission.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={admission.id}
           type="admission"
-          initialLikes={admission._count.likes}
-          initialIsLiked={!!admission.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/admissions/${admission.id}#comments`}

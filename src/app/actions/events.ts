@@ -32,9 +32,9 @@ export async function getEvents(q?: string, userId?: string) {
                         : false,
                 },
             },
-            likes: userId ? { where: { userId: userId } } : false,
+            votes: userId ? { where: { userId: userId } } : false,
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
         },
     });
@@ -58,22 +58,22 @@ export async function getEvent(id: string, userId?: string) {
                 where: { parentId: null },
                 include: {
                     author: true,
-                    likes: userId ? { where: { userId: userId } } : false,
-                    _count: { select: { likes: true } },
+                    votes: userId ? { where: { userId: userId } } : false,
+                    _count: { select: { votes: true } },
                     replies: {
                         include: {
                             author: true,
-                            likes: userId ? { where: { userId: userId } } : false,
-                            _count: { select: { likes: true } },
+                            votes: userId ? { where: { userId: userId } } : false,
+                            _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
                 },
                 orderBy: { createdAt: "desc" },
             },
-            likes: userId ? { where: { userId: userId } } : false,
+            votes: userId ? { where: { userId: userId } } : false,
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
         },
     });

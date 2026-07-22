@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { createClient } from "@/utils/supabase/server";
 import { getJournalById } from "../../actions/journals";
@@ -24,6 +24,15 @@ const JournalDetailPage = async ({
   if (!journal) notFound();
 
   const j = journal;
+  const upvotes =
+    j.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    j.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (j.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -53,12 +62,13 @@ const JournalDetailPage = async ({
           />
         ) : null
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={j.id}
           type="journal"
-          initialLikes={j._count.likes}
-          initialIsLiked={!!j.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/journals/${j.id}#comments`}

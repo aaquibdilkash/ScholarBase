@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
@@ -19,6 +19,15 @@ export default async function SinglePostPage({
   if (!post) notFound();
 
   const p = post;
+  const upvotes =
+    p.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvotes =
+    p.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    (p.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -48,12 +57,13 @@ export default async function SinglePostPage({
       isFollowing={(p.author as any)?.followers?.length ? true : false}
       createdDate={p.createdAt}
       editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={p.id}
           type="post"
-          initialLikes={p._count.likes}
-          initialIsLiked={!!p.likes?.length}
+          initialUpvotes={upvotes}
+          initialDownvotes={downvotes}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/feed/${p.id}#comments`}

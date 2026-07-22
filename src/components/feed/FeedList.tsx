@@ -7,8 +7,8 @@ import { SocialPostCard } from "@/components/feed/SocialPostCard";
 type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
   include: {
     author: true;
-    likes: true;
-    _count: { select: { comments: true, likes: true } };
+    votes: true;
+    _count: { select: { comments: true; votes: true } };
   };
 }>;
 
@@ -39,7 +39,6 @@ export function FeedList({
           <SocialPostCard
             key={post.id}
             post={post}
-            isLiked={post.likes?.length > 0}
             currentUserId={currentUserId}
           />
         )}
@@ -55,7 +54,6 @@ export function FeedList({
           <SocialPostCard
             key={post.id}
             post={post}
-            isLiked={post.likes?.length > 0}
             currentUserId={currentUserId}
           />
         ))}

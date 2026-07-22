@@ -20,11 +20,11 @@ export async function getSupervisors(q?: string, userId?: string) {
         },
       },
       recommendations: true,
-      likes: userId ? { where: { userId: userId } } : false,
+      votes: userId ? { where: { userId: userId } } : false,
       _count: {
         select: {
           comments: true,
-          likes: true,
+          votes: true,
         },
       },
     },
@@ -58,8 +58,8 @@ export async function getSupervisor(id: string, userId?: string) {
                 : false,
             },
           },
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: { select: { comments: true, likes: true } },
+          votes: userId ? { where: { userId: userId } } : false,
+          _count: { select: { comments: true, votes: true } },
         },
         orderBy: { createdAt: "desc" },
       },
@@ -68,20 +68,20 @@ export async function getSupervisor(id: string, userId?: string) {
         orderBy: { createdAt: "desc" },
         include: {
           author: true,
-          likes: userId ? { where: { userId: userId } } : false,
-          _count: { select: { likes: true } },
+          votes: userId ? { where: { userId: userId } } : false,
+          _count: { select: { votes: true } },
           replies: {
             orderBy: { createdAt: "desc" },
             include: {
               author: true,
-              likes: userId ? { where: { userId: userId } } : false,
-              _count: { select: { likes: true } },
+              votes: userId ? { where: { userId: userId } } : false,
+              _count: { select: { votes: true } },
             },
           },
         },
       },
-      likes: userId ? { where: { userId: userId } } : false,
-      _count: { select: { likes: true } },
+      votes: userId ? { where: { userId: userId } } : false,
+      _count: { select: { votes: true } },
     },
   });
 }

@@ -8,8 +8,8 @@ type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
   include: {
     author: true;
     recommendations: true;
-    likes: true;
-    _count: { select: { comments: true; likes: true } };
+    votes: true;
+    _count: { select: { comments: true; votes: true } };
   };
 }>;
 

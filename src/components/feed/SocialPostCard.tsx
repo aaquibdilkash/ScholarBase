@@ -1,7 +1,7 @@
 "use client";
 
-import { SocialPost, User, SocialLike } from "@prisma/client";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { SocialPost, User } from "@prisma/client";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSocialPost } from "@/app/actions/feed";
@@ -10,24 +10,28 @@ type PostWithDetails = SocialPost & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  likes: SocialLike[];
+  votes: any[];
   _count: {
     comments: number;
-    likes: number;
+    votes: number;
   };
 };
 
 export function SocialPostCard({
   post,
-  isLiked,
   currentUserId,
 }: {
   post: PostWithDetails;
-  isLiked: boolean;
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    post.votes?.find((v: any) => v.userId === currentUserId)?.voteType ?? null;
+  const upvoteCount =
+    post.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    post.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell
@@ -53,12 +57,13 @@ export function SocialPostCard({
       }
       createdDate={post.createdAt}
       editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={post.id}
           type="post"
-          initialLikes={post._count.likes}
-          initialIsLiked={isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/feed/${post.id}`}

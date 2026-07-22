@@ -1,6 +1,6 @@
 "use client";
-import { Article, ArticleLike, User } from "@prisma/client";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { Article, User, VoteType } from "@prisma/client";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
@@ -9,9 +9,11 @@ type ArticleWithDetails = Article & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  likes: ArticleLike[];
+  votes: {
+    userId: string;
+    voteType: VoteType;
+  }[];
   _count: {
-    likes: number;
     comments: number;
   };
 };
@@ -25,6 +27,16 @@ export function ArticleCard({
 }) {
   const isOwner = currentUserId === article.authorId;
   const isFollowing = (article.author.followers?.length ?? 0) > 0;
+
+  const initialUpvotes = article.votes.filter(
+    (v) => v.voteType === "UPVOTE"
+  ).length;
+  const initialDownvotes = article.votes.filter(
+    (v) => v.voteType === "DOWNVOTE"
+  ).length;
+  const initialUserVote =
+    article.votes.find((v) => v.userId === currentUserId)?.voteType ?? null;
+
   return (
     <ListPageCardShell
       authorHref={`/scholar/${article.authorId}`}
@@ -47,12 +59,13 @@ export function ArticleCard({
           />
         )
       }
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={article.id}
           type="article"
-          initialLikes={article._count.likes}
-          initialIsLiked={!!article.likes?.length}
+          initialUpvotes={initialUpvotes}
+          initialDownvotes={initialDownvotes}
+          initialUserVote={initialUserVote}
         />
       }
       footerCommentsHref={`/blog/${article.slug}`}

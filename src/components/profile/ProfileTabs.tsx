@@ -50,11 +50,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((p: any) => (
         <div key={p.id} className="flex-shrink-0 w-full snap-center">
-          <SocialPostCard
-            post={p}
-            isLiked={p.likes?.some((l: any) => l.userId === currentUserId)}
-            currentUserId={currentUserId}
-          />
+          <SocialPostCard post={p} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -65,13 +61,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((v: any) => (
         <div key={v.id} className="flex-shrink-0 w-full snap-center">
-          <VacancyCard
-            vacancy={{
-              ...v,
-              isLiked: v.likes?.some((l: any) => l.userId === currentUserId),
-            }}
-            currentUserId={currentUserId}
-          />
+          <VacancyCard vacancy={v} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -82,13 +72,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((a: any) => (
         <div key={a.id} className="flex-shrink-0 w-full snap-center">
-          <AdmissionCard
-            admission={{
-              ...a,
-              isLiked: a.likes?.some((l: any) => l.userId === currentUserId),
-            }}
-            currentUserId={currentUserId}
-          />
+          <AdmissionCard admission={a} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -99,13 +83,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((e: any) => (
         <div key={e.id} className="flex-shrink-0 w-full snap-center">
-          <EventCard
-            event={{
-              ...e,
-              isLiked: e.likes?.some((l: any) => l.userId === currentUserId),
-            }}
-            currentUserId={currentUserId}
-          />
+          <EventCard event={e} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -116,15 +94,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((h: any) => (
         <div key={h.id} className="flex-shrink-0 w-full snap-center">
-          <HelpPostCard
-            helpPost={{
-              ...h,
-              isLiked: currentUserId
-                ? h.likes?.some((l: any) => l.userId === currentUserId)
-                : false,
-            }}
-            currentUserId={currentUserId}
-          />
+          <HelpPostCard helpPost={h} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -135,13 +105,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((j: any) => (
         <div key={j.id} className="flex-shrink-0 w-full snap-center">
-          <JournalCard
-            journal={{
-              ...j,
-              isLiked: j.likes?.some((l: any) => l.userId === currentUserId),
-            }}
-            currentUserId={currentUserId}
-          />
+          <JournalCard journal={j} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -152,13 +116,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((r: any) => (
         <div key={r.id} className="flex-shrink-0 w-full snap-center">
-          <ResearchToolCard
-            tool={{
-              ...r,
-              isLiked: r.likes?.some((l: any) => l.userId === currentUserId),
-            }}
-            currentUserId={currentUserId}
-          />
+          <ResearchToolCard tool={r} currentUserId={currentUserId} />
         </div>
       )),
   },
@@ -198,13 +156,7 @@ const SECTIONS: SectionConfig[] = [
     renderItems: (items, currentUserId) =>
       items.map((r: any) => (
         <div key={r.id} className="flex-shrink-0 w-full snap-center">
-          <ResultCard
-            result={{
-              ...r,
-              isLiked: (r.likes?.length ?? 0) > 0,
-            }}
-            currentUserId={currentUserId}
-          />
+          <ResultCard result={r} currentUserId={currentUserId} />
         </div>
       )),
   },

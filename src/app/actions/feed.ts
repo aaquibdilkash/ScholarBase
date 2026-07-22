@@ -63,11 +63,11 @@ export async function getFeed(userId: string, tab?: string, q?: string) {
                         : false,
                 },
             },
-            likes: {
-                where: { userId: userId }
+            votes: {
+                select: { id: true, userId: true, voteType: true, socialPostId: true },
             },
             _count: {
-                select: { comments: true, likes: true },
+                select: { comments: true, votes: true },
             },
         },
         orderBy: { createdAt: "desc" },
@@ -99,7 +99,7 @@ export async function getPost(id: string, userId?: string) {
                         : false,
                 },
             },
-            likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
             comments: {
                 where: { parentId: null },
                 select: {
@@ -115,7 +115,7 @@ export async function getPost(id: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
+                    votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
                     replies: {
                         select: {
                             id: true,
@@ -126,17 +126,17 @@ export async function getPost(id: string, userId?: string) {
                             author: {
                                 select: { id: true, name: true, avatarUrl: true },
                             },
-                            likes: userId ? { where: { userId }, select: { userId: true } } : { take: 0, select: { userId: true } },
-                            _count: { select: { likes: true } },
+                            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                            _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { likes: true } },
+                    _count: { select: { votes: true } },
                 },
                 orderBy: { createdAt: "asc" },
             },
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
         },
     });

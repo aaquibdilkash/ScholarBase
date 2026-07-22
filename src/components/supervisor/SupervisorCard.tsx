@@ -1,11 +1,6 @@
 "use client";
-import { LikeButton } from "@/components/interactions/LikeButton";
-import {
-  Recommendation,
-  Supervisor,
-  SupervisorLike,
-  User,
-} from "@prisma/client";
+import { VoteButton } from "@/components/interactions/VoteButton";
+import { Recommendation, Supervisor, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSupervisor } from "@/app/actions/supervisors";
@@ -15,10 +10,10 @@ type SupervisorCardProps = Supervisor & {
     followers?: { followerId: string }[];
   };
   recommendations: Recommendation[];
-  likes: SupervisorLike[];
+  votes: any[];
   _count: {
     comments: number;
-    likes: number;
+    votes: number;
   };
 };
 
@@ -41,9 +36,13 @@ export function SupervisorCard({
         ).toFixed(1)
       : "No recommendations";
 
-  const isLiked = !!supervisor.likes?.find(
-    (like) => like.userId === currentUserId,
-  );
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    supervisor.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    null;
+  const upvoteCount =
+    supervisor.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    supervisor.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
 
   return (
@@ -69,12 +68,13 @@ export function SupervisorCard({
         )
       }
       createdDate={supervisor.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={supervisor.id}
           type="supervisor"
-          initialLikes={supervisor._count.likes}
-          initialIsLiked={isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
@@ -93,12 +93,12 @@ export function SupervisorCard({
       <div className="rounded-xl border border-slate-100 bg-white p-3">
         <div className="text-sm">
           <span className="font-semibold">{avgRating}</span>
-      </div>
-          <span className="text-slate-500"> / 5</span>
-          <span className="text-slate-500 ml-2">
-            ({recommendationCount} recommendations)
-          </span>
         </div>
+        <span className="text-slate-500"> / 5</span>
+        <span className="text-slate-500 ml-2">
+          ({recommendationCount} recommendations)
+        </span>
+      </div>
     </ListPageCardShell>
   );
 }

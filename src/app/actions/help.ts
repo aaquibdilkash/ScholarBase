@@ -32,9 +32,9 @@ export async function getHelpPosts(q?: string, userId?: string) {
                         : false,
                 },
             },
-            likes: userId ? { where: { userId } } : false,
+            votes: userId ? { where: { userId } } : false,
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
         },
     })
@@ -56,21 +56,21 @@ export async function getHelpPost(id: string, userId: string) {
                     },
                 },
             },
-            likes: { where: { userId } },
+            votes: { where: { userId } },
             _count: {
-                select: { likes: true, comments: true },
+                select: { votes: true, comments: true },
             },
             comments: {
                 where: { parentId: null },
                 include: {
                     author: true,
-                    likes: { where: { userId } },
-                    _count: { select: { likes: true } },
+                    votes: { where: { userId } },
+                    _count: { select: { votes: true } },
                     replies: {
                         include: {
                             author: true,
-                            likes: { where: { userId } },
-                            _count: { select: { likes: true } },
+                            votes: { where: { userId } },
+                            _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },

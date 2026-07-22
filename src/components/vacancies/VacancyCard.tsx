@@ -3,15 +3,15 @@
 import { JobVacancy, User } from "@prisma/client";
 import { ClockIcon } from "@/components/icons/ClockIcon";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { LikeButton } from "@/components/interactions/LikeButton";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 type VacancyWithAuthor = JobVacancy & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  isLiked: boolean;
-  _count: { likes: number; comments: number };
+  votes: any[];
+  _count: { votes: number; comments: number };
 };
 
 export function VacancyCard({
@@ -23,6 +23,13 @@ export function VacancyCard({
 }) {
   const isOwner = currentUserId === vacancy.authorId;
   const isFollowing = (vacancy.author.followers?.length ?? 0) > 0;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    vacancy.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    null;
+  const upvoteCount =
+    vacancy.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const downvoteCount =
+    vacancy.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell
@@ -47,12 +54,13 @@ export function VacancyCard({
         )
       }
       createdDate={vacancy.createdAt}
-      footerLikeButton={
-        <LikeButton
+      footerVoteButton={
+        <VoteButton
           targetId={vacancy.id}
           type="vacancy"
-          initialLikes={vacancy._count.likes}
-          initialIsLiked={vacancy.isLiked}
+          initialUpvotes={upvoteCount}
+          initialDownvotes={downvoteCount}
+          initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/vacancies/${vacancy.id}`}

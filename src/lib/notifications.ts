@@ -9,7 +9,7 @@ export function getNotificationLink(notification: Notification) {
   switch (notification.type) {
     case "follow":
       return `/scholar/${notification.actorId}`;
-    case "article-liked":
+    case "article-upvoted":
     case "article-published":
     case "comment-created":
     case "reply-created":
@@ -17,22 +17,22 @@ export function getNotificationLink(notification: Notification) {
         return `/blog/${notification.targetId}`;
       }
       return null;
-    case "post-liked":
+    case "post-upvoted":
     case "post-published":
       return `/feed/${notification.targetId}`;
-    case "vacancy-liked":
+    case "vacancy-upvoted":
       return `/vacancies/${notification.targetId}`;
-    case "admission-liked":
+    case "admission-upvoted":
       return `/admissions/${notification.targetId}`;
-    case "event-liked":
+    case "event-upvoted":
       return `/events/${notification.targetId}`;
-    case "recommendation-liked":
-      return `/recommendations/${notification.targetId}`;
-    case "help-post-liked":
+    case "recommendation-upvoted":
+      return `/recommendation/${notification.targetId}`;
+    case "help-post-upvoted":
       return `/help/${notification.targetId}`;
-    case "journal-liked":
+    case "journal-upvoted":
       return `/journals/${notification.targetId}`;
-    case "research-tool-liked":
+    case "research-tool-upvoted":
       return `/research-tools/${notification.targetId}`;
     case "mention":
       if (notification.targetType === "article") {
