@@ -14,6 +14,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
             handle: true,
             avatarUrl: true,
             bio: true,
+            reputation: true,
             _count: {
                 select: {
                     followers: true,
