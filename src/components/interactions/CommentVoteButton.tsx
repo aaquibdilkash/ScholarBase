@@ -77,7 +77,7 @@ export function CommentVoteButton({
         disabled={isPending}
         onClick={() => handleVote("UPVOTE")}
         className={`inline-flex items-center justify-center transition hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-70 ${
-          userVote === "UPVOTE" ? "text-green-600" : "text-slate-400"
+          userVote === "UPVOTE" ? "text-green-600" : "text-black-400"
         }`}
         title="Upvote"
       >
@@ -90,7 +90,7 @@ export function CommentVoteButton({
             ? "text-green-600"
             : netScore < 0
               ? "text-red-600"
-              : "text-slate-500"
+              : "text-black-500"
         }`}
       >
         {netScore}
@@ -101,7 +101,7 @@ export function CommentVoteButton({
         disabled={isPending}
         onClick={() => handleVote("DOWNVOTE")}
         className={`inline-flex items-center justify-center transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-70 ${
-          userVote === "DOWNVOTE" ? "text-red-600" : "text-slate-400"
+          userVote === "DOWNVOTE" ? "text-red-600" : "text-black-400"
         }`}
         title="Downvote"
       >

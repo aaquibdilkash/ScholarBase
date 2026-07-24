@@ -82,7 +82,7 @@ export function VoteButton({
         className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-green-300 hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "UPVOTE"
             ? "bg-green-50 text-green-600 border-green-300"
-            : "text-slate-500"
+            : "text-black-500"
         }`}
         title="Upvote"
       >
@@ -98,7 +98,7 @@ export function VoteButton({
             ? "text-green-600"
             : netScore < 0
               ? "text-red-600"
-              : "text-slate-500"
+              : "text-black-500"
         }`}
       >
         {netScore}
@@ -110,7 +110,7 @@ export function VoteButton({
         className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-red-300 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "DOWNVOTE"
             ? "bg-red-50 text-red-600 border-red-300"
-            : "text-slate-500"
+            : "text-black-500"
         }`}
         title="Downvote"
       >

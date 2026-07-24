@@ -33,7 +33,9 @@ export async function getVacancies(q?: string, userId?: string) {
                         : false,
                 },
             },
-            votes: userId ? { where: { userId: userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },
@@ -77,7 +79,9 @@ export async function getVacancyById(id: string) {
                 },
                 orderBy: { createdAt: "desc" },
             },
-            votes: user ? { where: { userId: user.id } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },

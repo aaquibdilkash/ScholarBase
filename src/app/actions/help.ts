@@ -32,7 +32,9 @@ export async function getHelpPosts(q?: string, userId?: string) {
                         : false,
                 },
             },
-            votes: userId ? { where: { userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },
@@ -56,7 +58,9 @@ export async function getHelpPost(id: string, userId: string) {
                     },
                 },
             },
-            votes: { where: { userId } },
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },

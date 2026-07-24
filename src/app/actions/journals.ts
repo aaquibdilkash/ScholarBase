@@ -126,13 +126,15 @@ export async function getJournals(q?: string, userId?: string) {
                         : false,
                 },
             },
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: {
                     votes: true,
                     comments: true,
                 },
             },
-            votes: userId ? { where: { userId } } : false,
         },
     });
 }
@@ -170,9 +172,9 @@ export async function getJournalById(journalId: string, userId?: string) {
                 },
                 orderBy: { createdAt: "desc" },
             },
-            votes: userId ? { where: { userId } } : false,
-
-
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: {
                     votes: true,

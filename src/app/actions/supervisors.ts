@@ -20,7 +20,9 @@ export async function getSupervisors(q?: string, userId?: string) {
         },
       },
       recommendations: true,
-      votes: userId ? { where: { userId: userId } } : false,
+      votes: {
+        select: { id: true, userId: true, voteType: true, supervisorId: true },
+      },
       _count: {
         select: {
           comments: true,
@@ -45,7 +47,6 @@ export async function getSupervisor(id: string, userId?: string) {
             : false,
         },
       },
-
       recommendations: {
         include: {
           author: {
@@ -58,7 +59,7 @@ export async function getSupervisor(id: string, userId?: string) {
                 : false,
             },
           },
-          votes: userId ? { where: { userId: userId } } : false,
+          votes: { select: { userId: true, voteType: true } },
           _count: { select: { comments: true, votes: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -68,19 +69,21 @@ export async function getSupervisor(id: string, userId?: string) {
         orderBy: { createdAt: "desc" },
         include: {
           author: true,
-          votes: userId ? { where: { userId: userId } } : false,
+          votes: { select: { userId: true, voteType: true } },
           _count: { select: { votes: true } },
           replies: {
             orderBy: { createdAt: "desc" },
             include: {
               author: true,
-              votes: userId ? { where: { userId: userId } } : false,
+              votes: { select: { userId: true, voteType: true } },
               _count: { select: { votes: true } },
             },
           },
         },
       },
-      votes: userId ? { where: { userId: userId } } : false,
+      votes: {
+        select: { userId: true, voteType: true },
+      },
       _count: { select: { votes: true } },
     },
   });
@@ -151,3 +154,4 @@ export async function deleteSupervisor(supervisorId: string) {
   await prisma.supervisor.delete({ where: { id: supervisorId } })
   redirect('/supervisor')
 }
+

@@ -32,7 +32,9 @@ export async function getAdmissions(q?: string, userId?: string) {
                         : false,
                 },
             },
-            votes: userId ? { where: { userId: userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },
@@ -71,7 +73,9 @@ export async function getAdmission(id: string, userId?: string) {
                 },
                 orderBy: { createdAt: "desc" },
             },
-            votes: userId ? { where: { userId: userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },

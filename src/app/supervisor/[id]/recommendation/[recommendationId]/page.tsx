@@ -37,7 +37,7 @@ export default async function RecommendationDetailPage({
           },
         },
       },
-      votes: { where: { userId: user?.id ?? "" } },
+      votes: { select: { userId: true, voteType: true } },
       _count: { select: { votes: true, comments: true } },
     },
   });

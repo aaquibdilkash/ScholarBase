@@ -99,7 +99,7 @@ export async function getPost(id: string, userId?: string) {
                         : false,
                 },
             },
-            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+            votes: { select: { userId: true, voteType: true } },
             comments: {
                 where: { parentId: null },
                 select: {
@@ -115,7 +115,7 @@ export async function getPost(id: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    votes: { select: { userId: true, voteType: true } },
                     replies: {
                         select: {
                             id: true,
@@ -126,7 +126,7 @@ export async function getPost(id: string, userId?: string) {
                             author: {
                                 select: { id: true, name: true, avatarUrl: true },
                             },
-                            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                            votes: { select: { userId: true, voteType: true } },
                             _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },

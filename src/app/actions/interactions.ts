@@ -207,13 +207,14 @@ async function performVoteOp(
   targetId: string,
   userId: string,
   voteType: VoteType,
-) {
+): Promise<{ userVote: VoteType | null; upvotes: number; downvotes: number; previousVoteType: VoteType | null }> {
   const field1 = uniqueFields[0];
   const field2 = uniqueFields[1];
   const whereComposite = { [`${field1}_${field2}`]: { [field1]: targetId, [field2]: userId } };
 
   const existing = await model.findUnique({ where: whereComposite });
 
+  const previousVoteType: VoteType | null = existing?.voteType ?? null;
   let finalVoteType: VoteType | null = voteType;
 
   if (existing) {
@@ -234,7 +235,7 @@ async function performVoteOp(
     model.count({ where: { [field1]: targetId, voteType: 'DOWNVOTE' } }),
   ]);
 
-  return { userVote: finalVoteType, upvotes, downvotes };
+  return { userVote: finalVoteType, upvotes, downvotes, previousVoteType };
 }
 
 export async function toggleVote(
@@ -256,12 +257,26 @@ export async function toggleVote(
     voteType,
   );
 
-  // 🔥 Fire-and-forget: update reputation incrementally (1 query)
+  // 🔥 Accurate incremental reputation update based on actual vote change
   const authorInfo = await CONTENT_AUTHOR_FETCH[type]?.(targetId)
   if (authorInfo?.authorId) {
-    const voteDelta = voteType === 'UPVOTE' ? 1 : -1;
-    // Don't await — fire in background
-    updateReputationIncremental(authorInfo.authorId, voteDelta).catch(() => {});
+
+    // - New vote: +1 for upvote, -1 for downvote
+    const prev = result.previousVoteType;
+    let voteDelta = 0;
+
+    if (prev === voteType) {
+      // Removing vote (toggle off)
+      voteDelta = voteType === 'UPVOTE' ? -1 : 1;
+    } else if (prev === null) {
+      // New vote
+      voteDelta = voteType === 'UPVOTE' ? 1 : -1;
+    } else {
+      // Switching vote (prev is opposite direction)
+      voteDelta = voteType === 'UPVOTE' ? 2 : -2;
+    }
+
+    await updateReputationIncremental(authorInfo.authorId, voteDelta);
   }
 
   // 🔥 Fire-and-forget notification (non-blocking)
@@ -274,17 +289,26 @@ export async function toggleVote(
       targetId,
       title: `${user.email?.split('@')[0] || 'Someone'} upvoted your ${type}`,
       body: authorInfo.title,
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
-  // Revalidate paths
+  // Revalidate paths — ensure profile/scholar page also refreshes
   const paths = [config.urlPrefix]
   if (!['article', 'post'].includes(type)) {
     paths.push(`${config.urlPrefix}${targetId}`)
   }
+  // Add author profile revalidation
+  if (authorInfo?.authorId) {
+    paths.push(`/scholar/${authorInfo.authorId}`)
+  }
   for (const p of paths) {
-    if (p.startsWith('/blog')) revalidatePath('/blog', 'layout')
-    else revalidatePath(p)
+    if (p.startsWith('/blog')) {
+      // revalidate both layout and the specific article page
+      revalidatePath('/blog', 'layout')
+      revalidatePath(p, 'page')
+    } else {
+      revalidatePath(p)
+    }
   }
 
   return result

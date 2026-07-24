@@ -107,13 +107,15 @@ export async function getResearchTools(q?: string, userId?: string) {
                         : false,
                 },
             },
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: {
                     votes: true,
                     comments: true,
                 },
             },
-            votes: userId ? { where: { userId } } : false,
         },
     });
 }
@@ -151,7 +153,9 @@ export async function getResearchToolById(toolId: string, userId?: string) {
                 },
                 orderBy: { createdAt: "desc" },
             },
-            votes: userId ? { where: { userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: {
                     votes: true,

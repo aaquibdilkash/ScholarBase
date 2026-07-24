@@ -11,12 +11,36 @@ export function getNotificationLink(notification: Notification) {
       return `/scholar/${notification.actorId}`;
     case "article-upvoted":
     case "article-published":
-    case "comment-created":
-    case "reply-created":
       if (notification.targetType === "article") {
         return `/blog/${notification.targetId}`;
       }
       return null;
+    case "comment-created":
+    case "reply-created":
+      switch (notification.targetType) {
+        case "article":
+          return `/blog/${notification.targetId}`;
+        case "post":
+          return `/feed/${notification.targetId}`;
+        case "event":
+          return `/events/${notification.targetId}`;
+        case "vacancy":
+          return `/vacancies/${notification.targetId}`;
+        case "admission":
+          return `/admissions/${notification.targetId}`;
+        case "recommendation":
+          return `/recommendation/${notification.targetId}`;
+        case "help":
+          return `/help/${notification.targetId}`;
+        case "journal":
+          return `/journals/${notification.targetId}`;
+        case "researchTool":
+          return `/research-tools/${notification.targetId}`;
+        case "result":
+          return `/results/${notification.targetId}`;
+        default:
+          return null;
+      }
     case "post-upvoted":
     case "post-published":
       return `/feed/${notification.targetId}`;

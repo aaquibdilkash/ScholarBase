@@ -35,7 +35,7 @@ export default function NewHelpPostPage() {
             <label className="sb-label">Category</label>
             <select name="category" className="sb-input" required>
               <option value="">Select a category</option>
-              <option value="Bug">Bug Report</option>
+              <option value="bug">Bug Report</option>
               <option value="feature">Feature Request</option>
               <option value="improvement">Site Improvement</option>
               <option value="other">Other</option>

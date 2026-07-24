@@ -34,7 +34,9 @@ export async function getResults(q?: string, userId?: string) {
                         : false,
                 },
             },
-            votes: userId ? { where: { userId: userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },
@@ -73,7 +75,9 @@ export async function getResult(id: string, userId?: string) {
                 },
                 orderBy: { createdAt: "desc" },
             },
-            votes: userId ? { where: { userId: userId } } : false,
+            votes: {
+                select: { userId: true, voteType: true },
+            },
             _count: {
                 select: { votes: true, comments: true },
             },

@@ -1,14 +1,19 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { JobVacancy, JobVacancyVote, User } from "@prisma/client";
+import { JobVacancy, User } from "@prisma/client";
 import { VacancyCard } from "./VacancyCard";
+
+type VoteShape = {
+  userId: string;
+  voteType: "UPVOTE" | "DOWNVOTE";
+};
 
 type VacancyWithDetails = JobVacancy & {
   author: User & {
     followers?: { followerId: string }[];
   };
-  votes: JobVacancyVote[];
+  votes: VoteShape[];
   _count: {
     votes: number;
     comments: number;

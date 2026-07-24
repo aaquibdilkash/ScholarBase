@@ -1,10 +1,13 @@
 'use server'
 
-import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
+import prisma from '@/lib/db'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
+import { updateReputationIncremental } from '@/app/actions/interactions'
+
+
 
 type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result';
 
@@ -19,6 +22,13 @@ export async function createComment(
     const content = readFormValue(formData, 'content')
     if (!content) return
 
+    // Fetch actor name for notification titles
+    const actor = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { name: true, handle: true },
+    });
+    const actorName = actor?.name || actor?.handle || user.email?.split('@')[0] || 'Someone';
+
     if (type === 'help') {
         await prisma.helpPostComment.create({
             data: { content, helpPostId: targetId, authorId: user.id, parentId },
@@ -31,11 +41,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'help', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your help post`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your help post`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/help/${targetId}`)
@@ -51,11 +62,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? "reply-created" : "comment-created",
                 targetType: "article", targetId: article.slug,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your article`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your article`,
                 body: content,
             });
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: article.slug,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: article.slug,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         });
         revalidatePath('/blog/[slug]', 'page')
@@ -69,11 +81,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'post', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your post`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your post`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath('/feed')
@@ -88,11 +101,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'event', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your event`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your event`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/events/${targetId}`)
@@ -106,11 +120,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'vacancy', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your vacancy`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your vacancy`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/vacancies/${targetId}`)
@@ -124,11 +139,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'admission', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your admission post`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your admission post`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/admissions/${targetId}`)
@@ -145,11 +161,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'recommendation', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your recommendation`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your recommendation`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/recommendation/${targetId}`)
@@ -163,11 +180,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'journal', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your journal post`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your journal post`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/journals/${targetId}`)
@@ -181,11 +199,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'researchTool', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your research tool`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your research tool`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/research-tools/${targetId}`)
@@ -199,11 +218,12 @@ export async function createComment(
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
                 targetType: 'result', targetId,
-                title: parentId ? `Someone replied to your comment` : `Someone commented on your result posting`,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your result posting`,
                 body: content,
             })
         }
-        await notifyMentionedUsers({ actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/results/${targetId}`)
@@ -267,84 +287,101 @@ export async function deleteComment(commentId: string, type: CommentType) {
 // --- Vote System ---
 
 const COMMENT_VOTE_MODEL: Record<string, any> = {
-  article: prisma.articleCommentVote,
-  post: prisma.socialCommentVote,
-  event: prisma.researchEventCommentVote,
-  vacancy: prisma.jobVacancyCommentVote,
-  admission: prisma.phdAdmissionCommentVote,
-  supervisor: prisma.supervisorCommentVote,
-  recommendation: prisma.recommendationCommentVote,
-  help: prisma.helpPostCommentVote,
-  journal: prisma.journalCommentVote,
-  researchTool: prisma.researchToolCommentVote,
-  result: prisma.resultCommentVote,
+    article: prisma.articleCommentVote,
+    post: prisma.socialCommentVote,
+    event: prisma.researchEventCommentVote,
+    vacancy: prisma.jobVacancyCommentVote,
+    admission: prisma.phdAdmissionCommentVote,
+    supervisor: prisma.supervisorCommentVote,
+    recommendation: prisma.recommendationCommentVote,
+    help: prisma.helpPostCommentVote,
+    journal: prisma.journalCommentVote,
+    researchTool: prisma.researchToolCommentVote,
+    result: prisma.resultCommentVote,
 }
 
 const COMMENT_AUTHOR_FETCH: Record<string, (id: string) => Promise<string | null>> = {
-  article: (id) => prisma.articleComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  post: (id) => prisma.socialComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  event: (id) => prisma.researchEventComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  vacancy: (id) => prisma.jobVacancyComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  admission: (id) => prisma.phdAdmissionComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  supervisor: (id) => prisma.supervisorComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  recommendation: (id) => prisma.recommendationComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  help: (id) => prisma.helpPostComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  journal: (id) => prisma.journalComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  researchTool: (id) => prisma.researchToolComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
-  result: (id) => prisma.resultComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    article: (id) => prisma.articleComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    post: (id) => prisma.socialComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    event: (id) => prisma.researchEventComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    vacancy: (id) => prisma.jobVacancyComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    admission: (id) => prisma.phdAdmissionComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    supervisor: (id) => prisma.supervisorComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    recommendation: (id) => prisma.recommendationComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    help: (id) => prisma.helpPostComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    journal: (id) => prisma.journalComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    researchTool: (id) => prisma.researchToolComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    result: (id) => prisma.resultComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
 }
 
 export async function toggleCommentVote(
-  commentId: string,
-  type: CommentType,
-  voteType: 'UPVOTE' | 'DOWNVOTE',
+    commentId: string,
+    type: CommentType,
+    voteType: 'UPVOTE' | 'DOWNVOTE',
 ): Promise<{ userVote: 'UPVOTE' | 'DOWNVOTE' | null; upvotes: number; downvotes: number }> {
-  const user = await requireCurrentUser('Log in to react to this discussion.')
-  const model = COMMENT_VOTE_MODEL[type]
-  if (!model) throw new Error(`Unknown comment type: ${type}`)
+    const user = await requireCurrentUser('Log in to react to this discussion.')
+    const model = COMMENT_VOTE_MODEL[type]
+    if (!model) throw new Error(`Unknown comment type: ${type}`)
 
-  const existing = await (model as any).findUnique({
-    where: { commentId_userId: { commentId, userId: user.id } },
-  })
+    // Capture previous vote state before mutating
+    const existing = await (model as any).findUnique({
+        where: { commentId_userId: { commentId, userId: user.id } },
+    })
+    const previousVoteType: 'UPVOTE' | 'DOWNVOTE' | null = existing?.voteType ?? null
 
-  let finalVoteType: 'UPVOTE' | 'DOWNVOTE' | null = voteType
-  if (existing) {
-    if (existing.voteType === voteType) {
-      await (model as any).delete({ where: { id: existing.id } })
-      finalVoteType = null
+    let finalVoteType: 'UPVOTE' | 'DOWNVOTE' | null = voteType
+    if (existing) {
+        if (existing.voteType === voteType) {
+            await (model as any).delete({ where: { id: existing.id } })
+            finalVoteType = null
+        } else {
+            await (model as any).update({ where: { id: existing.id }, data: { voteType } })
+            finalVoteType = voteType
+        }
     } else {
-      await (model as any).update({ where: { id: existing.id }, data: { voteType } })
-      finalVoteType = voteType
+        await (model as any).create({ data: { commentId, userId: user.id, voteType } })
+        finalVoteType = voteType
     }
-  } else {
-    await (model as any).create({ data: { commentId, userId: user.id, voteType } })
-    finalVoteType = voteType
-  }
 
-  const [upvotes, downvotes] = await Promise.all([
-    (model as any).count({ where: { commentId, voteType: 'UPVOTE' } }),
-    (model as any).count({ where: { commentId, voteType: 'DOWNVOTE' } }),
-  ])
+    const [upvotes, downvotes] = await Promise.all([
+        (model as any).count({ where: { commentId, voteType: 'UPVOTE' } }),
+        (model as any).count({ where: { commentId, voteType: 'DOWNVOTE' } }),
+    ])
 
-  // 🔥 Fire-and-forget: incremental reputation update (1 query instead of 23+)
-  const commentAuthorId = await COMMENT_AUTHOR_FETCH[type]?.(commentId)
-  if (commentAuthorId) {
-    const voteDelta = voteType === 'UPVOTE' ? 1 : -1;
-    import('./interactions').then(({ updateReputationIncremental }) => {
-      updateReputationIncremental(commentAuthorId, voteDelta).catch(() => {});
-    }).catch(() => {});
-  }
+    // 🔥 Accurate incremental reputation update (1 query instead of 23+)
+    const commentAuthorId = await COMMENT_AUTHOR_FETCH[type]?.(commentId)
+    if (commentAuthorId) {
+        // Compute the net reputation delta based on actual vote change
+        let voteDelta = 0;
+        if (previousVoteType === voteType) {
+            // Removing vote (toggle off): reverse the previous vote's effect
+            voteDelta = voteType === 'UPVOTE' ? -1 : 1;
+        } else if (previousVoteType === null) {
+            // New vote
+            voteDelta = voteType === 'UPVOTE' ? 1 : -1;
+        } else {
+            // Switching vote (prev is opposite direction): net ±2
+            voteDelta = voteType === 'UPVOTE' ? 2 : -2;
+        }
 
-  const revalidateMap: Record<string, string> = {
-    article: '/blog/[slug]', post: '/feed', event: '/events/[id]', vacancy: '/vacancies/[id]',
-    admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/recommendation/[id]',
-    help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]',
-  }
-  const path = revalidateMap[type]
-  if (path) {
-    if (path.includes('[id]')) revalidatePath(path, 'page' as any)
-    else revalidatePath(path)
-  }
+        await updateReputationIncremental(commentAuthorId, voteDelta);
+    }
 
-  return { userVote: finalVoteType, upvotes, downvotes }
+    const revalidateMap: Record<string, string> = {
+        article: '/blog/[slug]', post: '/feed', event: '/events/[id]', vacancy: '/vacancies/[id]',
+        admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/recommendation/[id]',
+        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]',
+    }
+    const path = revalidateMap[type]
+    if (path) {
+        if (path.includes('[id]')) revalidatePath(path, 'page' as any)
+        else revalidatePath(path)
+    }
+
+    // Also revalidate author profile
+    if (commentAuthorId) {
+        revalidatePath(`/scholar/${commentAuthorId}`)
+    }
+
+    return { userVote: finalVoteType, upvotes, downvotes }
 }
