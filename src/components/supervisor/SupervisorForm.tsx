@@ -1,4 +1,5 @@
 import { createSupervisor, updateSupervisor } from "@/app/actions/supervisors";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type SupervisorFormValues = {
   name: string;
@@ -78,9 +79,9 @@ export default function SupervisorForm({
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <button type="submit" className="sb-button-accent">
+        <SubmitBtn className="sb-button-accent">
           {mode === "edit" ? "Save Changes" : "Add Supervisor"}
-        </button>
+        </SubmitBtn>
       </div>
     </form>
   );

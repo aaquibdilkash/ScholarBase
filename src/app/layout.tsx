@@ -41,7 +41,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased text-slate-900 min-h-screen`}
       >
-        <NextTopLoader />
+        <NextTopLoader showSpinner={false} />
         <AppProviders>
           <div className="flex min-h-screen">
             <Sidebar user={user} />

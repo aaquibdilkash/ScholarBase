@@ -8,13 +8,16 @@ import {
   type ReactNode,
 } from "react";
 
+type ToastType = "success" | "error";
+
 interface Toast {
   id: string;
   message: string;
+  type: ToastType;
 }
 
 interface ToastContextValue {
-  toast: (message: string) => void;
+  toast: (message: string, type?: ToastType) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -28,9 +31,9 @@ export function useToast() {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = useCallback((message: string) => {
+  const toast = useCallback((message: string, type: ToastType = "success") => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setToasts((prev) => [...prev, { id, message }]);
+    setToasts((prev) => [...prev, { id, message, type }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -46,20 +49,40 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto animate-in slide-in-from-bottom-4 fade-in rounded-2xl border border-slate-200/70 bg-white px-5 py-3 text-sm font-medium text-slate-900 shadow-[0_12px_32px_rgba(15,23,42,0.15)] backdrop-blur-xl"
+            className={`pointer-events-auto animate-in slide-in-from-bottom-4 fade-in rounded-2xl border px-5 py-3 text-sm font-medium shadow-[0_12px_32px_rgba(15,23,42,0.15)] backdrop-blur-xl ${
+              t.type === "error"
+                ? "border-red-200/70 bg-red-50 text-red-900"
+                : "border-slate-200/70 bg-white text-slate-900"
+            }`}
           >
             <span className="inline-flex items-center gap-2">
-              <svg
-                className="w-4 h-4 text-green-500 shrink-0"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+              {t.type === "error" ? (
+                <svg
+                  className="w-4 h-4 text-red-500 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              ) : (
+                <svg
+                  className="w-4 h-4 text-green-500 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
               {t.message}
             </span>
           </div>

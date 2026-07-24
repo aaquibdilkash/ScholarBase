@@ -421,7 +421,7 @@ export async function updateProfile(formData: FormData) {
         }
     })
 
-    revalidatePath(`/scholar/${updatedUser.handle}`)
+    revalidatePath(`/scholar/${updatedUser.id}`)
 
     return {
         success: true,

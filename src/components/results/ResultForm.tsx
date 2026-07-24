@@ -1,4 +1,5 @@
 import { createResult, updateResult } from "@/app/actions/results";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type ResultFormValues = {
   title: string;
@@ -143,9 +144,9 @@ export default function ResultForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent mt-2 self-end">
+      <SubmitBtn className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Publish Result"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }

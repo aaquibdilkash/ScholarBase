@@ -1,4 +1,4 @@
-import { createSocialPost, getFeed } from "@/app/actions/feed";
+import { getFeed } from "@/app/actions/feed";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -6,6 +6,7 @@ import ListPageShell from "@/components/layout/ListPageShell";
 import { getTrendingSocialPosts } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { FeedList } from "@/components/feed/FeedList";
+import { CreateSocialPostForm } from "@/components/feed/CreateSocialPostForm";
 
 export default async function FeedPage({
   searchParams,
@@ -46,24 +47,7 @@ export default async function FeedPage({
       }
       all={
         <>
-          {!isTrendingTab && (
-            <div className="sb-surface-strong mb-10 p-6 md:p-7">
-              <form action={createSocialPost} className="flex flex-col gap-4">
-                <textarea
-                  name="content"
-                  placeholder="What are you researching today?"
-                  className="w-full resize-none border-none bg-transparent p-2 text-lg text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
-                  rows={3}
-                  required
-                />
-                <div className="flex justify-end border-t border-slate-100 pt-4">
-                  <button type="submit" className="sb-button-accent">
-                    Post Update
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+          {!isTrendingTab && <CreateSocialPostForm />}
           <FeedList
             posts={posts}
             currentUserId={user.id}

@@ -2,6 +2,7 @@ import {
   createResearchTool,
   updateResearchTool,
 } from "@/app/actions/researchTools";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type ResearchToolFormValues = {
   name: string;
@@ -84,9 +85,9 @@ export default function ResearchToolForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent mt-2 self-end">
+      <SubmitBtn className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Add Research Tool"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }

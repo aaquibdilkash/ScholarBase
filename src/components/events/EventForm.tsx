@@ -1,7 +1,5 @@
-import {
-  createResearchEvent,
-  updateResearchEvent,
-} from "@/app/actions/events";
+import { createResearchEvent, updateResearchEvent } from "@/app/actions/events";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type EventFormValues = {
   title: string;
@@ -125,9 +123,9 @@ export default function EventForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent mt-2 self-end">
+      <SubmitBtn className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Publish Event"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }

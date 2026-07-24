@@ -4,14 +4,16 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatTimeAgo } from "@/utils/time-ago";
-import { createCommentClientWrapper } from "@/app/actions/comments.clientWrappers";
-
 import {
+  createCommentClientWrapper,
   deleteCommentClientWrapper,
   editCommentClientWrapper,
 } from "@/app/actions/comments.clientWrappers";
+
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import CommentActionsDropdown from "@/components/interactions/CommentActionsDropdown";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useToast } from "@/components/ui/Toast";
 
 // Define the exact shape Prisma is sending down
 type User = { id: string; name: string | null; avatarUrl: string | null };
@@ -58,21 +60,27 @@ export function CommentSection({
 }: CommentSectionProps) {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const topLevelComments = comments.filter((comment) => !comment.parentId);
+
+  const handleCreateComment = async (formData: FormData) => {
+    try {
+      await createCommentClientWrapper(formData);
+      toast("Comment posted successfully!", "success");
+    } catch {
+      toast("Failed to post comment. Please try again.", "error");
+    }
+  };
 
   return (
     <div className="space-y-8">
       {/* Form: Add a Top-Level Comment */}
       {currentUserId && (
-        <form
-          action={createCommentClientWrapper.bind(null)}
-          className="flex gap-4"
-        >
+        <form action={handleCreateComment} className="flex gap-4">
           <input type="hidden" name="_targetId" value={targetId} />
           <input type="hidden" name="_type" value={type} />
           <input type="hidden" name="_parentId" value="" />
-
           <input type="hidden" name="_commentId" value="" />
 
           <div className="flex-1 flex flex-col gap-2">
@@ -84,12 +92,9 @@ export function CommentSection({
               className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
             />
             <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition"
-              >
+              <SubmitBtn className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition">
                 Post Comment
-              </button>
+              </SubmitBtn>
             </div>
           </div>
         </form>
@@ -111,6 +116,7 @@ export function CommentSection({
             editingId={editingId}
             setEditingId={setEditingId}
             isReply={false}
+            toast={toast}
           />
         ))}
 
@@ -138,6 +144,7 @@ function CommentEntry({
   editingId,
   setEditingId,
   isReply,
+  toast,
 }: {
   comment: Comment;
   replies?: Reply[];
@@ -150,6 +157,7 @@ function CommentEntry({
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   isReply: boolean;
+  toast: (message: string, type?: "success" | "error") => void;
 }) {
   const deleteFormRef = useRef<HTMLFormElement>(null);
   const isOwner = !!currentUserId && comment.author.id === currentUserId;
@@ -159,13 +167,32 @@ function CommentEntry({
     1000;
 
   const handleReplySuccess = async (formData: FormData) => {
-    await createCommentClientWrapper(formData);
-    setActiveReplyId(null);
+    try {
+      await createCommentClientWrapper(formData);
+      toast("Reply posted successfully!", "success");
+      setActiveReplyId(null);
+    } catch {
+      toast("Failed to post reply. Please try again.", "error");
+    }
   };
 
   const handleEditSuccess = async (formData: FormData) => {
-    await editCommentClientWrapper(formData);
-    setEditingId(null);
+    try {
+      await editCommentClientWrapper(formData);
+      toast("Comment updated!", "success");
+      setEditingId(null);
+    } catch {
+      toast("Failed to update comment. Please try again.", "error");
+    }
+  };
+
+  const handleDeleteComment = async (formData: FormData) => {
+    try {
+      await deleteCommentClientWrapper(formData);
+      toast("Comment deleted.", "success");
+    } catch {
+      toast("Failed to delete comment. Please try again.", "error");
+    }
   };
 
   return (
@@ -251,12 +278,9 @@ function CommentEntry({
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 text-sm bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition"
-                >
+                <SubmitBtn className="px-4 py-1.5 text-sm bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">
                   Save
-                </button>
+                </SubmitBtn>
               </div>
             </form>
           ) : (
@@ -278,7 +302,7 @@ function CommentEntry({
                   />
                   <form
                     ref={deleteFormRef}
-                    action={deleteCommentClientWrapper.bind(null)}
+                    action={handleDeleteComment}
                     className="hidden"
                   >
                     <input type="hidden" name="_commentId" value={comment.id} />
@@ -337,12 +361,9 @@ function CommentEntry({
                   rows={1}
                   className="flex-1 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none text-sm resize-none bg-slate-50 focus:bg-white"
                 />
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition"
-                >
+                <SubmitBtn className="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition">
                   Send
-                </button>
+                </SubmitBtn>
               </form>
             )}
           </>
@@ -364,6 +385,7 @@ function CommentEntry({
                 editingId={editingId}
                 setEditingId={setEditingId}
                 isReply={true}
+                toast={toast}
               />
             ))}
           </div>

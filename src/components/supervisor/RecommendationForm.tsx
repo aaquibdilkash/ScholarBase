@@ -2,6 +2,7 @@ import {
   createRecommendation,
   updateRecommendation,
 } from "@/app/actions/recommendations";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type RecommendationFormValues = {
   rating: string;
@@ -131,12 +132,9 @@ export default function RecommendationForm({
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200"
-        >
+        <SubmitBtn className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200">
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
-        </button>
+        </SubmitBtn>
       </div>
     </form>
   );

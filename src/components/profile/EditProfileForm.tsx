@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { updateProfile, isHandleAvailable as checkHandle } from "@/app/actions/profile";
-import { BrandMark } from "@/components/BrandMark";
+import {
+  updateProfile,
+  isHandleAvailable as checkHandle,
+} from "@/app/actions/profile";
+import { useToast } from "@/components/ui/Toast";
 
 type UserData = {
+  id: string;
   name: string | null;
   handle: string | null;
   bio: string | null;
@@ -13,7 +17,10 @@ type UserData = {
 };
 
 // Simple debounce hook
-function useDebounce<T extends (...args: any[]) => void>(callback: T, delay: number) {
+function useDebounce<T extends (...args: any[]) => void>(
+  callback: T,
+  delay: number,
+) {
   const callbackRef = useRef(callback);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -21,25 +28,30 @@ function useDebounce<T extends (...args: any[]) => void>(callback: T, delay: num
     callbackRef.current = callback;
   }, [callback]);
 
-  return useCallback((...args: Parameters<T>) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      callbackRef.current(...args);
-    }, delay);
-  }, [delay]);
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay],
+  );
 }
-
 
 export default function EditProfileForm({ user }: { user: UserData }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [handle, setHandle] = useState(user.handle || "");
-  const [isHandleAvailable, setIsHandleAvailable] = useState<boolean | null>(null);
+  const [isHandleAvailable, setIsHandleAvailable] = useState<boolean | null>(
+    null,
+  );
   const [isHandleValid, setIsHandleValid] = useState(true);
   const [isCheckingHandle, setIsCheckingHandle] = useState(false);
+  const { toast } = useToast();
 
   const debouncedCheckHandle = useDebounce(async (h: string) => {
     if (h.length > 2) {
@@ -64,23 +76,27 @@ export default function EditProfileForm({ user }: { user: UserData }) {
     }
   }, [handle, user.handle, debouncedCheckHandle]);
 
-
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setIsPending(true);
     setError(null);
 
     try {
+      const formData = new FormData(e.currentTarget);
       const result = await updateProfile(formData);
 
       if (result?.success) {
-        // updateProfile currently only returns { success, message }
-        // Redirect back to their profile page after a successful save.
-        router.refresh();
+        toast("Profile updated successfully!", "success");
+        router.push(`/scholar/${user.id}`);
       } else {
-        setError(result?.message || "Failed to update profile.");
+        const msg = result?.message || "Failed to update profile.";
+        setError(msg);
+        toast(msg, "error");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update profile.");
+      const msg = e instanceof Error ? e.message : "Failed to update profile.";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setIsPending(false);
     }
@@ -88,7 +104,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
 
   return (
     <form
-      action={handleSubmit}
+      onSubmit={handleSubmit}
       className="sb-surface-strong space-y-6 p-8 md:p-10"
     >
       {error && (
@@ -122,10 +138,10 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               !isHandleValid
                 ? "border-red-500"
                 : isHandleAvailable === true
-                ? "border-green-500"
-                : isHandleAvailable === false
-                ? "border-red-500"
-                : ""
+                  ? "border-green-500"
+                  : isHandleAvailable === false
+                    ? "border-red-500"
+                    : ""
             }`}
             placeholder="janesmith"
           />
@@ -139,7 +155,9 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           </p>
         )}
         {isCheckingHandle && (
-          <p className="mt-2 text-xs text-slate-500">Checking availability...</p>
+          <p className="mt-2 text-xs text-slate-500">
+            Checking availability...
+          </p>
         )}
         {isHandleAvailable !== null && !isCheckingHandle && (
           <p
@@ -147,7 +165,9 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               isHandleAvailable ? "text-green-500" : "text-red-500"
             }`}
           >
-            {isHandleAvailable ? "Handle is available!" : "Handle is already taken."}
+            {isHandleAvailable
+              ? "Handle is available!"
+              : "Handle is already taken."}
           </p>
         )}
       </div>
@@ -176,10 +196,40 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       <div className="flex justify-end pt-4">
         <button
           type="submit"
-          disabled={isPending || !isHandleValid || isCheckingHandle || isHandleAvailable === false}
-          className="sb-button-accent disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={
+            isPending ||
+            !isHandleValid ||
+            isCheckingHandle ||
+            isHandleAvailable === false
+          }
+          className="sb-button-accent disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-2"
         >
-          {isPending ? "Saving..." : "Save Profile"}
+          {isPending ? (
+            <>
+              <svg
+                className="animate-spin h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              Saving...
+            </>
+          ) : (
+            "Save Profile"
+          )}
         </button>
       </div>
     </form>

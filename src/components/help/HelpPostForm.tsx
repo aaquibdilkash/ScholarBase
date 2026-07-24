@@ -1,4 +1,5 @@
 import { createHelpPost, updateHelpPost } from "@/app/actions/help";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type HelpPostFormValues = {
   title: string;
@@ -34,10 +35,7 @@ export default function HelpPostForm({
   const formAction = mode === "edit" ? handleEditAction : createHelpPost;
 
   return (
-    <form
-      action={formAction}
-      className="sb-surface-strong p-8 md:p-10"
-    >
+    <form action={formAction} className="sb-surface-strong p-8 md:p-10">
       <div className="flex flex-col gap-6">
         <div>
           <label className="sb-label">Title</label>
@@ -91,14 +89,13 @@ export default function HelpPostForm({
         </div>
 
         <div className="pt-4 border-t border-slate-100 flex justify-end">
-          <button
-            type="submit"
+          <SubmitBtn
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"
             }
           >
             {mode === "edit" ? "Save" : "Post"}
-          </button>
+          </SubmitBtn>
         </div>
       </div>
     </form>

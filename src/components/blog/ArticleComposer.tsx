@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { RichContent } from "@/components/content/RichContent";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 const Editor = dynamic(() => import("@/components/blog/Editor"), {
   ssr: false,
@@ -15,7 +16,11 @@ type ArticleComposerProps = {
   initialValues?: { title: string; excerpt: string; content: string };
 };
 
-export function ArticleComposer({ action, mode = "create", initialValues }: ArticleComposerProps) {
+export function ArticleComposer({
+  action,
+  mode = "create",
+  initialValues,
+}: ArticleComposerProps) {
   // Initialize state with initialValues if provided, otherwise empty strings
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [excerpt, setExcerpt] = useState(initialValues?.excerpt ?? "");
@@ -69,9 +74,9 @@ export function ArticleComposer({ action, mode = "create", initialValues }: Arti
         </div>
 
         <div className="flex justify-end border-t border-slate-100 pt-4">
-          <button type="submit" className="sb-button-accent">
+          <SubmitBtn className="sb-button-accent">
             {mode === "edit" ? "Save Changes" : "Publish Article"}
-          </button>
+          </SubmitBtn>
         </div>
       </form>
 

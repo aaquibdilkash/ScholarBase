@@ -1,7 +1,5 @@
-import {
-  createJobVacancy,
-  updateJobVacancy,
-} from "@/app/actions/vacancies";
+import { createJobVacancy, updateJobVacancy } from "@/app/actions/vacancies";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type VacancyFormValues = {
   title: string;
@@ -113,9 +111,9 @@ export default function VacancyForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent mt-2 self-end">
+      <SubmitBtn className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Post Vacancy"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }

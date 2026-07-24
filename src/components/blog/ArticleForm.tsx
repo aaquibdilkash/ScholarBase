@@ -1,4 +1,5 @@
 import { createArticle, updateArticle } from "@/app/actions/blog";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type ArticleFormValues = {
   title: string;
@@ -68,9 +69,9 @@ export default function ArticleForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent">
+      <SubmitBtn className="sb-button-accent">
         {mode === "edit" ? "Save Changes" : "Publish Article"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }

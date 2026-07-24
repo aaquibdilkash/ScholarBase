@@ -1,13 +1,13 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
-import {
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "@/app/actions/notifications";
+import { getNotificationLink } from "@/lib/notifications";
 import Image from "next/image";
 import Link from "next/link";
-import { getNotificationLink } from "@/lib/notifications";
+import {
+  MarkReadButton,
+  MarkAllReadButton,
+} from "@/components/notifications/MarkReadButton";
 
 function typeLabel(type: string) {
   switch (type) {
@@ -68,13 +68,7 @@ export default async function NotificationsPage() {
           </p>
         </div>
 
-        {unreadCount > 0 && (
-          <form action={markAllNotificationsRead}>
-            <button type="submit" className="sb-button-soft whitespace-nowrap">
-              Mark all read
-            </button>
-          </form>
-        )}
+        {unreadCount > 0 && <MarkAllReadButton />}
       </div>
 
       <div className="space-y-4">
@@ -116,14 +110,7 @@ export default async function NotificationsPage() {
           );
 
           const markReadButton = !notification.readAt && (
-            <form action={markNotificationRead.bind(null, notification.id)}>
-              <button
-                type="submit"
-                className="sb-button-soft whitespace-nowrap px-4 py-2"
-              >
-                Mark read
-              </button>
-            </form>
+            <MarkReadButton notificationId={notification.id} />
           );
 
           return (

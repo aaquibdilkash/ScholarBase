@@ -3,6 +3,7 @@
 import { toggleVote } from "@/app/actions/interactions";
 import { useState, useTransition } from "react";
 import { VoteArrowIcon } from "../icons/VoteIcons";
+import { useToast } from "@/components/ui/Toast";
 
 export type VoteType = "UPVOTE" | "DOWNVOTE";
 export type VoteTargetType =
@@ -32,13 +33,16 @@ export function VoteButton({
   initialUserVote: VoteType | null;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
   const [userVote, setUserVote] = useState<VoteType | null>(initialUserVote);
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
+  const { toast } = useToast();
 
   const netScore = upvotes - downvotes;
 
   const handleVote = (voteType: VoteType) => {
+    setPendingVote(voteType);
     startTransition(async () => {
       // Optimistic update
       const prevVote = userVote;
@@ -65,11 +69,13 @@ export function VoteButton({
         setUserVote(result.userVote);
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
+        toast("Vote registered!", "success");
       } catch {
         // Revert
         setUserVote(prevVote);
         setUpvotes(prevUpvotes);
         setDownvotes(prevDownvotes);
+        toast("Failed to register vote. Please try again.", "error");
       }
     });
   };
@@ -86,10 +92,28 @@ export function VoteButton({
         }`}
         title="Upvote"
       >
-        <VoteArrowIcon
-          direction="up"
-          className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-600" : ""}`}
-        />
+        {isPending && pendingVote === "UPVOTE" ? (
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+        ) : (
+          <VoteArrowIcon
+            direction="up"
+            className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-600" : ""}`}
+          />
+        )}
       </button>
 
       <span
@@ -114,10 +138,28 @@ export function VoteButton({
         }`}
         title="Downvote"
       >
-        <VoteArrowIcon
-          direction="down"
-          className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-600" : ""}`}
-        />
+        {isPending && pendingVote === "DOWNVOTE" ? (
+          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+        ) : (
+          <VoteArrowIcon
+            direction="down"
+            className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-600" : ""}`}
+          />
+        )}
       </button>
     </div>
   );

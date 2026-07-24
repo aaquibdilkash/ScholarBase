@@ -1,4 +1,5 @@
 import { createJournal, updateJournal } from "@/app/actions/journals";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type JournalFormValues = {
   title: string;
@@ -128,9 +129,9 @@ export default function JournalForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent mt-2 self-end">
+      <SubmitBtn className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Add Journal"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }

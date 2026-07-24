@@ -2,6 +2,7 @@ import {
   updatePhdAdmission,
   createPhdAdmission,
 } from "@/app/actions/admissions";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export type AdmissionFormValues = {
   university: string;
@@ -113,9 +114,9 @@ export default function AdmissionForm({
         />
       </div>
 
-      <button type="submit" className="sb-button-accent mt-2 self-end">
+      <SubmitBtn className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Post Notification"}
-      </button>
+      </SubmitBtn>
     </form>
   );
 }
