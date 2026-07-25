@@ -3,7 +3,14 @@ import Link from "next/link";
 
 type FooterItem = {
   id: string;
-  type: "vacancy" | "admission" | "event" | "help" | "journal" | "researchTool";
+  type:
+    | "vacancy"
+    | "admission"
+    | "event"
+    | "help"
+    | "journal"
+    | "researchTool"
+    | "contribution";
   _count: { votes: number; comments: number };
 };
 
@@ -20,7 +27,9 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
             ? "journals"
             : type === "researchTool"
               ? "research-tools"
-              : "events"
+              : type === "contribution"
+                ? "contributions"
+                : "events"
   }/${id}`;
 
   return (

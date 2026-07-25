@@ -38,9 +38,13 @@ export type ListPageCardShellProps = {
 
   editedDate?: Date | string;
   createdDate: Date | string;
+  createdLabel?: string;
+  editedLabel?: string;
 };
 
 export default function ListPageCardShell({
+  createdLabel = "Created",
+  editedLabel = "Edited",
   authorHref,
   authorName,
   authorHandle,
@@ -120,11 +124,11 @@ export default function ListPageCardShell({
       <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
         <span className="font-semibold text-slate-400">
           {" "}
-          Created {formatTimeAgo(createdDate)}
+          {createdLabel} {formatTimeAgo(createdDate)}
         </span>
         {editedDate && (
           <span className="font-semibold text-slate-400">
-            Edited {formatTimeAgo(editedDate)}
+            {editedLabel} {formatTimeAgo(editedDate)}
           </span>
         )}
       </div>

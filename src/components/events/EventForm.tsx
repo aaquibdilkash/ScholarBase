@@ -1,12 +1,16 @@
+"use client";
+
 import { createResearchEvent, updateResearchEvent } from "@/app/actions/events";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type EventFormValues = {
   title: string;
-  date: string; // yyyy-mm-dd
+  date: string;
   location: string;
   description: string;
-  deadline: string; // optional yyyy-mm-dd (can be empty)
+  deadline: string;
   notificationLink: string;
   applyLink: string;
 };
@@ -20,7 +24,7 @@ export default function EventForm({
   eventId?: string;
   initialValues?: Partial<EventFormValues>;
 }) {
-  const values: EventFormValues = {
+  const initial = {
     title: initialValues?.title ?? "",
     date: initialValues?.date ?? "",
     location: initialValues?.location ?? "",
@@ -30,18 +34,34 @@ export default function EventForm({
     applyLink: initialValues?.applyLink ?? "",
   };
 
-  // 👇 1. Define the Server Action cleanly OUTSIDE of the JSX
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateResearchEvent(formData, String(eventId));
-  }
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_event_${mode}`,
+    initial,
+  );
 
-  // 👇 2. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createResearchEvent;
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Event published successfully!",
+      errorMessage: "Failed to publish event.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && eventId) {
+      await updateResearchEvent(formData, eventId);
+    } else {
+      await submit(() => createResearchEvent(formData));
+    }
+  }
 
   return (
     <form
-      action={formAction}
+      onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       <div>
@@ -51,7 +71,8 @@ export default function EventForm({
           placeholder="e.g., Annual Conference on Financial Econometrics"
           className="sb-input"
           required
-          defaultValue={values.title}
+          value={draftFields.title}
+          onChange={(e) => updateDraftField("title", e.target.value)}
         />
       </div>
 
@@ -63,7 +84,8 @@ export default function EventForm({
             name="date"
             className="sb-input"
             required
-            defaultValue={values.date}
+            value={draftFields.date}
+            onChange={(e) => updateDraftField("date", e.target.value)}
           />
         </div>
         <div>
@@ -73,7 +95,8 @@ export default function EventForm({
             placeholder="e.g., New Delhi, India or Virtual"
             className="sb-input"
             required
-            defaultValue={values.location}
+            value={draftFields.location}
+            onChange={(e) => updateDraftField("location", e.target.value)}
           />
         </div>
       </div>
@@ -84,7 +107,8 @@ export default function EventForm({
           type="date"
           name="deadline"
           className="sb-input"
-          defaultValue={values.deadline}
+          value={draftFields.deadline}
+          onChange={(e) => updateDraftField("deadline", e.target.value)}
         />
       </div>
 
@@ -95,7 +119,8 @@ export default function EventForm({
           placeholder="Briefly describe the theme of the conference and presentation tracks..."
           className="sb-input h-32"
           required
-          defaultValue={values.description}
+          value={draftFields.description}
+          onChange={(e) => updateDraftField("description", e.target.value)}
         />
       </div>
 
@@ -107,7 +132,8 @@ export default function EventForm({
           placeholder="https://university.edu/brochure.pdf"
           className="sb-input"
           required
-          defaultValue={values.notificationLink}
+          value={draftFields.notificationLink}
+          onChange={(e) => updateDraftField("notificationLink", e.target.value)}
         />
       </div>
 
@@ -119,7 +145,8 @@ export default function EventForm({
           placeholder="https://easychair.org/cfp/..."
           className="sb-input"
           required
-          defaultValue={values.applyLink}
+          value={draftFields.applyLink}
+          onChange={(e) => updateDraftField("applyLink", e.target.value)}
         />
       </div>
 

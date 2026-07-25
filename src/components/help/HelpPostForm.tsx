@@ -1,5 +1,9 @@
+"use client";
+
 import { createHelpPost, updateHelpPost } from "@/app/actions/help";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type HelpPostFormValues = {
   title: string;
@@ -8,7 +12,6 @@ export type HelpPostFormValues = {
   message: string;
 };
 
-// 👇 1. Removed "use client" so this runs as a Server Component
 export default function HelpPostForm({
   mode,
   helpPostId,
@@ -18,24 +21,40 @@ export default function HelpPostForm({
   helpPostId?: string;
   initialValues?: Partial<HelpPostFormValues>;
 }) {
-  const values: HelpPostFormValues = {
+  const initial = {
     title: initialValues?.title ?? "",
     category: initialValues?.category ?? "",
     subject: initialValues?.subject ?? "",
     message: initialValues?.message ?? "",
   };
 
-  // 👇 2. Define the Server Action cleanly OUTSIDE of the JSX
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateHelpPost(formData, String(helpPostId));
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_helppost_${mode}`,
+    initial,
+  );
+
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Help post created successfully!",
+      errorMessage: "Failed to create help post.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && helpPostId) {
+      await updateHelpPost(formData, helpPostId);
+    } else {
+      await submit(() => createHelpPost(formData));
+    }
   }
 
-  // 👇 3. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createHelpPost;
-
   return (
-    <form action={formAction} className="sb-surface-strong p-8 md:p-10">
+    <form onSubmit={onSubmit} className="sb-surface-strong p-8 md:p-10">
       <div className="flex flex-col gap-6">
         <div>
           <label className="sb-label">Title</label>
@@ -45,7 +64,8 @@ export default function HelpPostForm({
             placeholder="Enter a descriptive title"
             className="sb-input"
             required
-            defaultValue={values.title}
+            value={draftFields.title}
+            onChange={(e) => updateDraftField("title", e.target.value)}
           />
         </div>
 
@@ -55,7 +75,8 @@ export default function HelpPostForm({
             name="category"
             className="sb-input"
             required
-            defaultValue={values.category}
+            value={draftFields.category}
+            onChange={(e) => updateDraftField("category", e.target.value)}
           >
             <option value="">Select a category</option>
             <option value="Bug">Bug Report</option>
@@ -72,7 +93,8 @@ export default function HelpPostForm({
             placeholder="Short summary of your requirement..."
             className="sb-input"
             required
-            defaultValue={values.subject}
+            value={draftFields.subject}
+            onChange={(e) => updateDraftField("subject", e.target.value)}
           />
         </div>
 
@@ -84,7 +106,8 @@ export default function HelpPostForm({
             className="sb-textarea"
             rows={8}
             required
-            defaultValue={values.message}
+            value={draftFields.message}
+            onChange={(e) => updateDraftField("message", e.target.value)}
           />
         </div>
 

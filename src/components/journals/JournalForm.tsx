@@ -1,5 +1,9 @@
+"use client";
+
 import { createJournal, updateJournal } from "@/app/actions/journals";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type JournalFormValues = {
   title: string;
@@ -21,7 +25,7 @@ export default function JournalForm({
   journalId?: string;
   initialValues?: Partial<JournalFormValues>;
 }) {
-  const values: JournalFormValues = {
+  const initial = {
     title: initialValues?.title ?? "",
     issn: initialValues?.issn ?? "",
     impactFactor: initialValues?.impactFactor ?? "",
@@ -32,18 +36,34 @@ export default function JournalForm({
     about: initialValues?.about ?? "",
   };
 
-  // 👇 1. Define the Server Action cleanly OUTSIDE of the JSX
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateJournal(formData, String(journalId));
-  }
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_journal_${mode}`,
+    initial,
+  );
 
-  // 👇 2. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createJournal;
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Journal added successfully!",
+      errorMessage: "Failed to add journal.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && journalId) {
+      await updateJournal(formData, journalId);
+    } else {
+      await submit(() => createJournal(formData));
+    }
+  }
 
   return (
     <form
-      action={formAction}
+      onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       <div>
@@ -53,7 +73,8 @@ export default function JournalForm({
           placeholder="e.g., Journal of Financial Economics"
           className="sb-input"
           required
-          defaultValue={values.title}
+          value={draftFields.title}
+          onChange={(e) => updateDraftField("title", e.target.value)}
         />
       </div>
 
@@ -64,7 +85,8 @@ export default function JournalForm({
             name="issn"
             placeholder="e.g., 0304-405X"
             className="sb-input"
-            defaultValue={values.issn}
+            value={draftFields.issn}
+            onChange={(e) => updateDraftField("issn", e.target.value)}
           />
         </div>
         <div>
@@ -73,7 +95,8 @@ export default function JournalForm({
             name="impactFactor"
             placeholder="e.g., 5.467"
             className="sb-input"
-            defaultValue={values.impactFactor}
+            value={draftFields.impactFactor}
+            onChange={(e) => updateDraftField("impactFactor", e.target.value)}
           />
         </div>
       </div>
@@ -85,7 +108,8 @@ export default function JournalForm({
             name="scopus"
             placeholder="e.g., Q1"
             className="sb-input"
-            defaultValue={values.scopus}
+            value={draftFields.scopus}
+            onChange={(e) => updateDraftField("scopus", e.target.value)}
           />
         </div>
         <div>
@@ -94,7 +118,8 @@ export default function JournalForm({
             name="abdcCategory"
             placeholder="e.g., A*"
             className="sb-input"
-            defaultValue={values.abdcCategory}
+            value={draftFields.abdcCategory}
+            onChange={(e) => updateDraftField("abdcCategory", e.target.value)}
           />
         </div>
       </div>
@@ -105,7 +130,8 @@ export default function JournalForm({
           name="publisher"
           placeholder="e.g., Elsevier"
           className="sb-input"
-          defaultValue={values.publisher}
+          value={draftFields.publisher}
+          onChange={(e) => updateDraftField("publisher", e.target.value)}
         />
       </div>
 
@@ -113,9 +139,10 @@ export default function JournalForm({
         <label className="sb-label">Website</label>
         <input
           name="website"
-          placeholder="https.www.sciencedirect.com/journal/journal-of-financial-economics"
+          placeholder="https://www.sciencedirect.com/journal/..."
           className="sb-input"
-          defaultValue={values.website}
+          value={draftFields.website}
+          onChange={(e) => updateDraftField("website", e.target.value)}
         />
       </div>
 
@@ -125,7 +152,8 @@ export default function JournalForm({
           name="about"
           placeholder="Briefly describe the journal and its focus..."
           className="sb-input h-32"
-          defaultValue={values.about}
+          value={draftFields.about}
+          onChange={(e) => updateDraftField("about", e.target.value)}
         />
       </div>
 

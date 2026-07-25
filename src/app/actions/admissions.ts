@@ -102,7 +102,7 @@ export async function createPhdAdmission(formData: FormData) {
     })
 
     revalidatePath('/admissions')
-    redirect('/admissions')
+    return { success: true, redirect: '/admissions' }
 }
 
 export async function updatePhdAdmission(formData: FormData, admissionId: string) {

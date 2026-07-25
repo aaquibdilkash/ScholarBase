@@ -1,5 +1,9 @@
+"use client";
+
 import { createSupervisor, updateSupervisor } from "@/app/actions/supervisors";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type SupervisorFormValues = {
   name: string;
@@ -8,7 +12,6 @@ export type SupervisorFormValues = {
   about?: string;
 };
 
-// 👇 1. Removed "use client" so this runs as a Server Component
 export default function SupervisorForm({
   mode,
   supervisorId,
@@ -18,24 +21,40 @@ export default function SupervisorForm({
   supervisorId?: string;
   initialValues?: Partial<SupervisorFormValues>;
 }) {
-  const values: SupervisorFormValues = {
+  const initial = {
     name: initialValues?.name ?? "",
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
     about: initialValues?.about ?? "",
   };
 
-  // 👇 2. Define the Server Action cleanly OUTSIDE of the JSX
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateSupervisor(formData, String(supervisorId));
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_supervisor_${mode}`,
+    initial,
+  );
+
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Supervisor added successfully!",
+      errorMessage: "Failed to add supervisor.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && supervisorId) {
+      await updateSupervisor(formData, supervisorId);
+    } else {
+      await submit(() => createSupervisor(formData));
+    }
   }
 
-  // 👇 3. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createSupervisor;
-
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div>
         <label className="sb-label">Full Name</label>
         <input
@@ -43,7 +62,8 @@ export default function SupervisorForm({
           placeholder="e.g., Prof. John Smith"
           className="sb-input"
           required
-          defaultValue={values.name}
+          value={draftFields.name}
+          onChange={(e) => updateDraftField("name", e.target.value)}
         />
       </div>
 
@@ -54,7 +74,8 @@ export default function SupervisorForm({
           placeholder="e.g., Jamia Millia Islamia"
           className="sb-input"
           required
-          defaultValue={values.university}
+          value={draftFields.university}
+          onChange={(e) => updateDraftField("university", e.target.value)}
         />
       </div>
 
@@ -64,7 +85,8 @@ export default function SupervisorForm({
           name="department"
           placeholder="e.g., Management and Finance"
           className="sb-input"
-          defaultValue={values.department}
+          value={draftFields.department}
+          onChange={(e) => updateDraftField("department", e.target.value)}
         />
       </div>
 
@@ -74,7 +96,8 @@ export default function SupervisorForm({
           name="about"
           placeholder="A short bio / research interests"
           className="sb-input min-h-[120px] resize-y"
-          defaultValue={values.about}
+          value={draftFields.about}
+          onChange={(e) => updateDraftField("about", e.target.value)}
         />
       </div>
 

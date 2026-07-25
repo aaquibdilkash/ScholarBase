@@ -1,6 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { createArticle } from "@/app/actions/blog";
 import { BrandMark } from "@/components/BrandMark";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
 import Link from "next/link";
@@ -38,7 +37,7 @@ export default async function NewArticlePage() {
       </div>
 
       <div className="sb-surface-strong p-8 md:p-10">
-        <ArticleComposer action={createArticle} />
+        <ArticleComposer />
       </div>
     </main>
   );

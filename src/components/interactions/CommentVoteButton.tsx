@@ -26,7 +26,8 @@ export function CommentVoteButton({
     | "help"
     | "researchTool"
     | "journal"
-    | "result";
+    | "result"
+    | "contribution";
   initialUpvotes: number;
   initialDownvotes: number;
   initialUserVote: VoteType | null;

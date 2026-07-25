@@ -108,7 +108,7 @@ export async function createJobVacancy(formData: FormData) {
     })
 
     revalidatePath('/vacancies')
-    redirect('/vacancies')
+    return { success: true, redirect: '/vacancies' }
 }
 
 export async function updateJobVacancy(formData: FormData, vacancyId: string) {

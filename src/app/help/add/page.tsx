@@ -2,6 +2,11 @@ import { createHelpPost } from "@/app/actions/help";
 import Link from "next/link";
 
 export default function NewHelpPostPage() {
+  async function handleSubmit(formData: FormData) {
+    "use server";
+    await createHelpPost(formData);
+  }
+
   return (
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
@@ -20,7 +25,7 @@ export default function NewHelpPostPage() {
         </p>
       </div>
       <div className="sb-surface-strong p-8 md:p-10">
-        <form action={createHelpPost} className="flex flex-col gap-6">
+        <form action={handleSubmit} className="flex flex-col gap-6">
           <div>
             <label className="sb-label">Title</label>
             <input

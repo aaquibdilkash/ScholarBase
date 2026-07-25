@@ -6,7 +6,9 @@ import {
   updateProfile,
   isHandleAvailable as checkHandle,
 } from "@/app/actions/profile";
+import { generateAvatarSignature } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
+import { useFormDraft } from "@/hooks/useFormDraft";
 
 type UserData = {
   id: string;
@@ -51,6 +53,9 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   );
   const [isHandleValid, setIsHandleValid] = useState(true);
   const [isCheckingHandle, setIsCheckingHandle] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || "");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const { toast } = useToast();
 
   const debouncedCheckHandle = useDebounce(async (h: string) => {
@@ -75,6 +80,53 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       setIsHandleAvailable(null);
     }
   }, [handle, user.handle, debouncedCheckHandle]);
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File size must be less than 5MB.");
+      return;
+    }
+
+    setUploading(true);
+    setUploadError("");
+
+    try {
+      const { timestamp, signature, apiKey, cloudName, folder } =
+        await generateAvatarSignature();
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", String(timestamp));
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: formData },
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || "Upload failed");
+      }
+
+      const data = await res.json();
+      setAvatarUrl(data.secure_url);
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to upload avatar.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -184,13 +236,40 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       </div>
 
       <div>
-        <label className="sb-label">Avatar URL (Temporary)</label>
-        <input
-          name="avatarUrl"
-          defaultValue={user.avatarUrl || ""}
-          className="sb-input"
-          placeholder="https://example.com/my-photo.jpg"
-        />
+        <label className="sb-label">Avatar</label>
+        <div className="mt-1 flex items-center gap-4">
+          {avatarUrl && (
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shrink-0">
+              <img
+                src={avatarUrl}
+                alt="Avatar preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+          <label className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
+            <span>{uploading ? "Uploading..." : "Choose Image"}</span>
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+            />
+          </label>
+          {avatarUrl && (
+            <span className="text-xs text-green-600 font-semibold">
+              ✓ Avatar uploaded
+            </span>
+          )}
+        </div>
+        {uploadError && (
+          <p className="mt-1 text-xs text-red-500 font-medium">{uploadError}</p>
+        )}
+        <p className="mt-2 text-xs text-slate-500">
+          Upload a profile photo. Recommended: square image, max 5MB.
+        </p>
+        <input type="hidden" name="avatarUrl" value={avatarUrl} />
       </div>
 
       <div className="flex justify-end pt-4">

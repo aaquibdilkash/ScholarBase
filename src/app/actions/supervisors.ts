@@ -108,8 +108,7 @@ export async function createSupervisor(formData: FormData) {
     },
   })
 
-
-  redirect(`/supervisor/${supervisor.id}`)
+  return { success: true, redirect: `/supervisor/${supervisor.id}` }
 }
 
 export async function updateSupervisor(formData: FormData, supervisorId: string) {

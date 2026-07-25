@@ -13,6 +13,7 @@ import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
+import { ContributionCard } from "@/components/contributions/ContributionCard";
 
 type ProfileData = {
   id: string;
@@ -157,6 +158,17 @@ const SECTIONS: SectionConfig[] = [
       items.map((r: any) => (
         <div key={r.id} className="flex-shrink-0 w-full snap-center">
           <ResultCard result={r} currentUserId={currentUserId} />
+        </div>
+      )),
+  },
+  {
+    key: "contributionPosts",
+    title: "Contributions",
+    emptyMessage: "No contributions made yet.",
+    renderItems: (items, currentUserId) =>
+      items.map((c: any) => (
+        <div key={c.id} className="flex-shrink-0 w-full snap-center">
+          <ContributionCard contribution={c} currentUserId={currentUserId} />
         </div>
       )),
   },

@@ -38,6 +38,8 @@ export function getNotificationLink(notification: Notification) {
           return `/research-tools/${notification.targetId}`;
         case "result":
           return `/results/${notification.targetId}`;
+        case "contribution":
+          return `/contributions/${notification.targetId}`;
         default:
           return null;
       }
@@ -56,6 +58,8 @@ export function getNotificationLink(notification: Notification) {
       return `/help/${notification.targetId}`;
     case "journal-upvoted":
       return `/journals/${notification.targetId}`;
+    case "contribution-upvoted":
+      return `/contributions/${notification.targetId}`;
     case "research-tool-upvoted":
       return `/research-tools/${notification.targetId}`;
     case "mention":

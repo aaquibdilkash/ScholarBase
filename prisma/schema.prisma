@@ -11,6 +11,12 @@ enum VoteType {
   DOWNVOTE
 }
 
+enum ContributionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Article {
   id        String           @id @default(uuid())
   title     String
@@ -192,8 +198,73 @@ model HelpPostCommentVote {
   @@index([commentId, voteType])
 }
 
+model Contribution {
+  id              String             @id @default(uuid())
+  title           String
+  amount          Float?
+  upiId           String?
+  message         String
+  paymentMethod   String?
+  screenshotUrl   String?
+  status          ContributionStatus @default(PENDING)
+  approvedAt      DateTime?
+  authorId        String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  author          User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  votes    ContributionVote[]
+  comments ContributionComment[]
+}
+
+model ContributionVote {
+  id             String       @id @default(uuid())
+  contributionId String
+  userId         String
+  voteType       VoteType
+
+  contribution Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([contributionId, userId])
+  @@index([contributionId, voteType])
+}
+
+model ContributionComment {
+  id             String   @id @default(uuid())
+  content        String
+  contributionId String
+  authorId       String
+  parentId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  contribution Contribution                @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  author       User                        @relation(fields: [authorId], references: [id])
+  parent       ContributionComment?        @relation("ContributionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      ContributionComment[]       @relation("ContributionReplies")
+  votes        ContributionCommentVote[]
+}
+
+model ContributionCommentVote {
+  id        String             @id @default(uuid())
+  commentId String
+  userId    String
+  voteType  VoteType
+  comment   ContributionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User               @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId, voteType])
+}
+
 model User {
   id String @id
+
+  contributionPosts     Contribution[]
+  contributionVotes     ContributionVote[]
+  contributionComments  ContributionComment[]
+  contributionCommentVotes ContributionCommentVote[]
 
   helpPosts            HelpPost[]
   helpPostVotes        HelpPostVote[]
@@ -206,6 +277,7 @@ model User {
   handle      String?  @unique
   bio         String?
   reputation  Int      @default(0)
+  isAdmin     Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   articles            Article[]

@@ -104,6 +104,14 @@ const VOTE_CONFIG: Record<string, {
     urlPrefix: '/results/',
     titleField: 'title',
   },
+  contribution: {
+    voteModel: prisma.contributionVote,
+    uniqueFields: ['contributionId', 'userId'],
+    targetIdField: 'contributionId',
+    notifType: 'contribution-upvoted',
+    urlPrefix: '/contributions/',
+    titleField: 'title',
+  },
 }
 
 // Model configs for each type to fetch author info for reputation
@@ -119,6 +127,7 @@ const CONTENT_AUTHOR_FETCH: Record<string, (targetId: string) => Promise<{ autho
   journal: (id) => prisma.journal.findUnique({ where: { id }, select: { authorId: true, title: true } }),
   researchTool: (id) => prisma.researchTool.findUnique({ where: { id }, select: { authorId: true, name: true } }).then(r => r ? { authorId: r.authorId, title: r.name } : null),
   result: (id) => prisma.result.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  contribution: (id) => prisma.contribution.findUnique({ where: { id }, select: { authorId: true, title: true } }),
 }
 
 /**
@@ -162,6 +171,8 @@ export async function updateReputation(userId: string) {
     prisma.researchToolVote.count({ where: { researchTool: { authorId: userId }, voteType: 'DOWNVOTE' } }),
     prisma.resultVote.count({ where: { result: { authorId: userId }, voteType: 'UPVOTE' } }),
     prisma.resultVote.count({ where: { result: { authorId: userId }, voteType: 'DOWNVOTE' } }),
+    prisma.contributionVote.count({ where: { contribution: { authorId: userId }, voteType: 'UPVOTE' } }),
+    prisma.contributionVote.count({ where: { contribution: { authorId: userId }, voteType: 'DOWNVOTE' } }),
     prisma.articleCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
     prisma.articleCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
     prisma.socialCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),

@@ -10,6 +10,8 @@ import { JournalCard } from "@/components/journals/JournalCard";
 import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
 
 import { HelpPostCard } from "@/components/help/HelpPostCard";
+import { ContributionCard } from "@/components/contributions/ContributionCard";
+import { ResultCard } from "@/components/results/ResultCard";
 
 export function TrendingList({
   items,
@@ -91,6 +93,22 @@ export function TrendingList({
               <HelpPostCard
                 key={item.id}
                 helpPost={item}
+                currentUserId={currentUserId}
+              />
+            );
+          case "contribution":
+            return (
+              <ContributionCard
+                key={item.id}
+                contribution={item}
+                currentUserId={currentUserId}
+              />
+            );
+          case "result":
+            return (
+              <ResultCard
+                key={item.id}
+                result={item}
                 currentUserId={currentUserId}
               />
             );

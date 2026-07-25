@@ -3,6 +3,7 @@
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
 export async function getHelpPosts(q?: string, userId?: string) {
@@ -108,7 +109,8 @@ export async function createHelpPost(formData: FormData) {
         },
     })
 
-    redirect('/help')
+    revalidatePath('/help')
+    return { success: true, redirect: '/help' }
 }
 
 export async function updateHelpPost(formData: FormData, helpPostId: string) {

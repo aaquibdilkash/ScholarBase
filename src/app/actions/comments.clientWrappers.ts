@@ -14,6 +14,7 @@ type CommentType =
     | 'journal'
     | 'researchTool'
     | 'result'
+    | 'contribution'
 
 export async function deleteCommentClientWrapper(formData: FormData) {
     const commentId = formData.get('_commentId')

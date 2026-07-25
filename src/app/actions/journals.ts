@@ -34,7 +34,7 @@ export async function createJournal(formData: FormData) {
     })
 
     revalidatePath('/journals')
-    redirect('/journals')
+    return { success: true, redirect: '/journals' }
 }
 
 export async function updateJournal(formData: FormData, journalId: string) {

@@ -102,7 +102,7 @@ export async function createResult(formData: FormData) {
     })
 
     revalidatePath('/results')
-    redirect('/results')
+    return { success: true, redirect: '/results' }
 }
 
 export async function updateResult(formData: FormData, resultId: string) {

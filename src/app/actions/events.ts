@@ -104,7 +104,7 @@ export async function createResearchEvent(formData: FormData) {
     })
 
     revalidatePath('/events')
-    redirect('/events')
+    return { success: true, redirect: '/events' }
 }
 
 export async function updateResearchEvent(formData: FormData, eventId: string) {

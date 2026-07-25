@@ -1,19 +1,22 @@
+"use client";
+
 import {
   updatePhdAdmission,
   createPhdAdmission,
 } from "@/app/actions/admissions";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type AdmissionFormValues = {
   university: string;
   department: string;
-  deadline: string; // yyyy-mm-dd
+  deadline: string;
   description: string;
   notificationLink: string;
   applyLink: string;
 };
 
-// 👇 1. Removed "use client" and removed "async" from the component definition
 export default function AdmissionForm({
   mode,
   admissionId,
@@ -23,7 +26,7 @@ export default function AdmissionForm({
   admissionId?: string;
   initialValues?: Partial<AdmissionFormValues>;
 }) {
-  const values: AdmissionFormValues = {
+  const initial = {
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
     deadline: initialValues?.deadline ?? "",
@@ -32,18 +35,34 @@ export default function AdmissionForm({
     applyLink: initialValues?.applyLink ?? "",
   };
 
-  // 👇 2. Define the Server Action cleanly OUTSIDE of the JSX
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updatePhdAdmission(formData, String(admissionId));
-  }
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_admission_${mode}`,
+    initial,
+  );
 
-  // 👇 3. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createPhdAdmission;
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Admission posted successfully!",
+      errorMessage: "Failed to post admission.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && admissionId) {
+      await updatePhdAdmission(formData, admissionId);
+    } else {
+      await submit(() => createPhdAdmission(formData));
+    }
+  }
 
   return (
     <form
-      action={formAction}
+      onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       <div>
@@ -53,7 +72,8 @@ export default function AdmissionForm({
           placeholder="e.g., Jamia Millia Islamia"
           className="sb-input"
           required
-          defaultValue={values.university}
+          value={draftFields.university}
+          onChange={(e) => updateDraftField("university", e.target.value)}
         />
       </div>
 
@@ -64,7 +84,8 @@ export default function AdmissionForm({
           placeholder="e.g., Department of Management Studies"
           className="sb-input"
           required
-          defaultValue={values.department}
+          value={draftFields.department}
+          onChange={(e) => updateDraftField("department", e.target.value)}
         />
       </div>
 
@@ -75,7 +96,8 @@ export default function AdmissionForm({
           name="deadline"
           className="sb-input"
           required
-          defaultValue={values.deadline}
+          value={draftFields.deadline}
+          onChange={(e) => updateDraftField("deadline", e.target.value)}
         />
       </div>
 
@@ -86,7 +108,8 @@ export default function AdmissionForm({
           placeholder="Specify JRF/NET exemptions, tentative seats, or specialization availability..."
           className="sb-input h-32"
           required
-          defaultValue={values.description}
+          value={draftFields.description}
+          onChange={(e) => updateDraftField("description", e.target.value)}
         />
       </div>
 
@@ -98,7 +121,8 @@ export default function AdmissionForm({
           placeholder="https://university.edu/admission-notice.pdf"
           className="sb-input"
           required
-          defaultValue={values.notificationLink}
+          value={draftFields.notificationLink}
+          onChange={(e) => updateDraftField("notificationLink", e.target.value)}
         />
       </div>
 
@@ -110,7 +134,8 @@ export default function AdmissionForm({
           placeholder="https://jmicoe.in"
           className="sb-input"
           required
-          defaultValue={values.applyLink}
+          value={draftFields.applyLink}
+          onChange={(e) => updateDraftField("applyLink", e.target.value)}
         />
       </div>
 

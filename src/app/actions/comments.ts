@@ -9,7 +9,7 @@ import { updateReputationIncremental } from '@/app/actions/interactions'
 
 
 
-type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result';
+type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result' | 'contribution';
 
 export async function createComment(
     formData: FormData,
@@ -227,6 +227,25 @@ export async function createComment(
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/results/${targetId}`)
+    } else if (type === 'contribution') {
+        await prisma.contributionComment.create({ data: { content, contributionId: targetId, authorId: user.id, parentId } })
+        const target = parentId
+            ? await prisma.contributionComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.contribution.findUnique({ where: { id: targetId }, select: { authorId: true } })
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId, actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'contribution', targetId,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your contribution`,
+                body: content,
+            })
+        }
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        revalidatePath(`/contributions/${targetId}`)
     }
 }
 
@@ -247,6 +266,7 @@ export async function editComment(formData: FormData, commentId: string, type: C
         journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
         result: { model: prisma.resultComment, revalidate: '/results/[id]' },
+        contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
     }
     const cfg = editMap[type]
     if (!cfg) return
@@ -273,6 +293,7 @@ export async function deleteComment(commentId: string, type: CommentType) {
         journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
         result: { model: prisma.resultComment, revalidate: '/results/[id]' },
+        contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
     }
     const cfg = delMap[type]
     if (!cfg) return
@@ -298,6 +319,7 @@ const COMMENT_VOTE_MODEL: Record<string, any> = {
     journal: prisma.journalCommentVote,
     researchTool: prisma.researchToolCommentVote,
     result: prisma.resultCommentVote,
+    contribution: prisma.contributionCommentVote,
 }
 
 const COMMENT_AUTHOR_FETCH: Record<string, (id: string) => Promise<string | null>> = {
@@ -312,6 +334,7 @@ const COMMENT_AUTHOR_FETCH: Record<string, (id: string) => Promise<string | null
     journal: (id) => prisma.journalComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     researchTool: (id) => prisma.researchToolComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     result: (id) => prisma.resultComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    contribution: (id) => prisma.contributionComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
 }
 
 export async function toggleCommentVote(
@@ -370,7 +393,7 @@ export async function toggleCommentVote(
     const revalidateMap: Record<string, string> = {
         article: '/blog/[slug]', post: '/feed', event: '/events/[id]', vacancy: '/vacancies/[id]',
         admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/recommendation/[id]',
-        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]',
+        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]', contribution: '/contributions/[id]',
     }
     const path = revalidateMap[type]
     if (path) {

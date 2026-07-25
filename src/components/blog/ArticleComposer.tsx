@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { RichContent } from "@/components/content/RichContent";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { createArticle, updateArticle } from "@/app/actions/blog";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 const Editor = dynamic(() => import("@/components/blog/Editor"), {
   ssr: false,
@@ -11,35 +15,67 @@ const Editor = dynamic(() => import("@/components/blog/Editor"), {
 });
 
 type ArticleComposerProps = {
-  action: (formData: FormData) => void | Promise<void>;
   mode?: "create" | "edit";
+  articleId?: string;
+  slug?: string;
   initialValues?: { title: string; excerpt: string; content: string };
 };
 
 export function ArticleComposer({
-  action,
   mode = "create",
+  articleId,
+  slug,
   initialValues,
 }: ArticleComposerProps) {
-  // Initialize state with initialValues if provided, otherwise empty strings
-  const [title, setTitle] = useState(initialValues?.title ?? "");
-  const [excerpt, setExcerpt] = useState(initialValues?.excerpt ?? "");
-  const [content, setContent] = useState(initialValues?.content ?? "");
+  const router = useRouter();
+  const draftKey = `draft_article_${mode}`;
+  const initial = {
+    title: initialValues?.title ?? "",
+    excerpt: initialValues?.excerpt ?? "",
+    content: initialValues?.content ?? "",
+  };
+
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    draftKey,
+    initial,
+  );
+
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Article published successfully!",
+      errorMessage: "Failed to publish article.",
+    },
+  );
 
   const previewContent = useMemo(
-    () => content || "<p>Start writing to see the live article preview.</p>",
-    [content],
+    () =>
+      draftFields.content ||
+      "<p>Start writing to see the live article preview.</p>",
+    [draftFields.content],
   );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && articleId && slug) {
+      await updateArticle(formData, articleId, slug);
+    } else {
+      await submit(() => createArticle(formData));
+    }
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
-      <form action={action} className="flex flex-col gap-6">
+      <form onSubmit={onSubmit} className="flex flex-col gap-6">
         <div>
           <label className="sb-label">Article Title</label>
           <input
             name="title"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            value={draftFields.title}
+            onChange={(event) => updateDraftField("title", event.target.value)}
             placeholder="e.g., The Ultimate PhD Survival Guide"
             className="sb-input"
             required
@@ -50,8 +86,10 @@ export function ArticleComposer({
           <label className="sb-label">Short Description</label>
           <input
             name="excerpt"
-            value={excerpt}
-            onChange={(event) => setExcerpt(event.target.value)}
+            value={draftFields.excerpt}
+            onChange={(event) =>
+              updateDraftField("excerpt", event.target.value)
+            }
             placeholder="A brief summary of your article..."
             className="sb-input"
             required
@@ -66,10 +104,13 @@ export function ArticleComposer({
             </span>
           </div>
 
-          <input type="hidden" name="content" value={content} />
+          <input type="hidden" name="content" value={draftFields.content} />
 
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-            <Editor value={content} onChange={setContent} />
+            <Editor
+              value={draftFields.content}
+              onChange={(value: string) => updateDraftField("content", value)}
+            />
           </div>
         </div>
 
@@ -88,7 +129,7 @@ export function ArticleComposer({
               Live Preview
             </p>
             <h2 className="mt-1 text-lg font-semibold text-slate-950">
-              {title || "Your article"}
+              {draftFields.title || "Your article"}
             </h2>
           </div>
           <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
@@ -98,7 +139,7 @@ export function ArticleComposer({
 
         <div className="space-y-5 p-6">
           <p className="text-sm leading-relaxed text-slate-600">
-            {excerpt || "Your short description will appear here."}
+            {draftFields.excerpt || "Your short description will appear here."}
           </p>
 
           <div className="prose prose-slate max-w-none prose-headings:text-slate-950 prose-a:text-blue-700 hover:prose-a:text-blue-600">

@@ -29,8 +29,13 @@ export default function ArticleForm({
     await updateArticle(formData, String(articleId), "");
   }
 
+  async function handleCreateAction(formData: FormData) {
+    "use server";
+    await createArticle(formData);
+  }
+
   // 👇 3. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createArticle;
+  const formAction = mode === "edit" ? handleEditAction : handleCreateAction;
 
   return (
     <form

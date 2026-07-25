@@ -40,9 +40,13 @@ export type DetailPageCardShellProps = {
 
   editedDate?: Date | string;
   createdDate: Date | string;
+  createdLabel?: string;
+  editedLabel?: string;
 };
 
 export default function DetailPageCardShell({
+  createdLabel = "Created",
+  editedLabel = "Edited",
   backHref,
   backLabel,
   authorHref,
@@ -134,11 +138,11 @@ export default function DetailPageCardShell({
 
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
           <span className="font-semibold text-slate-400">
-            Created {formatTimeAgo(createdDate)}
+            {createdLabel} {formatTimeAgo(createdDate)}
           </span>
           {editedDate && (
             <span className="font-semibold text-slate-400">
-              Edited {formatTimeAgo(editedDate)}
+              {editedLabel} {formatTimeAgo(editedDate)}
             </span>
           )}
         </div>

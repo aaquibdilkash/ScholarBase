@@ -2,7 +2,6 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
-import { updateArticle } from "@/app/actions/blog";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
 
 export default async function EditArticlePage({
@@ -31,11 +30,6 @@ export default async function EditArticlePage({
     notFound();
   }
 
-  async function handleUpdate(formData: FormData) {
-    "use server";
-    await updateArticle(formData, article!.id, article!.slug);
-  }
-
   return (
     <main className="mx-auto max-w-5xl py-6 px-4">
       <div className="mb-8">
@@ -53,7 +47,8 @@ export default async function EditArticlePage({
       {/* Reusing the same composer with mode="edit" */}
       <ArticleComposer
         mode="edit"
-        action={handleUpdate}
+        articleId={article.id}
+        slug={article.slug}
         initialValues={{
           title: article.title,
           content: article.content,

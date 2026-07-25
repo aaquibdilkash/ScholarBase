@@ -27,7 +27,7 @@ export async function createResearchTool(formData: FormData) {
     })
 
     revalidatePath('/research-tools')
-    redirect('/research-tools')
+    return { success: true, redirect: '/research-tools' }
 }
 
 export async function updateResearchTool(formData: FormData, toolId: string) {

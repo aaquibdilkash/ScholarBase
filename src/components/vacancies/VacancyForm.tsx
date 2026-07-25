@@ -1,16 +1,19 @@
+"use client";
+
 import { createJobVacancy, updateJobVacancy } from "@/app/actions/vacancies";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type VacancyFormValues = {
   title: string;
   institution: string;
-  deadline: string; // yyyy-mm-dd
+  deadline: string;
   description: string;
   notificationLink: string;
   applyLink: string;
 };
 
-// 👇 1. Removed "use client" so this runs flawlessly as a Server Component
 export default function VacancyForm({
   mode,
   vacancyId,
@@ -20,7 +23,7 @@ export default function VacancyForm({
   vacancyId?: string;
   initialValues?: Partial<VacancyFormValues>;
 }) {
-  const values: VacancyFormValues = {
+  const initial = {
     title: initialValues?.title ?? "",
     institution: initialValues?.institution ?? "",
     deadline: initialValues?.deadline ?? "",
@@ -29,18 +32,35 @@ export default function VacancyForm({
     applyLink: initialValues?.applyLink ?? "",
   };
 
-  // 👇 2. Define the Server Action cleanly OUTSIDE of the JSX
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateJobVacancy(formData, String(vacancyId));
-  }
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_vacancy_${mode}`,
+    initial,
+  );
 
-  // 👇 3. Decide which action to use before the return statement
-  const formAction = mode === "edit" ? handleEditAction : createJobVacancy;
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Vacancy posted successfully!",
+      errorMessage: "Failed to post vacancy.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && vacancyId) {
+      // Edit mode: redirects server-side
+      await updateJobVacancy(formData, vacancyId);
+    } else {
+      await submit(() => createJobVacancy(formData));
+    }
+  }
 
   return (
     <form
-      action={formAction}
+      onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       <div>
@@ -50,7 +70,8 @@ export default function VacancyForm({
           placeholder="e.g., Assistant Professor (Contractual)"
           className="sb-input"
           required
-          defaultValue={values.title}
+          value={draftFields.title}
+          onChange={(e) => updateDraftField("title", e.target.value)}
         />
       </div>
 
@@ -61,7 +82,8 @@ export default function VacancyForm({
           placeholder="e.g., Delhi University"
           className="sb-input"
           required
-          defaultValue={values.institution}
+          value={draftFields.institution}
+          onChange={(e) => updateDraftField("institution", e.target.value)}
         />
       </div>
 
@@ -72,7 +94,8 @@ export default function VacancyForm({
           name="deadline"
           className="sb-input"
           required
-          defaultValue={values.deadline}
+          value={draftFields.deadline}
+          onChange={(e) => updateDraftField("deadline", e.target.value)}
         />
       </div>
 
@@ -83,7 +106,8 @@ export default function VacancyForm({
           placeholder="Detail the eligibility metrics (e.g., UGC regulations compliance, API score requirements)..."
           className="sb-input h-32"
           required
-          defaultValue={values.description}
+          value={draftFields.description}
+          onChange={(e) => updateDraftField("description", e.target.value)}
         />
       </div>
 
@@ -95,7 +119,8 @@ export default function VacancyForm({
           placeholder="https://institution.org/jobs/advt-2026.pdf"
           className="sb-input"
           required
-          defaultValue={values.notificationLink}
+          value={draftFields.notificationLink}
+          onChange={(e) => updateDraftField("notificationLink", e.target.value)}
         />
       </div>
 
@@ -107,7 +132,8 @@ export default function VacancyForm({
           placeholder="https://recruitment.portal or mailto:hr@inst.edu"
           className="sb-input"
           required
-          defaultValue={values.applyLink}
+          value={draftFields.applyLink}
+          onChange={(e) => updateDraftField("applyLink", e.target.value)}
         />
       </div>
 

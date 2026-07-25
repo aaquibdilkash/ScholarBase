@@ -32,4 +32,5 @@ export type TrendingItem =
     | (import("@prisma/client").ResearchTool & TrendingItemBase & { type: 'researchTool' })
     | (HelpPost & TrendingItemBase & { type: 'help-post' })
     | (Result & TrendingItemBase & { type: 'result' })
+    | (import("@prisma/client").Contribution & TrendingItemBase & { type: 'contribution' })
     | TrendingSupervisor;

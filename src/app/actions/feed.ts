@@ -177,6 +177,7 @@ export async function createSocialPost(formData: FormData) {
     ])
 
     revalidatePath('/feed')
+    return { success: true, redirect: '/feed' }
 }
 
 export async function updateSocialPost(

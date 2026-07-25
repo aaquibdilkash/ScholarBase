@@ -1,8 +1,13 @@
+"use client";
+
 import {
   createRecommendation,
   updateRecommendation,
 } from "@/app/actions/recommendations";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { useRouter } from "next/navigation";
 
 export type RecommendationFormValues = {
   rating: string;
@@ -23,7 +28,8 @@ export default function RecommendationForm({
   recommendationId?: string;
   initialValues?: Partial<RecommendationFormValues>;
 }) {
-  const values: RecommendationFormValues = {
+  const router = useRouter();
+  const initial = {
     rating: initialValues?.rating ?? "5",
     turnaroundTimeDays: initialValues?.turnaroundTimeDays ?? "",
     responsivenessScore: initialValues?.responsivenessScore ?? "5",
@@ -31,30 +37,44 @@ export default function RecommendationForm({
     feedback: initialValues?.feedback ?? "",
   };
 
-  // 👇 1. Extract the Edit Action
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateRecommendation(formData, String(recommendationId));
-  }
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_recommendation_${mode}`,
+    initial,
+  );
 
-  // 👇 2. Extract the Create Action
-  async function handleCreateAction(formData: FormData) {
-    "use server";
-    await createRecommendation(formData, String(supervisorId!));
-  }
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Recommendation submitted successfully!",
+      errorMessage: "Failed to submit recommendation.",
+    },
+  );
 
-  // 👇 3. Decide which action to use
-  const formAction = mode === "edit" ? handleEditAction : handleCreateAction;
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && recommendationId) {
+      await updateRecommendation(formData, recommendationId);
+    } else if (supervisorId) {
+      await submit(() => createRecommendation(formData, supervisorId));
+    }
+    if (supervisorId && mode === "edit") {
+      router.push(`/supervisor/${supervisorId}`);
+    }
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div>
         <label className="block text-sm font-semibold text-slate-700 mb-2">
           Mentorship Rating
         </label>
         <select
           name="rating"
-          defaultValue={values.rating}
+          value={draftFields.rating}
+          onChange={(e) => updateDraftField("rating", e.target.value)}
           className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
           required
         >
@@ -74,7 +94,10 @@ export default function RecommendationForm({
             name="turnaroundTimeDays"
             min={0}
             step={1}
-            defaultValue={values.turnaroundTimeDays}
+            value={draftFields.turnaroundTimeDays}
+            onChange={(e) =>
+              updateDraftField("turnaroundTimeDays", e.target.value)
+            }
             className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
             required
             placeholder="e.g., 7"
@@ -87,7 +110,10 @@ export default function RecommendationForm({
           </label>
           <select
             name="responsivenessScore"
-            defaultValue={values.responsivenessScore}
+            value={draftFields.responsivenessScore}
+            onChange={(e) =>
+              updateDraftField("responsivenessScore", e.target.value)
+            }
             className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
             required
           >
@@ -105,7 +131,8 @@ export default function RecommendationForm({
           </label>
           <select
             name="guidanceScore"
-            defaultValue={values.guidanceScore}
+            value={draftFields.guidanceScore}
+            onChange={(e) => updateDraftField("guidanceScore", e.target.value)}
             className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
             required
           >
@@ -124,7 +151,8 @@ export default function RecommendationForm({
         </label>
         <textarea
           name="feedback"
-          defaultValue={values.feedback}
+          value={draftFields.feedback}
+          onChange={(e) => updateDraftField("feedback", e.target.value)}
           placeholder="What makes them a great supervisor? (e.g., timely feedback, supportive environment, lab resources...)"
           className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900 placeholder:text-slate-400 h-40 resize-y"
           required

@@ -38,7 +38,7 @@ export async function createRecommendation(formData: FormData, supervisorId: str
     })
 
     if (existing) {
-        redirect(`/supervisor/${supervisorId}`)
+        return { success: false, error: 'You already have a recommendation for this supervisor.' }
     }
 
     await prisma.recommendation.create({
@@ -53,8 +53,7 @@ export async function createRecommendation(formData: FormData, supervisorId: str
         },
     })
 
-
-    redirect(`/supervisor/${supervisorId}`)
+    return { success: true, redirect: `/supervisor/${supervisorId}` }
 }
 
 export async function updateRecommendation(formData: FormData, recommendationId: string) {

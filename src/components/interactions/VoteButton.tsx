@@ -17,7 +17,8 @@ export type VoteTargetType =
   | "help"
   | "journal"
   | "researchTool"
-  | "result";
+  | "result"
+  | "contribution";
 
 export function VoteButton({
   targetId,

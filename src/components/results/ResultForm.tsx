@@ -1,5 +1,9 @@
+"use client";
+
 import { createResult, updateResult } from "@/app/actions/results";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 export type ResultFormValues = {
   title: string;
@@ -29,7 +33,7 @@ export default function ResultForm({
   resultId?: string;
   initialValues?: Partial<ResultFormValues>;
 }) {
-  const values: ResultFormValues = {
+  const initial = {
     title: initialValues?.title ?? "",
     type: initialValues?.type ?? "EXAM",
     category: initialValues?.category ?? "",
@@ -40,16 +44,34 @@ export default function ResultForm({
     resultLink: initialValues?.resultLink ?? "",
   };
 
-  async function handleEditAction(formData: FormData) {
-    "use server";
-    await updateResult(formData, String(resultId));
-  }
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    `draft_result_${mode}`,
+    initial,
+  );
 
-  const formAction = mode === "edit" ? handleEditAction : createResult;
+  const { submitting, submit } = useFormSubmit(
+    mode !== "edit" ? resetDraft : undefined,
+    {
+      resetOnSuccess: mode !== "edit",
+      successMessage: "Result published successfully!",
+      errorMessage: "Failed to publish result.",
+    },
+  );
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (mode === "edit" && resultId) {
+      await updateResult(formData, resultId);
+    } else {
+      await submit(() => createResult(formData));
+    }
+  }
 
   return (
     <form
-      action={formAction}
+      onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       <div>
@@ -59,7 +81,8 @@ export default function ResultForm({
           placeholder="e.g., UGC NET June 2024 Results Declared"
           className="sb-input"
           required
-          defaultValue={values.title}
+          value={draftFields.title}
+          onChange={(e) => updateDraftField("title", e.target.value)}
         />
       </div>
 
@@ -70,7 +93,8 @@ export default function ResultForm({
             name="type"
             className="sb-input"
             required
-            defaultValue={values.type}
+            value={draftFields.type}
+            onChange={(e) => updateDraftField("type", e.target.value)}
           >
             {RESULT_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -85,7 +109,8 @@ export default function ResultForm({
             name="category"
             placeholder="e.g., NET, JRF, SET, GATE"
             className="sb-input"
-            defaultValue={values.category}
+            value={draftFields.category}
+            onChange={(e) => updateDraftField("category", e.target.value)}
           />
         </div>
       </div>
@@ -97,7 +122,8 @@ export default function ResultForm({
             name="conductingBody"
             placeholder="e.g., UGC, NTA, CBSE"
             className="sb-input"
-            defaultValue={values.conductingBody}
+            value={draftFields.conductingBody}
+            onChange={(e) => updateDraftField("conductingBody", e.target.value)}
           />
         </div>
         <div>
@@ -106,7 +132,8 @@ export default function ResultForm({
             name="session"
             placeholder="e.g., June 2024, December 2024"
             className="sb-input"
-            defaultValue={values.session}
+            value={draftFields.session}
+            onChange={(e) => updateDraftField("session", e.target.value)}
           />
         </div>
       </div>
@@ -118,7 +145,8 @@ export default function ResultForm({
           placeholder="Provide details about the result, cut-off marks, important dates, etc."
           className="sb-input h-32"
           required
-          defaultValue={values.description}
+          value={draftFields.description}
+          onChange={(e) => updateDraftField("description", e.target.value)}
         />
       </div>
 
@@ -129,7 +157,8 @@ export default function ResultForm({
           name="notificationLink"
           placeholder="https://ugc.ac.in/notification.pdf"
           className="sb-input"
-          defaultValue={values.notificationLink}
+          value={draftFields.notificationLink}
+          onChange={(e) => updateDraftField("notificationLink", e.target.value)}
         />
       </div>
 
@@ -140,7 +169,8 @@ export default function ResultForm({
           name="resultLink"
           placeholder="https://ntaresults.nic.in/..."
           className="sb-input"
-          defaultValue={values.resultLink}
+          value={draftFields.resultLink}
+          onChange={(e) => updateDraftField("resultLink", e.target.value)}
         />
       </div>
 

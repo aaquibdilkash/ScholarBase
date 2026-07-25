@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
+import prisma from "@/lib/db";
 import NextTopLoader from "nextjs-toploader";
 import { ensureUserProfile } from "@/lib/users";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -32,9 +33,17 @@ export default async function RootLayout({
 }) {
   const user = await getCurrentUser();
 
+  let isAdmin = false;
   if (user) {
     await ensureUserProfile(user);
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { isAdmin: true },
+    });
+    isAdmin = dbUser?.isAdmin ?? false;
   }
+
+  const sidebarUser = user ? { id: user.id, email: user.email, isAdmin } : null;
 
   return (
     <html lang="en" data-scroll-behavior="smooth">
@@ -44,7 +53,7 @@ export default async function RootLayout({
         <NextTopLoader showSpinner={false} />
         <AppProviders>
           <div className="flex min-h-screen">
-            <Sidebar user={user} />
+            <Sidebar user={sidebarUser} />
 
             <div className="flex-1 flex flex-col min-w-0">
               <Navbar />

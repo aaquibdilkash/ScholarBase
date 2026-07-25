@@ -173,7 +173,7 @@ ${content}`,
   ])
 
   revalidatePath('/blog')
-  redirect(`/blog/${slug}`)
+  return { success: true, redirect: `/blog/${slug}` }
 }
 
 export async function updateArticle(

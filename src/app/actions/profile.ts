@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { normalizeHandle, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
+import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 
 export async function getProfile(profileId: string, currentUserId?: string) {
     const userWithProfileData = await prisma.user.findUnique({
@@ -46,6 +47,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
         recommendations: [],
         supervisors: [],
         results: [],
+        contributions: [],
         isFollowing: !!followers?.length,
         isOwnProfile: currentUserId === profileId,
     }
@@ -378,6 +380,35 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                     _count: { select: { votes: true, comments: true } }
                 }
             },
+            contributionPosts: {
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    title: true,
+                    message: true,
+                    amount: true,
+                    upiId: true,
+                    status: true,
+                    authorId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            handle: true,
+                            avatarUrl: true,
+                            createdAt: true,
+                            email: true,
+                            bio: true,
+                            followers: currentUserId ? { where: { followerId: currentUserId } } : false
+                        }
+                    },
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
+                }
+            },
         }
     })
 
@@ -401,6 +432,7 @@ export async function updateProfile(formData: FormData) {
     const newHandle = readOptionalFormValue(formData, 'handle')
     const newName = readOptionalFormValue(formData, 'name')
     const newBio = readOptionalFormValue(formData, 'bio')
+    const newAvatarUrl = readOptionalFormValue(formData, 'avatarUrl')
 
     if (newHandle) {
         const handleAvailable = await isHandleAvailable(newHandle);
@@ -412,12 +444,18 @@ export async function updateProfile(formData: FormData) {
         }
     }
 
+    // Delete old avatar from Cloudinary if a new one is being set
+    if (newAvatarUrl && newAvatarUrl !== user.avatarUrl && user.avatarUrl) {
+        await deleteFromCloudinary(user.avatarUrl);
+    }
+
     const updatedUser = await prisma.user.update({
         where: { id: user.id },
         data: {
             handle: newHandle ? normalizeHandle(newHandle) : user.handle,
             name: newName || user.name,
             bio: newBio,
+            avatarUrl: newAvatarUrl ?? user.avatarUrl,
         }
     })
 
