@@ -162,14 +162,30 @@ export default async function AdminPage() {
                                 Approve
                               </button>
                             </form>
-                            <form action={rejectContribution.bind(null, c.id)}>
-                              <button
-                                type="submit"
-                                className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700"
-                              >
+                            <details className="relative">
+                              <summary className="cursor-pointer rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-700">
                                 Reject
-                              </button>
-                            </form>
+                              </summary>
+                              <form
+                                action={rejectContribution.bind(null, c.id)}
+                                className="absolute right-0 top-full mt-2 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-lg min-w-[280px]"
+                              >
+                                <textarea
+                                  name="rejectionReason"
+                                  placeholder="Provide a reason for rejection..."
+                                  className="sb-input text-xs h-20 resize-none"
+                                  required
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    type="submit"
+                                    className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white hover:bg-red-700"
+                                  >
+                                    Confirm Reject
+                                  </button>
+                                </div>
+                              </form>
+                            </details>
                           </>
                         )}
                         {c.status !== "PENDING" && (
@@ -178,6 +194,11 @@ export default async function AdminPage() {
                           </span>
                         )}
                       </div>
+                      {c.rejectionReason && c.status === "REJECTED" && (
+                        <div className="mt-1 text-[10px] text-red-500 max-w-[200px] truncate" title={c.rejectionReason}>
+                          Reason: {c.rejectionReason}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import VacancyForm from "@/components/vacancies/VacancyForm";
+
+export const metadata: Metadata = {
+  title: "Post an Academic Vacancy",
+  description: "Share trustworthy academic job openings, postdoctoral positions, and research opportunities with the community.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewVacancyPage() {
   return (

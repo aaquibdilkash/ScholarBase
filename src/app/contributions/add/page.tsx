@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import ContributionForm from "@/components/contributions/ContributionForm";
+
+export const metadata: Metadata = {
+  title: "Make a Contribution",
+  description: "Support ScholarBase development by making a contribution.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewContributionPage() {
   return (
@@ -12,11 +19,10 @@ export default function NewContributionPage() {
           ← Back to Contributions
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Support ScholarBase
+          Make a Contribution
         </h1>
         <p className="mt-2 text-slate-600">
-          Your contributions help maintain the server, database, and development
-          costs. Every contribution makes a difference!
+          Support ScholarBase development by making a contribution.
         </p>
       </div>
 

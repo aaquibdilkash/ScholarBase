@@ -5,6 +5,7 @@ import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
 import { signOut } from "@/app/actions/auth";
 import UserActionsDropdown from "./UserActionsDropdown";
 import prisma from "@/lib/db";
+import NavLoginButton from "./NavLoginButton";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -48,7 +49,6 @@ export default async function Navbar() {
         <div className="ml-auto flex items-center gap-3 sm:gap-4">
           {user ? (
             <>
-              {/* Desktop view: expanded buttons */}
               <div className="hidden md:flex items-center gap-3 sm:gap-4">
                 <Link
                   href="/notifications"
@@ -87,13 +87,10 @@ export default async function Navbar() {
                   </button>
                 </form>
               </div>
-              {/* Mobile view: dropdown */}
               <UserActionsDropdown user={user} unreadCount={unreadCount} />
             </>
           ) : (
-            <Link href="/login" className="sb-button-accent">
-              Log In
-            </Link>
+            <NavLoginButton />
           )}
         </div>
       </div>

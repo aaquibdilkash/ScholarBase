@@ -1,6 +1,6 @@
 'use server'
 
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
@@ -9,7 +9,7 @@ import { updateReputationIncremental } from '@/app/actions/interactions'
 
 
 
-type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result' | 'contribution';
+type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result' | 'contribution' | 'publication' | 'survey';
 
 export async function createComment(
     formData: FormData,
@@ -246,6 +246,44 @@ export async function createComment(
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/contributions/${targetId}`)
+    } else if (type === 'publication') {
+        await prisma.publicationComment.create({ data: { content, publicationId: targetId, authorId: user.id, parentId } })
+        const target = parentId
+            ? await prisma.publicationComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.publication.findUnique({ where: { id: targetId }, select: { authorId: true } })
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId, actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'publication', targetId,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your publication`,
+                body: content,
+            })
+        }
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        revalidatePath(`/publications/${targetId}`)
+    } else if (type === 'survey') {
+        await prisma.surveyComment.create({ data: { content, surveyId: targetId, authorId: user.id, parentId } })
+        const target = parentId
+            ? await prisma.surveyComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.researchSurvey.findUnique({ where: { id: targetId }, select: { authorId: true } })
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId, actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'survey', targetId,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your survey`,
+                body: content,
+            })
+        }
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        revalidatePath(`/surveys/${targetId}`)
     }
 }
 
@@ -267,12 +305,15 @@ export async function editComment(formData: FormData, commentId: string, type: C
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
         result: { model: prisma.resultComment, revalidate: '/results/[id]' },
         contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
+        publication: { model: prisma.publicationComment, revalidate: '/publications/[id]' },
+        survey: { model: prisma.surveyComment, revalidate: '/surveys/[id]' },
     }
     const cfg = editMap[type]
     if (!cfg) return
 
     const comment = await (cfg.model as any).findUnique({ where: { id: commentId }, select: { authorId: true } })
-    if (!comment || comment.authorId !== user.id) throw new Error('Not authorized.')
+    if (!comment) throw new Error('Not found.')
+    if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
     await (cfg.model as any).update({ where: { id: commentId }, data: { content } })
     if (cfg.revalidate.includes('[id]')) revalidatePath(cfg.revalidate, 'page' as any)
     else revalidatePath(cfg.revalidate)
@@ -294,12 +335,15 @@ export async function deleteComment(commentId: string, type: CommentType) {
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
         result: { model: prisma.resultComment, revalidate: '/results/[id]' },
         contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
+        publication: { model: prisma.publicationComment, revalidate: '/publications/[id]' },
+        survey: { model: prisma.surveyComment, revalidate: '/surveys/[id]' },
     }
     const cfg = delMap[type]
     if (!cfg) return
 
     const comment = await (cfg.model as any).findUnique({ where: { id: commentId }, select: { authorId: true } })
-    if (!comment || comment.authorId !== user.id) throw new Error('Not authorized.')
+    if (!comment) throw new Error('Not found.')
+    if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
     await (cfg.model as any).delete({ where: { id: commentId } })
     if (cfg.revalidate.includes('[id]')) revalidatePath(cfg.revalidate, 'page' as any)
     else revalidatePath(cfg.revalidate)
@@ -320,6 +364,8 @@ const COMMENT_VOTE_MODEL: Record<string, any> = {
     researchTool: prisma.researchToolCommentVote,
     result: prisma.resultCommentVote,
     contribution: prisma.contributionCommentVote,
+    publication: prisma.publicationCommentVote,
+    survey: prisma.surveyCommentVote,
 }
 
 const COMMENT_AUTHOR_FETCH: Record<string, (id: string) => Promise<string | null>> = {
@@ -335,6 +381,8 @@ const COMMENT_AUTHOR_FETCH: Record<string, (id: string) => Promise<string | null
     researchTool: (id) => prisma.researchToolComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     result: (id) => prisma.resultComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     contribution: (id) => prisma.contributionComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    publication: (id) => prisma.publicationComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    survey: (id) => prisma.surveyComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
 }
 
 export async function toggleCommentVote(
@@ -393,7 +441,7 @@ export async function toggleCommentVote(
     const revalidateMap: Record<string, string> = {
         article: '/blog/[slug]', post: '/feed', event: '/events/[id]', vacancy: '/vacancies/[id]',
         admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/recommendation/[id]',
-        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]', contribution: '/contributions/[id]',
+        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]', contribution: '/contributions/[id]', publication: '/publications/[id]', survey: '/surveys/[id]',
     }
     const path = revalidateMap[type]
     if (path) {

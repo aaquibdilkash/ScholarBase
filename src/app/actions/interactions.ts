@@ -7,7 +7,6 @@ import { notifyUserById } from '@/lib/notifications'
 
 type VoteType = 'UPVOTE' | 'DOWNVOTE'
 
-// Model mapping: [type string] => { model, voteModel, uniqueWhere, createData, authorField, notifType, urlPrefix }
 const VOTE_CONFIG: Record<string, {
   voteModel: any;
   uniqueFields: string[];
@@ -112,9 +111,24 @@ const VOTE_CONFIG: Record<string, {
     urlPrefix: '/contributions/',
     titleField: 'title',
   },
+  publication: {
+    voteModel: prisma.publicationVote,
+    uniqueFields: ['publicationId', 'userId'],
+    targetIdField: 'publicationId',
+    notifType: 'publication-upvoted',
+    urlPrefix: '/publications/',
+    titleField: 'title',
+  },
+  survey: {
+    voteModel: prisma.surveyVote,
+    uniqueFields: ['surveyId', 'userId'],
+    targetIdField: 'surveyId',
+    notifType: 'survey-upvoted',
+    urlPrefix: '/surveys/',
+    titleField: 'title',
+  },
 }
 
-// Model configs for each type to fetch author info for reputation
 const CONTENT_AUTHOR_FETCH: Record<string, (targetId: string) => Promise<{ authorId: string; title: string } | null>> = {
   article: (id) => prisma.article.findUnique({ where: { id }, select: { authorId: true, title: true } }),
   post: (id) => prisma.socialPost.findUnique({ where: { id }, select: { authorId: true, content: true } }).then(r => r ? { authorId: r.authorId, title: r.content.slice(0, 120) } : null),
@@ -128,12 +142,10 @@ const CONTENT_AUTHOR_FETCH: Record<string, (targetId: string) => Promise<{ autho
   researchTool: (id) => prisma.researchTool.findUnique({ where: { id }, select: { authorId: true, name: true } }).then(r => r ? { authorId: r.authorId, title: r.name } : null),
   result: (id) => prisma.result.findUnique({ where: { id }, select: { authorId: true, title: true } }),
   contribution: (id) => prisma.contribution.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  publication: (id) => prisma.publication.findUnique({ where: { id }, select: { authorId: true, title: true } }),
+  survey: (id) => prisma.researchSurvey.findUnique({ where: { id }, select: { authorId: true, title: true } }),
 }
 
-/**
- * 🔥 INCREMENTAL reputation update — 1 query instead of 23.
- * Adjusts reputation by the net change of the current vote action.
- */
 export async function updateReputationIncremental(userId: string, voteDelta: number) {
   if (voteDelta === 0) return;
   await prisma.user.update({
@@ -142,76 +154,6 @@ export async function updateReputationIncremental(userId: string, voteDelta: num
   });
 }
 
-/**
- * Full recalc — only used for initial data or as a fallback.
- * Runs all counts in parallel using Promise.all for efficiency.
- */
-export async function updateReputation(userId: string) {
-  // Run all counts in parallel — 22 queries concurrently
-  const counts = await Promise.all([
-    prisma.articleVote.count({ where: { article: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.articleVote.count({ where: { article: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.socialVote.count({ where: { socialPost: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.socialVote.count({ where: { socialPost: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.jobVacancyVote.count({ where: { jobVacancy: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.jobVacancyVote.count({ where: { jobVacancy: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.phdAdmissionVote.count({ where: { phdAdmission: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.phdAdmissionVote.count({ where: { phdAdmission: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.researchEventVote.count({ where: { researchEvent: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.researchEventVote.count({ where: { researchEvent: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.supervisorVote.count({ where: { supervisor: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.supervisorVote.count({ where: { supervisor: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.recommendationVote.count({ where: { recommendation: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.recommendationVote.count({ where: { recommendation: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.helpPostVote.count({ where: { helpPost: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.helpPostVote.count({ where: { helpPost: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.journalVote.count({ where: { journal: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.journalVote.count({ where: { journal: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.researchToolVote.count({ where: { researchTool: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.researchToolVote.count({ where: { researchTool: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.resultVote.count({ where: { result: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.resultVote.count({ where: { result: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.contributionVote.count({ where: { contribution: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.contributionVote.count({ where: { contribution: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.articleCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.articleCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.socialCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.socialCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.jobVacancyCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.jobVacancyCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.phdAdmissionCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.phdAdmissionCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.researchEventCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.researchEventCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.supervisorCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.supervisorCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.recommendationCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.recommendationCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.helpPostCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.helpPostCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.journalCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.journalCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.researchToolCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.researchToolCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-    prisma.resultCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'UPVOTE' } }),
-    prisma.resultCommentVote.count({ where: { comment: { authorId: userId }, voteType: 'DOWNVOTE' } }),
-  ]);
-
-  let upSum = 0;
-  let downSum = 0;
-  for (let i = 0; i < counts.length; i += 2) {
-    upSum += counts[i];
-    downSum += counts[i + 1];
-  }
-
-  const reputation = upSum - downSum;
-  await prisma.user.update({
-    where: { id: userId },
-    data: { reputation },
-  });
-}
-
-// Helper to toggle vote for any model (used inside and outside transactions)
 async function performVoteOp(
   model: any,
   uniqueFields: string[],
@@ -253,13 +195,17 @@ export async function toggleVote(
   targetId: string,
   type: string,
   voteType: VoteType,
-): Promise<{ userVote: VoteType | null; upvotes: number; downvotes: number }> {
-  const user = await requireCurrentUser('Log in to vote.')
+): Promise<{ userVote: VoteType | null; upvotes: number; downvotes: number } | { error: string }> {
+  let user;
+  try {
+    user = await requireCurrentUser();
+  } catch {
+    return { error: "UNAUTHORIZED" };
+  }
 
   const config = VOTE_CONFIG[type]
   if (!config) throw new Error(`Unknown vote type: ${type}`)
 
-  // Perform the vote operation (non-transacted for simplicity, but atomic enough)
   const result = await performVoteOp(
     config.voteModel,
     config.uniqueFields,
@@ -268,29 +214,22 @@ export async function toggleVote(
     voteType,
   );
 
-  // 🔥 Accurate incremental reputation update based on actual vote change
   const authorInfo = await CONTENT_AUTHOR_FETCH[type]?.(targetId)
   if (authorInfo?.authorId) {
-
-    // - New vote: +1 for upvote, -1 for downvote
     const prev = result.previousVoteType;
     let voteDelta = 0;
 
     if (prev === voteType) {
-      // Removing vote (toggle off)
       voteDelta = voteType === 'UPVOTE' ? -1 : 1;
     } else if (prev === null) {
-      // New vote
       voteDelta = voteType === 'UPVOTE' ? 1 : -1;
     } else {
-      // Switching vote (prev is opposite direction)
       voteDelta = voteType === 'UPVOTE' ? 2 : -2;
     }
 
     await updateReputationIncremental(authorInfo.authorId, voteDelta);
   }
 
-  // 🔥 Fire-and-forget notification (non-blocking)
   if (result.userVote === 'UPVOTE' && authorInfo?.authorId) {
     notifyUserById({
       recipientId: authorInfo.authorId,
@@ -303,18 +242,15 @@ export async function toggleVote(
     }).catch(() => { });
   }
 
-  // Revalidate paths — ensure profile/scholar page also refreshes
   const paths = [config.urlPrefix]
   if (!['article', 'post'].includes(type)) {
     paths.push(`${config.urlPrefix}${targetId}`)
   }
-  // Add author profile revalidation
   if (authorInfo?.authorId) {
     paths.push(`/scholar/${authorInfo.authorId}`)
   }
   for (const p of paths) {
     if (p.startsWith('/blog')) {
-      // revalidate both layout and the specific article page
       revalidatePath('/blog', 'layout')
       revalidatePath(p, 'page')
     } else {
@@ -324,4 +260,3 @@ export async function toggleVote(
 
   return result
 }
-

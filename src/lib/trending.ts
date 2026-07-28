@@ -13,24 +13,18 @@ function calculateTrendingScore(item: {
 
 async function getTrending<T extends { _count: { votes: number; comments: number }, votes?: { userId: string }[], createdAt: Date }>(
     fetcher: () => Promise<T[]>,
-    type: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool' | 'help-post' | 'result' | 'contribution'
+    itemType: 'vacancy' | 'admission' | 'event' | 'article' | 'social-post' | 'journal' | 'researchTool' | 'help-post' | 'result' | 'contribution' | 'publication' | 'survey'
 ) {
-
-
     const items = await fetcher()
 
-    const allItems = items.map(item => ({ ...item, type }))
+    const scoredItems = items.map(item => ({
+        ...item,
+        type: itemType,
+        score: calculateTrendingScore(item),
+    }))
 
-
-    const scoredItems = allItems.map(item => {
-        return {
-            ...item,
-            score: calculateTrendingScore(item),
-        }
-    })
-
-    // Filter out items with a score of 0
-    const filteredItems = scoredItems.filter(item => item.score > 0)
+    // Include items with score >= 0 (score 0 items will be sorted by creation date)
+    const filteredItems = scoredItems.filter(item => item.score >= 0)
 
     // Sort by score, then by creation date
     const sortedItems = filteredItems.sort((a, b) => {
@@ -186,6 +180,20 @@ export async function getTrendingResults(userId?: string) {
     }), 'result')
 }
 
+export async function getTrendingPublications(userId?: string) {
+    const since = new Date()
+    since.setDate(since.getDate() - TRENDING_DAYS)
+
+    return getTrending(() => prisma.publication.findMany({
+        where: { createdAt: { gte: since } },
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
+    }), 'publication')
+}
+
 export async function getTrendingContributions(userId?: string) {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
@@ -198,6 +206,20 @@ export async function getTrendingContributions(userId?: string) {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'contribution')
+}
+
+export async function getTrendingSurveys(userId?: string) {
+    const since = new Date()
+    since.setDate(since.getDate() - TRENDING_DAYS)
+
+    return getTrending(() => prisma.researchSurvey.findMany({
+        where: { createdAt: { gte: since } },
+        include: {
+            author: true,
+            _count: { select: { votes: true, comments: true, responses: true } },
+            votes: { select: { userId: true, voteType: true } },
+        },
+    }), 'survey')
 }
 
 export async function getTrendingSupervisors(userId?: string) {

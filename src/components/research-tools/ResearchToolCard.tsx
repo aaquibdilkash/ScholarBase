@@ -4,6 +4,7 @@ import { ResearchTool, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { RichContent } from "@/components/content/RichContent";
 
 type ResearchToolWithAuthor = ResearchTool & {
   author: User & {
@@ -80,9 +81,10 @@ export function ResearchToolCard({
       <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
         {tool.name}
       </h2>
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-        {tool.description}
-      </p>
+      <RichContent
+        content={tool.description}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+      />
     </ListPageCardShell>
   );
 }

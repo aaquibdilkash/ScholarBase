@@ -1,30 +1,35 @@
-import { login, signup, signInWithGoogle } from "@/app/actions/auth";
+import {
+  login,
+  signup,
+  signInWithGoogle,
+  forgotPassword,
+} from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 
 interface LoginPageProps {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; callbackUrl?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  // Properly awaiting and destructuring message to prevent the reference error
-  const { message } = await searchParams;
+  const { message, callbackUrl } = await searchParams;
+  const returnUrl = callbackUrl || "/blog";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="sb-surface w-full max-w-md space-y-6 p-8 md:p-10">
         <div className="text-center">
           <div className="mx-auto mb-4 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
-            Sign in
+            Sign In
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
             Welcome to <BrandMark />
           </h1>
           <p className="mt-2 text-slate-600">
-            Log in or create an account to continue
+            Sign in to your account or register a new one
           </p>
         </div>
 
-        <form action={signInWithGoogle}>
+        <form action={signInWithGoogle.bind(null, returnUrl)}>
           <button className="sb-button-soft w-full gap-2">
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -50,7 +55,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200"></div>
+            <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center text-sm">
             <span className="bg-white px-2 text-slate-500">
@@ -60,6 +65,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <form className="flex flex-col gap-4">
+          <input type="hidden" name="callbackUrl" value={returnUrl} />
+
           <div>
             <label className="sb-label" htmlFor="email">
               Email
@@ -88,7 +95,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             />
           </div>
 
-          {/* Using the unwrapped message here safely */}
+          <div className="flex justify-end -mt-2">
+            <button
+              formAction={forgotPassword}
+              type="submit"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition"
+            >
+              Forgot Password?
+            </button>
+          </div>
+
           {message && (
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-center text-sm text-blue-700">
               {message}
@@ -100,7 +116,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Sign In
             </button>
             <button formAction={signup} className="sb-button-soft w-full">
-              Sign Up
+              Register
             </button>
           </div>
         </form>

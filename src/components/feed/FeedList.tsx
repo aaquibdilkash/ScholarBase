@@ -18,7 +18,7 @@ export function FeedList({
   initialQuery,
 }: {
   posts: SocialPostWithDetails[];
-  currentUserId: string;
+  currentUserId?: string;
   initialQuery?: string;
 }) {
   return (

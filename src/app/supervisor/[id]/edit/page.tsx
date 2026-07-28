@@ -42,18 +42,16 @@ export default async function EditSupervisorPage({
         </p>
       </div>
 
-      <div className="sb-surface-strong p-8 md:p-10">
-        <SupervisorForm
-          mode="edit"
-          supervisorId={supervisor.id}
-          initialValues={{
-            name: supervisor.name,
-            university: supervisor.university,
-            department: supervisor.department ?? "",
-            about: supervisor.about ?? "",
-          }}
-        />
-      </div>
+      <SupervisorForm
+        mode="edit"
+        supervisorId={supervisor.id}
+        initialValues={{
+          name: supervisor.name,
+          university: supervisor.university,
+          department: supervisor.department ?? "",
+          about: supervisor.about ?? "",
+        }}
+      />
     </main>
   );
 }

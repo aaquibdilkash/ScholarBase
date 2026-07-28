@@ -19,6 +19,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
             _count: {
                 select: {
                     followers: true,
+                    following: true,
                 },
             },
             followers: currentUserId
@@ -48,6 +49,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
         supervisors: [],
         results: [],
         contributions: [],
+        publications: [],
         isFollowing: !!followers?.length,
         isOwnProfile: currentUserId === profileId,
     }
@@ -390,6 +392,46 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                     amount: true,
                     upiId: true,
                     status: true,
+                    authorId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            handle: true,
+                            avatarUrl: true,
+                            createdAt: true,
+                            email: true,
+                            bio: true,
+                            followers: currentUserId ? { where: { followerId: currentUserId } } : false
+                        }
+                    },
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true } }
+                }
+            },
+            publications: {
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    title: true,
+                    authors: true,
+                    publicationType: true,
+                    journalOrConference: true,
+                    publisher: true,
+                    year: true,
+                    volume: true,
+                    issue: true,
+                    pages: true,
+                    doi: true,
+                    isbn: true,
+                    url: true,
+                    keywords: true,
+                    domain: true,
+                    abstract: true,
+                    isUserAuthor: true,
                     authorId: true,
                     createdAt: true,
                     updatedAt: true,

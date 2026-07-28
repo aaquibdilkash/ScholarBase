@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import ResultForm from "@/components/results/ResultForm";
+
+export const metadata: Metadata = {
+  title: "Add Result Information",
+  description: "Share exam results, admission outcomes, vacancy results, and other important notifications for the research community.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewResultPage() {
   return (

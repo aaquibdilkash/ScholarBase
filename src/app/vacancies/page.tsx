@@ -4,6 +4,13 @@ import { VacanciesList } from "@/components/vacancies/VacanciesList";
 import { getTrendingVacancies } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getVacancies } from "@/app/actions/vacancies";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Academic Vacancies - ScholarBase",
+  description:
+    "Find the latest academic job openings, research positions, and faculty vacancies from institutions around the world.",
+};
 
 export default async function VacanciesPage({
   searchParams,

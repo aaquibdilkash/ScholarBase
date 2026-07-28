@@ -40,6 +40,9 @@ export type ListPageCardShellProps = {
   createdDate: Date | string;
   createdLabel?: string;
   editedLabel?: string;
+
+  // When true, children will NOT be wrapped in a <Link> (use case: children contain <a> tags)
+  noBodyLink?: boolean;
 };
 
 export default function ListPageCardShell({
@@ -62,6 +65,7 @@ export default function ListPageCardShell({
   bodyBottomContent,
   editedDate,
   createdDate,
+  noBodyLink = false,
 }: ListPageCardShellProps) {
   const showManagementControls = Boolean(managementControls);
 
@@ -114,12 +118,16 @@ export default function ListPageCardShell({
       </div>
 
       {/* Clickable middle body */}
-      <Link
-        href={detailPageHref}
-        className={clsx("block group", bodyClassName)}
-      >
-        {children}
-      </Link>
+      {noBodyLink ? (
+        <div className={clsx("block group", bodyClassName)}>{children}</div>
+      ) : (
+        <Link
+          href={detailPageHref}
+          className={clsx("block group", bodyClassName)}
+        >
+          {children}
+        </Link>
+      )}
 
       <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
         <span className="font-semibold text-slate-400">

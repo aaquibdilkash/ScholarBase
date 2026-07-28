@@ -1,9 +1,10 @@
 "use client";
 
 import { createResult, updateResult } from "@/app/actions/results";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 
 export type ResultFormValues = {
   title: string;
@@ -140,13 +141,14 @@ export default function ResultForm({
 
       <div>
         <label className="sb-label">Description / Details</label>
-        <textarea
-          name="description"
-          placeholder="Provide details about the result, cut-off marks, important dates, etc."
-          className="sb-input h-32"
-          required
+        <Editor
           value={draftFields.description}
-          onChange={(e) => updateDraftField("description", e.target.value)}
+          onChange={(data) => updateDraftField("description", data)}
+        />
+        <input
+          type="hidden"
+          name="description"
+          value={draftFields.description}
         />
       </div>
 
@@ -174,9 +176,12 @@ export default function ResultForm({
         />
       </div>
 
-      <SubmitBtn className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth
+        className="sb-button-accent mt-2 self-end"
+        loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
+      >
         {mode === "edit" ? "Save Changes" : "Publish Result"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }

@@ -4,9 +4,10 @@ import {
   createResearchTool,
   updateResearchTool,
 } from "@/app/actions/researchTools";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 
 export type ResearchToolFormValues = {
   name: string;
@@ -99,19 +100,20 @@ export default function ResearchToolForm({
 
       <div>
         <label className="sb-label">Description</label>
-        <textarea
-          name="description"
-          placeholder="Briefly describe the tool and its features..."
-          className="sb-input h-32"
-          required
+        <Editor
           value={draftFields.description}
-          onChange={(e) => updateDraftField("description", e.target.value)}
+          onChange={(data) => updateDraftField("description", data)}
+        />
+        <input
+          type="hidden"
+          name="description"
+          value={draftFields.description}
         />
       </div>
 
-      <SubmitBtn className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Add Research Tool"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }

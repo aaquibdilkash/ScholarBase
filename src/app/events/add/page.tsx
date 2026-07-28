@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import EventForm from "@/components/events/EventForm";
+
+export const metadata: Metadata = {
+  title: "List a Research Event / Conference",
+  description: "Add conferences, calls for papers, and academic events that matter to researchers.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewEventPage() {
   return (
@@ -23,4 +30,3 @@ export default function NewEventPage() {
     </main>
   );
 }
-

@@ -1,0 +1,251 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { createSurvey, updateSurvey } from "@/app/actions/surveys";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { useFormDraft } from "@/hooks/useFormDraft";
+import { QuestionEditor, Question, generateId } from "./QuestionEditor";
+import { Editor } from "@/components/ui/Editor";
+
+export default function SurveyForm({
+  mode,
+  initialData,
+}: {
+  mode: "create" | "edit";
+  initialData?: any;
+}) {
+  const router = useRouter();
+
+  const { submit, submitting } = useFormSubmit(undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage:
+      mode === "create"
+        ? "Survey created successfully!"
+        : "Survey updated successfully!",
+    errorMessage: "Failed to save survey.",
+  });
+
+  const initialQuestions =
+    initialData?.questions?.map((q: any, i: number) => ({
+      id: q.id || generateId(),
+      type: q.type,
+      title: q.title,
+      required: q.required,
+      order: q.order ?? i,
+      minValue: q.minValue,
+      maxValue: q.maxValue,
+      options:
+        q.options?.map((o: any, oi: number) => ({
+          value: o.value || `opt_${oi}`,
+          label: o.label,
+          order: o.order ?? oi,
+        })) || [],
+    })) || [];
+
+  const [draft, updateDraft, resetDraft] = useFormDraft(
+    `draft_survey_${initialData?.id || "new"}`,
+    {
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      privacy: initialData?.privacy || "NON_ANONYMOUS",
+      shareData: initialData?.shareData || false,
+      questions: initialQuestions,
+    },
+  );
+
+  const { title, description, privacy, shareData, questions } = draft;
+
+  const addQuestion = () => {
+    const newQuestion: Question = {
+      id: generateId(),
+      type: "SHORT_TEXT",
+      title: "",
+      required: false,
+      order: questions.length,
+      options: [],
+    };
+    updateDraft("questions", [...questions, newQuestion]);
+  };
+
+  const updateQuestion = (index: number, question: Question) => {
+    const newQuestions = questions.map((q: Question, i: number) =>
+      i === index ? question : q,
+    );
+    updateDraft("questions", newQuestions);
+  };
+
+  const removeQuestion = (index: number) => {
+    const newQuestions = questions.filter((_: any, i: number) => i !== index);
+    updateDraft("questions", newQuestions);
+  };
+
+  async function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.set("title", title);
+    formData.set("description", description);
+    formData.set("privacy", privacy);
+    formData.set("shareData", String(shareData));
+    formData.set("questions", JSON.stringify(questions));
+
+    if (mode === "edit" && initialData?.id) {
+      // Edit mode: updateSurvey does a server-side redirect, so call it directly
+      // (not wrapped in submit() which would catch the redirect error)
+      await updateSurvey(formData, initialData.id);
+      resetDraft();
+    } else {
+      await submit(() => createSurvey(formData));
+    }
+  }
+
+  return (
+    <form onSubmit={handleFormSubmit} className="space-y-6">
+      {/* Survey Details Section */}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <h2 className="text-lg font-semibold text-slate-900">Survey Details</h2>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-slate-700">
+            Survey Title
+          </label>
+          <input
+            type="text"
+            name="title"
+            value={title}
+            onChange={(e) => updateDraft("title", e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter survey title"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-slate-700">
+            Description
+          </label>
+          <Editor
+            value={description}
+            onChange={(data) => updateDraft("description", data)}
+          />
+          <input type="hidden" name="description" value={description} />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-slate-700">
+            Response Privacy Mode
+          </label>
+          <p className="mb-2 text-xs text-slate-500">
+            Control how responses are collected.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              {
+                value: "ANONYMOUS",
+                label: "Anonymous",
+                desc: "No identity recorded",
+              },
+              {
+                value: "NON_ANONYMOUS",
+                label: "Non-Anonymous",
+                desc: "Identity recorded",
+              },
+              {
+                value: "HYBRID",
+                label: "Hybrid",
+                desc: "Respondent chooses",
+              },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => updateDraft("privacy", opt.value)}
+                className={`rounded-xl border-2 p-4 text-left transition ${
+                  privacy === opt.value
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className="text-sm font-semibold text-slate-900">
+                  {opt.label}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <input
+            type="checkbox"
+            id="shareData"
+            name="shareData"
+            checked={shareData}
+            onChange={(e) => updateDraft("shareData", e.target.checked)}
+            className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <div>
+            <label
+              htmlFor="shareData"
+              className="cursor-pointer text-sm font-semibold text-slate-700"
+            >
+              Share anonymized response data publicly
+            </label>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Allow other researchers to view aggregated response data on the
+              results page.
+            </p>
+          </div>
+        </div>
+
+        {/* Questions Section */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
+            <button
+              type="button"
+              onClick={addQuestion}
+              className="sb-button-accent text-sm"
+            >
+              + Add Question
+            </button>
+          </div>
+          {questions.length === 0 && (
+            <p className="py-8 text-center text-sm text-slate-500">
+              No questions yet. Click &ldquo;Add Question&rdquo; to start
+              building your survey.
+            </p>
+          )}
+          <div className="space-y-4">
+            {questions.map((q: Question, i: number) => (
+              <QuestionEditor
+                key={q.id}
+                question={q}
+                index={i}
+                onChange={(updated) => updateQuestion(i, updated)}
+                onDelete={() => removeQuestion(i)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="rounded-xl border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+        >
+          Cancel
+        </button>
+        <SubmitBtnWithAuth
+          loadingText={mode === "create" ? "Creating..." : "Saving..."}
+          disabled={submitting}
+        >
+          {mode === "create" ? "Create Survey" : "Save Changes"}
+        </SubmitBtnWithAuth>
+      </div>
+    </form>
+  );
+}

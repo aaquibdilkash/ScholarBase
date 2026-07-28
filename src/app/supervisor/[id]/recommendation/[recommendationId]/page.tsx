@@ -6,6 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { RichContent } from "@/components/content/RichContent";
 
 export default async function RecommendationDetailPage({
   params,
@@ -120,9 +121,13 @@ export default async function RecommendationDetailPage({
         <p>{`Guidance Quality: ${recommendation.guidanceScore}/5`}</p>
       </div>
 
-      <p className="mb-8 text-slate-600 whitespace-pre-wrap">
-        {`Mentorship Feedback: ${recommendation.feedback}`}
+      <p className="text-sm font-semibold text-slate-700 mb-1">
+        Mentorship Feedback:
       </p>
+      <RichContent
+        content={recommendation.feedback}
+        className="mb-8 text-slate-600"
+      />
     </DetailPageCardShell>
   );
 }

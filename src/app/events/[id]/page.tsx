@@ -6,6 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent, getEvent } from "@/app/actions/events";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { RichContent } from "@/components/content/RichContent";
 
 const EventDetailPage = async ({
   params,
@@ -89,35 +90,11 @@ const EventDetailPage = async ({
       <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
         {event.title}
       </h1>
-      <p className="text-md font-medium text-slate-600 mb-6">
-        {event.location}
-      </p>
 
-      <p className="text-slate-800 whitespace-pre-wrap leading-relaxed mb-6">
-        {event.description}
-      </p>
-
-      <div className="mb-6 flex items-center gap-2 rounded-xl border-blue-100/50 bg-blue-50/50 p-3 text-sm font-semibold text-blue-600">
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          ></path>
-        </svg>
-        Event Date: {new Date(event.date).toLocaleDateString("en-US")}
-      </div>
-
-      {event.deadline && (
-        <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-100/50 bg-red-50/50 p-3 text-sm font-semibold text-red-600">
+      <div className="mb-6 space-y-3">
+        <div className="flex items-center gap-2 text-slate-600">
           <svg
-            className="w-5 h-5"
+            className="h-5 w-5 shrink-0 text-slate-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -126,13 +103,76 @@ const EventDetailPage = async ({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            ></path>
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
-          Registration Deadline:{" "}
-          {new Date(event.deadline).toLocaleDateString("en-US")}
+          <span className="font-semibold">Event Date:</span>
+          <span>
+            {new Date(event.date).toLocaleDateString("en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
         </div>
-      )}
+        {event.location && (
+          <div className="flex items-center gap-2 text-slate-600">
+            <svg
+              className="h-5 w-5 shrink-0 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span className="font-semibold">Location:</span>
+            <span>{event.location}</span>
+          </div>
+        )}
+        {event.deadline && (
+          <div className="flex items-center gap-2 text-red-600 font-semibold">
+            <svg
+              className="h-5 w-5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Registration Deadline:</span>
+            <span>
+              {new Date(event.deadline).toLocaleDateString("en-US", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <RichContent
+        content={event.description}
+        className="text-slate-800 leading-relaxed mb-8"
+      />
 
       <div className="flex gap-4 mb-8">
         {event.notificationLink && (
@@ -140,7 +180,7 @@ const EventDetailPage = async ({
             href={event.notificationLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
           >
             View Brochure
           </a>
@@ -150,7 +190,7 @@ const EventDetailPage = async ({
             href={event.applyLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             Register Now
           </a>

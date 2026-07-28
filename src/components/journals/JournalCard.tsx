@@ -4,6 +4,7 @@ import { Journal, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { RichContent } from "@/components/content/RichContent";
 
 type JournalWithAuthor = Journal & {
   author: User & {
@@ -72,9 +73,10 @@ export function JournalCard({
         {journal.title}
       </h2>
 
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-        {journal.about}
-      </p>
+      <RichContent
+        content={journal.about}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+      />
 
       {journal.issn && (
         <div className="mt-6 rounded-xl border border-blue-100/50 bg-blue-50/50 p-2 text-xs font-semibold text-blue-600">

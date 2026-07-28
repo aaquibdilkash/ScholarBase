@@ -4,9 +4,10 @@ import {
   createRecommendation,
   updateRecommendation,
 } from "@/app/actions/recommendations";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 import { useRouter } from "next/navigation";
 
 export type RecommendationFormValues = {
@@ -92,8 +93,8 @@ export default function RecommendationForm({
           <input
             type="number"
             name="turnaroundTimeDays"
-            min={0}
-            step={1}
+            min={50}
+            step={50}
             value={draftFields.turnaroundTimeDays}
             onChange={(e) =>
               updateDraftField("turnaroundTimeDays", e.target.value)
@@ -149,20 +150,17 @@ export default function RecommendationForm({
         <label className="block text-sm font-semibold text-slate-700 mb-2">
           Your Feedback
         </label>
-        <textarea
-          name="feedback"
+        <Editor
           value={draftFields.feedback}
-          onChange={(e) => updateDraftField("feedback", e.target.value)}
-          placeholder="What makes them a great supervisor? (e.g., timely feedback, supportive environment, lab resources...)"
-          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900 placeholder:text-slate-400 h-40 resize-y"
-          required
+          onChange={(data) => updateDraftField("feedback", data)}
         />
+        <input type="hidden" name="feedback" value={draftFields.feedback} />
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <SubmitBtn className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200">
+        <SubmitBtnWithAuth className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200">
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
-        </SubmitBtn>
+        </SubmitBtnWithAuth>
       </div>
     </form>
   );

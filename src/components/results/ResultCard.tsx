@@ -5,6 +5,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult } from "@/app/actions/results";
+import { RichContent } from "@/components/content/RichContent";
 
 type ResultWithAuthor = Result & {
   author: User & {
@@ -91,9 +92,10 @@ export function ResultCard({
         {result.title}
       </h2>
 
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-        {result.description}
-      </p>
+      <RichContent
+        content={result.description}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+      />
 
       {(result.conductingBody || result.session) && (
         <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">

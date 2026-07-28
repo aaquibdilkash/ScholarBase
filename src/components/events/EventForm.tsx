@@ -1,9 +1,11 @@
 "use client";
 
 import { createResearchEvent, updateResearchEvent } from "@/app/actions/events";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
+import { useAuthModal } from "@/components/interactions/AuthModal";
 
 export type EventFormValues = {
   title: string;
@@ -19,11 +21,14 @@ export default function EventForm({
   mode,
   eventId,
   initialValues,
+  isLoggedIn,
 }: {
   mode: "create" | "edit";
   eventId?: string;
   initialValues?: Partial<EventFormValues>;
+  isLoggedIn?: boolean;
 }) {
+  const { openAuthModal } = useAuthModal();
   const initial = {
     title: initialValues?.title ?? "",
     date: initialValues?.date ?? "",
@@ -50,6 +55,10 @@ export default function EventForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "create" && !isLoggedIn) {
+      openAuthModal();
+      return;
+    }
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && eventId) {
@@ -114,13 +123,14 @@ export default function EventForm({
 
       <div>
         <label className="sb-label">Description / Tracks</label>
-        <textarea
-          name="description"
-          placeholder="Briefly describe the theme of the conference and presentation tracks..."
-          className="sb-input h-32"
-          required
+        <Editor
           value={draftFields.description}
-          onChange={(e) => updateDraftField("description", e.target.value)}
+          onChange={(data) => updateDraftField("description", data)}
+        />
+        <input
+          type="hidden"
+          name="description"
+          value={draftFields.description}
         />
       </div>
 
@@ -150,9 +160,9 @@ export default function EventForm({
         />
       </div>
 
-      <SubmitBtn className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Publish Event"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }

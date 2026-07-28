@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
@@ -88,14 +89,28 @@ export default async function SinglePostPage({
         {p.content}
       </p>
 
-      <div className="mt-4 text-sm font-medium text-slate-500">
-        {new Intl.DateTimeFormat("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }).format(p.createdAt)}
-      </div>
+      {(p as any).imageUrls && (p as any).imageUrls.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {(p as any).imageUrls.map((url: string, i: number) => (
+            <a
+              key={i}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <img
+                src={url}
+                alt=""
+                className="w-full h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
+                loading="lazy"
+              />
+            </a>
+          ))}
+        </div>
+      )}
+
+      
     </DetailPageCardShell>
   );
 }

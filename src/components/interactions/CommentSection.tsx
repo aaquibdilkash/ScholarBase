@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatTimeAgo } from "@/utils/time-ago";
@@ -12,8 +12,10 @@ import {
 
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import CommentActionsDropdown from "@/components/interactions/CommentActionsDropdown";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "./AuthModal";
 
 // Define the exact shape Prisma is sending down
 type User = { id: string; name: string | null; avatarUrl: string | null };
@@ -47,7 +49,9 @@ interface CommentSectionProps {
     | "researchTool"
     | "journal"
     | "result"
-    | "contribution";
+    | "contribution"
+    | "publication"
+    | "survey";
   currentUserId: string | null;
   postAuthorId?: string | null;
 }
@@ -62,44 +66,80 @@ export function CommentSection({
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
+  const draftKey = `draft_comment_${type}_${targetId}`;
+  const [content, setContent] = useState("");
 
-  const topLevelComments = comments.filter((comment) => !comment.parentId);
+  const topLevelComments = comments.filter((c) => !c.parentId);
 
-  const handleCreateComment = async (formData: FormData) => {
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        setContent(savedDraft);
+      }
+    } catch (error) {
+      console.error("Failed to read draft from localStorage", error);
+    }
+  }, [draftKey]);
+
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setContent(e.target.value);
+    try {
+      localStorage.setItem(draftKey, e.target.value);
+    } catch (error) {
+      console.error("Failed to save draft to localStorage", error);
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!currentUserId) {
+      openAuthModal();
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    // Ensure the latest content from state is in the form data
+    formData.set("content", content);
+
     try {
       await createCommentClientWrapper(formData);
       toast("Comment posted successfully!", "success");
-    } catch {
+      setContent("");
+      localStorage.removeItem(draftKey);
+    } catch (error) {
       toast("Failed to post comment. Please try again.", "error");
+      console.error(error);
     }
   };
 
   return (
     <div className="space-y-8">
       {/* Form: Add a Top-Level Comment */}
-      {currentUserId && (
-        <form action={handleCreateComment} className="flex gap-4">
-          <input type="hidden" name="_targetId" value={targetId} />
-          <input type="hidden" name="_type" value={type} />
-          <input type="hidden" name="_parentId" value="" />
-          <input type="hidden" name="_commentId" value="" />
+      <form onSubmit={handleFormSubmit} className="flex gap-4">
+        <input type="hidden" name="_targetId" value={targetId} />
+        <input type="hidden" name="_type" value={type} />
+        <input type="hidden" name="_parentId" value="" />
+        <input type="hidden" name="_commentId" value="" />
 
-          <div className="flex-1 flex flex-col gap-2">
-            <textarea
-              name="content"
-              placeholder="Share your thoughts on this..."
-              required
-              rows={2}
-              className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
-            />
-            <div className="flex justify-end">
-              <SubmitBtn className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition">
-                Post Comment
-              </SubmitBtn>
-            </div>
+        <div className="flex-1 flex flex-col gap-2">
+          <textarea
+            name="content"
+            placeholder="Share your thoughts on this..."
+            required
+            rows={2}
+            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
+            value={content}
+            onChange={handleContentChange}
+          />
+          <div className="flex justify-end">
+            <SubmitBtnWithAuth className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition">
+              Post Comment
+            </SubmitBtnWithAuth>
           </div>
-        </form>
-      )}
+        </div>
+      </form>
 
       {/* The Comment Thread */}
       <div className="space-y-6">
@@ -118,6 +158,7 @@ export function CommentSection({
             setEditingId={setEditingId}
             isReply={false}
             toast={toast}
+            openAuthModal={openAuthModal}
           />
         ))}
 
@@ -146,6 +187,7 @@ function CommentEntry({
   setEditingId,
   isReply,
   toast,
+  openAuthModal,
 }: {
   comment: Comment;
   replies?: Reply[];
@@ -159,6 +201,7 @@ function CommentEntry({
   setEditingId: (id: string | null) => void;
   isReply: boolean;
   toast: (message: string, type?: "success" | "error") => void;
+  openAuthModal: () => void;
 }) {
   const deleteFormRef = useRef<HTMLFormElement>(null);
   const isOwner = !!currentUserId && comment.author.id === currentUserId;
@@ -335,19 +378,28 @@ function CommentEntry({
         </div>
 
         {/* Reply Actions & Form */}
-        {!isReply && currentUserId && (
+        {!isReply && (
           <>
-            <button
-              onClick={() =>
-                setActiveReplyId(
-                  activeReplyId === comment.id ? null : comment.id,
-                )
-              }
-              className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
-            >
-              Reply
-            </button>
-            {activeReplyId === comment.id && (
+            {currentUserId ? (
+              <button
+                onClick={() =>
+                  setActiveReplyId(
+                    activeReplyId === comment.id ? null : comment.id,
+                  )
+                }
+                className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
+              >
+                Reply
+              </button>
+            ) : (
+              <button
+                onClick={() => openAuthModal()}
+                className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
+              >
+                Reply
+              </button>
+            )}
+            {activeReplyId === comment.id && currentUserId && (
               <form
                 className="mt-3 flex gap-3 animate-in fade-in slide-in-from-top-2"
                 action={handleReplySuccess}
@@ -362,9 +414,9 @@ function CommentEntry({
                   rows={1}
                   className="flex-1 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none text-sm resize-none bg-slate-50 focus:bg-white"
                 />
-                <SubmitBtn className="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition">
+                <SubmitBtnWithAuth className="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition">
                   Send
-                </SubmitBtn>
+                </SubmitBtnWithAuth>
               </form>
             )}
           </>
@@ -387,6 +439,7 @@ function CommentEntry({
                 setEditingId={setEditingId}
                 isReply={true}
                 toast={toast}
+                openAuthModal={openAuthModal}
               />
             ))}
           </div>

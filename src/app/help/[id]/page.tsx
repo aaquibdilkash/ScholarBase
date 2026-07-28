@@ -1,11 +1,13 @@
 import { getHelpPost } from "@/app/actions/help";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import { requireCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteHelpPost } from "@/app/actions/help";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import Link from "next/link";
+import { RichContent } from "@/components/content/RichContent";
 
 export default async function HelpPostPage({
   params,
@@ -13,8 +15,8 @@ export default async function HelpPostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireCurrentUser();
-  const post = await getHelpPost(id, user.id);
+  const user = await getCurrentUser();
+  const post = await getHelpPost(id, user?.id);
 
   if (!post) {
     notFound();
@@ -25,7 +27,7 @@ export default async function HelpPostPage({
   const downvotes =
     post.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (post.votes?.find((v: any) => v.userId === user.id)?.voteType as
+    (post.votes?.find((v: any) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -80,7 +82,7 @@ export default async function HelpPostPage({
             comments={post.comments}
             targetId={post.id}
             type="help"
-            currentUserId={user.id}
+            currentUserId={user?.id ?? null}
             postAuthorId={post.author.id}
           />
         </div>
@@ -92,9 +94,10 @@ export default async function HelpPostPage({
         {post.category}
       </p>
 
-      <p className="text-slate-700 leading-loose whitespace-pre-wrap mb-8">
-        {post.message}
-      </p>
+      <RichContent
+        content={post.message}
+        className="text-slate-700 leading-loose mb-8"
+      />
     </DetailPageCardShell>
   );
 }

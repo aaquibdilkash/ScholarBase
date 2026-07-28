@@ -1,13 +1,13 @@
 'use server'
 
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from "next/navigation";
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 
-export async function getFeed(userId: string, tab?: string, q?: string) {
+export async function getFeed(userId?: string, tab?: string, q?: string) {
     const isFollowingTab = tab === "following";
     const hasQuery = Boolean(q && q.trim().length > 0);
     let followingIds: string[] = [];
@@ -82,6 +82,7 @@ export async function getPost(id: string, userId?: string) {
         select: {
             id: true,
             content: true,
+            imageUrls: true,
             createdAt: true,
             updatedAt: true,
             authorId: true,
@@ -146,12 +147,14 @@ export async function createSocialPost(formData: FormData) {
     const user = await requireCurrentUser('You must be logged in to post.')
 
     const content = readFormValue(formData, 'content')
+    const imageUrls = formData.getAll('imageUrls').filter(Boolean).map(String);
 
     if (!content) return
 
     const post = await prisma.socialPost.create({
         data: {
             content,
+            imageUrls,
             authorId: user.id,
         },
     })
@@ -189,19 +192,21 @@ export async function updateSocialPost(
     const content = readFormValue(formData, 'content')
     if (!content) return
 
+    const imageUrls = formData.getAll('imageUrls').filter(Boolean).map(String);
+
     const post = await prisma.socialPost.findUnique({
         where: { id: postId },
         select: { authorId: true },
     })
 
     if (!post) return
-    if (post.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to edit this post.')
     }
 
     await prisma.socialPost.update({
         where: { id: postId },
-        data: { content },
+        data: { content, imageUrls },
     })
 
     revalidatePath('/feed')
@@ -218,7 +223,7 @@ export async function deleteSocialPost(postId: string) {
     })
 
     if (!post) return
-    if (post.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to delete this post.')
     }
 

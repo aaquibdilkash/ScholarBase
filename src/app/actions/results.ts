@@ -2,10 +2,11 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function getResults(q?: string, userId?: string) {
     const where = q
@@ -97,8 +98,17 @@ export async function createResult(formData: FormData) {
     const notificationLink = readOptionalFormValue(formData, 'notificationLink')
     const resultLink = readOptionalFormValue(formData, 'resultLink')
 
-    await prisma.result.create({
+    const result = await prisma.result.create({
         data: { title, description, type, category, conductingBody, session, notificationLink, resultLink, authorId: user.id },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'result-published',
+        targetType: 'result',
+        targetId: result.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} posted a new result`,
+        body: `${title}${category ? ` (${category})` : ''}${conductingBody ? ` - ${conductingBody}` : ''}`,
     })
 
     revalidatePath('/results')
@@ -123,7 +133,7 @@ export async function updateResult(formData: FormData, resultId: string) {
     })
 
     if (!result) return
-    if (result.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(result.authorId, user.id)) {
         throw new Error('Not authorized to edit this result.')
     }
 
@@ -146,7 +156,7 @@ export async function deleteResult(resultId: string) {
     })
 
     if (!result) return
-    if (result.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(result.authorId, user.id)) {
         throw new Error('Not authorized to delete this result.')
     }
 

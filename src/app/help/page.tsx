@@ -4,6 +4,13 @@ import { getTrendingHelpPosts } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getHelpPosts } from "@/app/actions/help";
 import ListPageShell from "@/components/layout/ListPageShell";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Help & Support - ScholarBase",
+  description:
+    "Get help from the community, ask questions, and find solutions to your problems.",
+};
 
 export default async function HelpPage({
   searchParams,

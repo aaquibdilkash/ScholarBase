@@ -1,23 +1,14 @@
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-import { BrandMark } from "@/components/BrandMark";
-import { ArticleComposer } from "@/components/blog/ArticleComposer";
+import type { Metadata } from "next";
 import Link from "next/link";
+import ArticleForm from "@/components/blog/ArticleForm";
 
-export default async function NewArticlePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const metadata: Metadata = {
+  title: "Write New Article",
+  description: "Write and publish a new article on ScholarBase blog.",
+  robots: { index: false, follow: true },
+};
 
-  // 🛡️ The Route Guard: Redirect if not logged in
-  if (!user) {
-    const message = encodeURIComponent(
-      "Please log in to write and publish an article.",
-    );
-    redirect(`/login?message=${message}`);
-  }
-
+export default function NewBlogPage() {
   return (
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8">
@@ -28,17 +19,14 @@ export default async function NewArticlePage() {
           ← Back to Blog
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Write an Article
+          Write New Article
         </h1>
         <p className="mt-2 text-slate-600">
-          Share your research, insights, and experiences with the{" "}
-          <BrandMark className="font-semibold" /> community.
+          Write and publish a new article on ScholarBase blog.
         </p>
       </div>
 
-      <div className="sb-surface-strong p-8 md:p-10">
-        <ArticleComposer />
-      </div>
+      <ArticleForm mode="create" slug={undefined} />
     </main>
   );
 }

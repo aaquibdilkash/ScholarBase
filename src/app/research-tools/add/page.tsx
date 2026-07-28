@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import ResearchToolForm from "@/components/research-tools/ResearchToolForm";
+
+export const metadata: Metadata = {
+  title: "Add Research Tool",
+  description: "Add a research tool or software to help fellow researchers.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewResearchToolPage() {
   return (
@@ -12,11 +19,10 @@ export default function NewResearchToolPage() {
           ← Back to Research Tools
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Add a new Research Tool
+          Add Research Tool
         </h1>
         <p className="mt-2 text-slate-600">
-          Contribute to the community by adding a new research tool to the
-          database.
+          Add a research tool or software to help fellow researchers.
         </p>
       </div>
 

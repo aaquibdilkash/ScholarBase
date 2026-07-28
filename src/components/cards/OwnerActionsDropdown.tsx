@@ -8,6 +8,7 @@ export type OwnerActionsDropdownProps = {
   editHref: string;
   onDelete: () => void | Promise<void>;
   isOwner: boolean;
+  isAdmin?: boolean;
   editLabel?: string;
   deleteLabel?: string;
   deleteLoadingText?: string;
@@ -17,6 +18,7 @@ export default function OwnerActionsDropdown({
   editHref,
   onDelete,
   isOwner,
+  isAdmin,
   editLabel = "Edit",
   deleteLabel = "Delete",
   deleteLoadingText = "Deleting...",
@@ -49,7 +51,7 @@ export default function OwnerActionsDropdown({
     };
   }, [open]);
 
-  if (!isOwner) return null;
+  if (!isOwner && !isAdmin) return null;
 
   const handleDelete = () => {
     startDeleteTransition(async () => {

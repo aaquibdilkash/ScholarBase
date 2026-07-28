@@ -1,11 +1,17 @@
 import { createClient } from "@/utils/supabase/server";
-
+import { Metadata } from "next";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { AdmissionsList } from "@/components/admissions/AdmissionsList";
 import { getTrendingAdmissions } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { TrendingItem } from "@/types/trending";
 import { getAdmissions } from "@/app/actions/admissions";
+
+export const metadata: Metadata = {
+  title: "PhD Admissions - ScholarBase",
+  description:
+    "Find and share PhD admission notifications from universities and research institutions worldwide.",
+};
 
 export default async function AdmissionsPage({
   searchParams,

@@ -1,12 +1,14 @@
 "use client";
 
+import { useAuthModal } from "@/components/interactions/AuthModal";
 import {
   updatePhdAdmission,
   createPhdAdmission,
 } from "@/app/actions/admissions";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 
 export type AdmissionFormValues = {
   university: string;
@@ -21,11 +23,14 @@ export default function AdmissionForm({
   mode,
   admissionId,
   initialValues,
+  isLoggedIn,
 }: {
   mode: "create" | "edit";
   admissionId?: string;
   initialValues?: Partial<AdmissionFormValues>;
+  isLoggedIn?: boolean;
 }) {
+  const { openAuthModal } = useAuthModal();
   const initial = {
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
@@ -51,6 +56,10 @@ export default function AdmissionForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "create" && !isLoggedIn) {
+      openAuthModal();
+      return;
+    }
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && admissionId) {
@@ -103,14 +112,11 @@ export default function AdmissionForm({
 
       <div>
         <label className="sb-label">Seat Matrix / Eligibility Notes</label>
-        <textarea
-          name="description"
-          placeholder="Specify JRF/NET exemptions, tentative seats, or specialization availability..."
-          className="sb-input h-32"
-          required
+        <Editor
           value={draftFields.description}
-          onChange={(e) => updateDraftField("description", e.target.value)}
+          onChange={(data) => updateDraftField("description", data)}
         />
+        <input type="hidden" name="description" value={draftFields.description} />
       </div>
 
       <div>
@@ -139,9 +145,10 @@ export default function AdmissionForm({
         />
       </div>
 
-      <SubmitBtn className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Post Notification"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }
+

@@ -4,6 +4,7 @@ import { Recommendation, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
+import { RichContent } from "@/components/content/RichContent";
 
 type RecommendationCardProps = Recommendation & {
   author: User & {
@@ -85,9 +86,13 @@ export function RecommendationCard({
         <p>{`Guidance Quality: ${recommendation.guidanceScore}/5`}</p>
       </div>
 
-      <p className="text-sm leading-relaxed text-slate-600 whitespace-pre-wrap line-clamp-4">
-        {`Mentorship Feedback: ${recommendation.feedback}`}
+      <p className="text-sm font-semibold text-slate-700 mb-1">
+        Mentorship Feedback:
       </p>
+      <RichContent
+        content={recommendation.feedback}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-4"
+      />
     </ListPageCardShell>
   );
 }

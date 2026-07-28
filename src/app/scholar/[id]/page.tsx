@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProfile } from "@/app/actions/profile";
 import ProfileTabs from "@/components/profile/ProfileTabs";
+import { FollowerCount } from "./FollowerCount";
 
 export default async function ScholarProfile({
   params,
@@ -55,11 +56,12 @@ export default async function ScholarProfile({
               {profile.handle ? `@${profile.handle}` : "No handle set"}
             </p>
             <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
-              <span>
-                {profile._count.followers}{" "}
-                {profile._count.followers === 1 ? "follower" : "followers"}
-              </span>
-              <span className="text-slate-300">·</span>
+              <FollowerCount
+                followerCount={profile._count.followers}
+                followingCount={profile._count.following}
+                profileId={profile.id}
+                currentUserId={currentUser?.id}
+              />
               <span className="inline-flex items-center gap-1">
                 <svg
                   className="h-3.5 w-3.5 text-amber-500"

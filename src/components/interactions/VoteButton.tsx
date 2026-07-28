@@ -4,6 +4,7 @@ import { toggleVote } from "@/app/actions/interactions";
 import { useState, useTransition } from "react";
 import { VoteArrowIcon } from "../icons/VoteIcons";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "./AuthModal";
 
 export type VoteType = "UPVOTE" | "DOWNVOTE";
 export type VoteTargetType =
@@ -18,7 +19,9 @@ export type VoteTargetType =
   | "journal"
   | "researchTool"
   | "result"
-  | "contribution";
+  | "contribution"
+  | "publication"
+  | "survey";
 
 export function VoteButton({
   targetId,
@@ -39,24 +42,22 @@ export function VoteButton({
   const [upvotes, setUpvotes] = useState(initialUpvotes);
   const [downvotes, setDownvotes] = useState(initialDownvotes);
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
 
   const netScore = upvotes - downvotes;
 
   const handleVote = (voteType: VoteType) => {
     setPendingVote(voteType);
     startTransition(async () => {
-      // Optimistic update
       const prevVote = userVote;
       const prevUpvotes = upvotes;
       const prevDownvotes = downvotes;
 
-      // If clicking the same vote direction, remove the vote (toggle off)
       if (userVote === voteType) {
         setUserVote(null);
         if (voteType === "UPVOTE") setUpvotes((c) => c - 1);
         else setDownvotes((c) => c - 1);
       } else {
-        // Switching vote or voting for the first time
         if (userVote === "UPVOTE") setUpvotes((c) => c - 1);
         if (userVote === "DOWNVOTE") setDownvotes((c) => c - 1);
 
@@ -66,17 +67,22 @@ export function VoteButton({
       }
 
       try {
-        const result = await toggleVote(targetId, type, voteType);
+        const result = (await toggleVote(targetId, type, voteType)) as any;
+        if (result?.error === "UNAUTHORIZED") {
+          setUserVote(prevVote);
+          setUpvotes(prevUpvotes);
+          setDownvotes(prevDownvotes);
+          openAuthModal();
+          return;
+        }
         setUserVote(result.userVote);
         setUpvotes(result.upvotes);
         setDownvotes(result.downvotes);
         toast("Vote registered!", "success");
       } catch {
-        // Revert
         setUserVote(prevVote);
         setUpvotes(prevUpvotes);
         setDownvotes(prevDownvotes);
-        toast("Failed to register vote. Please try again.", "error");
       }
     });
   };

@@ -12,6 +12,8 @@ import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
 import { HelpPostCard } from "@/components/help/HelpPostCard";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
 import { ResultCard } from "@/components/results/ResultCard";
+import { PublicationCard } from "@/components/publications/PublicationCard";
+import { SurveyCard } from "@/components/surveys/SurveyCard";
 
 export function TrendingList({
   items,
@@ -109,6 +111,24 @@ export function TrendingList({
               <ResultCard
                 key={item.id}
                 result={item}
+                currentUserId={currentUserId}
+              />
+            );
+          case "publication":
+            return (
+              <PublicationCard
+                key={item.id}
+                publication={item}
+                currentUserId={currentUserId}
+              />
+            );
+          case "survey":
+            return (
+              <SurveyCard
+                key={item.id}
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore - TrendingItem survey counts are partial
+                survey={item}
                 currentUserId={currentUserId}
               />
             );

@@ -5,6 +5,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deletePhdAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { RichContent } from "@/components/content/RichContent";
 
 const AdmissionDetailPage = async ({
   params,
@@ -93,9 +94,10 @@ const AdmissionDetailPage = async ({
       <p className="text-md font-medium text-blue-700 mb-6">
         {admission.department}
       </p>
-      <p className="text-slate-800 whitespace-pre-wrap leading-relaxed mb-6">
-        {admission.description}
-      </p>
+      <RichContent
+        content={admission.description}
+        className="text-slate-800 leading-relaxed mb-6"
+      />
 
       <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-100/50 bg-red-50/50 p-3 text-sm font-semibold text-red-600">
         <svg
@@ -123,7 +125,7 @@ const AdmissionDetailPage = async ({
             href={admission.notificationLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
           >
             View Circular
           </a>
@@ -133,7 +135,7 @@ const AdmissionDetailPage = async ({
             href={admission.applyLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             Go to Portal
           </a>

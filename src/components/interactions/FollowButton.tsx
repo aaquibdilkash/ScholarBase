@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useFollowContext } from "./FollowProvider";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "./AuthModal";
 import { toggleFollow } from "@/app/actions/follow";
 
 export function FollowButton({
@@ -17,6 +18,7 @@ export function FollowButton({
   const [isPending, startTransition] = useTransition();
   const { getFollowState, setFollowState } = useFollowContext();
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
 
   const isFollowingState = getFollowState(targetId, initialIsFollowing);
   const nextState = !isFollowingState;
@@ -30,6 +32,11 @@ export function FollowButton({
         startTransition(async () => {
           try {
             const result = await toggleFollow(targetId);
+            if (typeof result === "object" && "error" in result) {
+              setFollowState(targetId, initialIsFollowing);
+              openAuthModal();
+              return;
+            }
             if (typeof result === "boolean") {
               setFollowState(targetId, result);
               toast(
@@ -48,7 +55,7 @@ export function FollowButton({
           }
         });
       }}
-      className={`px-6 py-2 text-sm font-semibold rounded-full transition ${
+      className={`px-6 py-2 text-sm font-semibold rounded-lg transition ${
         isFollowingState
           ? "bg-gray-100 text-gray-800 hover:bg-gray-200"
           : "bg-blue-600 text-white hover:bg-blue-700"

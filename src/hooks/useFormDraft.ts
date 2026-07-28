@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-type DraftFields = Record<string, string>;
+type DraftFields = Record<string, any>;
 
 /**
  * Custom hook to persist form field values to localStorage.
@@ -17,7 +17,7 @@ export function useFormDraft(
     initialValues: DraftFields = {}
 ): [
         DraftFields,
-        (field: string, value: string) => void,
+        (field: string, value: any) => void,
         () => void,
         boolean,
     ] {
@@ -52,7 +52,7 @@ export function useFormDraft(
     );
 
     const updateField = useCallback(
-        (field: string, value: string) => {
+        (field: string, value: any) => {
             setFields((prev) => {
                 const updated = { ...prev, [field]: value };
                 saveDraft(updated);

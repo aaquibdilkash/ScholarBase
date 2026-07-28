@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import AdmissionForm from "@/components/admissions/AdmissionForm";
+
+export const metadata: Metadata = {
+  title: "Post PhD Admission Notification",
+  description: "Share PhD admissions, call for applications, and academic intake notifications with researchers.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewAdmissionPage() {
   return (
@@ -12,10 +19,10 @@ export default function NewAdmissionPage() {
           ← Back to Admissions
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Add PhD Admission Notification
+          Post PhD Admission Notification
         </h1>
         <p className="mt-2 text-slate-600">
-          Share verified admission calls for the community.
+          Share PhD admissions, call for applications, and academic intake notifications.
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 'use server'
 
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { redirect } from 'next/navigation'
 
@@ -125,7 +125,7 @@ export async function updateSupervisor(formData: FormData, supervisorId: string)
   })
 
   if (!supervisor) return
-  if (supervisor.authorId !== user.id) {
+  if (!await isAuthorizedOrAdmin(supervisor.authorId, user.id)) {
     throw new Error('Not authorized to edit this supervisor.')
   }
 
@@ -146,7 +146,7 @@ export async function deleteSupervisor(supervisorId: string) {
   })
 
   if (!supervisor) return
-  if (supervisor.authorId !== user.id) {
+  if (!await isAuthorizedOrAdmin(supervisor.authorId, user.id)) {
     throw new Error('Not authorized to delete this supervisor.')
   }
 

@@ -40,28 +40,47 @@ export function getNotificationLink(notification: Notification) {
           return `/results/${notification.targetId}`;
         case "contribution":
           return `/contributions/${notification.targetId}`;
+        case "publication":
+          return `/publications/${notification.targetId}`;
         default:
           return null;
       }
-    case "post-upvoted":
-    case "post-published":
-      return `/feed/${notification.targetId}`;
+    case "vacancy-published":
     case "vacancy-upvoted":
       return `/vacancies/${notification.targetId}`;
+    case "admission-published":
     case "admission-upvoted":
       return `/admissions/${notification.targetId}`;
+    case "event-published":
     case "event-upvoted":
       return `/events/${notification.targetId}`;
     case "recommendation-upvoted":
       return `/recommendation/${notification.targetId}`;
+    case "help-post-published":
     case "help-post-upvoted":
       return `/help/${notification.targetId}`;
+    case "journal-published":
     case "journal-upvoted":
       return `/journals/${notification.targetId}`;
+    case "contribution-published":
     case "contribution-upvoted":
       return `/contributions/${notification.targetId}`;
+    case "publication-published":
+    case "publication-upvoted":
+      return `/publications/${notification.targetId}`;
+    case "research-tool-published":
     case "research-tool-upvoted":
       return `/research-tools/${notification.targetId}`;
+    case "survey-published":
+      return `/surveys/${notification.targetId}`;
+    case "result-published":
+      return `/results/${notification.targetId}`;
+    case "supervisor-published":
+      return `/supervisor/${notification.targetId}`;
+    case "post-published":
+      return `/feed/${notification.targetId}`;
+    case "post-upvoted":
+      return `/feed/${notification.targetId}`;
     case "mention":
       if (notification.targetType === "article") {
         return `/blog/${notification.targetId}`;

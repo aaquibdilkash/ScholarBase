@@ -1,7 +1,7 @@
 'use server'
 
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, slugify } from '@/lib/form'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -193,7 +193,7 @@ export async function updateArticle(
   })
 
   if (!article) return
-  if (article.authorId !== user.id) {
+  if (!await isAuthorizedOrAdmin(article.authorId, user.id)) {
     throw new Error('Not authorized to edit this article.')
   }
 
@@ -236,7 +236,7 @@ export async function deleteArticle(articleId: string, slug: string) {
   })
 
   if (!article) return
-  if (article.authorId !== user.id) {
+  if (!await isAuthorizedOrAdmin(article.authorId, user.id)) {
     throw new Error('Not authorized to delete this article.')
   }
 
@@ -245,4 +245,34 @@ export async function deleteArticle(articleId: string, slug: string) {
   revalidatePath('/blog')
   revalidatePath(`/blog/${slug}`)
   redirect('/blog')
+}
+
+export async function getLatestArticles(count: number, userId?: string) {
+  return prisma.article.findMany({
+    take: count,
+    orderBy: { createdAt: "desc" },
+    include: {
+      author: {
+        include: {
+          followers: userId
+            ? {
+              where: { followerId: userId },
+              select: { followerId: true },
+            }
+            : false,
+        },
+      },
+      votes: {
+        select: {
+          userId: true,
+          voteType: true,
+        },
+      },
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+    },
+  });
 }

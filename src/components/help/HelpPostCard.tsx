@@ -5,6 +5,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
+import { RichContent } from "@/components/content/RichContent";
 
 type HelpPostWithAuthor = HelpPost & {
   author: User & {
@@ -78,9 +79,10 @@ export function HelpPostCard({
         </p>
       </div>
 
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-4">
-        {helpPost.message}
-      </p>
+      <RichContent
+        content={helpPost.message}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-4"
+      />
     </ListPageCardShell>
   );
 }

@@ -2,10 +2,11 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function getAdmissions(q?: string, userId?: string) {
     const where = q
@@ -97,8 +98,17 @@ export async function createPhdAdmission(formData: FormData) {
         throw new Error('Notification and Apply links are required.')
     }
 
-    await prisma.phdAdmission.create({
+    const admission = await prisma.phdAdmission.create({
         data: { university, department, deadline, description, notificationLink, applyLink, authorId: user.id },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'admission-published',
+        targetType: 'admission',
+        targetId: admission.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} posted a new PhD admission`,
+        body: `${department} at ${university} - Deadline: ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
     })
 
     revalidatePath('/admissions')
@@ -125,7 +135,7 @@ export async function updatePhdAdmission(formData: FormData, admissionId: string
     })
 
     if (!admission) return
-    if (admission.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(admission.authorId, user.id)) {
         throw new Error('Not authorized to edit this admission.')
     }
 
@@ -148,7 +158,7 @@ export async function deletePhdAdmission(admissionId: string) {
     })
 
     if (!admission) return
-    if (admission.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(admission.authorId, user.id)) {
         throw new Error('Not authorized to delete this admission.')
     }
 
@@ -157,4 +167,37 @@ export async function deletePhdAdmission(admissionId: string) {
     revalidatePath('/admissions')
     revalidatePath(`/admissions/${admissionId}`)
     redirect('/admissions')
+}
+
+export async function getLatestAdmissions(count: number, userId?: string) {
+  return prisma.phdAdmission.findMany({
+    where: {
+      deadline: {
+        gte: new Date(),
+      },
+    },
+    take: count,
+    orderBy: { createdAt: "desc" },
+    include: {
+      author: {
+        include: {
+          followers: userId
+            ? {
+              where: { followerId: userId },
+              select: { followerId: true },
+            }
+            : false,
+        },
+      },
+      votes: {
+        select: {
+          userId: true,
+          voteType: true,
+        },
+      },
+      _count: {
+        select: { votes: true, comments: true },
+      },
+    },
+  });
 }

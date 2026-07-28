@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+"use client";
+
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { signOut } from "@/app/actions/auth";
 
@@ -13,13 +16,15 @@ export default function UserActionsDropdown({
   unreadCount?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
 
-    const onDocMouseDown = (e: MouseEvent) => {
+    const onDocClick = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node;
       if (menuRef.current?.contains(target)) return;
       if (btnRef.current?.contains(target)) return;
@@ -30,13 +35,25 @@ export default function UserActionsDropdown({
       if (e.key === "Escape") setOpen(false);
     };
 
-    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("touchstart", onDocClick);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("touchstart", onDocClick);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } catch {
+      // fallback: redirect to login
+      router.push("/login");
+    }
+  }, [router]);
 
   return (
     <div className="relative md:hidden">
@@ -67,7 +84,7 @@ export default function UserActionsDropdown({
         <div
           ref={menuRef}
           role="menu"
-          className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
+          className="absolute right-0 z-[100] mt-2 w-48 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
         >
           <div className="py-1">
             <Link
@@ -91,16 +108,18 @@ export default function UserActionsDropdown({
             >
               Profile
             </Link>
-            <form action={signOut} className="w-full">
-              <button
-                type="submit"
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-              >
-                Sign Out
-              </button>
-            </form>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                handleSignOut();
+              }}
+              disabled={signingOut}
+              className="block w-full px-4 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+            >
+              {signingOut ? "Signing out..." : "Sign Out"}
+            </button>
           </div>
         </div>
       )}

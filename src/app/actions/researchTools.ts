@@ -2,11 +2,11 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function createResearchTool(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -16,7 +16,7 @@ export async function createResearchTool(formData: FormData) {
     const use = readFormValue(formData, 'use')
     const description = readFormValue(formData, 'description')
 
-    await prisma.researchTool.create({
+    const tool = await prisma.researchTool.create({
         data: {
             name,
             website,
@@ -24,6 +24,15 @@ export async function createResearchTool(formData: FormData) {
             description,
             authorId: user.id
         },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'research-tool-published',
+        targetType: 'researchTool',
+        targetId: tool.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} added a new research tool`,
+        body: `${name} - ${use}`,
     })
 
     revalidatePath('/research-tools')
@@ -44,7 +53,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
     })
 
     if (!tool) return
-    if (tool.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(tool.authorId, user.id)) {
         throw new Error('Not authorized to edit this research tool.')
     }
 
@@ -67,7 +76,7 @@ export async function deleteResearchTool(toolId: string) {
     })
 
     if (!tool) return
-    if (tool.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(tool.authorId, user.id)) {
         throw new Error('Not authorized to delete this research tool.')
     }
 
@@ -165,3 +174,4 @@ export async function getResearchToolById(toolId: string, userId?: string) {
         },
     });
 }
+

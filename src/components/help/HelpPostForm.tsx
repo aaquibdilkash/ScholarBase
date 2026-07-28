@@ -1,9 +1,11 @@
 "use client";
 
 import { createHelpPost, updateHelpPost } from "@/app/actions/help";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
+import { useAuthModal } from "@/components/interactions/AuthModal";
 
 export type HelpPostFormValues = {
   title: string;
@@ -16,11 +18,14 @@ export default function HelpPostForm({
   mode,
   helpPostId,
   initialValues,
+  isLoggedIn,
 }: {
   mode: "create" | "edit";
   helpPostId?: string;
   initialValues?: Partial<HelpPostFormValues>;
+  isLoggedIn?: boolean;
 }) {
+  const { openAuthModal } = useAuthModal();
   const initial = {
     title: initialValues?.title ?? "",
     category: initialValues?.category ?? "",
@@ -44,6 +49,10 @@ export default function HelpPostForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "create" && !isLoggedIn) {
+      openAuthModal();
+      return;
+    }
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && helpPostId) {
@@ -100,27 +109,24 @@ export default function HelpPostForm({
 
         <div>
           <label className="sb-label">Message</label>
-          <textarea
-            name="message"
-            placeholder="Describe your issue or question in detail."
-            className="sb-textarea"
-            rows={8}
-            required
+          <Editor
             value={draftFields.message}
-            onChange={(e) => updateDraftField("message", e.target.value)}
+            onChange={(data) => updateDraftField("message", data)}
           />
+          <input type="hidden" name="message" value={draftFields.message} />
         </div>
 
         <div className="pt-4 border-t border-slate-100 flex justify-end">
-          <SubmitBtn
+          <SubmitBtnWithAuth
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"
             }
           >
             {mode === "edit" ? "Save" : "Post"}
-          </SubmitBtn>
+          </SubmitBtnWithAuth>
         </div>
       </div>
     </form>
   );
 }
+

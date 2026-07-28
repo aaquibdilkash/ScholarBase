@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { getProfileSections } from "@/app/actions/profile";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
@@ -14,6 +14,7 @@ import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
+import { PublicationCard } from "@/components/publications/PublicationCard";
 
 type ProfileData = {
   id: string;
@@ -172,6 +173,17 @@ const SECTIONS: SectionConfig[] = [
         </div>
       )),
   },
+  {
+    key: "publications",
+    title: "Publications",
+    emptyMessage: "No publications added yet.",
+    renderItems: (items, currentUserId) =>
+      items.map((p: any) => (
+        <div key={p.id} className="flex-shrink-0 w-full snap-center">
+          <PublicationCard publication={p} currentUserId={currentUserId} />
+        </div>
+      )),
+  },
 ];
 
 export default function ProfileTabs({
@@ -278,9 +290,9 @@ export default function ProfileTabs({
                     {section.title}
                   </h2>
                   {items.length > 0 ? (
-                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+                    <ScrollableSection>
                       {section.renderItems(items, currentUserId)}
-                    </div>
+                    </ScrollableSection>
                   ) : (
                     <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
                       {section.emptyMessage}
@@ -291,6 +303,52 @@ export default function ProfileTabs({
             })}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Horizontally scrollable section with left/right navigation arrows */
+function ScrollableSection({ children }: { children: React.ReactNode }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: "left" | "right") => {
+    if (!scrollRef.current) return;
+    const amount = 320; // approximate card width
+    scrollRef.current.scrollBy({
+      left: direction === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
+  };
+
+  return (
+    <div className="relative group">
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto scrollbar-none pb-4 snap-x snap-mandatory"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {children}
+      </div>
+      <button
+        type="button"
+        onClick={() => scroll("left")}
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 opacity-0 group-hover:opacity-100 hover:bg-white hover:shadow-lg transition-all duration-200"
+        aria-label="Scroll left"
+      >
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={() => scroll("right")}
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 opacity-0 group-hover:opacity-100 hover:bg-white hover:shadow-lg transition-all duration-200"
+        aria-label="Scroll right"
+      >
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     </div>
   );
 }

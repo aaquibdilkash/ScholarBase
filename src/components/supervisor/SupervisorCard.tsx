@@ -4,6 +4,7 @@ import { Recommendation, Supervisor, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSupervisor } from "@/app/actions/supervisors";
+import { StarRating } from "@/components/ui/StarRating";
 
 type SupervisorCardProps = Supervisor & {
   author: User & {
@@ -29,12 +30,10 @@ export function SupervisorCard({
 
   const avgRating =
     recommendationCount > 0
-      ? (
-          supervisor.recommendations.reduce((sum, rec) => {
-            return sum + rec.rating;
-          }, 0) / recommendationCount
-        ).toFixed(1)
-      : "No recommendations";
+      ? supervisor.recommendations.reduce((sum, rec) => {
+          return sum + rec.rating;
+        }, 0) / recommendationCount
+      : 0;
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     supervisor.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
@@ -90,15 +89,22 @@ export function SupervisorCard({
         <p className="mb-4 text-sm text-slate-500">{supervisor.department}</p>
       )}
 
-      <div className="rounded-xl border border-slate-100 bg-white p-3">
-        <div className="text-sm">
-          <span className="font-semibold">{avgRating}</span>
+      {recommendationCount > 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3">
+          <StarRating rating={avgRating} size="sm" />
+          <div className="text-sm">
+            <span className="font-semibold">{avgRating.toFixed(1)}</span>
+            <span className="text-slate-500"> / 5</span>
+          </div>
+          <span className="text-slate-500 text-xs">
+            ({recommendationCount} ratings)
+          </span>
         </div>
-        <span className="text-slate-500"> / 5</span>
-        <span className="text-slate-500 ml-2">
-          ({recommendationCount} recommendations)
-        </span>
-      </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500">
+          No recommendations yet.
+        </div>
+      )}
     </ListPageCardShell>
   );
 }

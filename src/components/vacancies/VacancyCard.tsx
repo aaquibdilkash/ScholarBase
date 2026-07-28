@@ -5,6 +5,7 @@ import { ClockIcon } from "@/components/icons/ClockIcon";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { RichContent } from "@/components/content/RichContent";
 
 type VacancyWithAuthor = JobVacancy & {
   author: User & {
@@ -100,9 +101,10 @@ export function VacancyCard({
         {vacancy.institution}
       </p>
 
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-        {vacancy.description}
-      </p>
+      <RichContent
+        content={vacancy.description}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+      />
 
       <div className="mt-6 flex items-center gap-2 rounded-xl border border-red-100/50 bg-red-50/50 p-2 text-xs font-semibold text-red-600">
         <ClockIcon className="w-4 h-4" />

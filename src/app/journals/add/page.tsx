@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import JournalForm from "@/components/journals/JournalForm";
+
+export const metadata: Metadata = {
+  title: "Add Journal",
+  description: "Add an academic journal with its rankings and impact factor.",
+  robots: { index: false, follow: true },
+};
 
 export default function NewJournalPage() {
   return (
@@ -12,10 +19,10 @@ export default function NewJournalPage() {
           ← Back to Journals
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Add a new Journal
+          Add Journal
         </h1>
         <p className="mt-2 text-slate-600">
-          Contribute to the community by adding a new journal to the database.
+          Add an academic journal with its rankings and impact factor.
         </p>
       </div>
 

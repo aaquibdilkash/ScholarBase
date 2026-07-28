@@ -7,6 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function getContributions(q?: string, userId?: string) {
     const where: Prisma.ContributionWhereInput = {
@@ -89,7 +90,20 @@ export async function getContribution(id: string, userId?: string) {
 export async function getAllContributionsAdmin(userId?: string) {
     return prisma.contribution.findMany({
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            amount: true,
+            upiId: true,
+            message: true,
+            paymentMethod: true,
+            screenshotUrl: true,
+            status: true,
+            rejectionReason: true,
+            approvedAt: true,
+            createdAt: true,
+            updatedAt: true,
+            authorId: true,
             author: {
                 select: { id: true, name: true, handle: true, avatarUrl: true, email: true },
             },
@@ -149,7 +163,11 @@ export async function createContribution(formData: FormData) {
         throw new Error('Title and message are required.')
     }
 
-    await prisma.contribution.create({
+    if (amount !== null && (isNaN(amount) || amount < 1)) {
+        throw new Error('Amount must be at least ₹1.')
+    }
+
+    const contribution = await prisma.contribution.create({
         data: {
             title,
             message,
@@ -162,6 +180,15 @@ export async function createContribution(formData: FormData) {
         },
     })
 
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'contribution-published',
+        targetType: 'contribution',
+        targetId: contribution.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} made a contribution`,
+        body: `${title}${amount ? ` (₹${amount})` : ''}`,
+    })
+
     revalidatePath('/contributions')
     return { success: true }
 }
@@ -169,23 +196,60 @@ export async function createContribution(formData: FormData) {
 export async function approveContribution(contributionId: string) {
     await requireAdmin()
 
-    await prisma.contribution.update({
+    const contribution = await prisma.contribution.update({
         where: { id: contributionId },
         data: { status: 'APPROVED', approvedAt: new Date() },
+        include: { author: { select: { name: true } } },
     })
+
+    // Award 5 reputation points for approved contribution
+    await prisma.user.update({
+        where: { id: contribution.authorId },
+        data: { reputation: { increment: 5 } },
+    })
+
+    // Send notification to contributor
+    await prisma.notification.create({
+        data: {
+            recipientId: contribution.authorId,
+            actorId: contribution.authorId,
+            type: 'contribution-approved',
+            targetType: 'contribution',
+            targetId: contributionId,
+            title: 'Contribution Approved! 🎉',
+            body: `Your contribution "${contribution.title}" has been approved. Thank you for supporting ScholarBase!`,
+        },
+    }).catch(() => { })
 
     revalidatePath('/contributions')
     revalidatePath(`/contributions/${contributionId}`)
     revalidatePath('/admin')
 }
 
-export async function rejectContribution(contributionId: string) {
+export async function rejectContribution(contributionId: string, formData?: FormData) {
     await requireAdmin()
 
-    await prisma.contribution.update({
+    const reason = formData ? formData.get('rejectionReason') as string : null
+
+    const contribution = await prisma.contribution.update({
         where: { id: contributionId },
-        data: { status: 'REJECTED' },
+        data: { status: 'REJECTED', rejectionReason: reason || null },
     })
+
+    // Send notification to contributor
+    await prisma.notification.create({
+        data: {
+            recipientId: contribution.authorId,
+            actorId: contribution.authorId,
+            type: 'contribution-rejected',
+            targetType: 'contribution',
+            targetId: contributionId,
+            title: 'Contribution Review Update',
+            body: reason
+                ? `Your contribution "${contribution.title}" was rejected: ${reason}`
+                : `Your contribution "${contribution.title}" was rejected.`,
+        },
+    }).catch(() => { })
 
     revalidatePath('/contributions')
     revalidatePath(`/contributions/${contributionId}`)

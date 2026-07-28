@@ -17,6 +17,40 @@ enum ContributionStatus {
   REJECTED
 }
 
+enum PublicationType {
+  RESEARCH_PAPER
+  CONFERENCE_PROCEEDING
+  PREPRINT
+  BOOK
+  BOOK_CHAPTER
+  THESIS
+  TECHNICAL_REPORT
+  OTHER
+}
+
+enum SurveyQuestionType {
+  SHORT_TEXT
+  LONG_TEXT
+  MULTIPLE_CHOICE
+  CHECKBOXES
+  DROPDOWN
+  RATING
+  LINEAR_SCALE
+  DATE
+  LIKERT_SCALE
+}
+
+enum SurveyPrivacy {
+  ANONYMOUS
+  NON_ANONYMOUS
+  HYBRID
+}
+
+enum SurveyStatus {
+  OPEN
+  CLOSED
+}
+
 model Article {
   id        String           @id @default(uuid())
   title     String
@@ -53,6 +87,7 @@ model SocialPost {
   id        String          @id @default(uuid())
   content   String
   imageUrl  String?
+  imageUrls String[]
   authorId  String
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
@@ -207,6 +242,7 @@ model Contribution {
   paymentMethod   String?
   screenshotUrl   String?
   status          ContributionStatus @default(PENDING)
+  rejectionReason String?
   approvedAt      DateTime?
   authorId        String
   createdAt       DateTime           @default(now())
@@ -253,6 +289,71 @@ model ContributionCommentVote {
   voteType  VoteType
   comment   ContributionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User               @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId, voteType])
+}
+
+model Publication {
+  id                String                 @id @default(uuid())
+  title             String
+  authors           String
+  publicationType   PublicationType
+  journalOrConference String?
+  publisher         String?
+  year              Int?
+  volume            String?
+  issue             String?
+  pages             String?
+  doi               String?
+  isbn              String?
+  url               String?
+  keywords          String?
+  domain            String?
+  abstract          String?
+  isUserAuthor      Boolean                @default(false)
+  authorId          String
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  author            User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes             PublicationVote[]
+  comments          PublicationComment[]
+}
+
+model PublicationVote {
+  id            String          @id @default(uuid())
+  publicationId String
+  userId        String
+  voteType      VoteType
+  publication   Publication     @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id])
+
+  @@unique([publicationId, userId])
+  @@index([publicationId, voteType])
+}
+
+model PublicationComment {
+  id            String                 @id @default(uuid())
+  content       String
+  publicationId String
+  authorId      String
+  parentId      String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  publication   Publication            @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  author        User                   @relation(fields: [authorId], references: [id])
+  parent        PublicationComment?    @relation("PublicationReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       PublicationComment[]   @relation("PublicationReplies")
+  votes         PublicationCommentVote[]
+}
+
+model PublicationCommentVote {
+  id        String              @id @default(uuid())
+  commentId String
+  userId    String
+  voteType  VoteType
+  comment   PublicationComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
   @@index([commentId, voteType])
@@ -337,6 +438,17 @@ model User {
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")
   supervisors           Supervisor[]
+
+  publications            Publication[]
+  publicationVotes        PublicationVote[]
+  publicationComments     PublicationComment[]
+  publicationCommentVotes PublicationCommentVote[]
+
+  surveys              ResearchSurvey[]
+  surveyVotes          SurveyVote[]
+  surveyComments       SurveyComment[]
+  surveyCommentVotes   SurveyCommentVote[]
+  surveyResponses      SurveyResponse[]
 }
 
 model Notification {
@@ -524,6 +636,117 @@ model ResultCommentVote {
   voteType  VoteType
   comment   ResultComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User          @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId, voteType])
+}
+
+model ResearchSurvey {
+  id           String          @id @default(uuid())
+  title        String
+  description  String?
+  privacy      SurveyPrivacy   @default(HYBRID)
+  status       SurveyStatus    @default(OPEN)
+  shareData    Boolean         @default(false)
+  authorId     String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  questions   SurveyQuestion[]
+  responses   SurveyResponse[]
+  votes       SurveyVote[]
+  comments    SurveyComment[]
+}
+
+model SurveyQuestion {
+  id         String             @id @default(uuid())
+  surveyId   String
+  type       SurveyQuestionType
+  title      String
+  required   Boolean            @default(false)
+  order      Int
+  minValue   Int?
+  maxValue   Int?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  survey  ResearchSurvey       @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  options SurveyQuestionOption[]
+  answers SurveyAnswer[]
+}
+
+model SurveyQuestionOption {
+  id         String @id @default(uuid())
+  questionId String
+  value      String
+  label      String
+  order      Int
+
+  question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model SurveyResponse {
+  id         String   @id @default(uuid())
+  surveyId   String
+  respondentId String?
+  isAnonymous Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  survey  ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  respondent User?       @relation(fields: [respondentId], references: [id])
+  answers  SurveyAnswer[]
+}
+
+model SurveyAnswer {
+  id         String @id @default(uuid())
+  responseId String
+  questionId String
+  value      String // JSON string for multiple values
+
+  response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model SurveyVote {
+  id        String      @id @default(uuid())
+  surveyId  String
+  userId    String
+  voteType  VoteType
+
+  survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id])
+
+  @@unique([surveyId, userId])
+  @@index([surveyId, voteType])
+}
+
+model SurveyComment {
+  id        String   @id @default(uuid())
+  content   String
+  surveyId  String
+  authorId  String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  author User           @relation(fields: [authorId], references: [id])
+
+  parent  SurveyComment?  @relation("SurveyReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies SurveyComment[] @relation("SurveyReplies")
+
+  votes SurveyCommentVote[]
+}
+
+model SurveyCommentVote {
+  id        String        @id @default(uuid())
+  commentId String
+  userId    String
+  voteType  VoteType
+
+  comment SurveyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
   @@index([commentId, voteType])

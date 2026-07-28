@@ -1,9 +1,10 @@
 "use client";
 
 import { createJournal, updateJournal } from "@/app/actions/journals";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 
 export type JournalFormValues = {
   title: string;
@@ -103,24 +104,34 @@ export default function JournalForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">Scopus</label>
-          <input
+          <label className="sb-label">Scopus Ranking</label>
+          <select
             name="scopus"
-            placeholder="e.g., Q1"
-            className="sb-input"
             value={draftFields.scopus}
             onChange={(e) => updateDraftField("scopus", e.target.value)}
-          />
+            className="sb-input"
+          >
+            <option value="">Select ranking</option>
+            <option value="Q1">Q1</option>
+            <option value="Q2">Q2</option>
+            <option value="Q3">Q3</option>
+            <option value="Q4">Q4</option>
+          </select>
         </div>
         <div>
           <label className="sb-label">ABDC Category</label>
-          <input
+          <select
             name="abdcCategory"
-            placeholder="e.g., A*"
-            className="sb-input"
             value={draftFields.abdcCategory}
             onChange={(e) => updateDraftField("abdcCategory", e.target.value)}
-          />
+            className="sb-input"
+          >
+            <option value="">Select category</option>
+            <option value="A*">A*</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
         </div>
       </div>
 
@@ -148,18 +159,16 @@ export default function JournalForm({
 
       <div>
         <label className="sb-label">About</label>
-        <textarea
-          name="about"
-          placeholder="Briefly describe the journal and its focus..."
-          className="sb-input h-32"
+        <Editor
           value={draftFields.about}
-          onChange={(e) => updateDraftField("about", e.target.value)}
+          onChange={(data) => updateDraftField("about", data)}
         />
+        <input type="hidden" name="about" value={draftFields.about} />
       </div>
 
-      <SubmitBtn className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
         {mode === "edit" ? "Save Changes" : "Add Journal"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }

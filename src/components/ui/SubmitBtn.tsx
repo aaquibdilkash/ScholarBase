@@ -7,15 +7,18 @@ export function SubmitBtn({
   children,
   className = "sb-button-accent",
   loadingText,
+  disabled,
 }: {
   children: ReactNode;
   className?: string;
   loadingText?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
 
   return (
-    <button type="submit" disabled={pending} className={className}>
+    <button type="submit" disabled={isDisabled} className={className}>
       {pending ? (
         <span className="inline-flex items-center gap-2">
           <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">

@@ -6,6 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult, getResult } from "@/app/actions/results";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { RichContent } from "@/components/content/RichContent";
 
 const ResultDetailPage = async ({
   params,
@@ -112,9 +113,10 @@ const ResultDetailPage = async ({
         {result.title}
       </h1>
 
-      <p className="text-slate-800 whitespace-pre-wrap leading-relaxed mb-6">
-        {result.description}
-      </p>
+      <RichContent
+        content={result.description}
+        className="text-slate-800 leading-relaxed mb-6"
+      />
 
       {(result.conductingBody || result.session) && (
         <div className="mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-4 text-sm font-semibold text-slate-600">

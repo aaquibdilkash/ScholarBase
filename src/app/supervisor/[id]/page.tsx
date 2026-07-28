@@ -4,10 +4,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 
+import { Carousel } from "@/components/ui/Carousel";
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { deleteSupervisor, getSupervisor } from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { StarRating } from "@/components/ui/StarRating";
+import { RichContent } from "@/components/content/RichContent";
 
 export default async function SupervisorPage({
   params,
@@ -45,6 +48,25 @@ export default async function SupervisorPage({
   const hasUserRecommendation =
     !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
+
+  const recommendationCount = supervisor.recommendations.length;
+  const avgRating =
+    recommendationCount > 0
+      ? supervisor.recommendations.reduce((sum, rec) => sum + rec.rating, 0) /
+        recommendationCount
+      : 0;
+
+  const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
+    const count = supervisor.recommendations.filter(
+      (r) => r.rating === stars,
+    ).length;
+    return {
+      stars,
+      count,
+      percentage:
+        recommendationCount > 0 ? (count / recommendationCount) * 100 : 0,
+    };
+  });
 
   return (
     <DetailPageCardShell
@@ -110,9 +132,10 @@ export default async function SupervisorPage({
               </p>
             )}
             {supervisor.about && (
-              <p className="mt-4 text-sm leading-6 text-slate-700">
-                {supervisor.about}
-              </p>
+              <RichContent
+                content={supervisor.about}
+                className="mt-4 text-sm leading-6 text-slate-700"
+              />
             )}
           </div>
 
@@ -127,6 +150,43 @@ export default async function SupervisorPage({
         </div>
       </div>
 
+      {recommendationCount > 0 && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 mb-8">
+          <h3 className="text-2xl font-bold text-slate-900 mb-6">
+            Overall Rating
+          </h3>
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="flex flex-col items-center justify-center text-center">
+              <p className="text-5xl font-extrabold text-slate-900">
+                {avgRating.toFixed(1)}
+              </p>
+              <StarRating rating={avgRating} size="lg" />
+              <p className="text-sm text-slate-500 mt-2">
+                ({recommendationCount} ratings)
+              </p>
+            </div>
+            <div className="w-full flex-1 space-y-2">
+              {ratingDistribution.map((item) => (
+                <div key={item.stars} className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-slate-600 w-12">
+                    {item.stars} star
+                  </span>
+                  <div className="w-full bg-slate-100 rounded-full h-2.5">
+                    <div
+                      className="bg-yellow-400 h-2.5 rounded-full"
+                      style={{ width: `${item.percentage}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm font-medium text-slate-500 w-12 text-right">
+                    {item.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Recommendations List */}
       <div className="space-y-6 mb-12">
         <h3
@@ -140,19 +200,16 @@ export default async function SupervisorPage({
             No recommendations yet. Be the first to share your experience!
           </p>
         ) : (
-          <div className="overflow-x-auto pb-4 snap-x snap-mandatory">
-            <div className="flex gap-6">
-              {supervisor.recommendations.map((r) => (
-                <div key={r.id} className="w-full flex-shrink-0 snap-center">
-                  <RecommendationCard
-                    recommendation={r}
-                    supervisor={supervisor}
-                    currentUserId={user?.id}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          <Carousel>
+            {supervisor.recommendations.map((r) => (
+              <RecommendationCard
+                key={r.id}
+                recommendation={r}
+                supervisor={supervisor}
+                currentUserId={user?.id}
+              />
+            ))}
+          </Carousel>
         )}
       </div>
     </DetailPageCardShell>

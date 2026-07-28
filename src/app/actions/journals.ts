@@ -2,10 +2,11 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function createJournal(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -19,7 +20,7 @@ export async function createJournal(formData: FormData) {
     const website = readOptionalFormValue(formData, 'website')
     const about = readOptionalFormValue(formData, 'about')
 
-    await prisma.journal.create({
+    const journal = await prisma.journal.create({
         data: {
             title,
             issn,
@@ -31,6 +32,15 @@ export async function createJournal(formData: FormData) {
             about,
             authorId: user.id
         },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'journal-published',
+        targetType: 'journal',
+        targetId: journal.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} added a new journal`,
+        body: `${title}${publisher ? ` by ${publisher}` : ''}`,
     })
 
     revalidatePath('/journals')
@@ -55,7 +65,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
     })
 
     if (!journal) return
-    if (journal.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(journal.authorId, user.id)) {
         throw new Error('Not authorized to edit this journal.')
     }
 
@@ -87,7 +97,7 @@ export async function deleteJournal(journalId: string) {
     })
 
     if (!journal) return
-    if (journal.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(journal.authorId, user.id)) {
         throw new Error('Not authorized to delete this journal.')
     }
 
@@ -97,7 +107,6 @@ export async function deleteJournal(journalId: string) {
     revalidatePath(`/journals/${journalId}`)
     redirect('/journals')
 }
-
 
 export async function getJournals(q?: string, userId?: string) {
     const where = q
@@ -184,3 +193,4 @@ export async function getJournalById(journalId: string, userId?: string) {
         },
     });
 }
+

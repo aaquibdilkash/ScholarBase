@@ -1,15 +1,19 @@
 'use server'
 
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { getCurrentUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
-export async function toggleFollow(followingId: string): Promise<boolean | undefined> {
-  const user = await requireCurrentUser('Log in to follow this scholar and track their research.')
+export async function toggleFollow(followingId: string): Promise<boolean | { error: string }> {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    return { error: "UNAUTHORIZED" }
+  }
 
   // Guard against incorrect invocation (e.g. undefined passed from UI)
-  if (!followingId) return
+  if (!followingId) return false
 
   const existing = await prisma.follows.findUnique({
     where: {
@@ -55,5 +59,53 @@ export async function toggleFollow(followingId: string): Promise<boolean | undef
   revalidatePath('/feed')
 
   return updated ? true : false
+}
+
+export async function getFollowers(userId: string, currentUserId?: string) {
+  const follows = await prisma.follows.findMany({
+    where: { followingId: userId },
+    select: {
+      follower: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: currentUserId
+            ? { where: { followerId: currentUserId }, select: { followerId: true } }
+            : false,
+        },
+      },
+    },
+    orderBy: { follower: { name: 'asc' } },
+  })
+  return follows.map((f) => ({
+    ...f.follower,
+    isFollowing: currentUserId ? (f.follower as any).followers?.length > 0 : false,
+  }))
+}
+
+export async function getFollowing(userId: string, currentUserId?: string) {
+  const follows = await prisma.follows.findMany({
+    where: { followerId: userId },
+    select: {
+      following: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: currentUserId
+            ? { where: { followerId: currentUserId }, select: { followerId: true } }
+            : false,
+        },
+      },
+    },
+    orderBy: { following: { name: 'asc' } },
+  })
+  return follows.map((f) => ({
+    ...f.following,
+    isFollowing: currentUserId ? (f.following as any).followers?.length > 0 : false,
+  }))
 }
 

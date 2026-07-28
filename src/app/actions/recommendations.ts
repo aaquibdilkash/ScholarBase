@@ -1,7 +1,7 @@
 'use server'
 
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { redirect } from 'next/navigation'
 
@@ -81,7 +81,7 @@ export async function updateRecommendation(formData: FormData, recommendationId:
     })
 
     if (!recommendation) return
-    if (recommendation.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(recommendation.authorId, user.id)) {
         throw new Error('Not authorized to edit this recommendation.')
     }
 
@@ -109,7 +109,7 @@ export async function deleteRecommendation(recommendationId: string) {
     })
 
     if (!recommendation) return
-    if (recommendation.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(recommendation.authorId, user.id)) {
         throw new Error('Not authorized to delete this recommendation.')
     }
 

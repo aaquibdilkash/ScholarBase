@@ -2,11 +2,12 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function getVacancies(q?: string, userId?: string) {
     const where = q
@@ -103,8 +104,17 @@ export async function createJobVacancy(formData: FormData) {
         throw new Error('Notification and Apply links are required.')
     }
 
-    await prisma.jobVacancy.create({
+    const vacancy = await prisma.jobVacancy.create({
         data: { title, institution, deadline, description, notificationLink, applyLink, authorId: user.id },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'vacancy-published',
+        targetType: 'vacancy',
+        targetId: vacancy.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} posted a new academic vacancy`,
+        body: `${title} at ${institution} - Apply by ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
     })
 
     revalidatePath('/vacancies')
@@ -131,7 +141,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
     })
 
     if (!vacancy) return
-    if (vacancy.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(vacancy.authorId, user.id)) {
         throw new Error('Not authorized to edit this vacancy.')
     }
 
@@ -154,7 +164,7 @@ export async function deleteJobVacancy(vacancyId: string) {
     })
 
     if (!vacancy) return
-    if (vacancy.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(vacancy.authorId, user.id)) {
         throw new Error('Not authorized to delete this vacancy.')
     }
 
@@ -163,4 +173,37 @@ export async function deleteJobVacancy(vacancyId: string) {
     revalidatePath('/vacancies')
     revalidatePath(`/vacancies/${vacancyId}`)
     redirect('/vacancies')
+}
+
+export async function getLatestVacancies(count: number, userId?: string) {
+  return prisma.jobVacancy.findMany({
+    where: {
+      deadline: {
+        gte: new Date(),
+      },
+    },
+    take: count,
+    orderBy: { createdAt: "desc" },
+    include: {
+      author: {
+        include: {
+          followers: userId
+            ? {
+              where: { followerId: userId },
+              select: { followerId: true },
+            }
+            : false,
+        },
+      },
+      votes: {
+        select: {
+          userId: true,
+          voteType: true,
+        },
+      },
+      _count: {
+        select: { votes: true, comments: true },
+      },
+    },
+  });
 }

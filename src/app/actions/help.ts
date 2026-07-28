@@ -2,9 +2,10 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function getHelpPosts(q?: string, userId?: string) {
     const where = q
@@ -43,7 +44,7 @@ export async function getHelpPosts(q?: string, userId?: string) {
     })
 }
 
-export async function getHelpPost(id: string, userId: string) {
+export async function getHelpPost(id: string, userId?: string) {
     if (!id || typeof id !== 'string') {
         throw new Error(`Invalid ID passed to getHelpPost: ${id}`);
     }
@@ -99,7 +100,7 @@ export async function createHelpPost(formData: FormData) {
         throw new Error('Please fill in all fields.')
     }
 
-    await prisma.helpPost.create({
+    const post = await prisma.helpPost.create({
         data: {
             title,
             subject,
@@ -107,6 +108,15 @@ export async function createHelpPost(formData: FormData) {
             message,
             authorId: user.id,
         },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'help-post-published',
+        targetType: 'help',
+        targetId: post.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} posted a help request`,
+        body: `${title} - ${subject}`,
     })
 
     revalidatePath('/help')
@@ -131,7 +141,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
     })
 
     if (!post) return
-    if (post.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to edit this help post.')
     }
 
@@ -152,7 +162,7 @@ export async function deleteHelpPost(helpPostId: string) {
     })
 
     if (!post) return
-    if (post.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to delete this help post.')
     }
 

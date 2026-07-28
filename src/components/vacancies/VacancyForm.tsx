@@ -1,9 +1,10 @@
 "use client";
 
 import { createJobVacancy, updateJobVacancy } from "@/app/actions/vacancies";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 
 export type VacancyFormValues = {
   title: string;
@@ -101,13 +102,14 @@ export default function VacancyForm({
 
       <div>
         <label className="sb-label">Details (Pay Scale, Qualifications)</label>
-        <textarea
-          name="description"
-          placeholder="Detail the eligibility metrics (e.g., UGC regulations compliance, API score requirements)..."
-          className="sb-input h-32"
-          required
+        <Editor
           value={draftFields.description}
-          onChange={(e) => updateDraftField("description", e.target.value)}
+          onChange={(data) => updateDraftField("description", data)}
+        />
+        <input
+          type="hidden"
+          name="description"
+          value={draftFields.description}
         />
       </div>
 
@@ -137,9 +139,12 @@ export default function VacancyForm({
         />
       </div>
 
-      <SubmitBtn className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth
+        className="sb-button-accent mt-2 self-end"
+        loadingText={mode === "edit" ? "Saving..." : "Posting..."}
+      >
         {mode === "edit" ? "Save Changes" : "Post Vacancy"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }

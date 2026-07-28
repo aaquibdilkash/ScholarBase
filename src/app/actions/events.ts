@@ -2,10 +2,11 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { notifyFollowersOfActivity } from '@/lib/notifications'
 
 export async function getEvents(q?: string, userId?: string) {
     const where = q
@@ -99,8 +100,17 @@ export async function createResearchEvent(formData: FormData) {
         throw new Error('Notification and Apply links are required.')
     }
 
-    await prisma.researchEvent.create({
+    const event = await prisma.researchEvent.create({
         data: { title, date, location, description, deadline, notificationLink, applyLink, authorId: user.id },
+    })
+
+    await notifyFollowersOfActivity({
+        actorId: user.id,
+        type: 'event-published',
+        targetType: 'event',
+        targetId: event.id,
+        title: `${user.email?.split('@')[0] || 'Someone'} posted a new research event`,
+        body: `"${title}" - ${new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
     })
 
     revalidatePath('/events')
@@ -129,7 +139,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
     })
 
     if (!event) return
-    if (event.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(event.authorId, user.id)) {
         throw new Error('Not authorized to edit this event.')
     }
 
@@ -152,7 +162,7 @@ export async function deleteResearchEvent(eventId: string) {
     })
 
     if (!event) return
-    if (event.authorId !== user.id) {
+    if (!await isAuthorizedOrAdmin(event.authorId, user.id)) {
         throw new Error('Not authorized to delete this event.')
     }
 
@@ -162,3 +172,37 @@ export async function deleteResearchEvent(eventId: string) {
     revalidatePath(`/events/${eventId}`)
     redirect('/events')
 }
+
+export async function getUpcomingEvents(count: number, userId?: string) {
+  return prisma.researchEvent.findMany({
+    where: {
+      date: {
+        gte: new Date(),
+      },
+    },
+    take: count,
+    orderBy: { date: "asc" },
+    include: {
+      author: {
+        include: {
+          followers: userId
+            ? {
+              where: { followerId: userId },
+              select: { followerId: true },
+            }
+            : false,
+        },
+      },
+      votes: {
+        select: {
+          userId: true,
+          voteType: true,
+        },
+      },
+      _count: {
+        select: { votes: true, comments: true },
+      },
+    },
+  });
+}
+

@@ -8,7 +8,9 @@ import {
 } from "@/app/actions/profile";
 import { generateAvatarSignature } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { Editor } from "@/components/ui/Editor";
 
 type UserData = {
   id: string;
@@ -57,6 +59,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const { toast } = useToast();
+
+  const [bio, setBio] = useState(user.bio || "");
 
   const debouncedCheckHandle = useDebounce(async (h: string) => {
     if (h.length > 2) {
@@ -226,13 +230,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
 
       <div>
         <label className="sb-label">Bio / About Me</label>
-        <textarea
-          name="bio"
-          defaultValue={user.bio || ""}
-          rows={4}
-          className="sb-input resize-none"
-          placeholder="Share your research interests, current institution, and academic goals..."
-        />
+        <Editor value={bio} onChange={(data) => setBio(data)} />
+        <input type="hidden" name="bio" value={bio} />
       </div>
 
       <div>
@@ -273,43 +272,9 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       </div>
 
       <div className="flex justify-end pt-4">
-        <button
-          type="submit"
-          disabled={
-            isPending ||
-            !isHandleValid ||
-            isCheckingHandle ||
-            isHandleAvailable === false
-          }
-          className="sb-button-accent disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-2"
-        >
-          {isPending ? (
-            <>
-              <svg
-                className="animate-spin h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              Saving...
-            </>
-          ) : (
-            "Save Profile"
-          )}
-        </button>
+        <SubmitBtnWithAuth className="sb-button-accent">
+          Save Profile
+        </SubmitBtnWithAuth>
       </div>
     </form>
   );

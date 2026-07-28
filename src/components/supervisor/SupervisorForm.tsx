@@ -1,9 +1,10 @@
 "use client";
 
 import { createSupervisor, updateSupervisor } from "@/app/actions/supervisors";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { Editor } from "@/components/ui/Editor";
 
 export type SupervisorFormValues = {
   name: string;
@@ -54,7 +55,10 @@ export default function SupervisorForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+    <form
+      onSubmit={onSubmit}
+      className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+    >
       <div>
         <label className="sb-label">Full Name</label>
         <input
@@ -92,19 +96,17 @@ export default function SupervisorForm({
 
       <div>
         <label className="sb-label">About (Optional)</label>
-        <textarea
-          name="about"
-          placeholder="A short bio / research interests"
-          className="sb-input min-h-[120px] resize-y"
+        <Editor
           value={draftFields.about}
-          onChange={(e) => updateDraftField("about", e.target.value)}
+          onChange={(data) => updateDraftField("about", data)}
         />
+        <input type="hidden" name="about" value={draftFields.about} />
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <SubmitBtn className="sb-button-accent">
+        <SubmitBtnWithAuth className="sb-button-accent">
           {mode === "edit" ? "Save Changes" : "Add Supervisor"}
-        </SubmitBtn>
+        </SubmitBtnWithAuth>
       </div>
     </form>
   );

@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/contributions";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { RichContent } from "@/components/content/RichContent";
 
 const ContributionDetailPage = async ({
   params,
@@ -119,9 +120,10 @@ const ContributionDetailPage = async ({
         {contribution.title}
       </h1>
 
-      <p className="text-slate-800 whitespace-pre-wrap leading-relaxed mb-6">
-        {contribution.message}
-      </p>
+      <RichContent
+        content={contribution.message}
+        className="text-slate-800 leading-relaxed mb-6"
+      />
 
       <div className="rounded-xl border border-blue-100/50 bg-blue-50/50 p-4 text-sm">
         <p className="font-semibold text-blue-700 mb-1">

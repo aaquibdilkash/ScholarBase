@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   createContribution,
   updateContribution,
 } from "@/app/actions/contributions";
 import { generateCloudinarySignature } from "@/app/actions/cloudinary";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { Editor } from "@/components/ui/Editor";
 
 export type ContributionFormValues = {
   title: string;
@@ -35,34 +37,58 @@ export default function ContributionForm({
   contributionId,
   contributionStatus,
   initialValues,
+  isLoggedIn,
 }: {
   mode: "create" | "edit";
   contributionId?: string;
   contributionStatus?: string;
   initialValues?: Partial<ContributionFormValues>;
+  isLoggedIn?: boolean;
 }) {
-  const [screenshotUrl, setScreenshotUrl] = useState(
-    initialValues?.screenshotUrl ?? "",
-  );
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
 
   const isApprovedEdit = mode === "edit" && contributionStatus === "APPROVED";
 
   // Draft persistence for create mode
   const draftKey = `draft_contribution_${mode}`;
-  const [draftFields, updateDraftField, resetDraft] = useFormDraft(draftKey, {
-    title: initialValues?.title ?? "",
-    message: initialValues?.message ?? "",
-    amount: initialValues?.amount ?? "",
-    upiId: initialValues?.upiId ?? "",
-    paymentMethod: initialValues?.paymentMethod ?? "",
-  });
+  const [draftFields, updateDraftField, resetDraft, isRestored] = useFormDraft(
+    draftKey,
+    {
+      title: initialValues?.title ?? "",
+      message: initialValues?.message ?? "",
+      amount: initialValues?.amount ?? "",
+      upiId: initialValues?.upiId ?? "",
+      paymentMethod: initialValues?.paymentMethod ?? "",
+      screenshotUrl: initialValues?.screenshotUrl ?? "",
+    },
+  );
+
+  const [screenshotUrl, setScreenshotUrl] = useState(
+    initialValues?.screenshotUrl ?? "",
+  );
+
+  // Restore screenshotUrl from draft on mount
+  useEffect(() => {
+    if (isRestored && draftFields.screenshotUrl) {
+      setScreenshotUrl(draftFields.screenshotUrl);
+    }
+  }, [isRestored, draftFields.screenshotUrl]);
+
+  // Persist screenshotUrl in draft when it changes
+  useEffect(() => {
+    updateDraftField("screenshotUrl", screenshotUrl);
+  }, [screenshotUrl, updateDraftField]);
 
   async function handleSubmit(formData: FormData) {
+    if (mode === "create" && !isLoggedIn) {
+      openAuthModal();
+      return;
+    }
     setSubmitting(true);
 
     if (mode === "edit" && contributionId) {
@@ -199,7 +225,8 @@ export default function ContributionForm({
               <label className="sb-label">Amount (Optional)</label>
               <input
                 type="number"
-                step="0.01"
+                min="1"
+                step="1"
                 name="amount"
                 placeholder="e.g., 500"
                 className="sb-input"
@@ -262,14 +289,11 @@ export default function ContributionForm({
 
       <div>
         <label className="sb-label">Message</label>
-        <textarea
-          name="message"
-          placeholder="Thank you for supporting ScholarBase!"
-          className="sb-input h-32"
-          required
+        <Editor
           value={draftFields.message}
-          onChange={(e) => updateDraftField("message", e.target.value)}
+          onChange={(data) => updateDraftField("message", data)}
         />
+        <input type="hidden" name="message" value={draftFields.message} />
       </div>
 
       {!isApprovedEdit && (
@@ -286,12 +310,12 @@ export default function ContributionForm({
         </div>
       )}
 
-      <SubmitBtn
+      <SubmitBtnWithAuth
         className="sb-button-accent mt-2 self-end"
-        loadingText={submitting ? "Submitting..." : undefined}
+        loadingText="Submitting..."
       >
         {mode === "edit" ? "Save Changes" : "Submit Contribution"}
-      </SubmitBtn>
+      </SubmitBtnWithAuth>
     </form>
   );
 }
