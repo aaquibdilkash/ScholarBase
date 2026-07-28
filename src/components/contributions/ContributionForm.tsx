@@ -79,10 +79,12 @@ export default function ContributionForm({
     }
   }, [isRestored, draftFields.screenshotUrl]);
 
-  // Persist screenshotUrl in draft when it changes
+  // Persist screenshotUrl in draft when it changes (only after restoration is complete)
   useEffect(() => {
-    updateDraftField("screenshotUrl", screenshotUrl);
-  }, [screenshotUrl, updateDraftField]);
+    if (isRestored) {
+      updateDraftField("screenshotUrl", screenshotUrl);
+    }
+  }, [screenshotUrl, updateDraftField, isRestored]);
 
   async function handleSubmit(formData: FormData) {
     if (mode === "create" && !isLoggedIn) {

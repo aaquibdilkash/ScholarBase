@@ -18,8 +18,8 @@ type SidebarProps = {
 
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [isScrollable, setIsScrollable] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +44,13 @@ export default function Sidebar({ user }: SidebarProps) {
       }
       setTimeout(checkScrollable, 300);
     };
+
+    // Initialize state synchronously based on actual viewport
+    if (typeof window !== "undefined") {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setIsCollapsed(mobile);
+    }
 
     handleResize();
     checkScrollable();
@@ -415,8 +422,8 @@ export default function Sidebar({ user }: SidebarProps) {
           ref={navRef}
           className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200/80 scrollbar-track-transparent hover:scrollbar-thumb-slate-300/80 scrollbar-w-1.5"
           style={{
-            scrollbarGutter: 'stable',
-            overscrollBehavior: 'contain'
+            scrollbarGutter: "stable",
+            overscrollBehavior: "contain",
           }}
         >
           <div className="flex flex-col gap-1">

@@ -6,6 +6,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
+import { RichContent } from "@/components/content/RichContent";
 
 export type ArticleFormValues = {
   title: string;
@@ -116,11 +117,13 @@ export default function ArticleForm({
                   {draftFields.excerpt}
                 </p>
               )}
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-xs text-slate-500 line-clamp-4">
-                  {draftFields.content || "Your article content will appear here..."
+              <div className="pt-3 border-t border-slate-100 prose prose-slate max-w-none prose-headings:text-slate-950 prose-a:text-blue-700 text-xs line-clamp-4">
+                <RichContent
+                  content={
+                    draftFields.content ||
+                    "Your article content will appear here..."
                   }
-                </p>
+                />
               </div>
             </div>
           </div>

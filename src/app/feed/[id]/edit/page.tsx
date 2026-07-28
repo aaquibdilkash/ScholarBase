@@ -46,40 +46,40 @@ export default function EditPostPage({
   }, [params, router, toast]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast("Please upload an image file.", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast("Image must be less than 5MB.", "error");
+      return;
+    }
 
     setUploading(true);
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith("image/")) continue;
-        if (file.size > 5 * 1024 * 1024) {
-          toast("Each image must be less than 5MB.", "error");
-          continue;
-        }
+      const { timestamp, signature, apiKey, cloudName, folder } =
+        await generateCloudinarySignature();
 
-        const { timestamp, signature, apiKey, cloudName, folder } =
-          await generateCloudinarySignature();
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", apiKey);
+      fd.append("timestamp", String(timestamp));
+      fd.append("signature", signature);
+      fd.append("folder", folder);
 
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("api_key", apiKey);
-        fd.append("timestamp", String(timestamp));
-        fd.append("signature", signature);
-        fd.append("folder", folder);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: fd },
+      );
 
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          { method: "POST", body: fd },
-        );
-
-        if (!res.ok) throw new Error("Upload failed");
-        const data = await res.json();
-        setNewImageUrls((prev) => [...prev, data.secure_url]);
-      }
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setNewImageUrls((prev) => [...prev, data.secure_url]);
     } catch {
-      toast("Failed to upload image(s).", "error");
+      toast("Failed to upload image.", "error");
     } finally {
       setUploading(false);
     }
@@ -253,7 +253,6 @@ export default function EditPostPage({
             <input
               type="file"
               accept="image/*"
-              multiple
               className="hidden"
               onChange={handleFileUpload}
               disabled={uploading}

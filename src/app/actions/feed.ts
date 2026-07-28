@@ -6,6 +6,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from "next/navigation";
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
+import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 
 export async function getFeed(userId?: string, tab?: string, q?: string) {
     const isFollowingTab = tab === "following";
@@ -196,12 +197,18 @@ export async function updateSocialPost(
 
     const post = await prisma.socialPost.findUnique({
         where: { id: postId },
-        select: { authorId: true },
+        select: { authorId: true, imageUrls: true },
     })
 
     if (!post) return
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to edit this post.')
+    }
+
+    // Delete images from Cloudinary that are no longer in the new set
+    const removedImages = (post.imageUrls || []).filter(url => !imageUrls.includes(url));
+    if (removedImages.length > 0) {
+        await Promise.all(removedImages.map(url => deleteFromCloudinary(url)));
     }
 
     await prisma.socialPost.update({
@@ -219,12 +226,17 @@ export async function deleteSocialPost(postId: string) {
 
     const post = await prisma.socialPost.findUnique({
         where: { id: postId },
-        select: { authorId: true },
+        select: { authorId: true, imageUrls: true },
     })
 
     if (!post) return
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to delete this post.')
+    }
+
+    // Delete all associated images from Cloudinary
+    if (post.imageUrls && post.imageUrls.length > 0) {
+        await Promise.all(post.imageUrls.map(url => deleteFromCloudinary(url)));
     }
 
     await prisma.socialPost.delete({ where: { id: postId } })

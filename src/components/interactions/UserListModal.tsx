@@ -75,7 +75,7 @@ export function UserListModal({
   return (
     <dialog
       ref={dialogRef}
-      className="rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 max-w-md w-full"
+      className="fixed inset-0 m-auto max-h-[80vh] rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 max-w-md w-full"
       onClose={handleClose}
       onClick={(e) => {
         if (e.target === dialogRef.current) handleClose();

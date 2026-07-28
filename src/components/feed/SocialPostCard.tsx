@@ -68,6 +68,7 @@ export function SocialPostCard({
       }
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post._count.comments}
+      noBodyLink={post.imageUrls && post.imageUrls.length > 0 ? true : false}
     >
       <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600">
         {post.content}

@@ -19,7 +19,8 @@ export function CreateSocialPostForm() {
     { content: "", imageUrls: [] },
   );
 
-  // Restore image URLs from draft on mount
+  // Restore image URLs from draft on mount — only depends on isRestored
+  // to break the circular dependency with the sync effect below.
   useEffect(() => {
     if (
       isRestored &&
@@ -28,12 +29,15 @@ export function CreateSocialPostForm() {
     ) {
       setImageUrls(draftFields.imageUrls);
     }
-  }, [isRestored, draftFields.imageUrls]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRestored]);
 
-  // Persist image URLs in draft
+  // Persist image URLs in draft (only after restoration is complete)
   useEffect(() => {
-    updateDraftField("imageUrls", imageUrls);
-  }, [imageUrls, updateDraftField]);
+    if (isRestored) {
+      updateDraftField("imageUrls", imageUrls);
+    }
+  }, [imageUrls, updateDraftField, isRestored]);
 
   const { submitting, submit } = useFormSubmit(
     () => {
@@ -58,40 +62,40 @@ export function CreateSocialPostForm() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast("Please upload an image file.", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast("Image must be less than 5MB.", "error");
+      return;
+    }
 
     setUploading(true);
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith("image/")) continue;
-        if (file.size > 5 * 1024 * 1024) {
-          toast("Each image must be less than 5MB.", "error");
-          continue;
-        }
+      const { timestamp, signature, apiKey, cloudName, folder } =
+        await generateCloudinarySignature();
 
-        const { timestamp, signature, apiKey, cloudName, folder } =
-          await generateCloudinarySignature();
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("api_key", apiKey);
+      fd.append("timestamp", String(timestamp));
+      fd.append("signature", signature);
+      fd.append("folder", folder);
 
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("api_key", apiKey);
-        fd.append("timestamp", String(timestamp));
-        fd.append("signature", signature);
-        fd.append("folder", folder);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        { method: "POST", body: fd },
+      );
 
-        const res = await fetch(
-          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-          { method: "POST", body: fd },
-        );
-
-        if (!res.ok) throw new Error("Upload failed");
-        const data = await res.json();
-        setImageUrls((prev) => [...prev, data.secure_url]);
-      }
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setImageUrls((prev) => [...prev, data.secure_url]);
     } catch {
-      toast("Failed to upload image(s).", "error");
+      toast("Failed to upload image.", "error");
     } finally {
       setUploading(false);
     }
@@ -148,11 +152,10 @@ export function CreateSocialPostForm() {
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            {uploading ? "Uploading..." : "Add Images"}
+            {uploading ? "Uploading..." : "Add Image"}
             <input
               type="file"
               accept="image/*"
-              multiple
               className="hidden"
               onChange={handleFileUpload}
               disabled={uploading}
