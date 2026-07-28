@@ -114,13 +114,10 @@ export default async function RootLayout({
       >
         <NextTopLoader showSpinner={false} />
         <AppProviders>
-          <div
-            className="grid min-h-screen"
-            style={{ gridTemplateColumns: "auto 1fr" }}
-          >
+          <div className="flex min-h-screen">
             <Sidebar user={sidebarUser} />
 
-            <div className="flex flex-col min-w-0">
+            <div className="flex min-w-0 flex-1 flex-col">
               <Navbar />
 
               <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>

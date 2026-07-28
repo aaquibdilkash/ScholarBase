@@ -6,6 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function getHelpPosts(q?: string, userId?: string) {
     const where = q
@@ -165,6 +166,11 @@ export async function deleteHelpPost(helpPostId: string) {
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to delete this help post.')
     }
+
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.helpPostVote, 'helpPostId', helpPostId);
+    const commentCount = await countCommentsForTarget(prisma.helpPostComment, 'helpPostId', helpPostId);
+    await reverseReputationForContent(post.authorId, voteCounts, commentCount);
 
     await prisma.helpPost.delete({ where: { id: helpPostId } })
 

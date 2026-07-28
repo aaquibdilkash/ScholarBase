@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function getVacancies(q?: string, userId?: string) {
     const where = q
@@ -168,6 +169,11 @@ export async function deleteJobVacancy(vacancyId: string) {
         throw new Error('Not authorized to delete this vacancy.')
     }
 
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.jobVacancyVote, 'jobVacancyId', vacancyId);
+    const commentCount = await countCommentsForTarget(prisma.jobVacancyComment, 'jobVacancyId', vacancyId);
+    await reverseReputationForContent(vacancy.authorId, voteCounts, commentCount);
+
     await prisma.jobVacancy.delete({ where: { id: vacancyId } })
 
     revalidatePath('/vacancies')
@@ -176,34 +182,34 @@ export async function deleteJobVacancy(vacancyId: string) {
 }
 
 export async function getLatestVacancies(count: number, userId?: string) {
-  return prisma.jobVacancy.findMany({
-    where: {
-      deadline: {
-        gte: new Date(),
-      },
-    },
-    take: count,
-    orderBy: { createdAt: "desc" },
-    include: {
-      author: {
+    return prisma.jobVacancy.findMany({
+        where: {
+            deadline: {
+                gte: new Date(),
+            },
+        },
+        take: count,
+        orderBy: { createdAt: "desc" },
         include: {
-          followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
-            : false,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            votes: {
+                select: {
+                    userId: true,
+                    voteType: true,
+                },
+            },
+            _count: {
+                select: { votes: true, comments: true },
+            },
         },
-      },
-      votes: {
-        select: {
-          userId: true,
-          voteType: true,
-        },
-      },
-      _count: {
-        select: { votes: true, comments: true },
-      },
-    },
-  });
+    });
 }

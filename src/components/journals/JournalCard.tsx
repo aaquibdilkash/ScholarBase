@@ -83,6 +83,20 @@ export function JournalCard({
           ISSN: {journal.issn}
         </div>
       )}
+
+      {journal.website && (
+        <div className="flex gap-3 mt-4">
+          <a
+            href={journal.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+          >
+            View Website
+          </a>
+        </div>
+      )}
     </ListPageCardShell>
   );
 }

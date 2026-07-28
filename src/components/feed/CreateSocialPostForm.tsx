@@ -11,38 +11,33 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 export function CreateSocialPostForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
 
   const [draftFields, updateDraftField, resetDraft, isRestored] = useFormDraft(
     "draft_social_post",
-    { content: "", imageUrls: [] },
+    { content: "", imageUrl: "" },
   );
 
-  // Restore image URLs from draft on mount — only depends on isRestored
-  // to break the circular dependency with the sync effect below.
+  // Restore image URL from draft on mount
   useEffect(() => {
-    if (
-      isRestored &&
-      draftFields.imageUrls &&
-      Array.isArray(draftFields.imageUrls)
-    ) {
-      setImageUrls(draftFields.imageUrls);
+    if (isRestored && draftFields.imageUrl) {
+      setImageUrl(draftFields.imageUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRestored]);
 
-  // Persist image URLs in draft (only after restoration is complete)
+  // Persist image URL in draft
   useEffect(() => {
     if (isRestored) {
-      updateDraftField("imageUrls", imageUrls);
+      updateDraftField("imageUrl", imageUrl);
     }
-  }, [imageUrls, updateDraftField, isRestored]);
+  }, [imageUrl, updateDraftField, isRestored]);
 
   const { submitting, submit } = useFormSubmit(
     () => {
       resetDraft();
-      setImageUrls([]);
+      setImageUrl("");
     },
     {
       resetOnSuccess: true,
@@ -56,7 +51,7 @@ export function CreateSocialPostForm() {
       toast("Please wait for images to finish uploading.", "error");
       return;
     }
-    imageUrls.forEach((url) => formData.append("imageUrls", url));
+    if (imageUrl) formData.append("imageUrl", imageUrl);
     await submit(() => createSocialPost(formData));
     formRef.current?.reset();
   };
@@ -93,7 +88,7 @@ export function CreateSocialPostForm() {
 
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
-      setImageUrls((prev) => [...prev, data.secure_url]);
+      setImageUrl(data.secure_url);
     } catch {
       toast("Failed to upload image.", "error");
     } finally {
@@ -114,26 +109,20 @@ export function CreateSocialPostForm() {
           onChange={(e) => updateDraftField("content", e.target.value)}
         />
 
-        {imageUrls.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {imageUrls.map((url, i) => (
-              <div key={i} className="relative group">
-                <img
-                  src={url}
-                  alt=""
-                  className="h-20 w-20 rounded-lg object-cover border border-slate-200"
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setImageUrls((prev) => prev.filter((_, j) => j !== i))
-                  }
-                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+        {imageUrl && (
+          <div className="relative group w-fit">
+            <img
+              src={imageUrl}
+              alt=""
+              className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+            />
+            <button
+              type="button"
+              onClick={() => setImageUrl("")}
+              className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
+            >
+              ×
+            </button>
           </div>
         )}
 

@@ -64,7 +64,7 @@ export function ShareButton({
         <path d="M16 6l-4-4-4 4" />
         <path d="M12 2v14" />
       </svg>
-      Share
+      <span className="hidden md:inline">{label}</span>
     </button>
   );
 }

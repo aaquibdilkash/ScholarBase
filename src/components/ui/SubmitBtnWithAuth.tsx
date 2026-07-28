@@ -24,7 +24,7 @@ export function SubmitBtnWithAuth({
       <button
         type="button"
         onClick={() => openAuthModal()}
-        className={className || "sb-button-accent"}
+        className={className || "sb-button-primary"}
         disabled={disabled}
       >
         {children}

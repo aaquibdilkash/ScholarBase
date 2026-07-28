@@ -142,7 +142,7 @@ export default async function SupervisorPage({
           {!hasUserRecommendation && (
             <Link
               href={`/supervisor/${supervisor.id}/recommendation/add`}
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200 whitespace-nowrap"
+              className="sb-button-primary"
             >
               + Recommend
             </Link>

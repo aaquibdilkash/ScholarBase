@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as XLSX from "xlsx";
 
 type QuestionResult = {
   id: string;
@@ -18,32 +19,88 @@ type SurveyResults = {
   _count: { responses: number };
 };
 
-function exportToCSV(survey: SurveyResults) {
-  const headers = ["Question", "Type", "Response Count", "Details"];
-  const rows = survey.questions.map((q) => {
+type IndividualResponse = {
+  id: string;
+  createdAt: Date;
+  isAnonymous: boolean;
+  respondent: {
+    id: string;
+    name: string | null;
+  } | null;
+  answers: Array<{
+    questionId: string;
+    value: string;
+  }>;
+};
+
+function exportToExcel(
+  survey: SurveyResults,
+  responses: IndividualResponse[] | null,
+) {
+  // 1. Summary Sheet
+  const summaryHeader = ["Question", "Type", "Response Count", "Details"];
+  const summaryRows = survey.questions.map((q) => {
     const answers = q.answers.map((a) => a.value);
     const details = answers.join("; ");
     return [q.title, q.type, String(answers.length), details];
   });
+  const summarySheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
+  XLSX.utils.sheet_add_aoa(summarySheet, [], { origin: -1 });
 
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")),
-  ].join("\n");
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${survey.title.replace(/\s+/g, "_")}_results.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
+
+  // 2. Individual Responses Sheet (if available)
+  if (responses) {
+    const questionHeaders = survey.questions
+      .sort((a, b) => a.order - b.order)
+      .map((q) => q.title);
+    
+    const individualResponsesHeader = [
+      "Response ID",
+      "Timestamp",
+      "Respondent",
+      ...questionHeaders,
+    ];
+    
+    const individualResponsesRows = responses.map((res) => {
+      const answersByQuestionId = new Map(res.answers.map(a => [a.questionId, a.value]));
+      const row = [
+        res.id,
+        res.createdAt.toISOString(),
+        res.isAnonymous ? "Anonymous" : res.respondent?.name ?? "Unknown",
+      ];
+      survey.questions.forEach(q => {
+        row.push(answersByQuestionId.get(q.id) || "");
+      });
+      return row;
+    });
+
+    const individualResponsesSheet = XLSX.utils.aoa_to_sheet([
+      individualResponsesHeader,
+      ...individualResponsesRows,
+    ]);
+    XLSX.utils.sheet_add_aoa(individualResponsesSheet, [], { origin: -1 });
+    XLSX.utils.book_append_sheet(
+      wb,
+      individualResponsesSheet,
+      "Individual Responses",
+    );
+  }
+
+  XLSX.writeFile(
+    wb,
+    `${survey.title.replace(/\s+/g, "_")}_results.xlsx`,
+  );
 }
 
 export function SurveyResultsView({
   survey,
+  responses,
 }: {
   survey: SurveyResults | null;
+  responses: IndividualResponse[] | null;
 }) {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
 
@@ -127,7 +184,7 @@ export function SurveyResultsView({
           </p>
         </div>
         <button
-          onClick={() => exportToCSV(survey)}
+          onClick={() => exportToExcel(survey, responses)}
           className="sb-button-soft text-sm inline-flex items-center gap-2"
         >
           <svg
@@ -143,7 +200,7 @@ export function SurveyResultsView({
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          Export CSV
+          Export Excel
         </button>
       </div>
 

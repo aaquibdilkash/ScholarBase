@@ -165,7 +165,7 @@ const ResultDetailPage = async ({
             href={result.notificationLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
           >
             View Notification
           </a>
@@ -175,7 +175,7 @@ const ResultDetailPage = async ({
             href={result.resultLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             Check Results
           </a>

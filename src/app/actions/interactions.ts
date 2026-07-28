@@ -154,6 +154,179 @@ export async function updateReputationIncremental(userId: string, voteDelta: num
   });
 }
 
+// Calculate net vote value for a content item and reverse reputation from votes/comments
+export async function reverseReputationForContent(authorId: string, voteCounts: { upvotes: number; downvotes: number }, commentCount?: number) {
+  // Remove reputation gained from votes: each upvote = +1, each downvote = -1
+  const reputationFromVotes = voteCounts.upvotes - voteCounts.downvotes;
+  // Remove reputation from comments (if any): +1 per comment
+  const reputationFromComments = commentCount ?? 0;
+  const totalReputationToRemove = reputationFromVotes + reputationFromComments;
+
+  if (totalReputationToRemove !== 0) {
+    await prisma.user.update({
+      where: { id: authorId },
+      data: { reputation: { increment: -totalReputationToRemove } },
+    });
+  }
+}
+
+// Count votes for a specific model and target
+export async function countVotesForTarget(model: any, targetIdField: string, targetId: string) {
+  const [upvotes, downvotes] = await Promise.all([
+    model.count({ where: { [targetIdField]: targetId, voteType: 'UPVOTE' } }),
+    model.count({ where: { [targetIdField]: targetId, voteType: 'DOWNVOTE' } }),
+  ]);
+  return { upvotes, downvotes };
+}
+
+// Count comments for a specific model and target
+export async function countCommentsForTarget(model: any, targetIdField: string, targetId: string) {
+  return model.count({ where: { [targetIdField]: targetId } });
+}
+
+export async function reverseReputationForSupervisor(supervisorId: string) {
+  const supervisor = await prisma.supervisor.findUnique({
+    where: { id: supervisorId },
+    select: { authorId: true, recommendations: { select: { id: true, authorId: true } } },
+  });
+
+  if (!supervisor) return;
+
+  const reputationDeltas = new Map<string, number>();
+  const addDelta = (userId: string, delta: number) => {
+    reputationDeltas.set(userId, (reputationDeltas.get(userId) || 0) + delta);
+  };
+
+  // 1. Votes on the supervisor profile
+  const supervisorVoteCounts = await prisma.supervisorVote.groupBy({
+    by: ['voteType'],
+    where: { supervisorId },
+    _count: { _all: true },
+  });
+  const svUpvotes = supervisorVoteCounts.find(v => v.voteType === 'UPVOTE')?._count._all || 0;
+  const svDownvotes = supervisorVoteCounts.find(v => v.voteType === 'DOWNVOTE')?._count._all || 0;
+  if ((svUpvotes - svDownvotes) !== 0) {
+    addDelta(supervisor.authorId, -(svUpvotes - svDownvotes));
+  }
+
+  // 2. Comments on the supervisor profile
+  const supervisorCommentAuthors = await prisma.supervisorComment.groupBy({
+    by: ['authorId'],
+    where: { supervisorId },
+    _count: { _all: true },
+  });
+  for (const author of supervisorCommentAuthors) {
+    addDelta(author.authorId, -author._count._all);
+  }
+
+  if (supervisor.recommendations.length > 0) {
+    const recommendationIds = supervisor.recommendations.map(r => r.id);
+
+    // 3. Rep for creating recommendations
+    for (const rec of supervisor.recommendations) {
+      addDelta(rec.authorId, -2);
+    }
+
+    // 4. Votes on all recommendations
+    const recVotes = await prisma.recommendationVote.groupBy({
+      by: ['recommendationId', 'voteType'],
+      where: { recommendationId: { in: recommendationIds } },
+      _count: { _all: true },
+    });
+
+    const recVoteRep = new Map<string, number>();
+    for (const vote of recVotes) {
+      const rep = recVoteRep.get(vote.recommendationId) || 0;
+      recVoteRep.set(vote.recommendationId, rep + (vote.voteType === 'UPVOTE' ? 1 : -1));
+    }
+
+    for (const rec of supervisor.recommendations) {
+      const rep = recVoteRep.get(rec.id);
+      if (rep) {
+        addDelta(rec.authorId, -rep);
+      }
+    }
+
+    // 5. Comments on all recommendations
+    const recCommentAuthors = await prisma.recommendationComment.groupBy({
+      by: ['authorId', 'recommendationId'],
+      where: { recommendationId: { in: recommendationIds } },
+      _count: { _all: true },
+    });
+
+    for (const comment of recCommentAuthors) {
+      addDelta(comment.authorId, -comment._count._all);
+    }
+  }
+
+  const updates = Array.from(reputationDeltas.entries())
+    .filter(([, delta]) => delta !== 0)
+    .map(([userId, delta]) =>
+      prisma.user.update({
+        where: { id: userId },
+        data: { reputation: { increment: delta } },
+      }),
+    );
+
+  if (updates.length > 0) {
+    await prisma.$transaction(updates);
+  }
+}
+
+export async function reverseReputationForRecommendation(recommendationId: string) {
+  const recommendation = await prisma.recommendation.findUnique({
+    where: { id: recommendationId },
+    select: { authorId: true },
+  });
+
+  if (!recommendation) return;
+
+  const reputationDeltas = new Map<string, number>();
+  const addDelta = (userId: string, delta: number) => {
+    reputationDeltas.set(userId, (reputationDeltas.get(userId) || 0) + delta);
+  };
+
+  // 1. The recommendation itself gives the author +2 rep
+  addDelta(recommendation.authorId, -2);
+
+  // 2. Votes on the recommendation
+  const voteCounts = await prisma.recommendationVote.groupBy({
+    by: ['voteType'],
+    where: { recommendationId },
+    _count: { _all: true },
+  });
+
+  const upvotes = voteCounts.find(v => v.voteType === 'UPVOTE')?._count._all || 0;
+  const downvotes = voteCounts.find(v => v.voteType === 'DOWNVOTE')?._count._all || 0;
+  const recVoteRep = upvotes - downvotes;
+
+  if (recVoteRep !== 0) {
+    addDelta(recommendation.authorId, -recVoteRep);
+  }
+
+  // 3. Comments on the recommendation
+  const commentAuthors = await prisma.recommendationComment.groupBy({
+    by: ['authorId'],
+    where: { recommendationId },
+    _count: { _all: true },
+  });
+
+  for (const author of commentAuthors) {
+    addDelta(author.authorId, -author._count._all);
+  }
+
+  const updates = Array.from(reputationDeltas.entries()).map(([userId, delta]) =>
+    prisma.user.update({
+      where: { id: userId },
+      data: { reputation: { increment: delta } },
+    }),
+  );
+
+  if (updates.length > 0) {
+    await prisma.$transaction(updates);
+  }
+}
+
 async function performVoteOp(
   model: any,
   uniqueFields: string[],

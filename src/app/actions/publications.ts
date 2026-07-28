@@ -7,6 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function createPublication(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit a publication.')
@@ -132,6 +133,11 @@ export async function deletePublication(publicationId: string) {
     if (!await isAuthorizedOrAdmin(publication.authorId, user.id)) {
         throw new Error('Not authorized to delete this publication.')
     }
+
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.publicationVote, 'publicationId', publicationId);
+    const commentCount = await countCommentsForTarget(prisma.publicationComment, 'publicationId', publicationId);
+    await reverseReputationForContent(publication.authorId, voteCounts, commentCount);
 
     await prisma.publication.delete({ where: { id: publicationId } })
 

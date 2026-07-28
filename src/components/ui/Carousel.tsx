@@ -14,26 +14,39 @@ export function Carousel({ children }: CarouselProps) {
   const checkScrollability = () => {
     const el = containerRef.current;
     if (el) {
+      // A little buffer to prevent floating point inaccuracies
+      const isScrollable = el.scrollWidth > el.clientWidth + 2;
+      if (!isScrollable) {
+        setCanScrollLeft(false);
+        setCanScrollRight(false);
+        return;
+      }
       setCanScrollLeft(el.scrollLeft > 0);
-      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth);
+      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
     }
   };
 
   useEffect(() => {
-    checkScrollability();
     const el = containerRef.current;
-    el?.addEventListener("scroll", checkScrollability);
-    window.addEventListener("resize", checkScrollability);
+    if (!el) return;
+
+    checkScrollability();
+
+    const resizeObserver = new ResizeObserver(checkScrollability);
+    resizeObserver.observe(el);
+
+    el.addEventListener("scroll", checkScrollability);
+
     return () => {
-      el?.removeEventListener("scroll", checkScrollability);
-      window.removeEventListener("resize", checkScrollability);
+      resizeObserver.unobserve(el);
+      el.removeEventListener("scroll", checkScrollability);
     };
   }, []);
 
   const scroll = (direction: "left" | "right") => {
     const el = containerRef.current;
     if (el) {
-      const scrollAmount = el.clientWidth * 0.8;
+      const scrollAmount = el.clientWidth;
       el.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
@@ -41,20 +54,22 @@ export function Carousel({ children }: CarouselProps) {
     }
   };
 
+  const childCount = Children.count(children);
+
   return (
     <div className="relative group">
       <div
         ref={containerRef}
-        className="flex gap-4 overflow-x-auto snap-x snap-mandatory py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex overflow-x-auto snap-x snap-mandatory py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       >
         {Children.map(children, (child, i) => (
-          <div key={i} className="snap-start shrink-0">
+          <div key={i} className="snap-center shrink-0 w-full">
             {child}
           </div>
         ))}
       </div>
 
-      {canScrollLeft && (
+      {childCount > 1 && canScrollLeft && (
         <button
           type="button"
           onClick={() => scroll("left")}
@@ -77,7 +92,7 @@ export function Carousel({ children }: CarouselProps) {
         </button>
       )}
 
-      {canScrollRight && (
+      {childCount > 1 && canScrollRight && (
         <button
           type="button"
           onClick={() => scroll("right")}

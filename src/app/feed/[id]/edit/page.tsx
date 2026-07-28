@@ -18,8 +18,8 @@ export default function EditPostPage({
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [content, setContent] = useState("");
-  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
-  const [newImageUrls, setNewImageUrls] = useState<string[]>([]);
+  const [existingImageUrl, setExistingImageUrl] = useState<string>("");
+  const [newImageUrl, setNewImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -34,7 +34,7 @@ export default function EditPostPage({
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
         setContent(data.content || "");
-        setExistingImageUrls(data.imageUrls || []);
+        setExistingImageUrl(data.imageUrl || "");
       } catch {
         toast("Failed to load post.", "error");
         router.push("/feed");
@@ -77,20 +77,12 @@ export default function EditPostPage({
 
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
-      setNewImageUrls((prev) => [...prev, data.secure_url]);
+      setNewImageUrl(data.secure_url);
     } catch {
       toast("Failed to upload image.", "error");
     } finally {
       setUploading(false);
     }
-  };
-
-  const removeExistingImage = (index: number) => {
-    setExistingImageUrls((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const removeNewImage = (index: number) => {
-    setNewImageUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,10 +101,10 @@ export default function EditPostPage({
 
     setSubmitting(true);
     try {
-      const allImageUrls = [...existingImageUrls, ...newImageUrls];
+      const finalImageUrl = newImageUrl || existingImageUrl;
       const formData = new FormData();
       formData.append("content", content);
-      allImageUrls.forEach((url) => formData.append("imageUrls", url));
+      if (finalImageUrl) formData.append("imageUrl", finalImageUrl);
 
       await updateSocialPost(formData, postId);
       toast("Post updated successfully!", "success");
@@ -184,52 +176,48 @@ export default function EditPostPage({
           />
         </div>
 
-        {/* Existing Images */}
-        {existingImageUrls.length > 0 && (
+        {/* Current Image */}
+        {existingImageUrl && (
           <div>
-            <label className="sb-label mb-2 block">Current Images</label>
-            <div className="flex flex-wrap gap-2">
-              {existingImageUrls.map((url, i) => (
-                <div key={`existing-${i}`} className="relative group">
-                  <img
-                    src={url}
-                    alt=""
-                    className="h-20 w-20 rounded-lg object-cover border border-slate-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeExistingImage(i)}
-                    className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+            <label className="sb-label mb-2 block">Current Image</label>
+            <div className="flex">
+              <div className="relative group">
+                <img
+                  src={existingImageUrl}
+                  alt=""
+                  className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setExistingImageUrl("")}
+                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Newly Uploaded Images */}
-        {newImageUrls.length > 0 && (
+        {/* New Image */}
+        {newImageUrl && (
           <div>
-            <label className="sb-label mb-2 block">New Images</label>
-            <div className="flex flex-wrap gap-2">
-              {newImageUrls.map((url, i) => (
-                <div key={`new-${i}`} className="relative group">
-                  <img
-                    src={url}
-                    alt=""
-                    className="h-20 w-20 rounded-lg object-cover border border-slate-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeNewImage(i)}
-                    className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+            <label className="sb-label mb-2 block">New Image</label>
+            <div className="flex">
+              <div className="relative group">
+                <img
+                  src={newImageUrl}
+                  alt=""
+                  className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewImageUrl("")}
+                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -249,7 +237,7 @@ export default function EditPostPage({
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            {uploading ? "Uploading..." : "Add Images"}
+            {uploading ? "Uploading..." : "Add Image"}
             <input
               type="file"
               accept="image/*"

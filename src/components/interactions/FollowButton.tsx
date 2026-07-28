@@ -58,7 +58,7 @@ export function FollowButton({
       className={`px-6 py-2 text-sm font-semibold rounded-lg transition ${
         isFollowingState
           ? "bg-gray-100 text-gray-800 hover:bg-gray-200"
-          : "bg-blue-600 text-white hover:bg-blue-700"
+          : "bg-slate-950 text-white hover:bg-slate-800"
       }`}
     >
       {isPending ? (

@@ -44,6 +44,34 @@
     background: rgba(29, 78, 216, 0.18);
     color: var(--foreground);
   }
+
+  /* CLS Prevention: set explicit dimensions for images and containers */
+  img,
+  video {
+    aspect-ratio: attr(width) / attr(height);
+  }
+
+  img[loading="lazy"] {
+    content-visibility: auto;
+  }
+
+  /* Prevent layout shift from sidebar width changes */
+  .sidebar-container {
+    width: 64px; /* w-64 = 16rem */
+    transition: width 0.3s ease-in-out;
+    flex-shrink: 0;
+  }
+
+  .sidebar-container.collapsed {
+    width: 80px; /* w-20 = 5rem */
+  }
+
+  @media (max-width: 767px) {
+    .sidebar-container {
+      width: 0;
+      overflow: hidden;
+    }
+  }
 }
 
 @layer components {
@@ -92,7 +120,7 @@
   }
 
   .sb-button-accent {
-    @apply inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-700 hover:shadow-md;
+    @apply inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md;
   }
 
   .sb-button-soft {

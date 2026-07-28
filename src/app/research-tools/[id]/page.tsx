@@ -97,13 +97,13 @@ const ResearchToolDetailPage = async ({
 
       <RichContent content={tool.description} />
 
-      <div className="mt-3 flex items-center gap-4">
+      <div className="flex gap-4 mb-8">
         {tool.website && (
           <a
             href={tool.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="sb-button-accent"
+            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             View Website
           </a>

@@ -14,9 +14,11 @@ export function AuthGuardAddButton({
 }) {
   const { openAuthModal } = useAuthModal();
 
+  const buttonClass = "sb-button-primary whitespace-nowrap";
+
   if (isAuthenticated) {
     return (
-      <Link href={href} className="sb-button-accent whitespace-nowrap">
+      <Link href={href} className={buttonClass}>
         {label}
       </Link>
     );
@@ -26,7 +28,7 @@ export function AuthGuardAddButton({
     <button
       type="button"
       onClick={() => openAuthModal()}
-      className="sb-button-accent whitespace-nowrap cursor-pointer"
+      className={buttonClass}
     >
       {label}
     </button>

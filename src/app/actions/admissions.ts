@@ -7,6 +7,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function getAdmissions(q?: string, userId?: string) {
     const where = q
@@ -162,6 +163,11 @@ export async function deletePhdAdmission(admissionId: string) {
         throw new Error('Not authorized to delete this admission.')
     }
 
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.phdAdmissionVote, 'phdAdmissionId', admissionId);
+    const commentCount = await countCommentsForTarget(prisma.phdAdmissionComment, 'phdAdmissionId', admissionId);
+    await reverseReputationForContent(admission.authorId, voteCounts, commentCount);
+
     await prisma.phdAdmission.delete({ where: { id: admissionId } })
 
     revalidatePath('/admissions')
@@ -170,34 +176,34 @@ export async function deletePhdAdmission(admissionId: string) {
 }
 
 export async function getLatestAdmissions(count: number, userId?: string) {
-  return prisma.phdAdmission.findMany({
-    where: {
-      deadline: {
-        gte: new Date(),
-      },
-    },
-    take: count,
-    orderBy: { createdAt: "desc" },
-    include: {
-      author: {
+    return prisma.phdAdmission.findMany({
+        where: {
+            deadline: {
+                gte: new Date(),
+            },
+        },
+        take: count,
+        orderBy: { createdAt: "desc" },
         include: {
-          followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
-            : false,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            votes: {
+                select: {
+                    userId: true,
+                    voteType: true,
+                },
+            },
+            _count: {
+                select: { votes: true, comments: true },
+            },
         },
-      },
-      votes: {
-        select: {
-          userId: true,
-          voteType: true,
-        },
-      },
-      _count: {
-        select: { votes: true, comments: true },
-      },
-    },
-  });
+    });
 }

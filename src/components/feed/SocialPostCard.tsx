@@ -68,31 +68,19 @@ export function SocialPostCard({
       }
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post._count.comments}
-      noBodyLink={post.imageUrls && post.imageUrls.length > 0 ? true : false}
     >
       <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600">
         {post.content}
       </p>
 
-      {post.imageUrls && post.imageUrls.length > 0 && (
-        <div
-          className={`mb-4 grid ${
-            post.imageUrls.length > 1 ? "grid-cols-2" : "grid-cols-1"
-          } gap-2`}
-        >
-          {post.imageUrls.map((url, i) => (
-            <div
-              key={i}
-              className="relative block h-48 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition hover:opacity-90"
-            >
-              <img
-                src={url}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          ))}
+      {post.imageUrl && (
+        <div className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition hover:opacity-90">
+          <img
+            src={post.imageUrl}
+            alt=""
+            className="h-48 w-full object-cover"
+            loading="lazy"
+          />
         </div>
       )}
     </ListPageCardShell>

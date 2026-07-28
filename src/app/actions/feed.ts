@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from "next/navigation";
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function getFeed(userId?: string, tab?: string, q?: string) {
     const isFollowingTab = tab === "following";
@@ -83,7 +84,7 @@ export async function getPost(id: string, userId?: string) {
         select: {
             id: true,
             content: true,
-            imageUrls: true,
+            imageUrl: true,
             createdAt: true,
             updatedAt: true,
             authorId: true,
@@ -148,14 +149,14 @@ export async function createSocialPost(formData: FormData) {
     const user = await requireCurrentUser('You must be logged in to post.')
 
     const content = readFormValue(formData, 'content')
-    const imageUrls = formData.getAll('imageUrls').filter(Boolean).map(String);
+    const imageUrl = formData.get('imageUrl') as string | null;
 
     if (!content) return
 
     const post = await prisma.socialPost.create({
         data: {
             content,
-            imageUrls,
+            imageUrl: imageUrl || undefined,
             authorId: user.id,
         },
     })
@@ -193,11 +194,11 @@ export async function updateSocialPost(
     const content = readFormValue(formData, 'content')
     if (!content) return
 
-    const imageUrls = formData.getAll('imageUrls').filter(Boolean).map(String);
+    const imageUrl = formData.get('imageUrl') as string | null;
 
     const post = await prisma.socialPost.findUnique({
         where: { id: postId },
-        select: { authorId: true, imageUrls: true },
+        select: { authorId: true, imageUrl: true },
     })
 
     if (!post) return
@@ -205,15 +206,14 @@ export async function updateSocialPost(
         throw new Error('Not authorized to edit this post.')
     }
 
-    // Delete images from Cloudinary that are no longer in the new set
-    const removedImages = (post.imageUrls || []).filter(url => !imageUrls.includes(url));
-    if (removedImages.length > 0) {
-        await Promise.all(removedImages.map(url => deleteFromCloudinary(url)));
+    // Delete old image from Cloudinary if replaced
+    if (post.imageUrl && imageUrl && post.imageUrl !== imageUrl) {
+        await deleteFromCloudinary(post.imageUrl);
     }
 
     await prisma.socialPost.update({
         where: { id: postId },
-        data: { content, imageUrls },
+        data: { content, imageUrl: imageUrl || undefined },
     })
 
     revalidatePath('/feed')
@@ -226,7 +226,7 @@ export async function deleteSocialPost(postId: string) {
 
     const post = await prisma.socialPost.findUnique({
         where: { id: postId },
-        select: { authorId: true, imageUrls: true },
+        select: { authorId: true, imageUrl: true },
     })
 
     if (!post) return
@@ -234,9 +234,14 @@ export async function deleteSocialPost(postId: string) {
         throw new Error('Not authorized to delete this post.')
     }
 
-    // Delete all associated images from Cloudinary
-    if (post.imageUrls && post.imageUrls.length > 0) {
-        await Promise.all(post.imageUrls.map(url => deleteFromCloudinary(url)));
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.socialVote, 'socialPostId', postId);
+    const commentCount = await countCommentsForTarget(prisma.socialComment, 'socialPostId', postId);
+    await reverseReputationForContent(post.authorId, voteCounts, commentCount);
+
+    // Delete associated image from Cloudinary
+    if (post.imageUrl) {
+        await deleteFromCloudinary(post.imageUrl);
     }
 
     await prisma.socialPost.delete({ where: { id: postId } })

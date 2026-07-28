@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { signOut } from "@/app/actions/auth";
+import useMediaQuery from "@/hooks/useMediaQuery";
 
 type SidebarUser = {
   id: string;
@@ -18,10 +19,23 @@ type SidebarProps = {
 
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
-  const [isMobile, setIsMobile] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [isCollapsed, setIsCollapsed] = useState(!isDesktop);
   const [isScrollable, setIsScrollable] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setIsCollapsed(false);
+    } else {
+      setIsCollapsed(true);
+    }
+  }, [isDesktop]);
 
   useEffect(() => {
     const checkScrollable = () => {
@@ -31,36 +45,19 @@ export default function Sidebar({ user }: SidebarProps) {
       }
     };
 
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      setIsCollapsed(mobile);
-      setTimeout(checkScrollable, 100);
-    };
-
     const handleToggle = () => {
-      if (window.innerWidth < 768) {
-        setIsCollapsed((current) => !current);
-      }
+      setIsCollapsed((current) => !current);
       setTimeout(checkScrollable, 300);
     };
 
-    // Initialize state synchronously based on actual viewport
-    if (typeof window !== "undefined") {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      setIsCollapsed(mobile);
-    }
-
-    handleResize();
     checkScrollable();
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", checkScrollable);
     window.addEventListener("sb-toggle-sidebar", handleToggle as EventListener);
     const observer = new MutationObserver(checkScrollable);
     const nav = navRef.current;
     if (nav) observer.observe(nav, { childList: true, subtree: true });
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", checkScrollable);
       window.removeEventListener(
         "sb-toggle-sidebar",
         handleToggle as EventListener,
@@ -350,30 +347,34 @@ export default function Sidebar({ user }: SidebarProps) {
       : []),
   ];
 
-  const asideClasses = isMobile
-    ? `fixed inset-y-0 left-0 z-50 w-72 border-r border-white/60 bg-white/90 px-6 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 ease-in-out overflow-y-auto ${
-        isCollapsed ? "-translate-x-full" : "translate-x-0"
-      }`
-    : `sticky top-0 z-20 flex h-screen flex-col gap-8 border-r border-white/60 bg-white/70 py-6 backdrop-blur-xl transition-all duration-300 ease-in-out ${
-        isCollapsed ? "w-20 px-3" : "w-64 px-6"
-      }`;
+  const asideClasses = `fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-200/70 bg-white/90 px-6 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 ease-in-out overflow-y-auto md:sticky md:top-0 md:z-20 md:flex md:h-screen md:flex-col md:gap-8 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:transition-all md:shadow-none ${
+    isCollapsed
+      ? "-translate-x-full md:translate-x-0 md:w-24 md:px-3"
+      : "translate-x-0 md:w-72 md:px-6"
+  }`;
 
   const profileHref = user ? `/scholar/${user.id}` : "/login";
 
+  if (!isMounted) {
+    return null;
+  }
+
   return (
     <>
-      {isMobile && !isCollapsed && (
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(true)}
-          className="fixed inset-0 z-40 bg-slate-950/25 md:hidden"
-          aria-label="Close navigation overlay"
-        />
-      )}
+      <button
+        type="button"
+        onClick={() => setIsCollapsed(true)}
+        className={`fixed inset-0 z-40 bg-slate-950/25 md:hidden ${
+          isCollapsed ? "hidden" : ""
+        }`}
+        aria-label="Close navigation overlay"
+      />
 
       <aside className={asideClasses}>
         <div
-          className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}
+          className={`flex items-center ${
+            isCollapsed ? "justify-center" : "justify-between"
+          }`}
         >
           {!isCollapsed && (
             <Link href="/" className="text-2xl font-semibold tracking-tight">
@@ -443,7 +444,9 @@ export default function Sidebar({ user }: SidebarProps) {
                   }`}
                   title={isCollapsed ? item.name : ""}
                   onClick={() => {
-                    if (isMobile) setIsCollapsed(true);
+                    if (window.innerWidth < 768) {
+                      setIsCollapsed(true);
+                    }
                   }}
                 >
                   <div

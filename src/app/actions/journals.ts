@@ -7,6 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function createJournal(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -100,6 +101,11 @@ export async function deleteJournal(journalId: string) {
     if (!await isAuthorizedOrAdmin(journal.authorId, user.id)) {
         throw new Error('Not authorized to delete this journal.')
     }
+
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.journalVote, 'journalId', journalId);
+    const commentCount = await countCommentsForTarget(prisma.journalComment, 'journalId', journalId);
+    await reverseReputationForContent(journal.authorId, voteCounts, commentCount);
 
     await prisma.journal.delete({ where: { id: journalId } })
 

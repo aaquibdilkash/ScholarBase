@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { getSurveyResults } from "@/app/actions/surveys";
+import { getSurveyResults, getSurveyResponses } from "@/app/actions/surveys";
 import { SurveyResultsView } from "@/components/surveys/SurveyResultsView";
 
 export default async function SurveyResultsPage({
@@ -17,6 +17,12 @@ export default async function SurveyResultsPage({
 
   const survey = await getSurveyResults(id);
   if (!survey) notFound();
+
+  // Fetch individual responses ONLY if the current user is the author
+  const responses =
+    user?.id === survey.authorId
+      ? await getSurveyResponses(id, user.id)
+      : null;
 
   // Check if user is author or data sharing is enabled
   const canView = survey.authorId === user?.id || survey.shareData;
@@ -74,7 +80,7 @@ export default async function SurveyResultsPage({
       <h1 className="text-2xl font-semibold text-slate-950 mb-6">
         Survey Results
       </h1>
-      <SurveyResultsView survey={serializedSurvey} />
+      <SurveyResultsView survey={serializedSurvey} responses={responses} />
     </main>
   );
 }

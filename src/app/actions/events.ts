@@ -7,6 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function getEvents(q?: string, userId?: string) {
     const where = q
@@ -166,6 +167,11 @@ export async function deleteResearchEvent(eventId: string) {
         throw new Error('Not authorized to delete this event.')
     }
 
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.researchEventVote, 'researchEventId', eventId);
+    const commentCount = await countCommentsForTarget(prisma.researchEventComment, 'researchEventId', eventId);
+    await reverseReputationForContent(event.authorId, voteCounts, commentCount);
+
     await prisma.researchEvent.delete({ where: { id: eventId } })
 
     revalidatePath('/events')
@@ -174,35 +180,35 @@ export async function deleteResearchEvent(eventId: string) {
 }
 
 export async function getUpcomingEvents(count: number, userId?: string) {
-  return prisma.researchEvent.findMany({
-    where: {
-      date: {
-        gte: new Date(),
-      },
-    },
-    take: count,
-    orderBy: { date: "asc" },
-    include: {
-      author: {
+    return prisma.researchEvent.findMany({
+        where: {
+            date: {
+                gte: new Date(),
+            },
+        },
+        take: count,
+        orderBy: { date: "asc" },
         include: {
-          followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
-            : false,
+            author: {
+                include: {
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
+                },
+            },
+            votes: {
+                select: {
+                    userId: true,
+                    voteType: true,
+                },
+            },
+            _count: {
+                select: { votes: true, comments: true },
+            },
         },
-      },
-      votes: {
-        select: {
-          userId: true,
-          voteType: true,
-        },
-      },
-      _count: {
-        select: { votes: true, comments: true },
-      },
-    },
-  });
+    });
 }
 

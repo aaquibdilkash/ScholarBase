@@ -7,6 +7,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function createResearchTool(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -79,6 +80,11 @@ export async function deleteResearchTool(toolId: string) {
     if (!await isAuthorizedOrAdmin(tool.authorId, user.id)) {
         throw new Error('Not authorized to delete this research tool.')
     }
+
+    // Reverse reputation from votes and comments before deletion
+    const voteCounts = await countVotesForTarget(prisma.researchToolVote, 'researchToolId', toolId);
+    const commentCount = await countCommentsForTarget(prisma.researchToolComment, 'researchToolId', toolId);
+    await reverseReputationForContent(tool.authorId, voteCounts, commentCount);
 
     await prisma.researchTool.delete({ where: { id: toolId } })
 

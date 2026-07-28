@@ -18,7 +18,7 @@ export async function GET(
         select: {
             id: true,
             content: true,
-            imageUrls: true,
+            imageUrl: true,
             authorId: true,
         },
     });
@@ -33,7 +33,7 @@ export async function GET(
 
     return NextResponse.json({
         content: post.content,
-        imageUrls: post.imageUrls,
+        imageUrl: post.imageUrl,
     });
 }
 

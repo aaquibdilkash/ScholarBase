@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/hooks/useUser";
 
 interface AuthModalContextValue {
   openAuthModal: (callbackUrl?: string) => void;
@@ -28,11 +29,26 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   const [callbackUrl, setCallbackUrl] = useState("/");
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const { user } = useUser();
 
-  const openAuthModal = useCallback((url?: string) => {
-    setCallbackUrl(url || window.location.pathname + window.location.search);
-    setIsOpen(true);
-  }, []);
+  const openAuthModal = useCallback(
+    (url?: string) => {
+      if (user) {
+        return;
+      }
+
+      setCallbackUrl(url || window.location.pathname + window.location.search);
+      setIsOpen(true);
+    },
+    [user],
+  );
+
+  useEffect(() => {
+    // If the user becomes logged in while the modal is open, close it.
+    if (user && isOpen) {
+      setIsOpen(false);
+    }
+  }, [user, isOpen]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -53,7 +69,10 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
     }
   }, [callbackUrl]);
 
-  const handleClose = () => setIsOpen(false);
+  const handleClose = () => {
+    console.log("Closing auth modal");
+    setIsOpen(false);
+  };
 
   const handleLogin = () => {
     router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
@@ -65,13 +84,13 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
       {children}
       <dialog
         ref={dialogRef}
-        className={`fixed inset-0 z-[100] m-auto flex h-fit w-full max-w-md flex-col rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm ${!isOpen ? "hidden" : ""}`}
+        className="fixed inset-0 z-[100] m-auto rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
         onClose={handleClose}
         onClick={(e) => {
           if (e.target === dialogRef.current) handleClose();
         }}
       >
-        <div className="p-8">
+        <div className="flex h-fit w-full max-w-md flex-col p-8">
           <div className="text-center mb-6">
             <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50">
               <svg

@@ -5,6 +5,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import { RichContent } from "@/components/content/RichContent";
+import { StarRating } from "@/components/ui/StarRating";
 
 type RecommendationCardProps = Recommendation & {
   author: User & {
@@ -76,23 +77,44 @@ export function RecommendationCard({
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       footerCommentsCount={recommendation._count.comments}
     >
-      <p className="mb-2 text-sm font-semibold text-slate-900">
-        {`Mentorship Rating: ${recommendation.rating}/5`}
-      </p>
-
-      <div className="mb-4 text-sm text-slate-700 space-y-1">
-        <p>{`Turnaround Time: ${recommendation.turnaroundTimeDays} day(s)`}</p>
-        <p>{`Responsiveness: ${recommendation.responsivenessScore}/5`}</p>
-        <p>{`Guidance Quality: ${recommendation.guidanceScore}/5`}</p>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-4">
+        <div className="col-span-2">
+          <p className="text-sm font-semibold text-slate-900 mb-1">
+            Overall Mentorship Rating
+          </p>
+          <StarRating rating={recommendation.rating} size="lg" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-600 mb-1">
+            Responsiveness
+          </p>
+          <StarRating rating={recommendation.responsivenessScore} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-600 mb-1">
+            Guidance Quality
+          </p>
+          <StarRating rating={recommendation.guidanceScore} />
+        </div>
+        <div className="col-span-2">
+          <p className="text-xs font-semibold text-slate-600 mb-1">
+            Average Turnaround Time
+          </p>
+          <p className="text-sm font-bold text-slate-800">
+            {recommendation.turnaroundTimeDays} day(s)
+          </p>
+        </div>
       </div>
 
-      <p className="text-sm font-semibold text-slate-700 mb-1">
-        Mentorship Feedback:
-      </p>
-      <RichContent
-        content={recommendation.feedback}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-4"
-      />
+      <div>
+        <p className="text-sm font-semibold text-slate-700 mb-2">
+          Mentorship Feedback
+        </p>
+        <RichContent
+          content={recommendation.feedback}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-4"
+        />
+      </div>
     </ListPageCardShell>
   );
 }

@@ -3,7 +3,8 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation';
+import { reverseReputationForRecommendation } from '@/app/actions/interactions';
 
 export async function createRecommendation(formData: FormData, supervisorId: string) {
     const user = await requireCurrentUser(
@@ -51,7 +52,13 @@ export async function createRecommendation(formData: FormData, supervisorId: str
             supervisorId,
             authorId: user.id,
         },
-    })
+    });
+
+    // Award 2 reputation points for the recommendation
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { reputation: { increment: 2 } },
+    });
 
     return { success: true, redirect: `/supervisor/${supervisorId}` }
 }
@@ -112,6 +119,9 @@ export async function deleteRecommendation(recommendationId: string) {
     if (!await isAuthorizedOrAdmin(recommendation.authorId, user.id)) {
         throw new Error('Not authorized to delete this recommendation.')
     }
+
+    // Reverse reputation before deleting
+    await reverseReputationForRecommendation(recommendationId);
 
     await prisma.recommendation.delete({ where: { id: recommendationId } })
 
