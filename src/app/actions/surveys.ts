@@ -90,6 +90,18 @@ export async function getSurvey(id: string, userId?: string) {
     });
 }
 
+export async function getSurveyResponse(surveyId: string, userId: string) {
+    return prisma.surveyResponse.findFirst({
+        where: {
+            surveyId,
+            respondentId: userId,
+        },
+        include: {
+            answers: true,
+        },
+    });
+}
+
 export async function createSurvey(formData: FormData) {
     const user = await requireCurrentUser('Please log in to create a survey.')
 
@@ -239,6 +251,24 @@ export async function closeSurvey(surveyId: string) {
     revalidatePath(`/surveys/${surveyId}`)
 }
 
+export async function reopenSurvey(surveyId: string) {
+    const user = await requireCurrentUser('Log in to reopen this survey.')
+
+    const survey = await prisma.researchSurvey.findUnique({
+        where: { id: surveyId },
+        select: { authorId: true },
+    })
+    if (!survey) return
+    if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized.')
+
+    await prisma.researchSurvey.update({
+        where: { id: surveyId },
+        data: { status: 'OPEN' },
+    })
+
+    revalidatePath(`/surveys/${surveyId}`)
+}
+
 export async function toggleShareData(surveyId: string) {
     const user = await requireCurrentUser('Log in to manage this survey.')
 
@@ -270,16 +300,34 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
         value: string
     }>
 
-    // Check if user already responded (only one response allowed per user)
+    // Check if user already responded - if so, update existing response (upsert pattern)
     const existingResponse = await prisma.surveyResponse.findFirst({
         where: {
             surveyId,
             respondentId: user.id,
         },
+        include: { answers: { select: { id: true } } },
     })
 
     if (existingResponse) {
-        throw new Error('You have already submitted a response to this survey. Only one response is allowed per user.')
+        // Delete old answers and create new ones
+        await prisma.surveyAnswer.deleteMany({
+            where: { responseId: existingResponse.id },
+        })
+        await prisma.surveyResponse.update({
+            where: { id: existingResponse.id },
+            data: {
+                isAnonymous,
+                answers: {
+                    create: answers.map((a) => ({
+                        questionId: a.questionId,
+                        value: a.value,
+                    })),
+                },
+            },
+        })
+        revalidatePath(`/surveys/${surveyId}`)
+        return { success: true, message: 'Response updated successfully!' }
     }
 
     await prisma.surveyResponse.create({
@@ -296,7 +344,7 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
         },
     })
 
-    // Award 5 reputation points for participating in a survey
+    // Award 5 reputation points for participating in a survey (first time only)
     await prisma.user.update({
         where: { id: user.id },
         data: { reputation: { increment: 5 } },
@@ -350,6 +398,13 @@ export async function getSurveyResults(surveyId: string) {
 }
 
 export async function hasUserResponded(surveyId: string, userId: string) {
+    // Check if user is the survey author - authors can always respond (preview)
+    const survey = await prisma.researchSurvey.findUnique({
+        where: { id: surveyId },
+        select: { authorId: true },
+    });
+    if (survey?.authorId === userId) return false;
+
     const response = await prisma.surveyResponse.findFirst({
         where: {
             surveyId,

@@ -116,6 +116,14 @@ export async function createPhdAdmission(formData: FormData) {
     return { success: true, redirect: '/admissions' }
 }
 
+export async function createAdmissionSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
+    try {
+        return await createPhdAdmission(formData) as any
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to create admission post' }
+    }
+}
+
 export async function updatePhdAdmission(formData: FormData, admissionId: string) {
     const user = await requireCurrentUser('Log in to edit this admission.')
 

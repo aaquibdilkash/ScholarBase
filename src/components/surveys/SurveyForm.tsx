@@ -227,6 +227,17 @@ export default function SurveyForm({
               />
             ))}
           </div>
+          {questions.length > 0 && (
+            <div className="flex justify-center pt-4 border-t border-slate-100 mt-4">
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="sb-button-soft text-sm"
+              >
+                + Add Question
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -3,16 +3,83 @@ import {
   signup,
   signInWithGoogle,
   forgotPassword,
+  updatePassword,
 } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 
 interface LoginPageProps {
-  searchParams: Promise<{ message?: string; callbackUrl?: string }>;
+  searchParams: Promise<{
+    message?: string;
+    callbackUrl?: string;
+    type?: string;
+  }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { message, callbackUrl } = await searchParams;
+  const { message, callbackUrl, type } = await searchParams;
   const returnUrl = callbackUrl || "/blog";
+  const isRecovery = type === "recovery";
+
+  if (isRecovery) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="sb-surface w-full max-w-md space-y-6 p-8 md:p-10">
+          <div className="text-center">
+            <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+              Reset Password
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+              Set a New Password
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Enter your new password below.
+            </p>
+          </div>
+
+          <form action={updatePassword} className="flex flex-col gap-4">
+            <div>
+              <label className="sb-label" htmlFor="password">
+                New Password
+              </label>
+              <input
+                className="sb-input"
+                id="password"
+                name="password"
+                type="password"
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </div>
+            <div>
+              <label className="sb-label" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                className="sb-input"
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </div>
+
+            {message && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-700">
+                {message}
+              </div>
+            )}
+
+            <button type="submit" className="sb-button-primary w-full mt-2">
+              Update Password
+            </button>
+          </form>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
@@ -64,7 +131,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         </div>
 
-        <form className="flex flex-col gap-4">
+        <form className="flex flex-col gap-4" action={login}>
           <input type="hidden" name="callbackUrl" value={returnUrl} />
 
           <div>
@@ -95,16 +162,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             />
           </div>
 
-          <div className="flex justify-end -mt-2">
-            <button
-              formAction={forgotPassword}
-              type="submit"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline transition"
-            >
-              Forgot Password?
-            </button>
-          </div>
-
           {message && (
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-center text-sm text-blue-700">
               {message}
@@ -112,13 +169,48 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           )}
 
           <div className="flex gap-4 mt-2">
-            <button formAction={login} className="sb-button-primary w-full">
+            <button type="submit" className="sb-button-primary w-full">
               Sign In
             </button>
             <button formAction={signup} className="sb-button-soft w-full">
               Register
             </button>
           </div>
+        </form>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-white px-2 text-slate-500">
+              Having trouble signing in?
+            </span>
+          </div>
+        </div>
+
+        <div className="text-sm text-slate-600 text-center">
+          If you signed up with Google and want to create a password, you can use the password reset functionality to set a password for your account.
+        </div>
+
+        <form action={forgotPassword} className="flex flex-col gap-4">
+          <input type="hidden" name="callbackUrl" value={returnUrl} />
+          <div>
+            <label className="sb-label" htmlFor="email-forgot">
+              Email
+            </label>
+            <input
+              className="sb-input"
+              id="email-forgot"
+              name="email"
+              type="email"
+              placeholder="scholar@university.edu"
+              required
+            />
+          </div>
+          <button type="submit" className="sb-button-soft w-full">
+            Send Password Reset Link
+          </button>
         </form>
       </div>
     </main>

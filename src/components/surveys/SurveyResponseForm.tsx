@@ -1,12 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
 
-type Question = {
+type Answer = {
   id: string;
+  questionId: string;
+  value: string;
+};
+
+type Response = {
+  id: string;
+  isAnonymous: boolean;
+  answers: Answer[];
+} | null;
+
+
+type Question = {
+  id:string;
   type: string;
   title: string;
   required: boolean;
@@ -23,17 +36,33 @@ export function SurveyResponseForm({
   questions,
   privacy,
   hasResponded,
+  response,
 }: {
   surveyId: string;
   questions: Question[];
   privacy: SurveyPrivacy;
   hasResponded: boolean;
+  response: Response;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(privacy === "ANONYMOUS");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (response) {
+      const initialAnswers = response.answers.reduce(
+        (acc, answer) => {
+          acc[answer.questionId] = answer.value;
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
+      setAnswers(initialAnswers);
+      setIsAnonymous(response.isAnonymous);
+    }
+  }, [response]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -294,32 +323,6 @@ export function SurveyResponseForm({
     }
   };
 
-  if (hasResponded) {
-    return (
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
-        <svg
-          className="mx-auto h-12 w-12 text-green-500 mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <h3 className="text-lg font-semibold text-green-800 mb-2">
-          You've already responded to this survey!
-        </h3>
-        <p className="text-sm text-green-600">
-          You can submit again to update your responses.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Privacy selection for HYBRID */}
@@ -451,3 +454,4 @@ export function SurveyResponseForm({
     </form>
   );
 }
+

@@ -37,6 +37,7 @@ export type DetailPageCardShellProps = {
 
   className?: string;
   bodyClassName?: string;
+  bodyBottomContent?: ReactNode;
 
   editedDate?: Date | string;
   createdDate: Date | string;
@@ -63,6 +64,7 @@ export default function DetailPageCardShell({
   discussion,
   className,
   bodyClassName,
+  bodyBottomContent,
   editedDate,
   createdDate,
 }: DetailPageCardShellProps) {
@@ -135,6 +137,8 @@ export default function DetailPageCardShell({
         </div>
 
         {children}
+
+        {bodyBottomContent}
 
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
           <span className="font-semibold text-slate-400">

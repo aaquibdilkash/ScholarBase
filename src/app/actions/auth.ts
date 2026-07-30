@@ -5,6 +5,23 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getBaseUrl } from '@/lib/url'
 
+function mapAuthError(message: string): string {
+    const lower = message.toLowerCase()
+    if (lower.includes('email') && lower.includes('already')) {
+        return 'An account with this email already exists. Try signing in instead.'
+    }
+    if (lower.includes('password') && lower.includes('weak')) {
+        return 'Password is too weak. Use at least 6 characters with a mix of letters and numbers.'
+    }
+    if (lower.includes('invalid') && lower.includes('email')) {
+        return 'Please enter a valid email address.'
+    }
+    if (lower.includes('rate') || lower.includes('too many')) {
+        return 'Too many attempts. Please wait a moment and try again.'
+    }
+    return message
+}
+
 export async function login(formData: FormData) {
     const supabase = await createClient()
 
@@ -29,10 +46,22 @@ export async function signup(formData: FormData) {
     const password = formData.get('password') as string
     const callbackUrl = (formData.get('callbackUrl') as string) || '/blog'
 
+    if (!email || !password) {
+        redirect(`/login?message=Email and password are required&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+        return
+    }
+
+    if (password.length < 6) {
+        redirect(`/login?message=Password must be at least 6 characters&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+        return
+    }
+
     const { error } = await supabase.auth.signUp({ email, password })
 
     if (error) {
-        redirect(`/login?message=Could not create account&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+        const message = mapAuthError(error.message)
+        redirect(`/login?message=${encodeURIComponent(message)}&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+        return
     }
 
     redirect(`/login?message=Check your email to confirm your account&callbackUrl=${encodeURIComponent(callbackUrl)}`)
@@ -72,14 +101,41 @@ export async function forgotPassword(formData: FormData) {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${baseUrl}/login?message=Password reset link sent! Check your email.`,
+        redirectTo: `${baseUrl}/auth/callback?type=recovery`,
     })
 
     if (error) {
-        redirect(`/login?message=${encodeURIComponent(error.message)}`)
+        const message = mapAuthError(error.message)
+        redirect(`/login?message=${encodeURIComponent(message)}`)
     }
 
     redirect('/login?message=Password reset link sent! Check your email.')
+}
+
+export async function updatePassword(formData: FormData) {
+    const supabase = await createClient()
+
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    if (!password || password.length < 6) {
+        redirect('/login?type=recovery&message=Password must be at least 6 characters')
+        return
+    }
+
+    if (password !== confirmPassword) {
+        redirect('/login?type=recovery&message=Passwords do not match')
+        return
+    }
+
+    const { error } = await supabase.auth.updateUser({ password })
+
+    if (error) {
+        redirect(`/login?message=${encodeURIComponent(error.message)}`)
+        return
+    }
+
+    redirect('/login?message=Password updated successfully! Please sign in with your new password.')
 }
 
 export async function signOut() {

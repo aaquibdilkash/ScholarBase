@@ -93,7 +93,6 @@ export function AdmissionCard({
               href={admission.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
             >
               View Circular
@@ -104,7 +103,6 @@ export function AdmissionCard({
               href={admission.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
             >
               Go to Portal
@@ -145,9 +143,9 @@ export function AdmissionCard({
         </p>
       </div>
 
-      <div className="mb-3 flex items-center gap-2 text-sm text-red-600 font-semibold">
+      <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
         <svg
-          className="h-4 w-4 shrink-0"
+          className="h-4 w-4 shrink-0 text-slate-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -161,11 +159,13 @@ export function AdmissionCard({
         </svg>
         <span>
           Closing:{" "}
-          {new Date(admission.deadline).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
+          <span className="font-medium">
+            {new Date(admission.deadline).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </span>
         </span>
       </div>
 

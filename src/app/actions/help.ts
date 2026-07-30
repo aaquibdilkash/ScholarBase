@@ -124,6 +124,14 @@ export async function createHelpPost(formData: FormData) {
     return { success: true, redirect: '/help' }
 }
 
+export async function createHelpPostSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
+    try {
+        return await createHelpPost(formData) as any
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to create help post' }
+    }
+}
+
 export async function updateHelpPost(formData: FormData, helpPostId: string) {
     const user = await requireCurrentUser()
 

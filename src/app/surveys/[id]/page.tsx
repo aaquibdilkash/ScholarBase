@@ -1,12 +1,17 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CommentSection } from "@/components/interactions/CommentSection";
+import { RichContent } from "@/components/content/RichContent";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import {
   deleteSurvey,
   getSurvey,
   hasUserResponded,
+  closeSurvey,
+  reopenSurvey,
+  toggleShareData,
+  getSurveyResponse,
 } from "@/app/actions/surveys";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
@@ -36,6 +41,7 @@ const SurveyDetailPage = async ({
   }
 
   const hasResponded = user ? await hasUserResponded(id, user.id) : false;
+  const response = user && hasResponded ? await getSurveyResponse(id, user.id) : null;
 
   const upvotes =
     survey.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
@@ -127,9 +133,10 @@ const SurveyDetailPage = async ({
       </h1>
 
       {survey.description && (
-        <p className="text-slate-800 whitespace-pre-wrap leading-relaxed mb-6">
-          {survey.description}
-        </p>
+        <RichContent
+          content={survey.description}
+          className="text-slate-800 leading-relaxed mb-6"
+        />
       )}
 
       {/* Survey questions count & overview */}
@@ -173,12 +180,11 @@ const SurveyDetailPage = async ({
 
       {/* Owner actions */}
       {isOwner && (
-        <div className="flex gap-3 mb-8">
+        <div className="flex gap-3 mb-8 flex-wrap">
           {isOpen ? (
             <form
               action={async () => {
                 "use server";
-                const { closeSurvey } = await import("@/app/actions/surveys");
                 await closeSurvey(survey.id);
               }}
             >
@@ -190,9 +196,19 @@ const SurveyDetailPage = async ({
               </button>
             </form>
           ) : (
-            <span className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-500">
-              Survey Closed
-            </span>
+            <form
+              action={async () => {
+                "use server";
+                await reopenSurvey(survey.id);
+              }}
+            >
+              <button
+                type="submit"
+                className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100 transition"
+              >
+                Reopen Survey
+              </button>
+            </form>
           )}
 
           {survey.shareData || !isOpen ? (
@@ -206,8 +222,6 @@ const SurveyDetailPage = async ({
             <form
               action={async () => {
                 "use server";
-                const { toggleShareData } =
-                  await import("@/app/actions/surveys");
                 await toggleShareData(survey.id);
               }}
             >
@@ -233,6 +247,7 @@ const SurveyDetailPage = async ({
             questions={survey.questions}
             privacy={survey.privacy}
             hasResponded={hasResponded}
+            response={response}
           />
         </div>
       )}

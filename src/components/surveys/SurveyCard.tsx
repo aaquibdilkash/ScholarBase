@@ -4,6 +4,7 @@ import { ResearchSurvey, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
 
 type SurveyWithDetails = ResearchSurvey & {
@@ -102,9 +103,10 @@ export function SurveyCard({
       </h2>
 
       {survey.description && (
-        <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-          {survey.description}
-        </p>
+        <RichContent
+          content={survey.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
       )}
 
       {survey.shareData && (

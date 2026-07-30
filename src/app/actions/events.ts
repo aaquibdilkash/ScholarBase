@@ -118,6 +118,14 @@ export async function createResearchEvent(formData: FormData) {
     return { success: true, redirect: '/events' }
 }
 
+export async function createEventSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
+    try {
+        return await createResearchEvent(formData) as any
+    } catch (err: any) {
+        return { success: false, error: err.message || 'Failed to create event' }
+    }
+}
+
 export async function updateResearchEvent(formData: FormData, eventId: string) {
     const user = await requireCurrentUser('Log in to edit this event.')
 

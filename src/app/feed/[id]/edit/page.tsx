@@ -18,8 +18,7 @@ export default function EditPostPage({
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [content, setContent] = useState("");
-  const [existingImageUrl, setExistingImageUrl] = useState<string>("");
-  const [newImageUrl, setNewImageUrl] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -34,7 +33,7 @@ export default function EditPostPage({
         if (!res.ok) throw new Error("Not found");
         const data = await res.json();
         setContent(data.content || "");
-        setExistingImageUrl(data.imageUrl || "");
+        setImageUrl(data.imageUrl || "");
       } catch {
         toast("Failed to load post.", "error");
         router.push("/feed");
@@ -77,7 +76,7 @@ export default function EditPostPage({
 
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
-      setNewImageUrl(data.secure_url);
+      setImageUrl(data.secure_url);
     } catch {
       toast("Failed to upload image.", "error");
     } finally {
@@ -101,10 +100,9 @@ export default function EditPostPage({
 
     setSubmitting(true);
     try {
-      const finalImageUrl = newImageUrl || existingImageUrl;
       const formData = new FormData();
       formData.append("content", content);
-      if (finalImageUrl) formData.append("imageUrl", finalImageUrl);
+      if (imageUrl) formData.append("imageUrl", imageUrl);
 
       await updateSocialPost(formData, postId);
       toast("Post updated successfully!", "success");
@@ -176,43 +174,20 @@ export default function EditPostPage({
           />
         </div>
 
-        {/* Current Image */}
-        {existingImageUrl && (
+        {/* Image */}
+        {imageUrl && (
           <div>
             <label className="sb-label mb-2 block">Current Image</label>
             <div className="flex">
               <div className="relative group">
                 <img
-                  src={existingImageUrl}
+                  src={imageUrl}
                   alt=""
                   className="h-20 w-20 rounded-lg object-cover border border-slate-200"
                 />
                 <button
                   type="button"
-                  onClick={() => setExistingImageUrl("")}
-                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* New Image */}
-        {newImageUrl && (
-          <div>
-            <label className="sb-label mb-2 block">New Image</label>
-            <div className="flex">
-              <div className="relative group">
-                <img
-                  src={newImageUrl}
-                  alt=""
-                  className="h-20 w-20 rounded-lg object-cover border border-slate-200"
-                />
-                <button
-                  type="button"
-                  onClick={() => setNewImageUrl("")}
+                  onClick={() => setImageUrl("")}
                   className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
                 >
                   ×

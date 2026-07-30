@@ -86,9 +86,7 @@ export default async function ScholarProfile({
               Edit Profile
             </Link>
           ) : (
-            currentUser && (
-              <FollowButton targetId={profile.id} isFollowing={isFollowing} />
-            )
+            <FollowButton targetId={profile.id} isFollowing={isFollowing} />
           )}
         </div>
       </div>

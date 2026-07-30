@@ -4,6 +4,7 @@ import { useAuthModal } from "@/components/interactions/AuthModal";
 import {
   updatePhdAdmission,
   createPhdAdmission,
+  createAdmissionSafe,
 } from "@/app/actions/admissions";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -65,7 +66,7 @@ export default function AdmissionForm({
     if (mode === "edit" && admissionId) {
       await updatePhdAdmission(formData, admissionId);
     } else {
-      await submit(() => createPhdAdmission(formData));
+      await submit(() => createAdmissionSafe(formData));
     }
   }
 
@@ -116,7 +117,11 @@ export default function AdmissionForm({
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
         />
-        <input type="hidden" name="description" value={draftFields.description} />
+        <input
+          type="hidden"
+          name="description"
+          value={draftFields.description}
+        />
       </div>
 
       <div>
@@ -151,4 +156,3 @@ export default function AdmissionForm({
     </form>
   );
 }
-

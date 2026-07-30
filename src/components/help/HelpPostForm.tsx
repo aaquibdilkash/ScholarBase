@@ -1,6 +1,10 @@
 "use client";
 
-import { createHelpPost, updateHelpPost } from "@/app/actions/help";
+import {
+  createHelpPost,
+  updateHelpPost,
+  createHelpPostSafe,
+} from "@/app/actions/help";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -58,7 +62,7 @@ export default function HelpPostForm({
     if (mode === "edit" && helpPostId) {
       await updateHelpPost(formData, helpPostId);
     } else {
-      await submit(() => createHelpPost(formData));
+      await submit(() => createHelpPostSafe(formData));
     }
   }
 
@@ -129,4 +133,3 @@ export default function HelpPostForm({
     </form>
   );
 }
-

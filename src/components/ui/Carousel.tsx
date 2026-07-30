@@ -73,7 +73,7 @@ export function Carousel({ children }: CarouselProps) {
         <button
           type="button"
           onClick={() => scroll("left")}
-          className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
           aria-label="Scroll left"
         >
           <svg
@@ -96,7 +96,7 @@ export function Carousel({ children }: CarouselProps) {
         <button
           type="button"
           onClick={() => scroll("right")}
-          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
           aria-label="Scroll right"
         >
           <svg

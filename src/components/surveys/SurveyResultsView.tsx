@@ -33,6 +33,25 @@ type IndividualResponse = {
   }>;
 };
 
+function mapValueToLabel(q: QuestionResult, value: string): string {
+  // For checkbox multi-values
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((v: string) => {
+          const opt = q.options.find((o) => o.value === v);
+          return opt?.label || v;
+        })
+        .join(", ");
+    }
+  } catch {}
+
+  // For single choice / dropdown
+  const opt = q.options.find((o) => o.value === value);
+  return opt?.label || value;
+}
+
 function exportToExcel(
   survey: SurveyResults,
   responses: IndividualResponse[] | null,
@@ -40,13 +59,11 @@ function exportToExcel(
   // 1. Summary Sheet
   const summaryHeader = ["Question", "Type", "Response Count", "Details"];
   const summaryRows = survey.questions.map((q) => {
-    const answers = q.answers.map((a) => a.value);
+    const answers = q.answers.map((a) => mapValueToLabel(q, a.value));
     const details = answers.join("; ");
     return [q.title, q.type, String(answers.length), details];
   });
   const summarySheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
-  XLSX.utils.sheet_add_aoa(summarySheet, [], { origin: -1 });
-
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
@@ -56,23 +73,26 @@ function exportToExcel(
     const questionHeaders = survey.questions
       .sort((a, b) => a.order - b.order)
       .map((q) => q.title);
-    
+
     const individualResponsesHeader = [
       "Response ID",
       "Timestamp",
       "Respondent",
       ...questionHeaders,
     ];
-    
+
     const individualResponsesRows = responses.map((res) => {
-      const answersByQuestionId = new Map(res.answers.map(a => [a.questionId, a.value]));
+      const answersByQuestionId = new Map(
+        res.answers.map((a) => [a.questionId, a.value]),
+      );
       const row = [
         res.id,
         res.createdAt.toISOString(),
-        res.isAnonymous ? "Anonymous" : res.respondent?.name ?? "Unknown",
+        res.isAnonymous ? "Anonymous" : (res.respondent?.name ?? "Unknown"),
       ];
-      survey.questions.forEach(q => {
-        row.push(answersByQuestionId.get(q.id) || "");
+      survey.questions.forEach((q) => {
+        const rawValue = answersByQuestionId.get(q.id) || "";
+        row.push(mapValueToLabel(q, rawValue));
       });
       return row;
     });
@@ -81,7 +101,6 @@ function exportToExcel(
       individualResponsesHeader,
       ...individualResponsesRows,
     ]);
-    XLSX.utils.sheet_add_aoa(individualResponsesSheet, [], { origin: -1 });
     XLSX.utils.book_append_sheet(
       wb,
       individualResponsesSheet,
@@ -89,10 +108,7 @@ function exportToExcel(
     );
   }
 
-  XLSX.writeFile(
-    wb,
-    `${survey.title.replace(/\s+/g, "_")}_results.xlsx`,
-  );
+  XLSX.writeFile(wb, `${survey.title.replace(/\s+/g, "_")}_results.xlsx`);
 }
 
 export function SurveyResultsView({

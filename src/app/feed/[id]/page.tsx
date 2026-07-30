@@ -89,28 +89,16 @@ export default async function SinglePostPage({
         {p.content}
       </p>
 
-      {(p as any).imageUrls && (p as any).imageUrls.length > 0 && (
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          {(p as any).imageUrls.map((url: string, i: number) => (
-            <a
-              key={i}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-            >
-              <img
-                src={url}
-                alt=""
-                className="w-full h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
-                loading="lazy"
-              />
-            </a>
-          ))}
+      {p.imageUrl && (
+        <div className="mt-6">
+          <img
+            src={p.imageUrl}
+            alt=""
+            className="w-full h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
+            loading="lazy"
+          />
         </div>
       )}
-
-      
     </DetailPageCardShell>
   );
 }

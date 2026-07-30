@@ -1,6 +1,10 @@
 "use client";
 
-import { createResearchEvent, updateResearchEvent } from "@/app/actions/events";
+import {
+  createResearchEvent,
+  updateResearchEvent,
+  createEventSafe,
+} from "@/app/actions/events";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -64,7 +68,7 @@ export default function EventForm({
     if (mode === "edit" && eventId) {
       await updateResearchEvent(formData, eventId);
     } else {
-      await submit(() => createResearchEvent(formData));
+      await submit(() => createEventSafe(formData));
     }
   }
 

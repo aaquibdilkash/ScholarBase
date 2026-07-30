@@ -72,6 +72,30 @@ const AdmissionDetailPage = async ({
       }
       footerCommentsHref={`/admissions/${admission.id}#comments`}
       footerCommentsCount={admission._count.comments}
+      bodyBottomContent={
+        <div className="flex gap-4 mt-4">
+          {admission.notificationLink && (
+            <a
+              href={admission.notificationLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+            >
+              View Circular
+            </a>
+          )}
+          {admission.applyLink && (
+            <a
+              href={admission.applyLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            >
+              Go to Portal
+            </a>
+          )}
+        </div>
+      }
       discussion={
         <div
           className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
@@ -91,17 +115,13 @@ const AdmissionDetailPage = async ({
       <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
         {admission.university}
       </h1>
-      <p className="text-md font-medium text-blue-700 mb-6">
+      <p className="text-md font-medium text-blue-700 mb-4">
         {admission.department}
       </p>
-      <RichContent
-        content={admission.description}
-        className="text-slate-800 leading-relaxed mb-6"
-      />
 
-      <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-100/50 bg-red-50/50 p-3 text-sm font-semibold text-red-600">
+      <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
         <svg
-          className="w-5 h-5"
+          className="h-5 w-5 shrink-0 text-slate-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -114,33 +134,19 @@ const AdmissionDetailPage = async ({
           />
         </svg>
         Closing Date:{" "}
-        {new Date(admission.deadline).toLocaleDateString("en-US", {
-          dateStyle: "medium",
-        })}
+        <span className="font-medium">
+          {new Date(admission.deadline).toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </span>
       </div>
-
-      <div className="flex gap-4 mb-8">
-        {admission.notificationLink && (
-          <a
-            href={admission.notificationLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
-          >
-            View Circular
-          </a>
-        )}
-        {admission.applyLink && (
-          <a
-            href={admission.applyLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            Go to Portal
-          </a>
-        )}
-      </div>
+      <RichContent
+        content={admission.description}
+        className="text-slate-800 leading-relaxed"
+      />
     </DetailPageCardShell>
   );
 };

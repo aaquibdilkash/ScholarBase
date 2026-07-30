@@ -93,20 +93,26 @@ export default function ContributionForm({
     }
     setSubmitting(true);
 
-    if (mode === "edit" && contributionId) {
-      // updateContribution still redirects server-side
-      await updateContribution(contributionId, formData);
-    } else {
-      const result = await createContribution(formData);
-      if (result?.success) {
-        resetDraft();
-        toast(
-          "Contribution submitted successfully! It will be reviewed by an admin.",
-        );
-        setTimeout(() => {
-          router.push("/contributions");
-        }, 1500);
+    try {
+      if (mode === "edit" && contributionId) {
+        // updateContribution still redirects server-side
+        await updateContribution(contributionId, formData);
+      } else {
+        const result = await createContribution(formData);
+        if (result?.success) {
+          resetDraft();
+          toast(
+            "Contribution submitted successfully! It will be reviewed by an admin.",
+          );
+          setTimeout(() => {
+            router.push("/contributions");
+          }, 1500);
+        }
       }
+    } catch (err: any) {
+      toast(err?.message || "Failed to submit contribution.", "error");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -205,6 +211,11 @@ export default function ContributionForm({
         <>
           <div>
             <label className="sb-label">Payment Method</label>
+            <input
+              type="hidden"
+              name="paymentMethod"
+              value={draftFields.paymentMethod}
+            />
             <select
               name="paymentMethod"
               className="sb-input"
@@ -224,10 +235,11 @@ export default function ContributionForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="sb-label">Amount (Optional)</label>
+              <label className="sb-label">Amount (₹, Optional)</label>
               <input
                 type="number"
                 min="1"
+                max="100000"
                 step="1"
                 name="amount"
                 placeholder="e.g., 500"

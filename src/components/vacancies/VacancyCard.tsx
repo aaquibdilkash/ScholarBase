@@ -73,7 +73,6 @@ export function VacancyCard({
               href={vacancy.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
             >
               Details
@@ -85,7 +84,6 @@ export function VacancyCard({
               href={vacancy.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
               className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
             >
               Apply
@@ -106,9 +104,16 @@ export function VacancyCard({
         className="text-sm leading-relaxed text-slate-600 line-clamp-3"
       />
 
-      <div className="mt-6 flex items-center gap-2 rounded-xl border border-red-100/50 bg-red-50/50 p-2 text-xs font-semibold text-red-600">
-        <ClockIcon className="w-4 h-4" />
-        Last Date: {new Date(vacancy.deadline).toLocaleDateString("en-US")}
+      <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+        <svg className="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>
+            Last Date:{" "}
+            <span className="font-medium">
+                {new Date(vacancy.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            </span>
+        </span>
       </div>
     </ListPageCardShell>
   );

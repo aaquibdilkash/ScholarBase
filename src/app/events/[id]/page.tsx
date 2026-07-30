@@ -71,6 +71,30 @@ const EventDetailPage = async ({
       }
       footerCommentsHref={`/events/${event.id}#comments`}
       footerCommentsCount={event._count.comments}
+      bodyBottomContent={
+        <div className="flex gap-4 mt-4">
+          {event.notificationLink && (
+            <a
+              href={event.notificationLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+            >
+              View Brochure
+            </a>
+          )}
+          {event.applyLink && (
+            <a
+              href={event.applyLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            >
+              Register Now
+            </a>
+          )}
+        </div>
+      }
       discussion={
         <div
           className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
@@ -142,9 +166,9 @@ const EventDetailPage = async ({
           </div>
         )}
         {event.deadline && (
-          <div className="flex items-center gap-2 text-red-600 font-semibold">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
             <svg
-              className="h-5 w-5 shrink-0"
+              className="h-5 w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -157,7 +181,7 @@ const EventDetailPage = async ({
               />
             </svg>
             <span>Registration Deadline:</span>
-            <span>
+            <span className="font-medium">
               {new Date(event.deadline).toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "long",
@@ -171,31 +195,8 @@ const EventDetailPage = async ({
 
       <RichContent
         content={event.description}
-        className="text-slate-800 leading-relaxed mb-8"
+        className="text-slate-800 leading-relaxed"
       />
-
-      <div className="flex gap-4 mb-8">
-        {event.notificationLink && (
-          <a
-            href={event.notificationLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
-          >
-            View Brochure
-          </a>
-        )}
-        {event.applyLink && (
-          <a
-            href={event.applyLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            Register Now
-          </a>
-        )}
-      </div>
     </DetailPageCardShell>
   );
 };
