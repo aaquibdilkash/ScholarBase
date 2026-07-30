@@ -90,52 +90,63 @@ export async function signInWithGoogle(callbackUrl?: string) {
     redirect(data.url)
 }
 
-export async function forgotPassword(formData: FormData) {
-    const supabase = await createClient()
-    const baseUrl = await getBaseUrl()
+export async function forgotPassword(
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const baseUrl = await getBaseUrl();
 
-    const email = formData.get('email') as string
+  const email = formData.get("email") as string;
 
-    if (!email) {
-        redirect('/login?message=Please enter your email address')
-    }
+  if (!email) {
+    return { success: false, error: "Please enter your email address" };
+  }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${baseUrl}/auth/callback?type=recovery`,
-    })
+  // The redirectTo URL should point to the auth callback route.
+  // The route will then handle redirecting the user to the password update form.
+  const redirectTo = `${baseUrl}/auth/callback?type=recovery`;
 
-    if (error) {
-        const message = mapAuthError(error.message)
-        redirect(`/login?message=${encodeURIComponent(message)}`)
-    }
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
 
-    redirect('/login?message=Password reset link sent! Check your email.')
+  if (error) {
+    return { success: false, error: mapAuthError(error.message) };
+  }
+
+  return { success: true };
 }
 
-export async function updatePassword(formData: FormData) {
-    const supabase = await createClient()
+export async function updatePassword(
+  formData: FormData
+): Promise<{ success: boolean; error?: string; redirect?: string }> {
+  const supabase = await createClient();
 
-    const password = formData.get('password') as string
-    const confirmPassword = formData.get('confirmPassword') as string
+  const password = formData.get("password") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
 
-    if (!password || password.length < 6) {
-        redirect('/login?type=recovery&message=Password must be at least 6 characters')
-        return
-    }
+  if (!password || password.length < 6) {
+    return {
+      success: false,
+      error: "Password must be at least 6 characters",
+    };
+  }
 
-    if (password !== confirmPassword) {
-        redirect('/login?type=recovery&message=Passwords do not match')
-        return
-    }
+  if (password !== confirmPassword) {
+    return { success: false, error: "Passwords do not match" };
+  }
 
-    const { error } = await supabase.auth.updateUser({ password })
+  const { error } = await supabase.auth.updateUser({ password });
 
-    if (error) {
-        redirect(`/login?message=${encodeURIComponent(error.message)}`)
-        return
-    }
+  if (error) {
+    return { success: false, error: mapAuthError(error.message) };
+  }
 
-    redirect('/login?message=Password updated successfully! Please sign in with your new password.')
+  return {
+    success: true,
+    redirect:
+      "/login?message=Password updated successfully! Please sign in with your new password.",
+  };
 }
 
 export async function signOut() {

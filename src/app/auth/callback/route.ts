@@ -1,37 +1,30 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
-import { ensureUserProfile } from '@/lib/users'
+import { createClient } from "@/utils/supabase/server";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url)
-    const code = searchParams.get('code')
-    const type = searchParams.get('type')
-    // Support callbackUrl from OAuth redirectTo; fall back to sessionStorage
-    let callbackUrl = searchParams.get('callbackUrl') ?? searchParams.get('next') ?? '/feed'
-    const safeRedirect = (() => {
-        try {
-            const target = new URL(callbackUrl, origin)
-            return target.origin === origin ? target : new URL('/feed', origin)
-        } catch {
-            return new URL('/feed', origin)
-        }
-    })()
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get("code");
+  const callbackUrl = searchParams.get("callbackUrl");
+  const type = searchParams.get("type");
 
-    if (type === 'recovery') {
-        // Password recovery flow - redirect to /login with type=recovery
-        // Supabase session is handled via the hash fragment
-        return NextResponse.redirect(`${origin}/login?type=recovery`)
+  if (type === "recovery") {
+    // This is a password reset callback.
+    // The user has been authenticated by the link in the email.
+    // The middleware has run and set the session cookie.
+    // Now we can redirect them to the password update form.
+    return NextResponse.redirect(
+      new URL(`/login?type=recovery`, request.url)
+    );
+  }
+
+  if (code) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      return NextResponse.redirect(new URL(callbackUrl || "/feed", request.url));
     }
+  }
 
-    if (code) {
-        const supabase = await createClient()
-        const { error, data: { user } } = await supabase.auth.exchangeCodeForSession(code)
-
-        if (!error && user) {
-            await ensureUserProfile(user)
-            return NextResponse.redirect(safeRedirect)
-        }
-    }
-
-    return NextResponse.redirect(`${origin}/login?message=Could not authenticate with Google`)
+  // return the user to an error page with instructions
+  return NextResponse.redirect(new URL("/login?message=Could not process authentication.", request.url));
 }

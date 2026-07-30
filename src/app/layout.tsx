@@ -1,5 +1,6 @@
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -22,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://scholarbase.vercel.app"),
+  metadataBase: new URL("https://scholarbase.app"),
   title: {
     default: "ScholarBase - The Academic Hub for Scholars & Researchers",
     template: "%s | ScholarBase",
@@ -50,7 +51,7 @@ export const metadata: Metadata = {
     title: "ScholarBase - The Academic Hub for Scholars & Researchers",
     description:
       "Connect with peers, publish your research, find PhD supervisors, and discover opportunities in academia.",
-    url: "https://scholarbase.vercel.app",
+    url: "https://scholarbase.app",
     images: [
       {
         url: "/og-image.png",
@@ -79,7 +80,7 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://scholarbase.vercel.app",
+    canonical: "https://scholarbase.app",
   },
   category: "Education",
 };
@@ -123,6 +124,8 @@ export default async function RootLayout({
               <Navbar />
 
               <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>
+
+              <Footer />
             </div>
           </div>
         </AppProviders>

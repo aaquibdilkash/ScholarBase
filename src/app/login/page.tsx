@@ -2,10 +2,10 @@ import {
   login,
   signup,
   signInWithGoogle,
-  forgotPassword,
-  updatePassword,
 } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
+import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
 interface LoginPageProps {
   searchParams: Promise<{
@@ -36,46 +36,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           </div>
 
-          <form action={updatePassword} className="flex flex-col gap-4">
-            <div>
-              <label className="sb-label" htmlFor="password">
-                New Password
-              </label>
-              <input
-                className="sb-input"
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
-            <div>
-              <label className="sb-label" htmlFor="confirmPassword">
-                Confirm Password
-              </label>
-              <input
-                className="sb-input"
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
-            </div>
-
-            {message && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-700">
-                {message}
-              </div>
-            )}
-
-            <button type="submit" className="sb-button-primary w-full mt-2">
-              Update Password
-            </button>
-          </form>
+          <UpdatePasswordForm message={message} />
         </div>
       </main>
     );
@@ -193,25 +154,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           If you signed up with Google and want to create a password, you can use the password reset functionality to set a password for your account.
         </div>
 
-        <form action={forgotPassword} className="flex flex-col gap-4">
-          <input type="hidden" name="callbackUrl" value={returnUrl} />
-          <div>
-            <label className="sb-label" htmlFor="email-forgot">
-              Email
-            </label>
-            <input
-              className="sb-input"
-              id="email-forgot"
-              name="email"
-              type="email"
-              placeholder="scholar@university.edu"
-              required
-            />
-          </div>
-          <button type="submit" className="sb-button-soft w-full">
-            Send Password Reset Link
-          </button>
-        </form>
+        <ForgotPasswordForm callbackUrl={returnUrl} />
       </div>
     </main>
   );
