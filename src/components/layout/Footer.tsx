@@ -4,8 +4,8 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-white/70 bg-white/70 backdrop-blur-xl">
-      <div className="sb-shell flex flex-col items-center justify-between gap-3 py-6 sm:flex-row">
+    <footer className="border-t border-white/70 bg-white/70 backdrop-blur-xl md:sticky md:bottom-0">
+      <div className="sb-shell flex flex-col items-center justify-between gap-3 py-3 sm:flex-row">
         <p className="text-sm text-slate-500">
           &copy; {currentYear} ScholarBase. All rights reserved.
         </p>

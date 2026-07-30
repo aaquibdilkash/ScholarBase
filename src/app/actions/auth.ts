@@ -117,37 +117,6 @@ export async function forgotPassword(
   return { success: true };
 }
 
-export async function updatePassword(
-  formData: FormData
-): Promise<{ success: boolean; error?: string; redirect?: string }> {
-  const supabase = await createClient();
-
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-
-  if (!password || password.length < 6) {
-    return {
-      success: false,
-      error: "Password must be at least 6 characters",
-    };
-  }
-
-  if (password !== confirmPassword) {
-    return { success: false, error: "Passwords do not match" };
-  }
-
-  const { error } = await supabase.auth.updateUser({ password });
-
-  if (error) {
-    return { success: false, error: mapAuthError(error.message) };
-  }
-
-  return {
-    success: true,
-    redirect:
-      "/login?message=Password updated successfully! Please sign in with your new password.",
-  };
-}
 
 export async function signOut() {
     const supabase = await createClient()

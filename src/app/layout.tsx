@@ -123,7 +123,7 @@ export default async function RootLayout({
             <div className="flex min-w-0 flex-1 flex-col">
               <Navbar />
 
-              <main className="sb-shell flex-1 py-8 md:py-10">{children}</main>
+              <main className="sb-shell flex-1 flex-grow py-8 md:py-10">{children}</main>
 
               <Footer />
             </div>
