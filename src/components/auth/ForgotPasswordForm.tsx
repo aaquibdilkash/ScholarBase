@@ -35,7 +35,7 @@ export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
         />
       </div>
       <SubmitBtn className="w-full" loadingText="Sending...">
-        Send Password Reset Link
+        Send Recovery Link
       </SubmitBtn>
     </form>
   );

@@ -31,20 +31,16 @@ export function UpdatePasswordForm({ message }: { message?: string }) {
       const response = await fetch("/api/auth/update-password", {
         method: "POST",
         body: formData,
-        redirect: "follow",
       });
 
-      const finalUrl = new URL(response.url);
-      const msg = finalUrl.searchParams.get("message");
+      const data = await response.json();
 
-      if (msg) {
-        if (msg.includes("successfully")) {
-          window.location.href = `/login?message=${encodeURIComponent(msg)}`;
-        } else {
-          setError(msg);
-          setSubmitting(false);
-        }
+      if (response.ok) {
+        window.location.href = `/login?message=${encodeURIComponent(
+          data.message
+        )}`;
       } else {
+        setError(data.error || "Could not update password. Please try again.");
         setSubmitting(false);
       }
     } catch {

@@ -1,8 +1,4 @@
-import {
-  login,
-  signup,
-  signInWithGoogle,
-} from "@/app/actions/auth";
+import { login, signup, signInWithGoogle } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
@@ -32,7 +28,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Set a New Password
             </h1>
             <p className="mt-2 text-slate-600">
-              Enter your new password below.
+              Whether you forgot your password or are setting one for the first
+              time, enter your new password below.
             </p>
           </div>
 
@@ -145,14 +142,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
           <div className="relative flex justify-center text-sm">
             <span className="bg-white px-2 text-slate-500">
-              Having trouble signing in?
+              Set or Reset Password
             </span>
           </div>
         </div>
 
-        <div className="text-sm text-slate-600 text-center">
-          If you signed up with Google and want to create a password, you can use the password reset functionality to set a password for your account.
-        </div>
+        <p className="text-sm text-slate-600 text-center -mb-2">
+          Forgot your password? Or want to set a password for your account
+          continued with Google? Enter your email to get a recovery link.
+        </p>
 
         <ForgotPasswordForm callbackUrl={returnUrl} />
       </div>
