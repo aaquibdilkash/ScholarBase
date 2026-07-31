@@ -40,9 +40,8 @@ const SurveyDetailPage = async ({
     notFound();
   }
 
-  const hasResponded = user ? await hasUserResponded(id, user.id) : false;
-  const response =
-    user && hasResponded ? await getSurveyResponse(id, user.id) : null;
+  const response = user ? await getSurveyResponse(id, user.id) : null;
+  const hasResponded = !!response;
 
   const upvotes =
     survey.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;

@@ -93,8 +93,8 @@ export default function RecommendationForm({
           <input
             type="number"
             name="turnaroundTimeDays"
-            min={50}
-            step={50}
+            min={0}
+            step={1}
             value={draftFields.turnaroundTimeDays}
             onChange={(e) =>
               updateDraftField("turnaroundTimeDays", e.target.value)

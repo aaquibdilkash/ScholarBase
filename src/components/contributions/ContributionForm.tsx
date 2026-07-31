@@ -9,7 +9,6 @@ import {
 import { generateCloudinarySignature } from "@/app/actions/cloudinary";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
-import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { Editor } from "@/components/ui/Editor";
 
@@ -37,20 +36,17 @@ export default function ContributionForm({
   contributionId,
   contributionStatus,
   initialValues,
-  isLoggedIn,
 }: {
   mode: "create" | "edit";
   contributionId?: string;
   contributionStatus?: string;
   initialValues?: Partial<ContributionFormValues>;
-  isLoggedIn?: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { openAuthModal } = useAuthModal();
 
   const isApprovedEdit = mode === "edit" && contributionStatus === "APPROVED";
 
@@ -85,11 +81,9 @@ export default function ContributionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenshotUrl]);
 
-  async function handleSubmit(formData: FormData) {
-    if (mode === "create" && !isLoggedIn) {
-      openAuthModal();
-      return;
-    }
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     setSubmitting(true);
 
     try {
@@ -171,7 +165,7 @@ export default function ContributionForm({
 
   return (
     <form
-      action={handleSubmit}
+      onSubmit={handleSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       {!isApprovedEdit && (
@@ -326,6 +320,7 @@ export default function ContributionForm({
       <SubmitBtnWithAuth
         className="sb-button-accent mt-2 self-end"
         loadingText="Submitting..."
+        disabled={submitting}
       >
         {mode === "edit" ? "Save Changes" : "Submit Contribution"}
       </SubmitBtnWithAuth>

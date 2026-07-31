@@ -9,7 +9,6 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
-import { useAuthModal } from "@/components/interactions/AuthModal";
 
 export type EventFormValues = {
   title: string;
@@ -25,14 +24,11 @@ export default function EventForm({
   mode,
   eventId,
   initialValues,
-  isLoggedIn,
 }: {
   mode: "create" | "edit";
   eventId?: string;
   initialValues?: Partial<EventFormValues>;
-  isLoggedIn?: boolean;
 }) {
-  const { openAuthModal } = useAuthModal();
   const initial = {
     title: initialValues?.title ?? "",
     date: initialValues?.date ?? "",
@@ -59,10 +55,6 @@ export default function EventForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (mode === "create" && !isLoggedIn) {
-      openAuthModal();
-      return;
-    }
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && eventId) {

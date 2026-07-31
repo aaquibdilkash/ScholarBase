@@ -408,10 +408,7 @@ export async function hasUserResponded(surveyId: string, userId: string) {
     const response = await prisma.surveyResponse.findFirst({
         where: {
             surveyId,
-            OR: [
-                { respondentId: userId, isAnonymous: false },
-                { respondentId: userId },
-            ],
+            respondentId: userId,
         },
     })
     return !!response

@@ -48,6 +48,7 @@ export function SurveyResponseForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(privacy === "ANONYMOUS");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const draftKey = `draft_survey_response_${surveyId}`;
 
   useEffect(() => {
     if (response) {
@@ -61,10 +62,33 @@ export function SurveyResponseForm({
       setAnswers(initialAnswers);
       setIsAnonymous(response.isAnonymous);
     } else {
-      setAnswers({});
-      setIsAnonymous(privacy === "ANONYMOUS");
+      try {
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          const { answers: savedAnswers, isAnonymous: savedIsAnonymous } =
+            JSON.parse(saved);
+          setAnswers(savedAnswers || {});
+          if (savedIsAnonymous !== null && savedIsAnonymous !== undefined) {
+            setIsAnonymous(savedIsAnonymous);
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
-  }, [response, privacy]);
+  }, [response, draftKey, privacy]);
+
+  useEffect(() => {
+    if (!response) {
+      // Only save to draft if there's no response from DB
+      try {
+        const dataToSave = { answers, isAnonymous };
+        localStorage.setItem(draftKey, JSON.stringify(dataToSave));
+      } catch {
+        // ignore
+      }
+    }
+  }, [answers, isAnonymous, draftKey, response]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -110,6 +134,11 @@ export function SurveyResponseForm({
       const result = await submitSurveyResponse(formData, surveyId);
       if (result?.success) {
         toast(result.message || "Response submitted successfully!", "success");
+        try {
+          localStorage.removeItem(draftKey);
+        } catch {
+          // ignore
+        }
         router.refresh();
       }
     } catch (err) {

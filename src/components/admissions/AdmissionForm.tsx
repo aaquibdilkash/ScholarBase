@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuthModal } from "@/components/interactions/AuthModal";
 import {
   updatePhdAdmission,
   createPhdAdmission,
@@ -24,14 +23,11 @@ export default function AdmissionForm({
   mode,
   admissionId,
   initialValues,
-  isLoggedIn,
 }: {
   mode: "create" | "edit";
   admissionId?: string;
   initialValues?: Partial<AdmissionFormValues>;
-  isLoggedIn?: boolean;
 }) {
-  const { openAuthModal } = useAuthModal();
   const initial = {
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
@@ -57,10 +53,6 @@ export default function AdmissionForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (mode === "create" && !isLoggedIn) {
-      openAuthModal();
-      return;
-    }
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && admissionId) {

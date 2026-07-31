@@ -9,7 +9,6 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
-import { useAuthModal } from "@/components/interactions/AuthModal";
 
 export type HelpPostFormValues = {
   title: string;
@@ -22,14 +21,11 @@ export default function HelpPostForm({
   mode,
   helpPostId,
   initialValues,
-  isLoggedIn,
 }: {
   mode: "create" | "edit";
   helpPostId?: string;
   initialValues?: Partial<HelpPostFormValues>;
-  isLoggedIn?: boolean;
 }) {
-  const { openAuthModal } = useAuthModal();
   const initial = {
     title: initialValues?.title ?? "",
     category: initialValues?.category ?? "",
@@ -53,10 +49,6 @@ export default function HelpPostForm({
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (mode === "create" && !isLoggedIn) {
-      openAuthModal();
-      return;
-    }
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && helpPostId) {
