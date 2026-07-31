@@ -129,6 +129,8 @@ export default function ListPageCardShell({
         </Link>
       )}
 
+      {bodyBottomContent}
+
       <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
         <span className="font-semibold text-slate-400">
           {" "}
@@ -141,18 +143,16 @@ export default function ListPageCardShell({
         )}
       </div>
 
-      {bodyBottomContent}
-
       {/* Common footer */}
-      <div className="border-t border-slate-200 pt-2 mt-2 flex items-center gap-6">
-        <div className="flex items-center gap-6">{footerVoteButton}</div>
+      <div className="border-t border-slate-200 pt-2 mt-2 flex items-center gap-4 sm:gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">{footerVoteButton}</div>
 
         <Link
           href={footerCommentsHref}
-          className="flex items-center gap-2 text-sm font-semibold text-black-500 hover:text-blue-700 transition-colors"
+          className="flex items-center gap-1.5 sm:gap-2 text-sm font-semibold text-black-500 hover:text-blue-700 transition-colors"
         >
           <svg
-            className="w-5 h-5"
+            className="w-4 h-4 sm:w-5 sm:h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

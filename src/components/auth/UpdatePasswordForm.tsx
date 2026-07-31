@@ -1,12 +1,60 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 export function UpdatePasswordForm({ message }: { message?: string }) {
+  const [error, setError] = useState<string | null>(message || null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setSubmitting(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/update-password", {
+        method: "POST",
+        body: formData,
+        redirect: "follow",
+      });
+
+      const finalUrl = new URL(response.url);
+      const msg = finalUrl.searchParams.get("message");
+
+      if (msg) {
+        if (msg.includes("successfully")) {
+          window.location.href = `/login?message=${encodeURIComponent(msg)}`;
+        } else {
+          setError(msg);
+          setSubmitting(false);
+        }
+      } else {
+        setSubmitting(false);
+      }
+    } catch {
+      setError("Could not update password. Please try again.");
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <form
-      action="/api/auth/update-password"
-      method="POST"
-      className="flex flex-col gap-4"
-    >
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
         <label className="sb-label" htmlFor="password">
           New Password
@@ -36,14 +84,22 @@ export function UpdatePasswordForm({ message }: { message?: string }) {
         />
       </div>
 
-      {message && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-center text-sm text-amber-700">
-          {message}
+      {error && (
+        <div className={`rounded-2xl border p-3 text-center text-sm ${
+          error.includes("successfully")
+            ? "border-green-200 bg-green-50 text-green-700"
+            : "border-amber-200 bg-amber-50 text-amber-700"
+        }`}>
+          {error}
         </div>
       )}
 
-      <button type="submit" className="sb-button-primary w-full mt-2">
-        Update Password
+      <button 
+        type="submit" 
+        className="sb-button-primary w-full mt-2"
+        disabled={submitting}
+      >
+        {submitting ? "Updating..." : error && error.includes("successfully") ? "Redirecting..." : "Update Password"}
       </button>
     </form>
   );

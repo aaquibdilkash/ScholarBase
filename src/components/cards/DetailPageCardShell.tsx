@@ -74,7 +74,7 @@ export default function DetailPageCardShell({
   return (
     <main
       className={clsx(
-        "mx-auto max-w-3xl py-12 px-4 sm:px-6 lg:px-8",
+        "mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10",
         className,
       )}
     >
@@ -85,7 +85,7 @@ export default function DetailPageCardShell({
         ← {backLabel}
       </Link>
 
-      <div className={bodyClassName ?? "sb-card p-6 md:p-8"}>
+      <div className={clsx(bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8", "overflow-hidden")}>
         {/* Common header */}
         <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">

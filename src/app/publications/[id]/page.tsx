@@ -86,10 +86,10 @@ const PublicationDetailPage = async ({
       footerCommentsCount={p._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={p.comments}
             targetId={p.id}
@@ -100,21 +100,21 @@ const PublicationDetailPage = async ({
         </div>
       }
     >
-      <div className="flex items-start gap-3 mb-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-950 flex-1">
+      <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 flex-1">
           {p.title}
         </h1>
-        <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+        <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-semibold text-blue-700">
           {PUBLICATION_TYPE_LABELS[p.publicationType] || p.publicationType}
         </span>
       </div>
 
-      <p className="text-base text-slate-600 mb-4">
+      <p className="text-sm sm:text-base text-slate-600 mb-3 sm:mb-4">
         <span className="font-semibold text-slate-800">Authors:</span>{" "}
         {p.authors}
       </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
         {p.journalOrConference && (
           <div className="rounded-xl bg-slate-50 p-3">
             <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
@@ -219,11 +219,11 @@ const PublicationDetailPage = async ({
       )}
 
       {p.keywords && (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-3 sm:mb-4 flex flex-wrap gap-1.5 sm:gap-2">
           {p.keywords.split(",").map((kw, i) => (
             <span
               key={i}
-              className="rounded-full bg-purple-50 px-3 py-1 text-xs font-medium text-purple-700"
+              className="rounded-full bg-purple-50 px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-purple-700"
             >
               {kw.trim()}
             </span>
@@ -232,8 +232,8 @@ const PublicationDetailPage = async ({
       )}
 
       {p.abstract && (
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-slate-950 mb-2">
+        <div className="mt-4 sm:mt-6">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-950 mb-1.5 sm:mb-2">
             Abstract
           </h3>
           <RichContent content={p.abstract} />
@@ -241,12 +241,12 @@ const PublicationDetailPage = async ({
       )}
 
       {p.url && (
-        <div className="flex gap-4 mb-8 mt-6">
+        <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8 mt-4 sm:mt-6">
           <a
             href={p.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             View Publication
           </a>

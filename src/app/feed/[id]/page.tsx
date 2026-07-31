@@ -71,10 +71,10 @@ export default async function SinglePostPage({
       footerCommentsCount={p._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={p.comments}
             targetId={p.id}
@@ -85,16 +85,16 @@ export default async function SinglePostPage({
         </div>
       }
     >
-      <p className="text-xl whitespace-pre-wrap leading-relaxed text-slate-800">
+      <p className="text-base sm:text-lg whitespace-pre-wrap leading-relaxed text-slate-800">
         {p.content}
       </p>
 
       {p.imageUrl && (
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <img
             src={p.imageUrl}
             alt=""
-            className="w-full h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
+            className="w-full h-48 sm:h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
             loading="lazy"
           />
         </div>

@@ -103,10 +103,10 @@ export default async function SupervisorPage({
       }
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 md:mb-6">Discussion</h3>
           <CommentSection
             comments={supervisor.comments}
             targetId={supervisor.id}
@@ -117,24 +117,24 @@ export default async function SupervisorPage({
         </div>
       }
     >
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-1.5 sm:mb-2">
               {supervisor.name}
             </h1>
-            <p className="text-lg text-slate-500 font-medium">
+            <p className="text-base sm:text-lg text-slate-500 font-medium">
               {supervisor.university}
             </p>
             {supervisor.department && (
-              <p className="text-sm text-slate-400 mt-1">
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
                 {supervisor.department}
               </p>
             )}
             {supervisor.about && (
               <RichContent
                 content={supervisor.about}
-                className="mt-4 text-sm leading-6 text-slate-700"
+                className="mt-3 sm:mt-4 text-xs sm:text-sm leading-6 text-slate-700"
               />
             )}
           </div>
@@ -142,7 +142,7 @@ export default async function SupervisorPage({
           {!hasUserRecommendation && (
             <Link
               href={`/supervisor/${supervisor.id}/recommendation/add`}
-              className="sb-button-primary"
+              className="sb-button-primary w-full md:w-auto"
             >
               + Recommend
             </Link>
@@ -151,33 +151,33 @@ export default async function SupervisorPage({
       </div>
 
       {recommendationCount > 0 && (
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 mb-8">
-          <h3 className="text-2xl font-bold text-slate-900 mb-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-4 sm:mb-6">
             Overall Rating
           </h3>
-          <div className="flex flex-col md:flex-row items-center gap-8">
+          <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6 md:gap-8">
             <div className="flex flex-col items-center justify-center text-center">
-              <p className="text-5xl font-extrabold text-slate-900">
+              <p className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900">
                 {avgRating.toFixed(1)}
               </p>
-              <StarRating rating={avgRating} size="lg" />
-              <p className="text-sm text-slate-500 mt-2">
+              <StarRating rating={avgRating} size="md" />
+              <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:mt-2">
                 ({recommendationCount} ratings)
               </p>
             </div>
-            <div className="w-full flex-1 space-y-2">
+            <div className="w-full flex-1 space-y-1.5 sm:space-y-2">
               {ratingDistribution.map((item) => (
-                <div key={item.stars} className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-600 w-12">
+                <div key={item.stars} className="flex items-center gap-2 sm:gap-3">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-600 w-10 sm:w-12">
                     {item.stars} star
                   </span>
-                  <div className="w-full bg-slate-100 rounded-full h-2.5">
+                  <div className="w-full bg-slate-100 rounded-full h-1.5 sm:h-2.5">
                     <div
-                      className="bg-yellow-400 h-2.5 rounded-full"
+                      className="bg-yellow-400 h-1.5 sm:h-2.5 rounded-full"
                       style={{ width: `${item.percentage}%` }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-500 w-12 text-right">
+                  <span className="text-xs sm:text-sm font-medium text-slate-500 w-10 sm:w-12 text-right">
                     {item.count}
                   </span>
                 </div>
@@ -188,9 +188,9 @@ export default async function SupervisorPage({
       )}
 
       {/* Recommendations List */}
-      <div className="space-y-6 mb-12">
+      <div className="space-y-4 sm:space-y-6 mb-8 sm:mb-12">
         <h3
-          className="text-2xl font-bold text-slate-900 mb-6"
+          className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-4 sm:mb-6"
           id="recommendations"
         >
           Recommendations ({supervisor.recommendations.length})

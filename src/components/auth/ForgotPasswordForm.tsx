@@ -2,6 +2,7 @@
 
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { forgotPassword } from "@/app/actions/auth";
+import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
   const { submitting, submit } = useFormSubmit(undefined, {
@@ -31,16 +32,11 @@ export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
           type="email"
           placeholder="scholar@university.edu"
           required
-          disabled={submitting}
         />
       </div>
-      <button
-        type="submit"
-        className="sb-button-soft w-full"
-        disabled={submitting}
-      >
-        {submitting ? "Sending..." : "Send Password Reset Link"}
-      </button>
+      <SubmitBtn className="w-full" loadingText="Sending...">
+        Send Password Reset Link
+      </SubmitBtn>
     </form>
   );
 }

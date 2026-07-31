@@ -2,6 +2,7 @@
 
 import { Journal, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
@@ -40,6 +41,7 @@ export function JournalCard({
       authorHandle={journal.author.handle || undefined}
       authorAvatarUrl={journal.author.avatarUrl || undefined}
       detailPageHref={`/journals/${journal.id}`}
+      noBodyLink={true}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
@@ -68,35 +70,40 @@ export function JournalCard({
       }
       footerCommentsHref={`/journals/${journal.id}`}
       footerCommentsCount={journal._count.comments}
+      bodyBottomContent={
+        <>
+          {journal.issn && (
+            <div className="mt-6 rounded-xl border border-blue-100/50 bg-blue-50/50 p-2 text-xs font-semibold text-blue-600">
+              ISSN: {journal.issn}
+            </div>
+          )}
+
+          {journal.website && (
+            <div className="flex gap-3 mt-4">
+              <a
+                href={journal.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              >
+                View Website
+              </a>
+            </div>
+          )}
+        </>
+      }
     >
-      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
-        {journal.title}
-      </h2>
+      <Link href={`/journals/${journal.id}`} className="block group">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+          {journal.title}
+        </h2>
 
-      <RichContent
-        content={journal.about}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-      />
-
-      {journal.issn && (
-        <div className="mt-6 rounded-xl border border-blue-100/50 bg-blue-50/50 p-2 text-xs font-semibold text-blue-600">
-          ISSN: {journal.issn}
-        </div>
-      )}
-
-      {journal.website && (
-        <div className="flex gap-3 mt-4">
-          <a
-            href={journal.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            View Website
-          </a>
-        </div>
-      )}
+        <RichContent
+          content={journal.about}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
+      </Link>
     </ListPageCardShell>
   );
 }

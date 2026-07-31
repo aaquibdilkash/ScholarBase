@@ -75,10 +75,12 @@ const JournalDetailPage = async ({
       footerCommentsCount={j._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
+            Discussion
+          </h2>
           <CommentSection
             comments={j.comments}
             targetId={j.id}
@@ -89,23 +91,25 @@ const JournalDetailPage = async ({
         </div>
       }
     >
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {j.title}
       </h1>
 
-      <div className="mb-6">
-        {j.issn && <p className="text-sm text-slate-500">ISSN: {j.issn}</p>}
+      <div className="mb-3 sm:mb-6">
+        {j.issn && (
+          <p className="text-xs sm:text-sm text-slate-500">ISSN: {j.issn}</p>
+        )}
       </div>
 
       <RichContent content={j.about} />
 
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">
         {j.website && (
           <a
             href={j.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             View Website
           </a>

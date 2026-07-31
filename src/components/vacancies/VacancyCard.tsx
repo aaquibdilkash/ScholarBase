@@ -6,6 +6,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
+import Link from "next/link";
 
 type VacancyWithAuthor = JobVacancy & {
   author: User & {
@@ -66,6 +67,7 @@ export function VacancyCard({
       }
       footerCommentsHref={`/vacancies/${vacancy.id}`}
       footerCommentsCount={vacancy._count.comments}
+      noBodyLink={true}
       bodyBottomContent={
         <div className="flex gap-3 mt-4">
           {vacancy.notificationLink && (
@@ -92,29 +94,45 @@ export function VacancyCard({
         </div>
       }
     >
-      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
-        {vacancy.title}
-      </h2>
-      <p className="mb-4 text-sm font-medium text-slate-600">
-        {vacancy.institution}
-      </p>
+      <Link href={`/vacancies/${vacancy.id}`} className="block group">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+          {vacancy.title}
+        </h2>
+        <p className="mb-4 text-sm font-medium text-slate-600">
+          {vacancy.institution}
+        </p>
 
-      <RichContent
-        content={vacancy.description}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-      />
+        <RichContent
+          content={vacancy.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
 
-      <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-        <svg className="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>
+        <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+          <svg
+            className="h-4 w-4 shrink-0 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>
             Last Date:{" "}
             <span className="font-medium">
-                {new Date(vacancy.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              {new Date(vacancy.deadline).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </span>
-        </span>
-      </div>
+          </span>
+        </div>
+      </Link>
     </ListPageCardShell>
   );
 }

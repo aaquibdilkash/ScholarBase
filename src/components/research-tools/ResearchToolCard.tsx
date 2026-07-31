@@ -5,6 +5,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
+import Link from "next/link";
 
 type ResearchToolWithAuthor = ResearchTool & {
   author: User & {
@@ -65,6 +66,7 @@ export function ResearchToolCard({
       }
       footerCommentsHref={`/research-tools/${tool.id}`}
       footerCommentsCount={tool._count.comments}
+      noBodyLink={true}
       bodyBottomContent={
         tool.website && (
           <a
@@ -78,13 +80,15 @@ export function ResearchToolCard({
         )
       }
     >
-      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
-        {tool.name}
-      </h2>
-      <RichContent
-        content={tool.description}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-      />
+      <Link href={`/research-tools/${tool.id}`} className="block group">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+          {tool.name}
+        </h2>
+        <RichContent
+          content={tool.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
+      </Link>
     </ListPageCardShell>
   );
 }

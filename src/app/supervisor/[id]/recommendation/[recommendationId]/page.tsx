@@ -87,10 +87,10 @@ export default async function RecommendationDetailPage({
       footerCommentsCount={recommendation._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h3 className="text-2xl font-bold text-slate-900 mb-6">Discussion</h3>
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 md:mb-6">Discussion</h3>
           <CommentSection
             comments={recommendation.comments}
             targetId={recommendation.id}
@@ -112,42 +112,42 @@ export default async function RecommendationDetailPage({
         ) : null
       }
     >
-      <div className="grid grid-cols-2 gap-x-8 gap-y-6 mb-8">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
         <div className="col-span-2">
-          <p className="text-lg font-semibold text-slate-900 mb-2">
+          <p className="text-base sm:text-lg font-semibold text-slate-900 mb-1.5 sm:mb-2">
             Overall Mentorship Rating
           </p>
-          <div className="flex items-center gap-3">
-            <StarRating rating={recommendation.rating} size="lg" />
-            <span className="text-xl font-bold text-slate-800">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <StarRating rating={recommendation.rating} size="md" />
+            <span className="text-lg sm:text-xl font-bold text-slate-800">
               {recommendation.rating.toFixed(1)} / 5
             </span>
           </div>
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-600 mb-1">
+          <p className="text-xs sm:text-sm font-semibold text-slate-600 mb-1">
             Responsiveness
           </p>
           <StarRating rating={recommendation.responsivenessScore} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-600 mb-1">
+          <p className="text-xs sm:text-sm font-semibold text-slate-600 mb-1">
             Guidance Quality
           </p>
           <StarRating rating={recommendation.guidanceScore} />
         </div>
         <div className="col-span-2">
-          <p className="text-sm font-semibold text-slate-600 mb-1">
+          <p className="text-xs sm:text-sm font-semibold text-slate-600 mb-1">
             Average Turnaround Time
           </p>
-          <p className="text-lg font-bold text-slate-800">
+          <p className="text-base sm:text-lg font-bold text-slate-800">
             {recommendation.turnaroundTimeDays} day(s)
           </p>
         </div>
       </div>
 
       <div>
-        <p className="text-lg font-semibold text-slate-800 mb-3">
+        <p className="text-base sm:text-lg font-semibold text-slate-800 mb-2 sm:mb-3">
           Mentorship Feedback
         </p>
         <RichContent

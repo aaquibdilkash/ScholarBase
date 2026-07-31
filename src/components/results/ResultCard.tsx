@@ -6,6 +6,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult } from "@/app/actions/results";
 import { RichContent } from "@/components/content/RichContent";
+import Link from "next/link";
 
 type ResultWithAuthor = Result & {
   author: User & {
@@ -76,60 +77,64 @@ export function ResultCard({
       }
       footerCommentsHref={`/results/${result.id}`}
       footerCommentsCount={result._count.comments}
-    >
-      <div className="mb-2 flex items-center gap-2">
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-          {TYPE_LABELS[result.type] || result.type}
-        </span>
-        {result.category && (
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-            {result.category}
-          </span>
-        )}
-      </div>
-
-      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
-        {result.title}
-      </h2>
-
-      <RichContent
-        content={result.description}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-      />
-
-      {(result.conductingBody || result.session) && (
-        <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
-          {result.conductingBody && (
-            <span>Conducting Body: {result.conductingBody}</span>
+      noBodyLink={true}
+      bodyBottomContent={
+        <div className="flex gap-3 mt-4">
+          {result.notificationLink && (
+            <a
+              href={result.notificationLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+            >
+              View Notification
+            </a>
           )}
-          {result.session && <span>Session: {result.session}</span>}
+          {result.resultLink && (
+            <a
+              href={result.resultLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            >
+              Check Results
+            </a>
+          )}
         </div>
-      )}
+      }
+    >
+      <Link href={`/results/${result.id}`} className="block group">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+            {TYPE_LABELS[result.type] || result.type}
+          </span>
+          {result.category && (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              {result.category}
+            </span>
+          )}
+        </div>
 
-      <div className="flex gap-3 mt-4">
-        {result.notificationLink && (
-          <a
-            href={result.notificationLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
-          >
-            View Notification
-          </a>
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+          {result.title}
+        </h2>
+
+        <RichContent
+          content={result.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
+
+        {(result.conductingBody || result.session) && (
+          <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
+            {result.conductingBody && (
+              <span>Conducting Body: {result.conductingBody}</span>
+            )}
+            {result.session && <span>Session: {result.session}</span>}
+          </div>
         )}
-        {result.resultLink && (
-          <a
-            href={result.resultLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            Check Results
-          </a>
-        )}
-      </div>
+      </Link>
     </ListPageCardShell>
   );
 }

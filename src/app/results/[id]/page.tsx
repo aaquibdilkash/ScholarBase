@@ -84,10 +84,10 @@ const ResultDetailPage = async ({
       footerCommentsCount={result._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={result.comments}
             targetId={result.id}
@@ -109,17 +109,17 @@ const ResultDetailPage = async ({
         )}
       </div>
 
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {result.title}
       </h1>
 
       <RichContent
         content={result.description}
-        className="text-slate-800 leading-relaxed mb-6"
+        className="text-slate-800 leading-relaxed mb-4 sm:mb-6"
       />
 
       {(result.conductingBody || result.session) && (
-        <div className="mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-4 text-sm font-semibold text-slate-600">
+        <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600">
           {result.conductingBody && (
             <div className="flex items-center gap-2">
               <svg
@@ -159,13 +159,13 @@ const ResultDetailPage = async ({
         </div>
       )}
 
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8">
         {result.notificationLink && (
           <a
             href={result.notificationLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+            className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
           >
             View Notification
           </a>
@@ -175,7 +175,7 @@ const ResultDetailPage = async ({
             href={result.resultLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             Check Results
           </a>

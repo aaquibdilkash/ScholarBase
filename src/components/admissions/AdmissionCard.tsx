@@ -6,6 +6,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deletePhdAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
+import Link from "next/link";
 
 type AdmissionWithAuthor = PhdAdmission & {
   author: User & {
@@ -86,6 +87,7 @@ export function AdmissionCard({
       }
       footerCommentsHref={`/admissions/${admission.id}`}
       footerCommentsCount={admission._count.comments}
+      noBodyLink={true}
       bodyBottomContent={
         <div className="flex gap-3 mt-4">
           {admission.notificationLink && (
@@ -111,68 +113,70 @@ export function AdmissionCard({
         </div>
       }
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {urgency && (
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
-          >
-            <svg
-              className="h-3 w-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+      <Link href={`/admissions/${admission.id}`} className="block group">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {urgency && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            {urgency.label}
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              {urgency.label}
+            </span>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold leading-tight text-slate-950">
+            {admission.university}
+          </h2>
+          <p className="mt-1 text-sm font-semibold text-blue-700">
+            {admission.department}
+          </p>
+        </div>
+
+        <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
+          <svg
+            className="h-4 w-4 shrink-0 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <span>
+            Closing:{" "}
+            <span className="font-medium">
+              {new Date(admission.deadline).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
           </span>
-        )}
-      </div>
+        </div>
 
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold leading-tight text-slate-950">
-          {admission.university}
-        </h2>
-        <p className="mt-1 text-sm font-semibold text-blue-700">
-          {admission.department}
-        </p>
-      </div>
-
-      <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
-        <svg
-          className="h-4 w-4 shrink-0 text-slate-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        <span>
-          Closing:{" "}
-          <span className="font-medium">
-            {new Date(admission.deadline).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
-        </span>
-      </div>
-
-      <RichContent
-        content={admission.description}
-        className="mb-6 text-sm leading-relaxed text-slate-600 line-clamp-3"
-      />
+        <RichContent
+          content={admission.description}
+          className="mb-6 text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
+      </Link>
     </ListPageCardShell>
   );
 }

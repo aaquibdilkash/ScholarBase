@@ -1,10 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
-import { CKEditor } from '@ckeditor/ckeditor5-react';
-
-// This is a dynamic import, so it will only be loaded on the client side.
-const ClassicEditor = require('@ckeditor/ckeditor5-build-classic');
+import React, { useEffect, useRef, useState } from "react";
 
 interface EditorProps {
   value: string;
@@ -13,22 +9,33 @@ interface EditorProps {
 
 export function Editor({ value, onChange }: EditorProps) {
   const editorRef = useRef<any>(null);
+  const [editorLoaded, setEditorLoaded] = useState(false);
+  const [ckEditorModules, setCkEditorModules] = useState<any>(null);
 
-  // This is to prevent the editor from being re-initialized on every render.
-  if (typeof window === 'undefined') {
-    return null;
+  useEffect(() => {
+    setCkEditorModules({
+      CKEditor: require('@ckeditor/ckeditor5-react').CKEditor,
+      ClassicEditor: require('@ckeditor/ckeditor5-build-classic')
+    });
+    setEditorLoaded(true);
+  }, []);
+
+  if (!editorLoaded || !ckEditorModules) {
+    return <div>Loading editor...</div>;
   }
+
+  const { CKEditor, ClassicEditor } = ckEditorModules;
 
   return (
     <div className="prose max-w-none [&>.ck-editor]:rounded-lg">
       <CKEditor
         editor={ClassicEditor}
         data={value}
-        onChange={(event, editor) => {
+        onChange={(event: any, editor: any) => {
           const data = editor.getData();
           onChange(data);
         }}
-        onReady={(editor) => {
+        onReady={(editor: any) => {
           editorRef.current = editor;
         }}
       />

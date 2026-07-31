@@ -80,23 +80,23 @@
   }
 
   .sb-surface {
-    @apply rounded-[28px] border border-white/70 bg-white/75 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
+    @apply rounded-2xl sm:rounded-[28px] border border-white/70 bg-white/75 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
   }
 
   .sb-surface-strong {
-    @apply rounded-[28px] border border-slate-200/70 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)];
+    @apply rounded-2xl sm:rounded-[28px] border border-slate-200/70 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)];
   }
 
   .sb-heading {
-    @apply text-4xl font-semibold tracking-tight text-slate-950 md:text-5xl;
+    @apply text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl lg:text-5xl;
   }
 
   .sb-subtitle {
-    @apply text-base leading-7 text-slate-600 md:text-lg;
+    @apply text-sm leading-7 text-slate-600 md:text-base lg:text-lg;
   }
 
   .sb-card {
-    @apply rounded-[24px] border border-slate-200/70 bg-white/90 p-6 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300;
+    @apply rounded-2xl sm:rounded-[24px] border border-slate-200/70 bg-white/90 p-4 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300 sm:p-6;
   }
 
   .sb-card-hover {
@@ -104,26 +104,26 @@
   }
 
   .sb-label {
-    @apply mb-2 block text-sm font-semibold tracking-wide text-slate-700;
+    @apply mb-2 block text-xs sm:text-sm font-semibold tracking-wide text-slate-700;
   }
 
   .sb-input {
-    @apply w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10;
+    @apply w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
   }
 
   .sb-textarea {
-    @apply w-full rounded-2xl border border-slate-200/80 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10;
+    @apply w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
   }
 
   .sb-button-primary {
-    @apply inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md;
+    @apply inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md sm:px-5 sm:py-3 sm:text-sm;
   }
 
   .sb-button-accent {
-    @apply inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md;
+    @apply inline-flex items-center justify-center rounded-xl bg-slate-950 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md sm:px-5 sm:py-3 sm:text-sm;
   }
 
   .sb-button-soft {
-    @apply inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50;
+    @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:px-5 sm:py-3 sm:text-sm;
   }
 }

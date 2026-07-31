@@ -72,13 +72,13 @@ const VacancyDetailPage = async ({
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}
       footerCommentsCount={vacancy._count.comments}
       bodyBottomContent={
-        <div className="flex gap-4 mt-4">
+        <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {vacancy.notificationLink && (
             <a
               href={vacancy.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
             >
               View Details
             </a>
@@ -88,7 +88,7 @@ const VacancyDetailPage = async ({
               href={vacancy.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
             >
               Apply Now
             </a>
@@ -97,10 +97,10 @@ const VacancyDetailPage = async ({
       }
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={vacancy.comments}
             targetId={vacancy.id}
@@ -111,14 +111,14 @@ const VacancyDetailPage = async ({
         </div>
       }
     >
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {vacancy.title}
       </h1>
-      <p className="text-md font-medium text-slate-600 mb-4">
+      <p className="text-sm sm:text-base font-medium text-slate-600 mb-3 sm:mb-4">
         {vacancy.institution}
       </p>
 
-      <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
+      <div className="mb-3 sm:mb-4 flex items-center gap-2 text-xs sm:text-sm text-slate-600">
         <svg
           className="h-5 w-5 shrink-0 text-slate-400"
           fill="none"

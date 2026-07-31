@@ -83,10 +83,10 @@ const ContributionDetailPage = async ({
       footerCommentsCount={contribution._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={contribution.comments}
             targetId={contribution.id}
@@ -116,16 +116,16 @@ const ContributionDetailPage = async ({
         )}
       </div>
 
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {contribution.title}
       </h1>
 
       <RichContent
         content={contribution.message}
-        className="text-slate-800 leading-relaxed mb-6"
+        className="text-slate-800 leading-relaxed mb-4 sm:mb-6"
       />
 
-      <div className="rounded-xl border border-blue-100/50 bg-blue-50/50 p-4 text-sm">
+      <div className="rounded-xl border border-blue-100/50 bg-blue-50/50 p-3 sm:p-4 text-xs sm:text-sm">
         <p className="font-semibold text-blue-700 mb-1">
           🙏 Thank you for your support!
         </p>

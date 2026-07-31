@@ -72,10 +72,10 @@ export default async function ArticlePage({
       footerCommentsCount={a._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-6 p-4 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-950 mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={a.comments}
             targetId={a.id}

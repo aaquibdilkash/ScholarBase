@@ -347,7 +347,7 @@ export default function Sidebar({ user }: SidebarProps) {
       : []),
   ];
 
-  const asideClasses = `fixed inset-y-0 left-0 z-50 w-72 border-r border-slate-200/70 bg-white/90 px-6 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 ease-in-out overflow-y-auto md:sticky md:top-0 md:z-20 md:flex md:h-screen md:flex-col md:gap-8 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:transition-all md:shadow-none ${
+  const asideClasses = `fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200/70 bg-white/90 px-6 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 ease-in-out md:sticky md:top-0 md:z-20 md:h-screen md:gap-8 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:transition-all md:shadow-none ${
     isCollapsed
       ? "-translate-x-full md:translate-x-0 md:w-24 md:px-3"
       : "translate-x-0 md:w-72 md:px-6"
@@ -444,7 +444,7 @@ export default function Sidebar({ user }: SidebarProps) {
                   }`}
                   title={isCollapsed ? item.name : ""}
                   onClick={() => {
-                    if (window.innerWidth < 768) {
+                    if (!isDesktop) {
                       setIsCollapsed(true);
                     }
                   }}
@@ -492,6 +492,11 @@ export default function Sidebar({ user }: SidebarProps) {
                       user.email ? `Open ${user.email}` : "Open profile"
                     }
                     title={user.email ?? "Open profile"}
+                    onClick={() => {
+                      if (!isDesktop) {
+                        setIsCollapsed(true);
+                      }
+                    }}
                   >
                     {user.email?.charAt(0).toUpperCase() || "@"}
                   </Link>
@@ -500,6 +505,11 @@ export default function Sidebar({ user }: SidebarProps) {
                       type="submit"
                       className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                       aria-label="Sign out"
+                      onClick={() => {
+                        if (!isDesktop) {
+                          setIsCollapsed(true);
+                        }
+                      }}
                     >
                       ⎋
                     </button>
@@ -510,6 +520,11 @@ export default function Sidebar({ user }: SidebarProps) {
                   <Link
                     href={profileHref}
                     className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/70"
+                    onClick={() => {
+                      if (!isDesktop) {
+                        setIsCollapsed(true);
+                      }
+                    }}
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
                       {user.email?.charAt(0).toUpperCase() || "@"}
@@ -527,6 +542,11 @@ export default function Sidebar({ user }: SidebarProps) {
                     <button
                       type="submit"
                       className="flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                      onClick={() => {
+                        if (!isDesktop) {
+                          setIsCollapsed(true);
+                        }
+                      }}
                     >
                       Sign Out
                     </button>
@@ -539,6 +559,11 @@ export default function Sidebar({ user }: SidebarProps) {
               <Link
                 href="/login"
                 className="sb-button-primary w-full justify-center"
+                onClick={() => {
+                  if (!isDesktop) {
+                    setIsCollapsed(true);
+                  }
+                }}
               >
                 Sign In
               </Link>

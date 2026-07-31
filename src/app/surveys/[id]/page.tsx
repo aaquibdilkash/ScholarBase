@@ -97,10 +97,10 @@ const SurveyDetailPage = async ({
       footerCommentsCount={survey._count.comments}
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={survey.comments}
             targetId={survey.id}
@@ -128,19 +128,19 @@ const SurveyDetailPage = async ({
         </span>
       </div>
 
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {survey.title}
       </h1>
 
       {survey.description && (
         <RichContent
           content={survey.description}
-          className="text-slate-800 leading-relaxed mb-6"
+          className="text-slate-800 leading-relaxed mb-4 sm:mb-6"
         />
       )}
 
       {/* Survey questions count & overview */}
-      <div className="mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-4 text-sm font-semibold text-slate-600">
+      <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600">
         <div className="flex items-center gap-2">
           <svg
             className="w-5 h-5"
@@ -180,7 +180,7 @@ const SurveyDetailPage = async ({
 
       {/* Owner actions */}
       {isOwner && (
-        <div className="flex gap-3 mb-8 flex-wrap">
+        <div className="flex gap-2 sm:gap-3 mb-6 sm:mb-8 flex-wrap">
           {isOpen ? (
             <form
               action={async () => {

@@ -115,9 +115,9 @@ export function CommentSection({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-6">
       {/* Form: Add a Top-Level Comment */}
-      <form onSubmit={handleFormSubmit} className="flex gap-4">
+      <form onSubmit={handleFormSubmit} className="flex gap-3">
         <input type="hidden" name="_targetId" value={targetId} />
         <input type="hidden" name="_type" value={type} />
         <input type="hidden" name="_parentId" value="" />
@@ -129,12 +129,12 @@ export function CommentSection({
             placeholder="Share your thoughts on this..."
             required
             rows={2}
-            className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white"
+            className="w-full p-3 md:p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none transition resize-none text-slate-800 bg-slate-50 focus:bg-white text-sm md:text-base"
             value={content}
             onChange={handleContentChange}
           />
           <div className="flex justify-end">
-            <SubmitBtnWithAuth className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition">
+            <SubmitBtnWithAuth className="px-4 py-2 md:px-6 md:py-2.5 bg-slate-900 text-white text-sm md:text-base font-bold rounded-xl hover:bg-slate-800 transition">
               Post Comment
             </SubmitBtnWithAuth>
           </div>
@@ -142,7 +142,7 @@ export function CommentSection({
       </form>
 
       {/* The Comment Thread */}
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {topLevelComments.map((comment) => (
           <CommentEntry
             key={comment.id}
@@ -163,8 +163,8 @@ export function CommentSection({
         ))}
 
         {topLevelComments.length === 0 && (
-          <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-            <p className="text-slate-500 font-medium">
+          <div className="text-center py-8 md:py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <p className="text-slate-500 font-medium text-sm md:text-base">
               No comments yet. Start the academic discussion!
             </p>
           </div>
@@ -240,27 +240,27 @@ function CommentEntry({
   };
 
   return (
-    <div className={`flex gap-${isReply ? 3 : 4} group`}>
+    <div className={`flex gap-2 md:gap-4 group`}>
       {/* Clickable Avatar */}
       <Link href={`/scholar/${comment.author.id}`} className="shrink-0 pt-1">
         <div
           className={`rounded-full bg-slate-100 border overflow-hidden hover:ring-2 hover:ring-blue-200 transition ${
-            isReply ? "w-8 h-8" : "w-10 h-10"
+            isReply ? "w-7 h-7 md:w-8 md:h-8" : "w-9 h-9 md:w-10 md:h-10"
           }`}
         >
           {comment.author.avatarUrl ? (
             <Image
               src={comment.author.avatarUrl}
               alt="User"
-              width={isReply ? 32 : 40}
-              height={isReply ? 32 : 40}
+              width={isReply ? 28 : 36}
+              height={isReply ? 28 : 36}
               unoptimized
               className="w-full h-full object-cover"
             />
           ) : (
             <div
               className={`w-full h-full flex items-center justify-center font-bold text-slate-500 ${
-                isReply ? "text-xs" : "text-sm"
+                isReply ? "text-[10px] md:text-xs" : "text-xs md:text-sm"
               }`}
             >
               {comment.author.name?.charAt(0).toUpperCase() || "?"}
@@ -269,25 +269,25 @@ function CommentEntry({
         </div>
       </Link>
 
-      <div className="flex-1">
+      <div className="flex-1 min-w-0 overflow-hidden">
         {/* Comment Bubble */}
         <div
           className={`${
             isReply
-              ? "bg-slate-50 p-3 rounded-2xl rounded-tl-none border border-slate-100"
-              : "bg-white p-4 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm"
+              ? "bg-slate-50 p-2.5 md:p-3 rounded-2xl rounded-tl-none border border-slate-100"
+              : "bg-white p-3 md:p-4 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm"
           }`}
         >
           <div className="flex items-baseline justify-between gap-2 mb-1">
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/scholar/${comment.author.id}`}
-                className="font-bold text-sm text-slate-900 hover:text-blue-600 hover:underline"
+                className="font-bold text-xs md:text-sm text-slate-900 hover:text-blue-600 hover:underline"
               >
                 {comment.author.name}
               </Link>
               {postAuthorId && comment.author.id === postAuthorId && (
-                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-md">
+                <span className="inline-flex items-center px-1 py-0.5 text-[9px] md:text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-md">
                   Author
                 </span>
               )}
@@ -295,8 +295,8 @@ function CommentEntry({
             <span
               className={`font-medium ${
                 isReply
-                  ? "text-[11px] text-slate-400"
-                  : "text-xs text-slate-400"
+                  ? "text-[10px] md:text-[11px] text-slate-400"
+                  : "text-[11px] md:text-xs text-slate-400"
               }`}
             >
               Created {formatTimeAgo(comment.createdAt)}
@@ -329,7 +329,7 @@ function CommentEntry({
             </form>
           ) : (
             <>
-              <p className="text-slate-700 text-sm whitespace-pre-wrap">
+              <p className="text-slate-700 text-xs md:text-sm whitespace-pre-wrap break-words">
                 {comment.content}
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">
@@ -338,7 +338,7 @@ function CommentEntry({
                     {`Edited ${formatTimeAgo(comment.updatedAt)}`}
                   </span>
                 )}
-                <div className="flex items-center gap-3 ml-auto">
+                <div className="flex items-center gap-2 md:gap-3 ml-auto">
                   <CommentActionsDropdown
                     isOwner={isOwner}
                     onEdit={() => setEditingId(comment.id)}
@@ -387,21 +387,21 @@ function CommentEntry({
                     activeReplyId === comment.id ? null : comment.id,
                   )
                 }
-                className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
+                className="text-[11px] md:text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
               >
                 Reply
               </button>
             ) : (
               <button
                 onClick={() => openAuthModal()}
-                className="text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
+                className="text-[11px] md:text-xs font-bold text-slate-500 hover:text-blue-600 mt-2 ml-2 transition-colors"
               >
                 Reply
               </button>
             )}
             {activeReplyId === comment.id && currentUserId && (
               <form
-                className="mt-3 flex gap-3 animate-in fade-in slide-in-from-top-2"
+                className="mt-2 md:mt-3 flex gap-2 md:gap-3 animate-in fade-in slide-in-from-top-2"
                 action={handleReplySuccess}
               >
                 <input type="hidden" name="_targetId" value={targetId} />
@@ -412,9 +412,9 @@ function CommentEntry({
                   placeholder={`Reply to ${comment.author.name}...`}
                   required
                   rows={1}
-                  className="flex-1 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none text-sm resize-none bg-slate-50 focus:bg-white"
+                  className="flex-1 p-2 md:p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-600 outline-none text-xs md:text-sm resize-none bg-slate-50 focus:bg-white"
                 />
-                <SubmitBtnWithAuth className="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition">
+                <SubmitBtnWithAuth className="px-3 md:px-5 py-1.5 md:py-2.5 bg-blue-600 text-white text-xs md:text-sm font-bold rounded-xl hover:bg-blue-700 transition">
                   Send
                 </SubmitBtnWithAuth>
               </form>
@@ -424,7 +424,7 @@ function CommentEntry({
 
         {/* Render Nested Replies */}
         {replies && replies.length > 0 && (
-          <div className="mt-4 space-y-4 border-l-2 border-slate-100 pl-4">
+          <div className="mt-2 md:mt-4 space-y-2 md:space-y-4 border-l-2 border-slate-100 pl-2 md:pl-4">
             {replies.map((reply) => (
               <CommentEntry
                 key={reply.id}

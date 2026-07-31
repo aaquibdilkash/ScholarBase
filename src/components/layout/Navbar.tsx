@@ -22,7 +22,7 @@ export default async function Navbar() {
 
   return (
     <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl">
-      <div className="sb-shell relative flex min-h-16 items-center gap-3 py-3">
+      <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
         <Link href="/" className="hidden items-center gap-3 md:flex">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-sm">
             SB
@@ -41,15 +41,15 @@ export default async function Navbar() {
 
         <Link
           href="/"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-semibold tracking-tight md:hidden"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-base font-semibold tracking-tight md:hidden"
         >
           <BrandMark />
         </Link>
 
-        <div className="ml-auto flex items-center gap-3 sm:gap-4">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3 md:gap-4">
           {user ? (
             <>
-              <div className="hidden md:flex items-center gap-3 sm:gap-4">
+              <div className="hidden md:flex items-center gap-2 sm:gap-3 md:gap-4">
                 <Link
                   href="/notifications"
                   className="sb-button-soft p-2 relative"
@@ -76,13 +76,13 @@ export default async function Navbar() {
                 </Link>
                 <Link
                   href={`/scholar/${user.id}`}
-                  className="sb-button-soft px-4 py-2"
+                  className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2"
                   aria-label="Open profile"
                 >
                   Profile
                 </Link>
                 <form action={signOut}>
-                  <button type="submit" className="sb-button-soft px-4 py-2">
+                  <button type="submit" className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2">
                     Sign Out
                   </button>
                 </form>

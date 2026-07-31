@@ -72,13 +72,13 @@ const EventDetailPage = async ({
       footerCommentsHref={`/events/${event.id}#comments`}
       footerCommentsCount={event._count.comments}
       bodyBottomContent={
-        <div className="flex gap-4 mt-4">
+        <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {event.notificationLink && (
             <a
               href={event.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2.5 text-center text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
             >
               View Brochure
             </a>
@@ -88,7 +88,7 @@ const EventDetailPage = async ({
               href={event.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
             >
               Register Now
             </a>
@@ -97,10 +97,10 @@ const EventDetailPage = async ({
       }
       discussion={
         <div
-          className="mt-8 sb-surface-strong p-8 md:p-12 rounded-xl"
+          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-2xl font-bold text-slate-950 mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
           <CommentSection
             comments={event.comments}
             targetId={event.id}
@@ -111,14 +111,14 @@ const EventDetailPage = async ({
         </div>
       }
     >
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {event.title}
       </h1>
 
-      <div className="mb-6 space-y-3">
-        <div className="flex items-center gap-2 text-slate-600">
+      <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
           <svg
-            className="h-5 w-5 shrink-0 text-slate-400"
+            className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -141,9 +141,9 @@ const EventDetailPage = async ({
           </span>
         </div>
         {event.location && (
-          <div className="flex items-center gap-2 text-slate-600">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
             <svg
-              className="h-5 w-5 shrink-0 text-slate-400"
+              className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -166,9 +166,9 @@ const EventDetailPage = async ({
           </div>
         )}
         {event.deadline && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
             <svg
-              className="h-5 w-5 shrink-0 text-slate-400"
+              className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
