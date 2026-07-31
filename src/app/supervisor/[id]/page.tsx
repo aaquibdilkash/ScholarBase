@@ -151,29 +151,29 @@ export default async function SupervisorPage({
       </div>
 
       {recommendationCount > 0 && (
-        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-4 sm:mb-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-3 sm:p-4 md:p-5 lg:p-6 mb-6 sm:mb-8">
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4">
             Overall Rating
           </h3>
-          <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6 md:gap-8">
+          <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-3 md:gap-4">
             <div className="flex flex-col items-center justify-center text-center">
-              <p className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
                 {avgRating.toFixed(1)}
               </p>
-              <StarRating rating={avgRating} size="md" />
+              <StarRating rating={avgRating} size="sm" />
               <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:mt-2">
                 ({recommendationCount} ratings)
               </p>
             </div>
-            <div className="w-full flex-1 space-y-1.5 sm:space-y-2">
+            <div className="w-full flex-1 space-y-1 sm:space-y-1.5">
               {ratingDistribution.map((item) => (
                 <div key={item.stars} className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-xs sm:text-sm font-semibold text-slate-600 w-10 sm:w-12">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-600 w-14 sm:w-16">
                     {item.stars} star
                   </span>
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 sm:h-2.5">
+                  <div className="w-full bg-slate-100 rounded-full h-1 sm:h-1.5">
                     <div
-                      className="bg-yellow-400 h-1.5 sm:h-2.5 rounded-full"
+                      className="bg-yellow-400 h-1 sm:h-1.5 rounded-full"
                       style={{ width: `${item.percentage}%` }}
                     ></div>
                   </div>
@@ -188,7 +188,7 @@ export default async function SupervisorPage({
       )}
 
       {/* Recommendations List */}
-      <div className="space-y-4 sm:space-y-6 mb-8 sm:mb-12">
+      <div className="space-y-4 sm:space-y-6 mb-4 sm:mb-6">
         <h3
           className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-4 sm:mb-6"
           id="recommendations"

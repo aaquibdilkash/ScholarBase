@@ -145,14 +145,21 @@ export default function PublicationForm({
         </div>
         <div>
           <label className="sb-label">Year</label>
-          <input
+          <select
             name="year"
-            type="number"
-            placeholder="e.g., 2024"
             className="sb-input"
             value={draftFields.year}
             onChange={(e) => updateDraftField("year", e.target.value)}
-          />
+          >
+            <option value="">Select Year</option>
+            {Array.from({ length: 2026 - 1950 + 1 }, (_, i) => 2026 - i).map(
+              (year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ),
+            )}
+          </select>
         </div>
       </div>
 

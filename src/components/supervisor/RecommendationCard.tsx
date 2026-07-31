@@ -77,32 +77,34 @@ export function RecommendationCard({
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       footerCommentsCount={recommendation._count.comments}
     >
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4 mb-4">
-        <div className="col-span-2">
-          <p className="text-sm font-semibold text-slate-900 mb-1">
+      <div className="space-y-3 mb-4">
+        <div>
+          <p className="text-xs font-semibold text-slate-700 mb-1">
             Overall Mentorship Rating
           </p>
-          <StarRating rating={recommendation.rating} size="lg" />
+          <StarRating rating={recommendation.rating} size="md" />
         </div>
-        <div>
-          <p className="text-xs font-semibold text-slate-600 mb-1">
-            Responsiveness
-          </p>
-          <StarRating rating={recommendation.responsivenessScore} />
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-slate-600 mb-1">
-            Guidance Quality
-          </p>
-          <StarRating rating={recommendation.guidanceScore} />
-        </div>
-        <div className="col-span-2">
-          <p className="text-xs font-semibold text-slate-600 mb-1">
-            Average Turnaround Time
-          </p>
-          <p className="text-sm font-bold text-slate-800">
-            {recommendation.turnaroundTimeDays} day(s)
-          </p>
+        <div className="grid grid-cols-3 gap-x-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-600 mb-1">
+              Responsiveness
+            </p>
+            <StarRating rating={recommendation.responsivenessScore} size="sm" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-600 mb-1">
+              Guidance
+            </p>
+            <StarRating rating={recommendation.guidanceScore} size="sm" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-600 mb-1">
+              Turnaround
+            </p>
+            <p className="text-sm font-bold text-slate-800">
+              {recommendation.turnaroundTimeDays}d
+            </p>
+          </div>
         </div>
       </div>
 

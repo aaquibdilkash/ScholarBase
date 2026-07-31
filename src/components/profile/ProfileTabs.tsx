@@ -16,6 +16,8 @@ import { ResultCard } from "@/components/results/ResultCard";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
 import { PublicationCard } from "@/components/publications/PublicationCard";
 
+import { Carousel } from "@/components/ui/Carousel";
+
 type ProfileData = {
   id: string;
   name: string | null;
@@ -40,9 +42,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No articles published yet.",
     renderItems: (items, currentUserId) =>
       items.map((a: any) => (
-        <div key={a.id} className="flex-shrink-0 w-full snap-center">
-          <ArticleCard article={a} currentUserId={currentUserId} />
-        </div>
+        <ArticleCard key={a.id} article={a} currentUserId={currentUserId} />
       )),
   },
   {
@@ -51,9 +51,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No feed posts yet.",
     renderItems: (items, currentUserId) =>
       items.map((p: any) => (
-        <div key={p.id} className="flex-shrink-0 w-full snap-center">
-          <SocialPostCard post={p} currentUserId={currentUserId} />
-        </div>
+        <SocialPostCard key={p.id} post={p} currentUserId={currentUserId} />
       )),
   },
   {
@@ -62,9 +60,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No job vacancies posted yet.",
     renderItems: (items, currentUserId) =>
       items.map((v: any) => (
-        <div key={v.id} className="flex-shrink-0 w-full snap-center">
-          <VacancyCard vacancy={v} currentUserId={currentUserId} />
-        </div>
+        <VacancyCard key={v.id} vacancy={v} currentUserId={currentUserId} />
       )),
   },
   {
@@ -73,9 +69,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No PhD admissions posted yet.",
     renderItems: (items, currentUserId) =>
       items.map((a: any) => (
-        <div key={a.id} className="flex-shrink-0 w-full snap-center">
-          <AdmissionCard admission={a} currentUserId={currentUserId} />
-        </div>
+        <AdmissionCard key={a.id} admission={a} currentUserId={currentUserId} />
       )),
   },
   {
@@ -84,9 +78,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No research events posted yet.",
     renderItems: (items, currentUserId) =>
       items.map((e: any) => (
-        <div key={e.id} className="flex-shrink-0 w-full snap-center">
-          <EventCard event={e} currentUserId={currentUserId} />
-        </div>
+        <EventCard key={e.id} event={e} currentUserId={currentUserId} />
       )),
   },
   {
@@ -95,9 +87,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No help posts yet.",
     renderItems: (items, currentUserId) =>
       items.map((h: any) => (
-        <div key={h.id} className="flex-shrink-0 w-full snap-center">
-          <HelpPostCard helpPost={h} currentUserId={currentUserId} />
-        </div>
+        <HelpPostCard key={h.id} helpPost={h} currentUserId={currentUserId} />
       )),
   },
   {
@@ -106,9 +96,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No journals posted yet.",
     renderItems: (items, currentUserId) =>
       items.map((j: any) => (
-        <div key={j.id} className="flex-shrink-0 w-full snap-center">
-          <JournalCard journal={j} currentUserId={currentUserId} />
-        </div>
+        <JournalCard key={j.id} journal={j} currentUserId={currentUserId} />
       )),
   },
   {
@@ -117,9 +105,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No research tools posted yet.",
     renderItems: (items, currentUserId) =>
       items.map((r: any) => (
-        <div key={r.id} className="flex-shrink-0 w-full snap-center">
-          <ResearchToolCard tool={r} currentUserId={currentUserId} />
-        </div>
+        <ResearchToolCard key={r.id} tool={r} currentUserId={currentUserId} />
       )),
   },
   {
@@ -128,13 +114,12 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No recommendations given yet.",
     renderItems: (items, currentUserId) =>
       items.map((r: any) => (
-        <div key={r.id} className="flex-shrink-0 w-full snap-center">
-          <RecommendationCard
-            recommendation={r}
-            supervisor={r.supervisor}
-            currentUserId={currentUserId}
-          />
-        </div>
+        <RecommendationCard
+          key={r.id}
+          recommendation={r}
+          supervisor={r.supervisor}
+          currentUserId={currentUserId}
+        />
       )),
   },
   {
@@ -143,12 +128,11 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No supervisor profiles created yet.",
     renderItems: (items, currentUserId) =>
       items.map((s: any) => (
-        <div key={s.id} className="flex-shrink-0 w-full snap-center">
-          <SupervisorCard
-            supervisor={{ ...s, recommendations: [] }}
-            currentUserId={currentUserId}
-          />
-        </div>
+        <SupervisorCard
+          key={s.id}
+          supervisor={{ ...s, recommendations: [] }}
+          currentUserId={currentUserId}
+        />
       )),
   },
   {
@@ -157,9 +141,7 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No results posted yet.",
     renderItems: (items, currentUserId) =>
       items.map((r: any) => (
-        <div key={r.id} className="flex-shrink-0 w-full snap-center">
-          <ResultCard result={r} currentUserId={currentUserId} />
-        </div>
+        <ResultCard key={r.id} result={r} currentUserId={currentUserId} />
       )),
   },
   {
@@ -168,9 +150,11 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No contributions made yet.",
     renderItems: (items, currentUserId) =>
       items.map((c: any) => (
-        <div key={c.id} className="flex-shrink-0 w-full snap-center">
-          <ContributionCard contribution={c} currentUserId={currentUserId} />
-        </div>
+        <ContributionCard
+          key={c.id}
+          contribution={c}
+          currentUserId={currentUserId}
+        />
       )),
   },
   {
@@ -179,9 +163,11 @@ const SECTIONS: SectionConfig[] = [
     emptyMessage: "No publications added yet.",
     renderItems: (items, currentUserId) =>
       items.map((p: any) => (
-        <div key={p.id} className="flex-shrink-0 w-full snap-center">
-          <PublicationCard publication={p} currentUserId={currentUserId} />
-        </div>
+        <PublicationCard
+          key={p.id}
+          publication={p}
+          currentUserId={currentUserId}
+        />
       )),
   },
 ];
@@ -290,9 +276,9 @@ export default function ProfileTabs({
                     {section.title}
                   </h2>
                   {items.length > 0 ? (
-                    <ScrollableSection>
+                    <Carousel>
                       {section.renderItems(items, currentUserId)}
-                    </ScrollableSection>
+                    </Carousel>
                   ) : (
                     <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
                       {section.emptyMessage}
@@ -303,52 +289,6 @@ export default function ProfileTabs({
             })}
         </div>
       )}
-    </div>
-  );
-}
-
-/** Horizontally scrollable section with left/right navigation arrows */
-function ScrollableSection({ children }: { children: React.ReactNode }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const scroll = (direction: "left" | "right") => {
-    if (!scrollRef.current) return;
-    const amount = 320; // approximate card width
-    scrollRef.current.scrollBy({
-      left: direction === "left" ? -amount : amount,
-      behavior: "smooth",
-    });
-  };
-
-  return (
-    <div className="relative group">
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scrollbar-none pb-4 snap-x snap-mandatory"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {children}
-      </div>
-      <button
-        type="button"
-        onClick={() => scroll("left")}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 opacity-0 group-hover:opacity-100 hover:bg-white hover:shadow-lg transition-all duration-200"
-        aria-label="Scroll left"
-      >
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
-      <button
-        type="button"
-        onClick={() => scroll("right")}
-        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 opacity-0 group-hover:opacity-100 hover:bg-white hover:shadow-lg transition-all duration-200"
-        aria-label="Scroll right"
-      >
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
     </div>
   );
 }

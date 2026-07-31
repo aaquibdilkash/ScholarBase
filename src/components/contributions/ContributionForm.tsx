@@ -237,9 +237,9 @@ export default function ContributionForm({
               <label className="sb-label">Amount (₹, Optional)</label>
               <input
                 type="number"
-                min="1"
+                min="10"
                 max="100000"
-                step="1"
+                step="10"
                 name="amount"
                 placeholder="e.g., 500"
                 className="sb-input"

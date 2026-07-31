@@ -2,24 +2,25 @@ import { headers } from "next/headers";
 
 /**
  * Returns the base URL for server-side requests.
- * It uses VERCEL_URL for Vercel deployments, otherwise falls back to the host header.
+ * It prioritizes Vercel environment variables for efficiency, 
+ * falling back to the host header for other environments.
  */
 export async function getBaseUrl() {
-    let host;
-    if (process.env.VERCEL_URL) {
-        host = process.env.VERCEL_URL;
-    } else {
-        const headersList = await headers();
-        host = headersList.get('host');
+    // Prioritize Vercel's environment variables.
+    const vercelHost = process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
+    if (vercelHost) {
+        const protocol = vercelHost.startsWith('localhost') ? 'http' : 'https';
+        return `${protocol}://${vercelHost}`;
     }
 
-    if (!host) {
-        // Fallback for safety, though should be rare.
-        return 'http://localhost:3000';
-    }
+    // Fallback for other environments (e.g., local `npm run dev`).
+    const headersList = await headers();
+    const hostHeader = headersList.get('host');
     
-    // Determine the protocol.
-    const protocol = host.startsWith('localhost') ? 'http' : 'https';
+    if (!hostHeader) {
+        return 'http://localhost:3000'; // Safety fallback.
+    }
 
-    return `${protocol}://${host}`;
+    const protocol = hostHeader.startsWith("localhost") ? "http" : "https";
+    return `${protocol}://${hostHeader}`;
 }

@@ -158,7 +158,7 @@ export default function RecommendationForm({
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <SubmitBtnWithAuth className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold shadow-sm shadow-blue-600/20 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-600/30 transition-all duration-200">
+        <SubmitBtnWithAuth className="sb-button-primary">
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
         </SubmitBtnWithAuth>
       </div>

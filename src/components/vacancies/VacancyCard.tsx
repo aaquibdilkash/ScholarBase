@@ -98,16 +98,11 @@ export function VacancyCard({
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
           {vacancy.title}
         </h2>
-        <p className="mb-4 text-sm font-medium text-slate-600">
+        <p className="mb-2 text-sm font-medium text-slate-600">
           {vacancy.institution}
         </p>
 
-        <RichContent
-          content={vacancy.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-        />
-
-        <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
+        <div className="mb-2 flex items-center gap-2 text-sm text-slate-600">
           <svg
             className="h-4 w-4 shrink-0 text-slate-400"
             fill="none"
@@ -132,6 +127,11 @@ export function VacancyCard({
             </span>
           </span>
         </div>
+
+        <RichContent
+          content={vacancy.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
       </Link>
     </ListPageCardShell>
   );
