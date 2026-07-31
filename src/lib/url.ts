@@ -2,12 +2,24 @@ import { headers } from "next/headers";
 
 /**
  * Returns the base URL for server-side requests.
- * It uses the 'host' header to construct the full URL.
- * This function is intended for server-side use only and is asynchronous.
+ * It uses VERCEL_URL for Vercel deployments, otherwise falls back to the host header.
  */
 export async function getBaseUrl() {
-  const headersList = await headers();
-  const host = headersList.get("host");
-  const protocol = host?.includes("localhost") ? "http" : "https";
-  return `${protocol}://${host}`;
+    let host;
+    if (process.env.VERCEL_URL) {
+        host = process.env.VERCEL_URL;
+    } else {
+        const headersList = await headers();
+        host = headersList.get('host');
+    }
+
+    if (!host) {
+        // Fallback for safety, though should be rare.
+        return 'http://localhost:3000';
+    }
+    
+    // Determine the protocol.
+    const protocol = host.startsWith('localhost') ? 'http' : 'https';
+
+    return `${protocol}://${host}`;
 }

@@ -41,7 +41,8 @@ const SurveyDetailPage = async ({
   }
 
   const hasResponded = user ? await hasUserResponded(id, user.id) : false;
-  const response = user && hasResponded ? await getSurveyResponse(id, user.id) : null;
+  const response =
+    user && hasResponded ? await getSurveyResponse(id, user.id) : null;
 
   const upvotes =
     survey.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
@@ -100,7 +101,9 @@ const SurveyDetailPage = async ({
           className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
+            Discussion
+          </h2>
           <CommentSection
             comments={survey.comments}
             targetId={survey.id}
@@ -243,6 +246,7 @@ const SurveyDetailPage = async ({
             {hasResponded ? "Update Your Response" : "Fill Out This Survey"}
           </h2>
           <SurveyResponseForm
+            key={response?.id ?? "no-response"}
             surveyId={survey.id}
             questions={survey.questions}
             privacy={survey.privacy}

@@ -17,9 +17,8 @@ type Response = {
   answers: Answer[];
 } | null;
 
-
 type Question = {
-  id:string;
+  id: string;
   type: string;
   title: string;
   required: boolean;
@@ -61,8 +60,11 @@ export function SurveyResponseForm({
       );
       setAnswers(initialAnswers);
       setIsAnonymous(response.isAnonymous);
+    } else {
+      setAnswers({});
+      setIsAnonymous(privacy === "ANONYMOUS");
     }
-  }, [response]);
+  }, [response, privacy]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -454,4 +456,3 @@ export function SurveyResponseForm({
     </form>
   );
 }
-

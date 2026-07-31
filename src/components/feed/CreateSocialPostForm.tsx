@@ -27,12 +27,11 @@ export function CreateSocialPostForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRestored]);
 
-  // Persist image URL in draft
+  // Persist image URL in draft (always persist when imageUrl changes)
   useEffect(() => {
-    if (isRestored) {
-      updateDraftField("imageUrl", imageUrl);
-    }
-  }, [imageUrl, updateDraftField, isRestored]);
+    updateDraftField("imageUrl", imageUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrl]);
 
   const { submitting, submit } = useFormSubmit(
     () => {
