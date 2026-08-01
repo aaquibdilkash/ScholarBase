@@ -68,18 +68,23 @@ export default function ContributionForm({
     initialValues?.screenshotUrl ?? "",
   );
 
-  // Restore screenshotUrl from draft on mount
+  // Restore screenshotUrl from draft once hydration completes
   useEffect(() => {
     if (isRestored && draftFields.screenshotUrl) {
       setScreenshotUrl(draftFields.screenshotUrl);
     }
   }, [isRestored, draftFields.screenshotUrl]);
 
-  // Persist screenshotUrl in draft when it changes (always persist)
+  // Persist screenshotUrl in draft — gated on isRestored so the initial mount
+  // does not clobber a restored draft screenshot with the empty initial value.
   useEffect(() => {
+    if (!isRestored) return;
+    // If the draft has a screenshot but the state hasn't been synced yet, skip
+    // this render — the restore effect will set screenshotUrl and re-run.
+    if (draftFields.screenshotUrl && !screenshotUrl) return;
     updateDraftField("screenshotUrl", screenshotUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screenshotUrl]);
+  }, [screenshotUrl, isRestored, draftFields.screenshotUrl]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

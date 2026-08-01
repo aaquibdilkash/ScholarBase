@@ -48,8 +48,13 @@ export function SurveyResponseForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(privacy === "ANONYMOUS");
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [hasHydrated, setHasHydrated] = useState(false);
   const draftKey = `draft_survey_response_${surveyId}`;
 
+  // Hydrate form state from the saved response (DB) or the local draft.
+  // Mark hydration complete so the save effect below does not clobber the
+  // restored values with the initial empty state on mount.
   useEffect(() => {
     if (response) {
       const initialAnswers = response.answers.reduce(
@@ -61,13 +66,17 @@ export function SurveyResponseForm({
       );
       setAnswers(initialAnswers);
       setIsAnonymous(response.isAnonymous);
+      setDraftRestored(false);
     } else {
       try {
         const saved = localStorage.getItem(draftKey);
         if (saved) {
           const { answers: savedAnswers, isAnonymous: savedIsAnonymous } =
             JSON.parse(saved);
-          setAnswers(savedAnswers || {});
+          if (savedAnswers && Object.keys(savedAnswers).length > 0) {
+            setAnswers(savedAnswers);
+            setDraftRestored(true);
+          }
           if (savedIsAnonymous !== null && savedIsAnonymous !== undefined) {
             setIsAnonymous(savedIsAnonymous);
           }
@@ -76,11 +85,13 @@ export function SurveyResponseForm({
         // ignore
       }
     }
+    setHasHydrated(true);
   }, [response, draftKey, privacy]);
 
+  // Persist answers to the local draft once hydrated, and only when there is
+  // no submitted response from the DB (editing uses the DB record directly).
   useEffect(() => {
-    if (!response) {
-      // Only save to draft if there's no response from DB
+    if (!response && hasHydrated) {
       try {
         const dataToSave = { answers, isAnonymous };
         localStorage.setItem(draftKey, JSON.stringify(dataToSave));
@@ -88,7 +99,7 @@ export function SurveyResponseForm({
         // ignore
       }
     }
-  }, [answers, isAnonymous, draftKey, response]);
+  }, [answers, isAnonymous, draftKey, response, hasHydrated]);
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -356,6 +367,57 @@ export function SurveyResponseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Status banner: editing previous response / draft restored */}
+      {response ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3">
+          <svg
+            className="h-5 w-5 shrink-0 text-blue-600 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-blue-800">
+              You are editing your previous response.
+            </p>
+            <p className="text-xs text-blue-600 mt-0.5">
+              Any changes you make will replace your earlier submission.
+            </p>
+          </div>
+        </div>
+      ) : draftRestored ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+          <svg
+            className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <div>
+            <p className="text-sm font-semibold text-emerald-800">
+              Draft restored.
+            </p>
+            <p className="text-xs text-emerald-600 mt-0.5">
+              Your unsaved answers were restored from a previous session.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {/* Privacy selection for HYBRID */}
       {privacy === "HYBRID" && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6">

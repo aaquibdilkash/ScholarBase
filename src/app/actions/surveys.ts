@@ -333,7 +333,10 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
     await prisma.surveyResponse.create({
         data: {
             surveyId,
-            respondentId: isAnonymous ? null : user.id,
+            // Always link the response to the authenticated user so they can
+            // retrieve and edit their own previous response later. Anonymity
+            // is preserved via the isAnonymous flag (used in results/export).
+            respondentId: user.id,
             isAnonymous,
             answers: {
                 create: answers.map((a) => ({

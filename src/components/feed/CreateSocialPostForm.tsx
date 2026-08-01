@@ -19,19 +19,24 @@ export function CreateSocialPostForm() {
     { content: "", imageUrl: "" },
   );
 
-  // Restore image URL from draft on mount
+  // Restore image URL from draft once hydration completes
   useEffect(() => {
     if (isRestored && draftFields.imageUrl) {
       setImageUrl(draftFields.imageUrl);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRestored]);
+  }, [isRestored, draftFields.imageUrl]);
 
-  // Persist image URL in draft (always persist when imageUrl changes)
+  // Persist image URL in draft — gated on isRestored so the initial mount
+  // does not clobber a restored draft image with the empty initial value.
   useEffect(() => {
+    if (!isRestored) return;
+    // If the draft has an image but the state hasn't been synced yet, skip
+    // this render — the restore effect will set imageUrl and re-run.
+    if (draftFields.imageUrl && !imageUrl) return;
     updateDraftField("imageUrl", imageUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrl]);
+  }, [imageUrl, isRestored, draftFields.imageUrl]);
 
   const { submitting, submit } = useFormSubmit(
     () => {

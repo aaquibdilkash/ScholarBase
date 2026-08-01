@@ -32,10 +32,14 @@ export function useFormDraft(
                 const parsed = JSON.parse(saved) as DraftFields;
                 // Merge saved draft with initialValues, giving priority to saved draft
                 setFields((prev) => ({ ...prev, ...parsed }));
-                setIsRestored(true);
             }
         } catch {
             // Ignore parse errors
+        } finally {
+            // Mark hydration complete regardless of whether a draft was found.
+            // Consumers can gate their persist effects on this flag so the
+            // initial mount does not clobber a restored draft with empty values.
+            setIsRestored(true);
         }
     }, [draftKey]);
 
