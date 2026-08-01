@@ -424,8 +424,13 @@ export async function toggleCommentVote(
     commentId: string,
     type: CommentType,
     voteType: 'UPVOTE' | 'DOWNVOTE',
-): Promise<{ userVote: 'UPVOTE' | 'DOWNVOTE' | null; upvotes: number; downvotes: number }> {
-    const user = await requireCurrentUser('Log in to react to this discussion.')
+): Promise<{ userVote: 'UPVOTE' | 'DOWNVOTE' | null; upvotes: number; downvotes: number } | { error: string }> {
+    let user;
+    try {
+        user = await requireCurrentUser('Log in to react to this discussion.');
+    } catch {
+        return { error: "UNAUTHORIZED" };
+    }
     const model = COMMENT_VOTE_MODEL[type]
     if (!model) throw new Error(`Unknown comment type: ${type}`)
 

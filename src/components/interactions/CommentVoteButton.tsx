@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toggleCommentVote } from "@/app/actions/comments";
 import { VoteArrowIcon } from "../icons/VoteIcons";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "./AuthModal";
 
 type VoteType = "UPVOTE" | "DOWNVOTE";
 
@@ -40,6 +41,7 @@ export function CommentVoteButton({
   const [isPending, startTransition] = useTransition();
   const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
 
   const netScore = upvotes - downvotes;
 
@@ -66,6 +68,13 @@ export function CommentVoteButton({
 
       try {
         const res = await toggleCommentVote(commentId, type, voteType);
+        if (res?.error === "UNAUTHORIZED") {
+          setUserVote(prevVote);
+          setUpvotes(prevUpvotes);
+          setDownvotes(prevDownvotes);
+          openAuthModal();
+          return;
+        }
         setUserVote(res.userVote);
         setUpvotes(res.upvotes);
         setDownvotes(res.downvotes);
