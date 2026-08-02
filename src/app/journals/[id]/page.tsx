@@ -49,6 +49,7 @@ const JournalDetailPage = async ({
       authorAvatarUrl={j.author.avatarUrl || undefined}
       authorId={j.author.id}
       isFollowing={!!j.author.followers?.length}
+      currentUserId={user?.id}
       createdDate={j.createdAt}
       editedDate={j.updatedAt > j.createdAt ? j.updatedAt : undefined}
       managementControls={

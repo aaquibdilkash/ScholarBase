@@ -37,6 +37,7 @@ export function ResearchToolCard({
       authorName={tool.author.name || "Scholar"}
       authorId={tool.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={tool.author.handle || undefined}
       authorAvatarUrl={tool.author.avatarUrl || undefined}
       detailPageHref={`/research-tools/${tool.id}`}

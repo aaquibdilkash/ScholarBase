@@ -67,6 +67,7 @@ const ResultDetailPage = async ({
       }
       authorId={result.author.id}
       isFollowing={(result.author as any)?.followers?.length ? true : false}
+      currentUserId={user?.id}
       createdDate={result.createdAt}
       editedDate={
         result.updatedAt > result.createdAt ? result.updatedAt : undefined
@@ -87,7 +88,9 @@ const ResultDetailPage = async ({
           className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
+            Discussion
+          </h2>
           <CommentSection
             comments={result.comments}
             targetId={result.id}

@@ -54,8 +54,16 @@ html[data-theme="dark"] {
   html.dark body,
   html[data-theme="dark"] body {
     background:
-      radial-gradient(circle at top left, rgba(148, 163, 184, 0.14), transparent 28%),
-      radial-gradient(circle at top right, rgba(96, 165, 250, 0.1), transparent 24%),
+      radial-gradient(
+        circle at top left,
+        rgba(148, 163, 184, 0.14),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at top right,
+        rgba(96, 165, 250, 0.1),
+        transparent 24%
+      ),
       linear-gradient(180deg, #0b0d10 0%, #0f1318 42%, #050607 100%);
   }
 
@@ -201,6 +209,164 @@ html[data-theme="dark"] {
   html[data-theme="dark"] .sb-subtitle,
   html[data-theme="dark"] .sb-label {
     color: var(--foreground);
+  }
+
+  /* ---- CKEditor dark mode ---- */
+  html.dark .ck.ck-editor,
+  html.dark .ck.ck-editor__editable,
+  html[data-theme="dark"] .ck.ck-editor,
+  html[data-theme="dark"] .ck.ck-editor__editable {
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+
+  /* Toolbar */
+  html.dark .ck.ck-toolbar,
+  html[data-theme="dark"] .ck.ck-toolbar {
+    background: rgba(15, 23, 42, 0.95);
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+
+  html.dark .ck.ck-toolbar .ck.ck-toolbar__separator,
+  html[data-theme="dark"] .ck.ck-toolbar .ck.ck-toolbar__separator {
+    background: rgba(148, 163, 184, 0.18);
+  }
+
+  /* Editable area */
+  html.dark .ck.ck-editor__editable_inline,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline {
+    background: rgba(15, 23, 42, 0.85);
+    color: var(--foreground);
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+
+  /* Editor content typography in dark mode */
+  html.dark .ck.ck-editor__editable_inline p,
+  html.dark .ck.ck-editor__editable_inline h1,
+  html.dark .ck.ck-editor__editable_inline h2,
+  html.dark .ck.ck-editor__editable_inline h3,
+  html.dark .ck.ck-editor__editable_inline h4,
+  html.dark .ck.ck-editor__editable_inline h5,
+  html.dark .ck.ck-editor__editable_inline h6,
+  html.dark .ck.ck-editor__editable_inline li,
+  html.dark .ck.ck-editor__editable_inline blockquote,
+  html.dark .ck.ck-editor__editable_inline a,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline p,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline h1,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline h2,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline h3,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline h4,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline h5,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline h6,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline li,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline blockquote,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline a {
+    color: var(--foreground);
+  }
+
+  html.dark .ck.ck-editor__editable_inline blockquote,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline blockquote {
+    border-left-color: rgba(148, 163, 184, 0.28);
+  }
+
+  html.dark .ck.ck-editor__editable_inline code,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline code {
+    background: rgba(148, 163, 184, 0.15);
+    color: #f8fafc;
+  }
+
+  html.dark .ck.ck-editor__editable_inline pre,
+  html[data-theme="dark"] .ck.ck-editor__editable_inline pre {
+    background: rgba(2, 6, 23, 0.9);
+    border-color: rgba(148, 163, 184, 0.18);
+  }
+
+  /* Placeholder */
+  html.dark .ck.ck-editor__editable_inline.ck-placeholder::before,
+  html[data-theme="dark"]
+    .ck.ck-editor__editable_inline.ck-placeholder::before {
+    color: rgba(148, 163, 184, 0.5);
+  }
+
+  /* Buttons */
+  html.dark .ck.ck-button,
+  html.dark .ck.ck-button:not(.ck-on),
+  html.dark a.ck.ck-button,
+  html[data-theme="dark"] .ck.ck-button,
+  html[data-theme="dark"] .ck.ck-button:not(.ck-on),
+  html[data-theme="dark"] a.ck.ck-button {
+    background: transparent;
+    color: #e2e8f0;
+  }
+
+  html.dark .ck.ck-button:hover:not(.ck-disabled):not(.ck-on),
+  html.dark a.ck.ck-button:hover:not(.ck-disabled):not(.ck-on),
+  html[data-theme="dark"] .ck.ck-button:hover:not(.ck-disabled):not(.ck-on),
+  html[data-theme="dark"] a.ck.ck-button:hover:not(.ck-disabled):not(.ck-on) {
+    background: rgba(148, 163, 184, 0.14);
+  }
+
+  html.dark .ck.ck-button.ck-on,
+  html.dark a.ck.ck-button.ck-on,
+  html[data-theme="dark"] .ck.ck-button.ck-on,
+  html[data-theme="dark"] a.ck.ck-button.ck-on {
+    background: rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+  }
+
+  /* Dropdown panels */
+  html.dark .ck.ck-dropdown__panel,
+  html[data-theme="dark"] .ck.ck-dropdown__panel {
+    background: rgba(15, 23, 42, 0.98);
+    border-color: rgba(148, 163, 184, 0.2);
+  }
+
+  html.dark .ck.ck-dropdown__panel .ck.ck-list,
+  html[data-theme="dark"] .ck.ck-dropdown__panel .ck.ck-list {
+    background: transparent;
+  }
+
+  html.dark .ck.ck-dropdown__panel .ck.ck-button.ck-on,
+  html.dark .ck.ck-dropdown__panel a.ck.ck-button.ck-on,
+  html[data-theme="dark"] .ck.ck-dropdown__panel .ck.ck-button.ck-on,
+  html[data-theme="dark"] .ck.ck-dropdown__panel a.ck.ck-button.ck-on {
+    background: rgba(59, 130, 246, 0.25);
+    color: #93c5fd;
+  }
+
+  /* Labels / inputs inside panels (link form, etc.) */
+  html.dark .ck.ck-labeled-field .ck.ck-input,
+  html.dark .ck.ck-input,
+  html[data-theme="dark"] .ck.ck-labeled-field .ck.ck-input,
+  html[data-theme="dark"] .ck.ck-input {
+    background: rgba(2, 6, 23, 0.7);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: var(--foreground);
+  }
+
+  html.dark .ck.ck-label,
+  html[data-theme="dark"] .ck.ck-label {
+    color: rgba(226, 232, 240, 0.8);
+  }
+
+  /* Balloon panel (link popover) */
+  html.dark .ck.ck-balloon-panel,
+  html[data-theme="dark"] .ck.ck-balloon-panel {
+    background: rgba(15, 23, 42, 0.98);
+    border-color: rgba(148, 163, 184, 0.2);
+    color: var(--foreground);
+  }
+
+  html.dark .ck.ck-balloon-panel .ck.ck-button,
+  html[data-theme="dark"] .ck.ck-balloon-panel .ck.ck-button {
+    color: #e2e8f0;
+  }
+
+  /* Dropdown button icons */
+  html.dark .ck.ck-button .ck-icon,
+  html.dark .ck.ck-dropdown__button .ck-icon,
+  html[data-theme="dark"] .ck.ck-button .ck-icon,
+  html[data-theme="dark"] .ck.ck-dropdown__button .ck-icon {
+    color: #e2e8f0;
   }
 }
 

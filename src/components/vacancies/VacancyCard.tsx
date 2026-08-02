@@ -40,6 +40,7 @@ export function VacancyCard({
       authorName={vacancy.author.name || "Scholar"}
       authorId={vacancy.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={vacancy.author.handle || undefined}
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
       detailPageHref={`/vacancies/${vacancy.id}`}

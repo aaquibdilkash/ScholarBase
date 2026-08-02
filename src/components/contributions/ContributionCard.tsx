@@ -40,6 +40,7 @@ export function ContributionCard({
       authorName={contribution.author.name || "Scholar"}
       authorId={contribution.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={contribution.author.handle || undefined}
       authorAvatarUrl={contribution.author.avatarUrl || undefined}
       detailPageHref={`/contributions/${contribution.id}`}

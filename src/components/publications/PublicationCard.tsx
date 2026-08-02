@@ -51,6 +51,7 @@ export function PublicationCard({
       authorName={publication.author.name || "Scholar"}
       authorId={publication.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={publication.author.handle || undefined}
       authorAvatarUrl={publication.author.avatarUrl || undefined}
       detailPageHref={`/publications/${publication.id}`}

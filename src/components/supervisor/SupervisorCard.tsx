@@ -50,6 +50,7 @@ export function SupervisorCard({
       authorName={supervisor.author.name || "Supervisor"}
       authorId={supervisor.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={supervisor.author.handle || undefined}
       authorAvatarUrl={supervisor.author.avatarUrl || undefined}
       detailPageHref={`/supervisor/${supervisor.id}`}
@@ -97,7 +98,8 @@ export function SupervisorCard({
             <span className="text-slate-500"> / 5</span>
           </div>
           <span className="text-slate-500 text-xs">
-            ({recommendationCount} recommendation{recommendationCount !== 1 ? 's' : ''})
+            ({recommendationCount} recommendation
+            {recommendationCount !== 1 ? "s" : ""})
           </span>
         </div>
       ) : (

@@ -60,6 +60,7 @@ const PublicationDetailPage = async ({
       authorAvatarUrl={p.author.avatarUrl || undefined}
       authorId={p.author.id}
       isFollowing={!!p.author.followers?.length}
+      currentUserId={user?.id}
       createdDate={p.createdAt}
       editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
       managementControls={
@@ -89,7 +90,9 @@ const PublicationDetailPage = async ({
           className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
+            Discussion
+          </h2>
           <CommentSection
             comments={p.comments}
             targetId={p.id}

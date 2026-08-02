@@ -67,6 +67,7 @@ export function AdmissionCard({
       authorName={admission.author.name || "Scholar"}
       authorId={admission.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={admission.author.handle || undefined}
       authorAvatarUrl={admission.author.avatarUrl || undefined}
       detailPageHref={`/admissions/${admission.id}`}

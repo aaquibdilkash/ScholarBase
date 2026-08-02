@@ -23,6 +23,8 @@ export type ListPageCardShellProps = {
   // Follow in header (when not owner)
   authorId?: string;
   isFollowing?: boolean;
+  // Current logged-in user id, used to hide the follow button for own content
+  currentUserId?: string;
 
   // Common footer (vote + comments)
   footerVoteButton?: ReactNode;
@@ -55,6 +57,7 @@ export default function ListPageCardShell({
   authorAvatarUrl,
   authorId,
   isFollowing,
+  currentUserId,
   managementControls,
   children,
   footerVoteButton,
@@ -102,7 +105,7 @@ export default function ListPageCardShell({
               {authorName || "Scholar"}
             </Link>
             {authorHandle ? (
-                <div className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                 @{authorHandle}
               </div>
             ) : null}
@@ -114,7 +117,11 @@ export default function ListPageCardShell({
           {showManagementControls ? (
             managementControls
           ) : authorId ? (
-            <FollowButton targetId={authorId} isFollowing={!!isFollowing} />
+            <FollowButton
+              targetId={authorId}
+              isFollowing={!!isFollowing}
+              currentUserId={currentUserId}
+            />
           ) : null}
         </div>
       </div>

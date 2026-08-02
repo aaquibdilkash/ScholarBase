@@ -46,6 +46,7 @@ export function ResultCard({
       authorName={result.author.name || "Scholar"}
       authorId={result.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={result.author.handle || undefined}
       authorAvatarUrl={result.author.avatarUrl || undefined}
       detailPageHref={`/results/${result.id}`}

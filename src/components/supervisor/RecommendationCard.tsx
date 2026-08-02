@@ -50,6 +50,7 @@ export function RecommendationCard({
       authorName={recommendation.author.name || "Scholar"}
       authorId={recommendation.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={recommendation.author.handle || undefined}
       authorAvatarUrl={recommendation.author.avatarUrl || undefined}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}

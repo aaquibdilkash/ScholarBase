@@ -50,6 +50,7 @@ export function SurveyCard({
       authorName={survey.author.name || "Scholar"}
       authorId={survey.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={survey.author.handle || undefined}
       authorAvatarUrl={survey.author.avatarUrl || undefined}
       detailPageHref={`/surveys/${survey.id}`}

@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 // Freeze/unfreeze content
 export async function toggleContentFreeze(contentType: string, contentId: string) {
   const user = await requireCurrentUser('Log in to access admin.')
-  
+
   if (!await isUserAdmin(user.id)) {
     throw new Error('Not authorized.')
   }
@@ -51,7 +51,7 @@ export async function toggleContentFreeze(contentType: string, contentId: string
 // Freeze/unfreeze author
 export async function toggleAuthorFreeze(authorId: string) {
   const user = await requireCurrentUser('Log in to access admin.')
-  
+
   if (!await isUserAdmin(user.id)) {
     throw new Error('Not authorized.')
   }
@@ -75,7 +75,7 @@ export async function toggleAuthorFreeze(authorId: string) {
 // Delete any content by admin
 export async function adminDeleteContent(contentType: string, contentId: string) {
   const user = await requireCurrentUser('Log in to access admin.')
-  
+
   if (!await isUserAdmin(user.id)) {
     throw new Error('Not authorized.')
   }
@@ -110,7 +110,7 @@ export async function adminDeleteContent(contentType: string, contentId: string)
 // Delete comment by admin
 export async function adminDeleteComment(commentType: string, commentId: string) {
   const user = await requireCurrentUser('Log in to access admin.')
-  
+
   if (!await isUserAdmin(user.id)) {
     throw new Error('Not authorized.')
   }
@@ -141,33 +141,154 @@ export async function adminDeleteComment(commentType: string, commentId: string)
   return { success: true }
 }
 
+// Get admin dashboard stats (counts per content type + users)
+export async function getAdminStats() {
+  const user = await requireCurrentUser('Log in to access admin.')
+
+  if (!await isUserAdmin(user.id)) {
+    throw new Error('Not authorized.')
+  }
+
+  const [
+    totalUsers,
+    feed,
+    blog,
+    publications,
+    journals,
+    researchTools,
+    admissions,
+    events,
+    vacancies,
+    help,
+    results,
+    contributions,
+    supervisors,
+    recommendations,
+    surveys,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.socialPost.count(),
+    prisma.article.count(),
+    prisma.publication.count(),
+    prisma.journal.count(),
+    prisma.researchTool.count(),
+    prisma.phdAdmission.count(),
+    prisma.researchEvent.count(),
+    prisma.jobVacancy.count(),
+    prisma.helpPost.count(),
+    prisma.result.count(),
+    prisma.contribution.count(),
+    prisma.supervisor.count(),
+    prisma.recommendation.count(),
+    prisma.researchSurvey.count(),
+  ])
+
+  const sections = {
+    feed,
+    blog,
+    publications,
+    journals,
+    researchTools,
+    admissions,
+    events,
+    vacancies,
+    help,
+    results,
+    contributions,
+    supervisors,
+    recommendations,
+    surveys,
+  }
+
+  const totalContent = Object.values(sections).reduce((a, b) => a + b, 0)
+
+  return {
+    totalUsers,
+    totalContent,
+    sections,
+  }
+}
+
 // Get all content for admin panel
 export async function getAdminContent(contentType?: string) {
   const user = await requireCurrentUser('Log in to access admin.')
-  
+
   if (!await isUserAdmin(user.id)) {
     throw new Error('Not authorized.')
   }
 
   if (contentType) {
-    const contentMap: Record<string, Promise<any>> = {
-      feed: prisma.socialPost.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      blog: prisma.article.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      publications: prisma.publication.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      journals: prisma.journal.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      researchTools: prisma.researchTool.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      admissions: prisma.phdAdmission.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      events: prisma.researchEvent.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      vacancies: prisma.jobVacancy.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      help: prisma.helpPost.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      results: prisma.result.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      contributions: prisma.contribution.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      supervisors: prisma.supervisor.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      recommendations: prisma.recommendation.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
-      surveys: prisma.researchSurvey.findMany({ include: { author: true }, orderBy: { createdAt: 'desc' } }),
+    const contentMap: Record<string, { model: any; detailHref: (item: any) => string }> = {
+      feed: {
+        model: prisma.socialPost,
+        detailHref: (item) => `/feed/${item.id}`,
+      },
+      blog: {
+        model: prisma.article,
+        detailHref: (item) => `/blog/${item.slug}`,
+      },
+      publications: {
+        model: prisma.publication,
+        detailHref: (item) => `/publications/${item.id}`,
+      },
+      journals: {
+        model: prisma.journal,
+        detailHref: (item) => `/journals/${item.id}`,
+      },
+      researchTools: {
+        model: prisma.researchTool,
+        detailHref: (item) => `/research-tools/${item.id}`,
+      },
+      admissions: {
+        model: prisma.phdAdmission,
+        detailHref: (item) => `/admissions/${item.id}`,
+      },
+      events: {
+        model: prisma.researchEvent,
+        detailHref: (item) => `/events/${item.id}`,
+      },
+      vacancies: {
+        model: prisma.jobVacancy,
+        detailHref: (item) => `/vacancies/${item.id}`,
+      },
+      help: {
+        model: prisma.helpPost,
+        detailHref: (item) => `/help/${item.id}`,
+      },
+      results: {
+        model: prisma.result,
+        detailHref: (item) => `/results/${item.id}`,
+      },
+      contributions: {
+        model: prisma.contribution,
+        detailHref: (item) => `/contributions/${item.id}`,
+      },
+      supervisors: {
+        model: prisma.supervisor,
+        detailHref: (item) => `/supervisor/${item.id}`,
+      },
+      recommendations: {
+        model: prisma.recommendation,
+        detailHref: (item) => `/supervisor/${item.supervisorId}/recommendation/${item.id}`,
+      },
+      surveys: {
+        model: prisma.researchSurvey,
+        detailHref: (item) => `/surveys/${item.id}`,
+      },
     }
 
-    return contentMap[contentType] || []
+    const config = contentMap[contentType]
+    if (!config) return []
+
+    const items = await config.model.findMany({
+      include: { author: true },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return items.map((item: any) => ({
+      ...item,
+      detailHref: config.detailHref(item),
+    }))
   }
 
   return {}

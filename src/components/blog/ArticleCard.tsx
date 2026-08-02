@@ -29,10 +29,10 @@ export function ArticleCard({
   const isFollowing = (article.author.followers?.length ?? 0) > 0;
 
   const initialUpvotes = article.votes.filter(
-    (v) => v.voteType === "UPVOTE"
+    (v) => v.voteType === "UPVOTE",
   ).length;
   const initialDownvotes = article.votes.filter(
-    (v) => v.voteType === "DOWNVOTE"
+    (v) => v.voteType === "DOWNVOTE",
   ).length;
   const initialUserVote =
     article.votes.find((v) => v.userId === currentUserId)?.voteType ?? null;
@@ -43,6 +43,7 @@ export function ArticleCard({
       authorName={article.author.name || "Scholar"}
       authorId={article.authorId}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={article.author.handle || undefined}
       authorAvatarUrl={article.author.avatarUrl || undefined}
       detailPageHref={`/blog/${article.slug}`}

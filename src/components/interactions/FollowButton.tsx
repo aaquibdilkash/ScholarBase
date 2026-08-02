@@ -10,15 +10,22 @@ import { toggleFollow } from "@/app/actions/follow";
 export function FollowButton({
   targetId,
   isFollowing: initialIsFollowing,
+  currentUserId,
 }: {
   targetId: string;
   isFollowing: boolean;
+  currentUserId?: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const { getFollowState, setFollowState } = useFollowContext();
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
+
+  // A user cannot follow themselves, so hide the button entirely.
+  if (currentUserId && currentUserId === targetId) {
+    return null;
+  }
 
   const isFollowingState = getFollowState(targetId, initialIsFollowing);
   const nextState = !isFollowingState;

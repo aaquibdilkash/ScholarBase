@@ -25,6 +25,8 @@ export type DetailPageCardShellProps = {
   // Optional because some existing detail pages (e.g. supervisor page) haven't been updated yet.
   authorId?: string;
   isFollowing?: boolean;
+  // Current logged-in user id, used to hide the follow button for own content
+  currentUserId?: string;
 
   children: ReactNode; // middle body
 
@@ -56,6 +58,7 @@ export default function DetailPageCardShell({
   authorAvatarUrl,
   authorId,
   isFollowing,
+  currentUserId,
   managementControls,
   children,
   footerVoteButton,
@@ -85,7 +88,12 @@ export default function DetailPageCardShell({
         ← {backLabel}
       </Link>
 
-      <div className={clsx(bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8", "overflow-hidden")}>
+      <div
+        className={clsx(
+          bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8",
+          "overflow-hidden",
+        )}
+      >
         {/* Common header */}
         <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -131,6 +139,7 @@ export default function DetailPageCardShell({
               <FollowButton
                 targetId={authorId ?? ""}
                 isFollowing={Boolean(isFollowing)}
+                currentUserId={currentUserId}
               />
             )}
           </div>

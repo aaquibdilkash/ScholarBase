@@ -37,6 +37,7 @@ export function SocialPostCard({
     <ListPageCardShell
       authorId={post.authorId}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHref={`/scholars/${post.authorId}`}
       authorName={post.author.name || "Scholar"}
       authorHandle={post.author.handle || undefined}

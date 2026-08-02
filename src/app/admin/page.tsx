@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/components/ui/Toast";
 
@@ -22,31 +23,60 @@ const ADMIN_SECTIONS = [
   { id: "surveys", title: "Surveys", href: "/surveys" },
 ];
 
+type Stats = {
+  totalUsers: number;
+  totalContent: number;
+  sections: Record<string, number>;
+};
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("feed");
   const [content, setContent] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
-  const loadContent = async (sectionId: string) => {
-    setLoading(true);
+  const loadStats = useCallback(async () => {
     try {
-      const response = await fetch(`/api/admin/content?type=${sectionId}`);
+      const response = await fetch("/api/admin/content?type=stats");
       if (response.ok) {
         const data = await response.json();
-        setContent(data);
+        setStats(data);
       }
     } catch (error) {
-      toast("Failed to load content", "error");
-    } finally {
-      setLoading(false);
+      console.error("Failed to load admin stats:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  const loadContent = useCallback(
+    async (sectionId: string) => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/admin/content?type=${sectionId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setContent(data);
+        }
+      } catch (error) {
+        toast("Failed to load content", "error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast],
+  );
+
+  useEffect(() => {
+    loadContent(activeTab);
+  }, [activeTab, loadContent]);
 
   const handleTabClick = (sectionId: string) => {
     setActiveTab(sectionId);
-    loadContent(sectionId);
   };
 
   const handleFreeze = async (contentType: string, contentId: string) => {
@@ -59,6 +89,7 @@ export default function AdminPage() {
       if (response.ok) {
         toast("Content frozen/unfrozen successfully", "success");
         loadContent(activeTab);
+        loadStats();
       }
     } catch (error) {
       toast("Failed to update freeze status", "error");
@@ -76,11 +107,14 @@ export default function AdminPage() {
       if (response.ok) {
         toast("Content deleted successfully", "success");
         loadContent(activeTab);
+        loadStats();
       }
     } catch (error) {
       toast("Failed to delete content", "error");
     }
   };
+
+  const sectionCount = (sectionId: string) => stats?.sections?.[sectionId] ?? 0;
 
   return (
     <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -93,6 +127,46 @@ export default function AdminPage() {
             Manage content, moderate posts, and control user access
           </p>
         </div>
+
+        {/* Stats Overview */}
+        {stats && (
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Total Users
+              </p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {stats.totalUsers}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Total Content
+              </p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                {stats.totalContent}
+              </p>
+            </div>
+            {ADMIN_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => handleTabClick(section.id)}
+                className={`rounded-xl border p-4 text-left transition ${
+                  activeTab === section.id
+                    ? "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                    : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {section.title}
+                </p>
+                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+                  {sectionCount(section.id)}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar Tabs */}
@@ -114,7 +188,12 @@ export default function AdminPage() {
                         : "text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                     }`}
                   >
-                    {section.title}
+                    <span className="flex items-center justify-between">
+                      {section.title}
+                      <span className="text-xs font-semibold text-slate-400">
+                        {sectionCount(section.id)}
+                      </span>
+                    </span>
                   </button>
                 ))}
               </nav>
@@ -126,7 +205,8 @@ export default function AdminPage() {
             <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
               <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  {ADMIN_SECTIONS.find((s) => s.id === activeTab)?.title} Management
+                  {ADMIN_SECTIONS.find((s) => s.id === activeTab)?.title}{" "}
+                  Management
                 </h3>
               </div>
 
@@ -143,22 +223,48 @@ export default function AdminPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
                       <tr>
-                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Title</th>
-                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Author</th>
-                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Status</th>
-                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">Actions</th>
+                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                          Title
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                          Author
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {content.map((item) => (
-                        <tr key={item.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                        <tr
+                          key={item.id}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                        >
                           <td className="px-4 py-3">
-                            <p className="font-medium text-slate-900 dark:text-slate-100">
-                              {item.title || item.content?.substring(0, 50) || "Untitled"}
-                            </p>
+                            {item.detailHref ? (
+                              <Link
+                                href={item.detailHref}
+                                className="font-medium text-slate-900 transition hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300"
+                              >
+                                {item.title ||
+                                  item.content?.substring(0, 50) ||
+                                  "Untitled"}
+                              </Link>
+                            ) : (
+                              <p className="font-medium text-slate-900 dark:text-slate-100">
+                                {item.title ||
+                                  item.content?.substring(0, 50) ||
+                                  "Untitled"}
+                              </p>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                            {item.author?.name || item.author?.email || "Unknown"}
+                            {item.author?.name ||
+                              item.author?.email ||
+                              "Unknown"}
                           </td>
                           <td className="px-4 py-3">
                             <span
@@ -174,7 +280,9 @@ export default function AdminPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <button
-                                onClick={() => handleFreeze(activeTab.slice(0, -1), item.id)}
+                                onClick={() =>
+                                  handleFreeze(activeTab.slice(0, -1), item.id)
+                                }
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                                   item.isFrozen
                                     ? "bg-green-600 text-white hover:bg-green-700"
@@ -184,7 +292,9 @@ export default function AdminPage() {
                                 {item.isFrozen ? "Unfreeze" : "Freeze"}
                               </button>
                               <button
-                                onClick={() => handleDelete(activeTab.slice(0, -1), item.id)}
+                                onClick={() =>
+                                  handleDelete(activeTab.slice(0, -1), item.id)
+                                }
                                 className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
                               >
                                 Delete

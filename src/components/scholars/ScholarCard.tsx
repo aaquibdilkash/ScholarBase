@@ -1,33 +1,34 @@
-import Link from 'next/link'
-import ListPageCardShell from '@/components/cards/ListPageCardShell'
-import { ShareButton } from '@/components/interactions/ShareButton'
+import Link from "next/link";
+import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ShareButton } from "@/components/interactions/ShareButton";
 
 type ScholarCardProps = {
   scholar: {
-    id: string
-    name: string | null
-    handle: string | null
-    avatarUrl: string | null
-    bio: string | null
-    reputation: number
-    createdAt: Date
-    followers?: { followerId: string }[]
-    _count: { followers: number; following: number }
-  }
-  currentUserId?: string
-}
+    id: string;
+    name: string | null;
+    handle: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    reputation: number;
+    createdAt: Date;
+    followers?: { followerId: string }[];
+    _count: { followers: number; following: number };
+  };
+  currentUserId?: string;
+};
 
 export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
-  const isFollowing = (scholar.followers?.length ?? 0) > 0
+  const isFollowing = (scholar.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
       authorHref={`/scholars/${scholar.id}`}
-      authorName={scholar.name || 'Scholar'}
+      authorName={scholar.name || "Scholar"}
       authorHandle={scholar.handle || undefined}
       authorAvatarUrl={scholar.avatarUrl || undefined}
       authorId={scholar.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       detailPageHref={`/scholars/${scholar.id}`}
       createdDate={scholar.createdAt}
       noBodyLink={true}
@@ -40,11 +41,17 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
       footer={
         <div className="mt-4 flex w-full flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
-            <Link href={`/scholars/${scholar.id}`} className="px-6 py-2 text-sm font-semibold rounded-lg transition bg-slate-950 text-white hover:bg-slate-800">
+            <Link
+              href={`/scholars/${scholar.id}`}
+              className="px-6 py-2 text-sm font-semibold rounded-lg transition bg-slate-950 text-white hover:bg-slate-800"
+            >
               View profile
             </Link>
             {currentUserId && currentUserId !== scholar.id ? (
-              <Link href={`/messages/new?to=${scholar.id}`} className="px-6 py-2 text-sm font-semibold rounded-lg transition bg-slate-950 text-white hover:bg-slate-800">
+              <Link
+                href={`/messages/new?to=${scholar.id}`}
+                className="px-6 py-2 text-sm font-semibold rounded-lg transition bg-slate-950 text-white hover:bg-slate-800"
+              >
                 Message
               </Link>
             ) : null}
@@ -57,9 +64,13 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {scholar.bio ? (
-              <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{scholar.bio}</p>
+              <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {scholar.bio}
+              </p>
             ) : (
-              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No bio added yet.</p>
+              <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                No bio added yet.
+              </p>
             )}
           </div>
           <div className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300">
@@ -68,5 +79,5 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
         </div>
       </Link>
     </ListPageCardShell>
-  )
+  );
 }

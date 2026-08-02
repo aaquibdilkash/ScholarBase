@@ -57,6 +57,7 @@ export default async function ArticlePage({
       }
       authorId={a.authorId}
       isFollowing={(a.author as any)?.followers?.length ? true : false}
+      currentUserId={user?.id}
       createdDate={a.createdAt}
       editedDate={a.updatedAt > a.createdAt ? a.updatedAt : undefined}
       footerVoteButton={
@@ -75,7 +76,9 @@ export default async function ArticlePage({
           className="mt-6 p-4 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-xl md:text-2xl font-bold text-slate-950 mb-4 md:mb-6">Discussion</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-950 mb-4 md:mb-6">
+            Discussion
+          </h2>
           <CommentSection
             comments={a.comments}
             targetId={a.id}

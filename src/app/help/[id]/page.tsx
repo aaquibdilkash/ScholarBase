@@ -48,6 +48,7 @@ export default async function HelpPostPage({
       authorAvatarUrl={post.author.avatarUrl || undefined}
       authorId={post.author.id}
       isFollowing={!!post.author.followers?.length}
+      currentUserId={user?.id}
       createdDate={post.createdAt}
       editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
       managementControls={
@@ -77,7 +78,9 @@ export default async function HelpPostPage({
           className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">Discussion</h2>
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
+            Discussion
+          </h2>
           <CommentSection
             comments={post.comments}
             targetId={post.id}
@@ -88,7 +91,9 @@ export default async function HelpPostPage({
         </div>
       }
     >
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-1.5 sm:mb-2">{post.title}</h1>
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-1.5 sm:mb-2">
+        {post.title}
+      </h1>
 
       <p className="text-sm sm:text-base font-semibold text-blue-700 mb-3 sm:mb-6">
         {post.category}

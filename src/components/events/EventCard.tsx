@@ -70,6 +70,7 @@ export function EventCard({
       authorName={event.author.name || "Scholar"}
       authorId={event.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={event.author.handle || undefined}
       authorAvatarUrl={event.author.avatarUrl || undefined}
       detailPageHref={`/events/${event.id}`}

@@ -38,6 +38,7 @@ export function HelpPostCard({
       authorName={helpPost.author.name || "Scholar"}
       authorId={helpPost.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={helpPost.author.handle || undefined}
       authorAvatarUrl={helpPost.author.avatarUrl || undefined}
       detailPageHref={`/help/${helpPost.id}`}

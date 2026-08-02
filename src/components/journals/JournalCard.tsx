@@ -38,6 +38,7 @@ export function JournalCard({
       authorName={journal.author.name || "Scholar"}
       authorId={journal.author.id}
       isFollowing={isFollowing}
+      currentUserId={currentUserId}
       authorHandle={journal.author.handle || undefined}
       authorAvatarUrl={journal.author.avatarUrl || undefined}
       detailPageHref={`/journals/${journal.id}`}
