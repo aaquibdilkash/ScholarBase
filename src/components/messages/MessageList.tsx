@@ -93,14 +93,23 @@ export function MessageList({
           const fetchedMessage = await fetchNewMessage(newMessageId);
 
           if (fetchedMessage) {
-            setMessages((currentMessages) => [
-              ...currentMessages,
-              fetchedMessage,
-            ]);
+            setMessages((currentMessages) => {
+              // Guard against duplicate inserts (e.g. replayed events).
+              if (currentMessages.some((m) => m.id === fetchedMessage.id)) {
+                return currentMessages;
+              }
+              return [...currentMessages, fetchedMessage];
+            });
           }
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") {
+          console.warn(
+            `Realtime channel status for conversation ${conversationId}: ${status}`,
+          );
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

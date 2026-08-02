@@ -590,15 +590,41 @@ export default function Sidebar({ user }: SidebarProps) {
               </div>
             )
           ) : !isOnLoginPage ? (
-            <Link
-              href="/login"
-              className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black"
-              onClick={() => {
-                if (!isDesktop) setMobileOpen(false);
-              }}
-            >
-              Sign In
-            </Link>
+            isCollapsed ? (
+              <Link
+                href="/login"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-white"
+                aria-label="Sign in"
+                title="Sign in"
+                onClick={() => {
+                  if (!isDesktop) setMobileOpen(false);
+                }}
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                  />
+                </svg>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black"
+                onClick={() => {
+                  if (!isDesktop) setMobileOpen(false);
+                }}
+              >
+                Sign In
+              </Link>
+            )
           ) : null}
         </div>
       </aside>

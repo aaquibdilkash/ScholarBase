@@ -4,11 +4,17 @@ import { useState, useEffect } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { getScholars } from "@/app/actions/scholars";
+import { getScholarById, getScholars } from "@/app/actions/scholars";
 import { startConversation } from "@/app/actions/messages";
 import { useToast } from "@/components/ui/Toast";
 
 type Scholar = Awaited<ReturnType<typeof getScholars>>[0];
+type Recipient = {
+  id: string;
+  name: string | null;
+  handle: string | null;
+  avatarUrl: string | null;
+};
 
 export default function NewMessagePage() {
   const searchParams = useSearchParams();
@@ -16,7 +22,7 @@ export default function NewMessagePage() {
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Scholar[]>([]);
-  const [selectedRecipient, setSelectedRecipient] = useState<Scholar | null>(
+  const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
     null,
   );
   const [isSearching, setIsSearching] = useState(false);
@@ -24,9 +30,9 @@ export default function NewMessagePage() {
   useEffect(() => {
     const to = searchParams.get("to");
     if (to) {
-      getScholars(to).then((users) => {
-        if (users.length > 0) {
-          setSelectedRecipient(users[0]);
+      getScholarById(to).then((user) => {
+        if (user) {
+          setSelectedRecipient(user);
         }
       });
     }
@@ -47,18 +53,18 @@ export default function NewMessagePage() {
     }
   }, [search]);
 
-  const handleSelectRecipient = (user: Scholar) => {
+  const handleSelectRecipient = (user: Recipient) => {
     setSelectedRecipient(user);
     setSearch("");
     setSearchResults([]);
   };
-  
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     if (!selectedRecipient) {
-        toast("Please select a recipient.", "error");
-        return;
+      toast("Please select a recipient.", "error");
+      return;
     }
     const result = await startConversation(formData);
     // TODO: handle result
@@ -133,7 +139,9 @@ export default function NewMessagePage() {
                 className="sb-input"
                 placeholder="Search for a scholar by name or handle..."
               />
-              {isSearching && <p className="p-4 text-sm text-slate-500">Searching...</p>}
+              {isSearching && (
+                <p className="p-4 text-sm text-slate-500">Searching...</p>
+              )}
               {searchResults.length > 0 && (
                 <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white shadow-lg">
                   <ul className="py-1">

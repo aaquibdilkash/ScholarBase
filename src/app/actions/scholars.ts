@@ -18,12 +18,12 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
   return prisma.user.findMany({
     where: q
       ? {
-          OR: [
-            { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            { handle: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            { bio: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          ],
-        }
+        OR: [
+          { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          { handle: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          { bio: { contains: q, mode: Prisma.QueryMode.insensitive } },
+        ],
+      }
       : undefined,
     select: {
       id: true,
@@ -35,9 +35,9 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
       createdAt: true,
       followers: currentUserId
         ? {
-            where: { followerId: currentUserId },
-            select: { followerId: true },
-          }
+          where: { followerId: currentUserId },
+          select: { followerId: true },
+        }
         : false,
       _count: {
         select: { followers: true, following: true },
@@ -45,6 +45,25 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
     },
     orderBy,
     take: 48,
+  })
+}
+
+export async function getScholarById(id: string) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      handle: true,
+      avatarUrl: true,
+      bio: true,
+      reputation: true,
+      createdAt: true,
+      followers: { select: { followerId: true } },
+      _count: {
+        select: { followers: true, following: true },
+      },
+    },
   })
 }
 

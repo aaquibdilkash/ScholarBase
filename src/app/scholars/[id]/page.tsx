@@ -6,6 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getProfile } from "@/app/actions/profile";
 import ProfileTabs from "@/components/profile/ProfileTabs";
+import { MessageButton } from "@/components/interactions/MessageButton";
+import { findDirectConversation } from "@/app/actions/messages";
 import { FollowerCount } from "./FollowerCount";
 
 export default async function ScholarProfile({
@@ -24,6 +26,11 @@ export default async function ScholarProfile({
   if (!profile) notFound();
 
   const { isFollowing, isOwnProfile } = profile;
+
+  const existingConversationId =
+    currentUser && !isOwnProfile
+      ? await findDirectConversation(currentUser.id, profile.id)
+      : null;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
@@ -84,7 +91,14 @@ export default async function ScholarProfile({
               Edit Profile
             </Link>
           ) : (
-            <FollowButton targetId={profile.id} isFollowing={isFollowing} />
+            <>
+              <MessageButton
+                recipientId={profile.id}
+                recipientName={profile.name}
+                existingConversationId={existingConversationId}
+              />
+              <FollowButton targetId={profile.id} isFollowing={isFollowing} />
+            </>
           )}
         </div>
       </div>

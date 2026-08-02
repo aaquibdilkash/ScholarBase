@@ -51,6 +51,21 @@ export async function getInbox(userId: string) {
   })
 }
 
+export async function findDirectConversation(userIdA: string, userIdB: string) {
+  const conversation = await prisma.conversation.findFirst({
+    where: {
+      type: 'DIRECT',
+      AND: [
+        { participants: { some: { userId: userIdA } } },
+        { participants: { some: { userId: userIdB } } },
+      ],
+    },
+    select: { id: true },
+  })
+
+  return conversation?.id ?? null
+}
+
 export async function getConversation(conversationId: string, userId: string) {
   return prisma.conversation.findFirst({
     where: {

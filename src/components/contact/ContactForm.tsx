@@ -5,16 +5,24 @@ import Link from "next/link";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
+import { useFormDraft } from "@/hooks/useFormDraft";
+
+const DRAFT_KEY = "draft_contact";
 
 export function ContactForm() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const { user } = useUser();
+
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(DRAFT_KEY, {
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+
+  const { name, email, subject, message } = draftFields;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,11 +50,8 @@ export function ContactForm() {
           "Thank you for your message! We'll get back to you soon.",
           "success",
         );
-        // Reset form
-        setName("");
-        setEmail("");
-        setSubject("");
-        setMessage("");
+        // Clear the persisted draft after a successful submission
+        resetDraft();
       } else {
         toast(
           data.error || "Failed to send message. Please try again.",
@@ -60,10 +65,6 @@ export function ContactForm() {
     }
   };
 
-  const handleAuthRequired = () => {
-    openAuthModal();
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
@@ -75,7 +76,7 @@ export function ContactForm() {
           id="name"
           name="name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => updateDraftField("name", e.target.value)}
           required
           className="sb-input"
           placeholder="John Doe"
@@ -91,7 +92,7 @@ export function ContactForm() {
           id="email"
           name="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => updateDraftField("email", e.target.value)}
           required
           className="sb-input"
           placeholder="you@university.edu"
@@ -107,7 +108,7 @@ export function ContactForm() {
           id="subject"
           name="subject"
           value={subject}
-          onChange={(e) => setSubject(e.target.value)}
+          onChange={(e) => updateDraftField("subject", e.target.value)}
           required
           className="sb-input"
           placeholder="Business Partnership Inquiry"
@@ -122,7 +123,7 @@ export function ContactForm() {
           id="message"
           name="message"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => updateDraftField("message", e.target.value)}
           required
           rows={6}
           className="sb-textarea resize-y"
@@ -165,7 +166,10 @@ export function ContactForm() {
 
       <p className="text-xs text-center text-slate-500 dark:text-slate-400">
         By submitting this form, you agree to our{" "}
-        <Link href="/privacy" className="text-blue-600 hover:text-blue-700 dark:text-blue-400">
+        <Link
+          href="/privacy"
+          className="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+        >
           Privacy Policy
         </Link>
       </p>

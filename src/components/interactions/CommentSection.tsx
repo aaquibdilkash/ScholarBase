@@ -117,7 +117,10 @@ export function CommentSection({
   return (
     <div className="space-y-4 md:space-y-6">
       {/* Form: Add a Top-Level Comment */}
-      <form onSubmit={handleFormSubmit} className="flex flex-col gap-3 sm:flex-row">
+      <form
+        onSubmit={handleFormSubmit}
+        className="flex flex-col gap-3 sm:flex-row"
+      >
         <input type="hidden" name="_targetId" value={targetId} />
         <input type="hidden" name="_type" value={type} />
         <input type="hidden" name="_parentId" value="" />
@@ -174,6 +177,85 @@ export function CommentSection({
   );
 }
 
+function ReplyForm({
+  targetId,
+  type,
+  parentComment,
+  onSuccess,
+  toast,
+  openAuthModal,
+}: {
+  targetId: string;
+  type: CommentSectionProps["type"];
+  parentComment: Comment;
+  onSuccess: () => void;
+  toast: (message: string, type?: "success" | "error") => void;
+  openAuthModal: () => void;
+}) {
+  const draftKey = `draft_reply_${type}_${targetId}_${parentComment.id}`;
+  const [reply, setReply] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) setReply(saved);
+    } catch (error) {
+      console.error("Failed to read reply draft from localStorage", error);
+    }
+  }, [draftKey]);
+
+  const handleReplyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setReply(value);
+    try {
+      localStorage.setItem(draftKey, value);
+    } catch (error) {
+      console.error("Failed to save reply draft to localStorage", error);
+    }
+  };
+
+  const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    formData.set("content", reply);
+    try {
+      await createCommentClientWrapper(formData);
+      toast("Reply posted successfully!", "success");
+      setReply("");
+      localStorage.removeItem(draftKey);
+      onSuccess();
+    } catch (error) {
+      toast("Failed to post reply. Please try again.", "error");
+      console.error(error);
+    }
+  };
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={handleReplySubmit}
+      className="mt-2 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 md:mt-3 md:flex-row md:gap-3"
+    >
+      <input type="hidden" name="_targetId" value={targetId} />
+      <input type="hidden" name="_type" value={type} />
+      <input type="hidden" name="_parentId" value={parentComment.id} />
+      <textarea
+        name="content"
+        placeholder={`Reply to ${parentComment.author.name}...`}
+        required
+        rows={1}
+        className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-900 md:p-3 md:text-sm"
+        value={reply}
+        onChange={handleReplyChange}
+      />
+      <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-3 py-1.5 text-xs font-bold md:w-auto md:px-5 md:py-2.5 md:text-sm">
+        Send
+      </SubmitBtnWithAuth>
+    </form>
+  );
+}
+
 function CommentEntry({
   comment,
   replies,
@@ -209,16 +291,6 @@ function CommentEntry({
     new Date(comment.updatedAt).getTime() -
       new Date(comment.createdAt).getTime() >
     1000;
-
-  const handleReplySuccess = async (formData: FormData) => {
-    try {
-      await createCommentClientWrapper(formData);
-      toast("Reply posted successfully!", "success");
-      setActiveReplyId(null);
-    } catch {
-      toast("Failed to post reply. Please try again.", "error");
-    }
-  };
 
   const handleEditSuccess = async (formData: FormData) => {
     try {
@@ -268,7 +340,7 @@ function CommentEntry({
         </div>
       </Link>
 
-      <div className="min-w-0 flex-1 overflow-hidden">
+      <div className="min-w-0 flex-1">
         <div
           className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${
             isReply
@@ -388,24 +460,14 @@ function CommentEntry({
               Reply
             </button>
             {activeReplyId === comment.id && (
-              <form
-                className="mt-2 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 md:mt-3 md:flex-row md:gap-3"
-                action={handleReplySuccess}
-              >
-                <input type="hidden" name="_targetId" value={targetId} />
-                <input type="hidden" name="_type" value={type} />
-                <input type="hidden" name="_parentId" value={comment.id} />
-                <textarea
-                  name="content"
-                  placeholder={`Reply to ${comment.author.name}...`}
-                  required
-                  rows={1}
-                  className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-blue-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-900 md:p-3 md:text-sm"
-                />
-                <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-3 py-1.5 text-xs font-bold md:w-auto md:px-5 md:py-2.5 md:text-sm">
-                  Send
-                </SubmitBtnWithAuth>
-              </form>
+              <ReplyForm
+                targetId={targetId}
+                type={type}
+                parentComment={comment}
+                onSuccess={() => setActiveReplyId(null)}
+                toast={toast}
+                openAuthModal={openAuthModal}
+              />
             )}
           </>
         )}
