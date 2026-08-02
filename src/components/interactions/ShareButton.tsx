@@ -15,11 +15,7 @@ export function ShareButton({
   const { toast } = useToast();
 
   const onShare = useCallback(async () => {
-    const shareUrl = href
-      ? href
-      : typeof window !== "undefined"
-        ? `${window.location.origin}${pathname}`
-        : "";
+    const shareUrl = href || (typeof window !== "undefined" ? `${window.location.origin}${pathname}` : "");
 
     try {
       if (typeof navigator !== "undefined" && "share" in navigator) {

@@ -120,7 +120,7 @@ export function UserListModal({
                 className="flex items-center justify-between gap-3 rounded-xl p-3 hover:bg-slate-50 transition"
               >
                 <Link
-                  href={`/scholar/${u.id}`}
+                  href={`/scholars/${u.id}`}
                   className="flex items-center gap-3 min-w-0"
                   onClick={handleClose}
                 >

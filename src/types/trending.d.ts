@@ -1,4 +1,4 @@
-import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, HelpPost, Result, ResearchSurvey } from "@prisma/client";
+import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, HelpPost, Result, ResearchSurvey, User as Scholar } from "@prisma/client";
 
 type TrendingItemBase = {
     score: number;
@@ -22,6 +22,15 @@ export type TrendingSupervisor = Supervisor & {
     };
 };
 
+export type TrendingScholar = Scholar & {
+    score: number;
+    type: 'scholar';
+    _count: {
+        followers: number;
+        following: number;
+    };
+};
+
 export type TrendingItem =
     | (JobVacancy & TrendingItemBase & { type: 'vacancy' })
     | (PhdAdmission & TrendingItemBase & { type: 'admission' })
@@ -35,4 +44,5 @@ export type TrendingItem =
     | (import("@prisma/client").Contribution & TrendingItemBase & { type: 'contribution' })
     | (import("@prisma/client").Publication & TrendingItemBase & { type: 'publication' })
     | (ResearchSurvey & TrendingItemBase & { type: 'survey' })
-    | TrendingSupervisor;
+    | TrendingSupervisor
+    | TrendingScholar;

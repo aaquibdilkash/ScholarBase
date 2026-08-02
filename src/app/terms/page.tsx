@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
           Last updated: July 29, 2026
         </p>
 
-        <div className="prose prose-lg mx-auto mt-8">
+        <div className="prose prose-lg prose-slate mx-auto mt-8 dark:prose-invert dark:prose-a:text-blue-300 dark:prose-strong:text-slate-100">
           <p>
             Welcome to ScholarBase. These Terms of Service (&ldquo;Terms&rdquo;)
             govern your access to and use of the ScholarBase website, platform,
@@ -432,7 +432,7 @@ export default function TermsOfServicePage() {
             </li>
           </ul>
 
-          <p className="mt-12 rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center text-blue-800">
+          <p className="mt-12 rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
             <strong>Open Source Notice:</strong> ScholarBase is open-source
             software. You can view and contribute to our codebase on our
             repository. The open-source license governs the code itself, while

@@ -68,7 +68,7 @@ const VOTE_CONFIG: Record<string, {
     uniqueFields: ['recommendationId', 'userId'],
     targetIdField: 'recommendationId',
     notifType: 'recommendation-upvoted',
-    urlPrefix: '/recommendation/',
+    urlPrefix: '',
     titleField: 'feedback',
   },
   help: {
@@ -172,10 +172,15 @@ export async function reverseReputationForContent(authorId: string, voteCounts: 
 
 // Count votes for a specific model and target
 export async function countVotesForTarget(model: any, targetIdField: string, targetId: string) {
-  const [upvotes, downvotes] = await Promise.all([
-    model.count({ where: { [targetIdField]: targetId, voteType: 'UPVOTE' } }),
-    model.count({ where: { [targetIdField]: targetId, voteType: 'DOWNVOTE' } }),
-  ]);
+  const counts = await model.groupBy({
+    by: ['voteType'],
+    where: { [targetIdField]: targetId },
+    _count: { _all: true },
+  });
+
+  const upvotes = counts.find((c: any) => c.voteType === 'UPVOTE')?._count._all || 0;
+  const downvotes = counts.find((c: any) => c.voteType === 'DOWNVOTE')?._count._all || 0;
+
   return { upvotes, downvotes };
 }
 
@@ -356,10 +361,14 @@ async function performVoteOp(
     finalVoteType = voteType;
   }
 
-  const [upvotes, downvotes] = await Promise.all([
-    model.count({ where: { [field1]: targetId, voteType: 'UPVOTE' } }),
-    model.count({ where: { [field1]: targetId, voteType: 'DOWNVOTE' } }),
-  ]);
+  const counts = await model.groupBy({
+    by: ['voteType'],
+    where: { [field1]: targetId },
+    _count: { _all: true },
+  });
+
+  const upvotes = counts.find((c: any) => c.voteType === 'UPVOTE')?._count._all || 0;
+  const downvotes = counts.find((c: any) => c.voteType === 'DOWNVOTE')?._count._all || 0;
 
   return { userVote: finalVoteType, upvotes, downvotes, previousVoteType };
 }
@@ -415,12 +424,25 @@ export async function toggleVote(
     }).catch(() => { });
   }
 
-  const paths = [config.urlPrefix]
-  if (!['article', 'post'].includes(type)) {
-    paths.push(`${config.urlPrefix}${targetId}`)
+  const paths: string[] = []
+  if (type === 'recommendation') {
+    const recommendation = await prisma.recommendation.findUnique({
+      where: { id: targetId },
+      select: { supervisorId: true }
+    });
+    if (recommendation) {
+      paths.push(`/supervisor/${recommendation.supervisorId}/recommendation/${targetId}`);
+    }
+  } else {
+    // Original logic for other types
+    paths.push(config.urlPrefix)
+    if (!['article', 'post'].includes(type)) {
+      paths.push(`${config.urlPrefix}${targetId}`)
+    }
   }
+
   if (authorInfo?.authorId) {
-    paths.push(`/scholar/${authorInfo.authorId}`)
+    paths.push(`/scholars/${authorInfo.authorId}`)
   }
   for (const p of paths) {
     if (p.startsWith('/blog')) {

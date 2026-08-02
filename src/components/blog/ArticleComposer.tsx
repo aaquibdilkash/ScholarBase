@@ -44,8 +44,8 @@ export function ArticleComposer({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Article published successfully!",
-      errorMessage: "Failed to publish article.",
+      successMessage: mode === 'edit' ? "Article updated successfully!" : "Article published successfully!",
+      errorMessage: mode === 'edit' ? "Failed to update article." : "Failed to publish article.",
     },
   );
 
@@ -60,11 +60,13 @@ export function ArticleComposer({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && articleId && slug) {
-      await updateArticle(formData, articleId, slug);
-    } else {
-      await submit(() => createArticle(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && articleId && slug) {
+        return updateArticle(formData, articleId, slug);
+      } else {
+        return createArticle(formData);
+      }
+    });
   }
 
   return (

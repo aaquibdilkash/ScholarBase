@@ -1,0 +1,103 @@
+"Page/View","User State","Test Case ID","Module","Feature","Test Scenario","Test Case Description","Preconditions","Test Steps","Expected Result","UI/UX Checks"
+"Login Page","Not Logged In","TC-LOGIN-001","Authentication","Login","Successful login with email and password","Verify that a user can successfully log in with valid credentials.","User has a registered account.","1. Go to the login page.
+2. Enter a valid email and password.
+3. Click the 'Login' button.","User is redirected to the dashboard/feed and a success message is shown.","- 'Login' button shows a loader on click and is disabled.
+- Cursor is a pointer on hover over the 'Login' button.
+- Success toast 'Logged in successfully' is shown.
+- Form fields show inline validation errors for invalid formats (e.g., bad email)."
+"Login Page","Not Logged In","TC-LOGIN-002","Authentication","Login","Login with invalid credentials","Verify that appropriate error feedback is given for invalid login attempts.","","1. Go to the login page.
+2. Enter invalid credentials.
+3. Click the 'Login' button.","An error message is displayed, and the user remains on the login page.","- Error toast 'Invalid credentials' or similar is shown.
+- Loader on the 'Login' button disappears, and the button is re-enabled."
+"General / Any Page","Logged In","TC-GENERAL-001","Authentication","Logout","Successful logout","Verify that a user can successfully log out from any page.","User is logged in.","1. From any page, click on the user profile icon.
+2. Click the 'Logout' button.","User is redirected to the login page and the session is terminated.","- Cursor is a pointer on hover over the 'Logout' button.
+- A success toast 'You have been logged out' may be shown on the login page."
+"Feed Page","Logged In","TC-FEED-001","Feed","View Feed","View the main content feed","Verify the user's personalized feed loads correctly.","User is following other users or topics.","1. Log in.
+2. Navigate to the main feed page.","The feed displays a list of relevant items (posts, publications, etc.).","- A loading skeleton/spinner is shown while the feed is being fetched.
+- If the feed is empty, an 'Empty State' message is shown.
+- As the user scrolls down, more items are loaded automatically (infinite scroll) with a loader visible at the bottom."
+"Feed Page","Logged In","TC-FEED-002","Feed","Interact with Feed Item","Like a post directly from the feed","Verify a user can like/upvote a post from the feed view.","The feed contains a post.","1. Find a post in the feed.
+2. Click the 'Like' or 'Upvote' button on the post.","The button's state changes to 'liked', and the count updates without a page reload.","- The 'Like' button shows a brief loader or animation.
+- An error toast is shown if the action fails."
+"Feed Page","Not Logged In","TC-FEED-001-G","Feed","Access Page","Attempt to access the feed page while not logged in","Verify that a non-logged-in user is redirected to login when trying to access the feed.","","1. Navigate directly to the /feed URL.","The user is redirected to the login page."
+"Blog List Page","Any","TC-BLOGLIST-001","Blog","View Posts","View the list of published blog posts","Verify that any user can see the list of published blog posts.","At least one blog post is published.","1. Navigate to the /blog page.","A list/grid of blog posts is displayed.","- A loading skeleton/spinner is shown while posts are being fetched.
+- Blog post cards have a pointer cursor on hover.
+- If there are no posts, an 'Empty State' message like 'No blog posts yet' is displayed."
+"Blog Detail Page","Any","TC-BLOGDETAIL-001","Blog","Read Post","View a single blog post","Verify that any user can view a published blog post's full content.","A blog post is published.","1. From the blog list page, click on a blog post title.","The full blog post content is displayed.","- A loading skeleton/spinner is shown while the post is being fetched.
+- Images in the post have 'alt' text for accessibility."
+"Blog Detail Page","Logged In","TC-BLOGDETAIL-003","Blog","Add Comment","Add a comment to a blog post","Verify that a logged-in user can add a comment.","A blog post is published.","1. Go to a blog post detail page.
+2. Write a comment.
+3. Click 'Post Comment'.","The comment is added to the blog post.","- 'Post Comment' button shows a loader and is disabled on click.
+- A success toast 'Comment posted' is shown.
+- The new comment appears in the list without a page refresh."
+"Add/Edit Blog Page","Logged In","TC-ADDBLOG-001","Blog","Create Post","Create and publish a new blog post","Verify that a user can create and publish a new blog post.","","1. Navigate to the 'Add Blog' page.
+2. Fill in the title and content.
+3. Click 'Publish'.","The new blog post is created and the user is redirected to the new post's page.","- 'Publish' button is disabled if required fields are empty.
+- 'Publish' button shows a loader and is disabled on click.
+- A success toast 'Post published successfully' is shown on redirect."
+"Add/Edit Blog Page","Logged In","TC-ADDBLOG-005","Drafts","Restore from Local Storage","Draft content is restored from local storage on page refresh","Verify that if the page is refreshed, the user doesn't lose their work.","User was typing a post.","1. Start typing a new post.
+2. Refresh the page.","The editor reloads and is pre-filled with the content from local storage.","- A toast or modal 'We have restored your unsaved changes' should appear, with an option to discard."
+"Profile Page","Logged In","TC-PROFILE-001","Profile","View Own Profile","View own profile information","Verify that a user can view their own profile information.","","1. Click on the profile icon.
+2. Select 'My Profile'.","The user's profile page is displayed with their information.","- A loading skeleton is shown while profile data is fetched."
+"Profile Page","Logged In","TC-PROFILE-005","Follow","Follow a user from their profile","Verify a user can follow another user.","Target user exists.","1. Go to another user's profile page.
+2. Click the 'Follow' button.","The user is now following the target user. The button text changes to 'Unfollow'.","- 'Follow' button shows a loader and is disabled on click.
+- A success toast 'You are now following [username]' is shown.
+- The follower count on the profile may update."
+"Profile Page","Not Logged In","TC-PROFILE-005-G","Follow","Attempt to follow a user","Verify non-logged-in user is prompted to log in.","Target user exists.","1. Go to another user's profile page.
+2. Click the 'Follow' button.","An authentication modal is displayed.","- The 'Follow' button has a pointer cursor on hover, even when logged out."
+"Publications List Page","Any","TC-PUBS-LIST-001","Publications","View Publications","View the list of publications","Verify that any user can see the list of publications.","At least one publication exists.","1. Navigate to the /publications page.","A list of publications is displayed.","- Loading skeleton is shown while fetching.
+- Empty state message is shown if no publications exist."
+"Publication Detail Page","Any","TC-PUBS-DETAIL-001","Publications","View Publication Detail","View a single publication's details","Verify any user can view the details of a publication.","A publication exists.","1. From the publications list, click on a publication.","The full details of the publication are displayed.","- Loading skeleton is shown while fetching."
+"Publication Detail Page","Logged In","TC-PUBS-DETAIL-002","Publications","Delete Own Publication","Delete a publication from the detail page","Verify the author can delete their own publication.","User is the author of the publication.","1. Go to a publication you own.
+2. Click the 'Delete' button.
+3. Confirm in the modal.","The publication is deleted, and the user is redirected to the publications list.","- A confirmation modal appears on delete click.
+- The 'Delete' button in the modal shows a loader.
+- A success toast 'Publication deleted' is shown."
+"Add/Edit Publication Page","Not Logged In","TC-ADDPUBS-001-G","Publications","Access Page","Attempt to access the 'Add Publication' page directly","Verify a non-logged-in user is redirected to login.","","1. Navigate directly to the /publications/add URL.","The user is redirected to the login page."
+"Messages Page","Logged In","TC-MSG-001","Messages","View Conversations","View the list of conversations","Verify a user can see their message threads.","User has existing conversations.","1. Log in.
+2. Navigate to /messages.","A list of conversations is displayed, showing the other user and a message preview.","- Loading skeleton is shown while fetching.
+- Empty state message 'You have no messages' is shown if none exist."
+"Messages Page","Logged In","TC-MSG-002","Messages","Send Reply","Send a reply in a conversation","Verify a user can send a message in an existing conversation.","User has an open conversation.","1. Open a conversation from the list.
+2. Type a message in the input box.
+3. Click 'Send'.","The new message appears in the conversation view instantly.","- The 'Send' button shows a loader and is disabled on click.
+- The input field clears after the message is sent."
+"Messages Page","Not Logged In","TC-MSG-001-G","Messages","Access Page","Attempt to access the messages page while not logged in","Verify a non-logged-in user is redirected to login.","","1. Navigate directly to the /messages URL.","The user is redirected to the login page."
+"Notifications Page","Logged In","TC-NOTIF-001","Notifications","View Notifications","View the notifications page/panel","Verify a user can see their notifications for new followers, comments, etc.","User has notifications.","1. Log in.
+2. Click on the notification bell icon.","A panel or page opens showing a list of notifications.","- A loading indicator is shown when opening the panel.
+- Unread notifications have a distinct visual style (e.g., a blue dot)."
+"Notifications Page","Logged In","TC-NOTIF-002","Notifications","Mark as Read","Mark a notification as read","Verify a user can mark a single notification as read.","User has an unread notification.","1. Open the notifications panel.
+2. Click on a single unread notification.","The notification's visual style changes to 'read', and it may trigger a redirect to the relevant content.","- An API call is made in the background to mark as read.
+- An error toast appears if this fails."
+"Admissions List Page","Any","TC-ADMISSION-LIST-001","Admissions","View Admissions","View the list of available admissions","Verify that any user can see the list of admissions.","At least one admission exists.","1. Navigate to the /admissions page.","A list of admissions is displayed.","- Loading skeleton is shown while fetching.
+- Empty state message is shown if no admissions exist."
+"Admission Detail Page","Logged In","TC-ADMISSION-DETAIL-001","Admissions","Apply for Admission","Apply for an admission opportunity","Verify a logged-in user can apply for an admission.","An admission is open for applications.","1. Go to an admission detail page.
+2. Click 'Apply'.
+3. Fill out and submit the application form.","The application is submitted, and the user receives a confirmation.","- 'Apply' button shows a loader.
+- A success toast/page confirms the application was submitted."
+"Admission Detail Page","Not Logged In","TC-ADMISSION-DETAIL-001-G","Admissions","Attempt to Apply","Attempt to apply for an admission while not logged in","Verify a non-logged-in user is prompted to log in.","An admission is open for applications.","1. Go to an admission detail page.
+2. Click 'Apply'.","An authentication modal is displayed."
+"Events List Page","Any","TC-EVENT-LIST-001","Events","View Events","View the list of upcoming events","Verify that any user can see the list of events.","At least one event exists.","1. Navigate to the /events page.","A list of events is displayed.","- Loading skeleton is shown while fetching.
+- Empty state message is shown if no events exist."
+"Event Detail Page","Logged In","TC-EVENT-DETAIL-001","Events","RSVP to Event","RSVP 'Yes' for an event","Verify a logged-in user can RSVP to an event.","An event is available for RSVP.","1. Go to an event detail page.
+2. Click the 'RSVP' or 'Going' button.","The user's RSVP status is updated, and the button state changes.","- 'RSVP' button shows a loader on click.
+- A success toast 'Your RSVP was saved' is shown."
+"Event Detail Page","Not Logged In","TC-EVENT-DETAIL-001-G","Events","Attempt to RSVP","Attempt to RSVP to an event while not logged in","Verify a non-logged-in user is prompted to log in.","An event is available for RSVP.","1. Go to an event detail page.
+2. Click the 'RSVP' button.","An authentication modal is displayed."
+"Vacancies List Page","Any","TC-VACANCY-LIST-001","Vacancies","View Vacancies","View the list of open vacancies","Verify that any user can see the list of job vacancies.","At least one vacancy exists.","1. Navigate to the /vacancies page.","A list of vacancies is displayed.","- Loading skeleton is shown while fetching.
+- Empty state message is shown if no vacancies exist."
+"Vacancy Detail Page","Logged In","TC-VACANCY-DETAIL-001","Vacancies","Apply for Vacancy","Apply for a job vacancy","Verify a logged-in user can apply for a vacancy.","A vacancy is open for applications.","1. Go to a vacancy detail page.
+2. Click 'Apply'.
+3. Fill out and submit the application form.","The application is submitted and a confirmation is shown.","- 'Apply' button shows a loader.
+- Success toast/page confirms submission."
+"Scholars List Page","Any","TC-SCHOLAR-LIST-001","Scholars","View Scholars","View the list of scholars on the platform","Verify that any user can see the list of scholars.","At least one scholar exists.","1. Navigate to the /scholars page.","A list of scholars is displayed.","- Loading skeleton is shown while fetching.
+- Empty state message is shown if no scholars exist."
+"Scholars List Page","Logged In","TC-SCHOLAR-LIST-002","Scholars","Invite Scholar","Invite a new scholar to the platform","Verify a logged-in user can invite a scholar.","User has permissions to invite.","1. Go to the scholars page.
+2. Click 'Invite Scholar'.
+3. Fill in the invite form and send.","The invitation is sent and a confirmation is shown.","- 'Invite' button shows a loader.
+- Success toast confirms invitation was sent."
+"General / Any Page","Any","TC-GENERAL-002","Accessibility","Icon Buttons","Icon-only buttons have labels","Verify that buttons that only have an icon still have a text label for screen readers.","An icon-only button (e.g., for upvoting, deleting) exists.","1. Hover over an icon-only button.
+2. Use a screen reader or browser dev tools to inspect the element.","A tooltip with the action's name appears on hover.
+The button has an 'aria-label' attribute (e.g., aria-label='Upvote')."
+"General / Any Page","Any","TC-GENERAL-003","Responsiveness","Mobile View","Check layout on a small screen","Verify that the page layout adapts correctly for mobile devices.","","1. Open a page on a mobile device or a small browser window.","- The layout should be single-column.
+- No horizontal scrolling should be required.
+- Navigation may be collapsed into a hamburger menu."

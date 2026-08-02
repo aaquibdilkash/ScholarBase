@@ -74,7 +74,7 @@ export default async function SupervisorPage({
       backLabel="Back to Search"
       authorId={supervisor.authorId}
       isFollowing={isFollowing}
-      authorHref={`/scholar/${supervisor.authorId}`}
+      authorHref={`/scholars/${supervisor.authorId}`}
       authorName={supervisor.author?.name || "Scholar"}
       authorHandle={supervisor.author?.handle || undefined}
       authorAvatarUrl={supervisor.author?.avatarUrl || undefined}

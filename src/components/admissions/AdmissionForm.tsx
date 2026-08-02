@@ -46,8 +46,8 @@ export default function AdmissionForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Admission posted successfully!",
-      errorMessage: "Failed to post admission.",
+      successMessage: mode === 'edit' ? "Admission updated successfully!" : "Admission posted successfully!",
+      errorMessage: mode === 'edit' ? "Failed to update admission." : "Failed to post admission.",
     },
   );
 
@@ -55,11 +55,13 @@ export default function AdmissionForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && admissionId) {
-      await updatePhdAdmission(formData, admissionId);
-    } else {
-      await submit(() => createAdmissionSafe(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && admissionId) {
+        return updatePhdAdmission(formData, admissionId);
+      } else {
+        return createAdmissionSafe(formData);
+      }
+    });
   }
 
   return (

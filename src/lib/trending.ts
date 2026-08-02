@@ -273,3 +273,27 @@ export async function getTrendingSupervisors(userId?: string) {
 
     return sortedSupervisors
 }
+
+export async function getTrendingScholars(userId?: string) {
+    const scholars = await prisma.user.findMany({
+        include: {
+            followers: userId ? { where: { followerId: userId } } : false,
+            _count: {
+                select: {
+                    followers: true,
+                    following: true,
+                },
+            },
+        },
+        orderBy: {
+            reputation: 'desc',
+        },
+        take: 20,
+    });
+
+    return scholars.map(scholar => ({
+        ...scholar,
+        type: 'scholar',
+        score: scholar.reputation,
+    }));
+}

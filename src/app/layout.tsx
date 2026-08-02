@@ -3,6 +3,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/db";
@@ -111,9 +112,12 @@ export default async function RootLayout({
   const sidebarUser = user ? { id: user.id, email: user.email, isAdmin } : null;
 
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">{`(function(){try{var theme=localStorage.getItem('sb-theme');var dark=theme==='dark';document.documentElement.classList.toggle('dark',dark);document.documentElement.dataset.theme=dark?'dark':'light';document.documentElement.style.colorScheme=dark?'dark':'light';}catch(e){}})();`}</Script>
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased text-slate-900 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background font-sans antialiased text-foreground`}
       >
         <NextTopLoader showSpinner={false} />
         <AppProviders>
@@ -123,7 +127,7 @@ export default async function RootLayout({
             <div className="flex min-w-0 flex-1 flex-col">
               <Navbar />
 
-              <main className="sb-shell flex-1 flex-grow py-8 md:py-10">{children}</main>
+              <main className="sb-shell flex-1 grow py-8 md:py-10">{children}</main>
 
               <Footer />
             </div>

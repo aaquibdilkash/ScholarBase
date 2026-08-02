@@ -57,13 +57,31 @@ export async function getProfile(profileId: string, currentUserId?: string) {
 
 export type ProfileSections = Awaited<ReturnType<typeof getProfileSections>>;
 
-export async function getProfileSections(profileId: string, currentUserId?: string) {
+export async function getProfileSections(profileId: string, currentUserId?: string, take: number = 1) {
     const userWithProfileData = await prisma.user.findUnique({
         where: { id: profileId },
         select: {
             id: true,
+            _count: {
+                select: {
+                    articles: true,
+                    socialPosts: true,
+                    vacancies: true,
+                    admissions: true,
+                    events: true,
+                    helpPosts: true,
+                    journals: true,
+                    researchTools: true,
+                    recommendations: true,
+                    supervisors: true,
+                    results: true,
+                    contributionPosts: true,
+                    publications: true,
+                    surveys: true,
+                }
+            },
             articles: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -92,7 +110,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 },
             },
             socialPosts: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -118,7 +136,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 },
             },
             vacancies: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -147,7 +165,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 },
             },
             admissions: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -176,7 +194,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 },
             },
             events: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -206,7 +224,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 },
             },
             helpPosts: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -234,7 +252,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             journals: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -266,7 +284,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             researchTools: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -294,7 +312,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             recommendations: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -324,7 +342,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             supervisors: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -351,7 +369,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             results: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -383,7 +401,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             contributionPosts: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -412,7 +430,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                 }
             },
             publications: {
-                take: 5,
+                take,
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
@@ -451,12 +469,315 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                     _count: { select: { votes: true, comments: true } }
                 }
             },
+            surveys: {
+                take,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    title: true,
+                    description: true,
+                    privacy: true,
+                    shareData: true,
+                    status: true,
+                    authorId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            handle: true,
+                            avatarUrl: true,
+                            createdAt: true,
+                            email: true,
+                            bio: true,
+                            followers: currentUserId ? { where: { followerId: currentUserId } } : false
+                        }
+                    },
+                    votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+                    _count: { select: { votes: true, comments: true, responses: true } }
+                }
+            },
         }
     })
 
     if (!userWithProfileData) return null
 
     return userWithProfileData;
+}
+
+const ProfileSectionMap = {
+    articles: 'article',
+    socialPosts: 'socialPost',
+    vacancies: 'vacancy',
+    admissions: 'admission',
+    events: 'event',
+    helpPosts: 'helpPost',
+    journals: 'journal',
+    researchTools: 'researchTool',
+    recommendations: 'recommendation',
+    supervisors: 'supervisor',
+    results: 'result',
+    contributionPosts: 'contributionPost',
+    publications: 'publication',
+    surveys: 'survey',
+} as const;
+
+export async function getProfileSection(
+    profileId: string,
+    section: keyof typeof ProfileSectionMap,
+    currentUserId?: string,
+    skip: number = 0,
+    take: number = 5
+) {
+    const model = ProfileSectionMap[section];
+    if (!model) {
+        throw new Error(`Invalid section: ${section}`);
+    }
+
+    const commonSelect = {
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                createdAt: true,
+                email: true,
+                bio: true,
+                followers: currentUserId ? { where: { followerId: currentUserId } } : false
+            }
+        },
+        votes: currentUserId ? { select: { userId: true, voteType: true } } : { take: 0, select: { userId: true, voteType: true } },
+        _count: { select: { votes: true, comments: true } }
+    };
+
+    let select: any;
+
+    switch (model) {
+        case 'article':
+            select = {
+                id: true,
+                slug: true,
+                title: true,
+                excerpt: true,
+                content: true,
+                published: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'socialPost':
+            select = {
+                id: true,
+                content: true,
+                imageUrl: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'vacancy':
+            select = {
+                id: true,
+                title: true,
+                institution: true,
+                deadline: true,
+                description: true,
+                notificationLink: true,
+                applyLink: true,
+                createdAt: true,
+                authorId: true,
+                ...commonSelect
+            };
+            break;
+        case 'admission':
+            select = {
+                id: true,
+                university: true,
+                department: true,
+                deadline: true,
+                description: true,
+                notificationLink: true,
+                applyLink: true,
+                createdAt: true,
+                authorId: true,
+                ...commonSelect
+            };
+            break;
+        case 'event':
+            select = {
+                id: true,
+                title: true,
+                location: true,
+                date: true,
+                description: true,
+                deadline: true,
+                notificationLink: true,
+                applyLink: true,
+                createdAt: true,
+                authorId: true,
+                ...commonSelect
+            };
+            break;
+        case 'helpPost':
+            select = {
+                id: true,
+                title: true,
+                subject: true,
+                category: true,
+                message: true,
+                createdAt: true,
+                updatedAt: true,
+                authorId: true,
+                ...commonSelect
+            };
+            break;
+        case 'journal':
+            select = {
+                id: true,
+                title: true,
+                about: true,
+                issn: true,
+                impactFactor: true,
+                scopus: true,
+                abdcCategory: true,
+                publisher: true,
+                website: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'researchTool':
+            select = {
+                id: true,
+                name: true,
+                description: true,
+                website: true,
+                use: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'recommendation':
+            select = {
+                id: true,
+                rating: true,
+                turnaroundTimeDays: true,
+                responsivenessScore: true,
+                guidanceScore: true,
+                feedback: true,
+                supervisorId: true,
+                authorId: true,
+                createdAt: true,
+                supervisor: { select: { id: true, name: true } },
+                ...commonSelect
+            };
+            break;
+        case 'supervisor':
+            select = {
+                id: true,
+                name: true,
+                university: true,
+                department: true,
+                about: true,
+                createdAt: true,
+                authorId: true,
+                ...commonSelect
+            };
+            break;
+        case 'result':
+            select = {
+                id: true,
+                title: true,
+                description: true,
+                type: true,
+                category: true,
+                conductingBody: true,
+                session: true,
+                notificationLink: true,
+                resultLink: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'contributionPost':
+            select = {
+                id: true,
+                title: true,
+                message: true,
+                amount: true,
+                upiId: true,
+                status: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'publication':
+            select = {
+                id: true,
+                title: true,
+                authors: true,
+                publicationType: true,
+                journalOrConference: true,
+                publisher: true,
+                year: true,
+                volume: true,
+                issue: true,
+                pages: true,
+                doi: true,
+                isbn: true,
+                url: true,
+                keywords: true,
+                domain: true,
+                abstract: true,
+                isUserAuthor: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect
+            };
+            break;
+        case 'survey':
+            select = {
+                id: true,
+                title: true,
+                description: true,
+                privacy: true,
+                shareData: true,
+                status: true,
+                authorId: true,
+                createdAt: true,
+                updatedAt: true,
+                ...commonSelect,
+                _count: { select: { votes: true, comments: true, responses: true } }
+            };
+            break;
+        default:
+            throw new Error(`Invalid section: ${section}`);
+    }
+
+    // @ts-ignore
+    const items = await prisma[model].findMany({
+        where: { authorId: profileId },
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        select,
+    });
+
+    return items;
 }
 
 
@@ -501,7 +822,7 @@ export async function updateProfile(formData: FormData) {
         }
     })
 
-    revalidatePath(`/scholar/${updatedUser.id}`)
+    revalidatePath(`/scholars/${updatedUser.id}`)
 
     return {
         success: true,

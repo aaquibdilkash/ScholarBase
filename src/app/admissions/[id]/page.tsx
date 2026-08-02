@@ -43,7 +43,7 @@ const AdmissionDetailPage = async ({
     <DetailPageCardShell
       backHref="/admissions"
       backLabel="Back to PhD Admissions"
-      authorHref={`/scholar/${admission.author.id}`}
+      authorHref={`/scholars/${admission.author.id}`}
       authorName={admission.author.name || "Scholar"}
       authorHandle={admission.author.handle || undefined}
       authorAvatarUrl={admission.author.avatarUrl || undefined}
@@ -79,7 +79,7 @@ const AdmissionDetailPage = async ({
               href={admission.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="flex-1 sb-button-soft"
             >
               View Circular
             </a>
@@ -89,7 +89,7 @@ const AdmissionDetailPage = async ({
               href={admission.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="flex-1 sb-button-primary"
             >
               Go to Portal
             </a>

@@ -69,7 +69,7 @@ export default async function RecommendationDetailPage({
     <DetailPageCardShell
       backHref={`/supervisor/${recommendation.supervisor.id}`}
       backLabel="Back to Supervisor Profile"
-      authorHref={`/scholar/${recommendation.author.id}`}
+      authorHref={`/scholars/${recommendation.author.id}`}
       authorName={recommendation.author.name || "Scholar"}
       authorHandle={recommendation.author.handle || undefined}
       authorAvatarUrl={recommendation.author.avatarUrl || undefined}

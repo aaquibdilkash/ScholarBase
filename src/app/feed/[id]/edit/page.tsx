@@ -106,8 +106,14 @@ export default function EditPostPage({
 
       await updateSocialPost(formData, postId);
       toast("Post updated successfully!", "success");
-      router.push(`/feed/${postId}`);
     } catch (err: any) {
+      if (err.digest?.startsWith('NEXT_REDIRECT')) {
+        // known issue with server actions + client-side navigation
+        // (see: https://github.com/vercel/next.js/issues/52192)
+        // the page will redirect as expected, so we can ignore this error
+        return;
+      }
+      
       toast(err?.message || "Failed to update post.", "error");
     } finally {
       setSubmitting(false);

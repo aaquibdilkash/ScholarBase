@@ -7,6 +7,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { deleteJobVacancy } from "@/app/actions/vacancies";
 
 type VacancyWithAuthor = JobVacancy & {
   author: User & {
@@ -35,7 +36,7 @@ export function VacancyCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${vacancy.author.id}`}
+      authorHref={`/scholars/${vacancy.author.id}`}
       authorName={vacancy.author.name || "Scholar"}
       authorId={vacancy.author.id}
       isFollowing={isFollowing}
@@ -49,8 +50,8 @@ export function VacancyCard({
             isOwner={true}
             editLabel="Edit Vacancy"
             deleteLabel="Delete"
-            onDelete={() => {
-              // TODO: wire delete action if available
+            onDelete={async () => {
+              await deleteJobVacancy(vacancy.id);
             }}
           />
         )
@@ -69,13 +70,13 @@ export function VacancyCard({
       footerCommentsCount={vacancy._count.comments}
       noBodyLink={true}
       bodyBottomContent={
-        <div className="flex gap-3 mt-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           {vacancy.notificationLink && (
             <a
               href={vacancy.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
             >
               Details
             </a>
@@ -86,7 +87,7 @@ export function VacancyCard({
               href={vacancy.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
             >
               Apply
             </a>

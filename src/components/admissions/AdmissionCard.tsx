@@ -8,6 +8,14 @@ import { deletePhdAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 type AdmissionWithAuthor = PhdAdmission & {
   author: User & {
     followers?: { followerId: string }[];
@@ -55,7 +63,7 @@ export function AdmissionCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${admission.author.id}`}
+      authorHref={`/scholars/${admission.author.id}`}
       authorName={admission.author.name || "Scholar"}
       authorId={admission.author.id}
       isFollowing={isFollowing}
@@ -89,13 +97,13 @@ export function AdmissionCard({
       footerCommentsCount={admission._count.comments}
       noBodyLink={true}
       bodyBottomContent={
-        <div className="flex gap-3 mt-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           {admission.notificationLink && (
             <a
               href={admission.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
             >
               View Circular
             </a>
@@ -105,7 +113,7 @@ export function AdmissionCard({
               href={admission.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
             >
               Go to Portal
             </a>
@@ -137,44 +145,40 @@ export function AdmissionCard({
           )}
         </div>
 
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold leading-tight text-slate-950">
-            {admission.university}
-          </h2>
-          <p className="mt-1 text-sm font-semibold text-blue-700">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+          {admission.university}
+        </h2>
+
+        <div className="mb-3 space-y-1.5">
+          <p className="text-sm font-semibold text-blue-700">
             {admission.department}
           </p>
-        </div>
-
-        <div className="mb-3 flex items-center gap-2 text-sm text-slate-600">
-          <svg
-            className="h-4 w-4 shrink-0 text-slate-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>
-            Closing:{" "}
-            <span className="font-medium">
-              {new Date(admission.deadline).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <svg
+              className="h-4 w-4 shrink-0 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>
+              Deadline:{" "}
+              <span className="font-medium">
+                {formatDate(admission.deadline)}
+              </span>
             </span>
-          </span>
+          </div>
         </div>
 
         <RichContent
           content={admission.description}
-          className="mb-6 text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
         />
       </Link>
     </ListPageCardShell>

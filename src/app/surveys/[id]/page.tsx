@@ -60,7 +60,7 @@ const SurveyDetailPage = async ({
     <DetailPageCardShell
       backHref="/surveys"
       backLabel="Back to Surveys"
-      authorHref={`/scholar/${survey.author.id}`}
+      authorHref={`/scholars/${survey.author.id}`}
       authorName={survey.author.name || "Scholar"}
       authorHandle={survey.author.handle || undefined}
       authorAvatarUrl={survey.author.avatarUrl || undefined}
@@ -161,7 +161,10 @@ const SurveyDetailPage = async ({
           {survey.questions.length !== 1 ? "s" : ""}
         </div>
         {survey.shareData && (
-          <div className="flex items-center gap-2 text-blue-600">
+          <Link
+            href={`/surveys/${survey.id}/results`}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+          >
             <svg
               className="w-5 h-5"
               fill="none"
@@ -175,8 +178,8 @@ const SurveyDetailPage = async ({
                 d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
               />
             </svg>
-            Data sharing is enabled — results are available
-          </div>
+            <span className="font-medium">Data sharing is enabled — results are available</span>
+          </Link>
         )}
       </div>
 

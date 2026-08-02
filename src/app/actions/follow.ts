@@ -15,6 +15,11 @@ export async function toggleFollow(followingId: string): Promise<boolean | { err
   // Guard against incorrect invocation (e.g. undefined passed from UI)
   if (!followingId) return false
 
+  // Prevent users from following themselves
+  if (user.id === followingId) {
+    return { error: "You cannot follow yourself" }
+  }
+
   const existing = await prisma.follows.findUnique({
     where: {
       followerId_followingId: {
@@ -55,7 +60,7 @@ export async function toggleFollow(followingId: string): Promise<boolean | { err
     select: { followerId: true },
   })
 
-  revalidatePath(`/scholar/${followingId}`)
+  revalidatePath(`/scholars/${followingId}`)
   revalidatePath('/feed')
 
   return updated ? true : false

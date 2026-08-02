@@ -39,7 +39,7 @@ const EventDetailPage = async ({
     <DetailPageCardShell
       backHref="/events"
       backLabel="Back to Events"
-      authorHref={`/scholar/${event.author.id}`}
+      authorHref={`/scholars/${event.author.id}`}
       authorName={event.author.name || "Scholar"}
       authorHandle={event.author.handle || undefined}
       authorAvatarUrl={event.author.avatarUrl || undefined}
@@ -78,7 +78,7 @@ const EventDetailPage = async ({
               href={event.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="flex-1 sb-button-soft"
             >
               View Brochure
             </a>
@@ -88,7 +88,7 @@ const EventDetailPage = async ({
               href={event.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="flex-1 sb-button-primary"
             >
               Register Now
             </a>

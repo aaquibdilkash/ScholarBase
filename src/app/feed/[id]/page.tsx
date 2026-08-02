@@ -39,7 +39,7 @@ export default async function SinglePostPage({
     <DetailPageCardShell
       backHref="/feed"
       backLabel="Back to Feed"
-      authorHref={`/scholar/${p.author.id}`}
+      authorHref={`/scholars/${p.author.id}`}
       authorName={p.author.name || "Scholar"}
       authorHandle={p.author.handle || undefined}
       authorAvatarUrl={p.author.avatarUrl || undefined}

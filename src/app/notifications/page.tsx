@@ -2,6 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
 import { getNotificationLink } from "@/lib/notifications";
+import { formatTimeAgo } from "@/utils/time-ago";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -56,13 +57,13 @@ export default async function NotificationsPage() {
     <main className="mx-auto max-w-4xl py-6">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
+          <div className="mb-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
             Notifications
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-100">
             Your activity feed
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-slate-600 dark:text-slate-400">
             See votes, comments, follows, mentions, and other updates that
             matter to you.
           </p>
@@ -76,7 +77,7 @@ export default async function NotificationsPage() {
           const link = getNotificationLink(notification);
           const content = (
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-slate-800 dark:text-slate-200">
                 {notification.actor.avatarUrl ? (
                   <Image
                     src={notification.actor.avatarUrl}
@@ -92,18 +93,18 @@ export default async function NotificationsPage() {
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-slate-950">
+                  <p className="font-semibold text-slate-950 dark:text-slate-100">
                     {notification.title}
                   </p>
-                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                     {typeLabel(notification.type)}
                   </span>
                 </div>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                   {notification.body}
                 </p>
-                <p className="mt-2 text-xs font-medium text-slate-500">
-                  {new Date(notification.createdAt).toLocaleString("en-US")}
+                <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                  {formatTimeAgo(notification.createdAt)}
                 </p>
               </div>
             </div>
@@ -117,7 +118,9 @@ export default async function NotificationsPage() {
             <div
               key={notification.id}
               className={`sb-card flex flex-col gap-4 md:flex-row md:items-start md:justify-between ${
-                notification.readAt ? "" : "border-blue-200 bg-blue-50/40"
+                notification.readAt
+                  ? "bg-slate-50/20 dark:bg-slate-800/20"
+                  : "border-blue-200 bg-blue-50/40 dark:border-blue-500/30 dark:bg-blue-500/10"
               }`}
             >
               {link ? (
@@ -134,10 +137,10 @@ export default async function NotificationsPage() {
 
         {notifications.length === 0 && (
           <div className="sb-surface-strong p-10 text-center">
-            <p className="text-lg font-semibold text-slate-950">
+            <p className="text-lg font-semibold text-slate-950 dark:text-slate-100">
               No notifications yet
             </p>
-            <p className="mt-2 text-slate-600">
+            <p className="mt-2 text-slate-600 dark:text-slate-400">
               Votes, comments, follows, mentions, and activity from people you
               follow will appear here.
             </p>

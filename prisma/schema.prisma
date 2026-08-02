@@ -51,6 +51,10 @@ enum SurveyStatus {
   CLOSED
 }
 
+enum ConversationType {
+  DIRECT
+}
+
 model Article {
   id        String           @id @default(uuid())
   title     String
@@ -58,6 +62,7 @@ model Article {
   excerpt   String?
   content   String
   published Boolean          @default(false)
+  isFrozen  Boolean          @default(false)
   authorId  String
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
@@ -73,6 +78,8 @@ model Supervisor {
   department String
   about      String?
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  isFrozen   Boolean  @default(false)
 
   // Creator/owner of this supervisor profile
   authorId String
@@ -91,6 +98,7 @@ model SocialPost {
   authorId  String
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
+  isFrozen  Boolean         @default(false)
   comments  SocialComment[]
   votes     SocialVote[]
   author    User            @relation(fields: [authorId], references: [id])
@@ -183,6 +191,7 @@ model HelpPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   authorId  String
+  isFrozen  Boolean  @default(false)
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes    HelpPostVote[]
@@ -247,6 +256,7 @@ model Contribution {
   authorId        String
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+  isFrozen        Boolean            @default(false)
   author          User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes    ContributionVote[]
@@ -312,6 +322,7 @@ model Publication {
   domain            String?
   abstract          String?
   isUserAuthor      Boolean                @default(false)
+  isFrozen          Boolean                @default(false)
   authorId          String
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
@@ -379,7 +390,9 @@ model User {
   bio         String?
   reputation  Int      @default(0)
   isAdmin     Boolean  @default(false)
+  isFrozen    Boolean  @default(false)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   articles            Article[]
   articleComments     ArticleComment[]
@@ -449,6 +462,10 @@ model User {
   surveyComments       SurveyComment[]
   surveyCommentVotes   SurveyCommentVote[]
   surveyResponses      SurveyResponse[]
+
+  conversationsCreated Conversation[] @relation("ConversationCreator")
+  conversationParticipants ConversationParticipant[]
+  messagesSent Message[]
 }
 
 model Notification {
@@ -462,11 +479,55 @@ model Notification {
   body        String
   readAt      DateTime?
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   recipient   User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   actor       User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, createdAt])
   @@index([recipientId, readAt])
+}
+
+model Conversation {
+  id            String                     @id @default(uuid())
+  type          ConversationType           @default(DIRECT)
+  createdById   String
+  lastMessageAt  DateTime                   @default(now())
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  createdBy     User                       @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants ConversationParticipant[]
+  messages      Message[]
+
+  @@index([lastMessageAt])
+  @@index([createdById, lastMessageAt])
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, lastReadAt])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderId       String
+  body           String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  readAt         DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
 }
 
 model ResearchTool {
@@ -478,6 +539,7 @@ model ResearchTool {
   authorId    String
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
+  isFrozen    Boolean               @default(false)
   author      User                  @relation(fields: [authorId], references: [id])
   comments    ResearchToolComment[]
   votes       ResearchToolVote[]
@@ -534,6 +596,7 @@ model Journal {
   authorId     String
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+  isFrozen     Boolean          @default(false)
   author       User             @relation(fields: [authorId], references: [id])
   comments     JournalComment[]
   votes        JournalVote[]
@@ -592,6 +655,7 @@ model Result {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   authorId         String
+  isFrozen         Boolean  @default(false)
   author           User     @relation(fields: [authorId], references: [id])
 
   votes    ResultVote[]
@@ -651,6 +715,7 @@ model ResearchSurvey {
   authorId     String
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  isFrozen     Boolean         @default(false)
   author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   questions   SurveyQuestion[]
@@ -682,6 +747,8 @@ model SurveyQuestionOption {
   value      String
   label      String
   order      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
@@ -770,8 +837,10 @@ model ResearchEvent {
   deadline         DateTime?
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   authorId         String
+  isFrozen         Boolean  @default(false)
   author           User      @relation(fields: [authorId], references: [id])
 
   votes    ResearchEventVote[]
@@ -830,7 +899,9 @@ model PhdAdmission {
   notificationLink String?
   applyLink        String?
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   authorId         String
+  isFrozen         Boolean  @default(false)
   author           User     @relation(fields: [authorId], references: [id])
 
   votes    PhdAdmissionVote[]
@@ -889,7 +960,9 @@ model JobVacancy {
   notificationLink String?
   applyLink        String?
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   authorId         String
+  isFrozen         Boolean  @default(false)
   author           User     @relation(fields: [authorId], references: [id])
 
   votes    JobVacancyVote[]
@@ -988,6 +1061,8 @@ model Recommendation {
   supervisorId        String
   authorId            String
   createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  isFrozen            Boolean                 @default(false)
   supervisor          Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author              User                    @relation(fields: [authorId], references: [id])
   votes               RecommendationVote[]

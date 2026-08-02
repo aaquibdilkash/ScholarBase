@@ -143,7 +143,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
 
       if (result?.success) {
         toast("Profile updated successfully!", "success");
-        router.push(`/scholar/${user.id}`);
+        router.push(`/scholars/${user.id}`);
       } else {
         const msg = result?.message || "Failed to update profile.";
         setError(msg);

@@ -6,6 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { deletePublication } from "@/app/actions/publications";
 
 type PublicationWithAuthor = Publication & {
   author: User & {
@@ -46,7 +47,7 @@ export function PublicationCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${publication.author.id}`}
+      authorHref={`/scholars/${publication.author.id}`}
       authorName={publication.author.name || "Scholar"}
       authorId={publication.author.id}
       isFollowing={isFollowing}
@@ -60,8 +61,8 @@ export function PublicationCard({
             isOwner={true}
             editLabel="Edit Publication"
             deleteLabel="Delete"
-            onDelete={() => {
-              // TODO: wire delete action if available
+            onDelete={async () => {
+              await deletePublication(publication.id);
             }}
           />
         )
@@ -124,22 +125,22 @@ export function PublicationCard({
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
           {publication.journalOrConference && (
-            <span className="rounded-md bg-slate-100 px-2 py-1">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {publication.journalOrConference}
             </span>
           )}
           {publication.year && (
-            <span className="rounded-md bg-slate-100 px-2 py-1">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {publication.year}
             </span>
           )}
           {publication.domain && (
-            <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-700 font-medium">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
               {publication.domain}
             </span>
           )}
           {publication.isUserAuthor && (
-            <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700 font-medium">
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               Co-author
             </span>
           )}
@@ -150,7 +151,7 @@ export function PublicationCard({
             {publication.keywords.split(",").map((kw, i) => (
               <span
                 key={i}
-                className="rounded-full bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
+                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
               >
                 {kw.trim()}
               </span>

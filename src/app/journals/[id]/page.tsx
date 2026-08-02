@@ -43,7 +43,7 @@ const JournalDetailPage = async ({
     <DetailPageCardShell
       backHref="/journals"
       backLabel="Back to Journals"
-      authorHref={`/scholar/${j.author.id}`}
+      authorHref={`/scholars/${j.author.id}`}
       authorName={j.author.name || "Scholar"}
       authorHandle={j.author.handle || undefined}
       authorAvatarUrl={j.author.avatarUrl || undefined}

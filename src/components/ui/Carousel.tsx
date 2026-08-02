@@ -4,25 +4,28 @@ import { useState, useRef, useEffect, Children, type ReactNode } from "react";
 
 interface CarouselProps {
   children: ReactNode;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
-export function Carousel({ children }: CarouselProps) {
+export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const childCountRef = useRef(Children.count(children));
 
   const checkScrollability = () => {
     const el = containerRef.current;
     if (el) {
       // A little buffer to prevent floating point inaccuracies
-      const isScrollable = el.scrollWidth > el.clientWidth + 2;
+      const isScrollable = el.scrollWidth > el.clientWidth;
       if (!isScrollable) {
         setCanScrollLeft(false);
         setCanScrollRight(false);
         return;
       }
       setCanScrollLeft(el.scrollLeft > 0);
-      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth);
     }
   };
 
@@ -38,23 +41,50 @@ export function Carousel({ children }: CarouselProps) {
     el.addEventListener("scroll", checkScrollability);
 
     return () => {
-      resizeObserver.unobserve(el);
-      el.removeEventListener("scroll", checkScrollability);
+      if (el) {
+        resizeObserver.unobserve(el);
+        el.removeEventListener("scroll", checkScrollability);
+      }
     };
-  }, []);
+  }, [children]); // Rerender when children change to re-evaluate scrollability
 
-  const scroll = (direction: "left" | "right") => {
+  useEffect(() => {
+    childCountRef.current = Children.count(children);
+  }, [children]);
+
+  const scroll = async (direction: "left" | "right") => {
     const el = containerRef.current;
-    if (el) {
-      const scrollAmount = el.clientWidth;
-      el.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
+    if (!el) return;
+
+    const isAtEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth;
+
+    if (direction === "right" && isAtEnd && onLoadMore) {
+      const prevCount = childCountRef.current;
+      await onLoadMore();
+
+      // Wait for React to commit the newly appended children before scrolling.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      const newCount = childCountRef.current;
+      if (newCount > prevCount) {
+        // Scroll to the first newly added item.
+        el.scrollTo({
+          left: prevCount * el.clientWidth,
+          behavior: "smooth",
+        });
+      }
+      return;
     }
+
+    const scrollAmount = el.clientWidth;
+    el.scrollBy({
+      left: direction === "left" ? -scrollAmount : scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   const childCount = Children.count(children);
+  const showRightArrow = canScrollRight || (onLoadMore && hasMore);
 
   return (
     <div className="relative group">
@@ -92,7 +122,7 @@ export function Carousel({ children }: CarouselProps) {
         </button>
       )}
 
-      {childCount > 1 && canScrollRight && (
+      {showRightArrow && (
         <button
           type="button"
           onClick={() => scroll("right")}

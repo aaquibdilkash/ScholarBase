@@ -33,7 +33,7 @@ export function ResearchToolCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${tool.author.id}`}
+      authorHref={`/scholars/${tool.author.id}`}
       authorName={tool.author.name || "Scholar"}
       authorId={tool.author.id}
       isFollowing={isFollowing}

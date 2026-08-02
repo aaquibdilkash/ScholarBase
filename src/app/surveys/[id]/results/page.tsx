@@ -24,7 +24,7 @@ export default async function SurveyResultsPage({
       ? await getSurveyResponses(id, user.id)
       : null;
 
-  // Check if user is author or data sharing is enabled
+  // Allow access if user is author or data sharing is enabled
   const canView = survey.authorId === user?.id || survey.shareData;
   if (!canView) {
     return (

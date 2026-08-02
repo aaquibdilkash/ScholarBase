@@ -66,7 +66,7 @@ export function EventCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${event.author.id}`}
+      authorHref={`/scholars/${event.author.id}`}
       authorName={event.author.name || "Scholar"}
       authorId={event.author.id}
       isFollowing={isFollowing}
@@ -100,13 +100,13 @@ export function EventCard({
       footerCommentsCount={event._count.comments}
       noBodyLink={true}
       bodyBottomContent={
-        <div className="flex gap-3 mt-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           {event.notificationLink && (
             <a
               href={event.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2 text-center text-xs font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
             >
               View Brochure
             </a>
@@ -116,7 +116,7 @@ export function EventCard({
               href={event.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
             >
               Register Now
             </a>

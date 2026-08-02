@@ -47,7 +47,7 @@ const ResultDetailPage = async ({
     <DetailPageCardShell
       backHref="/results"
       backLabel="Back to Results"
-      authorHref={`/scholar/${result.author.id}`}
+      authorHref={`/scholars/${result.author.id}`}
       authorName={result.author.name || "Scholar"}
       authorHandle={result.author.handle || undefined}
       authorAvatarUrl={result.author.avatarUrl || undefined}
@@ -165,7 +165,7 @@ const ResultDetailPage = async ({
             href={result.notificationLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+            className="flex-1 sb-button-soft"
           >
             View Notification
           </a>
@@ -175,7 +175,7 @@ const ResultDetailPage = async ({
             href={result.resultLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+            className="flex-1 sb-button-primary"
           >
             Check Results
           </a>

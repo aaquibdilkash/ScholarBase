@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { getProfileSections } from "@/app/actions/profile";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { getProfileSections, getProfileSection } from "@/app/actions/profile";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { VacancyCard } from "@/components/vacancies/VacancyCard";
@@ -15,6 +16,8 @@ import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
 import { PublicationCard } from "@/components/publications/PublicationCard";
+import { SurveyCard } from "@/components/surveys/SurveyCard";
+import ListPageCardShell from "@/components/cards/ListPageCardShell";
 
 import { Carousel } from "@/components/ui/Carousel";
 
@@ -27,15 +30,18 @@ type ProfileData = {
 };
 
 type SectionData = Awaited<ReturnType<typeof getProfileSections>>;
+type SectionKey = Exclude<keyof NonNullable<SectionData>, "id" | "_count">;
 
 interface SectionConfig {
-  key: keyof NonNullable<SectionData>;
+  key: SectionKey;
   title: string;
   emptyMessage: string;
   renderItems: (items: any[], currentUserId?: string) => React.ReactNode;
 }
 
-const SECTIONS: SectionConfig[] = [
+type SectionWithCount = SectionConfig & { count?: number };
+
+const SECTIONS: SectionWithCount[] = [
   {
     key: "articles",
     title: "Research Articles",
@@ -170,6 +176,15 @@ const SECTIONS: SectionConfig[] = [
         />
       )),
   },
+  {
+    key: "surveys",
+    title: "Research Surveys",
+    emptyMessage: "No research surveys created yet.",
+    renderItems: (items, currentUserId) =>
+      items.map((s: any) => (
+        <SurveyCard key={s.id} survey={s} currentUserId={currentUserId} />
+      )),
+  },
 ];
 
 export default function ProfileTabs({
@@ -181,15 +196,35 @@ export default function ProfileTabs({
   profileId: string;
   currentUserId?: string;
 }) {
-  const [activeTab, setActiveTab] = useState<"about" | "content">("about");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"about" | "content">(
+    searchParams.get("tab") === "content" ? "content" : "about",
+  );
   const [sections, setSections] = useState<SectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "content" && !sections) {
+      loadContent();
+    }
+  }, [searchParams, sections]);
+
+  const setTab = (tab: "about" | "content") => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`);
+    setActiveTab(tab);
+  };
 
   const loadContent = useCallback(async () => {
     if (sections || isLoading) return;
     setIsLoading(true);
     try {
-      const data = await getProfileSections(profileId, currentUserId);
+      const data = await getProfileSections(profileId, currentUserId, 1);
       setSections(data);
     } catch (err) {
       console.error("Failed to load profile sections:", err);
@@ -198,8 +233,34 @@ export default function ProfileTabs({
     }
   }, [profileId, currentUserId, sections, isLoading]);
 
+  const loadMore = async (sectionKey: SectionKey) => {
+    if (loadingMore) return;
+
+    setLoadingMore(sectionKey);
+    try {
+      const currentItems = sections?.[sectionKey] ?? [];
+      const newItems = await getProfileSection(
+        profileId,
+        sectionKey,
+        currentUserId,
+        currentItems.length,
+      );
+
+      if (newItems) {
+        setSections((prevSections) => ({
+          ...(prevSections as NonNullable<SectionData>),
+          [sectionKey]: [...currentItems, ...newItems],
+        }));
+      }
+    } catch (err) {
+      console.error(`Failed to load more ${sectionKey}:`, err);
+    } finally {
+      setLoadingMore(null);
+    }
+  };
+
   const handleContentTabClick = () => {
-    setActiveTab("content");
+    setTab("content");
     if (!sections) {
       loadContent();
     }
@@ -208,23 +269,23 @@ export default function ProfileTabs({
   return (
     <div className="mt-8">
       {/* Tab Buttons */}
-      <div className="flex gap-1 rounded-2xl bg-slate-100 p-1.5 w-fit mb-8">
+      <div className="mb-8 grid w-full grid-cols-2 gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:w-fit sm:min-w-[18rem] sm:grid-cols-2">
         <button
-          onClick={() => setActiveTab("about")}
-          className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+          onClick={() => setTab("about")}
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
             activeTab === "about"
-              ? "bg-white text-slate-950 shadow-sm"
-              : "text-slate-500 hover:text-slate-800"
+              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
           }`}
         >
           About
         </button>
         <button
           onClick={handleContentTabClick}
-          className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
             activeTab === "content"
-              ? "bg-white text-slate-950 shadow-sm"
-              : "text-slate-500 hover:text-slate-800"
+              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
           }`}
         >
           Content
@@ -260,7 +321,7 @@ export default function ProfileTabs({
           </div>
         </div>
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-10">
           {isLoading && !sections && (
             <div className="flex items-center justify-center py-16">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
@@ -270,19 +331,39 @@ export default function ProfileTabs({
           {sections &&
             SECTIONS.map((section) => {
               const items = (sections as any)[section.key] ?? [];
+              const count = sections?._count?.[section.key] ?? items.length;
+              const hasMore = items.length < count;
+
               return (
                 <section key={section.key}>
                   <h2 className="mb-4 text-xl font-semibold text-slate-950">
-                    {section.title}
+                    {section.title} ({count})
                   </h2>
                   {items.length > 0 ? (
-                    <Carousel>
-                      {section.renderItems(items, currentUserId)}
-                    </Carousel>
+                    <div className="relative">
+                      <Carousel
+                        onLoadMore={
+                          hasMore ? () => loadMore(section.key) : undefined
+                        }
+                        hasMore={hasMore}
+                      >
+                        {section.renderItems(items, currentUserId)}
+                      </Carousel>
+                      {loadingMore === section.key && (
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                          <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                            Loading more...
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <p className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center italic text-slate-500">
-                      {section.emptyMessage}
-                    </p>
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                      <p className="text-sm font-medium text-slate-400">
+                        {section.emptyMessage}
+                      </p>
+                    </div>
                   )}
                 </section>
               );

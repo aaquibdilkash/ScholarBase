@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 
 export type OwnerActionsDropdownProps = {
@@ -27,6 +28,7 @@ export default function OwnerActionsDropdown({
   const [isDeleting, startDeleteTransition] = useTransition();
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export default function OwnerActionsDropdown({
         setOpen(false);
         await onDelete();
         toast("Item deleted successfully.", "success");
+        router.refresh();
       } catch {
         toast("Failed to delete. Please try again.", "error");
       }
@@ -111,7 +114,7 @@ export default function OwnerActionsDropdown({
         <div
           ref={menuRef}
           role="menu"
-          className="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
+          className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
         >
           <div className="py-1">
             <Link

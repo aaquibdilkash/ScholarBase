@@ -68,16 +68,21 @@ export function CommentVoteButton({
 
       try {
         const res = await toggleCommentVote(commentId, type, voteType);
-        if (res?.error === "UNAUTHORIZED") {
+        if ("error" in res && res.error === "UNAUTHORIZED") {
           setUserVote(prevVote);
           setUpvotes(prevUpvotes);
           setDownvotes(prevDownvotes);
           openAuthModal();
           return;
         }
-        setUserVote(res.userVote);
-        setUpvotes(res.upvotes);
-        setDownvotes(res.downvotes);
+        const nextState = res as {
+          userVote: VoteType | null;
+          upvotes: number;
+          downvotes: number;
+        };
+        setUserVote(nextState.userVote);
+        setUpvotes(nextState.upvotes);
+        setDownvotes(nextState.downvotes);
         toast("Vote registered!", "success");
       } catch {
         setUserVote(prevVote);

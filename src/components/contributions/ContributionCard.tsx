@@ -36,7 +36,7 @@ export function ContributionCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${contribution.author.id}`}
+      authorHref={`/scholars/${contribution.author.id}`}
       authorName={contribution.author.name || "Scholar"}
       authorId={contribution.author.id}
       isFollowing={isFollowing}

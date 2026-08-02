@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #f4f0e8;
@@ -8,6 +9,16 @@
   --surface: rgba(255, 255, 255, 0.78);
   --surface-strong: rgba(255, 255, 255, 0.92);
   --border: rgba(21, 32, 43, 0.08);
+}
+
+html.dark,
+html[data-theme="dark"] {
+  --background: #0a0b0d;
+  --foreground: #e5e7eb;
+  --muted: #9ca3af;
+  --surface: rgba(17, 24, 39, 0.74);
+  --surface-strong: rgba(15, 23, 42, 0.92);
+  --border: rgba(148, 163, 184, 0.12);
 }
 
 @theme inline {
@@ -38,6 +49,14 @@
     color: var(--foreground);
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
     min-height: 100vh;
+  }
+
+  html.dark body,
+  html[data-theme="dark"] body {
+    background:
+      radial-gradient(circle at top left, rgba(148, 163, 184, 0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(96, 165, 250, 0.1), transparent 24%),
+      linear-gradient(180deg, #0b0d10 0%, #0f1318 42%, #050607 100%);
   }
 
   ::selection {
@@ -96,7 +115,7 @@
   }
 
   .sb-card {
-    @apply rounded-2xl sm:rounded-[24px] border border-slate-200/70 bg-white/90 p-4 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300 sm:p-6;
+    @apply rounded-2xl sm:rounded-3xl border border-slate-200/70 bg-white/90 p-4 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300 sm:p-6;
   }
 
   .sb-card-hover {
@@ -125,5 +144,91 @@
 
   .sb-button-soft {
     @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:px-5 sm:py-3 sm:text-sm;
+  }
+
+  html.dark .sb-surface,
+  html.dark .sb-surface-strong,
+  html.dark .sb-card,
+  html.dark .sb-button-soft,
+  html.dark .sb-input,
+  html.dark .sb-textarea,
+  html[data-theme="dark"] .sb-surface,
+  html[data-theme="dark"] .sb-surface-strong,
+  html[data-theme="dark"] .sb-card,
+  html[data-theme="dark"] .sb-button-soft,
+  html[data-theme="dark"] .sb-input,
+  html[data-theme="dark"] .sb-textarea {
+    border-color: rgba(148, 163, 184, 0.14);
+    background: rgba(15, 23, 42, 0.76);
+    color: var(--foreground);
+  }
+
+  html.dark .sb-button-soft:hover,
+  html[data-theme="dark"] .sb-button-soft:hover {
+    background: rgba(30, 41, 59, 0.98);
+    border-color: rgba(148, 163, 184, 0.24);
+  }
+
+  html.dark .sb-button-primary,
+  html.dark .sb-button-accent,
+  html[data-theme="dark"] .sb-button-primary,
+  html[data-theme="dark"] .sb-button-accent {
+    border-color: rgba(148, 163, 184, 0.18);
+    background: #020617;
+    color: #f8fafc;
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.42);
+  }
+
+  html.dark .sb-button-primary:hover,
+  html.dark .sb-button-accent:hover,
+  html[data-theme="dark"] .sb-button-primary:hover,
+  html[data-theme="dark"] .sb-button-accent:hover {
+    background: #000000;
+  }
+
+  html.dark .sb-button-soft,
+  html[data-theme="dark"] .sb-button-soft {
+    border-color: rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.92);
+    color: #e2e8f0;
+    box-shadow: 0 10px 24px rgba(2, 6, 23, 0.18);
+  }
+
+  html.dark .sb-heading,
+  html.dark .sb-subtitle,
+  html.dark .sb-label,
+  html[data-theme="dark"] .sb-heading,
+  html[data-theme="dark"] .sb-subtitle,
+  html[data-theme="dark"] .sb-label {
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  .dark .text-slate-950,
+  .dark .text-slate-900,
+  .dark .text-slate-800,
+  .dark .text-slate-700,
+  .dark .text-slate-600,
+  .dark .text-slate-500,
+  .dark .text-slate-400 {
+    color: var(--foreground);
+  }
+
+  .dark .border-slate-200,
+  .dark .border-slate-100 {
+    border-color: rgba(148, 163, 184, 0.16);
+  }
+
+  .dark .bg-white,
+  .dark .bg-white\/70,
+  .dark .bg-white\/75,
+  .dark .bg-white\/80,
+  .dark .bg-white\/90 {
+    background-color: rgba(15, 23, 42, 0.82);
+  }
+
+  .dark .bg-slate-50 {
+    background-color: rgba(15, 23, 42, 0.55);
   }
 }

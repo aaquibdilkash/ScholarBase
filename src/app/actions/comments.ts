@@ -153,14 +153,19 @@ export async function createComment(
         revalidatePath(`/supervisor/${targetId}`)
     } else if (type === 'recommendation') {
         await prisma.recommendationComment.create({ data: { content, recommendationId: targetId, authorId: user.id, parentId } })
+        const recommendation = await prisma.recommendation.findUnique({
+            where: { id: targetId },
+            select: { supervisorId: true, authorId: true }
+        });
         const target = parentId
             ? await prisma.recommendationComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
-            : await prisma.recommendation.findUnique({ where: { id: targetId }, select: { authorId: true } })
-        if (target?.authorId) {
+            : recommendation
+        if (target?.authorId && recommendation) {
             await notifyUserById({
                 recipientId: target.authorId, actorId: user.id,
                 type: parentId ? 'reply-created' : 'comment-created',
-                targetType: 'recommendation', targetId,
+                targetType: 'recommendation',
+                targetId: `${recommendation.supervisorId}/${targetId}`,
                 title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your recommendation`,
                 body: content,
             })
@@ -169,7 +174,9 @@ export async function createComment(
             actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
-        revalidatePath(`/recommendation/${targetId}`)
+        if (recommendation) {
+            revalidatePath(`/supervisor/${recommendation.supervisorId}/recommendation/${targetId}`)
+        }
     } else if (type === 'journal') {
         await prisma.journalComment.create({ data: { content, journalId: targetId, authorId: user.id, parentId } })
         const target = parentId
@@ -299,7 +306,7 @@ export async function editComment(formData: FormData, commentId: string, type: C
         vacancy: { model: prisma.jobVacancyComment, revalidate: '/vacancies/[id]' },
         admission: { model: prisma.phdAdmissionComment, revalidate: '/admissions/[id]' },
         supervisor: { model: prisma.supervisorComment, revalidate: '/supervisor/[id]' },
-        recommendation: { model: prisma.recommendationComment, revalidate: '/recommendation/[id]' },
+        recommendation: { model: prisma.recommendationComment, revalidate: '/supervisor/[id]/recommendation/[id]' },
         help: { model: prisma.helpPostComment, revalidate: '/help/[id]' },
         journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
@@ -315,8 +322,19 @@ export async function editComment(formData: FormData, commentId: string, type: C
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
     await (cfg.model as any).update({ where: { id: commentId }, data: { content } })
-    if (cfg.revalidate.includes('[id]')) revalidatePath(cfg.revalidate, 'page' as any)
-    else revalidatePath(cfg.revalidate)
+    if (type === 'recommendation') {
+        const recommendationComment = await prisma.recommendationComment.findUnique({
+            where: { id: commentId },
+            select: { recommendation: { select: { id: true, supervisorId: true } } }
+        });
+        if (recommendationComment?.recommendation) {
+            revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
+        }
+    } else if (cfg.revalidate.includes('[id]')) {
+        revalidatePath(cfg.revalidate, 'page' as any)
+    } else {
+        revalidatePath(cfg.revalidate)
+    }
 }
 
 export async function deleteComment(commentId: string, type: CommentType) {
@@ -329,7 +347,7 @@ export async function deleteComment(commentId: string, type: CommentType) {
         vacancy: { model: prisma.jobVacancyComment, revalidate: '/vacancies/[id]' },
         admission: { model: prisma.phdAdmissionComment, revalidate: '/admissions/[id]' },
         supervisor: { model: prisma.supervisorComment, revalidate: '/supervisor/[id]' },
-        recommendation: { model: prisma.recommendationComment, revalidate: '/recommendation/[id]' },
+        recommendation: { model: prisma.recommendationComment, revalidate: '/supervisor/[id]/recommendation/[id]' },
         help: { model: prisma.helpPostComment, revalidate: '/help/[id]' },
         journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
@@ -380,8 +398,19 @@ export async function deleteComment(commentId: string, type: CommentType) {
     }
 
     await (cfg.model as any).delete({ where: { id: commentId } })
-    if (cfg.revalidate.includes('[id]')) revalidatePath(cfg.revalidate, 'page' as any)
-    else revalidatePath(cfg.revalidate)
+    if (type === 'recommendation') {
+        const recommendationComment = await prisma.recommendationComment.findUnique({
+            where: { id: commentId },
+            select: { recommendation: { select: { id: true, supervisorId: true } } }
+        });
+        if (recommendationComment?.recommendation) {
+            revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
+        }
+    } else if (cfg.revalidate.includes('[id]')) {
+        revalidatePath(cfg.revalidate, 'page' as any)
+    } else {
+        revalidatePath(cfg.revalidate)
+    }
 }
 
 // --- Vote System ---
@@ -480,19 +509,31 @@ export async function toggleCommentVote(
 
     const revalidateMap: Record<string, string> = {
         article: '/blog/[slug]', post: '/feed', event: '/events/[id]', vacancy: '/vacancies/[id]',
-        admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/recommendation/[id]',
+        admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/supervisor/[id]/recommendation/[id]',
         help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]', contribution: '/contributions/[id]', publication: '/publications/[id]', survey: '/surveys/[id]',
     }
     const path = revalidateMap[type]
     if (path) {
-        if (path.includes('[id]')) revalidatePath(path, 'page' as any)
-        else revalidatePath(path)
+        if (type === 'recommendation') {
+            const recommendationComment = await prisma.recommendationComment.findUnique({
+                where: { id: commentId },
+                select: { recommendation: { select: { id: true, supervisorId: true } } }
+            });
+            if (recommendationComment?.recommendation) {
+                revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
+            }
+        } else if (path.includes('[id]')) {
+            revalidatePath(path, 'page' as any)
+        } else {
+            revalidatePath(path)
+        }
     }
 
     // Also revalidate author profile
     if (commentAuthorId) {
-        revalidatePath(`/scholar/${commentAuthorId}`)
+        revalidatePath(`/scholars/${commentAuthorId}`)
     }
 
     return { userVote: finalVoteType, upvotes, downvotes }
 }
+

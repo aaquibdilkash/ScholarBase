@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
         <p className="sb-subtitle mt-4 text-center">
           Last updated: July 29, 2026
         </p>
-        <div className="prose prose-lg mx-auto mt-8">
+        <div className="prose prose-lg prose-slate mx-auto mt-8 dark:prose-invert dark:prose-a:text-blue-300 dark:prose-strong:text-slate-100">
           <p>
             Welcome to ScholarBase. We are committed to protecting your personal
             information and your right to privacy. This Privacy Policy explains

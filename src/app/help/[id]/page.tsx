@@ -42,7 +42,7 @@ export default async function HelpPostPage({
     <DetailPageCardShell
       backHref="/help"
       backLabel="Back to Help & Support"
-      authorHref={`/scholar/${post.author.id}`}
+      authorHref={`/scholars/${post.author.id}`}
       authorName={post.author.name || "Scholar"}
       authorHandle={post.author.handle || undefined}
       authorAvatarUrl={post.author.avatarUrl || undefined}

@@ -45,7 +45,7 @@ const ContributionDetailPage = async ({
     <DetailPageCardShell
       backHref="/contributions"
       backLabel="Back to Contributions"
-      authorHref={`/scholar/${contribution.author.id}`}
+      authorHref={`/scholars/${contribution.author.id}`}
       authorName={contribution.author.name || "Scholar"}
       authorHandle={contribution.author.handle || undefined}
       authorAvatarUrl={contribution.author.avatarUrl || undefined}

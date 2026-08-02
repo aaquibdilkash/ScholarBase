@@ -46,7 +46,7 @@ export function RecommendationCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${recommendation.author.id}`}
+      authorHref={`/scholars/${recommendation.author.id}`}
       authorName={recommendation.author.name || "Scholar"}
       authorId={recommendation.author.id}
       isFollowing={isFollowing}

@@ -70,7 +70,7 @@ export default function CommentActionsDropdown({
         <div
           ref={menuRef}
           role="menu"
-          className="absolute right-0 z-10 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
+          className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
         >
           <div className="py-1">
             <button

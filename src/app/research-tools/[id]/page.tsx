@@ -45,7 +45,7 @@ const ResearchToolDetailPage = async ({
     <DetailPageCardShell
       backHref="/research-tools"
       backLabel="Back to Research Tools"
-      authorHref={`/scholar/${tool.author.id}`}
+      authorHref={`/scholars/${tool.author.id}`}
       authorName={tool.author.name || "Scholar"}
       authorHandle={tool.author.handle || undefined}
       authorAvatarUrl={tool.author.avatarUrl || undefined}

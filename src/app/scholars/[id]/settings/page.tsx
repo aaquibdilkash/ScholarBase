@@ -20,7 +20,7 @@ export default async function ScholarSettingsPage({
   }
 
   if (user.id !== id) {
-    redirect(`/scholar/${user.id}/settings`);
+    redirect(`/scholars/${user.id}/settings`);
   }
 
   const profile = await prisma.user.findUnique({
@@ -32,13 +32,13 @@ export default async function ScholarSettingsPage({
   }
 
   return (
-    <main className="mx-auto max-w-5xl py-6 px-4">
+    <main className="mx-auto max-w-5xl px-4 py-6">
       <Link
-        href={`/scholar/${id}`}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors mb-6"
+        href={`/scholars/${id}`}
+        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
       >
         <svg
-          className="w-4 h-4"
+          className="h-4 w-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -54,10 +54,10 @@ export default async function ScholarSettingsPage({
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
           Edit Profile
         </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 text-slate-600 dark:text-slate-400">
           Update your academic information and handle.
         </p>
       </div>

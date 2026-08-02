@@ -40,7 +40,7 @@ export default async function ArticlePage({
     <DetailPageCardShell
       backHref="/blog"
       backLabel="Back to Blogs"
-      authorHref={`/scholar/${a.author.id}`}
+      authorHref={`/scholars/${a.author.id}`}
       authorName={a.author.name || "Scholar"}
       authorHandle={a.author.handle || undefined}
       authorAvatarUrl={a.author.avatarUrl || undefined}

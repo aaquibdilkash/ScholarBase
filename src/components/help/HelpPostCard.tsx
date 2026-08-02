@@ -34,7 +34,7 @@ export function HelpPostCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${helpPost.author.id}`}
+      authorHref={`/scholars/${helpPost.author.id}`}
       authorName={helpPost.author.name || "Scholar"}
       authorId={helpPost.author.id}
       isFollowing={isFollowing}

@@ -288,8 +288,13 @@ export async function toggleShareData(surveyId: string) {
     revalidatePath(`/surveys/${surveyId}/results`)
 }
 
-export async function submitSurveyResponse(formData: FormData, surveyId: string) {
-    const user = await requireCurrentUser('Log in to submit a survey response.')
+export async function submitSurveyResponse(formData: FormData, surveyId: string): Promise<{ success: boolean; message: string } | { error: string }> {
+    let user;
+    try {
+        user = await requireCurrentUser('Log in to submit a survey response.')
+    } catch {
+        return { error: 'UNAUTHORIZED' }
+    }
 
     const isAnonymous = formData.get('isAnonymous') === 'true'
     const answersJson = readFormValue(formData, 'answers')

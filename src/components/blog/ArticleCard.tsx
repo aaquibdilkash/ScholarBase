@@ -39,7 +39,7 @@ export function ArticleCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${article.authorId}`}
+      authorHref={`/scholars/${article.authorId}`}
       authorName={article.author.name || "Scholar"}
       authorId={article.authorId}
       isFollowing={isFollowing}

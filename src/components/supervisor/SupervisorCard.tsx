@@ -26,7 +26,7 @@ export function SupervisorCard({
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === supervisor.authorId;
-  const recommendationCount = supervisor.recommendations.length;
+  const recommendationCount = supervisor.recommendations?.length ?? 0;
 
   const avgRating =
     recommendationCount > 0
@@ -46,7 +46,7 @@ export function SupervisorCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${supervisor.author.id}`}
+      authorHref={`/scholars/${supervisor.author.id}`}
       authorName={supervisor.author.name || "Supervisor"}
       authorId={supervisor.author.id}
       isFollowing={isFollowing}
@@ -97,7 +97,7 @@ export function SupervisorCard({
             <span className="text-slate-500"> / 5</span>
           </div>
           <span className="text-slate-500 text-xs">
-            ({recommendationCount} ratings)
+            ({recommendationCount} recommendation{recommendationCount !== 1 ? 's' : ''})
           </span>
         </div>
       ) : (

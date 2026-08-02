@@ -21,17 +21,17 @@ export default async function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl">
+    <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90">
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
         <Link href="/" className="hidden items-center gap-3 md:flex">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-sm">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-sm dark:bg-white dark:text-slate-950">
             SB
           </div>
           <div className="leading-tight">
             <div className="text-base font-semibold tracking-tight">
               <BrandMark />
             </div>
-            <div className="hidden text-xs text-slate-500 sm:block">
+            <div className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
               Research, supervisors, and opportunities
             </div>
           </div>
@@ -49,10 +49,10 @@ export default async function Navbar() {
         <div className="ml-auto flex items-center gap-2 sm:gap-3 md:gap-4">
           {user ? (
             <>
-              <div className="hidden md:flex items-center gap-2 sm:gap-3 md:gap-4">
+              <div className="hidden items-center gap-2 sm:gap-3 md:flex md:gap-4">
                 <Link
                   href="/notifications"
-                  className="sb-button-soft p-2 relative"
+                  className="sb-button-soft relative p-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white"
                   aria-label="Notifications"
                 >
                   <svg
@@ -75,14 +75,14 @@ export default async function Navbar() {
                   )}
                 </Link>
                 <Link
-                  href={`/scholar/${user.id}`}
-                  className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2"
+                  href={`/scholars/${user.id}`}
+                  className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white"
                   aria-label="Open profile"
                 >
                   Profile
                 </Link>
                 <form action={signOut}>
-                  <button type="submit" className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2">
+                  <button type="submit" className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white">
                     Sign Out
                   </button>
                 </form>

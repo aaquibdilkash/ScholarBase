@@ -6,6 +6,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
+import Link from "next/link";
 
 type SurveyWithDetails = ResearchSurvey & {
   author: User & {
@@ -45,7 +46,7 @@ export function SurveyCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholar/${survey.author.id}`}
+      authorHref={`/scholars/${survey.author.id}`}
       authorName={survey.author.name || "Scholar"}
       authorId={survey.author.id}
       isFollowing={isFollowing}
@@ -110,7 +111,10 @@ export function SurveyCard({
       )}
 
       {survey.shareData && (
-        <div className="mt-3 flex items-center gap-1 text-xs font-medium text-green-600">
+        <Link
+          href={`/surveys/${survey.id}/results`}
+          className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+        >
           <svg
             className="w-4 h-4"
             fill="none"
@@ -121,11 +125,11 @@ export function SurveyCard({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
           </svg>
-          Data available for sharing
-        </div>
+          Data available for sharing — view results
+        </Link>
       )}
     </ListPageCardShell>
   );

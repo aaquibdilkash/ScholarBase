@@ -18,16 +18,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   if (isRecovery) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-6">
+      <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6">
         <div className="sb-surface w-full max-w-md space-y-6 p-8 md:p-10">
           <div className="text-center">
-            <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+            <div className="mx-auto mb-4 inline-flex rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-200">
               Reset Password
             </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
               Set a New Password
             </h1>
-            <p className="mt-2 text-slate-600">
+            <p className="mt-2 text-slate-600 dark:text-slate-400">
               Whether you forgot your password or are setting one for the first
               time, enter your new password below.
             </p>
@@ -40,16 +40,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6">
       <div className="sb-surface w-full max-w-md space-y-6 p-8 md:p-10">
         <div className="text-center">
-          <div className="mx-auto mb-4 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700">
+          <div className="mx-auto mb-4 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
             Sign In
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-            Welcome to <BrandMark />
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+            Welcome to <BrandMark className="inline-flex items-center gap-1" />
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-slate-600 dark:text-slate-400">
             Sign in to your account or register a new one
           </p>
         </div>
@@ -80,10 +80,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
+            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-slate-500">
+            <span className="bg-white px-2 text-slate-500 dark:bg-slate-950 dark:text-slate-400">
               Or continue with email
             </span>
           </div>
@@ -121,7 +121,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
 
           {message && (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-center text-sm text-blue-700">
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-center text-sm text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
               {message}
             </div>
           )}
@@ -138,16 +138,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
+            <div className="w-full border-t border-slate-200 dark:border-slate-800" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-slate-500">
+            <span className="bg-white px-2 text-slate-500 dark:bg-slate-950 dark:text-slate-400">
               Set or Reset Password
             </span>
           </div>
         </div>
 
-        <p className="text-sm text-slate-600 text-center -mb-2">
+        <p className="-mb-2 text-center text-sm text-slate-600 dark:text-slate-400">
           Forgot your password? Or want to set a password for your account
           continued with Google? Enter your email to get a recovery link.
         </p>

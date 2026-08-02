@@ -42,7 +42,7 @@ const VacancyDetailPage = async ({
     <DetailPageCardShell
       backHref="/vacancies"
       backLabel="Back to Academic Vacancies"
-      authorHref={`/scholar/${vacancy.author.id}`}
+      authorHref={`/scholars/${vacancy.author.id}`}
       authorName={vacancy.author.name || "Scholar"}
       authorHandle={vacancy.author.handle || undefined}
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
@@ -78,7 +78,7 @@ const VacancyDetailPage = async ({
               href={vacancy.notificationLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-100 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-slate-700 transition-colors duration-200 hover:bg-slate-200"
+              className="flex-1 sb-button-soft"
             >
               View Details
             </a>
@@ -88,7 +88,7 @@ const VacancyDetailPage = async ({
               href={vacancy.applyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+              className="flex-1 sb-button-primary"
             >
               Apply Now
             </a>

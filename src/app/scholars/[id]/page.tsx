@@ -26,12 +26,10 @@ export default async function ScholarProfile({
   const { isFollowing, isOwnProfile } = profile;
 
   return (
-    <main className="mx-auto max-w-5xl py-6 px-4">
-      {/* Profile Header */}
-      <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-10 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-6">
-          {/* Avatar Placeholder / Image */}
-          <div className="w-24 h-24 rounded-full bg-slate-200 border-2 border-white shadow-md flex items-center justify-center overflow-hidden shrink-0">
+    <main className="mx-auto max-w-5xl px-4 py-6">
+      <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-10 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
             {profile.avatarUrl ? (
               <Image
                 src={profile.avatarUrl}
@@ -39,23 +37,23 @@ export default async function ScholarProfile({
                 width={96}
                 height={96}
                 unoptimized
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover"
               />
             ) : (
-              <span className="text-3xl font-bold text-slate-400">
+              <span className="text-3xl font-bold text-slate-400 dark:text-slate-500">
                 {profile.name?.charAt(0).toUpperCase() || "S"}
               </span>
             )}
           </div>
 
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
               {profile.name}
             </h1>
-            <p className="font-medium text-blue-700">
+            <p className="font-medium text-blue-700 dark:text-blue-300">
               {profile.handle ? `@${profile.handle}` : "No handle set"}
             </p>
-            <div className="mt-1 flex items-center gap-3 text-sm text-slate-500">
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
               <FollowerCount
                 followerCount={profile._count.followers}
                 followingCount={profile._count.following}
@@ -76,11 +74,11 @@ export default async function ScholarProfile({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <ShareButton label="Share profile" href={`/scholar/${profile.id}`} />
+        <div className="flex flex-wrap gap-3">
+          <ShareButton label="Share profile" href={`/scholars/${profile.id}`} />
           {isOwnProfile ? (
             <Link
-              href={`/scholar/${profile.id}/settings`}
+              href={`/scholars/${profile.id}/settings`}
               className="sb-button-soft"
             >
               Edit Profile
@@ -91,7 +89,6 @@ export default async function ScholarProfile({
         </div>
       </div>
 
-      {/* Profile Tabs (About + Content) */}
       <ProfileTabs
         profile={{
           id: profile.id,

@@ -8,7 +8,7 @@ export function getNotificationLink(notification: Notification) {
 
   switch (notification.type) {
     case "follow":
-      return `/scholar/${notification.actorId}`;
+      return `/scholars/${notification.actorId}`;
     case "article-upvoted":
     case "article-published":
       if (notification.targetType === "article") {
@@ -29,7 +29,11 @@ export function getNotificationLink(notification: Notification) {
         case "admission":
           return `/admissions/${notification.targetId}`;
         case "recommendation":
-          return `/recommendation/${notification.targetId}`;
+          const recIds = notification.targetId.split('/');
+          if (recIds.length === 2) {
+            return `/supervisor/${recIds[0]}/recommendation/${recIds[1]}`;
+          }
+          return null;
         case "help":
           return `/help/${notification.targetId}`;
         case "journal":
@@ -55,7 +59,11 @@ export function getNotificationLink(notification: Notification) {
     case "event-upvoted":
       return `/events/${notification.targetId}`;
     case "recommendation-upvoted":
-      return `/recommendation/${notification.targetId}`;
+      const recIds = notification.targetId.split('/');
+      if (recIds.length === 2) {
+        return `/supervisor/${recIds[0]}/recommendation/${recIds[1]}`;
+      }
+      return null;
     case "help-post-published":
     case "help-post-upvoted":
       return `/help/${notification.targetId}`;
@@ -88,6 +96,8 @@ export function getNotificationLink(notification: Notification) {
         return `/feed/${notification.targetId}`;
       }
       return null;
+    case "message-received":
+      return `/messages/${notification.targetId}`;
     default:
       return null;
   }

@@ -5,6 +5,7 @@ import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { TrendingItem } from "@/types/trending";
 import { SocialPostCard } from "./SocialPostCard";
+import { ScholarCard } from "@/components/scholars/ScholarCard";
 
 import { JournalCard } from "@/components/journals/JournalCard";
 import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
@@ -90,6 +91,14 @@ export function TrendingList({
                 currentUserId={currentUserId}
               />
             );
+            case "scholar":
+            return (
+              <ScholarCard
+                key={item.id}
+                scholar={item}
+                currentUserId={currentUserId}
+              />
+            );
           case "help-post":
             return (
               <HelpPostCard
@@ -132,6 +141,7 @@ export function TrendingList({
                 currentUserId={currentUserId}
               />
             );
+
           default:
             return null;
         }

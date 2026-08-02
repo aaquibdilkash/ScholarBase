@@ -22,14 +22,14 @@ export function FollowerCount({
     <>
       <button
         onClick={() => setModalMode("followers")}
-        className="hover:text-blue-700 hover:underline transition font-semibold"
+        className="font-semibold transition hover:text-blue-700 hover:underline dark:hover:text-blue-300"
       >
         {followerCount} {followerCount === 1 ? "follower" : "followers"}
       </button>
-      <span className="text-slate-300">·</span>
+      <span className="text-slate-300 dark:text-slate-600">·</span>
       <button
         onClick={() => setModalMode("following")}
-        className="hover:text-blue-700 hover:underline transition font-semibold"
+        className="font-semibold transition hover:text-blue-700 hover:underline dark:hover:text-blue-300"
       >
         {followingCount} following
       </button>

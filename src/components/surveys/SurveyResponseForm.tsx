@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "@/components/interactions/AuthModal";
 
 type Answer = {
   id: string;
@@ -45,6 +46,8 @@ export function SurveyResponseForm({
 }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(privacy === "ANONYMOUS");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -143,7 +146,12 @@ export function SurveyResponseForm({
       );
 
       const result = await submitSurveyResponse(formData, surveyId);
-      if (result?.success) {
+      if ('error' in result) {
+        toast("Please log in to submit a response", "error");
+        openAuthModal();
+        return;
+      }
+      if (result.success) {
         toast(result.message || "Response submitted successfully!", "success");
         try {
           localStorage.removeItem(draftKey);
@@ -167,7 +175,7 @@ export function SurveyResponseForm({
             type="text"
             value={answers[q.id] || ""}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="sb-input"
             placeholder="Your answer..."
             required={q.required}
           />
@@ -179,7 +187,7 @@ export function SurveyResponseForm({
             value={answers[q.id] || ""}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
             rows={4}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y"
+            className="sb-textarea resize-y"
             placeholder="Your detailed answer..."
             required={q.required}
           />
@@ -191,10 +199,10 @@ export function SurveyResponseForm({
             {q.options.map((opt) => (
               <label
                 key={opt.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-blue-200 hover:bg-blue-50/50 ${
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-blue-200 hover:bg-blue-50/50 dark:hover:border-blue-400/30 dark:hover:bg-blue-900/20 ${
                   answers[q.id] === opt.value
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
+                    : "border-slate-200 dark:border-slate-700"
                 }`}
               >
                 <input
@@ -206,7 +214,7 @@ export function SurveyResponseForm({
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   required={q.required}
                 />
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {opt.label}
                 </span>
               </label>
@@ -224,10 +232,10 @@ export function SurveyResponseForm({
               return (
                 <label
                   key={opt.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-blue-200 hover:bg-blue-50/50 ${
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-blue-200 hover:bg-blue-50/50 dark:hover:border-blue-400/30 dark:hover:bg-blue-900/20 ${
                     currentValues.includes(opt.value)
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-slate-200"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
+                      : "border-slate-200 dark:border-slate-700"
                   }`}
                 >
                   <input
@@ -239,7 +247,7 @@ export function SurveyResponseForm({
                     }
                     className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-slate-700">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     {opt.label}
                   </span>
                 </label>
@@ -253,7 +261,7 @@ export function SurveyResponseForm({
           <select
             value={answers[q.id] || ""}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="sb-input"
             required={q.required}
           >
             <option value="">Select an option...</option>
@@ -275,8 +283,8 @@ export function SurveyResponseForm({
                 onClick={() => handleAnswerChange(q.id, String(star))}
                 className={`h-10 w-10 rounded-full text-lg font-bold transition ${
                   parseInt(answers[q.id] || "0") >= star
-                    ? "bg-amber-400 text-white"
-                    : "bg-slate-100 text-slate-400 hover:bg-amber-100"
+                    ? "bg-amber-400 text-white dark:bg-amber-500"
+                    : "bg-slate-100 text-slate-400 hover:bg-amber-100 dark:bg-slate-800 dark:text-slate-500 dark:hover:bg-amber-400/10"
                 }`}
               >
                 {star}
@@ -299,14 +307,14 @@ export function SurveyResponseForm({
                 onClick={() => handleAnswerChange(q.id, val)}
                 className={`h-10 w-10 rounded-lg text-sm font-semibold transition ${
                   answers[q.id] === val
-                    ? "bg-blue-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-blue-100"
+                    ? "bg-blue-600 text-white dark:bg-blue-500"
+                    : "bg-slate-100 text-slate-600 hover:bg-blue-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-blue-900/40"
                 }`}
               >
                 {val}
               </button>
             ))}
-            <span className="ml-2 text-xs text-slate-500">
+            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
               ({min} - {max})
             </span>
           </div>
@@ -318,10 +326,10 @@ export function SurveyResponseForm({
             {q.options.map((opt) => (
               <label
                 key={opt.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-indigo-200 hover:bg-indigo-50/50 ${
+                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-indigo-200 hover:bg-indigo-50/50 dark:hover:border-indigo-400/30 dark:hover:bg-indigo-900/20 ${
                   answers[q.id] === opt.value
-                    ? "border-indigo-500 bg-indigo-50"
-                    : "border-slate-200"
+                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 dark:border-indigo-400/50"
+                    : "border-slate-200 dark:border-slate-700"
                 }`}
               >
                 <input
@@ -333,7 +341,7 @@ export function SurveyResponseForm({
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                   required={q.required}
                 />
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {opt.label}
                 </span>
               </label>
@@ -347,7 +355,7 @@ export function SurveyResponseForm({
             type="date"
             value={answers[q.id] || ""}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="sb-input"
             required={q.required}
           />
         );
@@ -358,7 +366,7 @@ export function SurveyResponseForm({
             type="text"
             value={answers[q.id] || ""}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="sb-input"
             placeholder="Your answer..."
           />
         );
@@ -369,9 +377,9 @@ export function SurveyResponseForm({
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Status banner: editing previous response / draft restored */}
       {response ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3 dark:border-blue-500/30 dark:bg-blue-500/10">
           <svg
-            className="h-5 w-5 shrink-0 text-blue-600 mt-0.5"
+            className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -384,18 +392,18 @@ export function SurveyResponseForm({
             />
           </svg>
           <div>
-            <p className="text-sm font-semibold text-blue-800">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
               You are editing your previous response.
             </p>
-            <p className="text-xs text-blue-600 mt-0.5">
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
               Any changes you make will replace your earlier submission.
             </p>
           </div>
         </div>
       ) : draftRestored ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
           <svg
-            className="h-5 w-5 shrink-0 text-emerald-600 mt-0.5"
+            className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -408,10 +416,10 @@ export function SurveyResponseForm({
             />
           </svg>
           <div>
-            <p className="text-sm font-semibold text-emerald-800">
+            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
               Draft restored.
             </p>
-            <p className="text-xs text-emerald-600 mt-0.5">
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
               Your unsaved answers were restored from a previous session.
             </p>
           </div>
@@ -420,14 +428,16 @@ export function SurveyResponseForm({
 
       {/* Privacy selection for HYBRID */}
       {privacy === "HYBRID" && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h3 className="text-sm font-semibold text-slate-700 mb-3">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
             Response Privacy
           </h3>
           <div className="flex gap-4">
             <label
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 flex-1 transition ${
-                !isAnonymous ? "border-blue-500 bg-blue-50" : "border-slate-200"
+                !isAnonymous
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
+                  : "border-slate-200 dark:border-slate-700"
               }`}
             >
               <input
@@ -438,17 +448,19 @@ export function SurveyResponseForm({
                 className="h-4 w-4 text-blue-600"
               />
               <div>
-                <span className="block text-sm font-semibold text-slate-800">
+                <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
                   Non-anonymous
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   Your name will be visible
                 </span>
               </div>
             </label>
             <label
               className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 flex-1 transition ${
-                isAnonymous ? "border-blue-500 bg-blue-50" : "border-slate-200"
+                isAnonymous
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
+                  : "border-slate-200 dark:border-slate-700"
               }`}
             >
               <input
@@ -459,10 +471,10 @@ export function SurveyResponseForm({
                 className="h-4 w-4 text-blue-600"
               />
               <div>
-                <span className="block text-sm font-semibold text-slate-800">
+                <span className="block text-sm font-semibold text-slate-800 dark:text-slate-200">
                   Anonymous
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
                   Your identity stays hidden
                 </span>
               </div>
@@ -472,16 +484,16 @@ export function SurveyResponseForm({
       )}
 
       {privacy === "ANONYMOUS" && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
-          <p className="text-sm font-medium text-amber-700">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-500/30 dark:bg-amber-500/10">
+          <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
             🔒 This survey is anonymous. Your identity will not be recorded.
           </p>
         </div>
       )}
 
       {privacy === "NON_ANONYMOUS" && (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center">
-          <p className="text-sm font-medium text-blue-700">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-center dark:border-blue-500/30 dark:bg-blue-500/10">
+          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
             📝 This survey is non-anonymous. Your responses will be linked to
             your profile.
           </p>
@@ -492,18 +504,18 @@ export function SurveyResponseForm({
       {questions.map((q, idx) => (
         <div
           key={q.id}
-          className="rounded-2xl border border-slate-200 bg-white p-6"
+          className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30"
         >
           <div className="mb-4 flex items-start gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
               {idx + 1}
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                 {q.title}
                 {q.required && <span className="ml-1 text-red-500">*</span>}
               </h3>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-400 dark:text-slate-500">
                 {q.type.replace(/_/g, " ").toLowerCase()}
               </span>
             </div>
