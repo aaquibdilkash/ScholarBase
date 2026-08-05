@@ -92,17 +92,71 @@ const JournalDetailPage = async ({
         </div>
       }
     >
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
+      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4">
         {j.title}
       </h1>
 
-      <div className="mb-3 sm:mb-6">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {j.publisher && (
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+              Publisher
+            </p>
+            <p className="text-sm font-semibold text-slate-800 mt-1">
+              {j.publisher}
+            </p>
+          </div>
+        )}
         {j.issn && (
-          <p className="text-xs sm:text-sm text-slate-500">ISSN: {j.issn}</p>
+          <div className="rounded-xl bg-slate-50 p-3">
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+              ISSN
+            </p>
+            <p className="text-sm font-semibold text-slate-800 mt-1">
+              {j.issn}
+            </p>
+          </div>
+        )}
+        {j.impactFactor && (
+          <div className="rounded-xl bg-amber-50 p-3">
+            <p className="text-xs text-amber-500 font-medium uppercase tracking-wider">
+              Impact Factor
+            </p>
+            <p className="text-sm font-semibold text-amber-800 mt-1">
+              {j.impactFactor}
+            </p>
+          </div>
+        )}
+        {j.scopus && (
+          <div className="rounded-xl bg-emerald-50 p-3">
+            <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
+              Scopus
+            </p>
+            <p className="text-sm font-semibold text-emerald-800 mt-1">
+              {j.scopus}
+            </p>
+          </div>
+        )}
+        {j.abdcCategory && (
+          <div className="rounded-xl bg-purple-50 p-3">
+            <p className="text-xs text-purple-500 font-medium uppercase tracking-wider">
+              ABDC Category
+            </p>
+            <p className="text-sm font-semibold text-purple-800 mt-1">
+              {j.abdcCategory}
+            </p>
+          </div>
         )}
       </div>
 
-      <RichContent content={j.about} />
+      {j.about && (
+        <div className="mt-4 sm:mt-6">
+          <h3 className="text-base sm:text-lg font-semibold text-slate-950 mb-1.5 sm:mb-2">
+            About
+          </h3>
+          <RichContent content={j.about} />
+        </div>
+      )}
 
       <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">
         {j.website && (

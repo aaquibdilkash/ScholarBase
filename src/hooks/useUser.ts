@@ -14,31 +14,24 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-    
-    async function loadUser() {
-      try {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted && session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load user:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
+    const supabase = createClient();
 
-    loadUser();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email,
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
 
     return () => {
-      mounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 

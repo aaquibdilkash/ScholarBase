@@ -28,7 +28,7 @@ export function ArticleComposer({
   initialValues,
 }: ArticleComposerProps) {
   const router = useRouter();
-  const draftKey = `draft_article_${mode}`;
+  const draftKey = mode === "edit" ? null : "draft_article_create";
   const initial = {
     title: initialValues?.title ?? "",
     excerpt: initialValues?.excerpt ?? "",

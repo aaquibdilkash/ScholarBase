@@ -145,7 +145,7 @@ export async function updateResult(formData: FormData, resultId: string) {
 
     revalidatePath('/results')
     revalidatePath(`/results/${resultId}`)
-    redirect(`/results/${resultId}`)
+    return { success: true, redirect: `/results/${resultId}` }
 }
 
 export async function deleteResult(resultId: string) {

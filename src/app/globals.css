@@ -394,7 +394,7 @@ html[data-theme="dark"] {
     background-color: rgba(15, 23, 42, 0.82);
   }
 
-  .dark .bg-slate-50 {
+  html.dark .bg-slate-50 {
     background-color: rgba(15, 23, 42, 0.55);
   }
 }

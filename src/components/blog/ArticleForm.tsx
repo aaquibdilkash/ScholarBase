@@ -31,9 +31,10 @@ export default function ArticleForm({
     excerpt: initialValues?.excerpt ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_article_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_article_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -105,19 +106,19 @@ export default function ArticleForm({
 
         <div className="space-y-6">
           <div className="sb-surface-strong p-6 sticky top-24">
-            <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-4">
               Preview
             </h3>
             <div className="space-y-3">
-              <h4 className="text-lg font-semibold text-slate-900 line-clamp-2">
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100 line-clamp-2">
                 {draftFields.title || "Your article title"}
               </h4>
               {draftFields.excerpt && (
-                <p className="text-sm text-slate-600 line-clamp-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3">
                   {draftFields.excerpt}
                 </p>
               )}
-              <div className="pt-3 border-t border-slate-100 prose prose-slate max-w-none prose-headings:text-slate-950 prose-a:text-blue-700 text-xs line-clamp-4">
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 prose prose-slate dark:prose-invert max-w-none prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 text-xs line-clamp-4">
                 <RichContent
                   content={
                     draftFields.content ||

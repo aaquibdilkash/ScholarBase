@@ -2,7 +2,10 @@
 
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
-import { generateCloudinarySignature } from "@/app/actions/cloudinary";
+import {
+  generateCloudinarySignature,
+  deleteFromCloudinary,
+} from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -92,12 +95,33 @@ export function CreateSocialPostForm() {
 
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
-      setImageUrl(data.secure_url);
+      const newUrl = data.secure_url;
+
+      // Replacing an existing image: the previous one is no longer referenced
+      // anywhere, so delete it from Cloudinary to avoid orphaned assets.
+      if (imageUrl && imageUrl !== newUrl) {
+        await deleteFromCloudinary(imageUrl);
+      }
+
+      setImageUrl(newUrl);
     } catch {
       toast("Failed to upload image.", "error");
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!imageUrl) return;
+
+    // Create form: the image isn't referenced anywhere yet, so it's safe to
+    // delete immediately when the user removes/replaces it.
+    await deleteFromCloudinary(imageUrl);
+
+    setImageUrl("");
+    // Clear it from the localStorage draft too (the persist effect's guard
+    // prevents it from clearing on its own).
+    updateDraftField("imageUrl", "");
   };
 
   return (
@@ -118,20 +142,29 @@ export function CreateSocialPostForm() {
             <img
               src={imageUrl}
               alt=""
-              className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+              className="h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
             />
+            {/* Always-visible remove button (works on touch/mobile) */}
             <button
               type="button"
-              onClick={() => setImageUrl("")}
-              className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
+              onClick={handleRemoveImage}
+              aria-label="Remove image"
+              className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-sm hover:bg-red-600"
             >
               ×
             </button>
+            {/* Hover overlay: Remove image (desktop) */}
+            <div
+              onClick={handleRemoveImage}
+              className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-lg bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+            >
+              <span className="text-xs font-semibold text-white">Remove</span>
+            </div>
           </div>
         )}
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
             <svg
               className="h-5 w-5"
               fill="none"

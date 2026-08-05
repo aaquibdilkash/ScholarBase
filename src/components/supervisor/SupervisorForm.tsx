@@ -29,9 +29,10 @@ export default function SupervisorForm({
     about: initialValues?.about ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_supervisor_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_supervisor_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -47,11 +48,13 @@ export default function SupervisorForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && supervisorId) {
-      await updateSupervisor(formData, supervisorId);
-    } else {
-      await submit(() => createSupervisor(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && supervisorId) {
+        return updateSupervisor(formData, supervisorId);
+      } else {
+        return createSupervisor(formData);
+      }
+    });
   }
 
   return (

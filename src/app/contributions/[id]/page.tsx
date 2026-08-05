@@ -10,6 +10,7 @@ import {
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { RichContent } from "@/components/content/RichContent";
+import { RejectionReason } from "@/components/contributions/RejectionReason";
 
 const ContributionDetailPage = async ({
   params,
@@ -119,6 +120,11 @@ const ContributionDetailPage = async ({
         )}
       </div>
 
+      {contribution.status === "REJECTED" &&
+        (contribution as any).rejectionReason && (
+          <RejectionReason reason={(contribution as any).rejectionReason} />
+        )}
+
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {contribution.title}
       </h1>
@@ -128,14 +134,14 @@ const ContributionDetailPage = async ({
         className="text-slate-800 leading-relaxed mb-4 sm:mb-6"
       />
 
-      <div className="rounded-xl border border-blue-100/50 bg-blue-50/50 p-3 sm:p-4 text-xs sm:text-sm">
-        <p className="font-semibold text-blue-700 mb-1">
-          🙏 Thank you for your support!
+      <div className="rounded-xl border border-blue-100/50 bg-blue-50/50 p-3 sm:p-4 text-xs sm:text-sm dark:border-blue-500/20 dark:bg-blue-500/10">
+        <p className="font-semibold text-blue-700 mb-1 dark:text-blue-300">
+          🚀 Empowering Research Through Your Support
         </p>
-        <p className="text-slate-600">
-          Your contributions help keep ScholarBase running — maintaining the
-          server, database, and continuous development for the research
-          community.
+        <p className="text-slate-600 dark:text-slate-400">
+          Your invaluable contributions directly fuel ScholarBase's operations,
+          supporting critical server and database infrastructure, and enabling
+          continuous development for the global research community.
         </p>
       </div>
     </DetailPageCardShell>

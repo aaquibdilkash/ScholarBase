@@ -39,9 +39,10 @@ export default function EventForm({
     applyLink: initialValues?.applyLink ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_event_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_event_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -57,11 +58,13 @@ export default function EventForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && eventId) {
-      await updateResearchEvent(formData, eventId);
-    } else {
-      await submit(() => createEventSafe(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && eventId) {
+        return updateResearchEvent(formData, eventId);
+      } else {
+        return createEventSafe(formData);
+      }
+    });
   }
 
   return (

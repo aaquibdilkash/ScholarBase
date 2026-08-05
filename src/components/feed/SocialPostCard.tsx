@@ -70,20 +70,25 @@ export function SocialPostCard({
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post._count.comments}
     >
-      <p className="mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600">
-        {post.content}
-      </p>
-
-      {post.imageUrl && (
-        <div className="mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition hover:opacity-90">
-          <img
-            src={post.imageUrl}
-            alt=""
-            className="h-48 w-full object-cover"
-            loading="lazy"
-          />
-        </div>
-      )}
+      <div className="flex gap-4">
+        <p
+          className={`mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600 ${
+            post.imageUrl ? "w-1/2" : "w-full"
+          }`}
+        >
+          {post.content}
+        </p>
+        {post.imageUrl && (
+          <div className="w-1/2 mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition hover:opacity-90">
+            <img
+              src={post.imageUrl}
+              alt=""
+              className="h-48 w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
+      </div>
     </ListPageCardShell>
   );
 }

@@ -65,7 +65,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 
     revalidatePath('/research-tools')
     revalidatePath(`/research-tools/${toolId}`)
-    redirect(`/research-tools/${toolId}`)
+    return { success: true, redirect: `/research-tools/${toolId}` }
 }
 
 export async function deleteResearchTool(toolId: string) {

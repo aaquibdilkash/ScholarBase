@@ -213,7 +213,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
     revalidatePath('/surveys')
     revalidatePath(`/surveys/${surveyId}`)
-    redirect(`/surveys/${surveyId}`)
+    return { success: true, redirect: `/surveys/${surveyId}` }
 }
 
 export async function deleteSurvey(surveyId: string) {

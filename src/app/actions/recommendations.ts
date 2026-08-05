@@ -4,6 +4,7 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { reverseReputationForRecommendation } from '@/app/actions/interactions';
 
 export async function createRecommendation(formData: FormData, supervisorId: string) {
@@ -103,9 +104,13 @@ export async function updateRecommendation(formData: FormData, recommendationId:
         },
     })
 
-    redirect(`/supervisor/${recommendation.supervisorId}/recommendation/${recommendationId}`)
-
+    return {
+        success: true,
+        redirect: `/supervisor/${recommendation.supervisorId}/recommendation/${recommendationId}`,
+        supervisorId: recommendation.supervisorId,
+    }
 }
+
 
 export async function deleteRecommendation(recommendationId: string) {
     const user = await requireCurrentUser('Log in to delete this recommendation.')
@@ -125,7 +130,8 @@ export async function deleteRecommendation(recommendationId: string) {
 
     await prisma.recommendation.delete({ where: { id: recommendationId } })
 
-    redirect(`/supervisor/${recommendation.supervisorId}`)
+    revalidatePath(`/supervisor/${recommendation.supervisorId}`)
+    return { redirect: `/supervisor/${recommendation.supervisorId}` }
 }
 
 

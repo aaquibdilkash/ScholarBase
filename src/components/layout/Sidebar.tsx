@@ -505,7 +505,7 @@ export default function Sidebar({ user }: SidebarProps) {
             type="button"
             onClick={scrollNavDown}
             disabled={!canScrollDown}
-            className={`-mb-2 flex w-full items-center justify-center rounded-xl py-1 transition-colors ${
+            className={`mb-2 flex w-full items-center justify-center rounded-xl py-1 transition-colors ${
               canScrollDown
                 ? "cursor-pointer text-slate-400 hover:bg-white/60 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-900/60 dark:hover:text-slate-300"
                 : "cursor-default text-slate-200 dark:text-slate-700"

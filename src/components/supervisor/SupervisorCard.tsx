@@ -61,9 +61,7 @@ export function SupervisorCard({
             isOwner={true}
             editLabel="Edit Supervisor"
             deleteLabel="Delete"
-            onDelete={async () => {
-              await deleteSupervisor(supervisor.id);
-            }}
+            onDelete={() => deleteSupervisor(supervisor.id)}
           />
         )
       }

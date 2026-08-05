@@ -3,7 +3,9 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { redirect } from 'next/navigation'
+import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
+
 
 export async function getSupervisors(q?: string, userId?: string) {
   return prisma.supervisor.findMany({
@@ -134,8 +136,10 @@ export async function updateSupervisor(formData: FormData, supervisorId: string)
     data: { name, university, department, about },
   })
 
-  redirect(`/supervisor/${supervisorId}`)
+  return { success: true, redirect: `/supervisor/${supervisorId}` }
 }
+
+
 
 export async function deleteSupervisor(supervisorId: string) {
   const user = await requireCurrentUser('Log in to delete this supervisor.')
@@ -151,6 +155,7 @@ export async function deleteSupervisor(supervisorId: string) {
   }
 
   await prisma.supervisor.delete({ where: { id: supervisorId } })
-  redirect('/supervisor')
+  revalidatePath('/supervisor')
+  return { redirect: '/supervisor' }
 }
 

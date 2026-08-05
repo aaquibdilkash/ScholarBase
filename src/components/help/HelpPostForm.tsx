@@ -33,9 +33,10 @@ export default function HelpPostForm({
     message: initialValues?.message ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_helppost_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_helppost_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -51,11 +52,13 @@ export default function HelpPostForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && helpPostId) {
-      await updateHelpPost(formData, helpPostId);
-    } else {
-      await submit(() => createHelpPostSafe(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && helpPostId) {
+        return updateHelpPost(formData, helpPostId);
+      } else {
+        return createHelpPostSafe(formData);
+      }
+    });
   }
 
   return (

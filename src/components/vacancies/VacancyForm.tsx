@@ -33,9 +33,10 @@ export default function VacancyForm({
     applyLink: initialValues?.applyLink ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_vacancy_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_vacancy_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -51,12 +52,13 @@ export default function VacancyForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && vacancyId) {
-      // Edit mode: redirects server-side
-      await updateJobVacancy(formData, vacancyId);
-    } else {
-      await submit(() => createJobVacancy(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && vacancyId) {
+        return updateJobVacancy(formData, vacancyId);
+      } else {
+        return createJobVacancy(formData);
+      }
+    });
   }
 
   return (

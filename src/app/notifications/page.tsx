@@ -28,6 +28,10 @@ function typeLabel(type: string) {
       return "New article";
     case "post-published":
       return "New post";
+    case "contribution-approved":
+      return "Contribution approved";
+    case "contribution-rejected":
+      return "Contribution rejected";
     default:
       return "Update";
   }

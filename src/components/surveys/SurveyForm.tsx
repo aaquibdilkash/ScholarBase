@@ -17,15 +17,6 @@ export default function SurveyForm({
 }) {
   const router = useRouter();
 
-  const { submit, submitting } = useFormSubmit(undefined, {
-    resetOnSuccess: mode !== "edit",
-    successMessage:
-      mode === "create"
-        ? "Survey created successfully!"
-        : "Survey updated successfully!",
-    errorMessage: "Failed to save survey.",
-  });
-
   const initialQuestions =
     initialData?.questions?.map((q: any, i: number) => ({
       id: q.id || generateId(),
@@ -43,8 +34,9 @@ export default function SurveyForm({
         })) || [],
     })) || [];
 
+  const draftKey = mode === "edit" ? null : "draft_survey_new";
   const [draft, updateDraft, resetDraft] = useFormDraft(
-    `draft_survey_${initialData?.id || "new"}`,
+    draftKey,
     {
       title: initialData?.title || "",
       description: initialData?.description || "",
@@ -53,6 +45,15 @@ export default function SurveyForm({
       questions: initialQuestions,
     },
   );
+
+  const { submit, submitting } = useFormSubmit(resetDraft, {
+    resetOnSuccess: mode !== "edit",
+    successMessage:
+      mode === "create"
+        ? "Survey created successfully!"
+        : "Survey updated successfully!",
+    errorMessage: "Failed to save survey.",
+  });
 
   const { title, description, privacy, shareData, questions } = draft;
 
@@ -90,9 +91,9 @@ export default function SurveyForm({
     formData.set("questions", JSON.stringify(questions));
 
     if (mode === "edit" && initialData?.id) {
-      // Edit mode: updateSurvey does a server-side redirect, so call it directly
-      // (not wrapped in submit() which would catch the redirect error)
-      await updateSurvey(formData, initialData.id);
+      // Edit mode: updateSurvey returns { success, redirect } so submit() handles
+      // the client-side redirect (avoids the NEXT_REDIRECT server error).
+      await submit(() => updateSurvey(formData, initialData.id));
       resetDraft();
     } else {
       await submit(() => createSurvey(formData));
@@ -162,14 +163,14 @@ export default function SurveyForm({
                 onClick={() => updateDraft("privacy", opt.value)}
                 className={`rounded-xl border-2 p-4 text-left transition ${
                   privacy === opt.value
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-slate-200 hover:border-slate-300"
+                    ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 dark:border-blue-500/50"
+                    : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
                 }`}
               >
-                <div className="text-sm font-semibold text-slate-900">
+                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {opt.label}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">{opt.desc}</div>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{opt.desc}</div>
               </button>
             ))}
           </div>
@@ -232,7 +233,7 @@ export default function SurveyForm({
               <button
                 type="button"
                 onClick={addQuestion}
-                className="sb-button-soft text-sm"
+                className="sb-button-accent text-sm"
               >
                 + Add Question
               </button>

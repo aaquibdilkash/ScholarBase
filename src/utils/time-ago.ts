@@ -23,3 +23,61 @@ export function formatTimeAgo(date: Date | string | null | undefined): string {
   return `${years}y ago`;
 }
 
+export function getTimeLeft(deadline: Date | null): {
+  label: string;
+  className: string;
+} | null {
+  if (!deadline) return null;
+
+  const now = new Date();
+  const diff = deadline.getTime() - now.getTime();
+
+  if (diff <= 0) {
+    return {
+      label: "Closed",
+      className: "bg-red-200 text-red-800",
+    };
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+
+  if (days > 30) {
+    return null; // More than a month left, no badge
+  }
+
+  if (days > 7) {
+    return {
+      label: `${days} days left`,
+      className: "bg-blue-200 text-blue-800",
+    };
+  }
+
+  if (days > 0) {
+    return {
+      label: `${days}d ${hours}h left`,
+      className: "bg-orange-200 text-orange-800",
+    };
+  }
+
+  const minutes = Math.floor((diff / 1000 / 60) % 60);
+  if (hours > 0) {
+    return {
+      label: `${hours}h ${minutes}m left`,
+      className: "bg-red-200 text-red-800",
+    };
+  }
+
+  if (minutes > 0) {
+    return {
+      label: `${minutes} minutes left`,
+      className: "bg-red-200 text-red-800 font-bold",
+    };
+  }
+
+  return {
+    label: "Closing now",
+    className: "bg-red-200 text-red-800 font-bold",
+  };
+}
+

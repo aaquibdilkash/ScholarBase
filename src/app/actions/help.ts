@@ -159,7 +159,8 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
         data: { title, subject, category, message },
     })
 
-    redirect(`/help/${helpPostId}`)
+    revalidatePath(`/help/${helpPostId}`);
+    return { success: true, redirect: `/help/${helpPostId}` };
 }
 
 export async function deleteHelpPost(helpPostId: string) {

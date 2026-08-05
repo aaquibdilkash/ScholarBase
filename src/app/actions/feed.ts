@@ -192,7 +192,7 @@ export async function updateSocialPost(
     const user = await requireCurrentUser('Log in to edit this post.')
 
     const content = readFormValue(formData, 'content')
-    if (!content) return
+    if (!content) return { success: false, message: 'Content cannot be empty.' }
 
     const imageUrl = formData.get('imageUrl') as string | null;
 
@@ -201,24 +201,30 @@ export async function updateSocialPost(
         select: { authorId: true, imageUrl: true },
     })
 
-    if (!post) return
+    if (!post) return { success: false, message: 'Post not found.' }
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to edit this post.')
     }
 
-    // Delete old image from Cloudinary if replaced
-    if (post.imageUrl && imageUrl && post.imageUrl !== imageUrl) {
-        await deleteFromCloudinary(post.imageUrl);
-    }
+    // Persist the edit first so the DB is the source of truth. Then delete the
+    // old image from Cloudinary only after the update has succeeded — so if the
+    // user changes their mind before saving, the original image is preserved,
+    // and if the update fails, the old image is never deleted.
+    const oldImage = post.imageUrl;
+    const newImage = imageUrl || null;
 
     await prisma.socialPost.update({
         where: { id: postId },
-        data: { content, imageUrl: imageUrl || undefined },
+        data: { content, imageUrl: newImage || undefined },
     })
+
+    if (oldImage && oldImage !== newImage) {
+        await deleteFromCloudinary(oldImage);
+    }
 
     revalidatePath('/feed')
     revalidatePath(`/feed/${postId}`)
-    redirect(`/feed/${postId}`)
+    return { success: true, postId, message: 'Post updated successfully!' }
 }
 
 export async function deleteSocialPost(postId: string) {

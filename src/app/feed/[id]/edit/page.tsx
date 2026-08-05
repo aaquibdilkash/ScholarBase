@@ -104,16 +104,14 @@ export default function EditPostPage({
       formData.append("content", content);
       if (imageUrl) formData.append("imageUrl", imageUrl);
 
-      await updateSocialPost(formData, postId);
-      toast("Post updated successfully!", "success");
-    } catch (err: any) {
-      if (err.digest?.startsWith('NEXT_REDIRECT')) {
-        // known issue with server actions + client-side navigation
-        // (see: https://github.com/vercel/next.js/issues/52192)
-        // the page will redirect as expected, so we can ignore this error
-        return;
+      const result = await updateSocialPost(formData, postId);
+      if (result.success) {
+        toast(result.message || "Post updated successfully!", "success");
+        router.push(`/feed/${result.postId}`);
+      } else {
+        toast(result.message || "Failed to update post.", "error");
       }
-      
+    } catch (err: any) {
       toast(err?.message || "Failed to update post.", "error");
     } finally {
       setSubmitting(false);
@@ -189,15 +187,27 @@ export default function EditPostPage({
                 <img
                   src={imageUrl}
                   alt=""
-                  className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+                  className="h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
                 />
+                {/* Always-visible remove button (works on touch/mobile) */}
                 <button
                   type="button"
                   onClick={() => setImageUrl("")}
-                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold hover:bg-red-600"
+                  aria-label="Remove image"
+                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-sm hover:bg-red-600"
                 >
                   ×
                 </button>
+                {/* Hover overlay: Remove image. The image is only deleted from
+                    Cloudinary server-side after a successful save. */}
+                <div
+                  onClick={() => setImageUrl("")}
+                  className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-lg bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <span className="text-xs font-semibold text-white">
+                    Remove
+                  </span>
+                </div>
               </div>
             </div>
           </div>

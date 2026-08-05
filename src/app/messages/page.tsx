@@ -1,23 +1,43 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
-import { getInbox } from '@/app/actions/messages'
-import { formatTimeAgo } from '@/utils/time-ago'
+"use client";
+import { useContext } from "react";
+import { MessagesLayoutContext } from "./messages-context";
 
-export const metadata: Metadata = {
-  title: 'Messages',
-  description: 'Direct conversations with fellow scholars for collaboration and research.',
-  robots: { index: false, follow: true },
-}
+export default function MessagesPage() {
+  const context = useContext(MessagesLayoutContext);
+  if (!context) {
+    throw new Error("MessagesPage must be used within a MessagesLayout");
+  }
+  const { setMobileOpen } = context;
 
-export default async function MessagesPage() {
   return (
-    <div className="h-full flex items-center justify-center">
+    <div className="h-full flex flex-col items-center justify-center">
+      <div className="md:hidden mb-4">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
+          aria-label="Toggle conversation sidebar"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-slate-500">
+        <h2 className="text-xl font-semibold text-slate-500 dark:text-slate-400">
           Select a conversation
         </h2>
-        <p className="mt-2 text-slate-400">
+        <p className="mt-2 text-slate-400 dark:text-slate-500">
           Choose a conversation from the sidebar to start chatting.
         </p>
       </div>

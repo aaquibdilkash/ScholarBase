@@ -243,14 +243,14 @@ export function QuestionEditor({
                   onClick={() => handleLikertScaleChange(size)}
                   className={`flex-1 rounded-xl border-2 p-3 text-center transition ${
                     question.maxValue === size
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-slate-200 hover:border-slate-300"
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 dark:border-blue-500/50"
+                      : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
                   }`}
                 >
-                  <span className="block text-sm font-bold text-slate-800">
+                  <span className="block text-sm font-bold text-slate-800 dark:text-slate-100">
                     {size}-Point
                   </span>
-                  <span className="mt-1 block text-xs text-slate-500">
+                  <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
                     {LIKERT_OPTIONS[size][0]} ...{" "}
                     {LIKERT_OPTIONS[size][size - 1]}
                   </span>

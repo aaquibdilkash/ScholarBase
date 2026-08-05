@@ -159,7 +159,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
 
     revalidatePath('/events')
     revalidatePath(`/events/${eventId}`)
-    redirect(`/events/${eventId}`)
+    return { success: true, redirect: `/events/${eventId}` }
 }
 
 export async function deleteResearchEvent(eventId: string) {

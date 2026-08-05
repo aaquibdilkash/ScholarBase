@@ -352,6 +352,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                     about: true,
                     createdAt: true,
                     authorId: true,
+                    recommendations: true,
                     author: {
                         select: {
                             id: true,
@@ -410,6 +411,7 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
                     amount: true,
                     upiId: true,
                     status: true,
+                    rejectionReason: true,
                     authorId: true,
                     createdAt: true,
                     updatedAt: true,
@@ -509,18 +511,18 @@ export async function getProfileSections(profileId: string, currentUserId?: stri
 const ProfileSectionMap = {
     articles: 'article',
     socialPosts: 'socialPost',
-    vacancies: 'vacancy',
-    admissions: 'admission',
-    events: 'event',
+    vacancies: 'jobVacancy',
+    admissions: 'phdAdmission',
+    events: 'researchEvent',
     helpPosts: 'helpPost',
     journals: 'journal',
     researchTools: 'researchTool',
     recommendations: 'recommendation',
     supervisors: 'supervisor',
     results: 'result',
-    contributionPosts: 'contributionPost',
+    contributionPosts: 'contribution',
     publications: 'publication',
-    surveys: 'survey',
+    surveys: 'researchSurvey',
 } as const;
 
 export async function getProfileSection(
@@ -580,7 +582,7 @@ export async function getProfileSection(
                 ...commonSelect
             };
             break;
-        case 'vacancy':
+        case 'jobVacancy':
             select = {
                 id: true,
                 title: true,
@@ -594,7 +596,7 @@ export async function getProfileSection(
                 ...commonSelect
             };
             break;
-        case 'admission':
+        case 'phdAdmission':
             select = {
                 id: true,
                 university: true,
@@ -608,7 +610,7 @@ export async function getProfileSection(
                 ...commonSelect
             };
             break;
-        case 'event':
+        case 'researchEvent':
             select = {
                 id: true,
                 title: true,
@@ -690,6 +692,7 @@ export async function getProfileSection(
                 about: true,
                 createdAt: true,
                 authorId: true,
+                recommendations: true,
                 ...commonSelect
             };
             break;
@@ -710,7 +713,7 @@ export async function getProfileSection(
                 ...commonSelect
             };
             break;
-        case 'contributionPost':
+        case 'contribution':
             select = {
                 id: true,
                 title: true,
@@ -718,6 +721,7 @@ export async function getProfileSection(
                 amount: true,
                 upiId: true,
                 status: true,
+                rejectionReason: true,
                 authorId: true,
                 createdAt: true,
                 updatedAt: true,
@@ -749,7 +753,7 @@ export async function getProfileSection(
                 ...commonSelect
             };
             break;
-        case 'survey':
+        case 'researchSurvey':
             select = {
                 id: true,
                 title: true,

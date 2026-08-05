@@ -37,9 +37,10 @@ export default function JournalForm({
     about: initialValues?.about ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_journal_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_journal_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -55,11 +56,13 @@ export default function JournalForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && journalId) {
-      await updateJournal(formData, journalId);
-    } else {
-      await submit(() => createJournal(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && journalId) {
+        return updateJournal(formData, journalId);
+      } else {
+        return createJournal(formData);
+      }
+    });
   }
 
   return (

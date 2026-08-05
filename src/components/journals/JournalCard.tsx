@@ -73,17 +73,6 @@ export function JournalCard({
       footerCommentsCount={journal._count.comments}
       bodyBottomContent={
         <>
-          {journal.issn && (
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
-                ISSN
-              </span>
-              <span className="font-mono tracking-[0.18em] text-slate-700 dark:text-slate-200">
-                {journal.issn}
-              </span>
-            </div>
-          )}
-
           {journal.website && (
             <div className="mt-4 flex gap-3">
               <a
@@ -114,6 +103,11 @@ export function JournalCard({
           {journal.publisher && (
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {journal.publisher}
+            </span>
+          )}
+          {journal.issn && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              ISSN: {journal.issn}
             </span>
           )}
           {journal.impactFactor && (

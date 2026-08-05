@@ -7,6 +7,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { getTimeLeft } from "@/utils/time-ago";
 
 type EventWithAuthor = ResearchEvent & {
   author: User & {
@@ -15,29 +16,6 @@ type EventWithAuthor = ResearchEvent & {
   votes: any[];
   _count: { votes: number; comments: number };
 };
-
-function getUrgencyBadge(
-  deadline: Date | null,
-): { label: string; className: string } | null {
-  if (!deadline) return null;
-  const now = new Date();
-  const diffDays = Math.ceil(
-    (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays < 0)
-    return {
-      label: "Registration Closed",
-      className: "bg-red-100 text-red-700",
-    };
-  if (diffDays <= 3)
-    return {
-      label: "Closing Soon",
-      className: "bg-orange-100 text-orange-700",
-    };
-  if (diffDays <= 7)
-    return { label: "Week Left", className: "bg-amber-100 text-amber-700" };
-  return null;
-}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -62,7 +40,7 @@ export function EventCard({
     event.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     event.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
-  const urgency = getUrgencyBadge(event.deadline);
+  const urgency = getTimeLeft(event.deadline);
 
   return (
     <ListPageCardShell

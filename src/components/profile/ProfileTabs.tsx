@@ -136,7 +136,7 @@ const SECTIONS: SectionWithCount[] = [
       items.map((s: any) => (
         <SupervisorCard
           key={s.id}
-          supervisor={{ ...s, recommendations: [] }}
+          supervisor={s}
           currentUserId={currentUserId}
         />
       )),

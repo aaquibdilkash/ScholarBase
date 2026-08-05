@@ -153,7 +153,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
 
     revalidatePath('/vacancies')
     revalidatePath(`/vacancies/${vacancyId}`)
-    redirect(`/vacancies/${vacancyId}`)
+    return { success: true, redirect: `/vacancies/${vacancyId}` }
 }
 
 export async function deleteJobVacancy(vacancyId: string) {
@@ -178,7 +178,7 @@ export async function deleteJobVacancy(vacancyId: string) {
 
     revalidatePath('/vacancies')
     revalidatePath(`/vacancies/${vacancyId}`)
-    redirect('/vacancies')
+    return { redirect: '/vacancies' }
 }
 
 export async function getLatestVacancies(count: number, userId?: string) {

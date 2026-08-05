@@ -198,6 +198,7 @@ export async function getAdminStats() {
     supervisors,
     recommendations,
     surveys,
+    users: totalUsers,
   }
 
   const totalContent = Object.values(sections).reduce((a, b) => a + b, 0)

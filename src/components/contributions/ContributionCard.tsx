@@ -1,11 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Contribution, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteContribution } from "@/app/actions/contributions";
-import { useState } from "react";
+import { RichContent } from "@/components/content/RichContent";
 
 type ContributionWithAuthor = Contribution & {
   author: User & {
@@ -22,7 +23,6 @@ export function ContributionCard({
   contribution: ContributionWithAuthor;
   currentUserId?: string;
 }) {
-  const [showReason, setShowReason] = useState(false);
   const isOwner = currentUserId === contribution.authorId;
   const isFollowing = (contribution.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -94,43 +94,14 @@ export function ContributionCard({
         )}
       </div>
 
-      {contribution.status === "REJECTED" &&
-        (contribution as any).rejectionReason && (
-          <div className="mb-3">
-            <button
-              onClick={() => setShowReason(!showReason)}
-              className="flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 transition"
-            >
-              <svg
-                className={`h-3 w-3 transition-transform ${showReason ? "rotate-90" : ""}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              Why was this rejected?
-            </button>
-            {showReason && (
-              <div className="mt-2 rounded-xl border border-red-100 bg-red-50 p-3 text-xs text-red-700">
-                {(contribution as any).rejectionReason}
-              </div>
-            )}
-          </div>
-        )}
-
       <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
         {contribution.title}
       </h2>
 
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
-        {contribution.message}
-      </p>
+      <RichContent
+        content={contribution.message}
+        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+      />
     </ListPageCardShell>
   );
 }

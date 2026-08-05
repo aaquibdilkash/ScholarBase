@@ -1,0 +1,24 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+
+export const MessagesLayoutContext = createContext<{
+  mobileOpen: boolean;
+  setMobileOpen: Dispatch<SetStateAction<boolean>>;
+} | null>(null);
+
+export function useMessagesLayout() {
+  const context = useContext(MessagesLayoutContext);
+  if (!context) {
+    throw new Error(
+      "useMessagesLayout must be used within a MessagesLayoutProvider",
+    );
+  }
+  return context;
+}

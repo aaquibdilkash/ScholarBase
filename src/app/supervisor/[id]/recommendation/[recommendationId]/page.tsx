@@ -116,6 +116,15 @@ export default async function RecommendationDetailPage({
         ) : null
       }
     >
+      <p className="text-sm font-semibold text-slate-700 mb-2">
+        Recommendation for{" "}
+        <a
+          href={`/supervisor/${recommendation.supervisor.id}`}
+          className="text-blue-700 hover:underline"
+        >
+          {recommendation.supervisor.name}
+        </a>
+      </p>
       <div className="space-y-3 mb-4">
         <div>
           <p className="text-xs font-semibold text-slate-700 mb-1">

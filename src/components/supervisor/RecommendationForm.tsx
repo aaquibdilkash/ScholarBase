@@ -38,9 +38,10 @@ export default function RecommendationForm({
     feedback: initialValues?.feedback ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_recommendation_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_recommendation_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(

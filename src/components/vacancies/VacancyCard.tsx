@@ -8,6 +8,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deleteJobVacancy } from "@/app/actions/vacancies";
+import { getTimeLeft } from "@/utils/time-ago";
 
 type VacancyWithAuthor = JobVacancy & {
   author: User & {
@@ -33,6 +34,7 @@ export function VacancyCard({
     vacancy.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     vacancy.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+  const urgency = getTimeLeft(vacancy.deadline);
 
   return (
     <ListPageCardShell
@@ -51,9 +53,7 @@ export function VacancyCard({
             isOwner={true}
             editLabel="Edit Vacancy"
             deleteLabel="Delete"
-            onDelete={async () => {
-              await deleteJobVacancy(vacancy.id);
-            }}
+            onDelete={() => deleteJobVacancy(vacancy.id)}
           />
         )
       }
@@ -97,6 +97,28 @@ export function VacancyCard({
       }
     >
       <Link href={`/vacancies/${vacancy.id}`} className="block group">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {urgency && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
+            >
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.5"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              {urgency.label}
+            </span>
+          )}
+        </div>
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
           {vacancy.title}
         </h2>

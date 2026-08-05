@@ -37,9 +37,10 @@ export default function AdmissionForm({
     applyLink: initialValues?.applyLink ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_admission_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_admission_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(

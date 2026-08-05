@@ -286,10 +286,12 @@ export async function updateContribution(contributionId: string, formData: FormD
         const screenshotUrl = readOptionalFormValue(formData, 'screenshotUrl')
         const amount = amountStr ? parseFloat(amountStr) : null
 
-        // Delete old screenshot from Cloudinary if a new one is being set
-        if (screenshotUrl && screenshotUrl !== existingContribution.screenshotUrl && existingContribution.screenshotUrl) {
-            await deleteFromCloudinary(existingContribution.screenshotUrl);
-        }
+        // Persist the edit first so the DB is the source of truth. Then delete
+        // the old screenshot from Cloudinary only after the update succeeded —
+        // so if the user changes their mind before saving, the original is
+        // preserved, and if the update fails, it is never deleted.
+        const oldScreenshot = existingContribution.screenshotUrl;
+        const newScreenshot = screenshotUrl || null;
 
         // If contribution was rejected, reset status to PENDING for admin re-review
         const status = existingContribution.status === 'REJECTED' ? 'PENDING' : undefined
@@ -298,11 +300,15 @@ export async function updateContribution(contributionId: string, formData: FormD
             where: { id: contributionId },
             data: { title, message, amount, upiId, paymentMethod, screenshotUrl, ...(status && { status }) },
         })
+
+        if (oldScreenshot && oldScreenshot !== newScreenshot) {
+            await deleteFromCloudinary(oldScreenshot);
+        }
     }
 
     revalidatePath('/contributions')
     revalidatePath(`/contributions/${contributionId}`)
-    redirect(`/contributions/${contributionId}`)
+    return { success: true, contributionId }
 }
 
 export async function deleteContribution(contributionId: string) {

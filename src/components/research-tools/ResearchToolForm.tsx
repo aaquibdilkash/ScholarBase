@@ -32,9 +32,10 @@ export default function ResearchToolForm({
     description: initialValues?.description ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_researchtool_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_researchtool_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -50,11 +51,13 @@ export default function ResearchToolForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && toolId) {
-      await updateResearchTool(formData, toolId);
-    } else {
-      await submit(() => createResearchTool(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && toolId) {
+        return updateResearchTool(formData, toolId);
+      } else {
+        return createResearchTool(formData);
+      }
+    });
   }
 
   return (

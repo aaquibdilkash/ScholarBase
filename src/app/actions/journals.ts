@@ -86,7 +86,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
 
     revalidatePath('/journals')
     revalidatePath(`/journals/${journalId}`)
-    redirect(`/journals/${journalId}`)
+    return { success: true, redirect: `/journals/${journalId}` }
 }
 
 export async function deleteJournal(journalId: string) {

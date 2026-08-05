@@ -155,7 +155,7 @@ export async function updatePhdAdmission(formData: FormData, admissionId: string
 
     revalidatePath('/admissions')
     revalidatePath(`/admissions/${admissionId}`)
-    redirect(`/admissions/${admissionId}`);
+    return { success: true, redirect: `/admissions/${admissionId}` }
 }
 
 export async function deletePhdAdmission(admissionId: string) {

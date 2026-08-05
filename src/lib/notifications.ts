@@ -72,6 +72,8 @@ export function getNotificationLink(notification: Notification) {
       return `/journals/${notification.targetId}`;
     case "contribution-published":
     case "contribution-upvoted":
+    case "contribution-approved":
+    case "contribution-rejected":
       return `/contributions/${notification.targetId}`;
     case "publication-published":
     case "publication-upvoted":

@@ -41,7 +41,7 @@ export function RecommendationCard({
   const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
 
   async function handleDelete() {
-    await deleteRecommendation(recommendation.id);
+    return deleteRecommendation(recommendation.id);
   }
 
   return (
@@ -78,6 +78,15 @@ export function RecommendationCard({
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       footerCommentsCount={recommendation._count.comments}
     >
+      <p className="text-sm font-semibold text-slate-700 mb-2">
+        Recommendation for{" "}
+        <a
+          href={`/supervisor/${supervisor.id}`}
+          className="text-blue-700 hover:underline"
+        >
+          {supervisor.name}
+        </a>
+      </p>
       <div className="space-y-3 mb-4">
         <div>
           <p className="text-xs font-semibold text-slate-700 mb-1">

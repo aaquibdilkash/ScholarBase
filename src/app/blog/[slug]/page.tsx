@@ -76,7 +76,7 @@ export default async function ArticlePage({
           className="mt-6 p-4 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
           id="comments"
         >
-          <h2 className="text-xl md:text-2xl font-bold text-slate-950 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-slate-950 dark:text-slate-100 mb-4 md:mb-6">
             Discussion
           </h2>
           <CommentSection
@@ -89,14 +89,14 @@ export default async function ArticlePage({
         </div>
       }
     >
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 mb-2">
+      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-slate-100 mb-2">
         {article.title}
       </h1>
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
+      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 line-clamp-3">
         {article.excerpt}
       </p>
 
-      <div className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-500">
+      <div className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400">
         <span>
           {new Date(article.createdAt).toLocaleDateString("en-US", {
             dateStyle: "medium",
@@ -104,7 +104,7 @@ export default async function ArticlePage({
         </span>
       </div>
 
-      <div className="prose prose-slate prose-lg max-w-none mb-10 prose-headings:text-slate-950 prose-a:text-blue-700 hover:prose-a:text-blue-600">
+      <div className="prose prose-slate dark:prose-invert prose-lg max-w-none mb-10 prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
         <RichContent content={article.content} />
       </div>
     </DetailPageCardShell>

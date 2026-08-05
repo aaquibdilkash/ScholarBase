@@ -118,7 +118,7 @@ export async function updatePublication(formData: FormData, publicationId: strin
 
     revalidatePath('/publications')
     revalidatePath(`/publications/${publicationId}`)
-    redirect(`/publications/${publicationId}`)
+    return { success: true, redirect: `/publications/${publicationId}` }
 }
 
 export async function deletePublication(publicationId: string) {
@@ -143,7 +143,7 @@ export async function deletePublication(publicationId: string) {
 
     revalidatePath('/publications')
     revalidatePath(`/publications/${publicationId}`)
-    redirect('/publications')
+    return { redirect: '/publications' }
 }
 
 export async function getPublications(q?: string, userId?: string) {

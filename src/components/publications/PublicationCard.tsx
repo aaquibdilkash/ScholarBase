@@ -62,9 +62,7 @@ export function PublicationCard({
             isOwner={true}
             editLabel="Edit Publication"
             deleteLabel="Delete"
-            onDelete={async () => {
-              await deletePublication(publication.id);
-            }}
+            onDelete={() => deletePublication(publication.id)}
           />
         )
       }

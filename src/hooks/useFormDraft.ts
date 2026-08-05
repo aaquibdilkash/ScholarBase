@@ -8,12 +8,12 @@ type DraftFields = Record<string, any>;
  * Custom hook to persist form field values to localStorage.
  * Allows users to leave and come back without losing their typed content.
  *
- * @param draftKey - Unique key for localStorage (e.g., "draft_vacancy")
+ * @param draftKey - Unique key for localStorage, or null to disable drafting.
  * @param initialValues - Default field values
  * @returns [fields, updateField, resetDraft, isRestored]
  */
 export function useFormDraft(
-    draftKey: string,
+    draftKey: string | null,
     initialValues: DraftFields = {}
 ): [
         DraftFields,
@@ -24,28 +24,38 @@ export function useFormDraft(
     const [fields, setFields] = useState<DraftFields>(initialValues);
     const [isRestored, setIsRestored] = useState(false);
 
-    // On mount, check localStorage for saved draft
+    // We stringify initialValues to use it as a dependency, preventing
+    // an infinite loop if the parent component creates a new object on every render.
+    const initialValuesString = JSON.stringify(initialValues);
+
     useEffect(() => {
+        const newInitialValues = JSON.parse(initialValuesString);
+
+        if (!draftKey) {
+            setFields(newInitialValues);
+            setIsRestored(true);
+            return;
+        }
+
         try {
             const saved = localStorage.getItem(draftKey);
             if (saved) {
                 const parsed = JSON.parse(saved) as DraftFields;
-                // Merge saved draft with initialValues, giving priority to saved draft
-                setFields((prev) => ({ ...prev, ...parsed }));
+                setFields({ ...newInitialValues, ...parsed });
+            } else {
+                setFields(newInitialValues);
             }
         } catch {
-            // Ignore parse errors
+            setFields(newInitialValues);
         } finally {
-            // Mark hydration complete regardless of whether a draft was found.
-            // Consumers can gate their persist effects on this flag so the
-            // initial mount does not clobber a restored draft with empty values.
             setIsRestored(true);
         }
-    }, [draftKey]);
+    }, [draftKey, initialValuesString]);
 
-    // Save to localStorage whenever fields change (debounced via the updateField)
+
     const saveDraft = useCallback(
         (updatedFields: DraftFields) => {
+            if (!draftKey) return;
             try {
                 localStorage.setItem(draftKey, JSON.stringify(updatedFields));
             } catch {
@@ -59,14 +69,20 @@ export function useFormDraft(
         (field: string, value: any) => {
             setFields((prev) => {
                 const updated = { ...prev, [field]: value };
-                saveDraft(updated);
+                if (draftKey) {
+                    saveDraft(updated);
+                }
                 return updated;
             });
         },
-        [saveDraft]
+        [draftKey, saveDraft]
     );
 
     const resetDraft = useCallback(() => {
+        if (!draftKey) {
+            setFields(initialValues);
+            return;
+        };
         try {
             localStorage.removeItem(draftKey);
         } catch {
@@ -77,4 +93,3 @@ export function useFormDraft(
 
     return [fields, updateField, resetDraft, isRestored];
 }
-

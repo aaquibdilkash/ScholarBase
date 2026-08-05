@@ -45,9 +45,10 @@ export default function ResultForm({
     resultLink: initialValues?.resultLink ?? "",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_result_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_result_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -63,11 +64,13 @@ export default function ResultForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && resultId) {
-      await updateResult(formData, resultId);
-    } else {
-      await submit(() => createResult(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && resultId) {
+        return updateResult(formData, resultId);
+      } else {
+        return createResult(formData);
+      }
+    });
   }
 
   return (

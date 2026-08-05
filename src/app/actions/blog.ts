@@ -224,7 +224,7 @@ export async function updateArticle(
   revalidatePath(`/blog/${slug}`)
   if (nextSlug !== slug) revalidatePath(`/blog/${nextSlug}`)
 
-  redirect(`/blog/${nextSlug}`)
+  return { success: true, redirect: `/blog/${nextSlug}` }
 }
 
 export async function deleteArticle(articleId: string, slug: string) {

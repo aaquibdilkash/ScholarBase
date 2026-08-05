@@ -54,6 +54,7 @@ export function SurveyCard({
       authorHandle={survey.author.handle || undefined}
       authorAvatarUrl={survey.author.avatarUrl || undefined}
       detailPageHref={`/surveys/${survey.id}`}
+      noBodyLink={true}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
@@ -83,34 +84,35 @@ export function SurveyCard({
       footerCommentsHref={`/surveys/${survey.id}`}
       footerCommentsCount={survey._count.comments}
     >
-      <div className="mb-2 flex items-center gap-2">
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            STATUS_BADGES[survey.status] || "bg-slate-100 text-slate-600"
-          }`}
-        >
-          {survey.status}
-        </span>
-        <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-          {PRIVACY_LABELS[survey.privacy] || survey.privacy}
-        </span>
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-          {survey._count.responses} response
-          {survey._count.responses !== 1 ? "s" : ""}
-        </span>
-      </div>
+      <Link href={`/surveys/${survey.id}`} className="block group">
+        <div className="mb-2 flex items-center gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              STATUS_BADGES[survey.status] || "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {survey.status}
+          </span>
+          <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+            {PRIVACY_LABELS[survey.privacy] || survey.privacy}
+          </span>
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+            {survey._count.responses} response
+            {survey._count.responses !== 1 ? "s" : ""}
+          </span>
+        </div>
 
-      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
-        {survey.title}
-      </h2>
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+          {survey.title}
+        </h2>
 
-      {survey.description && (
-        <RichContent
-          content={survey.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-        />
-      )}
-
+        {survey.description && (
+          <RichContent
+            content={survey.description}
+            className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          />
+        )}
+      </Link>
       {survey.shareData && (
         <Link
           href={`/surveys/${survey.id}/results`}

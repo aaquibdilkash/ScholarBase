@@ -67,9 +67,10 @@ export default function PublicationForm({
     isUserAuthor: initialValues?.isUserAuthor ? "true" : "false",
   };
 
+  const draftKey = mode === "edit" ? null : "draft_publication_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
-    `draft_publication_${mode}`,
-    initial,
+    draftKey,
+    initial
   );
 
   const { submitting, submit } = useFormSubmit(
@@ -85,11 +86,13 @@ export default function PublicationForm({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    if (mode === "edit" && publicationId) {
-      await updatePublication(formData, publicationId);
-    } else {
-      await submit(() => createPublication(formData));
-    }
+    await submit(() => {
+      if (mode === "edit" && publicationId) {
+        return updatePublication(formData, publicationId);
+      } else {
+        return createPublication(formData);
+      }
+    });
   }
 
   return (
