@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import JournalForm from "@/components/journals/JournalForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditJournalPage({
   params,
@@ -41,22 +41,12 @@ export default async function EditJournalPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/journals/${journal.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Journal
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Journal Details
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update metrics, descriptions, or links for this journal.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Journal Details"
+      description="Update metrics, descriptions, or links for this journal."
+      backHref={`/journals/${journal.id}`}
+      backLabel="← Cancel and Back to Journal"
+    >
       <JournalForm
         mode="edit"
         journalId={journal.id}
@@ -71,6 +61,6 @@ export default async function EditJournalPage({
           about: journal.about ?? "",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

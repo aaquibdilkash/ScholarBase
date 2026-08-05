@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import EventForm from "@/components/events/EventForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditEventPage({
   params,
@@ -10,7 +10,9 @@ export default async function EditEventPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireCurrentUser("You must be logged in to edit this event.");
+  const user = await requireCurrentUser(
+    "You must be logged in to edit this event.",
+  );
 
   // Fetch only the raw field data required to populate the form inputs
   const event = await prisma.researchEvent.findUnique({
@@ -38,22 +40,12 @@ export default async function EditEventPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/events/${event.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Event
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Research Event
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update the conference dates, links, or description.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Research Event"
+      description="Update the conference dates, links, or description."
+      backHref={`/events/${event.id}`}
+      backLabel="← Cancel and Back to Event"
+    >
       <EventForm
         mode="edit"
         eventId={event.id}
@@ -69,6 +61,6 @@ export default async function EditEventPage({
           applyLink: event.applyLink ?? "",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

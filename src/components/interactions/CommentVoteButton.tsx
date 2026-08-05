@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toggleCommentVote } from "@/app/actions/comments";
-import { VoteArrowIcon } from "../icons/VoteIcons";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 
@@ -125,7 +125,7 @@ export function CommentVoteButton({
             />
           </svg>
         ) : (
-          <VoteArrowIcon direction="up" className="w-3.5 h-3.5" />
+          <ArrowUp className="w-3.5 h-3.5" />
         )}
       </button>
 
@@ -171,7 +171,7 @@ export function CommentVoteButton({
             />
           </svg>
         ) : (
-          <VoteArrowIcon direction="down" className="w-3.5 h-3.5" />
+          <ArrowDown className="w-3.5 h-3.5" />
         )}
       </button>
     </div>

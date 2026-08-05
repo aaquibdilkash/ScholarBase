@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Loader2, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
@@ -83,37 +84,12 @@ export default function OwnerActionsDropdown({
           aria-expanded={open}
           disabled={isDeleting}
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           {isDeleting ? (
-            <svg
-              className="animate-spin h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <Loader2 className="animate-spin h-4 w-4" />
           ) : (
-            <svg
-              className="h-4 w-4"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M7 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM7 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
-            </svg>
+            <MoreHorizontal className="h-4 w-4" />
           )}
           <span className="sr-only">
             {isDeleting ? deleteLoadingText : "Open post actions"}
@@ -124,13 +100,13 @@ export default function OwnerActionsDropdown({
           <div
             ref={menuRef}
             role="menu"
-            className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
+            className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
           >
             <div className="py-1">
               <Link
                 role="menuitem"
                 href={editHref}
-                className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
                 onClick={() => setOpen(false)}
               >
                 {editLabel}
@@ -140,7 +116,7 @@ export default function OwnerActionsDropdown({
                 role="menuitem"
                 disabled={isDeleting}
                 onClick={handleDelete}
-                className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-400/10"
               >
                 {isDeleting ? deleteLoadingText : deleteLabel}
               </button>
@@ -154,6 +130,7 @@ export default function OwnerActionsDropdown({
         onConfirm={confirmDelete}
         title="Confirm Deletion"
         message="Are you sure you want to delete this item? This action cannot be undone."
+        isConfirming={isDeleting}
       />
     </>
   );

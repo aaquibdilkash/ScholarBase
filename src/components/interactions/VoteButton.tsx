@@ -2,7 +2,7 @@
 
 import { toggleVote } from "@/app/actions/interactions";
 import { useState, useTransition } from "react";
-import { VoteArrowIcon } from "../icons/VoteIcons";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 
@@ -116,8 +116,7 @@ export function VoteButton({
             />
           </svg>
         ) : (
-          <VoteArrowIcon
-            direction="up"
+          <ArrowUp
             className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-600" : ""}`}
           />
         )}
@@ -162,8 +161,7 @@ export function VoteButton({
             />
           </svg>
         ) : (
-          <VoteArrowIcon
-            direction="down"
+          <ArrowDown
             className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-600" : ""}`}
           />
         )}

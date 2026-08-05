@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import PublicationForm from "@/components/publications/PublicationForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditPublicationPage({
   params,
@@ -47,22 +47,12 @@ export default async function EditPublicationPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/publications/${publication.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Publication
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Publication
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update the publication details, metadata, or abstract.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Publication"
+      description="Update the publication details, metadata, or abstract."
+      backHref={`/publications/${publication.id}`}
+      backLabel="← Cancel and Back to Publication"
+    >
       <PublicationForm
         mode="edit"
         publicationId={publication.id}
@@ -85,6 +75,6 @@ export default async function EditPublicationPage({
           isUserAuthor: publication.isUserAuthor ? "true" : "false",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

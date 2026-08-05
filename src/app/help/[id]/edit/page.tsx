@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import HelpPostForm from "@/components/help/HelpPostForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditHelpPostPage({
   params,
@@ -37,22 +37,12 @@ export default async function EditHelpPostPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/help/${post.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Post
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Help Post
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update your question, category, or message details.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Help Post"
+      description="Update your question, category, or message details."
+      backHref={`/help/${post.id}`}
+      backLabel="← Cancel and Back to Post"
+    >
       <HelpPostForm
         mode="edit"
         helpPostId={post.id}
@@ -63,6 +53,6 @@ export default async function EditHelpPostPage({
           message: post.message,
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

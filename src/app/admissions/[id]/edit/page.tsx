@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import AdmissionForm from "@/components/admissions/AdmissionForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditAdmissionPage({
   params,
@@ -10,7 +10,9 @@ export default async function EditAdmissionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireCurrentUser("You must be logged in to edit this post.");
+  const user = await requireCurrentUser(
+    "You must be logged in to edit this post.",
+  );
 
   // Fetch only the raw field data required to populate the form inputs
   const admission = await prisma.phdAdmission.findUnique({
@@ -37,22 +39,12 @@ export default async function EditAdmissionPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/admissions/${admission.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Detail
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit PhD Admission Notification
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update the admission criteria, deadlines, or seat matrix requirements.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit PhD Admission Notification"
+      description="Update the admission criteria, deadlines, or seat matrix requirements."
+      backHref={`/admissions/${admission.id}`}
+      backLabel="← Cancel and Back to Detail"
+    >
       <AdmissionForm
         mode="edit"
         admissionId={admission.id}
@@ -65,6 +57,6 @@ export default async function EditAdmissionPage({
           applyLink: admission.applyLink ?? "",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

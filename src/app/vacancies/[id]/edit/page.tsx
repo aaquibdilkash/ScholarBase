@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import VacancyForm from "@/components/vacancies/VacancyForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditVacancyPage({
   params,
@@ -38,22 +38,12 @@ export default async function EditVacancyPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/vacancies/${vacancy.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Vacancy
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Academic Vacancy
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update the job details, application deadlines, or links.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Academic Vacancy"
+      description="Update the job details, application deadlines, or links."
+      backHref={`/vacancies/${vacancy.id}`}
+      backLabel="← Cancel and Back to Vacancy"
+    >
       <VacancyForm
         mode="edit"
         vacancyId={vacancy.id}
@@ -66,6 +56,6 @@ export default async function EditVacancyPage({
           applyLink: vacancy.applyLink ?? "",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

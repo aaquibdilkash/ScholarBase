@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useTransition } from "react";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 export type CommentActionsDropdownProps = {
@@ -19,6 +19,7 @@ export default function CommentActionsDropdown({
   deleteLabel = "Delete",
 }: CommentActionsDropdownProps) {
   const [open, setOpen] = useState(false);
+  const [isDeleting, startDeleteTransition] = useTransition();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -53,7 +54,9 @@ export default function CommentActionsDropdown({
   };
 
   const confirmDelete = () => {
-    onDelete();
+    startDeleteTransition(() => {
+      onDelete();
+    });
   };
 
   return (
@@ -64,8 +67,9 @@ export default function CommentActionsDropdown({
           type="button"
           aria-haspopup="menu"
           aria-expanded={open}
+          disabled={isDeleting}
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           <svg
             className="h-4 w-4"
@@ -82,25 +86,27 @@ export default function CommentActionsDropdown({
           <div
             ref={menuRef}
             role="menu"
-            className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm"
+            className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
           >
             <div className="py-1">
               <button
                 type="button"
                 role="menuitem"
+                disabled={isDeleting}
                 onClick={() => {
                   setOpen(false);
                   onEdit();
                 }}
-                className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 {editLabel}
               </button>
               <button
                 type="button"
                 role="menuitem"
+                disabled={isDeleting}
                 onClick={handleDelete}
-                className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
               >
                 {deleteLabel}
               </button>
@@ -114,6 +120,7 @@ export default function CommentActionsDropdown({
         onConfirm={confirmDelete}
         title="Confirm Deletion"
         message="Are you sure you want to delete this comment? This action cannot be undone."
+        isConfirming={isDeleting}
       />
     </>
   );

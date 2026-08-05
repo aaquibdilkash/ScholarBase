@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import ResearchToolForm from "@/components/research-tools/ResearchToolForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditResearchToolPage({
   params,
@@ -37,22 +37,12 @@ export default async function EditResearchToolPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/research-tools/${tool.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Research Tool
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Research Tool
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update the description, use case, or website link for this tool.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Research Tool"
+      description="Update the description, use case, or website link for this tool."
+      backHref={`/research-tools/${tool.id}`}
+      backLabel="← Cancel and Back to Research Tool"
+    >
       <ResearchToolForm
         mode="edit"
         toolId={tool.id}
@@ -63,6 +53,6 @@ export default async function EditResearchToolPage({
           description: tool.description,
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

@@ -210,6 +210,82 @@ export async function getAdminStats() {
   }
 }
 
+// Get all users for admin panel
+export async function getAdminUsers() {
+  const user = await requireCurrentUser('Log in to access admin.')
+
+  if (!await isUserAdmin(user.id)) {
+    throw new Error('Not authorized.')
+  }
+
+  return prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      isFrozen: true,
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  })
+}
+
+// Approve or reject a contribution
+export async function updateContributionStatus(contentId: string, status: 'APPROVED' | 'REJECTED', reason?: string) {
+  const user = await requireCurrentUser('Log in to access admin.')
+
+  if (!await isUserAdmin(user.id)) {
+    throw new Error('Not authorized.')
+  }
+  
+  if (status === "REJECTED" && !reason) {
+    throw new Error("Missing reason for rejection");
+  }
+
+  const updatedContribution = await prisma.contribution.update({
+    where: { id: contentId },
+    data: {
+      status,
+      ...(status === "REJECTED" && { rejectionReason: reason }),
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (status === "APPROVED") {
+    // This is a fire-and-forget, no need to await
+    // notifyUserById({
+    //   recipientId: updatedContribution.author.id,
+    //   actorId: user.id,
+    //   type: "contribution-approved",
+    //   targetType: "contribution",
+    //   targetId: updatedContribution.id,
+    //   title: "Your contribution has been approved!",
+    //   body: `Your contribution "${updatedContribution.title}" has been approved.`,
+    // });
+  } else if (status === "REJECTED") {
+    // This is a fire-and-forget, no need to await
+    // notifyUserById({
+    //   recipientId: updatedContribution.author.id,
+    //   actorId: user.id,
+    //   type: "contribution-rejected",
+    //   targetType: "contribution",
+    //   targetId: updatedContribution.id,
+    //   title: "Your contribution has been rejected",
+    //   body: `Your contribution "${updatedContribution.title}" has been rejected. Reason: ${reason}`,
+    // });
+  }
+
+  revalidatePath('/admin');
+  return { success: true };
+}
+
 // Get all content for admin panel
 export async function getAdminContent(contentType?: string) {
   const user = await requireCurrentUser('Log in to access admin.')

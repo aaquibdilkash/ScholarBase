@@ -7,6 +7,7 @@ type User = {
   id: string;
   email?: string | null;
   isAdmin?: boolean | null;
+  user_metadata: { [key: string]: any };
 } | null;
 
 export function useUser() {
@@ -23,6 +24,7 @@ export function useUser() {
         setUser({
           id: session.user.id,
           email: session.user.email,
+          user_metadata: session.user.user_metadata,
         });
       } else {
         setUser(null);

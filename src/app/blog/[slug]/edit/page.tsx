@@ -1,8 +1,8 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { requireCurrentUser } from "@/lib/auth";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditArticlePage({
   params,
@@ -31,19 +31,12 @@ export default async function EditArticlePage({
   }
 
   return (
-    <main className="mx-auto max-w-5xl py-6 px-4">
-      <div className="mb-8">
-        <Link
-          href={`/blog/${article.slug}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Article
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Article
-        </h1>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Article"
+      backHref={`/blog/${article.slug}`}
+      backLabel="← Cancel and Back to Article"
+      maxWidth="lg"
+    >
       {/* Reusing the same composer with mode="edit" */}
       <ArticleComposer
         mode="edit"
@@ -55,6 +48,6 @@ export default async function EditArticlePage({
           excerpt: article.excerpt ?? "",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getScholarById, getScholars } from "@/app/actions/scholars";
 import { startConversation } from "@/app/actions/messages";
 import { useToast } from "@/components/ui/Toast";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 type Scholar = Awaited<ReturnType<typeof getScholars>>[0];
 type Recipient = {
@@ -71,26 +71,18 @@ export default function NewMessagePage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl py-6">
-      <div className="mb-8">
-        <Link
-          href="/messages"
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Back to messages
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          New Message
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Start a collaboration thread with another scholar.
+    <CreateOrEditPageShell
+      title="New Message"
+      description="Start a collaboration thread with another scholar."
+      backHref="/messages"
+      backLabel="← Back to messages"
+      maxWidth="sm"
+    >
+      {searchParams.get("message") ? (
+        <p className="mb-6 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          {searchParams.get("message")}
         </p>
-        {searchParams.get("message") ? (
-          <p className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-            {searchParams.get("message")}
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="sb-card space-y-5 p-6 md:p-8">
         <div className="space-y-2">
@@ -176,6 +168,6 @@ export default function NewMessagePage() {
           Start conversation
         </button>
       </form>
-    </main>
+    </CreateOrEditPageShell>
   );
 }

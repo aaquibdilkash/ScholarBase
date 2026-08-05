@@ -8,6 +8,7 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  isConfirming: boolean;
 }
 
 export function ConfirmationModal({
@@ -16,15 +17,11 @@ export function ConfirmationModal({
   onConfirm,
   title,
   message,
+  isConfirming,
 }: ConfirmationModalProps) {
   if (!isOpen) {
     return null;
   }
-
-  const handleConfirm = () => {
-    onConfirm();
-    onClose();
-  };
 
   return (
     <div
@@ -39,11 +36,11 @@ export function ConfirmationModal({
           <h2 className="text-xl font-bold">{title}</h2>
           <p>{message}</p>
           <div className="flex justify-end gap-4 mt-4">
-            <Button onClick={onClose} variant="outline">
+            <Button onClick={onClose} variant="outline" disabled={isConfirming}>
               Cancel
             </Button>
-            <Button onClick={handleConfirm} variant="destructive">
-              Delete
+            <Button onClick={onConfirm} variant="destructive" disabled={isConfirming}>
+              {isConfirming ? "Deleting..." : "Delete"}
             </Button>
           </div>
         </div>

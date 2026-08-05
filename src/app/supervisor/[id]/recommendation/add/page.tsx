@@ -1,6 +1,6 @@
 import prisma from "@/lib/db";
-import Link from "next/link";
 import RecommendationForm from "@/components/supervisor/RecommendationForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function RecommendSupervisorNew({
   params,
@@ -15,26 +15,16 @@ export default async function RecommendSupervisorNew({
   });
 
   return (
-    <main className="max-w-3xl mx-auto py-10 px-4">
-      <div className="mb-8">
-        <Link
-          href={`/supervisor/${id}`}
-          className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 mb-6 transition-colors"
-        >
-          ← Cancel
-        </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Recommend {supervisor?.name}
-        </h1>
-        <p className="text-slate-500 mt-2">
-          Help fellow scholars by sharing your positive mentorship experience
-          with {supervisor?.name}.
-        </p>
-      </div>
-
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10">
+    <CreateOrEditPageShell
+      title={`Recommend ${supervisor?.name}`}
+      description={`Help fellow scholars by sharing your positive mentorship experience with ${supervisor?.name}.`}
+      backHref={`/supervisor/${id}`}
+      backLabel="← Cancel"
+      maxWidth="sm"
+    >
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 dark:bg-slate-900 dark:border-slate-800">
         <RecommendationForm mode="create" supervisorId={id} />
       </div>
-    </main>
+    </CreateOrEditPageShell>
   );
 }

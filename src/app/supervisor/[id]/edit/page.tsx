@@ -1,7 +1,7 @@
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import SupervisorForm from "@/components/supervisor/SupervisorForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditSupervisorPage({
   params,
@@ -26,22 +26,12 @@ export default async function EditSupervisorPage({
   }
 
   return (
-    <main className="mx-auto max-w-4xl py-6 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/supervisor/${supervisor.id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Supervisor
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Supervisor
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Update the profile details for {supervisor.name}.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Supervisor"
+      description={`Update the profile details for ${supervisor.name}.`}
+      backHref={`/supervisor/${supervisor.id}`}
+      backLabel="← Cancel and Back to Supervisor"
+    >
       <SupervisorForm
         mode="edit"
         supervisorId={supervisor.id}
@@ -52,6 +42,6 @@ export default async function EditSupervisorPage({
           about: supervisor.about ?? "",
         }}
       />
-    </main>
+    </CreateOrEditPageShell>
   );
 }

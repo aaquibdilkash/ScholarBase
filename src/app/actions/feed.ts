@@ -227,6 +227,33 @@ export async function updateSocialPost(
     return { success: true, postId, message: 'Post updated successfully!' }
 }
 
+
+export async function getPostEditData(id: string) {
+    const user = await requireCurrentUser('Log in to edit this post.');
+
+    const post = await prisma.socialPost.findUnique({
+        where: { id },
+        select: {
+            content: true,
+            imageUrl: true,
+            authorId: true,
+        },
+    });
+
+    if (!post) {
+        throw new Error('Post not found');
+    }
+
+    if (post.authorId !== user.id) {
+        throw new Error('You are not authorized to edit this post.');
+    }
+
+    return {
+        content: post.content,
+        imageUrl: post.imageUrl,
+    };
+}
+
 export async function deleteSocialPost(postId: string) {
     const user = await requireCurrentUser('Log in to delete this post.')
 

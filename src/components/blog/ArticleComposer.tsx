@@ -9,10 +9,13 @@ import { createArticle, updateArticle } from "@/app/actions/blog";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 
-const Editor = dynamic(() => import("@/components/blog/Editor"), {
-  ssr: false,
-  loading: () => <p>Loading editor...</p>,
-});
+const Editor = dynamic(
+  () => import("@/components/ui/Editor").then((m) => m.Editor),
+  {
+    ssr: false,
+    loading: () => <p>Loading editor...</p>,
+  },
+);
 
 type ArticleComposerProps = {
   mode?: "create" | "edit";
@@ -44,8 +47,14 @@ export function ArticleComposer({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: mode === 'edit' ? "Article updated successfully!" : "Article published successfully!",
-      errorMessage: mode === 'edit' ? "Failed to update article." : "Failed to publish article.",
+      successMessage:
+        mode === "edit"
+          ? "Article updated successfully!"
+          : "Article published successfully!",
+      errorMessage:
+        mode === "edit"
+          ? "Failed to update article."
+          : "Failed to publish article.",
     },
   );
 

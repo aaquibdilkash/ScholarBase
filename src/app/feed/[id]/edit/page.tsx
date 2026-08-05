@@ -2,11 +2,11 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { updateSocialPost } from "@/app/actions/feed";
+import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
 import { generateCloudinarySignature } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default function EditPostPage({
   params,
@@ -29,13 +29,11 @@ export default function EditPostPage({
       setPostId(id);
 
       try {
-        const res = await fetch(`/api/feed/${id}/edit-data`);
-        if (!res.ok) throw new Error("Not found");
-        const data = await res.json();
+        const data = await getPostEditData(id);
         setContent(data.content || "");
         setImageUrl(data.imageUrl || "");
-      } catch {
-        toast("Failed to load post.", "error");
+      } catch (error) {
+        toast((error as Error).message || "Failed to load post.", "error");
         router.push("/feed");
       } finally {
         setLoading(false);
@@ -147,19 +145,13 @@ export default function EditPostPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl py-12 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link
-          href={`/feed/${postId}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-        >
-          ← Cancel and Back to Post
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950">
-          Edit Post
-        </h1>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Edit Post"
+      description="Edit your social post."
+      backHref={`/feed/${postId ?? ""}`}
+      backLabel="← Cancel and Back to Post"
+      maxWidth="lg"
+    >
       <form
         ref={formRef}
         onSubmit={handleSubmit}
@@ -271,6 +263,6 @@ export default function EditPostPage({
           </button>
         </div>
       </form>
-    </main>
+    </CreateOrEditPageShell>
   );
 }

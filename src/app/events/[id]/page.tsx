@@ -7,6 +7,7 @@ import { deleteResearchEvent, getEvent } from "@/app/actions/events";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { RichContent } from "@/components/content/RichContent";
+import { Calendar, Clock, MapPin } from "lucide-react";
 
 const EventDetailPage = async ({
   params,
