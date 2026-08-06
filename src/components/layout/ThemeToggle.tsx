@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Sun, Moon } from "lucide-react";
 
 type ThemeMode = "light" | "dark";
 
@@ -45,33 +46,9 @@ export default function ThemeToggle() {
       <span className="flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white dark:bg-black dark:text-white">
           {theme === "dark" ? (
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364-1.414-1.414M7.05 7.05 5.636 5.636m12.728 0-1.414 1.414M7.05 16.95l-1.414 1.414M12 8a4 4 0 100 8 4 4 0 000-8z"
-              />
-            </svg>
+            <Sun className="h-5 w-5" />
           ) : (
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 1019.9 16.1a8.993 8.993 0 01.454-.746z"
-              />
-            </svg>
+            <Moon className="h-5 w-5" />
           )}
         </span>
         <span className="leading-tight">

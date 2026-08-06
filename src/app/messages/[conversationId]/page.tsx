@@ -7,6 +7,7 @@ import { getConversation } from "@/app/actions/messages";
 import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { createClient } from "@/utils/supabase/client";
+import { Menu } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import type { User } from "@supabase/supabase-js";
 
@@ -105,19 +106,7 @@ export default function ConversationPage({
           className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white md:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
           aria-label="Toggle conversation sidebar"
         >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
+          <Menu className="h-6 w-6" />
         </button>
         <div className="flex min-w-0 items-center gap-3">
           <Link

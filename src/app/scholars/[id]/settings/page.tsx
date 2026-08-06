@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import prisma from "@/lib/db";
 import { redirect } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import EditProfileForm from "@/components/profile/EditProfileForm";
 
@@ -37,19 +38,7 @@ export default async function ScholarSettingsPage({
         href={`/scholars/${id}`}
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
+        <ChevronLeft className="h-4 w-4" />
         Back to Profile
       </Link>
 

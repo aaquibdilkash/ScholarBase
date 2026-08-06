@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { Share } from "lucide-react";
 
 export function ShareButton({
   href,
@@ -47,19 +48,7 @@ export function ShareButton({
       aria-label={label}
       title={label}
     >
-      <svg
-        className="w-5 h-5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" />
-        <path d="M16 6l-4-4-4 4" />
-        <path d="M12 2v14" />
-      </svg>
+      <Share className="w-5 h-5" />
       <span className="hidden md:inline">{label}</span>
     </button>
   );

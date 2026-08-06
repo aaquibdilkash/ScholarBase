@@ -2,6 +2,7 @@
 
 import { sendMessage } from "@/app/actions/messages";
 import { useRef } from "react";
+import { ArrowRight } from "lucide-react";
 
 const MAX_TEXTAREA_HEIGHT = 160; // px (roughly max-h-40)
 
@@ -66,19 +67,7 @@ export function MessageInputForm({
           className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white transition hover:bg-slate-800"
           aria-label="Send message"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 12h14M12 5l7 7-7 7"
-            />
-          </svg>
+          <ArrowRight className="h-5 w-5" />
         </button>
       </div>
     </form>

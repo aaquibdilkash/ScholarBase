@@ -6,6 +6,8 @@ import Image from "next/image";
 import { getFollowers, getFollowing, toggleFollow } from "@/app/actions/follow";
 import { useToast } from "@/components/ui/Toast";
 
+import { X } from "lucide-react";
+
 type UserItem = {
   id: string;
   name: string | null;
@@ -88,19 +90,7 @@ export function UserListModal({
             onClick={handleClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="h-5 w-5" />
           </button>
         </div>
 

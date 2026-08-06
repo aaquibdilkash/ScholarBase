@@ -1,3 +1,4 @@
+import { ClipboardList, Share2 } from "lucide-react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CommentSection } from "@/components/interactions/CommentSection";
@@ -145,19 +146,7 @@ const SurveyDetailPage = async ({
       {/* Survey questions count & overview */}
       <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600">
         <div className="flex items-center gap-2">
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-            />
-          </svg>
+          <ClipboardList className="w-5 h-5" />
           {survey.questions.length} Question
           {survey.questions.length !== 1 ? "s" : ""}
         </div>
@@ -166,19 +155,7 @@ const SurveyDetailPage = async ({
             href={`/surveys/${survey.id}/results`}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-              />
-            </svg>
+            <Share2 className="w-5 h-5" />
             <span className="font-medium">
               Data sharing is enabled — results are available
             </span>

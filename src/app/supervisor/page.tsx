@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -39,19 +40,7 @@ export default async function SupervisorDirectory({
           !supervisors.length ? (
             <div className="flex flex-col items-center rounded-[28px] border border-dashed border-slate-200 bg-white/80 px-6 py-16 text-center shadow-sm">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
-                <svg
-                  className="w-8 h-8 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4v16m8-8H4"
-                  ></path>
-                </svg>
+                <Plus className="w-8 h-8 text-slate-400" />
               </div>
               <p className="mb-6 text-lg font-medium text-slate-600">
                 Couldn&apos;t find the supervisor you&apos;re looking for?

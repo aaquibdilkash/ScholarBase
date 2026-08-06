@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, Children, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CarouselProps {
   children: ReactNode;
@@ -63,7 +64,9 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
       await onLoadMore();
 
       // Wait for React to commit the newly appended children before scrolling.
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
 
       const newCount = childCountRef.current;
       if (newCount > prevCount) {
@@ -106,19 +109,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
           className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
           aria-label="Scroll left"
         >
-          <svg
-            className="w-6 h-6 text-slate-700"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+          <ChevronLeft className="w-6 h-6 text-slate-700" />
         </button>
       )}
 
@@ -129,19 +120,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
           className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
           aria-label="Scroll right"
         >
-          <svg
-            className="w-6 h-6 text-slate-700"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
+          <ChevronRight className="w-6 h-6 text-slate-700" />
         </button>
       )}
     </div>

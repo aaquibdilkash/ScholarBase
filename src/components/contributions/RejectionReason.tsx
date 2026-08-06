@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 export function RejectionReason({ reason }: { reason: string }) {
@@ -11,21 +12,11 @@ export function RejectionReason({ reason }: { reason: string }) {
         onClick={() => setShowReason(!showReason)}
         className="flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700 transition"
       >
-        <svg
+        <ChevronRight
           className={`h-3 w-3 transition-transform ${
             showReason ? "rotate-90" : ""
           }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
+        />
         Why was this rejected?
       </button>
       {showReason && (

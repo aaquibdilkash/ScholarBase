@@ -1,3 +1,4 @@
+import { Clock } from "lucide-react";
 import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
@@ -122,19 +123,7 @@ const VacancyDetailPage = async ({
       </p>
 
       <div className="mb-3 sm:mb-4 flex items-center gap-2 text-xs sm:text-sm text-slate-600">
-        <svg
-          className="h-5 w-5 shrink-0 text-slate-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
+        <Clock className="h-5 w-5 shrink-0 text-slate-400" />
         <span>Last Date to Apply:</span>
         <span className="font-medium">
           {new Date(vacancy.deadline).toLocaleDateString("en-US", {

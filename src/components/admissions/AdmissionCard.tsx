@@ -8,6 +8,7 @@ import { deletePhdAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
+import { Clock } from "lucide-react";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -110,19 +111,7 @@ export function AdmissionCard({
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
             >
-              <svg
-                className="h-3 w-3"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <Clock className="h-3 w-3" />
               {urgency.label}
             </span>
           )}
@@ -137,19 +126,7 @@ export function AdmissionCard({
             {admission.department}
           </p>
           <div className="flex items-center gap-2 text-sm text-slate-600">
-            <svg
-              className="h-4 w-4 shrink-0 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <Clock className="h-4 w-4 shrink-0 text-slate-400" />
             <span>
               Deadline:{" "}
               <span className="font-medium">

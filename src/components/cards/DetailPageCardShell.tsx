@@ -1,3 +1,4 @@
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton";
@@ -170,19 +171,7 @@ export default function DetailPageCardShell({
               href={footerCommentsHref}
               className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
+              <MessageCircle className="w-5 h-5" />
               {footerCommentsCount}{" "}
               <span className="hidden md:inline">
                 {footerCommentsCount === 1 ? "Comment" : "Comments"}

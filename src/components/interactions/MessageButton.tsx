@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useUser } from "@/hooks/useUser";
+import { MessageCircle } from "lucide-react";
 
 export function MessageButton({
   recipientId,
@@ -50,19 +51,5 @@ export function MessageButton({
 }
 
 function MessageIcon() {
-  return (
-    <svg
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-      />
-    </svg>
-  );
+  return <MessageCircle className="h-4 w-4" />;
 }

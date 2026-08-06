@@ -2,7 +2,7 @@
 
 import { toggleVote } from "@/app/actions/interactions";
 import { useState, useTransition } from "react";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 
@@ -100,21 +100,7 @@ export function VoteButton({
         title="Upvote"
       >
         {isPending && pendingVote === "UPVOTE" ? (
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
+          <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowUp
             className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-600" : ""}`}
@@ -145,21 +131,7 @@ export function VoteButton({
         title="Downvote"
       >
         {isPending && pendingVote === "DOWNVOTE" ? (
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
+          <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowDown
             className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-600" : ""}`}
