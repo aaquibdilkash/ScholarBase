@@ -3,6 +3,7 @@
 import { sendMessage } from "@/app/actions/messages";
 import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 const MAX_TEXTAREA_HEIGHT = 160; // px (roughly max-h-40)
 
@@ -28,6 +29,7 @@ export function MessageInputForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
 
   const resetTextareaHeight = () => {
     if (textAreaRef.current) {
@@ -48,9 +50,13 @@ export function MessageInputForm({
 
   const handleFormAction = async (formData: FormData) => {
     try {
-      const created = await sendMessage(conversationId, formData);
-      if (created && onMessageSent) {
-        onMessageSent(created as SentMessage);
+      const result = await sendMessage(conversationId, formData);
+      if (result && 'error' in result) {
+        toast(result.error, "error");
+        return;
+      }
+      if (result && onMessageSent) {
+        onMessageSent(result as SentMessage);
       }
     } finally {
       formRef.current?.reset();

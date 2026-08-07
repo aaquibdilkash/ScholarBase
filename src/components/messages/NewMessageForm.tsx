@@ -5,6 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { getScholarById, getScholars } from "@/app/actions/scholars";
 import { startConversation } from "@/app/actions/messages";
 import { useToast } from "@/components/ui/Toast";
+import { useUser } from "@/hooks/useUser";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useFormSubmit } from "@/hooks/useFormSubmit";
 
 type Scholar = Awaited<ReturnType<typeof getScholars>>[0];
 type Recipient = {
@@ -14,8 +17,18 @@ type Recipient = {
   avatarUrl: string | null;
 };
 
-export function NewMessageForm({ initialRecipient }: { initialRecipient: Recipient | null }) {
+export function NewMessageForm({
+  initialRecipient,
+}: {
+  initialRecipient: Recipient | null;
+}) {
   const { toast } = useToast();
+  const { user } = useUser();
+  const { openAuthModal } = useAuthModal();
+  const { submitting, submit } = useFormSubmit(undefined, {
+    successMessage: "Message sent successfully!",
+    resetOnSuccess: false,
+  });
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Scholar[]>([]);
@@ -47,12 +60,16 @@ export function NewMessageForm({ initialRecipient }: { initialRecipient: Recipie
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     const formData = new FormData(event.currentTarget);
     if (!selectedRecipient) {
       toast("Please select a recipient.", "error");
       return;
     }
-    await startConversation(formData);
+    await submit(() => startConversation(formData));
   };
 
   return (
@@ -136,8 +153,12 @@ export function NewMessageForm({ initialRecipient }: { initialRecipient: Recipie
           required
         />
       </div>
-      <button type="submit" className="sb-button-primary">
-        Start conversation
+      <button
+        type="submit"
+        className="sb-button-primary"
+        disabled={submitting}
+      >
+        {submitting ? "Sending..." : "Start conversation"}
       </button>
     </form>
   );

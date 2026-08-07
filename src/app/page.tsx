@@ -14,6 +14,7 @@ import {
   BarChart,
   HelpCircle,
   CreditCard,
+  MessageCircle,
 } from "lucide-react";
 import { Metadata } from "next";
 
@@ -101,6 +102,12 @@ export default async function HomePage() {
       description: "Get assistance and support from the community.",
       href: "/help",
       icon: <HelpCircle className="h-8 w-8" />,
+    },
+    {
+      title: "Messages",
+      description: "Chat with other scholars on the platform.",
+      href: "/messages",
+      icon: <MessageCircle className="h-8 w-8" />,
     },
     {
       title: "Contributions",

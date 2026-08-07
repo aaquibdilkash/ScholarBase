@@ -8,10 +8,13 @@ import {
   type SetStateAction,
 } from "react";
 
-export const MessagesLayoutContext = createContext<{
-  mobileOpen: boolean;
-  setMobileOpen: Dispatch<SetStateAction<boolean>>;
-} | null>(null);
+interface MessagesLayoutContextType {
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
+}
+
+export const MessagesLayoutContext =
+  createContext<MessagesLayoutContextType | null>(null);
 
 export function useMessagesLayout() {
   const context = useContext(MessagesLayoutContext);

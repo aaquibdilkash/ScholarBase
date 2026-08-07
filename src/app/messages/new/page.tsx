@@ -7,6 +7,7 @@ import { getScholarById } from '@/app/actions/scholars'
 import { createClient } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { NewMessageForm } from '@/components/messages/NewMessageForm'
+import { useToast } from '@/components/ui/Toast'
 
 type Scholar = NonNullable<Awaited<ReturnType<typeof getScholarById>>>
 
@@ -17,6 +18,7 @@ function NewConversationPageContent() {
   const [user, setUser] = useState<User | null>(null)
   const [recipient, setRecipient] = useState<Scholar | null>(null)
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
   useEffect(() => {
     const supabase = createClient()
@@ -30,7 +32,7 @@ function NewConversationPageContent() {
   useEffect(() => {
     if (user && recipientId) {
       if (user.id === recipientId) {
-        // Can't message self, redirect to messages page
+        toast("You cannot start a conversation with yourself.", "error");
         router.replace('/messages')
         return
       }
@@ -52,7 +54,7 @@ function NewConversationPageContent() {
     } else if (!recipientId) {
       setLoading(false)
     }
-  }, [user, recipientId, router])
+  }, [user, recipientId, router, toast])
 
   if (loading) {
     return (

@@ -13,7 +13,7 @@ import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { createClient } from "@/utils/supabase/client";
 import { Menu, MoreVertical, Ban, UserCheck } from "lucide-react";
-import { MessagesLayoutContext } from "../layout";
+import { MessagesLayoutContext } from "../messages-context";
 import type { User } from "@supabase/supabase-js";
 
 // Define necessary types

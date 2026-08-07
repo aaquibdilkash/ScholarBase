@@ -66,7 +66,7 @@ export async function getFeed(userId?: string, tab?: string, q?: string) {
                 },
             },
             votes: {
-                select: { id: true, userId: true, voteType: true, socialPostId: true },
+                select: { id: true, createdAt: true, userId: true, voteType: true, socialPostId: true },
             },
             _count: {
                 select: { comments: true, votes: true },

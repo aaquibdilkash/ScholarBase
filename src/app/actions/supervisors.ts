@@ -23,7 +23,7 @@ export async function getSupervisors(q?: string, userId?: string) {
       },
       recommendations: true,
       votes: {
-        select: { id: true, userId: true, voteType: true, supervisorId: true },
+        select: { id: true, createdAt: true, userId: true, voteType: true, supervisorId: true },
       },
       _count: {
         select: {

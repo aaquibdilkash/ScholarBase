@@ -111,17 +111,19 @@ export async function getConversation(conversationId: string, userId: string) {
   })
 }
 
-export async function startConversation(formData: FormData) {
+import type { SubmitResult } from '@/types/actions'
+
+export async function startConversation(formData: FormData): Promise<SubmitResult> {
   const supabaseUser = await requireCurrentUser('Please log in to send a message.')
   const recipientId = readFormValue(formData, 'recipientId')
   const body = readFormValue(formData, 'body')
 
   if (!recipientId || !body) {
-    redirect('/messages/new?message=Recipient and message are required.')
+    return { success: false, error: 'Recipient and message are required.' }
   }
 
   if (recipientId === supabaseUser.id) {
-    redirect('/messages/new?message=You cannot message yourself.')
+    return { success: false, error: 'You cannot message yourself.' }
   }
 
   // Check if the recipient has blocked the current user
@@ -135,7 +137,7 @@ export async function startConversation(formData: FormData) {
     select: { id: true },
   })
   if (recipientBlockedSender) {
-    redirect('/messages/new?message=You cannot message this scholar.')
+    return { success: false, error: 'You cannot message this scholar.' }
   }
 
   const user = await prisma.user.findUnique({
@@ -143,7 +145,7 @@ export async function startConversation(formData: FormData) {
     select: { id: true, name: true },
   })
   if (!user) {
-    redirect('/messages/new?message=User not found.')
+    return { success: false, error: 'User not found.' }
   }
 
   const existingConversation = await prisma.conversation.findFirst({
@@ -199,15 +201,15 @@ export async function startConversation(formData: FormData) {
   });
 
   revalidatePath('/messages')
-  redirect(`/messages/${conversationId}`)
+  return { success: true, redirect: `/messages/${conversationId}` }
 }
 
-export async function sendMessage(conversationId: string, formData: FormData) {
+export async function sendMessage(conversationId: string, formData: FormData): Promise<SubmitResult | any> {
   const supabaseUser = await requireCurrentUser('Please log in to message a scholar.')
   const body = readFormValue(formData, 'body')
 
   if (!body) {
-    redirect(`/messages/${conversationId}?message=Message body is required.`)
+    return { success: false, error: 'Message body is required.' }
   }
 
   const user = await prisma.user.findUnique({
@@ -215,7 +217,7 @@ export async function sendMessage(conversationId: string, formData: FormData) {
     select: { id: true, name: true },
   })
   if (!user) {
-    redirect('/messages?message=User not found.')
+    return { success: false, error: 'User not found.' }
   }
 
   const conversation = await prisma.conversation.findFirst({
@@ -227,7 +229,7 @@ export async function sendMessage(conversationId: string, formData: FormData) {
   })
 
   if (!conversation) {
-    redirect('/messages?message=Conversation not found.')
+    return { success: false, error: 'Conversation not found.' }
   }
 
   // Check if the current user has been blocked by any participant
@@ -244,9 +246,7 @@ export async function sendMessage(conversationId: string, formData: FormData) {
       },
     })
     if (blocked) {
-      redirect(
-        `/messages/${conversationId}?message=You cannot send messages to this conversation because you have been blocked.`,
-      )
+      return { success: false, error: 'You cannot send messages to this conversation because you have been blocked.' }
     }
   }
 
@@ -322,7 +322,7 @@ export async function isUserBlocked(
 export async function blockUser(blockedId: string) {
   const user = await requireCurrentUser('Please log in to block a scholar.')
   if (user.id === blockedId) {
-    return { error: 'You cannot block yourself.' }
+    throw new Error('You cannot block yourself.')
   }
 
   await prisma.block.create({
@@ -330,7 +330,6 @@ export async function blockUser(blockedId: string) {
   })
 
   revalidatePath(`/scholars/${blockedId}`)
-  return { success: true }
 }
 
 export async function unblockUser(blockedId: string) {
@@ -343,7 +342,6 @@ export async function unblockUser(blockedId: string) {
   })
 
   revalidatePath(`/scholars/${blockedId}`)
-  return { success: true }
 }
 
 export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
