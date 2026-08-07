@@ -8,11 +8,9 @@ import { MessageCircle } from "lucide-react";
 export function MessageButton({
   recipientId,
   recipientName,
-  existingConversationId,
 }: {
   recipientId: string;
   recipientName?: string | null;
-  existingConversationId?: string | null;
 }) {
   const { user } = useUser();
   const { openAuthModal } = useAuthModal();
@@ -34,9 +32,7 @@ export function MessageButton({
     );
   }
 
-  const href = existingConversationId
-    ? `/messages/${existingConversationId}`
-    : `/messages/new?to=${recipientId}`;
+  const href = `/messages/new?to=${recipientId}`;
 
   return (
     <Link

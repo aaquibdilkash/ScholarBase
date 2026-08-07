@@ -18,6 +18,10 @@ type UserData = {
   handle: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  githubUrl: string | null;
+  orcidId: string | null;
+  linkedinUrl: string | null;
+  googleScholarUrl: string | null;
 };
 
 // Simple debounce hook
@@ -269,6 +273,60 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           Upload a profile photo. Recommended: square image, max 5MB.
         </p>
         <input type="hidden" name="avatarUrl" value={avatarUrl} />
+      </div>
+
+      <div>
+        <label className="sb-label">Profile Links</label>
+        <p className="mb-4 text-sm text-slate-500">
+          Add your academic and professional profile links to be shown on your
+          profile page.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              GitHub Profile URL
+            </label>
+            <input
+              name="githubUrl"
+              defaultValue={user.githubUrl || ""}
+              className="sb-input"
+              placeholder="https://github.com/janesmith"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              ORCID iD
+            </label>
+            <input
+              name="orcidId"
+              defaultValue={user.orcidId || ""}
+              className="sb-input"
+              placeholder="0000-0001-2345-6789"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              LinkedIn Profile URL
+            </label>
+            <input
+              name="linkedinUrl"
+              defaultValue={user.linkedinUrl || ""}
+              className="sb-input"
+              placeholder="https://www.linkedin.com/in/janesmith"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              Google Scholar Profile URL
+            </label>
+            <input
+              name="googleScholarUrl"
+              defaultValue={user.googleScholarUrl || ""}
+              className="sb-input"
+              placeholder="https://scholar.google.com/citations?user=..."
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end pt-4">

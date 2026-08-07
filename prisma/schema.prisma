@@ -124,6 +124,7 @@ model ArticleVote {
   articleId String
   userId    String
   voteType  VoteType
+  createdAt DateTime  @default(now())
   article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id])
 
@@ -151,6 +152,7 @@ model ArticleCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime       @default(now())
   comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id])
 
@@ -163,6 +165,7 @@ model SocialCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime      @default(now())
   comment   SocialComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User          @relation(fields: [userId], references: [id])
 
@@ -175,6 +178,7 @@ model SocialVote {
   socialPostId String
   userId       String
   voteType     VoteType
+  createdAt    DateTime   @default(now())
   socialPost   SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id])
 
@@ -203,6 +207,7 @@ model HelpPostVote {
   helpPostId String
   userId     String
   voteType   VoteType
+  createdAt  DateTime  @default(now())
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id])
@@ -234,9 +239,9 @@ model HelpPostCommentVote {
   commentId String
   userId    String
   voteType  VoteType
-
-  comment HelpPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User            @relation(fields: [userId], references: [id])
+  createdAt DateTime         @default(now())
+  comment   HelpPostComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
   @@index([commentId, voteType])
@@ -268,6 +273,7 @@ model ContributionVote {
   contributionId String
   userId         String
   voteType       VoteType
+  createdAt      DateTime     @default(now())
 
   contribution Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id])
@@ -293,12 +299,13 @@ model ContributionComment {
 }
 
 model ContributionCommentVote {
-  id        String             @id @default(uuid())
+  id        String              @id @default(uuid())
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime            @default(now())
   comment   ContributionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User               @relation(fields: [userId], references: [id])
+  user      User                @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
   @@index([commentId, voteType])
@@ -336,6 +343,7 @@ model PublicationVote {
   publicationId String
   userId        String
   voteType      VoteType
+  createdAt     DateTime        @default(now())
   publication   Publication     @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   user          User            @relation(fields: [userId], references: [id])
 
@@ -363,6 +371,7 @@ model PublicationCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime            @default(now())
   comment   PublicationComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                @relation(fields: [userId], references: [id])
 
@@ -383,11 +392,15 @@ model User {
   helpPostComments     HelpPostComment[]
   helpPostCommentVotes HelpPostCommentVote[]
 
-  email       String   @unique
+email       String   @unique
   name        String?
   avatarUrl   String?
   handle      String?  @unique
   bio         String?
+  githubUrl     String?
+  orcidId       String?
+  linkedinUrl   String?
+  googleScholarUrl String?
   reputation  Int      @default(0)
   isAdmin     Boolean  @default(false)
   isFrozen    Boolean  @default(false)
@@ -399,8 +412,10 @@ model User {
   articleVotes        ArticleVote[]
   articleCommentVotes ArticleCommentVote[]
 
-  following Follows[] @relation("following")
-  followers Follows[] @relation("followers")
+following  Follows[] @relation("following")
+  followers  Follows[] @relation("followers")
+  blocks     Block[]   @relation("UserBlocks")
+  blockedBy  Block[]   @relation("UserBlocked")
 
   vacancies  JobVacancy[]
   admissions PhdAdmission[]
@@ -550,6 +565,7 @@ model ResearchToolVote {
   researchToolId String
   userId         String
   voteType       VoteType
+  createdAt DateTime          @default(now())
   researchTool   ResearchTool @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id])
 
@@ -577,6 +593,7 @@ model ResearchToolCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime            @default(now())
   comment   ResearchToolComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                @relation(fields: [userId], references: [id])
 
@@ -608,6 +625,7 @@ model JournalVote {
   journalId String
   userId    String
   voteType  VoteType
+  createdAt DateTime  @default(now())
   journal   Journal   @relation(fields: [journalId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id])
 
@@ -635,6 +653,7 @@ model JournalCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime       @default(now())
   comment   JournalComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id])
 
@@ -667,7 +686,7 @@ model ResultVote {
   resultId String
   userId   String
   voteType VoteType
-
+  createdAt DateTime         @default(now())
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id])
 
@@ -698,6 +717,7 @@ model ResultCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime         @default(now())
   comment   ResultComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User          @relation(fields: [userId], references: [id])
 
@@ -780,7 +800,7 @@ model SurveyVote {
   surveyId  String
   userId    String
   voteType  VoteType
-
+  createdAt DateTime         @default(now())
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   user   User           @relation(fields: [userId], references: [id])
 
@@ -811,7 +831,7 @@ model SurveyCommentVote {
   commentId String
   userId    String
   voteType  VoteType
-
+  createdAt DateTime         @default(now())
   comment SurveyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user    User          @relation(fields: [userId], references: [id])
 
@@ -826,6 +846,19 @@ model Follows {
   following   User   @relation("followers", fields: [followingId], references: [id])
 
   @@id([followerId, followingId])
+}
+
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("UserBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 model ResearchEvent {
@@ -852,7 +885,7 @@ model ResearchEventVote {
   researchEventId String
   userId          String
   voteType        VoteType
-
+  createdAt DateTime         @default(now())
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
   user          User          @relation(fields: [userId], references: [id])
 
@@ -883,6 +916,7 @@ model ResearchEventCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime         @default(now())
   comment   ResearchEventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                 @relation(fields: [userId], references: [id])
 
@@ -913,7 +947,7 @@ model PhdAdmissionVote {
   phdAdmissionId String
   userId         String
   voteType       VoteType
-
+  createdAt DateTime         @default(now())
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id])
 
@@ -944,6 +978,7 @@ model PhdAdmissionCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime         @default(now())
   comment   PhdAdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                @relation(fields: [userId], references: [id])
 
@@ -974,7 +1009,7 @@ model JobVacancyVote {
   jobVacancyId String
   userId       String
   voteType     VoteType
-
+  createdAt DateTime         @default(now())
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id])
 
@@ -1005,6 +1040,7 @@ model JobVacancyCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime         @default(now())
   comment   JobVacancyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User              @relation(fields: [userId], references: [id])
 
@@ -1017,6 +1053,7 @@ model SupervisorVote {
   supervisorId String
   userId       String
   voteType     VoteType
+  createdAt DateTime         @default(now())
   supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   user         User       @relation(fields: [userId], references: [id])
 
@@ -1044,6 +1081,7 @@ model SupervisorCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime         @default(now())
   comment   SupervisorComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User              @relation(fields: [userId], references: [id])
 
@@ -1076,6 +1114,7 @@ model RecommendationVote {
   recommendationId String
   userId           String
   voteType         VoteType
+  createdAt DateTime         @default(now())
   recommendation   Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   user             User           @relation(fields: [userId], references: [id])
 
@@ -1103,6 +1142,7 @@ model RecommendationCommentVote {
   commentId String
   userId    String
   voteType  VoteType
+  createdAt DateTime         @default(now())
   comment   RecommendationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                  @relation(fields: [userId], references: [id])
 

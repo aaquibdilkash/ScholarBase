@@ -2,6 +2,8 @@ import { login, signup, signInWithGoogle } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 interface LoginPageProps {
   searchParams: Promise<{
@@ -12,6 +14,11 @@ interface LoginPageProps {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const user = await getCurrentUser();
+  if (user) {
+    redirect("/");
+  }
+
   const { message, callbackUrl, type } = await searchParams;
   const returnUrl = callbackUrl || "/blog";
   const isRecovery = type === "recovery";

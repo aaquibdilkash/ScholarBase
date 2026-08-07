@@ -1,5 +1,7 @@
 "use client";
 
+import { X } from "lucide-react";
+
 export interface QuestionOption {
   value: string;
   label: string;
@@ -300,19 +302,7 @@ export function QuestionEditor({
                     onClick={() => removeOption(optIndex)}
                     className="text-red-400 hover:text-red-600"
                   >
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
               ))}

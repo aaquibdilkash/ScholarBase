@@ -16,7 +16,15 @@ import { formatTimeAgo } from "@/utils/time-ago";
 import type { User } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
 import { useAuthModal } from "@/components/interactions/AuthModal";
-import { MessagesLayoutContext } from "./messages-context";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Import new icons
+
+interface MessagesLayoutContextType {
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: Dispatch<SetStateAction<boolean>>;
+}
+
+export const MessagesLayoutContext =
+  createContext<MessagesLayoutContextType | null>(null);
 
 type Participant = {
   user: {
@@ -43,7 +51,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
   const pathname = usePathname();
   const { openAuthModal } = useAuthModal();
-  const { setMobileOpen } = useContext(MessagesLayoutContext)!;
+  const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!; // Renamed
 
 
   useEffect(() => {
@@ -58,27 +66,47 @@ function ConversationSidebar({ user }: { user: User | null }) {
     if (!user) {
       e.preventDefault();
       openAuthModal();
+    } else {
+      setIsSidebarOpen(false); // Close sidebar on "New" click for logged-in users
     }
   };
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-slate-950">
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Conversations
-        </h2>
-        <Link
-          href="/messages/new"
-          onClick={handleNewMessageClick}
-          className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500"
-        >
-          New
-        </Link>
+        {isSidebarOpen && ( // Only show "Conversations" title when open
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+            Conversations
+          </h2>
+        )}
+        <div className="flex items-center gap-2"> {/* Group new button and toggle */}
+          {isSidebarOpen && ( // Only show "New" button when open
+            <Link
+              href="/messages/new"
+              onClick={handleNewMessageClick}
+              className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500"
+            >
+              New
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen((prev) => !prev)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            aria-label="Toggle conversation sidebar"
+          >
+            {isSidebarOpen ? (
+              <ChevronLeft className="h-5 w-5" />
+            ) : (
+              <ChevronRight className="h-5 w-5" />
+            )}
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto">
         {user ? (
           inbox.length > 0 ? (
-            <div className="space-y-2 p-2">
+            <div className="space-y-2 p-2 overflow-x-hidden">
               {inbox.map((conversation) => {
                 const otherParticipant =
                   conversation.participants.find(
@@ -101,17 +129,21 @@ function ConversationSidebar({ user }: { user: User | null }) {
                   <Link
                     key={conversation.id}
                     href={`/messages/${conversation.id}`}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block rounded-lg p-3 transition ${
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={`block rounded-lg transition ${
+                      isSidebarOpen
+                        ? "p-3"
+                        : "p-3 flex justify-center h-16" // Added h-16 for collapsed state
+                    } ${
                       isActive
-                        ? "bg-slate-100 dark:bg-slate-800"
+                        ? "bg-slate-100 dark:bg-slate-800 px-3 py-3" // Active state with explicit padding
                         : isUnread
                           ? "bg-blue-50 dark:bg-blue-950/40"
                           : "hover:bg-slate-100 dark:hover:bg-slate-800/70"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div className={`flex items-center ${isSidebarOpen ? "justify-between" : "justify-center"}`}>
+                      <div className={`flex items-center ${isSidebarOpen ? "gap-3" : ""}`}>
                         <div className="relative h-10 w-10 shrink-0">
                           {otherParticipant?.avatarUrl ? (
                             <img
@@ -134,20 +166,24 @@ function ConversationSidebar({ user }: { user: User | null }) {
                             <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-950"></div>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-slate-800 dark:text-slate-100">
-                            {otherParticipant?.name || "Scholar"}
+                        {isSidebarOpen && ( // Conditional rendering
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-800 dark:text-slate-100">
+                              {otherParticipant?.name || "Scholar"}
+                            </div>
+                            {latestMessage && (
+                              <p className="mt-0.5 line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
+                                {latestMessage.body}
+                              </p>
+                            )}
                           </div>
-                          {latestMessage && (
-                            <p className="mt-0.5 line-clamp-1 text-sm text-slate-500 dark:text-slate-400">
-                              {latestMessage.body}
-                            </p>
-                          )}
+                        )}
+                      </div>
+                      {isSidebarOpen && ( // Conditional rendering
+                        <div className="text-xs text-slate-400 dark:text-slate-500">
+                          {formatTimeAgo(conversation.lastMessageAt)}
                         </div>
-                      </div>
-                      <div className="text-xs text-slate-400 dark:text-slate-500">
-                        {formatTimeAgo(conversation.lastMessageAt)}
-                      </div>
+                      )}
                     </div>
                   </Link>
                 );
@@ -173,7 +209,7 @@ export default function MessagesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -194,18 +230,20 @@ export default function MessagesLayout({
   }, []);
 
   return (
-    <MessagesLayoutContext.Provider value={{ mobileOpen, setMobileOpen }}>
+    <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
       <div className="relative flex h-[calc(100vh-10rem)] min-h-[28rem] overflow-hidden md:h-[calc(100vh-12rem)]">
-        {mobileOpen && (
+        {isSidebarOpen && (
           <div
             className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden"
-            onClick={() => setMobileOpen(false)}
+            onClick={() => setIsSidebarOpen(false)}
             aria-hidden="true"
           />
         )}
         <div
-          className={`fixed top-0 left-0 z-40 h-full w-80 shrink-0 transform-gpu flex-col border-r border-slate-200 bg-white transition-transform md:static md:translate-x-0 dark:border-slate-800 dark:bg-slate-950 ${
-            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          className={`fixed top-0 left-0 z-40 h-full shrink-0 md:static md:h-auto md:z-auto flex-col border-r border-slate-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950 ${
+            isSidebarOpen
+              ? "w-80 translate-x-0"
+              : "w-16 -translate-x-full md:translate-x-0"
           }`}
         >
           <Suspense fallback={<div className="p-4">Loading conversations...</div>}>

@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 type ToastType = "success" | "error";
 
@@ -57,31 +58,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           >
             <span className="inline-flex items-center gap-2">
               {t.type === "error" ? (
-                <svg
-                  className="w-4 h-4 shrink-0 text-red-500 dark:text-red-300"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
+                <XCircle className="w-4 h-4 shrink-0 text-red-500 dark:text-red-300" />
               ) : (
-                <svg
-                  className="w-4 h-4 shrink-0 text-green-500 dark:text-green-300"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-green-500 dark:text-green-300" />
               )}
               {t.message}
             </span>

@@ -15,6 +15,10 @@ export async function getProfile(profileId: string, currentUserId?: string) {
             handle: true,
             avatarUrl: true,
             bio: true,
+            githubUrl: true,
+            orcidId: true,
+            linkedinUrl: true,
+            googleScholarUrl: true,
             reputation: true,
             _count: {
                 select: {
@@ -785,6 +789,295 @@ export async function getProfileSection(
 }
 
 
+// ─────────────────────────────────────────────────────────────
+// Activity tab: content the scholar commented on, replied to,
+// and voted on. Returns a flat, unified list for rendering.
+// ─────────────────────────────────────────────────────────────
+
+type ActivityItem = {
+    contentId: string;
+    type: string; // machine type, e.g. "article"
+    typeLabel: string; // human label, e.g. "Research Article"
+    action: "commented" | "replied" | "voted";
+    title: string;
+    excerpt?: string;
+    href: string;
+    author: { id: string; name: string | null; handle: string | null; avatarUrl: string | null };
+    authorId: string;
+    createdAt: Date;
+};
+
+type ActivityConfig = {
+    type: string;
+    typeLabel: string;
+    commentModel: string;
+    voteModel: string;
+    // relation field on the comment/vote model pointing at the content
+    contentField: string;
+    // where the content actually lives (used to fetch the content row)
+    contentModel: string;
+    titleField: string;
+    excerptField?: string;
+    detailHref: (contentId: string) => string;
+};
+
+const ACTIVITY_CONFIG: ActivityConfig[] = [
+    {
+        type: "article",
+        typeLabel: "Research Article",
+        commentModel: "articleComment",
+        voteModel: "articleVote",
+        contentField: "article",
+        contentModel: "article",
+        titleField: "title",
+        excerptField: "excerpt",
+        detailHref: (id) => `/blog/${id}`,
+    },
+    {
+        type: "post",
+        typeLabel: "Feed Post",
+        commentModel: "socialComment",
+        voteModel: "socialVote",
+        contentField: "socialPost",
+        contentModel: "socialPost",
+        titleField: "content",
+        excerptField: "content",
+        detailHref: (id) => `/feed/${id}`,
+    },
+    {
+        type: "vacancy",
+        typeLabel: "Job Vacancy",
+        commentModel: "jobVacancyComment",
+        voteModel: "jobVacancyVote",
+        contentField: "jobVacancy",
+        contentModel: "jobVacancy",
+        titleField: "title",
+        excerptField: "description",
+        detailHref: (id) => `/vacancies/${id}`,
+    },
+    {
+        type: "admission",
+        typeLabel: "PhD Admission",
+        commentModel: "phdAdmissionComment",
+        voteModel: "phdAdmissionVote",
+        contentField: "phdAdmission",
+        contentModel: "phdAdmission",
+        titleField: "university",
+        excerptField: "description",
+        detailHref: (id) => `/admissions/${id}`,
+    },
+    {
+        type: "event",
+        typeLabel: "Research Event",
+        commentModel: "researchEventComment",
+        voteModel: "researchEventVote",
+        contentField: "researchEvent",
+        contentModel: "researchEvent",
+        titleField: "title",
+        excerptField: "description",
+        detailHref: (id) => `/events/${id}`,
+    },
+    {
+        type: "help",
+        typeLabel: "Help Post",
+        commentModel: "helpPostComment",
+        voteModel: "helpPostVote",
+        contentField: "helpPost",
+        contentModel: "helpPost",
+        titleField: "title",
+        excerptField: "message",
+        detailHref: (id) => `/help/${id}`,
+    },
+    {
+        type: "journal",
+        typeLabel: "Journal",
+        commentModel: "journalComment",
+        voteModel: "journalVote",
+        contentField: "journal",
+        contentModel: "journal",
+        titleField: "title",
+        excerptField: "about",
+        detailHref: (id) => `/journals/${id}`,
+    },
+    {
+        type: "researchTool",
+        typeLabel: "Research Tool",
+        commentModel: "researchToolComment",
+        voteModel: "researchToolVote",
+        contentField: "researchTool",
+        contentModel: "researchTool",
+        titleField: "name",
+        excerptField: "description",
+        detailHref: (id) => `/research-tools/${id}`,
+    },
+    {
+        type: "result",
+        typeLabel: "Result",
+        commentModel: "resultComment",
+        voteModel: "resultVote",
+        contentField: "result",
+        contentModel: "result",
+        titleField: "title",
+        excerptField: "description",
+        detailHref: (id) => `/results/${id}`,
+    },
+    {
+        type: "contribution",
+        typeLabel: "Contribution",
+        commentModel: "contributionComment",
+        voteModel: "contributionVote",
+        contentField: "contribution",
+        contentModel: "contribution",
+        titleField: "title",
+        excerptField: "message",
+        detailHref: (id) => `/contributions/${id}`,
+    },
+    {
+        type: "publication",
+        typeLabel: "Publication",
+        commentModel: "publicationComment",
+        voteModel: "publicationVote",
+        contentField: "publication",
+        contentModel: "publication",
+        titleField: "title",
+        excerptField: "abstract",
+        detailHref: (id) => `/publications/${id}`,
+    },
+    {
+        type: "survey",
+        typeLabel: "Research Survey",
+        commentModel: "surveyComment",
+        voteModel: "surveyVote",
+        contentField: "survey",
+        contentModel: "researchSurvey",
+        titleField: "title",
+        excerptField: "description",
+        detailHref: (id) => `/surveys/${id}`,
+    },
+];
+
+export async function getProfileActivity(profileId: string, take = 20) {
+    const user = await prisma.user.findUnique({
+        where: { id: profileId },
+        select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+        },
+    });
+
+    if (!user) {
+        return [];
+    }
+
+    const items: ActivityItem[] = [];
+
+    for (const cfg of ACTIVITY_CONFIG) {
+        // Comments + replies authored by this scholar
+        const commentRows = await (prisma as any)[cfg.commentModel].findMany({
+            where: { authorId: profileId },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: {
+                id: true,
+                parentId: true,
+                createdAt: true,
+                [cfg.contentField]: {
+                    select: {
+                        id: true,
+                        [cfg.titleField]: true,
+                        ...(cfg.excerptField ? { [cfg.excerptField]: true } : {}),
+                        author: {
+                            select: {
+                                id: true,
+                                name: true,
+                                handle: true,
+                                avatarUrl: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        for (const row of commentRows) {
+            const content = row[cfg.contentField];
+            if (!content) continue;
+            items.push({
+                contentId: content.id,
+                type: cfg.type,
+                typeLabel: cfg.typeLabel,
+                action: row.parentId ? "replied" : "commented",
+                title: content[cfg.titleField] ?? "Untitled",
+                excerpt: cfg.excerptField ? content[cfg.excerptField] : undefined,
+                href: cfg.detailHref(content.id),
+                author: user,
+                authorId: user.id,
+                createdAt: row.createdAt,
+            });
+        }
+
+        // Votes by this scholar
+        const voteRows = await (prisma as any)[cfg.voteModel].findMany({
+            where: { userId: profileId },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: {
+                createdAt: true,
+                [cfg.contentField]: {
+                    select: {
+                        id: true,
+                        [cfg.titleField]: true,
+                        ...(cfg.excerptField ? { [cfg.excerptField]: true } : {}),
+                        author: {
+                            select: {
+                                id: true,
+                                name: true,
+                                handle: true,
+                                avatarUrl: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        for (const row of voteRows) {
+            const content = row[cfg.contentField];
+            if (!content) continue;
+            items.push({
+                contentId: content.id,
+                type: cfg.type,
+                typeLabel: cfg.typeLabel,
+                action: "voted",
+                title: content[cfg.titleField] ?? "Untitled",
+                excerpt: cfg.excerptField ? content[cfg.excerptField] : undefined,
+                href: cfg.detailHref(content.id),
+                author: user,
+                authorId: user.id,
+                createdAt: row.createdAt,
+            });
+        }
+    }
+
+    // Sort newest first, dedupe by contentId + action
+    const seen = new Set<string>();
+    const unique: ActivityItem[] = [];
+    const sorted = [...items].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+    for (const item of sorted) {
+        const key = `${item.contentId}:${item.action}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        unique.push(item);
+        if (unique.length >= take) break;
+    }
+
+    return unique;
+}
+
 export async function updateProfile(formData: FormData) {
     const supabaseUser = await requireCurrentUser('You must be logged in to update your profile.')
 
@@ -800,6 +1093,10 @@ export async function updateProfile(formData: FormData) {
     const newName = readOptionalFormValue(formData, 'name')
     const newBio = readOptionalFormValue(formData, 'bio')
     const newAvatarUrl = readOptionalFormValue(formData, 'avatarUrl')
+    const newGithubUrl = readOptionalFormValue(formData, 'githubUrl')
+    const newOrcidId = readOptionalFormValue(formData, 'orcidId')
+    const newLinkedinUrl = readOptionalFormValue(formData, 'linkedinUrl')
+    const newGoogleScholarUrl = readOptionalFormValue(formData, 'googleScholarUrl')
 
     if (newHandle) {
         const handleAvailable = await isHandleAvailable(newHandle);
@@ -823,6 +1120,10 @@ export async function updateProfile(formData: FormData) {
             name: newName || user.name,
             bio: newBio,
             avatarUrl: newAvatarUrl ?? user.avatarUrl,
+            githubUrl: newGithubUrl ?? user.githubUrl,
+            orcidId: newOrcidId ?? user.orcidId,
+            linkedinUrl: newLinkedinUrl ?? user.linkedinUrl,
+            googleScholarUrl: newGoogleScholarUrl ?? user.googleScholarUrl,
         }
     })
 

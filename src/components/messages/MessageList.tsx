@@ -22,10 +22,12 @@ export function MessageList({
   conversationId,
   initialMessages,
   user,
+  registerAppend,
 }: {
   conversationId: string;
   initialMessages: Message[];
   user: User | null;
+  registerAppend?: (fn: (message: Message) => void) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -41,6 +43,20 @@ export function MessageList({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Register an append function so the parent can add a message instantly on send.
+  useEffect(() => {
+    if (registerAppend) {
+      registerAppend((message: Message) => {
+        setMessages((currentMessages) => {
+          if (currentMessages.some((m) => m.id === message.id)) {
+            return currentMessages;
+          }
+          return [...currentMessages, message];
+        });
+      });
+    }
+  }, [registerAppend]);
 
   useEffect(() => {
     const fetchNewMessage = async (

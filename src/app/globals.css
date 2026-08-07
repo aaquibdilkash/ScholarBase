@@ -67,9 +67,43 @@ html[data-theme="dark"] {
       linear-gradient(180deg, #0b0d10 0%, #0f1318 42%, #050607 100%);
   }
 
-  ::selection {
+::selection {
     background: rgba(29, 78, 216, 0.18);
     color: var(--foreground);
+  }
+
+  /* Global scrollbar styling (thin, matching sidebar scrollbars) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.5);
+    border-radius: 9999px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.7);
+  }
+
+  html.dark *,
+  html[data-theme="dark"] * {
+    scrollbar-color: rgba(71, 85, 105, 0.7) transparent;
+  }
+
+  html.dark *::-webkit-scrollbar-thumb,
+  html[data-theme="dark"] *::-webkit-scrollbar-thumb {
+    background-color: rgba(71, 85, 105, 0.7);
   }
 
   /* CLS Prevention: set explicit dimensions for images and containers */

@@ -8,14 +8,14 @@ export default function MessagesPage() {
   if (!context) {
     throw new Error("MessagesPage must be used within a MessagesLayout");
   }
-  const { setMobileOpen } = context;
+  const { setIsSidebarOpen } = context; // Renamed
 
   return (
     <div className="h-full flex flex-col items-center justify-center">
       <div className="md:hidden mb-4">
         <button
           type="button"
-          onClick={() => setMobileOpen(true)}
+          onClick={() => setIsSidebarOpen(true)} // Renamed
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
           aria-label="Toggle conversation sidebar"
         >
@@ -27,7 +27,7 @@ export default function MessagesPage() {
           Select a conversation
         </h2>
         <p className="mt-2 text-slate-400 dark:text-slate-500">
-          Choose a conversation from the sidebar to start chatting.
+          Choose a conversation from the sidebar or create a new one to start chatting.
         </p>
       </div>
     </div>

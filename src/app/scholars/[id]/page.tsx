@@ -7,7 +7,6 @@ import Image from "next/image";
 import { getProfile } from "@/app/actions/profile";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
-import { findDirectConversation } from "@/app/actions/messages";
 import { Star } from "lucide-react";
 import { FollowerCount } from "./FollowerCount";
 
@@ -27,11 +26,6 @@ export default async function ScholarProfile({
   if (!profile) notFound();
 
   const { isFollowing, isOwnProfile } = profile;
-
-  const existingConversationId =
-    currentUser && !isOwnProfile
-      ? await findDirectConversation(currentUser.id, profile.id)
-      : null;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
@@ -90,7 +84,6 @@ export default async function ScholarProfile({
               <MessageButton
                 recipientId={profile.id}
                 recipientName={profile.name}
-                existingConversationId={existingConversationId}
               />
               <FollowButton targetId={profile.id} isFollowing={isFollowing} />
             </>
@@ -105,6 +98,10 @@ export default async function ScholarProfile({
           handle: profile.handle,
           avatarUrl: profile.avatarUrl,
           bio: profile.bio,
+          githubUrl: profile.githubUrl,
+          orcidId: profile.orcidId,
+          linkedinUrl: profile.linkedinUrl,
+          googleScholarUrl: profile.googleScholarUrl,
         }}
         profileId={profile.id}
         currentUserId={currentUser?.id}

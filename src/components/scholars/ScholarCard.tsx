@@ -1,3 +1,4 @@
+import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ShareButton } from "@/components/interactions/ShareButton";
@@ -31,6 +32,7 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
       currentUserId={currentUserId}
       detailPageHref={`/scholars/${scholar.id}`}
       createdDate={scholar.createdAt}
+      createdLabel="Joined"
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
@@ -64,9 +66,10 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {scholar.bio ? (
-              <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {scholar.bio}
-              </p>
+              <RichContent
+                content={scholar.bio}
+                className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300"
+              />
             ) : (
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
                 No bio added yet.

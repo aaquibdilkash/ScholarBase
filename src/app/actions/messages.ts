@@ -124,6 +124,20 @@ export async function startConversation(formData: FormData) {
     redirect('/messages/new?message=You cannot message yourself.')
   }
 
+  // Check if the recipient has blocked the current user
+  const recipientBlockedSender = await prisma.block.findUnique({
+    where: {
+      blockerId_blockedId: {
+        blockerId: recipientId,
+        blockedId: supabaseUser.id,
+      },
+    },
+    select: { id: true },
+  })
+  if (recipientBlockedSender) {
+    redirect('/messages/new?message=You cannot message this scholar.')
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
     select: { id: true, name: true },
@@ -216,11 +230,45 @@ export async function sendMessage(conversationId: string, formData: FormData) {
     redirect('/messages?message=Conversation not found.')
   }
 
-  await prisma.message.create({
+  // Check if the current user has been blocked by any participant
+  const otherParticipant = conversation.participants.find(
+    (p) => p.userId !== user.id,
+  )
+  if (otherParticipant) {
+    const blocked = await prisma.block.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId: otherParticipant.userId,
+          blockedId: user.id,
+        },
+      },
+    })
+    if (blocked) {
+      redirect(
+        `/messages/${conversationId}?message=You cannot send messages to this conversation because you have been blocked.`,
+      )
+    }
+  }
+
+  const createdMessage = await prisma.message.create({
     data: {
       conversationId,
       senderId: user.id,
       body,
+    },
+    select: {
+      id: true,
+      body: true,
+      createdAt: true,
+      senderId: true,
+      sender: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+        },
+      },
     },
   })
 
@@ -255,4 +303,53 @@ export async function sendMessage(conversationId: string, formData: FormData) {
   revalidatePath('/messages')
   // No need to revalidate or redirect the conversation page itself,
   // as the new message will be added in real-time.
+  return createdMessage;
+}
+
+export async function isUserBlocked(
+  blockerId: string,
+  blockedId: string,
+): Promise<boolean> {
+  const block = await prisma.block.findUnique({
+    where: {
+      blockerId_blockedId: { blockerId, blockedId },
+    },
+    select: { id: true },
+  })
+  return !!block
+}
+
+export async function blockUser(blockedId: string) {
+  const user = await requireCurrentUser('Please log in to block a scholar.')
+  if (user.id === blockedId) {
+    return { error: 'You cannot block yourself.' }
+  }
+
+  await prisma.block.create({
+    data: { blockerId: user.id, blockedId },
+  })
+
+  revalidatePath(`/scholars/${blockedId}`)
+  return { success: true }
+}
+
+export async function unblockUser(blockedId: string) {
+  const user = await requireCurrentUser('Please log in to unblock a scholar.')
+
+  await prisma.block.delete({
+    where: {
+      blockerId_blockedId: { blockerId: user.id, blockedId },
+    },
+  })
+
+  revalidatePath(`/scholars/${blockedId}`)
+  return { success: true }
+}
+
+export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
+  const blocks = await prisma.block.findMany({
+    where: { blockerId },
+    select: { blockedId: true },
+  })
+  return blocks.map((b) => b.blockedId)
 }

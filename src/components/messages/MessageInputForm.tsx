@@ -6,10 +6,25 @@ import { ArrowRight } from "lucide-react";
 
 const MAX_TEXTAREA_HEIGHT = 160; // px (roughly max-h-40)
 
+export type SentMessage = {
+  id: string;
+  body: string;
+  createdAt: Date | string;
+  senderId: string;
+  sender: {
+    id: string;
+    name: string | null;
+    handle: string | null;
+    avatarUrl: string | null;
+  };
+};
+
 export function MessageInputForm({
   conversationId,
+  onMessageSent,
 }: {
   conversationId: string;
+  onMessageSent?: (message: SentMessage) => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -32,9 +47,15 @@ export function MessageInputForm({
   };
 
   const handleFormAction = async (formData: FormData) => {
-    await sendMessage(conversationId, formData);
-    formRef.current?.reset();
-    resetTextareaHeight();
+    try {
+      const created = await sendMessage(conversationId, formData);
+      if (created && onMessageSent) {
+        onMessageSent(created as SentMessage);
+      }
+    } finally {
+      formRef.current?.reset();
+      resetTextareaHeight();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

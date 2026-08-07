@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "@/components/interactions/AuthModal";
+import { Loader2, PencilLine, RefreshCw } from "lucide-react";
 
 type Answer = {
   id: string;
@@ -146,8 +147,7 @@ export function SurveyResponseForm({
       );
 
       const result = await submitSurveyResponse(formData, surveyId);
-      if ('error' in result) {
-        toast("Please log in to submit a response", "error");
+      if ("error" in result) {
         openAuthModal();
         return;
       }
@@ -378,19 +378,7 @@ export function SurveyResponseForm({
       {/* Status banner: editing previous response / draft restored */}
       {response ? (
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3 dark:border-blue-500/30 dark:bg-blue-500/10">
-          <svg
-            className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
+          <PencilLine className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
               You are editing your previous response.
@@ -402,19 +390,7 @@ export function SurveyResponseForm({
         </div>
       ) : draftRestored ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 flex items-start gap-3 dark:border-emerald-500/30 dark:bg-emerald-500/10">
-          <svg
-            className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
+          <RefreshCw className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
               Draft restored.
@@ -531,25 +507,7 @@ export function SurveyResponseForm({
       >
         {isSubmitting ? (
           <span className="flex items-center gap-2">
-            <svg
-              className="animate-spin h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
+            <Loader2 className="animate-spin h-5 w-5" />
             Submitting...
           </span>
         ) : (
