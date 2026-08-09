@@ -8,6 +8,7 @@ import { supabase } from "@/utils/supabase/client";
 import { formatTimeAgo } from "@/utils/time-ago";
 import type { User } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
+import useMediaQuery from "@/hooks/useMediaQuery";
 import { MessagesLayoutContext } from "./messages-context";
 import { ChevronLeft, ChevronRight } from "lucide-react"; // Import new icons
 
@@ -199,8 +200,16 @@ export default function MessagesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop);
   const [user, setUser] = useState<User | null>(null);
+
+  // Open the sidebar by default on laptop/desktop view (md and up).
+  useEffect(() => {
+    if (isDesktop) {
+      setIsSidebarOpen(true);
+    }
+  }, [isDesktop]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {

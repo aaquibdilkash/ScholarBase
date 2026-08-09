@@ -138,13 +138,13 @@ export function NewMessageForm({
               <p className="p-4 text-sm text-slate-500">Searching...</p>
             )}
             {searchResults.length > 0 && (
-              <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white shadow-lg">
+              <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white shadow-lg dark:bg-slate-900 dark:shadow-slate-950">
                 <ul className="py-1">
                   {searchResults.map((user) => (
                     <li
                       key={user.id}
                       onClick={() => handleSelectRecipient(user)}
-                      className="cursor-pointer px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                      className="cursor-pointer px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                       {user.name} (@{user.handle})
                     </li>
