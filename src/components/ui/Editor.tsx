@@ -32,7 +32,7 @@ const Editor = ({ value, onChange }: EditorProps) => {
     editorProps: {
       attributes: {
         class:
-          "prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none",
+          "prose dark:prose-invert m-5 focus:outline-none",
       },
     },
     immediatelyRender: true,
