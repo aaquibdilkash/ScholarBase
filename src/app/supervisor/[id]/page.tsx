@@ -36,14 +36,14 @@ export default async function SupervisorPage({
 
   // Compute vote counts from votes array
   const upvotes =
-    (supervisor.votes as any[])?.filter((v: any) => v.voteType === "UPVOTE")
-      .length ?? 0;
+    supervisor.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    (supervisor.votes as any[])?.filter((v: any) => v.voteType === "DOWNVOTE")
-      .length ?? 0;
+    supervisor.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    ((supervisor.votes as any[])?.find((v: any) => v.userId === user?.id)
-      ?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (supervisor.votes?.find((v) => v.userId === user?.id)?.voteType as
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   const hasUserRecommendation =
     !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
@@ -103,21 +103,13 @@ export default async function SupervisorPage({
         ) : null
       }
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h3>
-          <CommentSection
-            comments={supervisor.comments}
-            targetId={supervisor.id}
-            type="supervisor"
-            currentUserId={user?.id ?? null}
-            postAuthorId={supervisor.authorId}
-          />
-        </div>
+        <CommentSection
+          comments={supervisor.comments}
+          targetId={supervisor.id}
+          type="supervisor"
+          currentUserId={user?.id ?? null}
+          postAuthorId={supervisor.authorId}
+        />
       }
     >
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">

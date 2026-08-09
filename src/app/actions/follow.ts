@@ -66,6 +66,11 @@ export async function toggleFollow(followingId: string): Promise<boolean | { err
   return updated ? true : false
 }
 
+
+import type { FollowerInfo } from '@/types/follow';
+
+
+
 export async function getFollowers(userId: string, currentUserId?: string) {
   const follows = await prisma.follows.findMany({
     where: { followingId: userId },
@@ -84,10 +89,13 @@ export async function getFollowers(userId: string, currentUserId?: string) {
     },
     orderBy: { follower: { name: 'asc' } },
   })
-  return follows.map((f) => ({
-    ...f.follower,
-    isFollowing: currentUserId ? (f.follower as any).followers?.length > 0 : false,
-  }))
+  return follows.map((f) => {
+    const follower = f.follower as FollowerInfo
+    return {
+    ...follower,
+    isFollowing: !!(currentUserId && follower.followers?.length),
+    }
+  })
 }
 
 export async function getFollowing(userId: string, currentUserId?: string) {
@@ -108,9 +116,12 @@ export async function getFollowing(userId: string, currentUserId?: string) {
     },
     orderBy: { following: { name: 'asc' } },
   })
-  return follows.map((f) => ({
-    ...f.following,
-    isFollowing: currentUserId ? (f.following as any).followers?.length > 0 : false,
-  }))
+  return follows.map((f) => {
+    const following = f.following as FollowerInfo
+    return {
+    ...following,
+    isFollowing: !!(currentUserId && following.followers?.length),
+    }
+  })
 }
 

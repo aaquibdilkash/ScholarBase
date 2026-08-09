@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useContext, use, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   getConversation,
@@ -11,7 +12,7 @@ import {
 } from "@/app/actions/messages";
 import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import { Menu, MoreVertical, Ban, UserCheck } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import type { User } from "@supabase/supabase-js";
@@ -64,7 +65,6 @@ export default function ConversationPage({
   const appendMessageRef = useRef<((msg: Message) => void) | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
     const fetchUserAndConversation = async () => {
       const {
         data: { user },
@@ -170,9 +170,12 @@ export default function ConversationPage({
           >
             <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800">
               {otherParticipant?.avatarUrl ? (
-                <img
+                <Image
                   src={otherParticipant.avatarUrl}
                   alt={otherParticipant.name || "Scholar"}
+                  width={40}
+                  height={40}
+                  unoptimized
                   className="h-full w-full rounded-full object-cover"
                 />
               ) : (

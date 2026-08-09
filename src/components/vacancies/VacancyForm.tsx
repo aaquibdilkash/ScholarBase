@@ -36,17 +36,14 @@ export default function VacancyForm({
   const draftKey = mode === "edit" ? null : "draft_vacancy_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
-    initial
+    initial,
   );
 
-  const { submitting, submit } = useFormSubmit(
-    mode !== "edit" ? resetDraft : undefined,
-    {
-      resetOnSuccess: mode !== "edit",
-      successMessage: "Vacancy posted successfully!",
-      errorMessage: "Failed to post vacancy.",
-    },
-  );
+  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage: "Vacancy posted successfully!",
+    errorMessage: "Failed to post vacancy.",
+  });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

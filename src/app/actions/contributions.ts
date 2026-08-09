@@ -1,6 +1,6 @@
 'use server'
 
-import { Prisma, ContributionStatus } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
@@ -88,7 +88,7 @@ export async function getContribution(id: string, userId?: string) {
     })
 }
 
-export async function getAllContributionsAdmin(userId?: string) {
+export async function getAllContributionsAdmin() {
     return prisma.contribution.findMany({
         orderBy: { createdAt: 'desc' },
         select: {

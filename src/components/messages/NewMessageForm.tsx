@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { getScholarById, getScholars } from "@/app/actions/scholars";
-import { startConversation } from "@/app/actions/messages";
+import { useRouter } from "next/navigation";
+import { getScholars } from "@/app/actions/scholars";
+import {
+  startConversation,
+  findDirectConversation,
+} from "@/app/actions/messages";
 import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
 import { useAuthModal } from "@/components/interactions/AuthModal";
@@ -24,6 +27,7 @@ export function NewMessageForm({
 }) {
   const { toast } = useToast();
   const { user } = useUser();
+  const router = useRouter();
   const { openAuthModal } = useAuthModal();
   const { submitting, submit } = useFormSubmit(undefined, {
     successMessage: "Message sent successfully!",
@@ -52,8 +56,18 @@ export function NewMessageForm({
     }
   }, [search]);
 
-  const handleSelectRecipient = (user: Recipient) => {
-    setSelectedRecipient(user);
+  const handleSelectRecipient = async (recipient: Recipient) => {
+    if (user) {
+      const conversationId = await findDirectConversation(
+        user.id,
+        recipient.id,
+      );
+      if (conversationId) {
+        router.push(`/messages/${conversationId}`);
+        return;
+      }
+    }
+    setSelectedRecipient(recipient);
     setSearch("");
     setSearchResults([]);
   };
@@ -153,11 +167,7 @@ export function NewMessageForm({
           required
         />
       </div>
-      <button
-        type="submit"
-        className="sb-button-primary"
-        disabled={submitting}
-      >
+      <button type="submit" className="sb-button-primary" disabled={submitting}>
         {submitting ? "Sending..." : "Start conversation"}
       </button>
     </form>

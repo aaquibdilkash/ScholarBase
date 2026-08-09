@@ -29,7 +29,7 @@ export default async function AdmissionsPage({
   const admissions = isTrendingTab ? [] : await getAdmissions(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingAdmissions(user?.id)
+    ? await getTrendingAdmissions()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

@@ -35,11 +35,11 @@ const ResultDetailPage = async ({
   };
 
   const upvotes =
-    result.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    result.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    result.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    result.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (result.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (result.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -67,7 +67,7 @@ const ResultDetailPage = async ({
         ) : null
       }
       authorId={result.author.id}
-      isFollowing={(result.author as any)?.followers?.length ? true : false}
+      isFollowing={(result.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={result.createdAt}
       editedDate={
@@ -85,13 +85,6 @@ const ResultDetailPage = async ({
       footerCommentsHref={`/results/${result.id}#comments`}
       footerCommentsCount={result._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
           <CommentSection
             comments={result.comments}
             targetId={result.id}
@@ -99,7 +92,6 @@ const ResultDetailPage = async ({
             currentUserId={user?.id || null}
             postAuthorId={result.author.id}
           />
-        </div>
       }
     >
       <div className="mb-4 flex items-center gap-2">

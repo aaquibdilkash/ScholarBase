@@ -1,11 +1,10 @@
 'use server'
 
-import { Prisma } from '@prisma/client'
+import { Prisma, PublicationType } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
 
@@ -14,7 +13,7 @@ export async function createPublication(formData: FormData) {
 
     const title = readFormValue(formData, 'title')
     const authors = readFormValue(formData, 'authors')
-    const publicationType = readFormValue(formData, 'publicationType') as any
+    const publicationType = readFormValue(formData, 'publicationType') as PublicationType
     const journalOrConference = readOptionalFormValue(formData, 'journalOrConference')
     const publisher = readOptionalFormValue(formData, 'publisher')
     const year = readOptionalFormValue(formData, 'year')
@@ -69,7 +68,7 @@ export async function updatePublication(formData: FormData, publicationId: strin
 
     const title = readFormValue(formData, 'title')
     const authors = readFormValue(formData, 'authors')
-    const publicationType = readFormValue(formData, 'publicationType') as any
+    const publicationType = readFormValue(formData, 'publicationType') as PublicationType
     const journalOrConference = readOptionalFormValue(formData, 'journalOrConference')
     const publisher = readOptionalFormValue(formData, 'publisher')
     const year = readOptionalFormValue(formData, 'year')

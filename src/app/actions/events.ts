@@ -120,9 +120,10 @@ export async function createResearchEvent(formData: FormData) {
 
 export async function createEventSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
     try {
-        return await createResearchEvent(formData) as any
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Failed to create event' }
+        return await createResearchEvent(formData)
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        return { success: false, error: error.message || 'Failed to create event' }
     }
 }
 

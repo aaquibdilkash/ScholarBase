@@ -182,6 +182,7 @@ export default function ResultForm({
       <SubmitBtnWithAuth
         className="sb-button-accent mt-2 self-end"
         loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
+        disabled={submitting}
       >
         {mode === "edit" ? "Save Changes" : "Publish Result"}
       </SubmitBtnWithAuth>

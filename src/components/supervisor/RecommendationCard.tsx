@@ -1,41 +1,28 @@
 "use client";
 import { VoteButton } from "@/components/interactions/VoteButton";
-import { Recommendation, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import { RichContent } from "@/components/content/RichContent";
 import { StarRating } from "@/components/ui/StarRating";
-
-type RecommendationCardProps = Recommendation & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: {
-    comments: number;
-    votes: number;
-  };
-};
+import type { RecommendationWithAuthor } from "@/types/cards";
 
 export function RecommendationCard({
   recommendation,
   supervisor,
   currentUserId,
 }: {
-  recommendation: RecommendationCardProps;
+  recommendation: RecommendationWithAuthor;
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    recommendation.votes?.find((v: any) => v.userId === currentUserId)
-      ?.voteType ?? null;
+    recommendation.votes?.find((v) => v.userId === currentUserId)?.voteType ??
+    null;
   const upvoteCount =
-    recommendation.votes?.filter((v: any) => v.voteType === "UPVOTE").length ??
-    0;
+    recommendation.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    recommendation.votes?.filter((v: any) => v.voteType === "DOWNVOTE")
-      .length ?? 0;
+    recommendation.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   const isOwner = currentUserId === recommendation.author.id;
   const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
@@ -80,12 +67,7 @@ export function RecommendationCard({
     >
       <p className="text-sm font-semibold text-slate-700 mb-2">
         Recommendation for{" "}
-        <a
-          href={`/supervisor/${supervisor.id}`}
-          className="text-blue-700 hover:underline"
-        >
-          {supervisor.name}
-        </a>
+        <span className="text-blue-700">{supervisor.name}</span>
       </p>
       <div className="space-y-3 mb-4">
         <div>

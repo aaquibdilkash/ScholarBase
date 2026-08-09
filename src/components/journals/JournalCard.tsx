@@ -1,19 +1,11 @@
 "use client";
 
-import { Journal, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
-
-type JournalWithAuthor = Journal & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { JournalWithAuthor } from "@/types/cards";
 
 export function JournalCard({
   journal,
@@ -25,12 +17,11 @@ export function JournalCard({
   const isOwner = currentUserId === journal.authorId;
   const isFollowing = (journal.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    journal.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    journal.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    journal.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    journal.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    journal.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    journal.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell

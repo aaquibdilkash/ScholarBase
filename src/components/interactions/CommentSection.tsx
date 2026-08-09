@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatTimeAgo } from "@/utils/time-ago";
@@ -16,42 +16,16 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
-
-// Define the exact shape Prisma is sending down
-type User = { id: string; name: string | null; avatarUrl: string | null };
-type Vote = { userId: string; voteType: "UPVOTE" | "DOWNVOTE" };
-
-type Reply = {
-  id: string;
-  content: string;
-  createdAt: Date;
-  updatedAt: Date;
-  author: User;
-  votes: Vote[];
-  parentId: string | null;
-  _count: { votes: number };
-};
-
-type Comment = Reply & { replies: Reply[] };
+import {
+  CommentThread,
+  CommentItem,
+  CommentTargetType,
+} from "@/types/comment";
 
 interface CommentSectionProps {
-  comments: Comment[];
+  comments: CommentThread[];
   targetId: string;
-  type:
-    | "post"
-    | "article"
-    | "vacancy"
-    | "admission"
-    | "event"
-    | "supervisor"
-    | "recommendation"
-    | "help"
-    | "researchTool"
-    | "journal"
-    | "result"
-    | "contribution"
-    | "publication"
-    | "survey";
+  type: CommentTargetType;
   currentUserId: string | null;
   postAuthorId?: string | null;
 }
@@ -115,63 +89,70 @@ export function CommentSection({
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Form: Add a Top-Level Comment */}
-      <form
-        onSubmit={handleFormSubmit}
-        className="flex flex-col gap-3 sm:flex-row"
-      >
-        <input type="hidden" name="_targetId" value={targetId} />
-        <input type="hidden" name="_type" value={type} />
-        <input type="hidden" name="_parentId" value="" />
-        <input type="hidden" name="_commentId" value="" />
-
-        <div className="flex-1 flex flex-col gap-2">
-          <textarea
-            name="content"
-            placeholder="Share your thoughts on this..."
-            required
-            rows={2}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-600 md:p-4 md:text-base dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-900"
-            value={content}
-            onChange={handleContentChange}
-          />
-          <div className="flex justify-end">
-            <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base">
-              Post Comment
-            </SubmitBtnWithAuth>
-          </div>
-        </div>
-      </form>
-
-      {/* The Comment Thread */}
+    <div
+      className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
+      id="comments"
+    >
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
+        Discussion
+      </h2>
       <div className="space-y-4 md:space-y-6">
-        {topLevelComments.map((comment) => (
-          <CommentEntry
-            key={comment.id}
-            comment={comment}
-            replies={comment.replies}
-            currentUserId={currentUserId}
-            type={type}
-            targetId={targetId}
-            postAuthorId={postAuthorId}
-            activeReplyId={activeReplyId}
-            setActiveReplyId={setActiveReplyId}
-            editingId={editingId}
-            setEditingId={setEditingId}
-            isReply={false}
-            toast={toast}
-            openAuthModal={openAuthModal}
-          />
-        ))}
+        {/* Form: Add a Top-Level Comment */}
+        <form
+          onSubmit={handleFormSubmit}
+          className="flex flex-col gap-3 sm:flex-row"
+        >
+          <input type="hidden" name="_targetId" value={targetId} />
+          <input type="hidden" name="_type" value={type} />
+          <input type="hidden" name="_parentId" value="" />
+          <input type="hidden" name="_commentId" value="" />
 
-        {topLevelComments.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center md:py-10 dark:border-slate-800 dark:bg-slate-950/70">
-            <p className="text-sm font-medium text-slate-500 md:text-base dark:text-slate-400">
-              No comments yet. Start the academic discussion!
-            </p>
+          <div className="flex-1 flex flex-col gap-2">
+            <textarea
+              name="content"
+              placeholder="Share your thoughts on this..."
+              required
+              rows={2}
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-600 md:p-4 md:text-base dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-900"
+              value={content}
+              onChange={handleContentChange}
+            />
+            <div className="flex justify-end">
+              <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base">
+                Post Comment
+              </SubmitBtnWithAuth>
+            </div>
           </div>
-        )}
+        </form>
+
+        {/* The Comment Thread */}
+        <div className="space-y-4 md:space-y-6">
+          {topLevelComments.map((comment) => (
+            <CommentEntry
+              key={comment.id}
+              comment={comment}
+              replies={comment.replies}
+              currentUserId={currentUserId}
+              type={type}
+              targetId={targetId}
+              postAuthorId={postAuthorId}
+              activeReplyId={activeReplyId}
+              setActiveReplyId={setActiveReplyId}
+              editingId={editingId}
+              setEditingId={setEditingId}
+              isReply={false}
+              toast={toast}
+            />
+          ))}
+
+          {topLevelComments.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center md:py-10 dark:border-slate-800 dark:bg-slate-950/70">
+              <p className="text-sm font-medium text-slate-500 md:text-base dark:text-slate-400">
+                No comments yet. Start the academic discussion!
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -183,14 +164,12 @@ function ReplyForm({
   parentComment,
   onSuccess,
   toast,
-  openAuthModal,
 }: {
   targetId: string;
-  type: CommentSectionProps["type"];
-  parentComment: Comment;
+  type: CommentTargetType;
+  parentComment: CommentThread;
   onSuccess: () => void;
   toast: (message: string, type?: "success" | "error") => void;
-  openAuthModal: () => void;
 }) {
   const draftKey = `draft_reply_${type}_${targetId}_${parentComment.id}`;
   const [reply, setReply] = useState("");
@@ -269,12 +248,11 @@ function CommentEntry({
   setEditingId,
   isReply,
   toast,
-  openAuthModal,
 }: {
-  comment: Comment;
-  replies?: Reply[];
+  comment: CommentThread;
+  replies?: CommentItem[];
   currentUserId: string | null;
-  type: CommentSectionProps["type"];
+  type: CommentTargetType;
   targetId: string;
   postAuthorId?: string | null;
   activeReplyId: string | null;
@@ -283,7 +261,6 @@ function CommentEntry({
   setEditingId: (id: string | null) => void;
   isReply: boolean;
   toast: (message: string, type?: "success" | "error") => void;
-  openAuthModal: () => void;
 }) {
   const deleteFormRef = useRef<HTMLFormElement>(null);
   const isOwner = !!currentUserId && comment.author.id === currentUserId;
@@ -427,18 +404,16 @@ function CommentEntry({
                     commentId={comment.id}
                     type={type}
                     initialUpvotes={
-                      comment.votes?.filter((v: any) => v.voteType === "UPVOTE")
+                      comment.votes?.filter((v) => v.voteType === "UPVOTE")
                         .length ?? 0
                     }
                     initialDownvotes={
-                      comment.votes?.filter(
-                        (v: any) => v.voteType === "DOWNVOTE",
-                      ).length ?? 0
+                      comment.votes?.filter((v) => v.voteType === "DOWNVOTE")
+                        .length ?? 0
                     }
                     initialUserVote={
-                      (comment.votes?.find(
-                        (v: any) => v.userId === currentUserId,
-                      )?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null
+                      (comment.votes?.find((v) => v.userId === currentUserId)
+                        ?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null
                     }
                   />
                 </div>
@@ -466,7 +441,6 @@ function CommentEntry({
                 parentComment={comment}
                 onSuccess={() => setActiveReplyId(null)}
                 toast={toast}
-                openAuthModal={openAuthModal}
               />
             )}
           </>
@@ -488,7 +462,6 @@ function CommentEntry({
                 setEditingId={setEditingId}
                 isReply={true}
                 toast={toast}
-                openAuthModal={openAuthModal}
               />
             ))}
           </div>

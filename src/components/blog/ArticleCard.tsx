@@ -1,28 +1,15 @@
 "use client";
-import { Article, User, VoteType } from "@prisma/client";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
-
-type ArticleWithDetails = Article & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: {
-    userId: string;
-    voteType: VoteType;
-  }[];
-  _count: {
-    comments: number;
-  };
-};
+import type { ArticleWithAuthor } from "@/types/cards";
 
 export function ArticleCard({
   article,
   currentUserId,
 }: {
-  article: ArticleWithDetails;
+  article: ArticleWithAuthor;
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === article.authorId;

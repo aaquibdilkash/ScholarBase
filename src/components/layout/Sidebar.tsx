@@ -70,23 +70,24 @@ export default function Sidebar({ user }: SidebarProps) {
   }, []);
 
   useEffect(() => {
+    const navElement = navRef.current;
     const handleToggle = () => {
       setMobileOpen((current) => !current);
       window.setTimeout(checkScrollable, 300);
     };
 
     checkScrollable();
-    navRef.current?.addEventListener("scroll", checkScrollable);
+    navElement?.addEventListener("scroll", checkScrollable);
     window.addEventListener("resize", checkScrollable);
     window.addEventListener("sb-toggle-sidebar", handleToggle as EventListener);
 
     const observer = new MutationObserver(checkScrollable);
-    if (navRef.current) {
-      observer.observe(navRef.current, { childList: true, subtree: true });
+    if (navElement) {
+      observer.observe(navElement, { childList: true, subtree: true });
     }
 
     return () => {
-      navRef.current?.removeEventListener("scroll", checkScrollable);
+      navElement?.removeEventListener("scroll", checkScrollable);
       window.removeEventListener("resize", checkScrollable);
       window.removeEventListener(
         "sb-toggle-sidebar",

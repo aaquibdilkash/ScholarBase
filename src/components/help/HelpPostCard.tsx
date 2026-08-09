@@ -1,19 +1,11 @@
 "use client";
 
-import { HelpPost, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
 import { RichContent } from "@/components/content/RichContent";
-
-type HelpPostWithAuthor = HelpPost & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { HelpPostWithAuthor } from "@/types/cards";
 
 export function HelpPostCard({
   helpPost,
@@ -25,12 +17,11 @@ export function HelpPostCard({
   const isOwner = currentUserId === helpPost.authorId;
   const isFollowing = (helpPost.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    helpPost.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    helpPost.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    helpPost.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    helpPost.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    helpPost.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    helpPost.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell

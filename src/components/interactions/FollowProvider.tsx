@@ -7,15 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-
-type FollowMap = Map<string, boolean>;
-
-interface FollowContextValue {
-  /** Returns the follow state for a given author. Falls back to `initial` if not set. */
-  getFollowState: (authorId: string, initial: boolean) => boolean;
-  /** Updates the follow state for a given author and propagates to all consumers. */
-  setFollowState: (authorId: string, following: boolean) => void;
-}
+import type { FollowContextValue, FollowMap } from "@/types/context";
 
 const FollowContext = createContext<FollowContextValue | null>(null);
 

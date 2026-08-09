@@ -22,11 +22,11 @@ export default async function ArticlePage({
   const a = article;
 
   const upvotes =
-    a.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    a.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    a.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    a.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (a.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (a.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -56,7 +56,7 @@ export default async function ArticlePage({
         ) : null
       }
       authorId={a.authorId}
-      isFollowing={(a.author as any)?.followers?.length ? true : false}
+      isFollowing={(a.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={a.createdAt}
       editedDate={a.updatedAt > a.createdAt ? a.updatedAt : undefined}
@@ -72,13 +72,6 @@ export default async function ArticlePage({
       footerCommentsHref={`/blog/${a.slug}#comments`}
       footerCommentsCount={a._count.comments}
       discussion={
-        <div
-          className="mt-6 p-4 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-xl md:text-2xl font-bold text-slate-950 dark:text-slate-100 mb-4 md:mb-6">
-            Discussion
-          </h2>
           <CommentSection
             comments={a.comments}
             targetId={a.id}
@@ -86,7 +79,6 @@ export default async function ArticlePage({
             currentUserId={user?.id ?? null}
             postAuthorId={a.authorId}
           />
-        </div>
       }
     >
       <h1 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-slate-100 mb-2">

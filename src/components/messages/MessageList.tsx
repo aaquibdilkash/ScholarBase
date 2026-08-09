@@ -1,22 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { formatTimeAgo } from "@/utils/time-ago";
 import type { User } from "@supabase/supabase-js";
+import type { Message } from "@/types/messages";
 
-export type Message = {
-  id: string;
-  body: string;
-  createdAt: Date | string;
-  senderId: string;
-  sender: {
-    id: string;
-    name: string | null;
-    handle: string | null;
-    avatarUrl: string | null;
-  };
-};
+export type { Message } from "@/types/messages";
 
 export function MessageList({
   conversationId,
@@ -35,10 +26,6 @@ export function MessageList({
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
-
-  useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -85,7 +72,13 @@ export function MessageList({
         console.error("Error fetching new message:", error);
         return null;
       }
-      const messageData = data as any;
+      const messageData = data as unknown as {
+        id: string;
+        body: string;
+        createdAt: Date | string;
+        senderId: string;
+        sender: Message["sender"] | Message["sender"][];
+      };
       return {
         ...messageData,
         sender: Array.isArray(messageData.sender)
@@ -151,9 +144,12 @@ export function MessageList({
             }`}
           >
             {message.sender.avatarUrl ? (
-              <img
+              <Image
                 src={message.sender.avatarUrl}
                 alt={message.sender.name || "Scholar"}
+                width={32}
+                height={32}
+                unoptimized
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (

@@ -107,7 +107,7 @@ export default function SupervisorForm({
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <SubmitBtnWithAuth className="sb-button-accent">
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Supervisor"}
         </SubmitBtnWithAuth>
       </div>

@@ -21,7 +21,7 @@ export default async function ResearchPage({
   const tools = isTrendingTab ? [] : await getResearchTools(q, user?.id);
 
   const trendingItems = isTrendingTab
-    ? await getTrendingResearchTools(user?.id)
+    ? await getTrendingResearchTools()
     : [];
 
   // TypeScript can't infer the tagged union produced inside `getTrending(...)`.

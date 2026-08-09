@@ -1,19 +1,11 @@
 "use client";
 
-import { ResearchTool, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
-
-type ResearchToolWithAuthor = ResearchTool & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { ResearchToolWithAuthor } from "@/types/cards";
 
 export function ResearchToolCard({
   tool,
@@ -25,11 +17,11 @@ export function ResearchToolCard({
   const isOwner = currentUserId === tool.authorId;
   const isFollowing = (tool.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    tool.votes?.find((v: any) => v.userId === currentUserId)?.voteType ?? null;
+    tool.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    tool.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    tool.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    tool.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    tool.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell

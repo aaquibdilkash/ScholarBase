@@ -3,36 +3,7 @@
 import { useState } from "react";
 import * as XLSX from "xlsx";
 import { ChevronDown, Download } from "lucide-react";
-
-type QuestionResult = {
-  id: string;
-  title: string;
-  type: string;
-  order: number;
-  options: Array<{ id: string; value: string; label: string; order: number }>;
-  answers: Array<{ value: string }>;
-};
-
-type SurveyResults = {
-  id: string;
-  title: string;
-  questions: QuestionResult[];
-  _count: { responses: number };
-};
-
-type IndividualResponse = {
-  id: string;
-  createdAt: Date;
-  isAnonymous: boolean;
-  respondent: {
-    id: string;
-    name: string | null;
-  } | null;
-  answers: Array<{
-    questionId: string;
-    value: string;
-  }>;
-};
+import type { QuestionResult, SurveyResults, IndividualResponse } from "@/types/survey";
 
 function mapValueToLabel(q: QuestionResult, value: string): string {
   // For checkbox multi-values

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   updateProfile,
@@ -9,7 +10,6 @@ import {
 import { generateAvatarSignature } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
-import { useFormDraft } from "@/hooks/useFormDraft";
 import { Editor } from "@/components/ui/Editor";
 
 type UserData = {
@@ -25,8 +25,8 @@ type UserData = {
 };
 
 // Simple debounce hook
-function useDebounce<T extends (...args: any[]) => void>(
-  callback: T,
+function useDebounce<A extends unknown[]>(
+  callback: (...args: A) => void,
   delay: number,
 ) {
   const callbackRef = useRef(callback);
@@ -37,7 +37,7 @@ function useDebounce<T extends (...args: any[]) => void>(
   }, [callback]);
 
   return useCallback(
-    (...args: Parameters<T>) => {
+    (...args: A) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -52,7 +52,6 @@ function useDebounce<T extends (...args: any[]) => void>(
 export default function EditProfileForm({ user }: { user: UserData }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isPending, setIsPending] = useState(false);
   const [handle, setHandle] = useState(user.handle || "");
   const [isHandleAvailable, setIsHandleAvailable] = useState<boolean | null>(
     null,
@@ -129,8 +128,10 @@ export default function EditProfileForm({ user }: { user: UserData }) {
 
       const data = await res.json();
       setAvatarUrl(data.secure_url);
-    } catch (err: any) {
-      setUploadError(err.message || "Failed to upload avatar.");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload avatar.";
+      setUploadError(message);
     } finally {
       setUploading(false);
     }
@@ -138,7 +139,6 @@ export default function EditProfileForm({ user }: { user: UserData }) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsPending(true);
     setError(null);
 
     try {
@@ -157,8 +157,6 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       const msg = e instanceof Error ? e.message : "Failed to update profile.";
       setError(msg);
       toast(msg, "error");
-    } finally {
-      setIsPending(false);
     }
   }
 
@@ -243,9 +241,12 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         <div className="mt-1 flex items-center gap-4">
           {avatarUrl && (
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shrink-0">
-              <img
+              <Image
                 src={avatarUrl}
                 alt="Avatar preview"
+                width={64}
+                height={64}
+                unoptimized
                 className="w-full h-full object-cover"
               />
             </div>

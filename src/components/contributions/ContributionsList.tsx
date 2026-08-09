@@ -1,16 +1,8 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { Contribution, User } from "@prisma/client";
 import { ContributionCard } from "./ContributionCard";
-
-type ContributionWithAuthor = Contribution & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: { userId: string }[];
-  _count: { votes: number; comments: number };
-};
+import type { ContributionWithAuthor } from "@/types/cards";
 
 export function ContributionsList({
   contributions,

@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  Suspense,
-  createContext,
-  useContext,
-  Dispatch,
-  SetStateAction,
-} from "react";
+import { useState, useEffect, Suspense, useContext } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 import { formatTimeAgo } from "@/utils/time-ago";
 import type { User } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
@@ -25,7 +18,7 @@ type Participant = {
     handle: string | null;
     avatarUrl: string | null;
   };
-  lastReadAt: string | null;
+  lastReadAt: Date | string | null;
 };
 
 type Message = {
@@ -34,7 +27,7 @@ type Message = {
 
 type InboxConversation = {
   id: string;
-  lastMessageAt: string;
+  lastMessageAt: Date | string;
   participants: Participant[];
   messages: Message[];
 };
@@ -42,12 +35,13 @@ type InboxConversation = {
 function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
   const pathname = usePathname();
-  const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!; // Renamed
-
+  const { isSidebarOpen, setIsSidebarOpen } = useContext(
+    MessagesLayoutContext,
+  )!; // Renamed
 
   useEffect(() => {
     if (user) {
-      getInbox(user.id).then((data) => setInbox(data as any));
+      getInbox(user.id).then((data) => setInbox(data));
     } else {
       setInbox([]);
     }
@@ -67,7 +61,9 @@ function ConversationSidebar({ user }: { user: User | null }) {
             Conversations
           </h2>
         )}
-        <div className="flex items-center gap-2"> {/* Group new button and toggle */}
+        <div className="flex items-center gap-2">
+          {" "}
+          {/* Group new button and toggle */}
           {isSidebarOpen && ( // Only show "New" button when open
             <Link
               href="/messages/new"
@@ -92,8 +88,8 @@ function ConversationSidebar({ user }: { user: User | null }) {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {isSidebarOpen && (
-          user ? (
+        {isSidebarOpen &&
+          (user ? (
             inbox.length > 0 ? (
               <div className="space-y-2 p-2 overflow-x-hidden">
                 {inbox.map((conversation) => {
@@ -120,9 +116,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                       href={`/messages/${conversation.id}`}
                       onClick={() => setIsSidebarOpen(false)}
                       className={`block rounded-lg transition ${
-                        isSidebarOpen
-                          ? "p-3"
-                          : "p-3 flex justify-center h-16" // Added h-16 for collapsed state
+                        isSidebarOpen ? "p-3" : "p-3 flex justify-center h-16" // Added h-16 for collapsed state
                       } ${
                         isActive
                           ? "bg-slate-100 dark:bg-slate-800 px-3 py-3" // Active state with explicit padding
@@ -131,13 +125,20 @@ function ConversationSidebar({ user }: { user: User | null }) {
                             : "hover:bg-slate-100 dark:hover:bg-slate-800/70"
                       }`}
                     >
-                      <div className={`flex items-center ${isSidebarOpen ? "justify-between" : "justify-center"}`}>
-                        <div className={`flex items-center ${isSidebarOpen ? "gap-3" : ""}`}>
+                      <div
+                        className={`flex items-center ${isSidebarOpen ? "justify-between" : "justify-center"}`}
+                      >
+                        <div
+                          className={`flex items-center ${isSidebarOpen ? "gap-3" : ""}`}
+                        >
                           <div className="relative h-10 w-10 shrink-0">
                             {otherParticipant?.avatarUrl ? (
-                              <img
+                              <Image
                                 src={otherParticipant.avatarUrl}
                                 alt={otherParticipant.name || "Scholar"}
+                                width={40}
+                                height={40}
+                                unoptimized
                                 className="h-full w-full rounded-full object-cover"
                               />
                             ) : (
@@ -187,8 +188,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
             <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
               Please sign in to see your conversations.
             </div>
-          )
-        )}
+          ))}
       </div>
     </div>
   );
@@ -203,16 +203,15 @@ export default function MessagesLayout({
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      },
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -236,7 +235,9 @@ export default function MessagesLayout({
               : "w-16 -translate-x-full md:translate-x-0"
           }`}
         >
-          <Suspense fallback={<div className="p-4">Loading conversations...</div>}>
+          <Suspense
+            fallback={<div className="p-4">Loading conversations...</div>}
+          >
             <ConversationSidebar user={user} />
           </Suspense>
         </div>

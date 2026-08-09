@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import { RichContent } from "@/components/content/RichContent";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { createArticle, updateArticle } from "@/app/actions/blog";
@@ -30,7 +29,6 @@ export function ArticleComposer({
   slug,
   initialValues,
 }: ArticleComposerProps) {
-  const router = useRouter();
   const draftKey = mode === "edit" ? null : "draft_article_create";
   const initial = {
     title: initialValues?.title ?? "",
@@ -43,20 +41,17 @@ export function ArticleComposer({
     initial,
   );
 
-  const { submitting, submit } = useFormSubmit(
-    mode !== "edit" ? resetDraft : undefined,
-    {
-      resetOnSuccess: mode !== "edit",
-      successMessage:
-        mode === "edit"
-          ? "Article updated successfully!"
-          : "Article published successfully!",
-      errorMessage:
-        mode === "edit"
-          ? "Failed to update article."
-          : "Failed to publish article.",
-    },
-  );
+  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage:
+      mode === "edit"
+        ? "Article updated successfully!"
+        : "Article published successfully!",
+    errorMessage:
+      mode === "edit"
+        ? "Failed to update article."
+        : "Failed to publish article.",
+  });
 
   const previewContent = useMemo(
     () =>

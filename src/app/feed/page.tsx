@@ -27,8 +27,7 @@ export default async function FeedPage({
 
   let trendingItems: TrendingItem[] = [];
   if (isTrendingTab) {
-    const userId = user?.id;
-    trendingItems = (await getTrendingSocialPosts(userId).catch(
+    trendingItems = (await getTrendingSocialPosts().catch(
       () => [],
     )) as TrendingItem[];
   }
@@ -51,7 +50,7 @@ export default async function FeedPage({
       all={
         <>
           {!isTrendingTab && (
-            <CreateSocialPostFormWrapper isLoggedIn={!!user} />
+            <CreateSocialPostFormWrapper />
           )}
           <FeedList
             posts={posts}

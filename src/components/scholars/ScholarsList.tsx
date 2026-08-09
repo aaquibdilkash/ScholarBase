@@ -2,18 +2,7 @@
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
 import { ScholarCard } from "./ScholarCard";
-
-type Scholar = {
-  id: string;
-  name: string | null;
-  handle: string | null;
-  avatarUrl: string | null;
-  bio: string | null;
-  reputation: number;
-  createdAt: Date;
-  followers?: { followerId: string }[];
-  _count: { followers: number; following: number };
-};
+import type { Scholar } from "@/types/scholar";
 
 export function ScholarsList({
   scholars,

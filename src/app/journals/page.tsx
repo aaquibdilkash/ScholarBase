@@ -22,7 +22,7 @@ export default async function JournalsPage({
   const journals = isTrendingTab ? [] : await getJournals(q, user?.id);
 
   const trendingItems = isTrendingTab
-    ? await getTrendingJournals(user?.id)
+    ? await getTrendingJournals()
     : [];
 
   // TypeScript can't infer the tagged union produced inside `getTrending(...)`.

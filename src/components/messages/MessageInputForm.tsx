@@ -52,7 +52,7 @@ export function MessageInputForm({
     try {
       const result = await sendMessage(conversationId, formData);
       if (result && 'error' in result) {
-        toast(result.error, "error");
+        toast(result.error ?? 'Failed to send message', "error");
         return;
       }
       if (result && onMessageSent) {

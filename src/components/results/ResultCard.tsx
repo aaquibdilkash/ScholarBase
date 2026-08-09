@@ -1,20 +1,12 @@
 "use client";
 
-import { Result, User, ResultVote } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult } from "@/app/actions/results";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
-
-type ResultWithAuthor = Result & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: ResultVote[];
-  _count: { votes: number; comments: number };
-};
+import type { ResultWithAuthor } from "@/types/cards";
 
 const TYPE_LABELS: Record<string, string> = {
   ADMISSION: "Admission Result",
@@ -34,12 +26,11 @@ export function ResultCard({
   const isOwner = currentUserId === result.authorId;
   const isFollowing = (result.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    result.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    result.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    result.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    result.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    result.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    result.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   return (
     <ListPageCardShell
       authorHref={`/scholars/${result.author.id}`}

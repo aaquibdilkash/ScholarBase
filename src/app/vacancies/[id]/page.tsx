@@ -25,11 +25,11 @@ const VacancyDetailPage = async ({
   }
 
   const upvotes =
-    vacancy.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    vacancy.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    vacancy.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    vacancy.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (vacancy.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (vacancy.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -48,7 +48,7 @@ const VacancyDetailPage = async ({
       authorHandle={vacancy.author.handle || undefined}
       authorAvatarUrl={vacancy.author.avatarUrl || undefined}
       authorId={vacancy.author.id}
-      isFollowing={(vacancy.author as any)?.followers?.length ? true : false}
+      isFollowing={(vacancy.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={vacancy.createdAt}
       managementControls={
@@ -98,13 +98,6 @@ const VacancyDetailPage = async ({
         </div>
       }
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
           <CommentSection
             comments={vacancy.comments}
             targetId={vacancy.id}
@@ -112,7 +105,6 @@ const VacancyDetailPage = async ({
             currentUserId={user?.id || null}
             postAuthorId={vacancy.author.id}
           />
-        </div>
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

@@ -5,20 +5,30 @@ import { createSurvey, updateSurvey } from "@/app/actions/surveys";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { QuestionEditor, Question, generateId } from "./QuestionEditor";
+import { QuestionEditor, generateId } from "./QuestionEditor";
 import { Editor } from "@/components/ui/Editor";
+import type { Question, QuestionOption } from "@/types/survey";
+
+export type SurveyFormValues = {
+  id?: string;
+  title: string;
+  description: string | null | undefined;
+  privacy: string;
+  shareData: boolean;
+  questions: Question[];
+};
 
 export default function SurveyForm({
   mode,
   initialData,
 }: {
   mode: "create" | "edit";
-  initialData?: any;
+  initialData?: Partial<SurveyFormValues>;
 }) {
   const router = useRouter();
 
   const initialQuestions =
-    initialData?.questions?.map((q: any, i: number) => ({
+    initialData?.questions?.map((q: Question, i: number) => ({
       id: q.id || generateId(),
       type: q.type,
       title: q.title,
@@ -27,7 +37,7 @@ export default function SurveyForm({
       minValue: q.minValue,
       maxValue: q.maxValue,
       options:
-        q.options?.map((o: any, oi: number) => ({
+        q.options?.map((o: QuestionOption, oi: number) => ({
           value: o.value || `opt_${oi}`,
           label: o.label,
           order: o.order ?? oi,
@@ -35,16 +45,13 @@ export default function SurveyForm({
     })) || [];
 
   const draftKey = mode === "edit" ? null : "draft_survey_new";
-  const [draft, updateDraft, resetDraft] = useFormDraft(
-    draftKey,
-    {
-      title: initialData?.title || "",
-      description: initialData?.description || "",
-      privacy: initialData?.privacy || "NON_ANONYMOUS",
-      shareData: initialData?.shareData || false,
-      questions: initialQuestions,
-    },
-  );
+  const [draft, updateDraft, resetDraft] = useFormDraft(draftKey, {
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    privacy: initialData?.privacy || "NON_ANONYMOUS",
+    shareData: initialData?.shareData || false,
+    questions: initialQuestions,
+  });
 
   const { submit, submitting } = useFormSubmit(resetDraft, {
     resetOnSuccess: mode !== "edit",
@@ -77,7 +84,7 @@ export default function SurveyForm({
   };
 
   const removeQuestion = (index: number) => {
-    const newQuestions = questions.filter((_: any, i: number) => i !== index);
+    const newQuestions = questions.filter((_, i: number) => i !== index);
     updateDraft("questions", newQuestions);
   };
 
@@ -85,15 +92,16 @@ export default function SurveyForm({
     e.preventDefault();
     const formData = new FormData();
     formData.set("title", title);
-    formData.set("description", description);
+    formData.set("description", description ?? "");
     formData.set("privacy", privacy);
     formData.set("shareData", String(shareData));
     formData.set("questions", JSON.stringify(questions));
 
-    if (mode === "edit" && initialData?.id) {
+    const editingId = mode === "edit" ? initialData?.id : undefined;
+    if (editingId) {
       // Edit mode: updateSurvey returns { success, redirect } so submit() handles
       // the client-side redirect (avoids the NEXT_REDIRECT server error).
-      await submit(() => updateSurvey(formData, initialData.id));
+      await submit(() => updateSurvey(formData, editingId));
       resetDraft();
     } else {
       await submit(() => createSurvey(formData));
@@ -126,10 +134,10 @@ export default function SurveyForm({
             Description
           </label>
           <Editor
-            value={description}
+            value={description ?? ""}
             onChange={(data) => updateDraft("description", data)}
           />
-          <input type="hidden" name="description" value={description} />
+          <input type="hidden" name="description" value={description ?? ""} />
         </div>
 
         <div>
@@ -170,7 +178,9 @@ export default function SurveyForm({
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                   {opt.label}
                 </div>
-                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{opt.desc}</div>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {opt.desc}
+                </div>
               </button>
             ))}
           </div>

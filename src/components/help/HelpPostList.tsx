@@ -1,14 +1,8 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { HelpPost, User } from "@prisma/client";
 import { HelpPostCard } from "./HelpPostCard";
-
-type HelpPostWithAuthor = HelpPost & {
-  author: User;
-  votes: { userId: string }[];
-  _count: { votes: number; comments: number };
-};
+import type { HelpPostWithAuthor } from "@/types/cards";
 
 export function HelpPostList({
   posts,

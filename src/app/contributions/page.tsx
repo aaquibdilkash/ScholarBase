@@ -23,7 +23,7 @@ export default async function ContributionsPage({
     : await getContributions(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingContributions(user?.id)
+    ? await getTrendingContributions()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

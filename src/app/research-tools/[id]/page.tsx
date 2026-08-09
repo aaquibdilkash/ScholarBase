@@ -26,11 +26,11 @@ const ResearchToolDetailPage = async ({
   }
 
   const upvotes =
-    tool.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    tool.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    tool.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    tool.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (tool.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (tool.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -77,13 +77,6 @@ const ResearchToolDetailPage = async ({
       footerCommentsHref={`/research-tools/${tool.id}#comments`}
       footerCommentsCount={tool._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
           <CommentSection
             comments={tool.comments}
             targetId={tool.id}
@@ -91,7 +84,6 @@ const ResearchToolDetailPage = async ({
             currentUserId={user?.id || null}
             postAuthorId={tool.author.id}
           />
-        </div>
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

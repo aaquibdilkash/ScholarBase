@@ -5,23 +5,7 @@ import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
-
-export type VoteType = "UPVOTE" | "DOWNVOTE";
-export type VoteTargetType =
-  | "article"
-  | "post"
-  | "vacancy"
-  | "admission"
-  | "event"
-  | "supervisor"
-  | "recommendation"
-  | "help"
-  | "journal"
-  | "researchTool"
-  | "result"
-  | "contribution"
-  | "publication"
-  | "survey";
+import type { VoteType, VoteTargetType } from "@/types/votes";
 
 export function VoteButton({
   targetId,
@@ -67,12 +51,14 @@ export function VoteButton({
       }
 
       try {
-        const result = (await toggleVote(targetId, type, voteType)) as any;
-        if (result?.error === "UNAUTHORIZED") {
-          setUserVote(prevVote);
-          setUpvotes(prevUpvotes);
-          setDownvotes(prevDownvotes);
-          openAuthModal();
+        const result = await toggleVote(targetId, type, voteType);
+        if ("error" in result) {
+          if (result.error === "UNAUTHORIZED") {
+            setUserVote(prevVote);
+            setUpvotes(prevUpvotes);
+            setDownvotes(prevDownvotes);
+            openAuthModal();
+          }
           return;
         }
         setUserVote(result.userVote);

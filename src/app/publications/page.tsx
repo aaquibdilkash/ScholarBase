@@ -21,7 +21,7 @@ export default async function PublicationsPage({
   const publications = isTrendingTab ? [] : await getPublications(q, user?.id);
 
   const trendingItems = isTrendingTab
-    ? await getTrendingPublications(user?.id)
+    ? await getTrendingPublications()
     : [];
 
   const typedTrendingItems =

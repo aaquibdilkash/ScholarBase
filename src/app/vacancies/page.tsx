@@ -28,7 +28,7 @@ export default async function VacanciesPage({
   const vacancies = isTrendingTab ? [] : await getVacancies(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingVacancies(user?.id)
+    ? await getTrendingVacancies()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

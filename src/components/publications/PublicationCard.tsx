@@ -1,20 +1,12 @@
 "use client";
 
-import { Publication, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deletePublication } from "@/app/actions/publications";
-
-type PublicationWithAuthor = Publication & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { PublicationWithAuthor } from "@/types/cards";
 
 const PUBLICATION_TYPE_LABELS: Record<string, string> = {
   RESEARCH_PAPER: "Research Paper",
@@ -37,13 +29,12 @@ export function PublicationCard({
   const isOwner = currentUserId === publication.authorId;
   const isFollowing = (publication.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    publication.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
+    publication.votes?.find((v) => v.userId === currentUserId)?.voteType ??
     null;
   const upvoteCount =
-    publication.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    publication.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    publication.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ??
-    0;
+    publication.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell

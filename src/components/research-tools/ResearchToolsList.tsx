@@ -1,26 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { ResearchTool, User } from "@prisma/client";
 import { ResearchToolCard } from "./ResearchToolCard";
-
-type ResearchToolWithDetails = ResearchTool & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: { userId: string }[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+import type { ResearchToolWithAuthor } from "@/types/cards";
 
 export function ResearchToolsList({
   tools,
   currentUserId,
   initialQuery,
 }: {
-  tools: ResearchToolWithDetails[];
+  tools: ResearchToolWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

@@ -28,7 +28,7 @@ export default async function HelpPage({
   const posts = isTrendingTab ? [] : await getHelpPosts(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingHelpPosts(user?.id)
+    ? await getTrendingHelpPosts()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

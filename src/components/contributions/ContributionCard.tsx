@@ -1,20 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Contribution, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteContribution } from "@/app/actions/contributions";
 import { RichContent } from "@/components/content/RichContent";
-
-type ContributionWithAuthor = Contribution & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { ContributionWithAuthor } from "@/types/cards";
 
 export function ContributionCard({
   contribution,
@@ -26,13 +17,12 @@ export function ContributionCard({
   const isOwner = currentUserId === contribution.authorId;
   const isFollowing = (contribution.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    contribution.votes?.find((v: any) => v.userId === currentUserId)
-      ?.voteType ?? null;
+    contribution.votes?.find((v) => v.userId === currentUserId)?.voteType ??
+    null;
   const upvoteCount =
-    contribution.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    contribution.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    contribution.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ??
-    0;
+    contribution.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell

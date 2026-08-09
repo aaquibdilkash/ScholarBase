@@ -5,7 +5,7 @@ import { forgotPassword } from "@/app/actions/auth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 
 export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
-  const { submitting, submit } = useFormSubmit(undefined, {
+  const { submit } = useFormSubmit(undefined, {
     successMessage: "Password reset link sent! Check your email.",
     errorMessage: "Failed to send password reset link.",
     resetOnSuccess: true,

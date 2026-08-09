@@ -54,13 +54,13 @@ export default async function RecommendationDetailPage({
   }
 
   const upvotes =
-    recommendation.votes?.filter((v: any) => v.voteType === "UPVOTE").length ??
+    recommendation.votes?.filter((v) => v.voteType === "UPVOTE").length ??
     0;
   const downvotes =
-    recommendation.votes?.filter((v: any) => v.voteType === "DOWNVOTE")
+    recommendation.votes?.filter((v) => v.voteType === "DOWNVOTE")
       .length ?? 0;
   const userVote =
-    (recommendation.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (recommendation.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -88,13 +88,6 @@ export default async function RecommendationDetailPage({
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
       footerCommentsCount={recommendation._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h3>
           <CommentSection
             comments={recommendation.comments}
             targetId={recommendation.id}
@@ -102,7 +95,6 @@ export default async function RecommendationDetailPage({
             currentUserId={user?.id ?? null}
             postAuthorId={recommendation.authorId}
           />
-        </div>
       }
       managementControls={
         user?.id === recommendation.authorId ? (

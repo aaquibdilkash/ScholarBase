@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { supabase } from "@/utils/supabase/client";
 
 type User = {
   id: string;
   email?: string | null;
   isAdmin?: boolean | null;
-  user_metadata: { [key: string]: any };
+  user_metadata: Record<string, unknown>;
 } | null;
 
 export function useUser() {
@@ -15,7 +15,7 @@ export function useUser() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
+
 
     const {
       data: { subscription },

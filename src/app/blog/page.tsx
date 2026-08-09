@@ -22,7 +22,7 @@ export default async function BlogIndex({
   const articles = isTrendingTab ? [] : await getArticles(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingArticles(user?.id)
+    ? await getTrendingArticles()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

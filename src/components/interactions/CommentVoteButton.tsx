@@ -5,8 +5,7 @@ import { toggleCommentVote } from "@/app/actions/comments";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
-
-type VoteType = "UPVOTE" | "DOWNVOTE";
+import type { VoteType } from "@/types/votes";
 
 export function CommentVoteButton({
   commentId,

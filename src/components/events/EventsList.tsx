@@ -1,24 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { ResearchEvent, User } from "@prisma/client";
 import { EventCard } from "./EventCard";
-
-type EventWithDetails = ResearchEvent & {
-  author: User;
-  votes: { userId: string }[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+import type { EventWithAuthor } from "@/types/cards";
 
 export function EventsList({
   events,
   currentUserId,
   initialQuery,
 }: {
-  events: EventWithDetails[];
+  events: EventWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

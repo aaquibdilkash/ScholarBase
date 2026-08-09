@@ -40,17 +40,14 @@ export default function JournalForm({
   const draftKey = mode === "edit" ? null : "draft_journal_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
-    initial
+    initial,
   );
 
-  const { submitting, submit } = useFormSubmit(
-    mode !== "edit" ? resetDraft : undefined,
-    {
-      resetOnSuccess: mode !== "edit",
-      successMessage: "Journal added successfully!",
-      errorMessage: "Failed to add journal.",
-    },
-  );
+  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage: "Journal added successfully!",
+    errorMessage: "Failed to add journal.",
+  });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

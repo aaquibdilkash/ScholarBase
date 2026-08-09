@@ -21,7 +21,7 @@ export default async function EventsPage({
   const events = isTrendingTab ? [] : await getEvents(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingEvents(user?.id)
+    ? await getTrendingEvents()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

@@ -49,6 +49,7 @@ export async function getArticles(q?: string, userId?: string) {
       },
       _count: {
         select: {
+          votes: true,
           comments: true,
         },
       },

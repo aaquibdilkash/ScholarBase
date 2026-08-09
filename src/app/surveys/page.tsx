@@ -21,7 +21,7 @@ export default async function SurveysPage({
   const surveys = isTrendingTab ? [] : await getSurveys(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingSurveys(user?.id)
+    ? await getTrendingSurveys()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

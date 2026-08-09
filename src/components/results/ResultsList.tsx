@@ -1,24 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { Result, User } from "@prisma/client";
 import { ResultCard } from "./ResultCard";
-
-type ResultWithDetails = Result & {
-  author: User;
-  votes: any[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+import type { ResultWithAuthor } from "@/types/cards";
 
 export function ResultsList({
   results,
   currentUserId,
   initialQuery,
 }: {
-  results: ResultWithDetails[];
+  results: ResultWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

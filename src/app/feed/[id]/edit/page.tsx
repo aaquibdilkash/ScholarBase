@@ -2,11 +2,11 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
 import { generateCloudinarySignature } from "@/app/actions/cloudinary";
-import { Loader2, Image } from "lucide-react";
+import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default function EditPostPage({
@@ -110,8 +110,11 @@ export default function EditPostPage({
       } else {
         toast(result.message || "Failed to update post.", "error");
       }
-    } catch (err: any) {
-      toast(err?.message || "Failed to update post.", "error");
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Failed to update post.",
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -159,9 +162,12 @@ export default function EditPostPage({
             <label className="sb-label mb-2 block">Current Image</label>
             <div className="flex">
               <div className="relative group">
-                <img
+                <Image
                   src={imageUrl}
                   alt=""
+                  width={80}
+                  height={80}
+                  unoptimized
                   className="h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
                 />
                 {/* Always-visible remove button (works on touch/mobile) */}
@@ -190,7 +196,7 @@ export default function EditPostPage({
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
-            <Image className="h-5 w-5" />
+            <ImageIcon className="h-5 w-5" />
             {uploading ? "Uploading..." : "Add Image"}
             <input
               type="file"

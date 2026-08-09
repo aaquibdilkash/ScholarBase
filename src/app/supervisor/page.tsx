@@ -21,7 +21,7 @@ export default async function SupervisorDirectory({
   const supervisors = isTrendingTab ? [] : await getSupervisors(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingSupervisors(user?.id)
+    ? await getTrendingSupervisors()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

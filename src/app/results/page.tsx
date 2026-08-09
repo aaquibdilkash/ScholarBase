@@ -21,7 +21,7 @@ export default async function ResultsPage({
   const results = isTrendingTab ? [] : await getResults(q, user?.id);
 
   const trendingItems = (isTrendingTab
-    ? await getTrendingResults(user?.id)
+    ? await getTrendingResults()
     : []) as unknown as import("@/types/trending").TrendingItem[];
 
   return (

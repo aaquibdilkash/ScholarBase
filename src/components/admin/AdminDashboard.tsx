@@ -14,6 +14,7 @@ import {
   adminDeleteContent,
   updateContributionStatus,
 } from "@/app/actions/admin";
+import type { AdminContentItem } from "@/types/admin";
 
 const ADMIN_SECTIONS = [
   { id: "feed", title: "Feed", href: "/feed" },
@@ -41,7 +42,7 @@ type Stats = {
 
 type AdminDashboardProps = {
   initialStats: Stats;
-  initialContent: any[];
+  initialContent: AdminContentItem[];
 };
 
 export function AdminDashboard({
@@ -49,7 +50,7 @@ export function AdminDashboard({
   initialContent,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState("feed");
-  const [content, setContent] = useState<any[]>(initialContent);
+  const [content, setContent] = useState<AdminContentItem[]>(initialContent);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{
@@ -60,7 +61,7 @@ export function AdminDashboard({
   const [itemToReject, setItemToReject] = useState<{
     contentId: string;
   } | null>(null);
-  
+
   const [isPending, startTransition] = useTransition();
 
   const { toast } = useToast();
@@ -70,8 +71,8 @@ export function AdminDashboard({
       try {
         const newStats = await getAdminStats();
         setStats(newStats);
-      } catch (error) {
-        console.error("Failed to refresh stats", error);
+      } catch (err) {
+        console.error("Failed to refresh stats", err);
       }
     });
   };
@@ -83,8 +84,8 @@ export function AdminDashboard({
           sectionId === "users"
             ? await getAdminUsers()
             : await getAdminContent(sectionId);
-        setContent(data);
-      } catch (error) {
+        setContent(data as AdminContentItem[]);
+      } catch {
         toast("Failed to load content", "error");
       }
     });
@@ -94,23 +95,38 @@ export function AdminDashboard({
     setActiveTab(sectionId);
     loadContent(sectionId);
   };
-  
-  const handleAction = async (action: () => Promise<any>, successMessage: string, errorMessage: string) => {
+
+  const handleAction = async (
+    action: () => Promise<unknown>,
+    successMessage: string,
+    errorMessage: string,
+  ) => {
     startTransition(async () => {
-        try {
-            await action();
-            toast(successMessage, "success");
-            loadContent(activeTab);
-            refreshStats();
-        } catch (error) {
-            toast(errorMessage, "error");
-        }
+      try {
+        await action();
+        toast(successMessage, "success");
+        loadContent(activeTab);
+        refreshStats();
+      } catch {
+        toast(errorMessage, "error");
+      }
     });
   };
 
-  const handleFreeze = (contentType: string, contentId: string, authorId?: string) => {
-    const action = () => authorId ? toggleAuthorFreeze(authorId) : toggleContentFreeze(contentType, contentId);
-    handleAction(action, "Status updated successfully", "Failed to update status");
+  const handleFreeze = (
+    contentType: string,
+    contentId: string,
+    authorId?: string,
+  ) => {
+    const action = () =>
+      authorId
+        ? toggleAuthorFreeze(authorId)
+        : toggleContentFreeze(contentType, contentId);
+    handleAction(
+      action,
+      "Status updated successfully",
+      "Failed to update status",
+    );
   };
 
   const handleDelete = (contentType: string, contentId: string) => {
@@ -121,23 +137,36 @@ export function AdminDashboard({
   const confirmDelete = async () => {
     if (!itemToDelete) return;
     const { contentType, contentId } = itemToDelete;
-    await handleAction(() => adminDeleteContent(contentType, contentId), "Content deleted successfully", "Failed to delete content");
+    await handleAction(
+      () => adminDeleteContent(contentType, contentId),
+      "Content deleted successfully",
+      "Failed to delete content",
+    );
     setIsModalOpen(false);
     setItemToDelete(null);
   };
 
   const handleApprove = (contentId: string) => {
-    handleAction(() => updateContributionStatus(contentId, "APPROVED"), "Contribution approved", "Failed to approve contribution");
+    handleAction(
+      () => updateContributionStatus(contentId, "APPROVED"),
+      "Contribution approved",
+      "Failed to approve contribution",
+    );
   };
 
   const handleReject = (contentId: string) => {
     setItemToReject({ contentId });
     setIsRejectionModalOpen(true);
   };
-  
+
   const confirmReject = async (reason: string) => {
     if (!itemToReject) return;
-    await handleAction(() => updateContributionStatus(itemToReject.contentId, "REJECTED", reason), "Contribution rejected", "Failed to reject contribution");
+    await handleAction(
+      () =>
+        updateContributionStatus(itemToReject.contentId, "REJECTED", reason),
+      "Contribution rejected",
+      "Failed to reject contribution",
+    );
     setIsRejectionModalOpen(false);
     setItemToReject(null);
   };
@@ -148,42 +177,42 @@ export function AdminDashboard({
     <>
       {stats && (
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Total Users
+              Total Users
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {stats.totalUsers}
+              {stats.totalUsers}
             </p>
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Total Content
+              Total Content
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {stats.totalContent}
+              {stats.totalContent}
             </p>
-            </div>
-            {ADMIN_SECTIONS.map((section) => (
+          </div>
+          {ADMIN_SECTIONS.map((section) => (
             <button
-                key={section.id}
-                onClick={() => handleTabClick(section.id)}
-                className={`rounded-xl border p-4 text-left transition ${
+              key={section.id}
+              onClick={() => handleTabClick(section.id)}
+              className={`rounded-xl border p-4 text-left transition ${
                 activeTab === section.id
-                    ? "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-                    : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
-                }`}
+                  ? "border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+                  : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+              }`}
             >
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {section.title}
-                </p>
-                <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
+              </p>
+              <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
                 {sectionCount(section.id)}
-                </p>
+              </p>
             </button>
-            ))}
+          ))}
         </div>
-        )}
+      )}
 
       <div className="flex flex-col lg:flex-row gap-6">
         <aside className="lg:w-64 shrink-0">
@@ -217,14 +246,17 @@ export function AdminDashboard({
         </aside>
 
         <div className="flex-1">
-          <div className={`rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? 'opacity-50' : 'opacity-100'}`}>
+          <div
+            className={`rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
+          >
             <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {ADMIN_SECTIONS.find((s) => s.id === activeTab)?.title} Management
+                {ADMIN_SECTIONS.find((s) => s.id === activeTab)?.title}{" "}
+                Management
               </h3>
             </div>
 
-            {isPending && activeTab !== 'users' ? (
+            {isPending && activeTab !== "users" ? (
               <div className="p-8 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 border-t-blue-600"></div>
               </div>
@@ -315,14 +347,14 @@ export function AdminDashboard({
                                 <button
                                   onClick={() => handleApprove(item.id)}
                                   className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition"
-                                   disabled={isPending}
+                                  disabled={isPending}
                                 >
                                   {isPending ? "..." : "Approve"}
                                 </button>
                                 <button
                                   onClick={() => handleReject(item.id)}
                                   className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
-                                   disabled={isPending}
+                                  disabled={isPending}
                                 >
                                   {isPending ? "..." : "Reject"}
                                 </button>
@@ -336,7 +368,9 @@ export function AdminDashboard({
                                         ? "user"
                                         : activeTab.slice(0, -1),
                                       item.id,
-                                      activeTab === 'users' ? item.id : undefined
+                                      activeTab === "users"
+                                        ? item.id
+                                        : undefined,
                                     )
                                   }
                                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
@@ -344,9 +378,13 @@ export function AdminDashboard({
                                       ? "bg-green-600 text-white hover:bg-green-700"
                                       : "bg-amber-600 text-white hover:bg-amber-700"
                                   }`}
-                                   disabled={isPending}
+                                  disabled={isPending}
                                 >
-                                  {isPending ? "..." : (item.isFrozen ? "Unfreeze" : "Freeze")}
+                                  {isPending
+                                    ? "..."
+                                    : item.isFrozen
+                                      ? "Unfreeze"
+                                      : "Freeze"}
                                 </button>
                                 <button
                                   onClick={() =>
@@ -358,7 +396,7 @@ export function AdminDashboard({
                                     )
                                   }
                                   className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
-                                   disabled={isPending}
+                                  disabled={isPending}
                                 >
                                   {isPending ? "..." : "Delete"}
                                 </button>

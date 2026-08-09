@@ -6,10 +6,9 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
 import { updateReputationIncremental } from '@/app/actions/interactions'
+import { CommentType, CommentVoteModel } from '@/types/comments'
 
 
-
-type CommentType = 'article' | 'post' | 'vacancy' | 'admission' | 'event' | 'supervisor' | 'recommendation' | 'help' | 'journal' | 'researchTool' | 'result' | 'contribution' | 'publication' | 'survey';
 
 export async function createComment(
     formData: FormData,
@@ -294,12 +293,14 @@ export async function createComment(
     }
 }
 
+import type { CommentActionConfig } from '@/types/comments';
+
 export async function editComment(formData: FormData, commentId: string, type: CommentType) {
     const user = await requireCurrentUser('Log in to edit this comment.')
     const content = readFormValue(formData, 'content')
     if (!content) return
 
-    const editMap: Record<string, any> = {
+    const editMap: Record<string, CommentActionConfig> = {
         article: { model: prisma.articleComment, revalidate: '/blog/[slug]' },
         post: { model: prisma.socialComment, revalidate: '/feed' },
         event: { model: prisma.researchEventComment, revalidate: '/events/[id]' },
@@ -318,10 +319,10 @@ export async function editComment(formData: FormData, commentId: string, type: C
     const cfg = editMap[type]
     if (!cfg) return
 
-    const comment = await (cfg.model as any).findUnique({ where: { id: commentId }, select: { authorId: true } })
+    const comment = await cfg.model.findUnique({ where: { id: commentId }, select: { authorId: true } })
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
-    await (cfg.model as any).update({ where: { id: commentId }, data: { content } })
+    await cfg.model.update({ where: { id: commentId }, data: { content } })
     if (type === 'recommendation') {
         const recommendationComment = await prisma.recommendationComment.findUnique({
             where: { id: commentId },
@@ -331,7 +332,7 @@ export async function editComment(formData: FormData, commentId: string, type: C
             revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
         }
     } else if (cfg.revalidate.includes('[id]')) {
-        revalidatePath(cfg.revalidate, 'page' as any)
+        revalidatePath(cfg.revalidate, 'page')
     } else {
         revalidatePath(cfg.revalidate)
     }
@@ -340,7 +341,7 @@ export async function editComment(formData: FormData, commentId: string, type: C
 export async function deleteComment(commentId: string, type: CommentType) {
     const user = await requireCurrentUser('Log in to delete this comment.')
 
-    const delMap: Record<string, any> = {
+    const delMap: Record<string, CommentActionConfig> = {
         article: { model: prisma.articleComment, revalidate: '/blog/[slug]' },
         post: { model: prisma.socialComment, revalidate: '/feed' },
         event: { model: prisma.researchEventComment, revalidate: '/events/[id]' },
@@ -359,12 +360,12 @@ export async function deleteComment(commentId: string, type: CommentType) {
     const cfg = delMap[type]
     if (!cfg) return
 
-    const comment = await (cfg.model as any).findUnique({ where: { id: commentId }, select: { authorId: true } })
+    const comment = await cfg.model.findUnique({ where: { id: commentId }, select: { authorId: true } })
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
 
     // Reverse reputation from comment votes before deletion
-    const voteModelMap: Record<string, any> = {
+    const voteModelMap: Record<string, CommentVoteModel> = {
         article: prisma.articleCommentVote,
         post: prisma.socialCommentVote,
         event: prisma.researchEventCommentVote,
@@ -397,7 +398,7 @@ export async function deleteComment(commentId: string, type: CommentType) {
         }
     }
 
-    await (cfg.model as any).delete({ where: { id: commentId } })
+    await cfg.model.delete({ where: { id: commentId } })
     if (type === 'recommendation') {
         const recommendationComment = await prisma.recommendationComment.findUnique({
             where: { id: commentId },
@@ -407,7 +408,7 @@ export async function deleteComment(commentId: string, type: CommentType) {
             revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
         }
     } else if (cfg.revalidate.includes('[id]')) {
-        revalidatePath(cfg.revalidate, 'page' as any)
+        revalidatePath(cfg.revalidate, 'page')
     } else {
         revalidatePath(cfg.revalidate)
     }
@@ -415,7 +416,7 @@ export async function deleteComment(commentId: string, type: CommentType) {
 
 // --- Vote System ---
 
-const COMMENT_VOTE_MODEL: Record<string, any> = {
+const COMMENT_VOTE_MODEL: Record<string, CommentVoteModel> = {
     article: prisma.articleCommentVote,
     post: prisma.socialCommentVote,
     event: prisma.researchEventCommentVote,
@@ -464,7 +465,7 @@ export async function toggleCommentVote(
     if (!model) throw new Error(`Unknown comment type: ${type}`)
 
     // Capture previous vote state before mutating
-    const existing = await (model as any).findUnique({
+    const existing = await model.findUnique({
         where: { commentId_userId: { commentId, userId: user.id } },
     })
     const previousVoteType: 'UPVOTE' | 'DOWNVOTE' | null = existing?.voteType ?? null
@@ -472,20 +473,20 @@ export async function toggleCommentVote(
     let finalVoteType: 'UPVOTE' | 'DOWNVOTE' | null = voteType
     if (existing) {
         if (existing.voteType === voteType) {
-            await (model as any).delete({ where: { id: existing.id } })
+            await model.delete({ where: { id: existing.id } })
             finalVoteType = null
         } else {
-            await (model as any).update({ where: { id: existing.id }, data: { voteType } })
+            await model.update({ where: { id: existing.id }, data: { voteType } })
             finalVoteType = voteType
         }
     } else {
-        await (model as any).create({ data: { commentId, userId: user.id, voteType } })
+        await model.create({ data: { commentId, userId: user.id, voteType } })
         finalVoteType = voteType
     }
 
     const [upvotes, downvotes] = await Promise.all([
-        (model as any).count({ where: { commentId, voteType: 'UPVOTE' } }),
-        (model as any).count({ where: { commentId, voteType: 'DOWNVOTE' } }),
+        model.count({ where: { commentId, voteType: 'UPVOTE' } }),
+        model.count({ where: { commentId, voteType: 'DOWNVOTE' } }),
     ])
 
     // 🔥 Accurate incremental reputation update (1 query instead of 23+)
@@ -523,7 +524,7 @@ export async function toggleCommentVote(
                 revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
             }
         } else if (path.includes('[id]')) {
-            revalidatePath(path, 'page' as any)
+            revalidatePath(path, 'page')
         } else {
             revalidatePath(path)
         }
@@ -536,4 +537,3 @@ export async function toggleCommentVote(
 
     return { userVote: finalVoteType, upvotes, downvotes }
 }
-

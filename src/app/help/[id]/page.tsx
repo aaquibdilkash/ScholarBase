@@ -6,7 +6,6 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteHelpPost } from "@/app/actions/help";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 
 export default async function HelpPostPage({
@@ -23,11 +22,11 @@ export default async function HelpPostPage({
   }
 
   const upvotes =
-    post.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    post.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    post.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    post.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (post.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (post.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -74,21 +73,13 @@ export default async function HelpPostPage({
       footerCommentsHref={`/help/${post.id}#comments`}
       footerCommentsCount={post._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
-          <CommentSection
-            comments={post.comments}
-            targetId={post.id}
-            type="help"
-            currentUserId={user?.id ?? null}
-            postAuthorId={post.author.id}
-          />
-        </div>
+        <CommentSection
+          comments={post.comments}
+          targetId={post.id}
+          type="help"
+          currentUserId={user?.id ?? null}
+          postAuthorId={post.author.id}
+        />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-1.5 sm:mb-2">

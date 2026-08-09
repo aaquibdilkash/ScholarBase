@@ -45,7 +45,7 @@ export function ContactForm() {
   const { user } = useUser();
 
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(DRAFT_KEY, {
-    name: user?.user_metadata.name || "",
+    name: (user?.user_metadata.name as string | undefined) || "",
     email: user?.email || "",
     subject: "",
     message: "",

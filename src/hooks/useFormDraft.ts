@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-type DraftFields = Record<string, any>;
+import type { FormDraftFields, UpdateFieldFn } from "@/types/form";
 
 /**
  * Custom hook to persist form field values to localStorage.
@@ -12,16 +11,16 @@ type DraftFields = Record<string, any>;
  * @param initialValues - Default field values
  * @returns [fields, updateField, resetDraft, isRestored]
  */
-export function useFormDraft(
+export function useFormDraft<T extends FormDraftFields>(
     draftKey: string | null,
-    initialValues: DraftFields = {}
+    initialValues: T
 ): [
-        DraftFields,
-        (field: string, value: any) => void,
+        T,
+        UpdateFieldFn,
         () => void,
         boolean,
     ] {
-    const [fields, setFields] = useState<DraftFields>(initialValues);
+    const [fields, setFields] = useState<T>(initialValues);
     const [isRestored, setIsRestored] = useState(false);
 
     // We stringify initialValues to use it as a dependency, preventing
@@ -29,7 +28,7 @@ export function useFormDraft(
     const initialValuesString = JSON.stringify(initialValues);
 
     useEffect(() => {
-        const newInitialValues = JSON.parse(initialValuesString);
+        const newInitialValues = JSON.parse(initialValuesString) as T;
 
         if (!draftKey) {
             setFields(newInitialValues);
@@ -40,7 +39,7 @@ export function useFormDraft(
         try {
             const saved = localStorage.getItem(draftKey);
             if (saved) {
-                const parsed = JSON.parse(saved) as DraftFields;
+                const parsed = JSON.parse(saved) as T;
                 setFields({ ...newInitialValues, ...parsed });
             } else {
                 setFields(newInitialValues);
@@ -54,7 +53,7 @@ export function useFormDraft(
 
 
     const saveDraft = useCallback(
-        (updatedFields: DraftFields) => {
+        (updatedFields: T) => {
             if (!draftKey) return;
             try {
                 localStorage.setItem(draftKey, JSON.stringify(updatedFields));
@@ -66,9 +65,9 @@ export function useFormDraft(
     );
 
     const updateField = useCallback(
-        (field: string, value: any) => {
+        (field: string, value: unknown) => {
             setFields((prev) => {
-                const updated = { ...prev, [field]: value };
+                const updated = { ...prev, [field]: value } as T;
                 if (draftKey) {
                     saveDraft(updated);
                 }
@@ -82,7 +81,7 @@ export function useFormDraft(
         if (!draftKey) {
             setFields(initialValues);
             return;
-        };
+        }
         try {
             localStorage.removeItem(draftKey);
         } catch {

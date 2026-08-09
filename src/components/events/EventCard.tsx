@@ -1,6 +1,5 @@
 "use client";
 
-import { ResearchEvent, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -9,14 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Calendar, Clock, MapPin } from "lucide-react";
-
-type EventWithAuthor = ResearchEvent & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { EventWithAuthor } from "@/types/cards";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -36,11 +28,11 @@ export function EventCard({
   const isOwner = currentUserId === event.authorId;
   const isFollowing = (event.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    event.votes?.find((v: any) => v.userId === currentUserId)?.voteType ?? null;
+    event.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    event.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    event.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    event.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    event.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const urgency = getTimeLeft(event.deadline);
 
   return (

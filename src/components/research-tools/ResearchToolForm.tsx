@@ -114,7 +114,10 @@ export default function ResearchToolForm({
         />
       </div>
 
-      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth
+        className="sb-button-accent mt-2 self-end"
+        disabled={submitting}
+      >
         {mode === "edit" ? "Save Changes" : "Add Research Tool"}
       </SubmitBtnWithAuth>
     </form>

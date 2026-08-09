@@ -1,6 +1,8 @@
 'use server'
 
 import prisma from '@/lib/db'
+import { SurveyQuestionType } from '@prisma/client'
+import type { SurveyQuestionInput } from '@/types/survey'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
@@ -114,15 +116,7 @@ export async function createSurvey(formData: FormData) {
     if (!title) throw new Error('Title is required')
     if (!questionsJson) throw new Error('Questions are required')
 
-    const questions = JSON.parse(questionsJson) as Array<{
-        type: string
-        title: string
-        required: boolean
-        order: number
-        minValue?: number
-        maxValue?: number
-        options?: Array<{ value: string; label: string; order: number }>
-    }>
+    const questions = JSON.parse(questionsJson) as SurveyQuestionInput[]
 
     const survey = await prisma.researchSurvey.create({
         data: {
@@ -133,7 +127,7 @@ export async function createSurvey(formData: FormData) {
             authorId: user.id,
             questions: {
                 create: questions.map((q) => ({
-                    type: q.type as any,
+                    type: q.type as SurveyQuestionType,
                     title: q.title,
                     required: q.required,
                     order: q.order,
@@ -185,7 +179,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     await prisma.surveyQuestion.deleteMany({ where: { surveyId } })
 
     const questions = questionsJson
-        ? JSON.parse(questionsJson)
+        ? JSON.parse(questionsJson) as SurveyQuestionInput[]
         : []
 
     await prisma.researchSurvey.update({
@@ -196,8 +190,8 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
             privacy: privacy || 'HYBRID',
             shareData,
             questions: {
-                create: questions.map((q: any) => ({
-                    type: q.type,
+                create: questions.map((q) => ({
+                    type: q.type as SurveyQuestionType,
                     title: q.title,
                     required: q.required,
                     order: q.order,

@@ -1,26 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { Publication, User } from "@prisma/client";
 import { PublicationCard } from "./PublicationCard";
-
-type PublicationWithDetails = Publication & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: { userId: string }[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+import type { PublicationWithAuthor } from "@/types/cards";
 
 export function PublicationsList({
   publications,
   currentUserId,
   initialQuery,
 }: {
-  publications: PublicationWithDetails[];
+  publications: PublicationWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

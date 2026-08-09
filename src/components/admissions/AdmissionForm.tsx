@@ -2,7 +2,6 @@
 
 import {
   updatePhdAdmission,
-  createPhdAdmission,
   createAdmissionSafe,
 } from "@/app/actions/admissions";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -40,17 +39,20 @@ export default function AdmissionForm({
   const draftKey = mode === "edit" ? null : "draft_admission_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
-    initial
+    initial,
   );
 
-  const { submitting, submit } = useFormSubmit(
-    mode !== "edit" ? resetDraft : undefined,
-    {
-      resetOnSuccess: mode !== "edit",
-      successMessage: mode === 'edit' ? "Admission updated successfully!" : "Admission posted successfully!",
-      errorMessage: mode === 'edit' ? "Failed to update admission." : "Failed to post admission.",
-    },
-  );
+  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage:
+      mode === "edit"
+        ? "Admission updated successfully!"
+        : "Admission posted successfully!",
+    errorMessage:
+      mode === "edit"
+        ? "Failed to update admission."
+        : "Failed to post admission.",
+  });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

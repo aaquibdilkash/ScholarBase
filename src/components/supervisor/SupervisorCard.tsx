@@ -1,28 +1,16 @@
 "use client";
 import { VoteButton } from "@/components/interactions/VoteButton";
-import { Recommendation, Supervisor, User } from "@prisma/client";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSupervisor } from "@/app/actions/supervisors";
 import { StarRating } from "@/components/ui/StarRating";
-
-type SupervisorCardProps = Supervisor & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  recommendations: Recommendation[];
-  votes: any[];
-  _count: {
-    comments: number;
-    votes: number;
-  };
-};
+import type { SupervisorWithAuthor } from "@/types/cards";
 
 export function SupervisorCard({
   supervisor,
   currentUserId,
 }: {
-  supervisor: SupervisorCardProps;
+  supervisor: SupervisorWithAuthor;
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === supervisor.authorId;
@@ -36,12 +24,11 @@ export function SupervisorCard({
       : 0;
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    supervisor.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    supervisor.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    supervisor.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    supervisor.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    supervisor.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    supervisor.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
 
   return (

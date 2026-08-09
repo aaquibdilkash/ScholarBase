@@ -5,10 +5,11 @@ import { requireCurrentUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
-type VoteType = 'UPVOTE' | 'DOWNVOTE'
+import type { VoteType } from '@/types/votes'
+import { VoteModel, VoteDelegate } from '@/types/interactions'
 
 const VOTE_CONFIG: Record<string, {
-  voteModel: any;
+  voteModel: VoteModel;
   uniqueFields: string[];
   targetIdField: string;
   notifType: string;
@@ -171,22 +172,38 @@ export async function reverseReputationForContent(authorId: string, voteCounts: 
 }
 
 // Count votes for a specific model and target
-export async function countVotesForTarget(model: any, targetIdField: string, targetId: string) {
-  const counts = await model.groupBy({
+export async function countVotesForTarget<TDelegate>(
+  model: TDelegate,
+  targetIdField: string,
+  targetId: string,
+) {
+  const counts = await (model as {
+    groupBy: (args: {
+      by: string[];
+      where: Record<string, string>;
+      _count: { _all: true };
+    }) => Promise<{ voteType: VoteType; _count: { _all: number } }[]>;
+  }).groupBy({
     by: ['voteType'],
     where: { [targetIdField]: targetId },
     _count: { _all: true },
   });
 
-  const upvotes = counts.find((c: any) => c.voteType === 'UPVOTE')?._count._all || 0;
-  const downvotes = counts.find((c: any) => c.voteType === 'DOWNVOTE')?._count._all || 0;
+  const upvotes = counts.find((c) => c.voteType === 'UPVOTE')?._count._all || 0;
+  const downvotes = counts.find((c) => c.voteType === 'DOWNVOTE')?._count._all || 0;
 
   return { upvotes, downvotes };
 }
 
 // Count comments for a specific model and target
-export async function countCommentsForTarget(model: any, targetIdField: string, targetId: string) {
-  return model.count({ where: { [targetIdField]: targetId } });
+export async function countCommentsForTarget<TDelegate>(
+  model: TDelegate,
+  targetIdField: string,
+  targetId: string,
+) {
+  return (model as {
+    count: (args: { where: Record<string, string> }) => Promise<number>;
+  }).count({ where: { [targetIdField]: targetId } });
 }
 
 export async function reverseReputationForSupervisor(supervisorId: string) {
@@ -333,7 +350,7 @@ export async function reverseReputationForRecommendation(recommendationId: strin
 }
 
 async function performVoteOp(
-  model: any,
+  model: VoteDelegate,
   uniqueFields: string[],
   targetId: string,
   userId: string,
@@ -367,8 +384,8 @@ async function performVoteOp(
     _count: { _all: true },
   });
 
-  const upvotes = counts.find((c: any) => c.voteType === 'UPVOTE')?._count._all || 0;
-  const downvotes = counts.find((c: any) => c.voteType === 'DOWNVOTE')?._count._all || 0;
+  const upvotes = counts.find((c) => c.voteType === 'UPVOTE')?._count._all || 0;
+  const downvotes = counts.find((c) => c.voteType === 'DOWNVOTE')?._count._all || 0;
 
   return { userVote: finalVoteType, upvotes, downvotes, previousVoteType };
 }
@@ -389,7 +406,7 @@ export async function toggleVote(
   if (!config) throw new Error(`Unknown vote type: ${type}`)
 
   const result = await performVoteOp(
-    config.voteModel,
+    config.voteModel as unknown as VoteDelegate,
     config.uniqueFields,
     targetId,
     user.id,

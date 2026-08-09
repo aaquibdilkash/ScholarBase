@@ -23,7 +23,7 @@ export function formatTimeAgo(date: Date | string | null | undefined): string {
   return `${years}y ago`;
 }
 
-export function getTimeLeft(deadline: Date | null): {
+export function getTimeLeft(deadline: Date | null | undefined): {
   label: string;
   className: string;
 } | null {

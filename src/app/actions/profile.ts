@@ -5,6 +5,7 @@ import { requireCurrentUser } from '@/lib/auth'
 import { normalizeHandle, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
+import type { ActivityItem, ActivityConfig } from '@/types/activity'
 
 export async function getProfile(profileId: string, currentUserId?: string) {
     const userWithProfileData = await prisma.user.findUnique({
@@ -558,7 +559,7 @@ export async function getProfileSection(
         _count: { select: { votes: true, comments: true } }
     };
 
-    let select: any;
+    let select: Record<string, unknown>;
 
     switch (model) {
         case 'article':
@@ -776,7 +777,7 @@ export async function getProfileSection(
             throw new Error(`Invalid section: ${section}`);
     }
 
-    // @ts-ignore
+    // @ts-expect-error dynamic Prisma model access by name
     const items = await prisma[model].findMany({
         where: { authorId: profileId },
         skip,
@@ -794,32 +795,25 @@ export async function getProfileSection(
 // and voted on. Returns a flat, unified list for rendering.
 // ─────────────────────────────────────────────────────────────
 
-type ActivityItem = {
-    contentId: string;
-    type: string; // machine type, e.g. "article"
-    typeLabel: string; // human label, e.g. "Research Article"
-    action: "commented" | "replied" | "voted";
-    title: string;
-    excerpt?: string;
-    href: string;
-    author: { id: string; name: string | null; handle: string | null; avatarUrl: string | null };
-    authorId: string;
+type PrismaActivityRow = {
+    id: string;
+    parentId?: string | null;
     createdAt: Date;
+    [key: string]: PrismaActivityContent | unknown;
 };
 
-type ActivityConfig = {
-    type: string;
-    typeLabel: string;
-    commentModel: string;
-    voteModel: string;
-    // relation field on the comment/vote model pointing at the content
-    contentField: string;
-    // where the content actually lives (used to fetch the content row)
-    contentModel: string;
-    titleField: string;
-    excerptField?: string;
-    detailHref: (contentId: string) => string;
+// The nested content shape selected by the dynamic activity queries.
+type PrismaActivityContent = {
+    id: string;
+    [key: string]: unknown;
 };
+
+// Minimal structural type for the dynamic Prisma delegates used below.
+type ActivityDelegate = {
+    findMany: (args: Record<string, unknown>) => Promise<PrismaActivityRow[]>;
+};
+
+const prismaDelegates = prisma as unknown as Record<string, ActivityDelegate>;
 
 const ACTIVITY_CONFIG: ActivityConfig[] = [
     {
@@ -975,7 +969,7 @@ export async function getProfileActivity(profileId: string, take = 20) {
 
     for (const cfg of ACTIVITY_CONFIG) {
         // Comments + replies authored by this scholar
-        const commentRows = await (prisma as any)[cfg.commentModel].findMany({
+        const commentRows = await prismaDelegates[cfg.commentModel].findMany({
             where: { authorId: profileId },
             orderBy: { createdAt: "desc" },
             take: 5,
@@ -1002,15 +996,19 @@ export async function getProfileActivity(profileId: string, take = 20) {
         });
 
         for (const row of commentRows) {
-            const content = row[cfg.contentField];
+            const content = row[cfg.contentField] as PrismaActivityContent | undefined;
             if (!content) continue;
+            const title = content[cfg.titleField] as string | undefined;
+            const excerpt = cfg.excerptField
+                ? (content[cfg.excerptField] as string | undefined)
+                : undefined;
             items.push({
                 contentId: content.id,
                 type: cfg.type,
                 typeLabel: cfg.typeLabel,
                 action: row.parentId ? "replied" : "commented",
-                title: content[cfg.titleField] ?? "Untitled",
-                excerpt: cfg.excerptField ? content[cfg.excerptField] : undefined,
+                title: title ?? "Untitled",
+                excerpt,
                 href: cfg.detailHref(content.id),
                 author: user,
                 authorId: user.id,
@@ -1019,7 +1017,7 @@ export async function getProfileActivity(profileId: string, take = 20) {
         }
 
         // Votes by this scholar
-        const voteRows = await (prisma as any)[cfg.voteModel].findMany({
+        const voteRows = await prismaDelegates[cfg.voteModel].findMany({
             where: { userId: profileId },
             orderBy: { createdAt: "desc" },
             take: 5,
@@ -1044,15 +1042,19 @@ export async function getProfileActivity(profileId: string, take = 20) {
         });
 
         for (const row of voteRows) {
-            const content = row[cfg.contentField];
+            const content = row[cfg.contentField] as PrismaActivityContent | undefined;
             if (!content) continue;
+            const title = content[cfg.titleField] as string | undefined;
+            const excerpt = cfg.excerptField
+                ? (content[cfg.excerptField] as string | undefined)
+                : undefined;
             items.push({
                 contentId: content.id,
                 type: cfg.type,
                 typeLabel: cfg.typeLabel,
                 action: "voted",
-                title: content[cfg.titleField] ?? "Untitled",
-                excerpt: cfg.excerptField ? content[cfg.excerptField] : undefined,
+                title: title ?? "Untitled",
+                excerpt,
                 href: cfg.detailHref(content.id),
                 author: user,
                 authorId: user.id,

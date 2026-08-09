@@ -3,23 +3,11 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-
-interface SubmitOptions {
-    /** If true, resets the draft on success (should be true for create, false for edit) */
-    resetOnSuccess?: boolean;
-    /** Custom success message */
-    successMessage?: string;
-    /** Custom error message prefix */
-    errorMessage?: string;
-}
-
-interface SubmitResult {
-    success: boolean;
-    redirect?: string;
-    error?: string;
-}
-
-type ResetDraftFn = () => void;
+import type {
+    SubmitOptions,
+    SubmitResult,
+    ResetDraftFn,
+} from "@/types/form";
 
 /**
  * Reusable hook to standardize form submission with draft management.
@@ -73,7 +61,7 @@ export function useFormSubmit(
                     }
                 }
                 // If no result (action did redirect or threw), the catch block handles it
-            } catch (err: any) {
+            } catch (err: unknown) {
                 // ❌ Error — draft is NOT reset, values preserved
                 const message =
                     err instanceof Error ? err.message : errorMessage;
@@ -87,4 +75,3 @@ export function useFormSubmit(
 
     return { submitting, submit };
 }
-

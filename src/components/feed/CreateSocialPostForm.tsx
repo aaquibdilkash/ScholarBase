@@ -1,6 +1,7 @@
 "use client";
 
-import { Image } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
+import NextImage from "next/image";
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
 import {
@@ -28,7 +29,6 @@ export function CreateSocialPostForm() {
     if (isRestored && draftFields.imageUrl) {
       setImageUrl(draftFields.imageUrl);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRestored, draftFields.imageUrl]);
 
   // Persist image URL in draft — gated on isRestored so the initial mount
@@ -42,7 +42,7 @@ export function CreateSocialPostForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl, isRestored, draftFields.imageUrl]);
 
-  const { submitting, submit } = useFormSubmit(
+  const { submit } = useFormSubmit(
     () => {
       resetDraft();
       setImageUrl("");
@@ -140,9 +140,12 @@ export function CreateSocialPostForm() {
 
         {imageUrl && (
           <div className="relative group w-fit">
-            <img
+            <NextImage
               src={imageUrl}
               alt=""
+              width={80}
+              height={80}
+              unoptimized
               className="h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
             />
             {/* Always-visible remove button (works on touch/mobile) */}
@@ -166,7 +169,7 @@ export function CreateSocialPostForm() {
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
           <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-            <Image className="h-5 w-5" />
+            <ImageIcon className="h-5 w-5" aria-hidden="true" />
             {uploading ? "Uploading..." : "Add Image"}
             <input
               type="file"

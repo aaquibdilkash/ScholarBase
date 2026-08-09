@@ -319,7 +319,10 @@ export default function PublicationForm({
         </label>
       </div>
 
-      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
+      <SubmitBtnWithAuth
+        className="sb-button-accent mt-2 self-end"
+        disabled={submitting}
+      >
         {mode === "edit" ? "Save Changes" : "Add Publication"}
       </SubmitBtnWithAuth>
     </form>

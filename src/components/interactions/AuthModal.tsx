@@ -11,10 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
-
-interface AuthModalContextValue {
-  openAuthModal: (callbackUrl?: string) => void;
-}
+import type { AuthModalContextValue } from "@/types/context";
 
 const AuthModalContext = createContext<AuthModalContextValue | null>(null);
 

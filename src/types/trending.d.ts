@@ -1,4 +1,21 @@
 import { Article, JobVacancy, PhdAdmission, ResearchEvent, User, Supervisor, Recommendation, SocialPost, HelpPost, Result, ResearchSurvey, User as Scholar } from "@prisma/client";
+import type { VoteType } from "./votes";
+
+export type TrendingItemType =
+    | 'vacancy'
+    | 'admission'
+    | 'event'
+    | 'article'
+    | 'social-post'
+    | 'journal'
+    | 'researchTool'
+    | 'help-post'
+    | 'result'
+    | 'contribution'
+    | 'publication'
+    | 'survey'
+    | 'supervisor'
+    | 'scholar';
 
 type TrendingItemBase = {
     score: number;
@@ -7,7 +24,7 @@ type TrendingItemBase = {
         comments: number;
     };
     author: User;
-    votes: any[];
+    votes: { userId: string; voteType: VoteType }[];
 };
 
 export type TrendingSupervisor = Supervisor & {
@@ -15,7 +32,18 @@ export type TrendingSupervisor = Supervisor & {
     recommendations: Recommendation[];
     score: number;
     type: 'supervisor';
-    votes: any[];
+    votes: { userId: string; voteType: VoteType }[];
+    _count: {
+        comments: number;
+        votes: number;
+    };
+};
+
+/** Raw supervisor row fetched in `getTrendingSupervisors` before scoring. */
+export type SupervisorWithVotesAndRecommendations = Supervisor & {
+    author: User;
+    recommendations: Recommendation[];
+    votes: { userId: string; voteType: VoteType }[];
     _count: {
         comments: number;
         votes: number;

@@ -36,11 +36,11 @@ const PublicationDetailPage = async ({
 
   const p = publication;
   const upvotes =
-    p.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    p.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    p.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    p.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (p.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (p.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -86,13 +86,6 @@ const PublicationDetailPage = async ({
       footerCommentsHref={`/publications/${p.id}#comments`}
       footerCommentsCount={p._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
           <CommentSection
             comments={p.comments}
             targetId={p.id}
@@ -100,7 +93,6 @@ const PublicationDetailPage = async ({
             currentUserId={user?.id ?? null}
             postAuthorId={p.author.id}
           />
-        </div>
       }
     >
       <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">

@@ -1,6 +1,5 @@
 "use client";
 
-import { JobVacancy, User } from "@prisma/client";
 import { Clock } from "lucide-react";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -9,14 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deleteJobVacancy } from "@/app/actions/vacancies";
 import { getTimeLeft } from "@/utils/time-ago";
-
-type VacancyWithAuthor = JobVacancy & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
+import type { VacancyWithAuthor } from "@/types/cards";
 
 export function VacancyCard({
   vacancy,
@@ -28,12 +20,11 @@ export function VacancyCard({
   const isOwner = currentUserId === vacancy.authorId;
   const isFollowing = (vacancy.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    vacancy.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    vacancy.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    vacancy.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    vacancy.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    vacancy.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    vacancy.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const urgency = getTimeLeft(vacancy.deadline);
 
   return (

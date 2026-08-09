@@ -1,25 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { ResearchSurvey, User } from "@prisma/client";
 import { SurveyCard } from "./SurveyCard";
-
-type SurveyWithDetails = ResearchSurvey & {
-  author: User;
-  votes: any[];
-  _count: {
-    votes: number;
-    comments: number;
-    responses: number;
-  };
-};
+import type { SurveyWithAuthor } from "@/types/cards";
 
 export function SurveysList({
   surveys,
   currentUserId,
   initialQuery,
 }: {
-  surveys: SurveyWithDetails[];
+  surveys: SurveyWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

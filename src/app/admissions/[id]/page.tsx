@@ -26,11 +26,11 @@ const AdmissionDetailPage = async ({
   }
 
   const upvotes =
-    admission.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    admission.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    admission.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    admission.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (admission.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (admission.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -60,7 +60,7 @@ const AdmissionDetailPage = async ({
         ) : null
       }
       authorId={admission.author.id}
-      isFollowing={(admission.author as any)?.followers?.length ? true : false}
+      isFollowing={(admission.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={admission.createdAt}
       footerVoteButton={
@@ -99,13 +99,6 @@ const AdmissionDetailPage = async ({
         </div>
       }
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
           <CommentSection
             comments={admission.comments}
             targetId={admission.id}
@@ -113,7 +106,6 @@ const AdmissionDetailPage = async ({
             currentUserId={user?.id || null}
             postAuthorId={admission.author.id}
           />
-        </div>
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

@@ -30,12 +30,11 @@ const ContributionDetailPage = async ({
   }
 
   const upvotes =
-    contribution.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    contribution.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    contribution.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ??
-    0;
+    contribution.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (contribution.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (contribution.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -63,7 +62,10 @@ const ContributionDetailPage = async ({
       }
       authorId={contribution.author.id}
       isFollowing={
-        (contribution.author as any)?.followers?.length ? true : false
+        (contribution.author as { followers?: { followerId: string }[] })
+          ?.followers?.length
+          ? true
+          : false
       }
       currentUserId={user?.id}
       createdDate={contribution.createdAt}
@@ -84,21 +86,13 @@ const ContributionDetailPage = async ({
       footerCommentsHref={`/contributions/${contribution.id}#comments`}
       footerCommentsCount={contribution._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
-          <CommentSection
-            comments={contribution.comments}
-            targetId={contribution.id}
-            type="contribution"
-            currentUserId={user?.id || null}
-            postAuthorId={contribution.author.id}
-          />
-        </div>
+        <CommentSection
+          comments={contribution.comments}
+          targetId={contribution.id}
+          type="contribution"
+          currentUserId={user?.id || null}
+          postAuthorId={contribution.author.id}
+        />
       }
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -120,10 +114,9 @@ const ContributionDetailPage = async ({
         )}
       </div>
 
-      {contribution.status === "REJECTED" &&
-        (contribution as any).rejectionReason && (
-          <RejectionReason reason={(contribution as any).rejectionReason} />
-        )}
+      {contribution.status === "REJECTED" && contribution.rejectionReason && (
+        <RejectionReason reason={contribution.rejectionReason} />
+      )}
 
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {contribution.title}
@@ -139,9 +132,9 @@ const ContributionDetailPage = async ({
           🚀 Empowering Research Through Your Support
         </p>
         <p className="text-slate-600 dark:text-slate-400">
-          Your invaluable contributions directly fuel ScholarBase's operations,
-          supporting critical server and database infrastructure, and enabling
-          continuous development for the global research community.
+          Your invaluable contributions directly fuel ScholarBase&apos;s
+          operations, supporting critical server and database infrastructure,
+          and enabling continuous development for the global research community.
         </p>
       </div>
     </DetailPageCardShell>

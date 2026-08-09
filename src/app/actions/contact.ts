@@ -13,10 +13,7 @@ const contactSchema = z.object({
   message: z.string().min(1, { message: "Message is required" }),
 });
 
-interface ContactFormState {
-  success: boolean;
-  message: string;
-}
+import type { ContactFormState } from '@/types/contact';
 
 export async function sendContactMessage(
   prevState: ContactFormState,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { GraduationCap, MessageSquare, Reply, ThumbsUp } from "lucide-react";
 import Link from "next/link";
@@ -25,7 +25,27 @@ import { ResultCard } from "@/components/results/ResultCard";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
 import { PublicationCard } from "@/components/publications/PublicationCard";
 import { SurveyCard } from "@/components/surveys/SurveyCard";
-import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ActivityItem } from "@/types/activity";
+import { ProfileData } from "@/types/profile";
+import {
+  SectionData,
+  SectionKey,
+  ArticleType,
+  SocialPostType,
+  VacancyType,
+  AdmissionType,
+  EventType,
+  HelpPostType,
+  JournalType,
+  ResearchToolType,
+  RecommendationType,
+  SupervisorType,
+  ResultType,
+  ContributionType,
+  PublicationType,
+  SurveyType,
+  SectionWithCount,
+} from "@/types/components";
 
 import { Carousel } from "@/components/ui/Carousel";
 
@@ -68,55 +88,13 @@ function OrcidIcon({ className }: { className?: string }) {
   );
 }
 
-type ActivityItem = {
-  contentId: string;
-  type: string;
-  typeLabel: string;
-  action: "commented" | "replied" | "voted";
-  title: string;
-  excerpt?: string;
-  href: string;
-  author: {
-    id: string;
-    name: string | null;
-    handle: string | null;
-    avatarUrl: string | null;
-  };
-  authorId: string;
-  createdAt: Date;
-};
-
-type ProfileData = {
-  id: string;
-  name: string | null;
-  handle: string | null;
-  avatarUrl: string | null;
-  bio: string | null;
-  githubUrl: string | null;
-  orcidId: string | null;
-  linkedinUrl: string | null;
-  googleScholarUrl: string | null;
-};
-
-type SectionData = Awaited<ReturnType<typeof getProfileSections>>;
-type SectionKey = Exclude<keyof NonNullable<SectionData>, "id" | "_count">;
-
-interface SectionConfig {
-  key: SectionKey;
-  title: string;
-  emptyMessage: string;
-  renderItems: (items: any[], currentUserId?: string) => React.ReactNode;
-}
-
-type SectionWithCount = SectionConfig & { count?: number };
-
 const SECTIONS: SectionWithCount[] = [
   {
     key: "articles",
     title: "Research Articles",
     emptyMessage: "No articles published yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((a: any) => (
+    renderItems: (items: ArticleType[], currentUserId) =>
+      items.map((a) => (
         <ArticleCard key={a.id} article={a} currentUserId={currentUserId} />
       )),
   },
@@ -124,8 +102,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "socialPosts",
     title: "Feed Posts",
     emptyMessage: "No feed posts yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((p: any) => (
+    renderItems: (items: SocialPostType[], currentUserId) =>
+      items.map((p) => (
         <SocialPostCard key={p.id} post={p} currentUserId={currentUserId} />
       )),
   },
@@ -133,8 +111,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "vacancies",
     title: "Job Vacancies",
     emptyMessage: "No job vacancies posted yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((v: any) => (
+    renderItems: (items: VacancyType[], currentUserId) =>
+      items.map((v) => (
         <VacancyCard key={v.id} vacancy={v} currentUserId={currentUserId} />
       )),
   },
@@ -142,8 +120,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "admissions",
     title: "PhD Admissions",
     emptyMessage: "No PhD admissions posted yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((a: any) => (
+    renderItems: (items: AdmissionType[], currentUserId) =>
+      items.map((a) => (
         <AdmissionCard key={a.id} admission={a} currentUserId={currentUserId} />
       )),
   },
@@ -151,8 +129,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "events",
     title: "Research Events",
     emptyMessage: "No research events posted yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((e: any) => (
+    renderItems: (items: EventType[], currentUserId) =>
+      items.map((e) => (
         <EventCard key={e.id} event={e} currentUserId={currentUserId} />
       )),
   },
@@ -160,8 +138,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "helpPosts",
     title: "Help Posts",
     emptyMessage: "No help posts yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((h: any) => (
+    renderItems: (items: HelpPostType[], currentUserId) =>
+      items.map((h) => (
         <HelpPostCard key={h.id} helpPost={h} currentUserId={currentUserId} />
       )),
   },
@@ -169,8 +147,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "journals",
     title: "Journals",
     emptyMessage: "No journals posted yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((j: any) => (
+    renderItems: (items: JournalType[], currentUserId) =>
+      items.map((j) => (
         <JournalCard key={j.id} journal={j} currentUserId={currentUserId} />
       )),
   },
@@ -178,8 +156,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "researchTools",
     title: "Research Tools",
     emptyMessage: "No research tools posted yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((r: any) => (
+    renderItems: (items: ResearchToolType[], currentUserId) =>
+      items.map((r) => (
         <ResearchToolCard key={r.id} tool={r} currentUserId={currentUserId} />
       )),
   },
@@ -187,8 +165,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "recommendations",
     title: "Recommendations Given",
     emptyMessage: "No recommendations given yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((r: any) => (
+    renderItems: (items: RecommendationType[], currentUserId) =>
+      items.map((r) => (
         <RecommendationCard
           key={r.id}
           recommendation={r}
@@ -201,8 +179,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "supervisors",
     title: "Supervisor Profiles",
     emptyMessage: "No supervisor profiles created yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((s: any) => (
+    renderItems: (items: SupervisorType[], currentUserId) =>
+      items.map((s) => (
         <SupervisorCard
           key={s.id}
           supervisor={s}
@@ -214,8 +192,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "results",
     title: "Results",
     emptyMessage: "No results posted yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((r: any) => (
+    renderItems: (items: ResultType[], currentUserId) =>
+      items.map((r) => (
         <ResultCard key={r.id} result={r} currentUserId={currentUserId} />
       )),
   },
@@ -223,8 +201,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "contributionPosts",
     title: "Contributions",
     emptyMessage: "No contributions made yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((c: any) => (
+    renderItems: (items: ContributionType[], currentUserId) =>
+      items.map((c) => (
         <ContributionCard
           key={c.id}
           contribution={c}
@@ -236,8 +214,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "publications",
     title: "Publications",
     emptyMessage: "No publications added yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((p: any) => (
+    renderItems: (items: PublicationType[], currentUserId) =>
+      items.map((p) => (
         <PublicationCard
           key={p.id}
           publication={p}
@@ -249,8 +227,8 @@ const SECTIONS: SectionWithCount[] = [
     key: "surveys",
     title: "Research Surveys",
     emptyMessage: "No research surveys created yet.",
-    renderItems: (items, currentUserId) =>
-      items.map((s: any) => (
+    renderItems: (items: SurveyType[], currentUserId) =>
+      items.map((s) => (
         <SurveyCard key={s.id} survey={s} currentUserId={currentUserId} />
       )),
   },
@@ -281,23 +259,6 @@ export default function ProfileTabs({
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
 
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "content" && !sections) {
-      loadContent();
-    }
-    if (tab === "activity" && !activity) {
-      loadActivity();
-    }
-  }, [searchParams, sections, activity]);
-
-  const setTab = (tab: "about" | "content" | "activity") => {
-    const params = new URLSearchParams(searchParams);
-    params.set("tab", tab);
-    router.replace(`${pathname}?${params.toString()}`);
-    setActiveTab(tab);
-  };
-
   const loadContent = useCallback(async () => {
     if (sections || isLoading) return;
     setIsLoading(true);
@@ -324,6 +285,23 @@ export default function ProfileTabs({
       setActivityLoading(false);
     }
   }, [profileId, activity, activityLoading]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "content" && !sections) {
+      loadContent();
+    }
+    if (tab === "activity" && !activity) {
+      loadActivity();
+    }
+  }, [searchParams, sections, activity, loadActivity, loadContent]);
+
+  const setTab = (tab: "about" | "content" | "activity") => {
+    const params = new URLSearchParams(searchParams);
+    params.set("tab", tab);
+    router.replace(`${pathname}?${params.toString()}`);
+    setActiveTab(tab);
+  };
 
   const loadMore = async (sectionKey: SectionKey) => {
     if (loadingMore) return;
@@ -494,7 +472,7 @@ export default function ProfileTabs({
 
           {sections &&
             SECTIONS.map((section) => {
-              const items = (sections as any)[section.key] ?? [];
+              const items = sections[section.key] ?? [];
               const count = sections?._count?.[section.key] ?? items.length;
               const hasMore = items.length < count;
 
@@ -511,7 +489,9 @@ export default function ProfileTabs({
                         }
                         hasMore={hasMore}
                       >
-                        {section.renderItems(items, currentUserId)}
+                        {/* TypeScript cannot correlate the dynamic section.key with the items type */}
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {section.renderItems(items as any, currentUserId)}
                       </Carousel>
                       {loadingMore === section.key && (
                         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
@@ -595,12 +575,10 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
             {formatTimeAgo(new Date(item.createdAt))}
           </p>
           {item.excerpt && (
-            // <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
-              <RichContent
-                content={item.excerpt}
-                className="mt-2 text-sm text-slate-500 dark:text-slate-400 line-clamp-2"
-              />
-            // </p>
+            <RichContent
+              content={item.excerpt}
+              className="mt-2 text-sm text-slate-500 dark:text-slate-400 line-clamp-2"
+            />
           )}
         </div>
       </div>

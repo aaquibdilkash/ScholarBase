@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export function UpdatePasswordForm({ message }: { message?: string }) {
   const [error, setError] = useState<string | null>(message || null);
@@ -37,7 +37,7 @@ export function UpdatePasswordForm({ message }: { message?: string }) {
 
       if (response.ok) {
         window.location.href = `/login?message=${encodeURIComponent(
-          data.message
+          data.message,
         )}`;
       } else {
         setError(data.error || "Could not update password. Please try again.");
@@ -81,21 +81,27 @@ export function UpdatePasswordForm({ message }: { message?: string }) {
       </div>
 
       {error && (
-        <div className={`rounded-2xl border p-3 text-center text-sm ${
-          error.includes("successfully")
-            ? "border-green-200 bg-green-50 text-green-700"
-            : "border-amber-200 bg-amber-50 text-amber-700"
-        }`}>
+        <div
+          className={`rounded-2xl border p-3 text-center text-sm ${
+            error.includes("successfully")
+              ? "border-green-200 bg-green-50 text-green-700"
+              : "border-amber-200 bg-amber-50 text-amber-700"
+          }`}
+        >
           {error}
         </div>
       )}
 
-      <button 
-        type="submit" 
+      <button
+        type="submit"
         className="sb-button-primary w-full mt-2"
         disabled={submitting}
       >
-        {submitting ? "Updating..." : error && error.includes("successfully") ? "Redirecting..." : "Update Password"}
+        {submitting
+          ? "Updating..."
+          : error && error.includes("successfully")
+            ? "Redirecting..."
+            : "Update Password"}
       </button>
     </form>
   );

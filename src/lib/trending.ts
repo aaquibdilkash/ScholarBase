@@ -1,4 +1,5 @@
 import prisma from '@/lib/db'
+import type { SupervisorWithVotesAndRecommendations } from '@/types/trending'
 
 const VOTE_WEIGHT = 1
 const COMMENT_WEIGHT = 2
@@ -37,20 +38,9 @@ async function getTrending<T extends { _count: { votes: number; comments: number
     return sortedItems
 }
 
-export async function getTrendingArticles(userId?: string) {
+export async function getTrendingArticles() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
-
-    const commonInclude = {
-        author: true,
-        _count: {
-            select: {
-                votes: true,
-                comments: true,
-            },
-        },
-        votes: userId ? { where: { userId } } : false,
-    }
 
     return getTrending(() => prisma.article.findMany({
         where: { createdAt: { gte: since }, published: true },
@@ -67,7 +57,7 @@ export async function getTrendingArticles(userId?: string) {
     }), 'article')
 }
 
-export async function getTrendingVacancies(userId?: string) {
+export async function getTrendingVacancies() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -81,7 +71,7 @@ export async function getTrendingVacancies(userId?: string) {
     }), 'vacancy')
 }
 
-export async function getTrendingAdmissions(userId?: string) {
+export async function getTrendingAdmissions() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -95,7 +85,7 @@ export async function getTrendingAdmissions(userId?: string) {
     }), 'admission')
 }
 
-export async function getTrendingEvents(userId?: string) {
+export async function getTrendingEvents() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -109,7 +99,7 @@ export async function getTrendingEvents(userId?: string) {
     }), 'event')
 }
 
-export async function getTrendingSocialPosts(userId?: string) {
+export async function getTrendingSocialPosts() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -124,7 +114,7 @@ export async function getTrendingSocialPosts(userId?: string) {
 }
 
 
-export async function getTrendingJournals(userId?: string) {
+export async function getTrendingJournals() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -138,7 +128,7 @@ export async function getTrendingJournals(userId?: string) {
     }), 'journal')
 }
 
-export async function getTrendingResearchTools(userId?: string) {
+export async function getTrendingResearchTools() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -152,7 +142,7 @@ export async function getTrendingResearchTools(userId?: string) {
     }), 'researchTool')
 }
 
-export async function getTrendingHelpPosts(userId?: string) {
+export async function getTrendingHelpPosts() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -166,7 +156,7 @@ export async function getTrendingHelpPosts(userId?: string) {
     }), 'help-post')
 }
 
-export async function getTrendingResults(userId?: string) {
+export async function getTrendingResults() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -180,7 +170,7 @@ export async function getTrendingResults(userId?: string) {
     }), 'result')
 }
 
-export async function getTrendingPublications(userId?: string) {
+export async function getTrendingPublications() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -194,7 +184,7 @@ export async function getTrendingPublications(userId?: string) {
     }), 'publication')
 }
 
-export async function getTrendingContributions(userId?: string) {
+export async function getTrendingContributions() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -208,7 +198,7 @@ export async function getTrendingContributions(userId?: string) {
     }), 'contribution')
 }
 
-export async function getTrendingSurveys(userId?: string) {
+export async function getTrendingSurveys() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -222,9 +212,15 @@ export async function getTrendingSurveys(userId?: string) {
     }), 'survey')
 }
 
-export async function getTrendingSupervisors(userId?: string) {
-    const supervisors = await prisma.supervisor.findMany({
-
+export async function getTrendingSupervisors() {
+    const supervisors = await prisma.supervisor.findMany<{
+        include: {
+            author: true;
+            recommendations: true;
+            votes: { select: { userId: true; voteType: true } };
+            _count: { select: { votes: true; comments: true } };
+        };
+    }>({
         include: {
             author: true,
             // SupervisorCard needs recommendations to compute avg rating
@@ -239,37 +235,41 @@ export async function getTrendingSupervisors(userId?: string) {
         },
     })
 
-    const scoredSupervisors = supervisors.map((supervisor: any) => {
-        const votes = supervisor.votes ?? []
-        const recommendationCount = supervisor.recommendations?.length ?? 0
+    const scoredSupervisors = supervisors.map(
+        (supervisor: SupervisorWithVotesAndRecommendations) => {
+            const votes = supervisor.votes ?? []
+            const recommendationCount = supervisor.recommendations?.length ?? 0
 
-        if (recommendationCount === 0) {
+            if (recommendationCount === 0) {
+                return {
+                    ...supervisor,
+                    score: 0,
+                    type: 'supervisor',
+                    votes,
+                }
+            }
+
+            const avgRating =
+                supervisor.recommendations.reduce((sum: number, rec) => {
+                    return sum + rec.rating
+                }, 0) / recommendationCount
+
+            const score = avgRating * Math.log(recommendationCount + 1)
+
             return {
                 ...supervisor,
-                score: 0,
+                score,
                 type: 'supervisor',
                 votes,
             }
-        }
+        },
+    )
 
-        const avgRating =
-            supervisor.recommendations.reduce((sum: number, rec: any) => {
-                return sum + rec.rating
-            }, 0) / recommendationCount
+    const filteredSupervisors = scoredSupervisors.filter((s) => s.score > 0)
 
-        const score = avgRating * Math.log(recommendationCount + 1)
-
-        return {
-            ...supervisor,
-            score,
-            type: 'supervisor',
-            votes,
-        }
-    })
-
-    const filteredSupervisors = scoredSupervisors.filter((s: any) => s.score > 0)
-
-    const sortedSupervisors = filteredSupervisors.sort((a: any, b: any) => b.score - a.score)
+    const sortedSupervisors = filteredSupervisors.sort(
+        (a, b) => b.score - a.score,
+    )
 
     return sortedSupervisors
 }

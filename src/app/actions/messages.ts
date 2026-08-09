@@ -3,9 +3,9 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
+import type { SubmitResult } from '@/types/form'
 
 const directConversationSelect = {
   id: true,
@@ -111,7 +111,7 @@ export async function getConversation(conversationId: string, userId: string) {
   })
 }
 
-import type { SubmitResult } from '@/types/actions'
+
 
 export async function startConversation(formData: FormData): Promise<SubmitResult> {
   const supabaseUser = await requireCurrentUser('Please log in to send a message.')
@@ -204,7 +204,20 @@ export async function startConversation(formData: FormData): Promise<SubmitResul
   return { success: true, redirect: `/messages/${conversationId}` }
 }
 
-export async function sendMessage(conversationId: string, formData: FormData): Promise<SubmitResult | any> {
+interface CreatedMessage {
+  id: string;
+  body: string;
+  createdAt: Date;
+  senderId: string;
+  sender: {
+    id: string;
+    name: string | null;
+    handle: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+export async function sendMessage(conversationId: string, formData: FormData): Promise<SubmitResult | CreatedMessage> {
   const supabaseUser = await requireCurrentUser('Please log in to message a scholar.')
   const body = readFormValue(formData, 'body')
 

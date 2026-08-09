@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   createContribution,
@@ -112,8 +113,11 @@ export default function ContributionForm({
           }, 1500);
         }
       }
-    } catch (err: any) {
-      toast(err?.message || "Failed to submit contribution.", "error");
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Failed to submit contribution.",
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -175,8 +179,10 @@ export default function ContributionForm({
       }
 
       setScreenshotUrl(newUrl);
-    } catch (err: any) {
-      setUploadError(err.message || "Failed to upload screenshot.");
+    } catch (err) {
+      setUploadError(
+        err instanceof Error ? err.message : "Failed to upload screenshot.",
+      );
     } finally {
       setUploading(false);
     }
@@ -319,9 +325,12 @@ export default function ContributionForm({
             )}
             {screenshotUrl && (
               <div className="relative group mt-2 w-fit">
-                <img
+                <Image
                   src={screenshotUrl}
                   alt="Payment screenshot preview"
+                  width={320}
+                  height={160}
+                  unoptimized
                   className="h-32 w-auto rounded-lg border border-slate-200 object-cover shadow-sm dark:border-slate-700"
                 />
                 {/* Always-visible remove button (works on touch/mobile) */}

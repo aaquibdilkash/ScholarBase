@@ -126,9 +126,10 @@ export async function createHelpPost(formData: FormData) {
 
 export async function createHelpPostSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
     try {
-        return await createHelpPost(formData) as any
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Failed to create help post' }
+        return await createHelpPost(formData)
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        return { success: false, error: error.message || 'Failed to create help post' }
     }
 }
 

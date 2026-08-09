@@ -8,18 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
-
-type ToastType = "success" | "error";
-
-interface Toast {
-  id: string;
-  message: string;
-  type: ToastType;
-}
-
-interface ToastContextValue {
-  toast: (message: string, type?: ToastType) => void;
-}
+import type { ToastType, Toast, ToastContextValue } from "@/types/context";
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 

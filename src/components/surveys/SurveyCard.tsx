@@ -1,6 +1,5 @@
 "use client";
 
-import { ResearchSurvey, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -8,14 +7,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
 import Link from "next/link";
 import { BarChart2 } from "lucide-react";
-
-type SurveyWithDetails = ResearchSurvey & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number; responses: number };
-};
+import type { SurveyWithAuthor } from "@/types/cards";
 
 const PRIVACY_LABELS: Record<string, string> = {
   ANONYMOUS: "Anonymous",
@@ -32,18 +24,17 @@ export function SurveyCard({
   survey,
   currentUserId,
 }: {
-  survey: SurveyWithDetails;
+  survey: SurveyWithAuthor;
   currentUserId?: string;
 }) {
   const isOwner = currentUserId === survey.authorId;
   const isFollowing = (survey.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    survey.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    survey.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    survey.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    survey.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    survey.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    survey.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell

@@ -1,26 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { Journal, User } from "@prisma/client";
 import { JournalCard } from "./JournalCard";
-
-type JournalWithDetails = Journal & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: { userId: string }[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+import type { JournalWithAuthor } from "@/types/cards";
 
 export function JournalsList({
   journals,
   currentUserId,
   initialQuery,
 }: {
-  journals: JournalWithDetails[];
+  journals: JournalWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

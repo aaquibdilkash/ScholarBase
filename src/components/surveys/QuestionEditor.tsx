@@ -1,23 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-
-export interface QuestionOption {
-  value: string;
-  label: string;
-  order: number;
-}
-
-export interface Question {
-  id: string;
-  type: string;
-  title: string;
-  required: boolean;
-  order: number;
-  minValue?: number;
-  maxValue?: number;
-  options: QuestionOption[];
-}
+import type { QuestionOption, Question } from "@/types/survey";
 
 export const QUESTION_TYPES = [
   { value: "SHORT_TEXT", label: "Short Text" },

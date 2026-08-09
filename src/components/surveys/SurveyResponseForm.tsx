@@ -161,6 +161,7 @@ export function SurveyResponseForm({
         router.refresh();
       }
     } catch (err) {
+      console.error("Failed to submit response:", err);
       toast("Failed to submit response. Please try again.", "error");
     } finally {
       setIsSubmitting(false);

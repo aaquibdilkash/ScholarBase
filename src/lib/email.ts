@@ -3,19 +3,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-interface CommentNotificationProps {
-    recipientEmail: string;
-    commenterName: string;
-    paperTitle: string;
-    commentSnippet: string;
-}
-
-interface ScholarInviteProps {
-  recipientEmail: string;
-  inviterName: string;
-  message: string;
-  inviteUrl: string;
-}
+import type { CommentNotificationProps, ScholarInviteProps } from '@/types/email';
 
 export async function sendCommentNotification({
     recipientEmail,

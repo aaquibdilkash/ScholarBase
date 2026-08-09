@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import Image from "next/image";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
@@ -20,12 +20,11 @@ export default async function SinglePostPage({
   if (!post) notFound();
 
   const p = post;
-  const upvotes =
-    p.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+  const upvotes = p.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    p.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    p.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (p.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (p.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -55,7 +54,12 @@ export default async function SinglePostPage({
         ) : null
       }
       authorId={p.authorId}
-      isFollowing={(p.author as any)?.followers?.length ? true : false}
+      isFollowing={
+        (p.author as { followers?: { followerId: string }[] })?.followers
+          ?.length
+          ? true
+          : false
+      }
       currentUserId={user?.id}
       createdDate={p.createdAt}
       editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
@@ -71,21 +75,13 @@ export default async function SinglePostPage({
       footerCommentsHref={`/feed/${p.id}#comments`}
       footerCommentsCount={p._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
-          <CommentSection
-            comments={p.comments}
-            targetId={p.id}
-            type="post"
-            currentUserId={user?.id ?? null}
-            postAuthorId={p.authorId}
-          />
-        </div>
+        <CommentSection
+          comments={p.comments}
+          targetId={p.id}
+          type="post"
+          currentUserId={user?.id ?? null}
+          postAuthorId={p.authorId}
+        />
       }
     >
       <p className="text-base sm:text-lg whitespace-pre-wrap leading-relaxed text-slate-800">
@@ -94,11 +90,13 @@ export default async function SinglePostPage({
 
       {p.imageUrl && (
         <div className="mt-4 sm:mt-6">
-          <img
+          <Image
             src={p.imageUrl}
             alt=""
+            width={800}
+            height={416}
+            unoptimized
             className="w-full h-48 sm:h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
-            loading="lazy"
           />
         </div>
       )}

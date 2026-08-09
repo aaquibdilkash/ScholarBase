@@ -1,24 +1,15 @@
 "use client";
 
 import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import { PhdAdmission, User } from "@prisma/client";
 import { AdmissionCard } from "./AdmissionCard";
-
-type AdmissionWithDetails = PhdAdmission & {
-  author: User;
-  votes: { userId: string }[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+import type { AdmissionWithAuthor } from "@/types/cards";
 
 export function AdmissionsList({
   admissions,
   currentUserId,
   initialQuery,
 }: {
-  admissions: AdmissionWithDetails[];
+  admissions: AdmissionWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {

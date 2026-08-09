@@ -1,21 +1,11 @@
 "use client";
 
-import { SocialPost, User } from "@prisma/client";
+import Image from "next/image";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSocialPost } from "@/app/actions/feed";
-
-type PostWithDetails = SocialPost & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: {
-    comments: number;
-    votes: number;
-  };
-};
+import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
 
 export function SocialPostCard({
   post,
@@ -27,11 +17,11 @@ export function SocialPostCard({
   const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    post.votes?.find((v: any) => v.userId === currentUserId)?.voteType ?? null;
+    post.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    post.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    post.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    post.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    post.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   return (
     <ListPageCardShell
@@ -80,11 +70,13 @@ export function SocialPostCard({
         </p>
         {post.imageUrl && (
           <div className="w-1/2 mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition hover:opacity-90">
-            <img
+            <Image
               src={post.imageUrl}
               alt=""
+              width={800}
+              height={400}
+              unoptimized
               className="h-48 w-full object-cover"
-              loading="lazy"
             />
           </div>
         )}

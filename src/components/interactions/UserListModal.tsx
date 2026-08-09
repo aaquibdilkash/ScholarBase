@@ -58,7 +58,7 @@ export function UserListModal({
     onClose();
   };
 
-  const handleFollow = (targetId: string, currentState: boolean) => {
+  const handleFollow = (targetId: string) => {
     startTransition(async () => {
       try {
         const result = await toggleFollow(targetId);
@@ -143,7 +143,7 @@ export function UserListModal({
                 </Link>
                 {currentUserId && currentUserId !== u.id && (
                   <button
-                    onClick={() => handleFollow(u.id, u.isFollowing)}
+                    onClick={() => handleFollow(u.id)}
                     className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
                       u.isFollowing
                         ? "bg-slate-100 text-slate-700 hover:bg-slate-200"

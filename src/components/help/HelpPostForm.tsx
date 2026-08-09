@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  createHelpPost,
-  updateHelpPost,
-  createHelpPostSafe,
-} from "@/app/actions/help";
+import { updateHelpPost, createHelpPostSafe } from "@/app/actions/help";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -36,17 +32,14 @@ export default function HelpPostForm({
   const draftKey = mode === "edit" ? null : "draft_helppost_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
-    initial
+    initial,
   );
 
-  const { submitting, submit } = useFormSubmit(
-    mode !== "edit" ? resetDraft : undefined,
-    {
-      resetOnSuccess: mode !== "edit",
-      successMessage: "Help post created successfully!",
-      errorMessage: "Failed to create help post.",
-    },
-  );
+  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage: "Help post created successfully!",
+    errorMessage: "Failed to create help post.",
+  });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

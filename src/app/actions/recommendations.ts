@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { reverseReputationForRecommendation } from '@/app/actions/interactions';
 

@@ -118,9 +118,12 @@ export async function createPhdAdmission(formData: FormData) {
 
 export async function createAdmissionSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
     try {
-        return await createPhdAdmission(formData) as any
-    } catch (err: any) {
-        return { success: false, error: err.message || 'Failed to create admission post' }
+        return await createPhdAdmission(formData);
+    } catch (err: unknown) {
+        if (err instanceof Error) {
+            return { success: false, error: err.message };
+        }
+        return { success: false, error: 'Failed to create admission post' };
     }
 }
 

@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  createResearchEvent,
-  updateResearchEvent,
-  createEventSafe,
-} from "@/app/actions/events";
+import { updateResearchEvent, createEventSafe } from "@/app/actions/events";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -42,17 +38,14 @@ export default function EventForm({
   const draftKey = mode === "edit" ? null : "draft_event_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
-    initial
+    initial,
   );
 
-  const { submitting, submit } = useFormSubmit(
-    mode !== "edit" ? resetDraft : undefined,
-    {
-      resetOnSuccess: mode !== "edit",
-      successMessage: "Event published successfully!",
-      errorMessage: "Failed to publish event.",
-    },
-  );
+  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+    resetOnSuccess: mode !== "edit",
+    successMessage: "Event published successfully!",
+    errorMessage: "Failed to publish event.",
+  });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

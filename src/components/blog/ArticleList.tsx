@@ -14,6 +14,7 @@ type ArticleWithDetails = Article & {
     voteType: VoteType;
   }[];
   _count: {
+    votes: number;
     comments: number;
   };
 };

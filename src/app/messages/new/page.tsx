@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { findDirectConversation } from '@/app/actions/messages'
 import { getScholarById } from '@/app/actions/scholars'
-import { createClient } from '@/utils/supabase/client'
+import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { NewMessageForm } from '@/components/messages/NewMessageForm'
 import { useToast } from '@/components/ui/Toast'
@@ -21,7 +21,7 @@ function NewConversationPageContent() {
   const { toast } = useToast()
 
   useEffect(() => {
-    const supabase = createClient()
+    
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser()
       setUser(data.user)

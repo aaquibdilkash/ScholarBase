@@ -1,6 +1,5 @@
 "use client";
 
-import { PhdAdmission, User } from "@prisma/client";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -9,6 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Clock } from "lucide-react";
+import type { AdmissionWithAuthor } from "@/types/cards";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -17,14 +17,6 @@ function formatDate(date: Date): string {
     year: "numeric",
   });
 }
-
-type AdmissionWithAuthor = PhdAdmission & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: any[];
-  _count: { votes: number; comments: number };
-};
 
 export function AdmissionCard({
   admission,
@@ -36,12 +28,11 @@ export function AdmissionCard({
   const isOwner = currentUserId === admission.authorId;
   const isFollowing = (admission.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    admission.votes?.find((v: any) => v.userId === currentUserId)?.voteType ??
-    null;
+    admission.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount =
-    admission.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    admission.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
-    admission.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    admission.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const urgency = getTimeLeft(admission.deadline);
 
   return (

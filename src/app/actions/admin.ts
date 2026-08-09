@@ -3,16 +3,28 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isUserAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { notifyUserById } from '@/lib/notifications'
+
+import {
+  AdminContentItem,
+  CommentModel,
+  ContentMap,
+  DeleteMapValue,
+  FreezableContentModel,
+} from '@/types/admin'
 
 // Freeze/unfreeze content
-export async function toggleContentFreeze(contentType: string, contentId: string) {
+export async function toggleContentFreeze(
+  contentType: string,
+  contentId: string,
+) {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
-  const modelMap: Record<string, any> = {
+  const modelMap: Record<string, FreezableContentModel> = {
     feed: prisma.socialPost,
     blog: prisma.article,
     publication: prisma.publication,
@@ -52,7 +64,7 @@ export async function toggleContentFreeze(contentType: string, contentId: string
 export async function toggleAuthorFreeze(authorId: string) {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
@@ -76,11 +88,11 @@ export async function toggleAuthorFreeze(authorId: string) {
 export async function adminDeleteContent(contentType: string, contentId: string) {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
-  const deleteMap: Record<string, any> = {
+  const deleteMap: Record<string, DeleteMapValue> = {
     feed: { model: prisma.socialPost, path: '/feed' },
     blog: { model: prisma.article, path: '/blog' },
     publication: { model: prisma.publication, path: '/publications' },
@@ -108,14 +120,17 @@ export async function adminDeleteContent(contentType: string, contentId: string)
 }
 
 // Delete comment by admin
-export async function adminDeleteComment(commentType: string, commentId: string) {
+export async function adminDeleteComment(
+  commentType: string,
+  commentId: string,
+) {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
-  const commentModelMap: Record<string, any> = {
+  const commentModelMap: Record<string, CommentModel> = {
     post: prisma.socialComment,
     article: prisma.articleComment,
     publication: prisma.publicationComment,
@@ -145,7 +160,7 @@ export async function adminDeleteComment(commentType: string, commentId: string)
 export async function getAdminStats() {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
@@ -214,7 +229,7 @@ export async function getAdminStats() {
 export async function getAdminUsers() {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
@@ -226,28 +241,32 @@ export async function getAdminUsers() {
       isFrozen: true,
     },
     orderBy: {
-      createdAt: 'desc'
-    }
+      createdAt: 'desc',
+    },
   })
 }
 
 // Approve or reject a contribution
-export async function updateContributionStatus(contentId: string, status: 'APPROVED' | 'REJECTED', reason?: string) {
+export async function updateContributionStatus(
+  contentId: string,
+  status: 'APPROVED' | 'REJECTED',
+  reason?: string,
+) {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
-  
-  if (status === "REJECTED" && !reason) {
-    throw new Error("Missing reason for rejection");
+
+  if (status === 'REJECTED' && !reason) {
+    throw new Error('Missing reason for rejection')
   }
 
   const updatedContribution = await prisma.contribution.update({
     where: { id: contentId },
     data: {
       status,
-      ...(status === "REJECTED" && { rejectionReason: reason }),
+      ...(status === 'REJECTED' && { rejectionReason: reason }),
     },
     include: {
       author: {
@@ -256,53 +275,54 @@ export async function updateContributionStatus(contentId: string, status: 'APPRO
         },
       },
     },
-  });
+  })
 
-  if (status === "APPROVED") {
+  if (status === 'APPROVED') {
     // This is a fire-and-forget, no need to await
-    // notifyUserById({
-    //   recipientId: updatedContribution.author.id,
-    //   actorId: user.id,
-    //   type: "contribution-approved",
-    //   targetType: "contribution",
-    //   targetId: updatedContribution.id,
-    //   title: "Your contribution has been approved!",
-    //   body: `Your contribution "${updatedContribution.title}" has been approved.`,
-    // });
-  } else if (status === "REJECTED") {
+    notifyUserById({
+      recipientId: updatedContribution.author.id,
+      actorId: user.id,
+      type: 'contribution-approved',
+      targetType: 'contribution',
+      targetId: updatedContribution.id,
+      title: 'Your contribution has been approved!',
+      body: `Your contribution "${updatedContribution.title}" has been approved.`,
+    })
+  } else if (status === 'REJECTED') {
     // This is a fire-and-forget, no need to await
-    // notifyUserById({
-    //   recipientId: updatedContribution.author.id,
-    //   actorId: user.id,
-    //   type: "contribution-rejected",
-    //   targetType: "contribution",
-    //   targetId: updatedContribution.id,
-    //   title: "Your contribution has been rejected",
-    //   body: `Your contribution "${updatedContribution.title}" has been rejected. Reason: ${reason}`,
-    // });
+    notifyUserById({
+      recipientId: updatedContribution.author.id,
+      actorId: user.id,
+      type: 'contribution-rejected',
+      targetType: 'contribution',
+      targetId: updatedContribution.id,
+      title: 'Your contribution has been rejected',
+      body: `Your contribution "${updatedContribution.title}" has been rejected. Reason: ${reason}`,
+    })
   }
 
-  revalidatePath('/admin');
-  return { success: true };
+  revalidatePath('/admin')
+  return { success: true }
 }
 
+
 // Get all content for admin panel
-export async function getAdminContent(contentType?: string) {
+export async function getAdminContent(contentType?: string): Promise<AdminContentItem[]> {
   const user = await requireCurrentUser('Log in to access admin.')
 
-  if (!await isUserAdmin(user.id)) {
+  if (!(await isUserAdmin(user.id))) {
     throw new Error('Not authorized.')
   }
 
   if (contentType) {
-    const contentMap: Record<string, { model: any; detailHref: (item: any) => string }> = {
+    const contentMap: ContentMap = {
       feed: {
         model: prisma.socialPost,
         detailHref: (item) => `/feed/${item.id}`,
       },
       blog: {
         model: prisma.article,
-        detailHref: (item) => `/blog/${item.slug}`,
+        detailHref: (item) => `/blog/${'slug' in item ? item.slug : item.id}`,
       },
       publications: {
         model: prisma.publication,
@@ -346,7 +366,8 @@ export async function getAdminContent(contentType?: string) {
       },
       recommendations: {
         model: prisma.recommendation,
-        detailHref: (item) => `/supervisor/${item.supervisorId}/recommendation/${item.id}`,
+        detailHref: (item) =>
+          `/supervisor/${'supervisorId' in item ? item.supervisorId : ''}/recommendation/${item.id}`,
       },
       surveys: {
         model: prisma.researchSurvey,
@@ -362,11 +383,11 @@ export async function getAdminContent(contentType?: string) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return items.map((item: any) => ({
+    return items.map((item) => ({
       ...item,
       detailHref: config.detailHref(item),
     }))
   }
 
-  return {}
+  return []
 }

@@ -8,7 +8,6 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import {
   deleteSurvey,
   getSurvey,
-  hasUserResponded,
   closeSurvey,
   reopenSurvey,
   toggleShareData,
@@ -45,11 +44,11 @@ const SurveyDetailPage = async ({
   const hasResponded = !!response;
 
   const upvotes =
-    survey.votes?.filter((v: any) => v.voteType === "UPVOTE").length ?? 0;
+    survey.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvotes =
-    survey.votes?.filter((v: any) => v.voteType === "DOWNVOTE").length ?? 0;
+    survey.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
-    (survey.votes?.find((v: any) => v.userId === user?.id)?.voteType as
+    (survey.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;
@@ -80,7 +79,12 @@ const SurveyDetailPage = async ({
         ) : null
       }
       authorId={survey.author.id}
-      isFollowing={(survey.author as any)?.followers?.length ? true : false}
+      isFollowing={
+        (survey.author as { followers?: { followerId: string }[] })?.followers
+          ?.length
+          ? true
+          : false
+      }
       currentUserId={user?.id}
       createdDate={survey.createdAt}
       editedDate={
@@ -98,21 +102,13 @@ const SurveyDetailPage = async ({
       footerCommentsHref={`/surveys/${survey.id}#comments`}
       footerCommentsCount={survey._count.comments}
       discussion={
-        <div
-          className="mt-4 sm:mt-6 p-4 sm:p-6 md:p-8 md:mt-8 sb-surface-strong rounded-xl"
-          id="comments"
-        >
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4 md:mb-6">
-            Discussion
-          </h2>
-          <CommentSection
-            comments={survey.comments}
-            targetId={survey.id}
-            type="survey"
-            currentUserId={user?.id || null}
-            postAuthorId={survey.author.id}
-          />
-        </div>
+        <CommentSection
+          comments={survey.comments}
+          targetId={survey.id}
+          type="survey"
+          currentUserId={user?.id || null}
+          postAuthorId={survey.author.id}
+        />
       }
     >
       <div className="mb-4 flex items-center gap-2">

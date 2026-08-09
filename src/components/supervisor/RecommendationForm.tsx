@@ -159,7 +159,7 @@ export default function RecommendationForm({
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end">
-        <SubmitBtnWithAuth className="sb-button-primary">
+        <SubmitBtnWithAuth className="sb-button-primary" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
         </SubmitBtnWithAuth>
       </div>
