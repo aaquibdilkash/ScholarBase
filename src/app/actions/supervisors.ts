@@ -5,6 +5,24 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache';
 
+// Shared include for a single recommendation in the supervisor detail carousel.
+const recommendationInclude = (userId?: string) => ({
+  include: {
+    author: {
+      include: {
+        followers: userId
+          ? {
+            where: { followerId: userId },
+            select: { followerId: true },
+          }
+          : false,
+      },
+    },
+    votes: { select: { userId: true, voteType: true } },
+    _count: { select: { comments: true, votes: true } },
+  },
+});
+
 
 export async function getSupervisors(q?: string, userId?: string) {
   return prisma.supervisor.findMany({
@@ -48,21 +66,9 @@ export async function getSupervisor(id: string, userId?: string) {
             : false,
         },
       },
-      recommendations: {
-        include: {
-          author: {
-            include: {
-              followers: userId
-                ? {
-                  where: { followerId: userId },
-                  select: { followerId: true },
-                }
-                : false,
-            },
-          },
-          votes: { select: { userId: true, voteType: true } },
-          _count: { select: { comments: true, votes: true } },
-        },
+recommendations: {
+        ...recommendationInclude(userId),
+        take: 1,
         orderBy: { createdAt: "desc" },
       },
       comments: {
@@ -85,9 +91,68 @@ export async function getSupervisor(id: string, userId?: string) {
       votes: {
         select: { userId: true, voteType: true },
       },
-      _count: { select: { votes: true } },
+      _count: { select: { votes: true, recommendations: true } },
     },
   });
+}
+
+/**
+ * Fetch the next batch of recommendations for a supervisor (lazy-loaded carousel).
+ * Mirrors the profile content tab's paginated loading pattern.
+ */
+export async function getSupervisorRecommendations(
+  supervisorId: string,
+  userId?: string,
+  skip: number = 0,
+  take: number = 1,
+) {
+  return prisma.recommendation.findMany({
+    where: { supervisorId },
+    ...recommendationInclude(userId),
+    skip,
+    take,
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/**
+ * Aggregate stats for the supervisor detail page (rating + distribution + ownership),
+ * computed without loading every recommendation into the carousel.
+ */
+export async function getSupervisorRecommendationMeta(
+  supervisorId: string,
+  userId?: string,
+) {
+  const [recommendations, total] = await Promise.all([
+    prisma.recommendation.findMany({
+      where: { supervisorId },
+      select: { rating: true, authorId: true },
+    }),
+    prisma.recommendation.count({ where: { supervisorId } }),
+  ]);
+
+  const avgRating =
+    total > 0
+      ? recommendations.reduce((sum, r) => sum + r.rating, 0) / total
+      : 0;
+
+  const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
+    const count = recommendations.filter((r) => r.rating === stars).length;
+    return {
+      stars,
+      count,
+      percentage: total > 0 ? (count / total) * 100 : 0,
+    };
+  });
+
+  return {
+    totalCount: total,
+    avgRating,
+    ratingDistribution,
+    hasUserRecommendation: !!(
+      userId && recommendations.some((r) => r.authorId === userId)
+    ),
+  };
 }
 
 export async function createSupervisor(formData: FormData) {

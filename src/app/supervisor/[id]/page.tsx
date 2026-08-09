@@ -4,9 +4,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 
-import { Carousel } from "@/components/ui/Carousel";
-import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
-import { deleteSupervisor, getSupervisor } from "@/app/actions/supervisors";
+import { SupervisorRecommendations } from "@/components/supervisor/SupervisorRecommendations";
+import {
+  deleteSupervisor,
+  getSupervisor,
+  getSupervisorRecommendationMeta,
+} from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
@@ -29,6 +32,8 @@ export default async function SupervisorPage({
       </div>
     );
 
+  const recMeta = await getSupervisorRecommendationMeta(id, user?.id);
+
   async function handleDelete() {
     "use server";
     await deleteSupervisor(supervisor!.id);
@@ -45,28 +50,12 @@ export default async function SupervisorPage({
       | "DOWNVOTE"
       | null) ?? null;
 
-  const hasUserRecommendation =
-    !!user && supervisor.recommendations.some((r) => r.authorId === user.id);
+  const hasUserRecommendation = recMeta.hasUserRecommendation;
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
 
-  const recommendationCount = supervisor.recommendations.length;
-  const avgRating =
-    recommendationCount > 0
-      ? supervisor.recommendations.reduce((sum, rec) => sum + rec.rating, 0) /
-        recommendationCount
-      : 0;
-
-  const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
-    const count = supervisor.recommendations.filter(
-      (r) => r.rating === stars,
-    ).length;
-    return {
-      stars,
-      count,
-      percentage:
-        recommendationCount > 0 ? (count / recommendationCount) * 100 : 0,
-    };
-  });
+  const recommendationCount = recMeta.totalCount;
+  const avgRating = recMeta.avgRating;
+  const ratingDistribution = recMeta.ratingDistribution;
 
   return (
     <DetailPageCardShell
@@ -191,23 +180,19 @@ export default async function SupervisorPage({
           className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-4 sm:mb-6"
           id="recommendations"
         >
-          Recommendations ({supervisor.recommendations.length})
+          Recommendations ({recommendationCount})
         </h3>
-        {supervisor.recommendations.length === 0 ? (
+        {recommendationCount === 0 ? (
           <p className="text-slate-500 bg-white p-8 rounded-2xl border border-slate-200/60 text-center">
             No recommendations yet. Be the first to share your experience!
           </p>
         ) : (
-          <Carousel>
-            {supervisor.recommendations.map((r) => (
-              <RecommendationCard
-                key={r.id}
-                recommendation={r}
-                supervisor={supervisor}
-                currentUserId={user?.id}
-              />
-            ))}
-          </Carousel>
+          <SupervisorRecommendations
+            initialRecommendations={supervisor.recommendations}
+            totalCount={recommendationCount}
+            supervisor={supervisor}
+            currentUserId={user?.id}
+          />
         )}
       </div>
     </DetailPageCardShell>
