@@ -183,7 +183,7 @@ export default function ConversationPage({
           setIsTyping(false);
         }
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === "SUBSCRIBED") {
           await room.track({
             isTyping: false,

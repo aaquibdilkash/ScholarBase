@@ -167,7 +167,7 @@ export function MessageList({
         { event: "INSERT", schema: "public", table: "Message" },
         handleInsert,
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         if (status === "SUBSCRIBED") isSubscribedRef.current = true;
       });
 

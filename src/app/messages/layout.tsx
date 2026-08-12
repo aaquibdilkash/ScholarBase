@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { formatTimeAgo } from "@/utils/time-ago";
-import type { User } from "@supabase/supabase-js";
+import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
 import useMediaQuery from "@/hooks/useMediaQuery";
 import { MessagesLayoutContext } from "./messages-context";
@@ -15,6 +15,15 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
 type Message = { body: string; };
 type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; };
+
+type MessageRow = {
+  id: string;
+  body: string;
+  conversation_id?: string;
+  conversationId?: string;
+  created_at: string;
+  createdAt?: string; // Re-added
+};
 
 function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
@@ -31,8 +40,8 @@ function ConversationSidebar({ user }: { user: User | null }) {
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel('sidebar-global-listener')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Message' }, (payload) => {
-          const rawMessage = payload.new;
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Message' }, (payload: RealtimePostgresChangesPayload<MessageRow>) => {
+          const rawMessage = payload.new as MessageRow;
           const msgConvId = rawMessage.conversationId || rawMessage.conversation_id;
 
           setInbox((currentInbox) => {
@@ -159,8 +168,8 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
 
   useEffect(() => { if (isDesktop) setIsSidebarOpen(true); }, [isDesktop]);
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => setUser(user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
   }, []);
 
