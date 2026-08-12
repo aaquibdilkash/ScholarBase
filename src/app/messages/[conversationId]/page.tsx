@@ -1,14 +1,20 @@
 "use client";
 
-import React, { useEffect, useState, useContext, use, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useContext,
+  useRef,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   getConversation,
-  isUserBlocked,
   blockUser,
   unblockUser,
+  markConversationAsRead,
 } from "@/app/actions/messages";
 import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
@@ -16,9 +22,15 @@ import { supabase } from "@/utils/supabase/client";
 import { Menu, MoreVertical, Ban, UserCheck } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import type { User } from "@supabase/supabase-js";
+import type { SentMessage } from "@/components/messages/MessageInputForm";
 
-// Define necessary types
+type PresencePayload = {
+  isTyping?: boolean;
+  lastReadAt?: string;
+};
+
 type Participant = {
+  lastReadAt: string | Date | null;
   user: {
     id: string;
     name: string | null;
@@ -26,24 +38,10 @@ type Participant = {
     avatarUrl: string | null;
   };
 };
-
-type Message = {
-  id: string;
-  body: string;
-  createdAt: Date | string;
-  senderId: string;
-  sender: {
-    id: string;
-    name: string | null;
-    handle: string | null;
-    avatarUrl: string | null;
-  };
-};
-
 type Conversation = {
   id: string;
   participants: Participant[];
-  messages: Message[];
+  messages: SentMessage[];
 };
 
 export default function ConversationPage({
@@ -51,70 +49,211 @@ export default function ConversationPage({
 }: {
   params: Promise<{ conversationId: string }>;
 }) {
-  const { conversationId } = use(params);
+  const { conversationId } = React.use(params);
   const context = useContext(MessagesLayoutContext);
-  if (!context) {
+  if (!context)
     throw new Error("ConversationPage must be used within a MessagesLayout");
-  }
+
   const { setIsSidebarOpen } = context;
   const [user, setUser] = useState<User | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
-  const appendMessageRef = useRef<((msg: Message) => void) | null>(null);
 
+  const [isTyping, setIsTyping] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
+  const lastTypedAt = useRef<number>(0);
+  const roomRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  const [otherParticipantLastReadAt, setOtherParticipantLastReadAt] =
+    useState<Date>(new Date(0));
+
+  const appendMessageRef = useRef<((msg: SentMessage) => void) | null>(null);
+  const handleAppendMessage = useCallback((fn: (msg: SentMessage) => void) => {
+    appendMessageRef.current = fn;
+  }, []);
+
+  const userId = user?.id;
+  const hasMarkedReadRef = useRef(false);
+
+  // ⚡ Throttled read-marker: only hits the database server once unless forced by a new message
+  const triggerMarkRead = useCallback(
+    (force = false) => {
+      if (!userId) return;
+      if (!hasMarkedReadRef.current || force) {
+        hasMarkedReadRef.current = true;
+        markConversationAsRead(conversationId);
+      }
+      if (roomRef.current) {
+        roomRef.current
+          .track({
+            isTyping: false,
+            lastReadAt: new Date().toISOString(),
+          })
+          .catch(() => {});
+      }
+    },
+    [userId, conversationId],
+  );
+
+  // Stable ref to avoid re-running effects when callback identity changes
+  const triggerMarkReadRef = useRef(triggerMarkRead);
   useEffect(() => {
+    triggerMarkReadRef.current = triggerMarkRead;
+  }, [triggerMarkRead]);
+
+  const handleMessageSent = useCallback(
+    (message: SentMessage) => {
+      appendMessageRef.current?.(message);
+      triggerMarkRead(true);
+    },
+    [triggerMarkRead],
+  );
+
+  // Initial fetch on mount only
+  useEffect(() => {
+    let isMounted = true;
     const fetchUserAndConversation = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) {
-        const conv = await getConversation(conversationId, user.id);
-        if (!conv) {
+      if (isMounted) {
+        setUser(user);
+        if (user) {
+          const conv = await getConversation(conversationId, user.id);
+          if (!conv) notFound();
+          setConversation(conv as unknown as Conversation);
+
+          await markConversationAsRead(conversationId);
+
+          const otherP = (conv as unknown as Conversation).participants.find(
+            (p) => p.user.id !== user.id,
+          );
+          if (otherP?.lastReadAt) {
+            setOtherParticipantLastReadAt(new Date(otherP.lastReadAt));
+          }
+        } else {
           notFound();
         }
-        setConversation(conv as Conversation);
-      } else {
-        notFound();
       }
     };
-
     fetchUserAndConversation();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const conv = await getConversation(conversationId, session.user.id);
-        if (!conv) {
-          notFound();
-        }
-        setConversation(conv as Conversation);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+    };
   }, [conversationId]);
 
-  const otherParticipant = conversation?.participants.find(
-    (p) => p.user.id !== user?.id,
-  )?.user;
+  const otherParticipantData = conversation?.participants.find(
+    (p) => p.user.id !== userId,
+  );
+  const otherParticipant = otherParticipantData?.user;
 
   useEffect(() => {
-    if (user && otherParticipant) {
-      isUserBlocked(user.id, otherParticipant.id).then(setIsBlocked);
-    }
-  }, [user, otherParticipant]);
+    if (!isTyping) return;
+    const timer = setTimeout(() => setIsTyping(false), 3000);
+    return () => clearTimeout(timer);
+  }, [isTyping]);
+
+  // Stable Presence & Read Sync Channel
+  useEffect(() => {
+    if (!userId || !conversationId) return;
+
+    const room = supabase.channel(`presence-${conversationId}`, {
+      config: { presence: { key: userId } },
+    });
+
+    roomRef.current = room;
+
+    room
+      .on("presence", { event: "sync" }, () => {
+        const state = room.presenceState();
+        const otherUserId = otherParticipant?.id;
+
+        if (otherUserId && state[otherUserId]) {
+          setIsOnline(true);
+          const presencePayload = state[otherUserId][0] as PresencePayload;
+          setIsTyping(presencePayload?.isTyping || false);
+
+          if (presencePayload?.lastReadAt) {
+            setOtherParticipantLastReadAt(new Date(presencePayload.lastReadAt));
+          }
+        } else {
+          setIsOnline(false);
+          setIsTyping(false);
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await room.track({
+            isTyping: false,
+            lastReadAt: new Date().toISOString(),
+          });
+        }
+      });
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        room.untrack();
+        setIsOnline(false);
+      } else {
+        triggerMarkReadRef.current();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      supabase.removeChannel(room);
+      roomRef.current = null;
+    };
+  }, [userId, conversationId, otherParticipant?.id]);
+
+  const broadcastTyping = useCallback(() => {
+    if (!userId || !roomRef.current) return;
+    const now = Date.now();
+    if (now - lastTypedAt.current < 2000) return;
+    lastTypedAt.current = now;
+
+    roomRef.current
+      .track({
+        isTyping: true,
+        lastReadAt: new Date().toISOString(),
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  // Stable callback to avoid re-subscribing realtime channel
+  const onMessageReceived = useCallback(() => {
+    triggerMarkRead(true);
+  }, [triggerMarkRead]);
+
+  // Stable ref for broadcastTyping to avoid resetting typing timeout
+  const broadcastTypingRef = useRef(broadcastTyping);
+  useEffect(() => {
+    broadcastTypingRef.current = broadcastTyping;
+  }, [broadcastTyping]);
+
+  // Broadcast isTyping: false after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (roomRef.current) {
+        roomRef.current
+          .track({
+            isTyping: false,
+            lastReadAt: new Date().toISOString(),
+          })
+          .catch(() => {});
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [userId]);
 
   useEffect(() => {
     const closeOnOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest("[data-block-menu]")) {
-        setMenuOpen(false);
-      }
+      if (!target.closest("[data-block-menu]")) setMenuOpen(false);
     };
     document.addEventListener("mousedown", closeOnOutside);
     return () => document.removeEventListener("mousedown", closeOnOutside);
@@ -122,7 +261,7 @@ export default function ConversationPage({
 
   if (!user || !conversation) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-slate-500 dark:text-slate-400">
+      <div className="flex flex-col h-full items-center justify-center text-slate-500">
         Loading conversation...
       </div>
     );
@@ -153,20 +292,14 @@ export default function ConversationPage({
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
-          className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white md:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
-          aria-label="Toggle conversation sidebar"
+          className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm md:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
         >
           <Menu className="h-6 w-6" />
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Link
             href={otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
-            className="flex shrink-0 items-center gap-3 transition-opacity hover:opacity-80"
-            title={
-              otherParticipant
-                ? `View ${otherParticipant.name || "this scholar"}'s profile`
-                : "Scholar profile"
-            }
+            className="flex shrink-0 items-center gap-3"
           >
             <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800">
               {otherParticipant?.avatarUrl ? (
@@ -179,7 +312,7 @@ export default function ConversationPage({
                   className="h-full w-full rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-500">
                   {otherParticipant?.name?.charAt(0).toUpperCase() || "@"}
                 </div>
               )}
@@ -189,29 +322,34 @@ export default function ConversationPage({
                 {otherParticipant?.name || "Scholar"}
               </h1>
               <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                {otherParticipant?.handle
-                  ? `@${otherParticipant.handle}`
-                  : "scholar"}
+                {isTyping ? (
+                  <span className="text-blue-500 font-medium italic">
+                    typing...
+                  </span>
+                ) : isOnline ? (
+                  <span className="text-green-500 font-medium">Online</span>
+                ) : otherParticipant?.handle ? (
+                  `@${otherParticipant.handle}`
+                ) : (
+                  "scholar"
+                )}
               </p>
             </div>
           </Link>
         </div>
         <div className="relative" data-block-menu>
           <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm transition hover:bg-white dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
-            aria-label="Conversation options"
+            onClick={() => setMenuOpen((o) => !o)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
           >
             <MoreVertical className="h-5 w-5" />
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-12 z-20 w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
               <button
-                type="button"
                 onClick={handleToggleBlock}
                 disabled={isBlocking}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
               >
                 {isBlocked ? (
                   <UserCheck className="h-4 w-4" />
@@ -228,21 +366,23 @@ export default function ConversationPage({
           )}
         </div>
       </div>
+
       <div className="flex-1 overflow-y-auto p-4">
         <MessageList
           conversationId={conversation.id}
           initialMessages={conversation.messages}
           user={user}
-          registerAppend={(fn) => {
-            appendMessageRef.current = fn;
-          }}
+          otherParticipantLastReadAt={otherParticipantLastReadAt}
+          registerAppend={handleAppendMessage}
+          onMessageReceived={onMessageReceived}
         />
       </div>
+
       <MessageInputForm
         conversationId={conversation.id}
-        onMessageSent={(message) => {
-          appendMessageRef.current?.(message);
-        }}
+        onMessageSent={handleMessageSent}
+        currentUser={user}
+        onTyping={broadcastTyping}
       />
     </div>
   );

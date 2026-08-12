@@ -1,182 +1,204 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
-import { supabase } from "@/lib/supabase";
-import { formatTimeAgo } from "@/utils/time-ago";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { supabase } from "@/utils/supabase/client";
+import { getMessageDetails, getMoreMessages } from "@/app/actions/messages";
+import { MessageItem } from "./MessageItem";
 import type { User } from "@supabase/supabase-js";
-import type { Message } from "@/types/messages";
+import type { SentMessage } from "./MessageInputForm";
+type MessageRow = {
+  id: string;
+  conversationId?: string;
+  conversation_id?: string;
+  body: string;
+  senderId?: string;
+  createdAt: string;
+  sender?: { id: string; name: string | null; handle: string | null; avatarUrl: string | null };
+};
 
-export type { Message } from "@/types/messages";
+type RealtimePayload = {
+  new: MessageRow;
+};
 
 export function MessageList({
   conversationId,
   initialMessages,
   user,
+  otherParticipantLastReadAt,
   registerAppend,
+  onMessageReceived,
 }: {
   conversationId: string;
-  initialMessages: Message[];
+  initialMessages: SentMessage[];
   user: User | null;
-  registerAppend?: (fn: (message: Message) => void) => void;
+  otherParticipantLastReadAt: Date;
+  registerAppend?: (fn: (message: SentMessage) => void) => void;
+  onMessageReceived?: () => void;
 }) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const [messages, setMessages] = useState<SentMessage[]>(() =>
+    [...initialMessages].reverse(),
+  );
+  const [hasMore, setHasMore] = useState(initialMessages.length === 40);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const userId = user?.id;
+  const isSubscribedRef = useRef(false);
+
+  const initialRenderRef = useRef(true);
+  const previousMessageCount = useRef(initialMessages.length);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (initialRenderRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      initialRenderRef.current = false;
+      return;
+    }
 
-  // Register an append function so the parent can add a message instantly on send.
+    const diff = messages.length - previousMessageCount.current;
+    if (
+      !isLoadingMore &&
+      (diff === 1 || diff === 0 || previousMessageCount.current === 0)
+    ) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    previousMessageCount.current = messages.length;
+  }, [messages, isLoadingMore]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore || messages.length === 0) return;
+    setIsLoadingMore(true);
+
+    const scrollContainer = containerRef.current;
+    const previousScrollHeight = scrollContainer
+      ? scrollContainer.scrollHeight
+      : 0;
+
+    try {
+      const cursor = messages[0].id;
+      const olderMessages = await getMoreMessages(conversationId, cursor);
+      if (olderMessages.length < 40) setHasMore(false);
+
+      setMessages((prev) => {
+        const formattedOlder = [...olderMessages].reverse() as SentMessage[];
+        return [...formattedOlder, ...prev];
+      });
+
+      requestAnimationFrame(() => {
+        if (scrollContainer) {
+          const newScrollHeight = scrollContainer.scrollHeight;
+          scrollContainer.scrollTop = newScrollHeight - previousScrollHeight;
+        }
+      });
+    } catch (error) {
+      console.error("Failed to load more messages", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, messages, conversationId]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { threshold: 1.0 },
+    );
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => observer.disconnect();
+  }, [loadMore]);
+
   useEffect(() => {
     if (registerAppend) {
-      registerAppend((message: Message) => {
-        setMessages((currentMessages) => {
-          if (currentMessages.some((m) => m.id === message.id)) {
-            return currentMessages;
-          }
-          return [...currentMessages, message];
-        });
+      registerAppend((message: SentMessage) => {
+        setMessages((current) => [...current, message]);
       });
     }
   }, [registerAppend]);
 
+  // ⚡ Stable Realtime subscription effect locked with primitive dependencies
   useEffect(() => {
-    const fetchNewMessage = async (
-      messageId: string,
-    ): Promise<Message | null> => {
-      const { data, error } = await supabase
-        .from("Message")
-        .select(
-          `
-          id,
-          body,
-          createdAt,
-          senderId,
-          sender:User(
-            id,
-            name,
-            handle,
-            avatarUrl
-          )
-        `,
-        )
-        .eq("id", messageId)
-        .single();
+    if (!conversationId || !userId) return;
+    if (isSubscribedRef.current) return;
 
-      if (error) {
-        console.error("Error fetching new message:", error);
-        return null;
+    const channel = supabase.channel(`realtime:messages:${conversationId}`);
+
+    const handleInsert = async (payload: RealtimePayload) => {
+      try {
+        const rawMessage = payload.new;
+        const msgConvId =
+          rawMessage.conversationId || rawMessage.conversation_id;
+
+        if (msgConvId !== conversationId) return;
+
+        const details = await getMessageDetails(rawMessage.id);
+        if (!details) return;
+
+        const fetchedMessage = details as SentMessage;
+        fetchedMessage.status = "sent";
+
+        setMessages((current) => {
+          // Replace any temporary optimistic "sending" message with the real one
+          const filtered = current.filter(
+            (m) =>
+              !(
+                m.status === "sending" &&
+                m.body === fetchedMessage.body &&
+                m.senderId === fetchedMessage.senderId
+              ),
+          );
+          if (filtered.some((m) => m.id === fetchedMessage.id)) return current;
+          return [...filtered, fetchedMessage];
+        });
+
+        if (fetchedMessage.senderId !== userId && onMessageReceived) {
+          onMessageReceived();
+        }
+      } catch (error) {
+        console.error("Error handling realtime insert:", error);
       }
-      const messageData = data as unknown as {
-        id: string;
-        body: string;
-        createdAt: Date | string;
-        senderId: string;
-        sender: Message["sender"] | Message["sender"][];
-      };
-      return {
-        ...messageData,
-        sender: Array.isArray(messageData.sender)
-          ? messageData.sender[0]
-          : messageData.sender,
-      } as Message;
     };
 
-    const channel = supabase
-      .channel(`realtime:messages:${conversationId}`)
+    channel
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "Message",
-          filter: `conversationId=eq.${conversationId}`,
-        },
-        async (payload) => {
-          const newMessageId = (payload.new as { id: string }).id;
-          const fetchedMessage = await fetchNewMessage(newMessageId);
-
-          if (fetchedMessage) {
-            setMessages((currentMessages) => {
-              // Guard against duplicate inserts (e.g. replayed events).
-              if (currentMessages.some((m) => m.id === fetchedMessage.id)) {
-                return currentMessages;
-              }
-              return [...currentMessages, fetchedMessage];
-            });
-          }
-        },
+        { event: "INSERT", schema: "public", table: "Message" },
+        handleInsert,
       )
       .subscribe((status) => {
-        if (status !== "SUBSCRIBED") {
-          console.warn(
-            `Realtime channel status for conversation ${conversationId}: ${status}`,
-          );
-        }
+        if (status === "SUBSCRIBED") isSubscribedRef.current = true;
       });
 
     return () => {
+      isSubscribedRef.current = false;
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, userId, onMessageReceived]);
 
-  if (!user) {
-    return null;
-  }
+  if (!user || !userId) return null;
 
   return (
-    <div className="space-y-4">
-      {messages.map((message) => (
+    <div ref={containerRef} className="space-y-4 h-full overflow-y-auto">
+      {hasMore && (
         <div
-          key={message.id}
-          className={`flex items-start gap-3 ${
-            message.senderId === user.id ? "flex-row-reverse" : ""
-          }`}
+          ref={observerTarget}
+          className="flex h-8 w-full items-center justify-center"
         >
-          <div
-            className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${
-              message.senderId === user.id ? "hidden" : ""
-            }`}
-          >
-            {message.sender.avatarUrl ? (
-              <Image
-                src={message.sender.avatarUrl}
-                alt={message.sender.name || "Scholar"}
-                width={32}
-                height={32}
-                unoptimized
-                className="h-full w-full rounded-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
-                {message.sender.name?.charAt(0).toUpperCase() || "@"}
-              </div>
-            )}
-          </div>
-          <div
-            className={`max-w-[75%] rounded-lg px-4 py-2 ${
-              message.senderId === user.id
-                ? "bg-blue-500 text-white"
-                : "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
-            }`}
-          >
-            <p className="text-sm">{message.body}</p>
-            <p
-              className={`mt-1 text-right text-[10px] ${
-                message.senderId === user.id
-                  ? "text-blue-200"
-                  : "text-slate-400 dark:text-slate-500"
-              }`}
-            >
-              {formatTimeAgo(message.createdAt)}
-            </p>
-          </div>
+          {isLoadingMore && (
+            <span className="text-xs text-slate-400">Loading history...</span>
+          )}
         </div>
+      )}
+
+      {messages.map((message) => (
+        <MessageItem
+          key={message.id}
+          message={message}
+          currentUserId={userId}
+          otherParticipantLastReadAt={otherParticipantLastReadAt}
+        />
       ))}
       <div ref={messagesEndRef} />
     </div>

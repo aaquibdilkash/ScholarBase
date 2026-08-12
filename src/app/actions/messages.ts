@@ -62,7 +62,6 @@ export async function findDirectConversation(userIdA: string, userIdB: string) {
     },
     select: { id: true },
   })
-
   return conversation?.id ?? null
 }
 
@@ -91,12 +90,14 @@ export async function getConversation(conversationId: string, userId: string) {
         },
       },
       messages: {
-        orderBy: { createdAt: 'asc' },
+        take: 40, // ⚡ INFINITE SCROLL: Only load latest 40 initially
+        orderBy: { createdAt: 'desc' }, // ⚡ Must be descending to get newest
         select: {
           id: true,
           body: true,
           createdAt: true,
           senderId: true,
+          conversationId: true,
           sender: {
             select: {
               id: true,
@@ -111,42 +112,71 @@ export async function getConversation(conversationId: string, userId: string) {
   })
 }
 
+// ⚡ INFINITE SCROLL: Fetch older messages using a cursor
+export async function getMoreMessages(conversationId: string, cursorId: string) {
+  const supabaseUser = await requireCurrentUser('Please log in to view messages.')
 
+  const messages = await prisma.message.findMany({
+    where: {
+      conversationId,
+      conversation: { participants: { some: { userId: supabaseUser.id } } },
+    },
+    take: 40,
+    skip: 1, // Skip the cursor message itself
+    cursor: { id: cursorId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      body: true,
+      createdAt: true,
+      senderId: true,
+      conversationId: true,
+      sender: {
+        select: { id: true, name: true, handle: true, avatarUrl: true },
+      },
+    },
+  })
+  return messages;
+}
+
+// ⚡ REALTIME FIX: Safe fetcher for Prisma/Supabase conflicts
+export async function getMessageDetails(messageId: string) {
+  return prisma.message.findUnique({
+    where: { id: messageId },
+    select: {
+      id: true,
+      body: true,
+      createdAt: true,
+      senderId: true,
+      conversationId: true,
+      sender: {
+        select: { id: true, name: true, handle: true, avatarUrl: true },
+      },
+    },
+  });
+}
 
 export async function startConversation(formData: FormData): Promise<SubmitResult> {
   const supabaseUser = await requireCurrentUser('Please log in to send a message.')
   const recipientId = readFormValue(formData, 'recipientId')
   const body = readFormValue(formData, 'body')
 
-  if (!recipientId || !body) {
-    return { success: false, error: 'Recipient and message are required.' }
-  }
+  if (!recipientId || !body) return { success: false, error: 'Recipient and message are required.' }
+  if (recipientId === supabaseUser.id) return { success: false, error: 'You cannot message yourself.' }
 
-  if (recipientId === supabaseUser.id) {
-    return { success: false, error: 'You cannot message yourself.' }
-  }
-
-  // Check if the recipient has blocked the current user
   const recipientBlockedSender = await prisma.block.findUnique({
     where: {
-      blockerId_blockedId: {
-        blockerId: recipientId,
-        blockedId: supabaseUser.id,
-      },
+      blockerId_blockedId: { blockerId: recipientId, blockedId: supabaseUser.id },
     },
     select: { id: true },
   })
-  if (recipientBlockedSender) {
-    return { success: false, error: 'You cannot message this scholar.' }
-  }
+  if (recipientBlockedSender) return { success: false, error: 'You cannot message this scholar.' }
 
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
     select: { id: true, name: true },
   })
-  if (!user) {
-    return { success: false, error: 'User not found.' }
-  }
+  if (!user) return { success: false, error: 'User not found.' }
 
   const existingConversation = await prisma.conversation.findFirst({
     where: {
@@ -171,11 +201,7 @@ export async function startConversation(formData: FormData): Promise<SubmitResul
   })).id
 
   await prisma.message.create({
-    data: {
-      conversationId,
-      senderId: user.id,
-      body,
-    },
+    data: { conversationId, senderId: user.id, body },
   })
 
   await prisma.conversation.update({
@@ -184,9 +210,7 @@ export async function startConversation(formData: FormData): Promise<SubmitResul
   })
 
   await prisma.conversationParticipant.update({
-    where: {
-      conversationId_userId: { conversationId, userId: user.id },
-    },
+    where: { conversationId_userId: { conversationId, userId: user.id } },
     data: { lastReadAt: new Date() },
   })
 
@@ -204,34 +228,26 @@ export async function startConversation(formData: FormData): Promise<SubmitResul
   return { success: true, redirect: `/messages/${conversationId}` }
 }
 
-interface CreatedMessage {
+export interface CreatedMessage {
   id: string;
   body: string;
   createdAt: Date;
   senderId: string;
-  sender: {
-    id: string;
-    name: string | null;
-    handle: string | null;
-    avatarUrl: string | null;
-  };
+  conversationId: string;
+  sender: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; };
 }
 
 export async function sendMessage(conversationId: string, formData: FormData): Promise<SubmitResult | CreatedMessage> {
   const supabaseUser = await requireCurrentUser('Please log in to message a scholar.')
   const body = readFormValue(formData, 'body')
 
-  if (!body) {
-    return { success: false, error: 'Message body is required.' }
-  }
+  if (!body) return { success: false, error: 'Message body is required.' }
 
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
     select: { id: true, name: true },
   })
-  if (!user) {
-    return { success: false, error: 'User not found.' }
-  }
+  if (!user) return { success: false, error: 'User not found.' }
 
   const conversation = await prisma.conversation.findFirst({
     where: {
@@ -241,46 +257,28 @@ export async function sendMessage(conversationId: string, formData: FormData): P
     select: { id: true, participants: { select: { userId: true } } },
   })
 
-  if (!conversation) {
-    return { success: false, error: 'Conversation not found.' }
-  }
+  if (!conversation) return { success: false, error: 'Conversation not found.' }
 
-  // Check if the current user has been blocked by any participant
-  const otherParticipant = conversation.participants.find(
-    (p) => p.userId !== user.id,
-  )
+  const otherParticipant = conversation.participants.find((p) => p.userId !== user.id)
   if (otherParticipant) {
     const blocked = await prisma.block.findUnique({
       where: {
-        blockerId_blockedId: {
-          blockerId: otherParticipant.userId,
-          blockedId: user.id,
-        },
+        blockerId_blockedId: { blockerId: otherParticipant.userId, blockedId: user.id },
       },
     })
-    if (blocked) {
-      return { success: false, error: 'You cannot send messages to this conversation because you have been blocked.' }
-    }
+    if (blocked) return { success: false, error: 'You cannot send messages to this conversation because you have been blocked.' }
   }
 
   const createdMessage = await prisma.message.create({
-    data: {
-      conversationId,
-      senderId: user.id,
-      body,
-    },
+    data: { conversationId, senderId: user.id, body },
     select: {
       id: true,
       body: true,
       createdAt: true,
       senderId: true,
+      conversationId: true,
       sender: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true,
-        },
+        select: { id: true, name: true, handle: true, avatarUrl: true },
       },
     },
   })
@@ -291,9 +289,7 @@ export async function sendMessage(conversationId: string, formData: FormData): P
   })
 
   await prisma.conversationParticipant.update({
-    where: {
-      conversationId_userId: { conversationId, userId: user.id },
-    },
+    where: { conversationId_userId: { conversationId, userId: user.id } },
     data: { lastReadAt: new Date() },
   })
 
@@ -306,27 +302,19 @@ export async function sendMessage(conversationId: string, formData: FormData): P
           type: 'message-received',
           targetType: 'conversation',
           targetId: conversationId,
-          title: `${user.name || 'Someone'} sent a new message in your conversation`,
+          title: `${user.name || 'Someone'} sent a new message`,
           body: body,
         });
       }
     }
   }
 
-  revalidatePath('/messages')
-  // No need to revalidate or redirect the conversation page itself,
-  // as the new message will be added in real-time.
   return createdMessage;
 }
 
-export async function isUserBlocked(
-  blockerId: string,
-  blockedId: string,
-): Promise<boolean> {
+export async function isUserBlocked(blockerId: string, blockedId: string): Promise<boolean> {
   const block = await prisma.block.findUnique({
-    where: {
-      blockerId_blockedId: { blockerId, blockedId },
-    },
+    where: { blockerId_blockedId: { blockerId, blockedId } },
     select: { id: true },
   })
   return !!block
@@ -334,26 +322,16 @@ export async function isUserBlocked(
 
 export async function blockUser(blockedId: string) {
   const user = await requireCurrentUser('Please log in to block a scholar.')
-  if (user.id === blockedId) {
-    throw new Error('You cannot block yourself.')
-  }
-
-  await prisma.block.create({
-    data: { blockerId: user.id, blockedId },
-  })
-
+  if (user.id === blockedId) throw new Error('You cannot block yourself.')
+  await prisma.block.create({ data: { blockerId: user.id, blockedId } })
   revalidatePath(`/scholars/${blockedId}`)
 }
 
 export async function unblockUser(blockedId: string) {
   const user = await requireCurrentUser('Please log in to unblock a scholar.')
-
   await prisma.block.delete({
-    where: {
-      blockerId_blockedId: { blockerId: user.id, blockedId },
-    },
+    where: { blockerId_blockedId: { blockerId: user.id, blockedId } },
   })
-
   revalidatePath(`/scholars/${blockedId}`)
 }
 
@@ -363,4 +341,22 @@ export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
     select: { blockedId: true },
   })
   return blocks.map((b) => b.blockedId)
+}
+
+// ⚡ NEW: Automatically mark conversation as read when opened
+export async function markConversationAsRead(conversationId: string) {
+  const supabaseUser = await requireCurrentUser();
+  if (!supabaseUser) return;
+
+  await prisma.conversationParticipant.update({
+    where: {
+      conversationId_userId: {
+        conversationId,
+        userId: supabaseUser.id,
+      },
+    },
+    data: { lastReadAt: new Date() },
+  }).catch(() => {
+    // Fail silently if participant record doesn't match
+  });
 }

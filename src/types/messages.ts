@@ -14,6 +14,7 @@ export interface Message {
     body: string;
     createdAt: Date | string;
     senderId: string;
+    conversationId: string;
     sender: MessageSender;
 }
 
