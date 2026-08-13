@@ -93,7 +93,7 @@ export default function UserActionsDropdown({
             <Link
               role="menuitem"
               href={`/scholars/${user.id}`}
-              className="sb-menu-item px-4"
+              className="sb-button-accent mx-1 flex px-3 py-2"
               onClick={() => setOpen(false)}
             >
               Profile
@@ -106,7 +106,7 @@ export default function UserActionsDropdown({
                 handleSignOut();
               }}
               disabled={signingOut}
-              className="sb-menu-item px-4 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-400/10"
+              className="sb-button-accent mx-1 px-3 py-2 disabled:opacity-50"
             >
               {signingOut ? "Signing out..." : "Sign Out"}
             </button>

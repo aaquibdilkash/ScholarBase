@@ -5,6 +5,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 export type HelpPostFormValues = {
   title: string;
@@ -108,7 +109,8 @@ export default function HelpPostForm({
           <input type="hidden" name="message" value={draftFields.message} />
         </div>
 
-        <div className="pt-4 border-t border-slate-100 flex justify-end">
+        <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+          {mode === "create" && <FormCancelButton href="/help" />}
           <SubmitBtnWithAuth
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"

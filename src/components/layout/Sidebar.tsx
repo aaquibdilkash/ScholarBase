@@ -294,7 +294,7 @@ export default function Sidebar({ user }: SidebarProps) {
               <div className="flex flex-col items-center gap-3">
                 <Link
                   href={profileHref}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white shadow-sm dark:bg-white dark:text-slate-950"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                   aria-label={
                     user.email ? `Open ${user.email}` : "Open profile"
                   }
@@ -308,7 +308,7 @@ export default function Sidebar({ user }: SidebarProps) {
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-white"
+                    className="sb-button-primary h-11 w-11 rounded-full p-0 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
                     aria-label="Sign out"
                   >
                     <LogOut className="h-5 w-5" />
@@ -339,7 +339,7 @@ export default function Sidebar({ user }: SidebarProps) {
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-white"
+                    className="sb-button-primary w-full rounded-2xl px-4 py-3 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
                   >
                     Sign Out
                   </button>

@@ -5,6 +5,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 export type SupervisorFormValues = {
   name: string;
@@ -106,7 +107,8 @@ export default function SupervisorForm({
         <input type="hidden" name="about" value={draftFields.about} />
       </div>
 
-      <div className="pt-4 border-t border-slate-100 flex justify-end">
+      <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+        {mode === "create" && <FormCancelButton href="/supervisor" />}
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Supervisor"}
         </SubmitBtnWithAuth>

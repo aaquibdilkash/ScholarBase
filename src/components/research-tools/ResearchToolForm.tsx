@@ -8,6 +8,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 export type ResearchToolFormValues = {
   name: string;
@@ -114,12 +115,12 @@ export default function ResearchToolForm({
         />
       </div>
 
-      <SubmitBtnWithAuth
-        className="sb-button-accent mt-2 self-end"
-        disabled={submitting}
-      >
-        {mode === "edit" ? "Save Changes" : "Add Research Tool"}
-      </SubmitBtnWithAuth>
+      <div className="mt-2 flex justify-end gap-3">
+        {mode === "create" && <FormCancelButton href="/research-tools" />}
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
+          {mode === "edit" ? "Save Changes" : "Add Research Tool"}
+        </SubmitBtnWithAuth>
+      </div>
     </form>
   );
 }

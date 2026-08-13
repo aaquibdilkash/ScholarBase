@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createSurvey, updateSurvey } from "@/app/actions/surveys";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -25,8 +25,6 @@ export default function SurveyForm({
   mode: "create" | "edit";
   initialData?: Partial<SurveyFormValues>;
 }) {
-  const router = useRouter();
-
   const initialQuestions =
     initialData?.questions?.map((q: Question, i: number) => ({
       id: q.id || generateId(),
@@ -254,13 +252,9 @@ export default function SurveyForm({
 
       {/* Actions */}
       <div className="flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-xl border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-        >
+        <Link href="/surveys" className="sb-button-accent px-6 py-2.5">
           Cancel
-        </button>
+        </Link>
         <SubmitBtnWithAuth
           loadingText={mode === "create" ? "Creating..." : "Saving..."}
           disabled={submitting}

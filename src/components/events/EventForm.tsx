@@ -5,6 +5,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 export type EventFormValues = {
   title: string;
@@ -152,9 +153,12 @@ export default function EventForm({
         />
       </div>
 
-      <SubmitBtnWithAuth className="sb-button-accent mt-2 self-end">
-        {mode === "edit" ? "Save Changes" : "Publish Event"}
-      </SubmitBtnWithAuth>
+      <div className="mt-2 flex justify-end gap-3">
+        {mode === "create" && <FormCancelButton href="/events" />}
+        <SubmitBtnWithAuth className="sb-button-accent">
+          {mode === "edit" ? "Save Changes" : "Publish Event"}
+        </SubmitBtnWithAuth>
+      </div>
     </form>
   );
 }

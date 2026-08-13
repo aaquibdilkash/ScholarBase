@@ -9,6 +9,7 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { useRouter } from "next/navigation";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 export type RecommendationFormValues = {
   rating: string;
@@ -158,7 +159,10 @@ export default function RecommendationForm({
         <input type="hidden" name="feedback" value={draftFields.feedback} />
       </div>
 
-      <div className="pt-4 border-t border-slate-100 flex justify-end">
+      <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+        {mode === "create" && supervisorId && (
+          <FormCancelButton href={`/supervisor/${supervisorId}`} />
+        )}
         <SubmitBtnWithAuth className="sb-button-primary" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
         </SubmitBtnWithAuth>

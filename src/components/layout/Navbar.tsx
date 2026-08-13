@@ -65,13 +65,13 @@ export default async function Navbar() {
                 </Link>
                 <Link
                   href={`/scholars/${user.id}`}
-                  className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white"
+                  className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2"
                   aria-label="Open profile"
                 >
                   Profile
                 </Link>
                 <form action={signOut}>
-                  <button type="submit" className="sb-button-soft px-3 py-1.5 sm:px-4 sm:py-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white">
+                  <button type="submit" className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2">
                     Sign Out
                   </button>
                 </form>

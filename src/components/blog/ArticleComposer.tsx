@@ -3,10 +3,11 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { RichContent } from "@/components/content/RichContent";
-import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { createArticle, updateArticle } from "@/app/actions/blog";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 const Editor = dynamic(
   () => import("@/components/ui/Editor").then((m) => m.Editor),
@@ -120,10 +121,11 @@ export function ArticleComposer({
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-slate-100 pt-4">
-          <SubmitBtn className="sb-button-accent">
+        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+          {mode === "create" && <FormCancelButton href="/blog" />}
+          <SubmitBtnWithAuth className="sb-button-accent">
             {mode === "edit" ? "Save Changes" : "Publish Article"}
-          </SubmitBtn>
+          </SubmitBtnWithAuth>
         </div>
       </form>
 

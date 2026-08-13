@@ -15,6 +15,7 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { Editor } from "@/components/ui/Editor";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
 export type ContributionFormValues = {
   title: string;
@@ -381,13 +382,16 @@ export default function ContributionForm({
         </div>
       )}
 
-      <SubmitBtnWithAuth
-        className="sb-button-accent mt-2 self-end"
-        loadingText="Submitting..."
-        disabled={submitting}
-      >
-        {mode === "edit" ? "Save Changes" : "Submit Contribution"}
-      </SubmitBtnWithAuth>
+      <div className="mt-2 flex justify-end gap-3">
+        {mode === "create" && <FormCancelButton href="/contributions" />}
+        <SubmitBtnWithAuth
+          className="sb-button-accent"
+          loadingText="Submitting..."
+          disabled={submitting}
+        >
+          {mode === "edit" ? "Save Changes" : "Submit Contribution"}
+        </SubmitBtnWithAuth>
+      </div>
     </form>
   );
 }
