@@ -412,9 +412,9 @@ export default function ProfileTabs({
                   GitHub
                 </a>
               )}
-              {profile.orcidId && (
+              {profile.orcidUrl && (
                 <a
-                  href={`https://orcid.org/${profile.orcidId}`}
+                  href={profile.orcidUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
@@ -448,7 +448,7 @@ export default function ProfileTabs({
                 </a>
               )}
               {!profile.githubUrl &&
-                !profile.orcidId &&
+                !profile.orcidUrl &&
                 !profile.linkedinUrl &&
                 !profile.googleScholarUrl && (
                   <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">

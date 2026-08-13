@@ -9,7 +9,7 @@ export interface ProfileData {
     avatarUrl: string | null;
     bio: string | null;
     githubUrl: string | null;
-    orcidId: string | null;
+    orcidUrl: string | null;
     linkedinUrl: string | null;
     googleScholarUrl: string | null;
 }

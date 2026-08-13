@@ -27,9 +27,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
-import { signOut } from "@/app/actions/auth";
 import useMediaQuery from "@/hooks/useMediaQuery";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import SignOutButton from "@/components/auth/SignOutButton";
 
 type SidebarUser = {
   id: string;
@@ -45,12 +45,24 @@ export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrollable, setIsScrollable] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
 
   const isCollapsed = isDesktop ? desktopCollapsed : !mobileOpen;
+
+  useEffect(() => {
+    setDesktopCollapsed(localStorage.getItem("sb-main-sidebar-collapsed") === "true");
+    setSidebarPreferenceLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (sidebarPreferenceLoaded) {
+      localStorage.setItem("sb-main-sidebar-collapsed", String(desktopCollapsed));
+    }
+  }, [desktopCollapsed, sidebarPreferenceLoaded]);
 
   const checkScrollable = useCallback(() => {
     if (!navRef.current) return;
@@ -305,15 +317,12 @@ export default function Sidebar({ user }: SidebarProps) {
                 >
                   {user.email?.charAt(0).toUpperCase() || "@"}
                 </Link>
-                <form action={signOut}>
-                  <button
-                    type="submit"
-                    className="sb-button-primary h-11 w-11 rounded-full p-0 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
-                    aria-label="Sign out"
-                  >
+                <SignOutButton
+                  className="sb-button-primary h-11 w-11 rounded-full p-0 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
+                  aria-label="Sign out"
+                >
                     <LogOut className="h-5 w-5" />
-                  </button>
-                </form>
+                </SignOutButton>
               </div>
             ) : (
               <div className="space-y-3">
@@ -336,14 +345,9 @@ export default function Sidebar({ user }: SidebarProps) {
                     </span>
                   </span>
                 </Link>
-                <form action={signOut}>
-                  <button
-                    type="submit"
-                    className="sb-button-primary w-full rounded-2xl px-4 py-3 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
-                  >
-                    Sign Out
-                  </button>
-                </form>
+                <SignOutButton className="sb-button-primary w-full rounded-2xl px-4 py-3 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800">
+                  Sign Out
+                </SignOutButton>
               </div>
             )
           ) : !isOnLoginPage ? (

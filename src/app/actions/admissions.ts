@@ -7,7 +7,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getAdmissions(q?: string, userId?: string) {
     const where = q
@@ -176,8 +176,8 @@ export async function deletePhdAdmission(admissionId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.phdAdmissionVote, 'phdAdmissionId', admissionId);
-    const commentCount = await countCommentsForTarget(prisma.phdAdmissionComment, 'phdAdmissionId', admissionId);
-    await reverseReputationForContent(admission.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(admission.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('admission', admissionId);
 
     await prisma.phdAdmission.delete({ where: { id: admissionId } })
 

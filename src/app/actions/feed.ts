@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from "next/navigation";
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getFeed(userId?: string, tab?: string, q?: string) {
     const isFollowingTab = tab === "following";
@@ -269,8 +269,8 @@ export async function deleteSocialPost(postId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.socialVote, 'socialPostId', postId);
-    const commentCount = await countCommentsForTarget(prisma.socialComment, 'socialPostId', postId);
-    await reverseReputationForContent(post.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(post.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('post', postId);
 
     // Delete associated image from Cloudinary
     if (post.imageUrl) {

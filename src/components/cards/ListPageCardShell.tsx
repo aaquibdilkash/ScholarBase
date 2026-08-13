@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton"; // client component
 import { ShareButton } from "@/components/interactions/ShareButton";
 import { formatTimeAgo } from "../../utils/time-ago";
+import { TruncatedCardBody } from "./TruncatedCardBody";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -128,16 +129,13 @@ export default function ListPageCardShell({
       </div>
 
       {/* Clickable middle body */}
-      {noBodyLink ? (
-        <div className={clsx("block group", bodyClassName)}>{children}</div>
-      ) : (
-        <Link
-          href={detailPageHref}
-          className={clsx("block group", bodyClassName)}
-        >
-          {children}
-        </Link>
-      )}
+      <TruncatedCardBody
+        detailPageHref={detailPageHref}
+        className={clsx("block group", bodyClassName)}
+        noBodyLink={noBodyLink}
+      >
+        {children}
+      </TruncatedCardBody>
 
       {bodyBottomContent}
 

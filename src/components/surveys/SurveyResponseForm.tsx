@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
@@ -55,6 +55,10 @@ export function SurveyResponseForm({
   const [draftRestored, setDraftRestored] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
   const draftKey = `draft_survey_response_${surveyId}`;
+  const activeQuestionIds = useMemo(
+    () => new Set(questions.map((question) => question.id)),
+    [questions],
+  );
 
   // Hydrate form state from the saved response (DB) or the local draft.
   // Mark hydration complete so the save effect below does not clobber the
@@ -63,7 +67,9 @@ export function SurveyResponseForm({
     if (response) {
       const initialAnswers = response.answers.reduce(
         (acc, answer) => {
-          acc[answer.questionId] = answer.value;
+          if (activeQuestionIds.has(answer.questionId)) {
+            acc[answer.questionId] = answer.value;
+          }
           return acc;
         },
         {} as Record<string, string>,
@@ -77,8 +83,13 @@ export function SurveyResponseForm({
         if (saved) {
           const { answers: savedAnswers, isAnonymous: savedIsAnonymous } =
             JSON.parse(saved);
-          if (savedAnswers && Object.keys(savedAnswers).length > 0) {
-            setAnswers(savedAnswers);
+          const activeSavedAnswers = Object.fromEntries(
+            Object.entries(savedAnswers ?? {}).filter(
+              ([questionId, value]) => activeQuestionIds.has(questionId) && typeof value === "string",
+            ),
+          ) as Record<string, string>;
+          if (Object.keys(activeSavedAnswers).length > 0) {
+            setAnswers(activeSavedAnswers);
             setDraftRestored(true);
           }
           if (savedIsAnonymous !== null && savedIsAnonymous !== undefined) {
@@ -90,7 +101,7 @@ export function SurveyResponseForm({
       }
     }
     setHasHydrated(true);
-  }, [response, draftKey, privacy]);
+  }, [response, draftKey, privacy, activeQuestionIds]);
 
   // Persist answers to the local draft once hydrated, and only when there is
   // no submitted response from the DB (editing uses the DB record directly).
@@ -139,7 +150,7 @@ export function SurveyResponseForm({
       formData.set(
         "answers",
         JSON.stringify(
-          Object.entries(answers).map(([questionId, value]) => ({
+          Object.entries(answers).filter(([questionId]) => activeQuestionIds.has(questionId)).map(([questionId, value]) => ({
             questionId,
             value,
           })),

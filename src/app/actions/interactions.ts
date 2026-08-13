@@ -159,9 +159,9 @@ export async function updateReputationIncremental(userId: string, voteDelta: num
 export async function reverseReputationForContent(authorId: string, voteCounts: { upvotes: number; downvotes: number }, commentCount?: number) {
   // Remove reputation gained from votes: each upvote = +1, each downvote = -1
   const reputationFromVotes = voteCounts.upvotes - voteCounts.downvotes;
-  // Remove reputation from comments (if any): +1 per comment
-  const reputationFromComments = commentCount ?? 0;
-  const totalReputationToRemove = reputationFromVotes + reputationFromComments;
+  // Comments do not receive a creation bonus; only their votes affect reputation.
+  void commentCount;
+  const totalReputationToRemove = reputationFromVotes;
 
   if (totalReputationToRemove !== 0) {
     await prisma.user.update({
@@ -169,6 +169,64 @@ export async function reverseReputationForContent(authorId: string, voteCounts: 
       data: { reputation: { increment: -totalReputationToRemove } },
     });
   }
+}
+
+const COMMENT_REPUTATION_CONFIG: Record<string, { commentTable: string; voteTable: string; contentField: string }> = {
+  article: { commentTable: 'ArticleComment', voteTable: 'ArticleCommentVote', contentField: 'articleId' },
+  post: { commentTable: 'SocialComment', voteTable: 'SocialCommentVote', contentField: 'socialPostId' },
+  event: { commentTable: 'ResearchEventComment', voteTable: 'ResearchEventCommentVote', contentField: 'researchEventId' },
+  vacancy: { commentTable: 'JobVacancyComment', voteTable: 'JobVacancyCommentVote', contentField: 'jobVacancyId' },
+  admission: { commentTable: 'PhdAdmissionComment', voteTable: 'PhdAdmissionCommentVote', contentField: 'phdAdmissionId' },
+  supervisor: { commentTable: 'SupervisorComment', voteTable: 'SupervisorCommentVote', contentField: 'supervisorId' },
+  recommendation: { commentTable: 'RecommendationComment', voteTable: 'RecommendationCommentVote', contentField: 'recommendationId' },
+  help: { commentTable: 'HelpPostComment', voteTable: 'HelpPostCommentVote', contentField: 'helpPostId' },
+  journal: { commentTable: 'JournalComment', voteTable: 'JournalCommentVote', contentField: 'journalId' },
+  researchTool: { commentTable: 'ResearchToolComment', voteTable: 'ResearchToolCommentVote', contentField: 'researchToolId' },
+  result: { commentTable: 'ResultComment', voteTable: 'ResultCommentVote', contentField: 'resultId' },
+  contribution: { commentTable: 'ContributionComment', voteTable: 'ContributionCommentVote', contentField: 'contributionId' },
+  publication: { commentTable: 'PublicationComment', voteTable: 'PublicationCommentVote', contentField: 'publicationId' },
+  survey: { commentTable: 'SurveyComment', voteTable: 'SurveyCommentVote', contentField: 'surveyId' },
+};
+
+/** Reverse vote reputation for a comment and every nested reply in one query. */
+export async function reverseCommentThreadVoteReputation(type: string, commentId: string) {
+  const config = COMMENT_REPUTATION_CONFIG[type];
+  if (!config) return;
+  const { commentTable, voteTable } = config;
+  await prisma.$executeRawUnsafe(`
+    WITH RECURSIVE thread AS (
+      SELECT id, "authorId" FROM "${commentTable}" WHERE id = $1
+      UNION ALL
+      SELECT comment.id, comment."authorId" FROM "${commentTable}" AS comment
+      INNER JOIN thread ON comment."parentId" = thread.id
+    ), deltas AS (
+      SELECT thread."authorId" AS id,
+        SUM(CASE WHEN vote."voteType" = 'UPVOTE' THEN -1 ELSE 1 END)::int AS delta
+      FROM thread INNER JOIN "${voteTable}" AS vote ON vote."commentId" = thread.id
+      GROUP BY thread."authorId"
+    )
+    UPDATE "User" AS user_record SET reputation = reputation + deltas.delta
+    FROM deltas WHERE user_record.id = deltas.id
+  `, commentId);
+}
+
+/** Reverse vote reputation for every comment/reply removed with a content item. */
+export async function reverseContentCommentVoteReputation(type: string, contentId: string) {
+  const config = COMMENT_REPUTATION_CONFIG[type];
+  if (!config) return;
+  const { commentTable, voteTable, contentField } = config;
+  await prisma.$executeRawUnsafe(`
+    WITH deltas AS (
+      SELECT comment."authorId" AS id,
+        SUM(CASE WHEN vote."voteType" = 'UPVOTE' THEN -1 ELSE 1 END)::int AS delta
+      FROM "${commentTable}" AS comment
+      INNER JOIN "${voteTable}" AS vote ON vote."commentId" = comment.id
+      WHERE comment."${contentField}" = $1
+      GROUP BY comment."authorId"
+    )
+    UPDATE "User" AS user_record SET reputation = reputation + deltas.delta
+    FROM deltas WHERE user_record.id = deltas.id
+  `, contentId);
 }
 
 // Count votes for a specific model and target

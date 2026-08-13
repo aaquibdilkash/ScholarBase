@@ -99,7 +99,7 @@ export default async function ScholarProfile({
           avatarUrl: profile.avatarUrl,
           bio: profile.bio,
           githubUrl: profile.githubUrl,
-          orcidId: profile.orcidId,
+          orcidUrl: profile.orcidUrl,
           linkedinUrl: profile.linkedinUrl,
           googleScholarUrl: profile.googleScholarUrl,
         }}

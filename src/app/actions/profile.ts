@@ -17,7 +17,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
             avatarUrl: true,
             bio: true,
             githubUrl: true,
-            orcidId: true,
+            orcidUrl: true,
             linkedinUrl: true,
             googleScholarUrl: true,
             reputation: true,
@@ -1096,7 +1096,7 @@ export async function updateProfile(formData: FormData) {
     const newBio = readOptionalFormValue(formData, 'bio')
     const newAvatarUrl = readOptionalFormValue(formData, 'avatarUrl')
     const newGithubUrl = readOptionalFormValue(formData, 'githubUrl')
-    const newOrcidId = readOptionalFormValue(formData, 'orcidId')
+    const newOrcidUrl = readOptionalFormValue(formData, 'orcidUrl')
     const newLinkedinUrl = readOptionalFormValue(formData, 'linkedinUrl')
     const newGoogleScholarUrl = readOptionalFormValue(formData, 'googleScholarUrl')
 
@@ -1123,7 +1123,7 @@ export async function updateProfile(formData: FormData) {
             bio: newBio,
             avatarUrl: newAvatarUrl ?? user.avatarUrl,
             githubUrl: newGithubUrl ?? user.githubUrl,
-            orcidId: newOrcidId ?? user.orcidId,
+            orcidUrl: newOrcidUrl ?? user.orcidUrl,
             linkedinUrl: newLinkedinUrl ?? user.linkedinUrl,
             googleScholarUrl: newGoogleScholarUrl ?? user.googleScholarUrl,
         }

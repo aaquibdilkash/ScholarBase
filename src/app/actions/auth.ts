@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getBaseUrl } from '@/lib/url'
 
+type AuthResult = { success: true; redirect?: string; message?: string; url?: string } | { success: false; error: string }
+
 function mapAuthError(message: string): string {
     const lower = message.toLowerCase()
     if (lower.includes('email') && lower.includes('already')) {
@@ -22,7 +24,7 @@ function mapAuthError(message: string): string {
     return message
 }
 
-export async function login(formData: FormData) {
+export async function login(formData: FormData): Promise<AuthResult> {
     const supabase = await createClient()
 
     const email = formData.get('email') as string
@@ -32,42 +34,44 @@ export async function login(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-        redirect(`/login?message=Incorrect email or password&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+        return { success: false, error: 'Incorrect email or password.' }
     }
 
     revalidatePath('/', 'layout')
-    redirect(callbackUrl)
+    return { success: true, redirect: callbackUrl }
 }
 
-export async function signup(formData: FormData) {
+export async function signup(formData: FormData): Promise<AuthResult> {
     const supabase = await createClient()
+    const baseUrl = await getBaseUrl()
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const callbackUrl = (formData.get('callbackUrl') as string) || '/'
-
     if (!email || !password) {
-        redirect(`/login?message=Email and password are required&callbackUrl=${encodeURIComponent(callbackUrl)}`)
-        return
+        return { success: false, error: 'Email and password are required.' }
     }
 
     if (password.length < 6) {
-        redirect(`/login?message=Password must be at least 6 characters&callbackUrl=${encodeURIComponent(callbackUrl)}`)
-        return
+        return { success: false, error: 'Password must be at least 6 characters.' }
     }
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            emailRedirectTo: `${baseUrl}/auth/callback?next=/auth/confirmed`,
+        },
+    })
 
     if (error) {
         const message = mapAuthError(error.message)
-        redirect(`/login?message=${encodeURIComponent(message)}&callbackUrl=${encodeURIComponent(callbackUrl)}`)
-        return
+        return { success: false, error: message }
     }
 
-    redirect(`/login?message=Check your email to confirm your account&callbackUrl=${encodeURIComponent(callbackUrl)}`)
+    return { success: true, message: 'Check your email to confirm your account.' }
 }
 
-export async function signInWithGoogle(callbackUrl?: string) {
+export async function signInWithGoogle(callbackUrl?: string): Promise<AuthResult> {
     const supabase = await createClient()
     const baseUrl = await getBaseUrl()
 
@@ -84,10 +88,10 @@ export async function signInWithGoogle(callbackUrl?: string) {
     })
 
     if (error || !data.url) {
-        redirect(`/login?message=Could not start Google sign-in&callbackUrl=${encodeURIComponent(target)}`)
+        return { success: false, error: 'Could not start Google sign-in.' }
     }
 
-    redirect(data.url)
+    return { success: true, url: data.url }
 }
 
 export async function forgotPassword(

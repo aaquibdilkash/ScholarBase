@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getContributions(q?: string, userId?: string) {
     const where: Prisma.ContributionWhereInput = {
@@ -333,8 +333,8 @@ export async function deleteContribution(contributionId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.contributionVote, 'contributionId', contributionId);
-    const commentCount = await countCommentsForTarget(prisma.contributionComment, 'contributionId', contributionId);
-    await reverseReputationForContent(contribution.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(contribution.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('contribution', contributionId);
 
     // Delete screenshot from Cloudinary if it exists
     if (contribution.screenshotUrl) {
@@ -347,4 +347,3 @@ export async function deleteContribution(contributionId: string) {
     revalidatePath('/admin')
     redirect('/contributions')
 }
-

@@ -15,7 +15,7 @@ export async function requireCurrentUser(message = 'Please log in to continue.')
     const user = await getCurrentUser()
 
     if (!user) {
-        redirect(`/login?message=${encodeURIComponent(message)}`)
+        redirect('/login')
     }
 
     return user

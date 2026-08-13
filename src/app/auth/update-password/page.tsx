@@ -1,16 +1,6 @@
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 
-interface UpdatePasswordPageProps {
-  searchParams: {
-    message?: string;
-  };
-}
-
-export default function UpdatePasswordPage({
-  searchParams,
-}: UpdatePasswordPageProps) {
-  const { message } = searchParams;
-
+export default function UpdatePasswordPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6">
       <div className="sb-surface w-full max-w-md space-y-6 p-8 md:p-10">
@@ -27,7 +17,7 @@ export default function UpdatePasswordPage({
           </p>
         </div>
 
-        <UpdatePasswordForm message={message} />
+        <UpdatePasswordForm />
       </div>
     </main>
   );

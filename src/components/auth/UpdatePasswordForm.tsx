@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
-export function UpdatePasswordForm({ message }: { message?: string }) {
-  const [error, setError] = useState<string | null>(message || null);
+export function UpdatePasswordForm() {
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,9 +40,8 @@ export function UpdatePasswordForm({ message }: { message?: string }) {
       const data = await response.json();
 
       if (response.ok) {
-        window.location.href = `/login?message=${encodeURIComponent(
-          data.message,
-        )}`;
+        toast(data.message, "success");
+        router.replace("/login");
       } else {
         setError(data.error || "Could not update password. Please try again.");
         setSubmitting(false);
@@ -99,8 +102,6 @@ export function UpdatePasswordForm({ message }: { message?: string }) {
       >
         {submitting
           ? "Updating..."
-          : error && error.includes("successfully")
-            ? "Redirecting..."
             : "Update Password"}
       </button>
     </form>

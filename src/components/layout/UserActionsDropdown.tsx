@@ -1,13 +1,11 @@
 "use client";
 
-"use client";
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { ChevronDown } from "lucide-react";
-import { signOut } from "@/app/actions/auth";
+import { createClient } from "@/utils/supabase/client";
 
 export default function UserActionsDropdown({
   user,
@@ -48,12 +46,14 @@ export default function UserActionsDropdown({
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
-    try {
-      await signOut();
-    } catch {
-      // fallback: redirect to login
-      router.push("/login");
+    const { error } = await createClient().auth.signOut();
+    if (error) {
+      setSigningOut(false);
+      return;
     }
+
+    router.replace("/login");
+    router.refresh();
   }, [router]);
 
   return (

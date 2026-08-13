@@ -37,7 +37,6 @@ export async function proxy(request: NextRequest) {
     if (!user && isProtectedPath) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
-        url.searchParams.set('message', 'Please log in to access this page.')
         return NextResponse.redirect(url)
     }
 

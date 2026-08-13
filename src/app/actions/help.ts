@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getHelpPosts(q?: string, userId?: string) {
     const where = q
@@ -179,8 +179,8 @@ export async function deleteHelpPost(helpPostId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.helpPostVote, 'helpPostId', helpPostId);
-    const commentCount = await countCommentsForTarget(prisma.helpPostComment, 'helpPostId', helpPostId);
-    await reverseReputationForContent(post.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(post.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('help', helpPostId);
 
     await prisma.helpPost.delete({ where: { id: helpPostId } })
 

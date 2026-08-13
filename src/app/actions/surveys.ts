@@ -8,6 +8,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getSurveys(q?: string, userId?: string) {
     const where = q
@@ -58,9 +59,11 @@ export async function getSurvey(id: string, userId?: string) {
                 },
             },
             questions: {
+                where: { archivedAt: null },
                 orderBy: { order: 'asc' },
                 include: {
                     options: {
+                        where: { archivedAt: null },
                         orderBy: { order: 'asc' },
                     },
                 },
@@ -134,7 +137,7 @@ export async function createSurvey(formData: FormData) {
                     minValue: q.minValue,
                     maxValue: q.maxValue,
                     options: q.options?.length
-                        ? { create: q.options }
+                        ? { create: q.options.map(({ value, label, order }) => ({ value, label, order })) }
                         : undefined,
                 })),
             },
@@ -172,37 +175,112 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
     if (!title) throw new Error('Title is required')
 
-    // Delete existing questions and recreate
-    await prisma.surveyQuestionOption.deleteMany({
-        where: { question: { surveyId } },
-    })
-    await prisma.surveyQuestion.deleteMany({ where: { surveyId } })
-
     const questions = questionsJson
         ? JSON.parse(questionsJson) as SurveyQuestionInput[]
         : []
 
-    await prisma.researchSurvey.update({
-        where: { id: surveyId },
-        data: {
-            title,
-            description,
-            privacy: privacy || 'HYBRID',
-            shareData,
-            questions: {
-                create: questions.map((q) => ({
-                    type: q.type as SurveyQuestionType,
-                    title: q.title,
-                    required: q.required,
-                    order: q.order,
-                    minValue: q.minValue,
-                    maxValue: q.maxValue,
-                    options: q.options?.length
-                        ? { create: q.options }
-                        : undefined,
-                })),
+    const submittedIds = questions.flatMap((question) => question.id ? [question.id] : [])
+    if (new Set(submittedIds).size !== submittedIds.length) {
+        throw new Error('Each survey question may only be submitted once.')
+    }
+
+    await prisma.$transaction(async (tx) => {
+        const existingQuestions = await tx.surveyQuestion.findMany({
+            where: { surveyId, archivedAt: null },
+            include: {
+                options: { where: { archivedAt: null } },
+                _count: { select: { answers: true } },
             },
-        },
+        })
+        const existingById = new Map(existingQuestions.map((question) => [question.id, question]))
+
+        for (const question of questions) {
+            const existing = question.id ? existingById.get(question.id) : undefined
+
+            if (question.id && !existing) {
+                throw new Error('One of the survey questions is no longer available to edit.')
+            }
+            if (existing && existing.type !== question.type && existing._count.answers > 0) {
+                throw new Error(`Cannot change the type of \"${existing.title}\" because it already has responses.`)
+            }
+
+            if (!existing) {
+                await tx.surveyQuestion.create({
+                    data: {
+                        surveyId,
+                        type: question.type as SurveyQuestionType,
+                        title: question.title,
+                        required: question.required,
+                        order: question.order,
+                        minValue: question.minValue,
+                        maxValue: question.maxValue,
+                        options: question.options?.length ? { create: question.options.map(({ value, label, order }) => ({ value, label, order })) } : undefined,
+                    },
+                })
+                continue
+            }
+
+            await tx.surveyQuestion.update({
+                where: { id: existing.id },
+                data: {
+                    type: question.type as SurveyQuestionType,
+                    title: question.title,
+                    required: question.required,
+                    order: question.order,
+                    minValue: question.minValue,
+                    maxValue: question.maxValue,
+                },
+            })
+
+            const submittedOptionIds = new Set(
+                question.options?.flatMap((option) => option.id ? [option.id] : []) ?? [],
+            )
+            const existingOptionsById = new Map(existing.options.map((option) => [option.id, option]))
+
+            for (const option of question.options ?? []) {
+                const existingOption = option.id ? existingOptionsById.get(option.id) : undefined
+                if (option.id && !existingOption) {
+                    throw new Error(`An option in \"${existing.title}\" is no longer available to edit.`)
+                }
+                if (existingOption) {
+                    await tx.surveyQuestionOption.update({
+                        where: { id: existingOption.id },
+                        data: { value: option.value, label: option.label, order: option.order },
+                    })
+                } else {
+                    await tx.surveyQuestionOption.create({
+                        data: { questionId: existing.id, value: option.value, label: option.label, order: option.order },
+                    })
+                }
+            }
+
+            const removedOptionIds = existing.options
+                .filter((option) => !submittedOptionIds.has(option.id))
+                .map((option) => option.id)
+            if (removedOptionIds.length) {
+                await tx.surveyQuestionOption.updateMany({
+                    where: { id: { in: removedOptionIds } },
+                    data: { archivedAt: new Date() },
+                })
+            }
+        }
+
+        const removedQuestions = existingQuestions.filter((question) => !submittedIds.includes(question.id))
+        for (const question of removedQuestions) {
+            if (question._count.answers > 0) {
+                await tx.surveyQuestion.update({
+                    where: { id: question.id },
+                    data: { archivedAt: new Date(), options: { updateMany: { where: {}, data: { archivedAt: new Date() } } } },
+                })
+            } else {
+                await tx.surveyQuestion.delete({ where: { id: question.id } })
+            }
+        }
+
+        await tx.researchSurvey.update({
+            where: { id: surveyId },
+            data: { title, description, privacy: privacy || 'HYBRID', shareData },
+        })
     })
 
     revalidatePath('/surveys')
@@ -219,6 +297,10 @@ export async function deleteSurvey(surveyId: string) {
     })
     if (!survey) return
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized to delete this survey.')
+
+    const voteCounts = await countVotesForTarget(prisma.surveyVote, 'surveyId', surveyId)
+    await reverseReputationForContent(survey.authorId, voteCounts)
+    await reverseContentCommentVoteReputation('survey', surveyId)
 
     await prisma.researchSurvey.delete({ where: { id: surveyId } })
 
@@ -299,19 +381,33 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
         value: string
     }>
 
+    const activeQuestionCount = await prisma.surveyQuestion.count({
+        where: {
+            surveyId,
+            archivedAt: null,
+            id: { in: answers.map((answer) => answer.questionId) },
+        },
+    })
+    if (activeQuestionCount !== new Set(answers.map((answer) => answer.questionId)).size) {
+        return { error: 'This survey changed before your response was submitted. Please refresh and try again.' }
+    }
+
     // Check if user already responded - if so, update existing response (upsert pattern)
     const existingResponse = await prisma.surveyResponse.findFirst({
         where: {
             surveyId,
             respondentId: user.id,
         },
-        include: { answers: { select: { id: true } } },
     })
 
     if (existingResponse) {
-        // Delete old answers and create new ones
+        // Retain answers to archived questions as historical data, while
+        // replacing responses to questions that remain active in the form.
         await prisma.surveyAnswer.deleteMany({
-            where: { responseId: existingResponse.id },
+            where: {
+                responseId: existingResponse.id,
+                question: { archivedAt: null },
+            },
         })
         await prisma.surveyResponse.update({
             where: { id: existingResponse.id },

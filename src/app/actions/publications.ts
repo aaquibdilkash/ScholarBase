@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function createPublication(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit a publication.')
@@ -135,8 +135,8 @@ export async function deletePublication(publicationId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.publicationVote, 'publicationId', publicationId);
-    const commentCount = await countCommentsForTarget(prisma.publicationComment, 'publicationId', publicationId);
-    await reverseReputationForContent(publication.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(publication.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('publication', publicationId);
 
     await prisma.publication.delete({ where: { id: publicationId } })
 
@@ -233,4 +233,3 @@ export async function getPublicationById(publicationId: string, userId?: string)
         },
     });
 }
-

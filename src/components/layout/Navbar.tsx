@@ -2,11 +2,11 @@ import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { BrandMark } from "@/components/BrandMark";
 import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
-import { signOut } from "@/app/actions/auth";
 import UserActionsDropdown from "./UserActionsDropdown";
 import prisma from "@/lib/db";
 import NavLoginButton from "./NavLoginButton";
 import { Bell } from "lucide-react";
+import SignOutButton from "@/components/auth/SignOutButton";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -70,11 +70,9 @@ export default async function Navbar() {
                 >
                   Profile
                 </Link>
-                <form action={signOut}>
-                  <button type="submit" className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2">
-                    Sign Out
-                  </button>
-                </form>
+                <SignOutButton className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2">
+                  Sign Out
+                </SignOutButton>
               </div>
               <UserActionsDropdown user={user} unreadCount={unreadCount} />
             </>

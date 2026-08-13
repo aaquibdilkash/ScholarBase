@@ -34,7 +34,7 @@ export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
           required
         />
       </div>
-      <SubmitBtn className="w-full sb-button-soft" loadingText="Sending...">
+      <SubmitBtn className="sb-button-primary w-full" loadingText="Sending...">
         Send Recovery Link
       </SubmitBtn>
     </form>

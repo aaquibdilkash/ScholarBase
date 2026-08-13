@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, Children, type ReactNode } from "react";
+import { useState, useRef, useEffect, useCallback, Children, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface CarouselProps {
@@ -13,7 +13,29 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeHeight, setActiveHeight] = useState<number>();
+  const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
   const childCountRef = useRef(Children.count(children));
+
+  const updateActiveSlide = useCallback(() => {
+    const el = containerRef.current;
+    if (!el || el.clientWidth === 0) return;
+
+    const index = Math.max(
+      0,
+      Math.min(
+        Children.count(children) - 1,
+        Math.round(el.scrollLeft / el.clientWidth),
+      ),
+    );
+    setActiveIndex(index);
+  }, [children]);
+
+  const updateActiveHeight = useCallback(() => {
+    const height = slideRefs.current[activeIndex]?.offsetHeight;
+    if (height) setActiveHeight(height);
+  }, [activeIndex]);
 
   const checkScrollability = () => {
     const el = containerRef.current;
@@ -36,18 +58,31 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
 
     checkScrollability();
 
-    const resizeObserver = new ResizeObserver(checkScrollability);
+    const resizeObserver = new ResizeObserver(() => {
+      checkScrollability();
+      updateActiveSlide();
+      updateActiveHeight();
+    });
     resizeObserver.observe(el);
+    slideRefs.current.forEach((slide) => slide && resizeObserver.observe(slide));
 
-    el.addEventListener("scroll", checkScrollability);
+    const onScroll = () => {
+      checkScrollability();
+      updateActiveSlide();
+    };
+    el.addEventListener("scroll", onScroll);
 
     return () => {
       if (el) {
         resizeObserver.unobserve(el);
-        el.removeEventListener("scroll", checkScrollability);
+        el.removeEventListener("scroll", onScroll);
       }
     };
-  }, [children]); // Rerender when children change to re-evaluate scrollability
+  }, [children, activeIndex, updateActiveHeight, updateActiveSlide]); // Rerender when children change to re-evaluate scrollability
+
+  useEffect(() => {
+    updateActiveHeight();
+  }, [activeIndex, children, updateActiveHeight]);
 
   useEffect(() => {
     childCountRef.current = Children.count(children);
@@ -93,10 +128,17 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
     <div className="relative group">
       <div
         ref={containerRef}
-        className="flex overflow-x-auto snap-x snap-mandatory py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="flex items-start overflow-x-auto snap-x snap-mandatory transition-[height] duration-200 ease-out [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        style={activeHeight ? { height: activeHeight } : undefined}
       >
         {Children.map(children, (child, i) => (
-          <div key={i} className="snap-center shrink-0 w-full">
+          <div
+            key={i}
+            ref={(element) => {
+              slideRefs.current[i] = element;
+            }}
+            className="w-full shrink-0 snap-center"
+          >
             {child}
           </div>
         ))}

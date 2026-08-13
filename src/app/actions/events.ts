@@ -7,7 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getEvents(q?: string, userId?: string) {
     const where = q
@@ -178,8 +178,8 @@ export async function deleteResearchEvent(eventId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.researchEventVote, 'researchEventId', eventId);
-    const commentCount = await countCommentsForTarget(prisma.researchEventComment, 'researchEventId', eventId);
-    await reverseReputationForContent(event.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(event.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('event', eventId);
 
     await prisma.researchEvent.delete({ where: { id: eventId } })
 
@@ -220,4 +220,3 @@ export async function getUpcomingEvents(count: number, userId?: string) {
         },
     });
 }
-

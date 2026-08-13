@@ -7,7 +7,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getVacancies(q?: string, userId?: string) {
     const where = q
@@ -170,8 +170,8 @@ export async function deleteJobVacancy(vacancyId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.jobVacancyVote, 'jobVacancyId', vacancyId);
-    const commentCount = await countCommentsForTarget(prisma.jobVacancyComment, 'jobVacancyId', vacancyId);
-    await reverseReputationForContent(vacancy.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(vacancy.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('vacancy', vacancyId);
 
     await prisma.jobVacancy.delete({ where: { id: vacancyId } })
 

@@ -19,7 +19,7 @@ type UserData = {
   bio: string | null;
   avatarUrl: string | null;
   githubUrl: string | null;
-  orcidId: string | null;
+  orcidUrl: string | null;
   linkedinUrl: string | null;
   googleScholarUrl: string | null;
 };
@@ -299,10 +299,10 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               ORCID iD
             </label>
             <input
-              name="orcidId"
-              defaultValue={user.orcidId || ""}
+              name="orcidUrl"
+              defaultValue={user.orcidUrl || ""}
               className="sb-input"
-              placeholder="0000-0001-2345-6789"
+              placeholder="https://orcid.org/0000-0001-2345-6789"
             />
           </div>
           <div>

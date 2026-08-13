@@ -9,6 +9,7 @@ export interface SurveyOption {
   value: string;
   label: string;
   order: number;
+  archivedAt?: Date | string | null;
 }
 
 export interface SurveyQuestion {
@@ -28,6 +29,7 @@ export interface SurveyQuestion {
  * a survey is saved.
  */
 export interface QuestionOption {
+  id?: string;
   value: string;
   label: string;
   order: number;
@@ -44,6 +46,7 @@ export interface Question {
   order: number;
   minValue?: number | null;
   maxValue?: number | null;
+  archivedAt?: Date | string | null;
   options: QuestionOption[];
 }
 
@@ -55,6 +58,7 @@ export interface SurveyAnswer {
 
 /** Input shape for a survey option when creating/updating a survey. */
 export interface SurveyOptionInput {
+  id?: string;
   value: string;
   label: string;
   order: number;
@@ -62,6 +66,7 @@ export interface SurveyOptionInput {
 
 /** Input shape for a survey question when creating/updating a survey. */
 export interface SurveyQuestionInput {
+  id?: string;
   type: string;
   title: string;
   required: boolean;
@@ -111,6 +116,7 @@ export interface QuestionResult {
   order: number;
   minValue?: number | null;
   maxValue?: number | null;
+  archivedAt?: string | null;
   options: Array<{ id: string; value: string; label: string; order: number }>;
   answers: Array<{ value: string }>;
 }
@@ -135,5 +141,3 @@ export interface IndividualResponse {
     value: string;
   }>;
 }
-
-

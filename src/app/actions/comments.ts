@@ -5,7 +5,7 @@ import prisma from '@/lib/db'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
-import { updateReputationIncremental } from '@/app/actions/interactions'
+import { updateReputationIncremental, reverseCommentThreadVoteReputation } from '@/app/actions/interactions'
 import { CommentType, CommentVoteModel } from '@/types/comments'
 
 
@@ -364,39 +364,9 @@ export async function deleteComment(commentId: string, type: CommentType) {
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
 
-    // Reverse reputation from comment votes before deletion
-    const voteModelMap: Record<string, CommentVoteModel> = {
-        article: prisma.articleCommentVote,
-        post: prisma.socialCommentVote,
-        event: prisma.researchEventCommentVote,
-        vacancy: prisma.jobVacancyCommentVote,
-        admission: prisma.phdAdmissionCommentVote,
-        supervisor: prisma.supervisorCommentVote,
-        recommendation: prisma.recommendationCommentVote,
-        help: prisma.helpPostCommentVote,
-        journal: prisma.journalCommentVote,
-        researchTool: prisma.researchToolCommentVote,
-        result: prisma.resultCommentVote,
-        contribution: prisma.contributionCommentVote,
-        publication: prisma.publicationCommentVote,
-        survey: prisma.surveyCommentVote,
-    };
-    const voteModel = voteModelMap[type];
-    if (voteModel) {
-        const [upvotes, downvotes] = await Promise.all([
-            voteModel.count({ where: { commentId, voteType: 'UPVOTE' } }),
-            voteModel.count({ where: { commentId, voteType: 'DOWNVOTE' } }),
-        ]);
-        const reputationFromVotes = upvotes - downvotes;
-        // Reputation for the comment itself (+1 for creating it)
-        const totalReputation = reputationFromVotes + 1;
-        if (totalReputation !== 0) {
-            await prisma.user.update({
-                where: { id: comment.authorId },
-                data: { reputation: { increment: -totalReputation } },
-            });
-        }
-    }
+    // One recursive aggregate reverses votes on this comment and every reply
+    // that will be removed by the cascading delete.
+    await reverseCommentThreadVoteReputation(type, commentId);
 
     await cfg.model.delete({ where: { id: commentId } })
     if (type === 'recommendation') {

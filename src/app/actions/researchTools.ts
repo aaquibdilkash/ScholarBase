@@ -7,7 +7,7 @@ import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function createResearchTool(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -83,8 +83,8 @@ export async function deleteResearchTool(toolId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.researchToolVote, 'researchToolId', toolId);
-    const commentCount = await countCommentsForTarget(prisma.researchToolComment, 'researchToolId', toolId);
-    await reverseReputationForContent(tool.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(tool.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('researchTool', toolId);
 
     await prisma.researchTool.delete({ where: { id: toolId } })
 
@@ -180,4 +180,3 @@ export async function getResearchToolById(toolId: string, userId?: string) {
         },
     });
 }
-

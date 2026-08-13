@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
-import {NextRequest, NextResponse} from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.redirect(
-    `${req.nextUrl.origin}/login?message=Password updated successfully. Please sign in.`
-  );
+  return NextResponse.json({
+    message: "Password updated successfully. Please sign in.",
+  });
 }

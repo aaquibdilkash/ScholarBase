@@ -6,6 +6,7 @@ import { readFormValue, slugify } from '@/lib/form'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getArticles(q?: string, userId?: string) {
   return prisma.article.findMany({
@@ -240,6 +241,10 @@ export async function deleteArticle(articleId: string, slug: string) {
   if (!await isAuthorizedOrAdmin(article.authorId, user.id)) {
     throw new Error('Not authorized to delete this article.')
   }
+
+  const voteCounts = await countVotesForTarget(prisma.articleVote, 'articleId', articleId)
+  await reverseReputationForContent(article.authorId, voteCounts)
+  await reverseContentCommentVoteReputation('article', articleId)
 
   await prisma.article.delete({ where: { id: articleId } })
 

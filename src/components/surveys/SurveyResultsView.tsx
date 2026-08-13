@@ -33,7 +33,7 @@ function exportToExcel(
   const summaryRows = survey.questions.map((q) => {
     const answers = q.answers.map((a) => mapValueToLabel(q, a.value));
     const details = answers.join("; ");
-    return [q.title, q.type, String(answers.length), details];
+    return [q.archivedAt ? `${q.title} (archived)` : q.title, q.type, String(answers.length), details];
   });
   const summarySheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
 
@@ -44,7 +44,7 @@ function exportToExcel(
   if (responses) {
     const questionHeaders = survey.questions
       .sort((a, b) => a.order - b.order)
-      .map((q) => q.title);
+      .map((q) => q.archivedAt ? `${q.title} (archived)` : q.title);
 
     const individualResponsesHeader = [
       "Response ID",
@@ -202,6 +202,7 @@ export function SurveyResultsView({
                 </span>
                 <h3 className="text-sm font-semibold text-slate-800 mt-1 dark:text-white">
                   {q.title}
+                  {q.archivedAt ? " (archived)" : ""}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1 dark:text-slate-300">
                   {stats.total} response{stats.total !== 1 ? "s" : ""}

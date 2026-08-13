@@ -7,7 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, countCommentsForTarget, reverseReputationForContent } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getResults(q?: string, userId?: string) {
     const where = q
@@ -163,8 +163,8 @@ export async function deleteResult(resultId: string) {
 
     // Reverse reputation from votes and comments before deletion
     const voteCounts = await countVotesForTarget(prisma.resultVote, 'resultId', resultId);
-    const commentCount = await countCommentsForTarget(prisma.resultComment, 'resultId', resultId);
-    await reverseReputationForContent(result.authorId, voteCounts, commentCount);
+    await reverseReputationForContent(result.authorId, voteCounts);
+    await reverseContentCommentVoteReputation('result', resultId);
 
     await prisma.result.delete({ where: { id: resultId } })
 
@@ -172,4 +172,3 @@ export async function deleteResult(resultId: string) {
     revalidatePath(`/results/${resultId}`)
     redirect('/results')
 }
-

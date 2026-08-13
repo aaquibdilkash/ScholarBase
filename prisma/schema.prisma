@@ -398,7 +398,7 @@ email       String   @unique
   handle      String?  @unique
   bio         String?
   githubUrl     String?
-  orcidId       String?
+  orcidUrl      String?
   linkedinUrl   String?
   googleScholarUrl String?
   reputation  Int      @default(0)
@@ -753,6 +753,7 @@ model SurveyQuestion {
   order      Int
   minValue   Int?
   maxValue   Int?
+  archivedAt DateTime?
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 
@@ -767,6 +768,7 @@ model SurveyQuestionOption {
   value      String
   label      String
   order      Int
+  archivedAt DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

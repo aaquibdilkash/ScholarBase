@@ -1,22 +1,16 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-import { useToast } from "@/components/ui/Toast";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { login, signup, signInWithGoogle } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { useToast } from "@/components/ui/Toast";
 
 export function LoginForm({ returnUrl }: { returnUrl: string }) {
-  const searchParams = useSearchParams();
-  const message = searchParams.get("message");
+  const router = useRouter();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (message) {
-      toast(message);
-    }
-  }, [message, toast]);
+  const [pendingAction, setPendingAction] = useState<"signin" | "register" | null>(null);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6">
@@ -33,8 +27,19 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           </p>
         </div>
 
-        <form action={signInWithGoogle.bind(null, returnUrl)}>
-          <button className="sb-button-soft w-full gap-2">
+        <form
+          action={async () => {
+            setPendingAction("signin");
+            const result = await signInWithGoogle(returnUrl);
+            if (!result.success) {
+              toast(result.error, "error");
+              setPendingAction(null);
+            } else if (result.url) {
+              window.location.assign(result.url);
+            }
+          }}
+        >
+          <button className="sb-button-soft w-full gap-2" disabled={pendingAction !== null}>
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -68,7 +73,24 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           </div>
         </div>
 
-        <form className="flex flex-col gap-4" action={login}>
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const submitter = event.nativeEvent.submitter as HTMLButtonElement | null;
+            const action = submitter?.value === "register" ? "register" : "signin";
+            setPendingAction(action);
+            const result = await (action === "register" ? signup : login)(new FormData(event.currentTarget));
+            if (!result.success) {
+              toast(result.error, "error");
+              setPendingAction(null);
+              return;
+            }
+            toast(result.message || "Signed in successfully!", "success");
+            if (result.redirect) router.push(result.redirect);
+            else setPendingAction(null);
+          }}
+        >
           <input type="hidden" name="callbackUrl" value={returnUrl} />
 
           <div>
@@ -100,11 +122,21 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           </div>
 
           <div className="flex gap-4 mt-2">
-            <button type="submit" className="sb-button-primary w-full">
-              Sign In
+            <button
+              type="submit"
+              value="signin"
+              className="sb-button-primary w-full"
+              disabled={pendingAction !== null}
+            >
+              {pendingAction === "signin" ? "Signing in..." : "Sign In"}
             </button>
-            <button formAction={signup} className="sb-button-soft w-full">
-              Register
+            <button
+              type="submit"
+              value="register"
+              className="sb-button-primary w-full"
+              disabled={pendingAction !== null}
+            >
+              {pendingAction === "register" ? "Registering..." : "Register"}
             </button>
           </div>
         </form>

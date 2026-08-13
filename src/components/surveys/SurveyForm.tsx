@@ -36,6 +36,7 @@ export default function SurveyForm({
       maxValue: q.maxValue,
       options:
         q.options?.map((o: QuestionOption, oi: number) => ({
+          id: o.id,
           value: o.value || `opt_${oi}`,
           label: o.label,
           order: o.order ?? oi,

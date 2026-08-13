@@ -163,10 +163,24 @@ function ConversationSidebar({ user }: { user: User | null }) {
 
 export default function MessagesLayout({ children }: { children: React.ReactNode; }) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [conversationSidebarPreferenceLoaded, setConversationSidebarPreferenceLoaded] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => { if (isDesktop) setIsSidebarOpen(true); }, [isDesktop]);
+  useEffect(() => {
+    const savedPreference = localStorage.getItem("sb-conversation-sidebar-open");
+    setIsSidebarOpen(
+      savedPreference === null
+        ? window.matchMedia("(min-width: 768px)").matches
+        : savedPreference === "true",
+    );
+    setConversationSidebarPreferenceLoaded(true);
+  }, []);
+  useEffect(() => {
+    if (conversationSidebarPreferenceLoaded) {
+      localStorage.setItem("sb-conversation-sidebar-open", String(isSidebarOpen));
+    }
+  }, [isSidebarOpen, conversationSidebarPreferenceLoaded]);
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => setUser(user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => setUser(session?.user ?? null));

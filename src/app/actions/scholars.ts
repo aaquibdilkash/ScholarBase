@@ -4,7 +4,6 @@ import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { getBaseUrl } from '@/lib/url'
 import { sendScholarInviteEmail } from '@/lib/email'
 import { Prisma } from '@prisma/client'
@@ -75,7 +74,7 @@ export async function inviteScholar(formData: FormData) {
   const message = readFormValue(formData, 'message')
 
   if (!email || !message) {
-    redirect('/scholars/invite?message=Email and message are required.')
+    return { success: false, error: 'Email and message are required.' }
   }
 
   const baseUrl = await getBaseUrl()
@@ -89,9 +88,9 @@ export async function inviteScholar(formData: FormData) {
   })
 
   if (!result.success) {
-    redirect('/scholars/invite?message=Failed to send invite. Please try again.')
+    return { success: false, error: 'Failed to send invite. Please try again.' }
   }
 
   revalidatePath('/scholars')
-  redirect('/scholars/invite?message=Invite sent successfully!')
+  return { success: true, message: 'Invite sent successfully!' }
 }
