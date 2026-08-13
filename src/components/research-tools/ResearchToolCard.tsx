@@ -77,6 +77,14 @@ export function ResearchToolCard({
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
           {tool.name}
         </h2>
+        {tool.use && (
+          <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-slate-800 dark:text-slate-100">
+              Primary use:
+            </span>{" "}
+            {tool.use}
+          </p>
+        )}
         <RichContent
           content={tool.description}
           className="text-sm leading-relaxed text-slate-600 line-clamp-3"

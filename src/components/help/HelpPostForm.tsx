@@ -74,7 +74,7 @@ export default function HelpPostForm({
           <label className="sb-label">Category</label>
           <select
             name="category"
-            className="sb-input"
+            className="sb-select"
             required
             value={draftFields.category}
             onChange={(e) => updateDraftField("category", e.target.value)}

@@ -95,7 +95,7 @@ export default function ResultForm({
           <label className="sb-label">Result Type</label>
           <select
             name="type"
-            className="sb-input"
+            className="sb-select"
             required
             value={draftFields.type}
             onChange={(e) => updateDraftField("type", e.target.value)}

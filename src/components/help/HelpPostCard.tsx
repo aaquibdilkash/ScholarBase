@@ -69,6 +69,14 @@ export function HelpPostCard({
         <p className="text-sm font-semibold text-blue-700">
           {helpPost.category}
         </p>
+        {helpPost.subject && (
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-slate-800 dark:text-slate-100">
+              Subject:
+            </span>{" "}
+            {helpPost.subject}
+          </p>
+        )}
       </div>
 
       <RichContent

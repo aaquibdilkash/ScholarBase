@@ -146,7 +146,7 @@ export function QuestionEditor({
                   maxValue: newType === "LIKERT_SCALE" ? 5 : question.maxValue,
                 });
               }}
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+              className="sb-select"
             >
               {QUESTION_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>

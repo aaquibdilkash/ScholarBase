@@ -262,7 +262,7 @@ export function SurveyResponseForm({
           <select
             value={answers[q.id] || ""}
             onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="sb-input"
+            className="sb-select"
             required={q.required}
           >
             <option value="">Select an option...</option>

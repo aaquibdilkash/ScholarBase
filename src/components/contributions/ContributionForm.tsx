@@ -254,7 +254,7 @@ export default function ContributionForm({
             />
             <select
               name="paymentMethod"
-              className="sb-input"
+              className="sb-select"
               required
               value={draftFields.paymentMethod}
               onChange={(e) =>

@@ -77,7 +77,7 @@ export default function RecommendationForm({
           name="rating"
           value={draftFields.rating}
           onChange={(e) => updateDraftField("rating", e.target.value)}
-          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+          className="sb-select"
           required
         >
           <option value="5">5 - Excellent (Highly Recommended)</option>
@@ -116,7 +116,7 @@ export default function RecommendationForm({
             onChange={(e) =>
               updateDraftField("responsivenessScore", e.target.value)
             }
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+            className="sb-select"
             required
           >
             <option value="5">5 - Very responsive</option>
@@ -135,7 +135,7 @@ export default function RecommendationForm({
             name="guidanceScore"
             value={draftFields.guidanceScore}
             onChange={(e) => updateDraftField("guidanceScore", e.target.value)}
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+            className="sb-select"
             required
           >
             <option value="5">5 - Excellent guidance</option>

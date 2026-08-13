@@ -90,6 +90,13 @@ export default async function HelpPostPage({
         {post.category}
       </p>
 
+      <p className="mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+        <span className="font-semibold text-slate-800 dark:text-slate-100">
+          Subject:
+        </span>{" "}
+        {post.subject}
+      </p>
+
       <RichContent
         content={post.message}
         className="text-slate-700 leading-relaxed mb-4 sm:mb-6 md:mb-8"

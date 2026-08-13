@@ -109,7 +109,7 @@ export default function JournalForm({
             name="scopus"
             value={draftFields.scopus}
             onChange={(e) => updateDraftField("scopus", e.target.value)}
-            className="sb-input"
+            className="sb-select"
           >
             <option value="">Select ranking</option>
             <option value="Q1">Q1</option>
@@ -124,7 +124,7 @@ export default function JournalForm({
             name="abdcCategory"
             value={draftFields.abdcCategory}
             onChange={(e) => updateDraftField("abdcCategory", e.target.value)}
-            className="sb-input"
+            className="sb-select"
           >
             <option value="">Select category</option>
             <option value="A*">A*</option>

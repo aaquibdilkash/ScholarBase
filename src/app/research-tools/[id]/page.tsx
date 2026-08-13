@@ -90,6 +90,13 @@ const ResearchToolDetailPage = async ({
         {tool.name}
       </h1>
 
+      <p className="mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+        <span className="font-semibold text-slate-800 dark:text-slate-100">
+          Primary use:
+        </span>{" "}
+        {tool.use}
+      </p>
+
       <RichContent content={tool.description} />
 
       <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">

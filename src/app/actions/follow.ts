@@ -38,6 +38,18 @@ export async function toggleFollow(followingId: string): Promise<boolean | { err
       data: { followerId: user.id, followingId },
     })
 
+    // A connection is mutual only when the person being followed already
+    // follows the current user back.
+    const isMutualConnection = await prisma.follows.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: followingId,
+          followingId: user.id,
+        },
+      },
+      select: { followerId: true },
+    })
+
     await notifyUserById({
       recipientId: followingId,
       actorId: user.id,
@@ -45,7 +57,9 @@ export async function toggleFollow(followingId: string): Promise<boolean | { err
       targetType: 'follow',
       targetId: followingId,
       title: `${user.email?.split('@')[0] || 'Someone'} started following you`,
-      body: 'Someone you follow is now connected with you.',
+      body: isMutualConnection
+        ? 'Someone you follow is now connected with you.'
+        : 'Someone started following you.',
     })
   }
 
@@ -124,4 +138,3 @@ export async function getFollowing(userId: string, currentUserId?: string) {
     }
   })
 }
-

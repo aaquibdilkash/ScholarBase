@@ -84,7 +84,7 @@ export default function OwnerActionsDropdown({
           aria-expanded={open}
           disabled={isDeleting}
           onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          className="sb-menu-trigger"
         >
           {isDeleting ? (
             <Loader2 className="animate-spin h-4 w-4" />
@@ -100,13 +100,13 @@ export default function OwnerActionsDropdown({
           <div
             ref={menuRef}
             role="menu"
-            className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
+            className="sb-menu absolute right-0 z-50 mt-2 w-40"
           >
-            <div className="py-1">
+            <div>
               <Link
                 role="menuitem"
                 href={editHref}
-                className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="sb-menu-item"
                 onClick={() => setOpen(false)}
               >
                 {editLabel}
@@ -116,7 +116,7 @@ export default function OwnerActionsDropdown({
                 role="menuitem"
                 disabled={isDeleting}
                 onClick={handleDelete}
-                className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                className="sb-menu-item text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-400/10"
               >
                 {isDeleting ? deleteLoadingText : deleteLabel}
               </button>

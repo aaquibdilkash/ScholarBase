@@ -64,7 +64,7 @@ export default function UserActionsDropdown({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        className="sb-menu-trigger"
       >
         <ChevronDown className="h-5 w-5" />
         <span className="sr-only">Open user menu</span>
@@ -74,13 +74,13 @@ export default function UserActionsDropdown({
         <div
           ref={menuRef}
           role="menu"
-          className="absolute right-0 z-[100] mt-2 w-48 overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800"
+          className="sb-menu absolute right-0 z-[100] mt-2 w-48"
         >
-          <div className="py-1">
+          <div>
             <Link
               role="menuitem"
               href="/notifications"
-              className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="sb-menu-item flex items-center gap-2 px-4"
               onClick={() => setOpen(false)}
             >
               Notifications
@@ -93,7 +93,7 @@ export default function UserActionsDropdown({
             <Link
               role="menuitem"
               href={`/scholars/${user.id}`}
-              className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700"
+              className="sb-menu-item px-4"
               onClick={() => setOpen(false)}
             >
               Profile
@@ -106,7 +106,7 @@ export default function UserActionsDropdown({
                 handleSignOut();
               }}
               disabled={signingOut}
-              className="block w-full px-4 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-400/10"
+              className="sb-menu-item px-4 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-400/10"
             >
               {signingOut ? "Signing out..." : "Sign Out"}
             </button>

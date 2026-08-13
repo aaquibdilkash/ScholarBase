@@ -132,7 +132,7 @@ export default function PublicationForm({
           <label className="sb-label">Publication Type *</label>
           <select
             name="publicationType"
-            className="sb-input"
+            className="sb-select"
             required
             value={draftFields.publicationType}
             onChange={(e) =>
@@ -150,7 +150,7 @@ export default function PublicationForm({
           <label className="sb-label">Year</label>
           <select
             name="year"
-            className="sb-input"
+            className="sb-select"
             value={draftFields.year}
             onChange={(e) => updateDraftField("year", e.target.value)}
           >
