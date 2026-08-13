@@ -7,7 +7,7 @@ export default function Icon() {
   return new ImageResponse(
     <div
       style={{
-        fontSize: 22, // Increased from 18 to fill the box
+        fontSize: 22, 
         background: "#020617",
         width: "100%",
         height: "100%",
@@ -15,10 +15,10 @@ export default function Icon() {
         alignItems: "center",
         justifyContent: "center",
         color: "white",
-        borderRadius: "8px",
-        fontWeight: 900, // Max thickness
+        // borderRadius removed: let Google handle the container shape cleanly
+        fontWeight: 900, 
         fontFamily: "system-ui, sans-serif",
-        lineHeight: 1, // Keeps the larger text perfectly vertically centered
+        lineHeight: 1, 
       }}
     >
       <span>S</span>

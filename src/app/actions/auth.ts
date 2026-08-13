@@ -102,9 +102,7 @@ export async function forgotPassword(
     return { success: false, error: "Please enter your email address" };
   }
 
-  // The redirectTo URL should point to the auth callback route.
-  // The route will then handle redirecting the user to the password update form.
-  const redirectTo = `${baseUrl}/auth/callback?type=recovery`;
+  const redirectTo = `${baseUrl}/auth/callback?next=/auth/update-password`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo,
