@@ -140,7 +140,7 @@ const SurveyDetailPage = async ({
       )}
 
       {/* Survey questions count & overview */}
-      <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600">
+      <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
         <div className="flex items-center gap-2">
           <ClipboardList className="w-5 h-5" />
           {survey.questions.length} Question
@@ -149,7 +149,7 @@ const SurveyDetailPage = async ({
         {survey.shareData && (
           <Link
             href={`/surveys/${survey.id}/results`}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors dark:text-blue-400 dark:hover:text-blue-200"
           >
             <Share2 className="w-5 h-5" />
             <span className="font-medium">

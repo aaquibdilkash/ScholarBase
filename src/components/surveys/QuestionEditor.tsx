@@ -63,7 +63,7 @@ export function QuestionEditor({
   const addOption = () => {
     const opt: QuestionOption = {
       value: `opt_${generateId()}`,
-      label: "",
+      label: `Option ${question.options.length + 1}`,
       order: question.options.length,
     };
     onChange({ ...question, options: [...question.options, opt] });
@@ -84,9 +84,9 @@ export function QuestionEditor({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:bg-slate-800 dark:border-slate-700">
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-500">
+        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
           Question {index + 1}
         </span>
         <button
@@ -100,14 +100,14 @@ export function QuestionEditor({
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-semibold text-slate-700">
+          <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">
             Question Title
           </label>
           <input
             type="text"
             value={question.title}
             onChange={(e) => onChange({ ...question, title: e.target.value })}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
             placeholder="Enter your question"
             required
           />
@@ -115,7 +115,7 @@ export function QuestionEditor({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">
+            <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">
               Question Type
             </label>
             <select
@@ -146,7 +146,7 @@ export function QuestionEditor({
                   maxValue: newType === "LIKERT_SCALE" ? 5 : question.maxValue,
                 });
               }}
-              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
             >
               {QUESTION_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -166,7 +166,7 @@ export function QuestionEditor({
                 }
                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm font-semibold text-slate-700">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Required
               </span>
             </label>
@@ -280,6 +280,7 @@ export function QuestionEditor({
                     onChange={(e) => updateOption(optIndex, e.target.value)}
                     className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={`Option ${optIndex + 1}`}
+                    required
                   />
                   <button
                     type="button"

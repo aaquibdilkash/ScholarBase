@@ -57,6 +57,8 @@ export default async function SurveyResultsPage({
       title: q.title,
       type: q.type,
       order: q.order,
+      minValue: q.minValue,
+      maxValue: q.maxValue,
       options: q.options.map((o) => ({
         id: o.id,
         value: o.value,

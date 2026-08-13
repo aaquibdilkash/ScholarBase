@@ -109,6 +109,8 @@ export interface QuestionResult {
   title: string;
   type: string;
   order: number;
+  minValue?: number | null;
+  maxValue?: number | null;
   options: Array<{ id: string; value: string; label: string; order: number }>;
   answers: Array<{ value: string }>;
 }

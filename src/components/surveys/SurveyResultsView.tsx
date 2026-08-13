@@ -94,8 +94,8 @@ export function SurveyResultsView({
 
   if (!survey) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <p className="text-slate-500">No results available yet.</p>
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center dark:bg-slate-900 dark:border-slate-700">
+        <p className="text-slate-500 dark:text-slate-300">No results available yet.</p>
       </div>
     );
   }
@@ -123,7 +123,8 @@ export function SurveyResultsView({
     if (q.type === "MULTIPLE_CHOICE" || q.type === "DROPDOWN") {
       const counts: Record<string, number> = {};
       answers.forEach((a) => {
-        counts[a] = (counts[a] || 0) + 1;
+        const label = mapValueToLabel(q, a); // Map value to label
+        counts[label] = (counts[label] || 0) + 1;
       });
       return { total, counts };
     }
@@ -134,10 +135,12 @@ export function SurveyResultsView({
         try {
           const vals = JSON.parse(a);
           vals.forEach((v: string) => {
-            counts[v] = (counts[v] || 0) + 1;
+            const label = mapValueToLabel(q, v); // Map value to label
+            counts[label] = (counts[label] || 0) + 1;
           });
         } catch {
-          counts[a] = (counts[a] || 0) + 1;
+          const label = mapValueToLabel(q, a); // Map value to label
+          counts[label] = (counts[label] || 0) + 1;
         }
       });
       return { total, counts };
@@ -161,14 +164,14 @@ export function SurveyResultsView({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center justify-between">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center justify-between dark:bg-slate-900 dark:border-slate-700">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-2">
+          <h2 className="text-lg font-semibold text-slate-800 mb-2 dark:text-white">
             {survey.title}
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-500 dark:text-slate-300">
             Total Responses:{" "}
-            <strong className="text-slate-800">{totalResponses}</strong>
+            <strong className="text-slate-800 dark:text-white">{totalResponses}</strong>
           </p>
         </div>
         <button
@@ -187,20 +190,20 @@ export function SurveyResultsView({
         return (
           <div
             key={q.id}
-            className="rounded-2xl border border-slate-200 bg-white overflow-hidden"
+            className="rounded-2xl border border-slate-200 bg-white overflow-hidden dark:bg-slate-900 dark:border-slate-700"
           >
             <button
               onClick={() => setActiveQuestion(isExpanded ? null : q.id)}
-              className="flex w-full items-center justify-between p-6 text-left hover:bg-slate-50 transition"
+              className="flex w-full items-center justify-between p-6 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition"
             >
               <div>
-                <span className="text-xs font-semibold text-blue-600">
+                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                   Q{idx + 1} • {q.type.replace(/_/g, " ").toLowerCase()}
                 </span>
-                <h3 className="text-sm font-semibold text-slate-800 mt-1">
+                <h3 className="text-sm font-semibold text-slate-800 mt-1 dark:text-white">
                   {q.title}
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-slate-400 mt-1 dark:text-slate-300">
                   {stats.total} response{stats.total !== 1 ? "s" : ""}
                   {"avg" in stats && ` • Avg: ${stats.avg}`}
                 </p>
@@ -213,7 +216,7 @@ export function SurveyResultsView({
             </button>
 
             {isExpanded && (
-              <div className="border-t border-slate-100 p-6">
+              <div className="border-t border-slate-100 p-6 dark:border-slate-700">
                 {"counts" in stats && stats.counts && (
                   <div className="space-y-2">
                     {Object.entries(stats.counts).map(([option, count]) => {
@@ -224,14 +227,14 @@ export function SurveyResultsView({
                       return (
                         <div key={option} className="space-y-1">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-slate-700">
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
                               {option}
                             </span>
-                            <span className="text-slate-500">
+                            <span className="text-slate-500 dark:text-slate-400">
                               {count} ({pct}%)
                             </span>
                           </div>
-                          <div className="h-2 w-full rounded-full bg-slate-100">
+                          <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700">
                             <div
                               className="h-2 rounded-full bg-blue-500 transition-all"
                               style={{ width: `${pct}%` }}
@@ -255,14 +258,14 @@ export function SurveyResultsView({
                         return (
                           <div key={value} className="space-y-1">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="font-medium text-slate-700">
+                              <span className="font-medium text-slate-700 dark:text-slate-300">
                                 {value} {count > 1 ? "stars" : "star"}
                               </span>
-                              <span className="text-slate-500">
+                              <span className="text-slate-500 dark:text-slate-400">
                                 {count} ({pct}%)
                               </span>
                             </div>
-                            <div className="h-2 w-full rounded-full bg-slate-100">
+                            <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700">
                               <div
                                 className="h-2 rounded-full bg-amber-400 transition-all"
                                 style={{ width: `${pct}%` }}
@@ -280,7 +283,7 @@ export function SurveyResultsView({
                       stats.answers.map((answer: string, i: number) => (
                         <div
                           key={i}
-                          className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700"
+                          className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                         >
                           {answer}
                         </div>
