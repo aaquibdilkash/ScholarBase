@@ -14,10 +14,7 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
 
   useEffect(() => {
     if (message) {
-      toast({
-        title: "Success",
-        description: message,
-      });
+      toast(message);
     }
   }, [message, toast]);
 
