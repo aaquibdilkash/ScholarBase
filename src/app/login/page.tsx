@@ -18,7 +18,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   const { callbackUrl } = await searchParams;
-  const returnUrl = callbackUrl || "/blog";
+  const returnUrl = callbackUrl || "/";
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

@@ -27,7 +27,7 @@ export async function login(formData: FormData) {
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const callbackUrl = (formData.get('callbackUrl') as string) || '/blog'
+    const callbackUrl = (formData.get('callbackUrl') as string) || '/'
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
@@ -44,7 +44,7 @@ export async function signup(formData: FormData) {
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const callbackUrl = (formData.get('callbackUrl') as string) || '/blog'
+    const callbackUrl = (formData.get('callbackUrl') as string) || '/'
 
     if (!email || !password) {
         redirect(`/login?message=Email and password are required&callbackUrl=${encodeURIComponent(callbackUrl)}`)
@@ -71,7 +71,7 @@ export async function signInWithGoogle(callbackUrl?: string) {
     const supabase = await createClient()
     const baseUrl = await getBaseUrl()
 
-    const target = callbackUrl || '/blog'
+    const target = callbackUrl || '/'
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
