@@ -453,6 +453,16 @@ following  Follows[] @relation("following")
   researchToolComments     ResearchToolComment[]
   researchToolCommentVotes ResearchToolCommentVote[]
 
+  researchGrants            ResearchGrant[]
+  researchGrantVotes        ResearchGrantVote[]
+  researchGrantComments     ResearchGrantComment[]
+  researchGrantCommentVotes ResearchGrantCommentVote[]
+
+  courses            Course[]
+  courseVotes        CourseVote[]
+  courseComments     CourseComment[]
+  courseCommentVotes CourseCommentVote[]
+
   journals            Journal[]
   journalVotes        JournalVote[]
   journalComments     JournalComment[]
@@ -596,6 +606,124 @@ model ResearchToolCommentVote {
   createdAt DateTime            @default(now())
   comment   ResearchToolComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User                @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId, voteType])
+}
+
+model ResearchGrant {
+  id          String                 @id @default(uuid())
+  title       String
+  amount      String?
+  description String
+  applyLink   String?
+  infoLink    String?
+  authorId    String
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  isFrozen    Boolean                @default(false)
+  author      User                   @relation(fields: [authorId], references: [id])
+  comments    ResearchGrantComment[]
+  votes       ResearchGrantVote[]
+}
+
+model ResearchGrantVote {
+  id              String        @id @default(uuid())
+  researchGrantId String
+  userId          String
+  voteType        VoteType
+  createdAt       DateTime      @default(now())
+  researchGrant   ResearchGrant @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id])
+
+  @@unique([researchGrantId, userId])
+  @@index([researchGrantId, voteType])
+}
+
+model ResearchGrantComment {
+  id              String                     @id @default(uuid())
+  content         String
+  researchGrantId String
+  authorId        String
+  parentId        String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  researchGrant   ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
+  author          User                       @relation(fields: [authorId], references: [id])
+  parent          ResearchGrantComment?      @relation("ResearchGrantReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies         ResearchGrantComment[]     @relation("ResearchGrantReplies")
+  votes           ResearchGrantCommentVote[]
+}
+
+model ResearchGrantCommentVote {
+  id        String               @id @default(uuid())
+  commentId String
+  userId    String
+  voteType  VoteType
+  createdAt DateTime             @default(now())
+  comment   ResearchGrantComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id])
+
+  @@unique([commentId, userId])
+  @@index([commentId, voteType])
+}
+
+model Course {
+  id             String          @id @default(uuid())
+  title          String
+  provider       String?
+  instructor     String?
+  format         String?
+  level          String?
+  price          String?
+  duration       String?
+  link           String
+  description    String
+  authorId       String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  isFrozen       Boolean         @default(false)
+  author         User            @relation(fields: [authorId], references: [id])
+  comments       CourseComment[]
+  votes          CourseVote[]
+}
+
+model CourseVote {
+  id        String   @id @default(uuid())
+  courseId  String
+  userId    String
+  voteType  VoteType
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@index([courseId, voteType])
+}
+
+model CourseComment {
+  id        String              @id @default(uuid())
+  content   String
+  courseId  String
+  authorId  String
+  parentId  String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  course    Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  author    User                @relation(fields: [authorId], references: [id])
+  parent    CourseComment?      @relation("CourseReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   CourseComment[]     @relation("CourseReplies")
+  votes     CourseCommentVote[]
+}
+
+model CourseCommentVote {
+  id        String        @id @default(uuid())
+  commentId String
+  userId    String
+  voteType  VoteType
+  createdAt DateTime      @default(now())
+  comment   CourseComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id])
 
   @@unique([commentId, userId])
   @@index([commentId, voteType])

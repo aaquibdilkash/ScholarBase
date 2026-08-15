@@ -8,17 +8,18 @@ import { supabase } from "@/utils/supabase/client";
 import { formatTimeAgo } from "@/utils/time-ago";
 import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
-import useMediaQuery from "@/hooks/useMediaQuery";
 import { MessagesLayoutContext } from "./messages-context";
 import { ChevronLeft, ChevronRight } from "lucide-react"; 
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
 type Message = { body: string; };
-type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; };
+type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
 
 type MessageRow = {
   id: string;
   body: string;
+  senderId?: string;
+  sender_id?: string;
   conversation_id?: string;
   conversationId?: string;
   created_at: string;
@@ -54,6 +55,10 @@ function ConversationSidebar({ user }: { user: User | null }) {
             const targetConv = { ...updatedInbox[convIndex] };
             targetConv.messages = [{ body: rawMessage.body }];
             targetConv.lastMessageAt = rawMessage.createdAt || rawMessage.created_at;
+            const senderId = rawMessage.senderId || rawMessage.sender_id;
+            if (senderId !== user.id) {
+              targetConv.unreadCount = (targetConv.unreadCount || 0) + 1;
+            }
             updatedInbox.splice(convIndex, 1);
             updatedInbox.unshift(targetConv);
             return updatedInbox;
@@ -111,14 +116,23 @@ function ConversationSidebar({ user }: { user: User | null }) {
                 const latestMessage = conversation.messages[0];
                 const participantData = conversation.participants.find((p) => p.user.id === user.id);
                 const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
-                const isUnread = new Date(conversation.lastMessageAt) > lastReadAt;
+                const isUnread = conversation.unreadCount > 0 || new Date(conversation.lastMessageAt) > lastReadAt;
                 const isActive = pathname === `/messages/${conversation.id}`;
 
                 return (
                   <Link
                     key={conversation.id}
                     href={`/messages/${conversation.id}`}
-                    onClick={() => setIsSidebarOpen(false)}
+                    onClick={() => {
+                      setInbox((current) =>
+                        current.map((item) =>
+                          item.id === conversation.id
+                            ? { ...item, unreadCount: 0 }
+                            : item,
+                        ),
+                      );
+                      setIsSidebarOpen(false);
+                    }}
                     className={`block rounded-lg transition ${isSidebarOpen ? "p-3" : "p-3 flex justify-center h-16"} ${isActive ? "bg-slate-100 dark:bg-slate-800 px-3 py-3" : isUnread ? "bg-blue-50 dark:bg-blue-950/40" : "hover:bg-slate-100 dark:hover:bg-slate-800/70"}`}
                   >
                     <div className={`flex items-center ${isSidebarOpen ? "justify-between" : "justify-center"}`}>
@@ -144,7 +158,16 @@ function ConversationSidebar({ user }: { user: User | null }) {
                           </div>
                         )}
                       </div>
-                      {isSidebarOpen && <div className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{formatTimeAgo(conversation.lastMessageAt)}</div>}
+                      {isSidebarOpen && (
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <div className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{formatTimeAgo(conversation.lastMessageAt)}</div>
+                          {conversation.unreadCount > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold leading-none text-white">
+                              {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Link>
                 );
@@ -162,7 +185,6 @@ function ConversationSidebar({ user }: { user: User | null }) {
 }
 
 export default function MessagesLayout({ children }: { children: React.ReactNode; }) {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [conversationSidebarPreferenceLoaded, setConversationSidebarPreferenceLoaded] = useState(false);
   const [user, setUser] = useState<User | null>(null);

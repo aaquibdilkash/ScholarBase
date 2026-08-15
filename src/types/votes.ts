@@ -15,6 +15,8 @@ export type VoteTargetType =
     | "help"
     | "journal"
     | "researchTool"
+    | "researchGrant"
+    | "course"
     | "result"
     | "contribution"
     | "publication"

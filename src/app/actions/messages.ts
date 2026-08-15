@@ -44,11 +44,30 @@ const directConversationSelect = {
 }
 
 export async function getInbox(userId: string) {
-  return prisma.conversation.findMany({
+  const conversations = await prisma.conversation.findMany({
     where: { participants: { some: { userId } } },
     orderBy: { lastMessageAt: 'desc' },
     select: directConversationSelect,
   })
+
+  return Promise.all(
+    conversations.map(async (conversation) => {
+      const participant = conversation.participants.find((p) => p.user.id === userId)
+      const unreadCount = await prisma.message.count({
+        where: {
+          conversationId: conversation.id,
+          senderId: { not: userId },
+          createdAt: { gt: participant?.lastReadAt ?? new Date(0) },
+        },
+      })
+      return { ...conversation, unreadCount }
+    }),
+  )
+}
+
+export async function getUnreadMessageCount(userId: string) {
+  const inbox = await getInbox(userId)
+  return inbox.reduce((sum, conversation) => sum + conversation.unreadCount, 0)
 }
 
 export async function findDirectConversation(userIdA: string, userIdB: string) {

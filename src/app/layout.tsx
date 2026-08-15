@@ -12,6 +12,7 @@ import { ensureUserProfile } from "@/lib/users";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/components/interactions/AppProviders";
+import { getUnreadMessageCount } from "@/app/actions/messages";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -100,16 +101,21 @@ export default async function RootLayout({
   const user = await getCurrentUser();
 
   let isAdmin = false;
+  let unreadMessages = 0;
   if (user) {
     await ensureUserProfile(user);
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { isAdmin: true },
-    });
+    const [dbUser, messageCount] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { isAdmin: true },
+      }),
+      getUnreadMessageCount(user.id),
+    ]);
     isAdmin = dbUser?.isAdmin ?? false;
+    unreadMessages = messageCount;
   }
 
-  const sidebarUser = user ? { id: user.id, email: user.email, isAdmin } : null;
+  const sidebarUser = user ? { id: user.id, email: user.email, isAdmin, unreadMessages } : null;
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>

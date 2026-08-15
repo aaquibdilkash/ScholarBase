@@ -13,6 +13,8 @@ export type VoteModel =
   | typeof prisma.helpPostVote
   | typeof prisma.journalVote
   | typeof prisma.researchToolVote
+  | typeof prisma.researchGrantVote
+  | typeof prisma.courseVote
   | typeof prisma.resultVote
   | typeof prisma.contributionVote
   | typeof prisma.publicationVote
@@ -42,6 +44,8 @@ export type CommentModel =
   | typeof prisma.helpPostComment
   | typeof prisma.journalComment
   | typeof prisma.researchToolComment
+  | typeof prisma.researchGrantComment
+  | typeof prisma.courseComment
   | typeof prisma.resultComment
   | typeof prisma.contributionComment
   | typeof prisma.publicationComment
@@ -58,6 +62,8 @@ export type CommentVoteModel =
   | typeof prisma.helpPostCommentVote
   | typeof prisma.journalCommentVote
   | typeof prisma.researchToolCommentVote
+  | typeof prisma.researchGrantCommentVote
+  | typeof prisma.courseCommentVote
   | typeof prisma.resultCommentVote
   | typeof prisma.contributionCommentVote
   | typeof prisma.publicationCommentVote

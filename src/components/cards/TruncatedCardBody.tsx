@@ -16,6 +16,7 @@ export function TruncatedCardBody({
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const body = bodyRef.current;
@@ -31,7 +32,7 @@ export function TruncatedCardBody({
   }, [children]);
 
   const content = (
-    <div ref={bodyRef} className="max-h-44 overflow-hidden">
+    <div ref={bodyRef} className={isExpanded ? "overflow-visible" : "max-h-44 overflow-hidden"}>
       {children}
     </div>
   );
@@ -45,13 +46,14 @@ export function TruncatedCardBody({
           {content}
         </Link>
       )}
-      {isTruncated ? (
-        <Link
-          href={detailPageHref}
+      {isTruncated || isExpanded ? (
+        <button
+          type="button"
+          onClick={() => setIsExpanded((current) => !current)}
           className="mt-3 inline-flex text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
         >
-          View more →
-        </Link>
+          {isExpanded ? "View less" : "View more"}
+        </button>
       ) : null}
     </>
   );

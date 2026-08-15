@@ -420,9 +420,9 @@ export function SurveyResponseForm({
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
             Response Privacy
           </h3>
-          <div className="flex gap-4">
+          <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
             <label
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 flex-1 transition ${
+              className={`flex min-w-[16rem] flex-1 cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
                 !isAnonymous
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
                   : "border-slate-200 dark:border-slate-700"
@@ -445,7 +445,7 @@ export function SurveyResponseForm({
               </div>
             </label>
             <label
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 flex-1 transition ${
+              className={`flex min-w-[16rem] flex-1 cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
                 isAnonymous
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
                   : "border-slate-200 dark:border-slate-700"

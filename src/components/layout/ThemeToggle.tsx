@@ -59,10 +59,10 @@ export default function ThemeToggle() {
         </span>
       </span>
       <span
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${theme === "dark" ? "bg-black" : "bg-slate-200"}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${theme === "dark" ? "bg-black shadow-[inset_0_1px_3px_rgba(255,255,255,0.12),0_10px_24px_rgba(0,0,0,0.45)] ring-1 ring-slate-700" : "bg-slate-200"}`}
       >
         <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition ${theme === "dark" ? "translate-x-5" : "translate-x-1"} dark:bg-slate-100`}
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-[0_2px_5px_rgba(15,23,42,0.25)] transition ${theme === "dark" ? "translate-x-5 shadow-[0_6px_14px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.9)]" : "translate-x-1"} dark:bg-slate-100`}
         />
       </span>
     </button>

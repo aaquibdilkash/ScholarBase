@@ -6,6 +6,7 @@
 export interface CommentUser {
     id: string;
     name: string | null;
+    handle?: string | null;
     avatarUrl: string | null;
 }
 
@@ -43,6 +44,8 @@ export type CommentTargetType =
     | "recommendation"
     | "help"
     | "researchTool"
+    | "researchGrant"
+    | "course"
     | "journal"
     | "result"
     | "contribution"

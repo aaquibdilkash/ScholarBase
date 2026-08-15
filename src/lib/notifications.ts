@@ -1,6 +1,49 @@
 import { Notification } from "@prisma/client";
 import prisma from "@/lib/db";
 
+const targetLinks: Record<string, (targetId: string) => string | null> = {
+  article: (targetId) => `/blog/${targetId}`,
+  post: (targetId) => `/feed/${targetId}`,
+  socialPost: (targetId) => `/feed/${targetId}`,
+  event: (targetId) => `/events/${targetId}`,
+  vacancy: (targetId) => `/vacancies/${targetId}`,
+  admission: (targetId) => `/admissions/${targetId}`,
+  recommendation: (targetId) => {
+    const recIds = targetId.split("/");
+    return recIds.length === 2
+      ? `/supervisor/${recIds[0]}/recommendation/${recIds[1]}`
+      : null;
+  },
+  help: (targetId) => `/help/${targetId}`,
+  journal: (targetId) => `/journals/${targetId}`,
+  researchTool: (targetId) => `/research-tools/${targetId}`,
+  researchGrant: (targetId) => `/grants/${targetId}`,
+  course: (targetId) => `/learn/${targetId}`,
+  result: (targetId) => `/results/${targetId}`,
+  contribution: (targetId) => `/contributions/${targetId}`,
+  publication: (targetId) => `/publications/${targetId}`,
+  survey: (targetId) => `/surveys/${targetId}`,
+};
+
+const moduleLabels: Record<string, string> = {
+  article: "Blog",
+  post: "Feed",
+  socialPost: "Feed",
+  event: "Events",
+  vacancy: "Vacancies",
+  admission: "Admissions",
+  recommendation: "Supervisor recommendation",
+  help: "Help",
+  journal: "Journals",
+  researchTool: "Research Tools",
+  researchGrant: "Research Grants",
+  course: "Courses",
+  result: "Results",
+  contribution: "Contributions",
+  publication: "Publications",
+  survey: "Research Survey",
+};
+
 export function getNotificationLink(notification: Notification) {
   if (!notification.targetType || !notification.targetId) {
     return null;
@@ -17,38 +60,7 @@ export function getNotificationLink(notification: Notification) {
       return null;
     case "comment-created":
     case "reply-created":
-      switch (notification.targetType) {
-        case "article":
-          return `/blog/${notification.targetId}`;
-        case "post":
-          return `/feed/${notification.targetId}`;
-        case "event":
-          return `/events/${notification.targetId}`;
-        case "vacancy":
-          return `/vacancies/${notification.targetId}`;
-        case "admission":
-          return `/admissions/${notification.targetId}`;
-        case "recommendation":
-          const recIds = notification.targetId.split('/');
-          if (recIds.length === 2) {
-            return `/supervisor/${recIds[0]}/recommendation/${recIds[1]}`;
-          }
-          return null;
-        case "help":
-          return `/help/${notification.targetId}`;
-        case "journal":
-          return `/journals/${notification.targetId}`;
-        case "researchTool":
-          return `/research-tools/${notification.targetId}`;
-        case "result":
-          return `/results/${notification.targetId}`;
-        case "contribution":
-          return `/contributions/${notification.targetId}`;
-        case "publication":
-          return `/publications/${notification.targetId}`;
-        default:
-          return null;
-      }
+      return targetLinks[notification.targetType]?.(notification.targetId) ?? null;
     case "vacancy-published":
     case "vacancy-upvoted":
       return `/vacancies/${notification.targetId}`;
@@ -81,6 +93,12 @@ export function getNotificationLink(notification: Notification) {
     case "research-tool-published":
     case "research-tool-upvoted":
       return `/research-tools/${notification.targetId}`;
+    case "research-grant-published":
+    case "research-grant-upvoted":
+      return `/grants/${notification.targetId}`;
+    case "course-published":
+    case "course-upvoted":
+      return `/learn/${notification.targetId}`;
     case "survey-published":
       return `/surveys/${notification.targetId}`;
     case "result-published":
@@ -92,12 +110,9 @@ export function getNotificationLink(notification: Notification) {
     case "post-upvoted":
       return `/feed/${notification.targetId}`;
     case "mention":
-      if (notification.targetType === "article") {
-        return `/blog/${notification.targetId}`;
-      } else if (notification.targetType === "socialPost") {
-        return `/feed/${notification.targetId}`;
-      }
-      return null;
+      return notification.targetType && notification.targetId
+        ? targetLinks[notification.targetType]?.(notification.targetId)?.concat("#comments") ?? null
+        : null;
     case "message-received":
       return `/messages/${notification.targetId}`;
     default:
@@ -161,6 +176,16 @@ export async function notifyMentionedUsers(params: NotifyMentionedUsersParams) {
     },
   });
 
+  const actor = await prisma.user.findUnique({
+    where: { id: params.actorId },
+    select: { name: true, handle: true, email: true },
+  });
+  const actorName =
+    actor?.name || (actor?.handle ? `@${actor.handle}` : actor?.email?.split("@")[0]) || "A scholar";
+  const moduleName = params.targetType
+    ? moduleLabels[params.targetType] || params.targetType
+    : "this module";
+
   for (const user of mentionedUsers) {
     if (user.id === params.actorId) continue;
     if (!user.handle) continue;
@@ -172,7 +197,9 @@ export async function notifyMentionedUsers(params: NotifyMentionedUsersParams) {
         type: params.type,
         targetType: params.targetType,
         targetId: params.targetId,
-        title: params.titleFactory(user.handle),
+        title: params.type === "mention"
+          ? `${actorName} tagged you in ${moduleName} discussion`
+          : params.titleFactory(user.handle),
         body: params.bodyFactory(user.handle),
       },
     });

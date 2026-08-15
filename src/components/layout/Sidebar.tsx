@@ -2,6 +2,7 @@
 
 import {
   BarChart2,
+  BookOpen,
   Briefcase,
   Calendar,
   ChevronDown,
@@ -10,6 +11,7 @@ import {
   File,
   FileText,
   Gift,
+  HandCoins,
   GraduationCap,
   HelpCircle,
   List,
@@ -35,6 +37,7 @@ type SidebarUser = {
   id: string;
   email?: string | null;
   isAdmin?: boolean | null;
+  unreadMessages?: number;
 } | null;
 
 type SidebarProps = {
@@ -89,7 +92,21 @@ export default function Sidebar({ user }: SidebarProps) {
     };
 
     checkScrollable();
-    navElement?.addEventListener("scroll", checkScrollable);
+    if (navElement) {
+      const savedScrollTop = Number(localStorage.getItem("sb-main-sidebar-scroll-top") || "0");
+      if (savedScrollTop > 0) {
+        navElement.scrollTop = savedScrollTop;
+      }
+    }
+
+    const handleScroll = () => {
+      checkScrollable();
+      if (navElement) {
+        localStorage.setItem("sb-main-sidebar-scroll-top", String(navElement.scrollTop));
+      }
+    };
+
+    navElement?.addEventListener("scroll", handleScroll);
     window.addEventListener("resize", checkScrollable);
     window.addEventListener("sb-toggle-sidebar", handleToggle as EventListener);
 
@@ -99,7 +116,7 @@ export default function Sidebar({ user }: SidebarProps) {
     }
 
     return () => {
-      navElement?.removeEventListener("scroll", checkScrollable);
+      navElement?.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", checkScrollable);
       window.removeEventListener(
         "sb-toggle-sidebar",
@@ -126,6 +143,7 @@ export default function Sidebar({ user }: SidebarProps) {
       name: "Messages",
       href: "/messages",
       icon: <MessageSquare className="h-6 w-6 shrink-0" />,
+      badge: user?.unreadMessages ?? 0,
     },
     {
       name: "Supervisors",
@@ -166,6 +184,16 @@ export default function Sidebar({ user }: SidebarProps) {
       name: "Research Tools",
       href: "/research-tools",
       icon: <Search className="h-6 w-6 shrink-0" />,
+    },
+    {
+      name: "Research Grants",
+      href: "/grants",
+      icon: <HandCoins className="h-6 w-6 shrink-0" />,
+    },
+    {
+      name: "Courses",
+      href: "/learn",
+      icon: <BookOpen className="h-6 w-6 shrink-0" />,
     },
     {
       name: "Journals",
@@ -252,6 +280,7 @@ export default function Sidebar({ user }: SidebarProps) {
             {menuItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const badge = "badge" in item ? item.badge ?? 0 : 0;
               return (
                 <Link
                   key={item.name}
@@ -269,7 +298,14 @@ export default function Sidebar({ user }: SidebarProps) {
                         : "text-slate-400 dark:text-slate-500"
                     }
                   >
-                    {item.icon}
+                    <span className="relative inline-flex">
+                      {item.icon}
+                      {badge > 0 ? (
+                        <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      ) : null}
+                    </span>
                   </div>
                   <span
                     className={`whitespace-nowrap transition-all duration-300 ${isCollapsed ? "hidden w-0 opacity-0" : "w-auto opacity-100"}`}

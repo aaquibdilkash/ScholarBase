@@ -76,8 +76,8 @@ export function RecommendationCard({
           </p>
           <StarRating rating={recommendation.rating} size="md" />
         </div>
-        <div className="grid grid-cols-3 gap-x-4">
-          <div>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="col-span-2 sm:col-span-1">
             <p className="text-xs font-semibold text-slate-600 mb-1">
               Responsiveness
             </p>

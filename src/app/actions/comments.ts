@@ -45,7 +45,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/help/${targetId}`)
@@ -66,7 +66,7 @@ export async function createComment(
             });
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId: article.slug,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId: article.slug,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         });
         revalidatePath('/blog/[slug]', 'page')
@@ -85,7 +85,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath('/feed')
@@ -105,7 +105,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/events/${targetId}`)
@@ -124,7 +124,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/vacancies/${targetId}`)
@@ -143,7 +143,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/admissions/${targetId}`)
@@ -170,7 +170,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         if (recommendation) {
@@ -191,7 +191,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/journals/${targetId}`)
@@ -210,10 +210,48 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/research-tools/${targetId}`)
+    } else if (type === 'researchGrant') {
+        await prisma.researchGrantComment.create({ data: { content, researchGrantId: targetId, authorId: user.id, parentId } })
+        const target = parentId
+            ? await prisma.researchGrantComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.researchGrant.findUnique({ where: { id: targetId }, select: { authorId: true } })
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId, actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'researchGrant', targetId,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your research grant`,
+                body: content,
+            })
+        }
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        revalidatePath(`/grants/${targetId}`)
+    } else if (type === 'course') {
+        await prisma.courseComment.create({ data: { content, courseId: targetId, authorId: user.id, parentId } })
+        const target = parentId
+            ? await prisma.courseComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
+            : await prisma.course.findUnique({ where: { id: targetId }, select: { authorId: true } })
+        if (target?.authorId) {
+            await notifyUserById({
+                recipientId: target.authorId, actorId: user.id,
+                type: parentId ? 'reply-created' : 'comment-created',
+                targetType: 'course', targetId,
+                title: parentId ? `${actorName} replied to your comment` : `${actorName} commented on your course`,
+                body: content,
+            })
+        }
+        await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+        })
+        revalidatePath(`/learn/${targetId}`)
     } else if (type === 'result') {
         await prisma.resultComment.create({ data: { content, resultId: targetId, authorId: user.id, parentId } })
         const target = parentId
@@ -229,7 +267,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/results/${targetId}`)
@@ -248,7 +286,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/contributions/${targetId}`)
@@ -267,7 +305,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/publications/${targetId}`)
@@ -286,7 +324,7 @@ export async function createComment(
             })
         }
         await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: 'comment', targetId,
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
         })
         revalidatePath(`/surveys/${targetId}`)
@@ -311,6 +349,8 @@ export async function editComment(formData: FormData, commentId: string, type: C
         help: { model: prisma.helpPostComment, revalidate: '/help/[id]' },
         journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
+        researchGrant: { model: prisma.researchGrantComment, revalidate: '/grants/[id]' },
+        course: { model: prisma.courseComment, revalidate: '/learn/[id]' },
         result: { model: prisma.resultComment, revalidate: '/results/[id]' },
         contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
         publication: { model: prisma.publicationComment, revalidate: '/publications/[id]' },
@@ -352,6 +392,8 @@ export async function deleteComment(commentId: string, type: CommentType) {
         help: { model: prisma.helpPostComment, revalidate: '/help/[id]' },
         journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
         researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
+        researchGrant: { model: prisma.researchGrantComment, revalidate: '/grants/[id]' },
+        course: { model: prisma.courseComment, revalidate: '/learn/[id]' },
         result: { model: prisma.resultComment, revalidate: '/results/[id]' },
         contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
         publication: { model: prisma.publicationComment, revalidate: '/publications/[id]' },
@@ -397,6 +439,8 @@ const COMMENT_VOTE_MODEL: Record<string, CommentVoteModel> = {
     help: prisma.helpPostCommentVote,
     journal: prisma.journalCommentVote,
     researchTool: prisma.researchToolCommentVote,
+    researchGrant: prisma.researchGrantCommentVote,
+    course: prisma.courseCommentVote,
     result: prisma.resultCommentVote,
     contribution: prisma.contributionCommentVote,
     publication: prisma.publicationCommentVote,
@@ -414,6 +458,8 @@ const COMMENT_AUTHOR_FETCH: Record<string, (id: string) => Promise<string | null
     help: (id) => prisma.helpPostComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     journal: (id) => prisma.journalComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     researchTool: (id) => prisma.researchToolComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    researchGrant: (id) => prisma.researchGrantComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
+    course: (id) => prisma.courseComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     result: (id) => prisma.resultComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     contribution: (id) => prisma.contributionComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
     publication: (id) => prisma.publicationComment.findUnique({ where: { id }, select: { authorId: true } }).then(r => r?.authorId ?? null),
@@ -481,7 +527,7 @@ export async function toggleCommentVote(
     const revalidateMap: Record<string, string> = {
         article: '/blog/[slug]', post: '/feed', event: '/events/[id]', vacancy: '/vacancies/[id]',
         admission: '/admissions/[id]', supervisor: '/supervisor/[id]', recommendation: '/supervisor/[id]/recommendation/[id]',
-        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', result: '/results/[id]', contribution: '/contributions/[id]', publication: '/publications/[id]', survey: '/surveys/[id]',
+        help: '/help/[id]', journal: '/journals/[id]', researchTool: '/research-tools/[id]', researchGrant: '/grants/[id]', course: '/learn/[id]', result: '/results/[id]', contribution: '/contributions/[id]', publication: '/publications/[id]', survey: '/surveys/[id]',
     }
     const path = revalidateMap[type]
     if (path) {

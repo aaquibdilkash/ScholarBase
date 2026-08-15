@@ -65,6 +65,7 @@ export default function ConversationPage({
   const [isOnline, setIsOnline] = useState(false);
   const lastTypedAt = useRef<number>(0);
   const roomRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [otherParticipantLastReadAt, setOtherParticipantLastReadAt] =
     useState<Date>(new Date(0));
@@ -204,6 +205,7 @@ export default function ConversationPage({
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
       supabase.removeChannel(room);
       roomRef.current = null;
     };
@@ -212,15 +214,26 @@ export default function ConversationPage({
   const broadcastTyping = useCallback(() => {
     if (!userId || !roomRef.current) return;
     const now = Date.now();
-    if (now - lastTypedAt.current < 2000) return;
-    lastTypedAt.current = now;
+    if (now - lastTypedAt.current >= 1200) {
+      lastTypedAt.current = now;
 
-    roomRef.current
-      .track({
-        isTyping: true,
-        lastReadAt: new Date().toISOString(),
-      })
-      .catch(() => {});
+      roomRef.current
+        .track({
+          isTyping: true,
+          lastReadAt: new Date().toISOString(),
+        })
+        .catch(() => {});
+    }
+
+    if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+    typingStopTimerRef.current = setTimeout(() => {
+      roomRef.current
+        ?.track({
+          isTyping: false,
+          lastReadAt: new Date().toISOString(),
+        })
+        .catch(() => {});
+    }, 1800);
   }, [userId]);
 
   // Stable callback to avoid re-subscribing realtime channel
@@ -233,22 +246,6 @@ export default function ConversationPage({
   useEffect(() => {
     broadcastTypingRef.current = broadcastTyping;
   }, [broadcastTyping]);
-
-  // Broadcast isTyping: false after user stops typing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (roomRef.current) {
-        roomRef.current
-          .track({
-            isTyping: false,
-            lastReadAt: new Date().toISOString(),
-          })
-          .catch(() => {});
-      }
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [userId]);
 
   useEffect(() => {
     const closeOnOutside = (e: MouseEvent) => {

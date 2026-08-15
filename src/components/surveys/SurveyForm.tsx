@@ -146,7 +146,7 @@ export default function SurveyForm({
           <p className="mb-2 text-xs text-slate-500">
             Control how responses are collected.
           </p>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
             {[
               {
                 value: "ANONYMOUS",
@@ -168,7 +168,7 @@ export default function SurveyForm({
                 key={opt.value}
                 type="button"
                 onClick={() => updateDraft("privacy", opt.value)}
-                className={`rounded-xl border-2 p-4 text-left transition ${
+                className={`min-w-[12rem] rounded-xl border-2 p-4 text-left transition md:min-w-0 ${
                   privacy === opt.value
                     ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 dark:border-blue-500/50"
                     : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"

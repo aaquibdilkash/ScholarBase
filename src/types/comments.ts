@@ -11,6 +11,8 @@ export type CommentType =
   | 'help'
   | 'journal'
   | 'researchTool'
+  | 'researchGrant'
+  | 'course'
   | 'result'
   | 'contribution'
   | 'publication'
@@ -62,4 +64,3 @@ export interface CommentActionConfig {
   model: CommentModel;
   revalidate: string;
 }
-

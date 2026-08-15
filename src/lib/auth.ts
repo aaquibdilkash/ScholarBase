@@ -12,6 +12,7 @@ export async function getCurrentUser(): Promise<SupabaseUser | null> {
 }
 
 export async function requireCurrentUser(message = 'Please log in to continue.'): Promise<SupabaseUser> {
+    void message
     const user = await getCurrentUser()
 
     if (!user) {

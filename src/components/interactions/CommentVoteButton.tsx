@@ -25,6 +25,8 @@ export function CommentVoteButton({
     | "recommendation"
     | "help"
     | "researchTool"
+    | "researchGrant"
+    | "course"
     | "journal"
     | "result"
     | "contribution"

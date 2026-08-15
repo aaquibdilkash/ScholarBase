@@ -90,6 +90,9 @@ export function MessageInputForm({
 
       const result = await sendMessage(conversationId, formData);
       if (result && 'error' in result) throw new Error(result.error);
+      if (result && "id" in result && onMessageSent) {
+        onMessageSent({ ...result, status: "sent" });
+      }
     } catch {
       toast("Failed to send. Text saved to draft.", "error");
       setDraft(bodyText);

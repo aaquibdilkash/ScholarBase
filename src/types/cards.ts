@@ -13,6 +13,8 @@ import type {
     ResearchEvent,
     HelpPost,
     ResearchTool,
+    ResearchGrant,
+    Course,
     Journal,
     Result,
     Contribution,
@@ -109,6 +111,29 @@ export type ResearchToolWithAuthor = Partial<ResearchTool> & {
     updatedAt: Date;
     name: string;
     description: string | null;
+    author: AuthorWithFollowers;
+    votes: VoteRecord[];
+    _count: { votes: number; comments: number };
+};
+
+export type ResearchGrantWithAuthor = Partial<ResearchGrant> & {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    title: string;
+    description: string;
+    author: AuthorWithFollowers;
+    votes: VoteRecord[];
+    _count: { votes: number; comments: number };
+};
+
+export type CourseWithAuthor = Partial<Course> & {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    title: string;
+    link: string;
+    description: string;
     author: AuthorWithFollowers;
     votes: VoteRecord[];
     _count: { votes: number; comments: number };

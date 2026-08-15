@@ -113,7 +113,25 @@ export function MessageList({
   useEffect(() => {
     if (registerAppend) {
       registerAppend((message: SentMessage) => {
-        setMessages((current) => [...current, message]);
+        setMessages((current) => {
+          if (current.some((m) => m.id === message.id)) return current;
+
+          if (message.status === "sent") {
+            const optimisticIndex = current.findIndex(
+              (m) =>
+                m.status === "sending" &&
+                m.body === message.body &&
+                m.senderId === message.senderId,
+            );
+            if (optimisticIndex >= 0) {
+              const next = [...current];
+              next[optimisticIndex] = message;
+              return next;
+            }
+          }
+
+          return [...current, message];
+        });
       });
     }
   }, [registerAppend]);

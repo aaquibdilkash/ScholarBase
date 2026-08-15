@@ -296,7 +296,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-600">
-              ORCID iD
+              ORCID Profile URL
             </label>
             <input
               name="orcidUrl"

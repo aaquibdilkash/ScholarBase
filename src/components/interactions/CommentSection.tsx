@@ -325,19 +325,29 @@ function CommentEntry({
               : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"
           }`}
         >
-          <div className="mb-1 flex items-baseline justify-between gap-2">
-            <div className="flex items-center gap-1.5">
-              <Link
-                href={`/scholars/${comment.author.id}`}
-                className="text-xs font-bold text-slate-900 hover:underline hover:text-blue-600 dark:text-slate-50 dark:hover:text-blue-300 md:text-sm"
-              >
-                {comment.author.name}
-              </Link>
-              {postAuthorId && comment.author.id === postAuthorId && (
-                <span className="inline-flex items-center rounded-md bg-blue-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 md:text-[10px]">
-                  Author
-                </span>
-              )}
+          <div className="mb-1 flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={`/scholars/${comment.author.id}`}
+                  className="truncate text-xs font-bold text-slate-900 hover:text-blue-600 hover:underline dark:text-slate-50 dark:hover:text-blue-300 md:text-sm"
+                >
+                  {comment.author.name || "Scholar"}
+                </Link>
+                {postAuthorId && comment.author.id === postAuthorId && (
+                  <span className="inline-flex items-center rounded-md bg-blue-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 md:text-[10px]">
+                    Author
+                  </span>
+                )}
+              </div>
+              {comment.author.handle ? (
+                <Link
+                  href={`/scholars/${comment.author.id}`}
+                  className="mt-0.5 block truncate text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
+                >
+                  @{comment.author.handle}
+                </Link>
+              ) : null}
             </div>
             <span
               className={`font-medium ${
