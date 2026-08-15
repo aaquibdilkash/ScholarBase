@@ -151,33 +151,74 @@ export async function getCourses(q?: string, userId?: string) {
 export async function getCourseById(courseId: string, userId?: string) {
   return prisma.course.findUniqueOrThrow({
     where: { id: courseId },
-    include: {
-      author: {
-        include: {
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      comments: {
-        where: { parentId: null },
-        include: {
-          author: true,
-          votes: userId ? { where: { userId } } : false,
-          _count: { select: { votes: true } },
-          replies: {
-            include: {
-              author: true,
-              votes: userId ? { where: { userId } } : false,
-              _count: { select: { votes: true } },
+    select: {
+        id: true,
+        title: true,
+        provider: true,
+        instructor: true,
+        format: true,
+        level: true,
+        price: true,
+        duration: true,
+        link: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+        authorId: true,
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                followers: userId
+                    ? { where: { followerId: userId }, select: { followerId: true } }
+                    : false,
             },
-            orderBy: { createdAt: 'asc' },
-          },
         },
-        orderBy: { createdAt: 'desc' },
-      },
-      votes: { select: { userId: true, voteType: true } },
-      _count: { select: { votes: true, comments: true } },
+        comments: {
+            where: { parentId: null },
+            select: {
+                id: true,
+                content: true,
+                createdAt: true,
+                updatedAt: true,
+                parentId: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatarUrl: true,
+                    },
+                },
+                votes: { select: { userId: true, voteType: true } },
+                mentions: true,
+                replies: {
+                    select: {
+                        id: true,
+                        content: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        parentId: true,
+                        author: {
+                            select: {
+                                id: true,
+                                name: true,
+                                avatarUrl: true,
+                            },
+                        },
+                        votes: { select: { userId: true, voteType: true } },
+                        mentions: true,
+                        _count: { select: { votes: true } },
+                    },
+                    orderBy: { createdAt: "asc" },
+                },
+                _count: { select: { votes: true } },
+            },
+            orderBy: { createdAt: "desc" },
+        },
+        votes: { select: { userId: true, voteType: true } },
+        _count: { select: { votes: true, comments: true } },
     },
-  })
+  });
 }

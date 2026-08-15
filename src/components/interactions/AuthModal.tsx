@@ -9,7 +9,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useUser } from "@/hooks/useUser";
 import type { AuthModalContextValue } from "@/types/context";
 
@@ -26,8 +26,12 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [callbackUrl, setCallbackUrl] = useState("/");
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { user } = useUser();
+
+  const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
   const openAuthModal = useCallback(
     (url?: string) => {
@@ -35,10 +39,10 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      setCallbackUrl(url || window.location.pathname + window.location.search);
+      setCallbackUrl(url || currentUrl);
       setIsOpen(true);
     },
-    [user],
+    [user, currentUrl],
   );
 
   useEffect(() => {
@@ -68,7 +72,6 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   }, [callbackUrl]);
 
   const handleClose = () => {
-    console.log("Closing auth modal");
     setIsOpen(false);
   };
 

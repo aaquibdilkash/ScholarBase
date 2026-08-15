@@ -7,6 +7,20 @@ import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const vacancy = await getVacancyById(id).catch(() => null);
+  if (!vacancy) return { title: "Academic Vacancy" };
+  return buildMetadata({
+    title: vacancy.title,
+    description: `${vacancy.title} at ${vacancy.institution}.`,
+    path: `/vacancies/${vacancy.id}`,
+    type: "article",
+  });
+}
 
 const VacancyDetailPage = async ({
   params,

@@ -65,18 +65,42 @@ export async function getVacancyById(id: string) {
             },
             comments: {
                 where: { parentId: null },
-                include: {
-                    author: true,
-                    votes: user ? { where: { userId: user.id } } : false,
-                    _count: { select: { votes: true } },
+                select: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    parentId: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatarUrl: true,
+                        },
+                    },
+                    votes: { select: { userId: true, voteType: true } },
+                    mentions: true,
                     replies: {
-                        include: {
-                            author: true,
-                            votes: user ? { where: { userId: user.id } } : false,
+                        select: {
+                            id: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            parentId: true,
+                            author: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    avatarUrl: true,
+                                },
+                            },
+                            votes: { select: { userId: true, voteType: true } },
+                            mentions: true,
                             _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
+                    _count: { select: { votes: true } },
                 },
                 orderBy: { createdAt: "desc" },
             },

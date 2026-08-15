@@ -17,6 +17,7 @@ export type RecommendationFormValues = {
   responsivenessScore: string;
   guidanceScore: string;
   feedback: string;
+  isAnonymous: boolean;
 };
 
 export default function RecommendationForm({
@@ -37,6 +38,7 @@ export default function RecommendationForm({
     responsivenessScore: initialValues?.responsivenessScore ?? "5",
     guidanceScore: initialValues?.guidanceScore ?? "5",
     feedback: initialValues?.feedback ?? "",
+    isAnonymous: initialValues?.isAnonymous ?? false,
   };
 
   const draftKey = mode === "edit" ? null : "draft_recommendation_create";
@@ -84,13 +86,15 @@ export default function RecommendationForm({
           <option value="5">5 - Excellent (Highly Recommended)</option>
           <option value="4">4 - Very Good</option>
           <option value="3">3 - Average</option>
+          <option value="2">2 - Below Average</option>
+          <option value="1">1 - Poor (Not Recommended)</option>
         </select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
-            Feedback Turnaround Time (days)
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-2">
+          Feedback Turnaround Time (days)
           </label>
           <input
             type="number"
@@ -159,6 +163,23 @@ export default function RecommendationForm({
         <input type="hidden" name="feedback" value={draftFields.feedback} />
       </div>
 
+      <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+        <input
+          type="checkbox"
+          name="isAnonymous"
+          checked={draftFields.isAnonymous}
+          onChange={(e) => updateDraftField("isAnonymous", e.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        />
+        <span>
+          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
+            Post anonymously
+          </span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">
+            Other scholars will see the recommendation, but your name will stay hidden.
+          </span>
+        </span>
+      </label>
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
         {mode === "create" && supervisorId && (
           <FormCancelButton href={`/supervisor/${supervisorId}`} />

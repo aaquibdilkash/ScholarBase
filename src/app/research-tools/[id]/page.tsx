@@ -7,6 +7,20 @@ import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchTool } from "@/app/actions/researchTools";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const tool = await getResearchToolById(id).catch(() => null);
+  if (!tool) return { title: "Research Tool" };
+  return buildMetadata({
+    title: tool.name,
+    description: `${tool.name} helps researchers with ${tool.use}.`,
+    path: `/research-tools/${tool.id}`,
+    type: "article",
+  });
+}
 
 const ResearchToolDetailPage = async ({
   params,

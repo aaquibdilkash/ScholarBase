@@ -8,9 +8,9 @@ import { StarRating } from "@/components/ui/StarRating";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 export function RecommendationCard({
-  recommendation,
-  supervisor,
-  currentUserId,
+    recommendation,
+    supervisor,
+    currentUserId,
 }: {
   recommendation: RecommendationWithAuthor;
   supervisor: { id: string; name: string | null };
@@ -34,12 +34,12 @@ export function RecommendationCard({
   return (
     <ListPageCardShell
       authorHref={`/scholars/${recommendation.author.id}`}
-      authorName={recommendation.author.name || "Scholar"}
+      authorName={recommendation.isAnonymous ? "Anonymous Scholar" : (recommendation.author.name || "Scholar")}
       authorId={recommendation.author.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={recommendation.author.handle || undefined}
-      authorAvatarUrl={recommendation.author.avatarUrl || undefined}
+      authorHandle={recommendation.isAnonymous ? undefined : (recommendation.author.handle || undefined)}
+      authorAvatarUrl={recommendation.isAnonymous ? null : (recommendation.author.avatarUrl || undefined)}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       managementControls={
         isOwner && (
@@ -66,7 +66,7 @@ export function RecommendationCard({
       footerCommentsCount={recommendation._count.comments}
     >
       <p className="text-sm font-semibold text-slate-700 mb-2">
-        Recommendation for{" "}
+        {recommendation.isAnonymous ? "Anonymous recommendation for " : "Recommendation for "}
         <span className="text-blue-700">{supervisor.name}</span>
       </p>
       <div className="space-y-3 mb-4">

@@ -16,16 +16,17 @@ export default async function EditRecommendationPage({
 
   const recommendation = await prisma.recommendation.findUnique({
     where: { id: recommendationId },
-    select: {
-      id: true,
-      rating: true,
-      turnaroundTimeDays: true,
-      responsivenessScore: true,
-      guidanceScore: true,
-      feedback: true,
-      authorId: true,
-      supervisorId: true,
-    },
+      select: {
+        id: true,
+        rating: true,
+        turnaroundTimeDays: true,
+        responsivenessScore: true,
+        guidanceScore: true,
+        feedback: true,
+        isAnonymous: true,
+        authorId: true,
+        supervisorId: true,
+      },
   });
 
   if (!recommendation || recommendation.supervisorId !== id) {
@@ -56,6 +57,7 @@ export default async function EditRecommendationPage({
             responsivenessScore: recommendation.responsivenessScore.toString(),
             guidanceScore: recommendation.guidanceScore.toString(),
             feedback: recommendation.feedback,
+            isAnonymous: recommendation.isAnonymous,
           }}
         />
       </div>

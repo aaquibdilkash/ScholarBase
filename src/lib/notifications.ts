@@ -156,25 +156,34 @@ type NotifyMentionedUsersParams = {
   targetId: string;
   titleFactory: (handle: string) => string;
   bodyFactory: (handle: string) => string;
+  mentions?: { id: string, handle: string }[];
 };
 
-export async function notifyMentionedUsers(params: NotifyMentionedUsersParams) {
-  const mentions = params.content.match(MENTION_REGEX);
-  if (!mentions) return;
+export async function notifyMentionedUsers(params: NotifyMentionedUsersParams): Promise<{ id: string; handle: string | null }[]> {
+  let mentionedUsers: { id: string, handle: string | null }[] = [];
 
-  const mentionedHandles = mentions.map((mention) => mention.substring(1));
+  if (params.mentions) {
+    mentionedUsers = params.mentions;
+  } else {
+    const mentions = params.content.match(MENTION_REGEX);
+    if (!mentions) return [];
 
-  const mentionedUsers = await prisma.user.findMany({
-    where: {
-      handle: {
-        in: mentionedHandles,
-      },
-    },
-    select: {
-      id: true,
-      handle: true,
-    },
-  });
+    const mentionedHandles = mentions.map((mention) => mention.substring(1));
+
+    mentionedUsers = await prisma.user.findMany({
+        where: {
+            handle: {
+                in: mentionedHandles,
+            },
+        },
+        select: {
+            id: true,
+            handle: true,
+        },
+    });
+  }
+
+  if (mentionedUsers.length === 0) return [];
 
   const actor = await prisma.user.findUnique({
     where: { id: params.actorId },
@@ -204,6 +213,7 @@ export async function notifyMentionedUsers(params: NotifyMentionedUsersParams) {
       },
     });
   }
+  return mentionedUsers;
 }
 
 type NotifyFollowersOfActivityParams = {

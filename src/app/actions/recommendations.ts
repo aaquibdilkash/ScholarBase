@@ -26,6 +26,7 @@ export async function createRecommendation(formData: FormData, supervisorId: str
         readFormValue(formData, 'guidanceScore'),
         10,
     )
+    const isAnonymous = formData.has('isAnonymous')
 
 
     // Prevent duplicate recommendations (e.g., if user navigates directly to this page
@@ -49,12 +50,12 @@ export async function createRecommendation(formData: FormData, supervisorId: str
             turnaroundTimeDays,
             responsivenessScore,
             guidanceScore,
+            isAnonymous,
             supervisorId,
             authorId: user.id,
         },
     });
 
-    // Award 2 reputation points for the recommendation
     await prisma.user.update({
         where: { id: user.id },
         data: { reputation: { increment: 2 } },
@@ -81,16 +82,19 @@ export async function updateRecommendation(formData: FormData, recommendationId:
         readFormValue(formData, 'guidanceScore'),
         10,
     )
+    const isAnonymous = formData.has('isAnonymous')
 
     const recommendation = await prisma.recommendation.findUnique({
         where: { id: recommendationId },
-        select: { authorId: true, supervisorId: true },
+        select: { authorId: true, supervisorId: true, isAnonymous: true },
     })
 
     if (!recommendation) return
     if (!await isAuthorizedOrAdmin(recommendation.authorId, user.id)) {
         throw new Error('Not authorized to edit this recommendation.')
     }
+
+
 
     await prisma.recommendation.update({
         where: { id: recommendationId },
@@ -100,6 +104,7 @@ export async function updateRecommendation(formData: FormData, recommendationId:
             turnaroundTimeDays,
             responsivenessScore,
             guidanceScore,
+            isAnonymous,
         },
     })
 
@@ -132,5 +137,4 @@ export async function deleteRecommendation(recommendationId: string) {
     revalidatePath(`/supervisor/${recommendation.supervisorId}`)
     return { redirect: `/supervisor/${recommendation.supervisorId}` }
 }
-
 

@@ -19,9 +19,9 @@ export default async function RecommendationDetailPage({
 
   const recommendation = await prisma.recommendation.findUnique({
     where: { id: recommendationId },
-    include: {
-      author: true,
-      supervisor: true,
+      include: {
+        author: true,
+        supervisor: true,
       comments: {
         where: { parentId: null },
         orderBy: { createdAt: "asc" },
@@ -70,9 +70,9 @@ export default async function RecommendationDetailPage({
       backHref={`/supervisor/${recommendation.supervisor.id}`}
       backLabel="Back to Supervisor Profile"
       authorHref={`/scholars/${recommendation.author.id}`}
-      authorName={recommendation.author.name || "Scholar"}
-      authorHandle={recommendation.author.handle || undefined}
-      authorAvatarUrl={recommendation.author.avatarUrl || undefined}
+      authorName={recommendation.isAnonymous ? "Anonymous Scholar" : (recommendation.author.name || "Scholar")}
+      authorHandle={recommendation.isAnonymous ? undefined : (recommendation.author.handle || undefined)}
+      authorAvatarUrl={recommendation.isAnonymous ? null : (recommendation.author.avatarUrl || undefined)}
       authorId={recommendation.authorId}
       currentUserId={user?.id}
       createdDate={recommendation.createdAt}
@@ -107,7 +107,12 @@ export default async function RecommendationDetailPage({
           />
         ) : null
       }
-    >
+      >
+      {recommendation.isAnonymous ? (
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+          Anonymous recommendation
+        </p>
+      ) : null}
       <p className="text-sm font-semibold text-slate-700 mb-2">
         Recommendation for{" "}
         <a

@@ -52,9 +52,21 @@ export async function getHelpPost(id: string, userId?: string) {
 
     return prisma.helpPost.findUnique({
         where: { id },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            subject: true,
+            category: true,
+            message: true,
+            createdAt: true,
+            updatedAt: true,
+            authorId: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: {
                         where: { followerId: userId },
                         select: { followerId: true },
@@ -69,18 +81,42 @@ export async function getHelpPost(id: string, userId?: string) {
             },
             comments: {
                 where: { parentId: null },
-                include: {
-                    author: true,
-                    votes: { where: { userId } },
-                    _count: { select: { votes: true } },
+                select: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    parentId: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatarUrl: true,
+                        },
+                    },
+                    votes: { select: { userId: true, voteType: true } },
+                    mentions: true,
                     replies: {
-                        include: {
-                            author: true,
-                            votes: { where: { userId } },
+                        select: {
+                            id: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            parentId: true,
+                            author: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    avatarUrl: true,
+                                },
+                            },
+                            votes: { select: { userId: true, voteType: true } },
+                            mentions: true,
                             _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
+                    _count: { select: { votes: true } },
                 },
                 orderBy: {
                     createdAt: 'desc'

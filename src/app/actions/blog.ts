@@ -101,6 +101,7 @@ export async function getArticle(slug: string, userId?: string) {
             },
           },
           votes: { select: { userId: true, voteType: true } },
+          mentions: true,
           replies: {
             select: {
               id: true,
@@ -112,6 +113,7 @@ export async function getArticle(slug: string, userId?: string) {
                 select: { id: true, name: true, avatarUrl: true },
               },
               votes: { select: { userId: true, voteType: true } },
+              mentions: true,
               _count: { select: { votes: true } },
             },
             orderBy: { createdAt: "asc" },

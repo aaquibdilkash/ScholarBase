@@ -134,9 +134,22 @@ export async function getResearchGrants(q?: string, userId?: string) {
 export async function getResearchGrantById(grantId: string, userId?: string) {
   return prisma.researchGrant.findUniqueOrThrow({
     where: { id: grantId },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      amount: true,
+      description: true,
+      applyLink: true,
+      infoLink: true,
+      createdAt: true,
+      updatedAt: true,
+      authorId: true,
       author: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -144,23 +157,47 @@ export async function getResearchGrantById(grantId: string, userId?: string) {
       },
       comments: {
         where: { parentId: null },
-        include: {
-          author: true,
-          votes: userId ? { where: { userId } } : false,
-          _count: { select: { votes: true } },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+          parentId: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+          votes: { select: { userId: true, voteType: true } },
+          mentions: true,
           replies: {
-            include: {
-              author: true,
-              votes: userId ? { where: { userId } } : false,
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              updatedAt: true,
+              parentId: true,
+              author: {
+                select: {
+                  id: true,
+                  name: true,
+                  avatarUrl: true,
+                },
+              },
+              votes: { select: { userId: true, voteType: true } },
+              mentions: true,
               _count: { select: { votes: true } },
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { createdAt: "asc" },
           },
+          _count: { select: { votes: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       },
       votes: { select: { userId: true, voteType: true } },
       _count: { select: { votes: true, comments: true } },
     },
-  })
+  });
 }

@@ -117,6 +117,7 @@ model ArticleComment {
   parent    ArticleComment?      @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   ArticleComment[]     @relation("ArticleReplies")
   votes     ArticleCommentVote[]
+  mentions  Json?
 }
 
 model ArticleVote {
@@ -145,6 +146,7 @@ model SocialComment {
   replies      SocialComment[]     @relation("SocialReplies")
   socialPost   SocialPost          @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
   votes        SocialCommentVote[]
+  mentions  Json?
 }
 
 model ArticleCommentVote {
@@ -232,6 +234,7 @@ model HelpPostComment {
   replies HelpPostComment[] @relation("HelpPostReplies")
 
   votes HelpPostCommentVote[]
+  mentions  Json?
 }
 
 model HelpPostCommentVote {
@@ -296,6 +299,7 @@ model ContributionComment {
   parent       ContributionComment?        @relation("ContributionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      ContributionComment[]       @relation("ContributionReplies")
   votes        ContributionCommentVote[]
+  mentions  Json?
 }
 
 model ContributionCommentVote {
@@ -364,6 +368,7 @@ model PublicationComment {
   parent        PublicationComment?    @relation("PublicationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies       PublicationComment[]   @relation("PublicationReplies")
   votes         PublicationCommentVote[]
+  mentions  Json?
 }
 
 model PublicationCommentVote {
@@ -596,6 +601,7 @@ model ResearchToolComment {
   parent         ResearchToolComment?      @relation("ResearchToolReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies        ResearchToolComment[]     @relation("ResearchToolReplies")
   votes          ResearchToolCommentVote[]
+  mentions  Json?
 }
 
 model ResearchToolCommentVote {
@@ -653,6 +659,7 @@ model ResearchGrantComment {
   parent          ResearchGrantComment?      @relation("ResearchGrantReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies         ResearchGrantComment[]     @relation("ResearchGrantReplies")
   votes           ResearchGrantCommentVote[]
+  mentions  Json?
 }
 
 model ResearchGrantCommentVote {
@@ -714,6 +721,7 @@ model CourseComment {
   parent    CourseComment?      @relation("CourseReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   CourseComment[]     @relation("CourseReplies")
   votes     CourseCommentVote[]
+  mentions  Json?
 }
 
 model CourseCommentVote {
@@ -774,6 +782,7 @@ model JournalComment {
   parent    JournalComment?      @relation("JournalReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   JournalComment[]     @relation("JournalReplies")
   votes     JournalCommentVote[]
+  mentions  Json?
 }
 
 model JournalCommentVote {
@@ -838,6 +847,7 @@ model ResultComment {
   replies ResultComment[] @relation("ResultReplies")
 
   votes ResultCommentVote[]
+  mentions  Json?
 }
 
 model ResultCommentVote {
@@ -954,6 +964,7 @@ model SurveyComment {
   replies SurveyComment[] @relation("SurveyReplies")
 
   votes SurveyCommentVote[]
+  mentions  Json?
 }
 
 model SurveyCommentVote {
@@ -1039,6 +1050,7 @@ model ResearchEventComment {
   replies ResearchEventComment[] @relation("ResearchEventReplies")
 
   votes ResearchEventCommentVote[]
+  mentions  Json?
 }
 
 model ResearchEventCommentVote {
@@ -1101,6 +1113,7 @@ model PhdAdmissionComment {
   replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
 
   votes PhdAdmissionCommentVote[]
+  mentions  Json?
 }
 
 model PhdAdmissionCommentVote {
@@ -1163,6 +1176,7 @@ model JobVacancyComment {
   replies JobVacancyComment[] @relation("JobVacancyReplies")
 
   votes JobVacancyCommentVote[]
+  mentions  Json?
 }
 
 model JobVacancyCommentVote {
@@ -1204,6 +1218,7 @@ model SupervisorComment {
   parent       SupervisorComment?      @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      SupervisorComment[]     @relation("SupervisorReplies")
   votes        SupervisorCommentVote[]
+  mentions  Json?
 }
 
 model SupervisorCommentVote {
@@ -1226,6 +1241,7 @@ model Recommendation {
   turnaroundTimeDays  Int
   responsivenessScore Int
   guidanceScore       Int
+  isAnonymous        Boolean                 @default(false)
   supervisorId        String
   authorId            String
   createdAt           DateTime                @default(now())
@@ -1265,6 +1281,7 @@ model RecommendationComment {
   parent           RecommendationComment?      @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies          RecommendationComment[]     @relation("RecommendationReplies")
   votes            RecommendationCommentVote[]
+  mentions  Json?
 }
 
 model RecommendationCommentVote {

@@ -60,23 +60,23 @@ export function SocialPostCard({
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post._count.comments}
     >
-      <div className="flex gap-4">
+      <div className={`flex gap-4 ${post.imageUrl ? "items-start" : ""}`}>
         <p
-          className={`mb-4 line-clamp-3 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600 ${
-            post.imageUrl ? "w-1/2" : "w-full"
+          className={`mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600 ${
+            post.imageUrl ? "w-1/2 min-w-0" : "w-full"
           }`}
         >
           {post.content}
         </p>
         {post.imageUrl && (
-          <div className="w-1/2 mb-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 transition hover:opacity-90">
+          <div className="mb-4 w-1/2 self-start overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:opacity-90 dark:bg-slate-900">
             <Image
               src={post.imageUrl}
               alt=""
               width={800}
               height={400}
               unoptimized
-              className="h-48 w-full object-cover"
+              className="block h-auto w-full object-contain"
             />
           </div>
         )}

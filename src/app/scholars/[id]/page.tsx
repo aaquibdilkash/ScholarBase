@@ -4,11 +4,25 @@ import { ShareButton } from "@/components/interactions/ShareButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getProfile } from "@/app/actions/profile";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
 import { Star } from "lucide-react";
 import { FollowerCount } from "./FollowerCount";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+import { getProfile } from "@/app/actions/profile";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const profile = await getProfile(id).catch(() => null);
+  if (!profile) return { title: "Scholar Profile" };
+  return buildMetadata({
+    title: `${profile.name || "Scholar"}${profile.handle ? ` (@${profile.handle})` : ""}`,
+    description: profile.bio || `${profile.name || "Scholar"} on ScholarBase`,
+    path: `/scholars/${profile.id}`,
+    type: "profile",
+  });
+}
 
 export default async function ScholarProfile({
   params,

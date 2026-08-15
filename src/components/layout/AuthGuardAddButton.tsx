@@ -27,7 +27,7 @@ export function AuthGuardAddButton({
   return (
     <button
       type="button"
-      onClick={() => openAuthModal()}
+      onClick={() => openAuthModal(href)}
       className={buttonClass}
     >
       {label}

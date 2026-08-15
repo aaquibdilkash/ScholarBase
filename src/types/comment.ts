@@ -25,6 +25,7 @@ export interface CommentItem {
     author: CommentUser;
     votes: CommentVote[];
     parentId: string | null;
+    mentions?: { id: string, handle: string | null }[] | null;
     _count: { votes: number };
 }
 

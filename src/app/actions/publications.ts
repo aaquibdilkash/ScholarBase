@@ -193,9 +193,33 @@ export async function getPublicationById(publicationId: string, userId?: string)
         where: {
             id: publicationId,
         },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            authors: true,
+            publicationType: true,
+            journalOrConference: true,
+            publisher: true,
+            year: true,
+            volume: true,
+            issue: true,
+            pages: true,
+            doi: true,
+            isbn: true,
+            url: true,
+            keywords: true,
+            domain: true,
+            abstract: true,
+            isUserAuthor: true,
+            createdAt: true,
+            updatedAt: true,
+            authorId: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -206,18 +230,42 @@ export async function getPublicationById(publicationId: string, userId?: string)
             },
             comments: {
                 where: { parentId: null },
-                include: {
-                    author: true,
-                    votes: userId ? { where: { userId: userId } } : false,
-                    _count: { select: { votes: true } },
+                select: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    parentId: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatarUrl: true,
+                        },
+                    },
+                    votes: { select: { userId: true, voteType: true } },
+                    mentions: true,
                     replies: {
-                        include: {
-                            author: true,
-                            votes: userId ? { where: { userId: userId } } : false,
+                        select: {
+                            id: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            parentId: true,
+                            author: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    avatarUrl: true,
+                                },
+                            },
+                            votes: { select: { userId: true, voteType: true } },
+                            mentions: true,
                             _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
+                    _count: { select: { votes: true } },
                 },
                 orderBy: { createdAt: "desc" },
             },

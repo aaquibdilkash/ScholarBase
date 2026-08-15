@@ -21,6 +21,16 @@ export async function createComment(
     const content = readFormValue(formData, 'content')
     if (!content) return
 
+    const mentionsRaw = readFormValue(formData, 'mentions');
+    let mentions: { id: string, handle: string }[] | undefined;
+    if (mentionsRaw) {
+        try {
+            mentions = JSON.parse(mentionsRaw);
+        } catch {
+            // ignore invalid JSON
+        }
+    }
+
     // Fetch actor name for notification titles
     const actor = await prisma.user.findUnique({
         where: { id: user.id },
@@ -29,8 +39,13 @@ export async function createComment(
     const actorName = actor?.name || actor?.handle || user.email?.split('@')[0] || 'Someone';
 
     if (type === 'help') {
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
         await prisma.helpPostComment.create({
-            data: { content, helpPostId: targetId, authorId: user.id, parentId },
+            data: { content, helpPostId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
         })
         const target = parentId
             ? await prisma.helpPostComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
@@ -44,13 +59,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/help/${targetId}`)
     } else if (type === 'article') {
-        await prisma.articleComment.create({ data: { content, articleId: targetId, authorId: user.id, parentId } });
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId: (await prisma.article.findUnique({ where: { id: targetId }, select: { slug: true } }))?.slug ?? '',
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        });
+        await prisma.articleComment.create({ data: { content, articleId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } });
         const article = await prisma.article.findUnique({ where: { id: targetId }, select: { slug: true, authorId: true } });
         if (!article) return
         const target = parentId
@@ -65,13 +81,14 @@ export async function createComment(
                 body: content,
             });
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId: article.slug,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        });
         revalidatePath('/blog/[slug]', 'page')
     } else if (type === 'post') {
-        await prisma.socialComment.create({ data: { content, socialPostId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.socialComment.create({ data: { content, socialPostId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.socialComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.socialPost.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -84,14 +101,15 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath('/feed')
         revalidatePath(`/feed/${targetId}`)
     } else if (type === 'event') {
-        await prisma.researchEventComment.create({ data: { content, researchEventId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.researchEventComment.create({ data: { content, researchEventId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.researchEventComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchEvent.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -104,13 +122,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/events/${targetId}`)
     } else if (type === 'vacancy') {
-        await prisma.jobVacancyComment.create({ data: { content, jobVacancyId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.jobVacancyComment.create({ data: { content, jobVacancyId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.jobVacancyComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.jobVacancy.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -123,13 +142,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/vacancies/${targetId}`)
     } else if (type === 'admission') {
-        await prisma.phdAdmissionComment.create({ data: { content, phdAdmissionId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.phdAdmissionComment.create({ data: { content, phdAdmissionId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.phdAdmissionComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.phdAdmission.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -142,16 +162,22 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/admissions/${targetId}`)
     } else if (type === 'supervisor') {
-        await prisma.supervisorComment.create({ data: { content, supervisorId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.supervisorComment.create({ data: { content, supervisorId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         revalidatePath(`/supervisor/${targetId}`)
     } else if (type === 'recommendation') {
-        await prisma.recommendationComment.create({ data: { content, recommendationId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.recommendationComment.create({ data: { content, recommendationId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const recommendation = await prisma.recommendation.findUnique({
             where: { id: targetId },
             select: { supervisorId: true, authorId: true }
@@ -169,15 +195,16 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         if (recommendation) {
             revalidatePath(`/supervisor/${recommendation.supervisorId}/recommendation/${targetId}`)
         }
     } else if (type === 'journal') {
-        await prisma.journalComment.create({ data: { content, journalId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.journalComment.create({ data: { content, journalId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.journalComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.journal.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -190,13 +217,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/journals/${targetId}`)
     } else if (type === 'researchTool') {
-        await prisma.researchToolComment.create({ data: { content, researchToolId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.researchToolComment.create({ data: { content, researchToolId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.researchToolComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchTool.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -209,13 +237,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/research-tools/${targetId}`)
     } else if (type === 'researchGrant') {
-        await prisma.researchGrantComment.create({ data: { content, researchGrantId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.researchGrantComment.create({ data: { content, researchGrantId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.researchGrantComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchGrant.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -228,13 +257,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/grants/${targetId}`)
     } else if (type === 'course') {
-        await prisma.courseComment.create({ data: { content, courseId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.courseComment.create({ data: { content, courseId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.courseComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.course.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -247,13 +277,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/learn/${targetId}`)
     } else if (type === 'result') {
-        await prisma.resultComment.create({ data: { content, resultId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.resultComment.create({ data: { content, resultId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.resultComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.result.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -266,13 +297,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/results/${targetId}`)
     } else if (type === 'contribution') {
-        await prisma.contributionComment.create({ data: { content, contributionId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.contributionComment.create({ data: { content, contributionId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.contributionComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.contribution.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -285,13 +317,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/contributions/${targetId}`)
     } else if (type === 'publication') {
-        await prisma.publicationComment.create({ data: { content, publicationId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.publicationComment.create({ data: { content, publicationId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.publicationComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.publication.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -304,13 +337,14 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/publications/${targetId}`)
     } else if (type === 'survey') {
-        await prisma.surveyComment.create({ data: { content, surveyId: targetId, authorId: user.id, parentId } })
+        const mentionedUsers = await notifyMentionedUsers({
+            actorId: user.id, content, type: 'mention', targetType: type, targetId,
+            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
+            mentions,
+        })
+        await prisma.surveyComment.create({ data: { content, surveyId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
         const target = parentId
             ? await prisma.surveyComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchSurvey.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -323,10 +357,6 @@ export async function createComment(
                 body: content,
             })
         }
-        await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId,
-            titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
-        })
         revalidatePath(`/surveys/${targetId}`)
     }
 }
@@ -337,6 +367,16 @@ export async function editComment(formData: FormData, commentId: string, type: C
     const user = await requireCurrentUser('Log in to edit this comment.')
     const content = readFormValue(formData, 'content')
     if (!content) return
+
+    const mentionsRaw = readFormValue(formData, 'mentions');
+    let mentions: { id: string, handle: string }[] | undefined;
+    if (mentionsRaw) {
+        try {
+            mentions = JSON.parse(mentionsRaw);
+        } catch {
+            // ignore invalid JSON
+        }
+    }
 
     const editMap: Record<string, CommentActionConfig> = {
         article: { model: prisma.articleComment, revalidate: '/blog/[slug]' },
@@ -362,7 +402,7 @@ export async function editComment(formData: FormData, commentId: string, type: C
     const comment = await cfg.model.findUnique({ where: { id: commentId }, select: { authorId: true } })
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
-    await cfg.model.update({ where: { id: commentId }, data: { content } })
+    await cfg.model.update({ where: { id: commentId }, data: { content, mentions } })
     if (type === 'recommendation') {
         const recommendationComment = await prisma.recommendationComment.findUnique({
             where: { id: commentId },

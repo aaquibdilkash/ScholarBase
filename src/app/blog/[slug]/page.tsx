@@ -6,6 +6,20 @@ import { RichContent } from "@/components/content/RichContent";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteArticle, getArticle } from "@/app/actions/blog";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await getArticle(slug).catch(() => null);
+  if (!article) return { title: "Article" };
+  return buildMetadata({
+    title: article.title,
+    description: article.excerpt || article.title,
+    path: `/blog/${article.slug}`,
+    type: "article",
+  });
+}
 
 export default async function ArticlePage({
   params,

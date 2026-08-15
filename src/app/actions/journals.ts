@@ -159,9 +159,25 @@ export async function getJournalById(journalId: string, userId?: string) {
         where: {
             id: journalId,
         },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            issn: true,
+            impactFactor: true,
+            scopus: true,
+            abdcCategory: true,
+            publisher: true,
+            website: true,
+            about: true,
+            createdAt: true,
+            updatedAt: true,
+            authorId: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -172,18 +188,42 @@ export async function getJournalById(journalId: string, userId?: string) {
             },
             comments: {
                 where: { parentId: null },
-                include: {
-                    author: true,
-                    votes: userId ? { where: { userId: userId } } : false,
-                    _count: { select: { votes: true } },
+                select: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    parentId: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatarUrl: true,
+                        },
+                    },
+                    votes: { select: { userId: true, voteType: true } },
+                    mentions: true,
                     replies: {
-                        include: {
-                            author: true,
-                            votes: userId ? { where: { userId: userId } } : false,
+                        select: {
+                            id: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            parentId: true,
+                            author: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    avatarUrl: true,
+                                },
+                            },
+                            votes: { select: { userId: true, voteType: true } },
+                            mentions: true,
                             _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
+                    _count: { select: { votes: true } },
                 },
                 orderBy: { createdAt: "desc" },
             },

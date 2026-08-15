@@ -16,13 +16,15 @@ import {
   CreditCard,
   MessageCircle,
 } from "lucide-react";
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: "ScholarBase: The Academic Hub for Researchers",
   description:
     "Connect with peers, publish your research, track supervisors, and discover PhD admissions, academic events, and vacancies in one focused workspace.",
-};
+  path: "/",
+});
 
 export default async function HomePage() {
   const supabase = await createClient();

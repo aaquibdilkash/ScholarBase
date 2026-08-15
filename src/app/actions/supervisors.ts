@@ -5,22 +5,36 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { revalidatePath } from 'next/cache';
 
-// Shared include for a single recommendation in the supervisor detail carousel.
-const recommendationInclude = (userId?: string) => ({
-  include: {
-    author: {
-      include: {
-        followers: userId
-          ? {
-            where: { followerId: userId },
-            select: { followerId: true },
-          }
-          : false,
-      },
+// Shared select for a single recommendation in the supervisor detail carousel.
+const recommendationSelect = (userId?: string) => ({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  rating: true,
+  feedback: true,
+  turnaroundTimeDays: true,
+  responsivenessScore: true,
+  guidanceScore: true,
+  isAnonymous: true,
+  supervisorId: true,
+  author: {
+    include: {
+      followers: userId
+        ? {
+          where: { followerId: userId },
+          select: { followerId: true },
+        }
+        : false,
     },
-    votes: { select: { userId: true, voteType: true } },
-    _count: { select: { comments: true, votes: true } },
   },
+  votes: { select: { userId: true, voteType: true } },
+  _count: { select: { comments: true, votes: true } },
+});
+
+// For an unknown reason, prisma.$transaction seems to need the unwrapped
+// version of this, while `include` and spreads need the wrapped version.
+const recommendationInclude = (userId?: string) => ({
+  select: recommendationSelect(userId),
 });
 
 

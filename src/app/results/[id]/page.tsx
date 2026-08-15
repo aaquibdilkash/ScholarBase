@@ -8,6 +8,20 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { Building2, Calendar } from "lucide-react";
 import { RichContent } from "@/components/content/RichContent";
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const result = await getResult(id).catch(() => null);
+  if (!result) return { title: "Result" };
+  return buildMetadata({
+    title: result.title,
+    description: result.description.slice(0, 160),
+    path: `/results/${result.id}`,
+    type: "article",
+  });
+}
 
 const ResultDetailPage = async ({
   params,

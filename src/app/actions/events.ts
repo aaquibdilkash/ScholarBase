@@ -47,9 +47,23 @@ export async function getEvents(q?: string, userId?: string) {
 export async function getEvent(id: string, userId?: string) {
     return prisma.researchEvent.findUnique({
         where: { id: id },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            date: true,
+            location: true,
+            description: true,
+            deadline: true,
+            notificationLink: true,
+            applyLink: true,
+            createdAt: true,
+            authorId: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -60,18 +74,42 @@ export async function getEvent(id: string, userId?: string) {
             },
             comments: {
                 where: { parentId: null },
-                include: {
-                    author: true,
-                    votes: userId ? { where: { userId: userId } } : false,
-                    _count: { select: { votes: true } },
+                select: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    parentId: true,
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            avatarUrl: true,
+                        },
+                    },
+                    votes: { select: { userId: true, voteType: true } },
+                    mentions: true,
                     replies: {
-                        include: {
-                            author: true,
-                            votes: userId ? { where: { userId: userId } } : false,
+                        select: {
+                            id: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            parentId: true,
+                            author: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    avatarUrl: true,
+                                },
+                            },
+                            votes: { select: { userId: true, voteType: true } },
+                            mentions: true,
                             _count: { select: { votes: true } },
                         },
                         orderBy: { createdAt: "asc" },
                     },
+                    _count: { select: { votes: true } },
                 },
                 orderBy: { createdAt: "desc" },
             },

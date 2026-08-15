@@ -30,7 +30,10 @@ export interface CommentModel {
   }) => Promise<{ authorId: string } | null>;
   update: (args: {
     where: { id: string };
-    data: { content: string };
+    data: {
+      content: string;
+      mentions?: { id: string; handle: string }[];
+    };
   }) => Promise<unknown>;
   delete: (args: { where: { id: string } }) => Promise<unknown>;
 }

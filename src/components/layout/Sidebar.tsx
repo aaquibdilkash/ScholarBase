@@ -25,9 +25,9 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import useMediaQuery from "@/hooks/useMediaQuery";
 import ThemeToggle from "@/components/layout/ThemeToggle";
@@ -46,6 +46,7 @@ type SidebarProps = {
 
 export default function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
@@ -53,6 +54,7 @@ export default function Sidebar({ user }: SidebarProps) {
   const [isScrollable, setIsScrollable] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
 
   const isCollapsed = isDesktop ? desktopCollapsed : !mobileOpen;
 
@@ -95,7 +97,9 @@ export default function Sidebar({ user }: SidebarProps) {
     if (navElement) {
       const savedScrollTop = Number(localStorage.getItem("sb-main-sidebar-scroll-top") || "0");
       if (savedScrollTop > 0) {
-        navElement.scrollTop = savedScrollTop;
+        requestAnimationFrame(() => {
+          if (navElement) navElement.scrollTop = savedScrollTop;
+        });
       }
     }
 
@@ -127,104 +131,121 @@ export default function Sidebar({ user }: SidebarProps) {
   }, [checkScrollable]);
 
   const isOnLoginPage = pathname === "/login";
+  const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
-  const menuItems = [
-    {
-      name: "Feed",
-      href: "/feed",
-      icon: <Newspaper className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Scholars",
-      href: "/scholars",
-      icon: <Users className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Messages",
-      href: "/messages",
-      icon: <MessageSquare className="h-6 w-6 shrink-0" />,
-      badge: user?.unreadMessages ?? 0,
-    },
-    {
-      name: "Supervisors",
-      href: "/supervisor",
-      icon: <Star className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Research Survey",
-      href: "/surveys",
-      icon: <ClipboardList className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Admissions",
-      href: "/admissions",
-      icon: <GraduationCap className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Vacancies",
-      href: "/vacancies",
-      icon: <Briefcase className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Events",
-      href: "/events",
-      icon: <Calendar className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Results",
-      href: "/results",
-      icon: <BarChart2 className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Blog",
-      href: "/blog",
-      icon: <FileText className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Research Tools",
-      href: "/research-tools",
-      icon: <Search className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Research Grants",
-      href: "/grants",
-      icon: <HandCoins className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Courses",
-      href: "/learn",
-      icon: <BookOpen className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Journals",
-      href: "/journals",
-      icon: <List className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Publications",
-      href: "/publications",
-      icon: <File className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Contributions",
-      href: "/contributions",
-      icon: <Gift className="h-6 w-6 shrink-0" />,
-    },
-    {
-      name: "Help",
-      href: "/help",
-      icon: <HelpCircle className="h-6 w-6 shrink-0" />,
-    },
-    ...(user?.isAdmin
-      ? [
-          {
-            name: "Admin",
-            href: "/admin",
-            icon: <Shield className="h-6 w-6 shrink-0" />,
-          },
-        ]
-      : []),
-  ];
+  const menuItems = useMemo(
+    () => [
+      {
+        name: "Feed",
+        href: "/feed",
+        icon: <Newspaper className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Scholars",
+        href: "/scholars",
+        icon: <Users className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Messages",
+        href: "/messages",
+        icon: <MessageSquare className="h-6 w-6 shrink-0" />,
+        badge: user?.unreadMessages ?? 0,
+      },
+      {
+        name: "Supervisors",
+        href: "/supervisor",
+        icon: <Star className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Research Survey",
+        href: "/surveys",
+        icon: <ClipboardList className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Admissions",
+        href: "/admissions",
+        icon: <GraduationCap className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Vacancies",
+        href: "/vacancies",
+        icon: <Briefcase className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Events",
+        href: "/events",
+        icon: <Calendar className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Results",
+        href: "/results",
+        icon: <BarChart2 className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Research Grants",
+        href: "/grants",
+        icon: <HandCoins className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Blog",
+        href: "/blog",
+        icon: <FileText className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Research Tools",
+        href: "/research-tools",
+        icon: <Search className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Learning Zone",
+        href: "/learn",
+        icon: <BookOpen className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Journals",
+        href: "/journals",
+        icon: <List className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Publications",
+        href: "/publications",
+        icon: <File className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Contributions",
+        href: "/contributions",
+        icon: <Gift className="h-6 w-6 shrink-0" />,
+      },
+      {
+        name: "Help",
+        href: "/help",
+        icon: <HelpCircle className="h-6 w-6 shrink-0" />,
+      },
+      ...(user?.isAdmin
+        ? [
+            {
+              name: "Admin",
+              href: "/admin",
+              icon: <Shield className="h-6 w-6 shrink-0" />,
+            },
+          ]
+        : []),
+    ],
+    [user?.isAdmin, user?.unreadMessages],
+  );
+
+  useEffect(() => {
+    const activeHref =
+      menuItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
+        ?.href;
+    if (!activeHref || !sidebarPreferenceLoaded) return;
+    const el = itemRefs.current[activeHref];
+    if (el) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ block: "nearest", behavior: "auto" });
+      });
+    }
+  }, [menuItems, pathname, sidebarPreferenceLoaded]);
 
   const asideClasses = `fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200/70 bg-white/95 px-6 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/20 md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:transition-all md:shadow-none md:dark:bg-slate-950/80 ${
     isCollapsed
@@ -285,6 +306,9 @@ export default function Sidebar({ user }: SidebarProps) {
                 <Link
                   key={item.name}
                   href={item.href}
+                  ref={(el) => {
+                    itemRefs.current[item.href] = el;
+                  }}
                   title={isCollapsed ? item.name : ""}
                   onClick={() => {
                     if (!isDesktop) setMobileOpen(false);
@@ -389,7 +413,7 @@ export default function Sidebar({ user }: SidebarProps) {
           ) : !isOnLoginPage ? (
             isCollapsed ? (
               <Link
-                href="/login"
+                href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-white"
                 aria-label="Sign in"
                 title="Sign in"
@@ -401,7 +425,7 @@ export default function Sidebar({ user }: SidebarProps) {
               </Link>
             ) : (
               <Link
-                href="/login"
+                href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
                 className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black"
                 onClick={() => {
                   if (!isDesktop) setMobileOpen(false);
