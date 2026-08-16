@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getResults(q?: string, userId?: string) {
+export async function getResults(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -25,6 +25,8 @@ export async function getResults(q?: string, userId?: string) {
     return prisma.result.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
                 include: {
@@ -72,6 +74,7 @@ export async function getResult(id: string, userId?: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -88,6 +91,7 @@ export async function getResult(id: string, userId?: string) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },

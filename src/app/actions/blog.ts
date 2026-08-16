@@ -8,8 +8,8 @@ import { revalidatePath } from 'next/cache'
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getArticles(q?: string, userId?: string) {
-  return prisma.article.findMany({
+export async function getArticles(q?: string, userId?: string, limit = 20, cursor?: string) {
+    return prisma.article.findMany({
     where: q
       ? {
         OR: [
@@ -31,14 +31,17 @@ export async function getArticles(q?: string, userId?: string) {
       }
       : {},
     orderBy: { createdAt: "desc" },
+    take: limit,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       author: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
           followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
+            ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
         },
       },
@@ -97,6 +100,7 @@ export async function getArticle(slug: string, userId?: string) {
             select: {
               id: true,
               name: true,
+              handle: true,
               avatarUrl: true,
             },
           },
@@ -256,20 +260,21 @@ export async function deleteArticle(articleId: string, slug: string) {
 }
 
 export async function getLatestArticles(count: number, userId?: string) {
-  return prisma.article.findMany({
-    take: count,
-    orderBy: { createdAt: "desc" },
-    include: {
-      author: {
-        include: {
-          followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
-            : false,
+    return prisma.article.findMany({
+      take: count,
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+            followers: userId
+              ? { where: { followerId: userId }, select: { followerId: true } }
+              : false,
+          },
         },
-      },
       votes: {
         select: {
           userId: true,

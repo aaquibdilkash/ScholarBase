@@ -19,6 +19,7 @@ export default async function AdmissionsPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export default async function AdmissionsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const admissions = isTrendingTab ? [] : await getAdmissions(q, user?.id);
+  const admissions = isTrendingTab ? [] : await getAdmissions(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingAdmissions()
@@ -53,6 +54,7 @@ export default async function AdmissionsPage({
           admissions={admissions}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

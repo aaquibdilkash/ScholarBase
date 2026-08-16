@@ -38,9 +38,11 @@ const recommendationInclude = (userId?: string) => ({
 });
 
 
-export async function getSupervisors(q?: string, userId?: string) {
+export async function getSupervisors(q?: string, userId?: string, limit = 20, cursor?: string) {
   return prisma.supervisor.findMany({
     where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+    take: limit,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       author: {
         include: {

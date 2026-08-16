@@ -117,7 +117,7 @@ export async function deleteCourse(courseId: string) {
   redirect('/learn')
 }
 
-export async function getCourses(q?: string, userId?: string) {
+export async function getCourses(q?: string, userId?: string, limit = 20, cursor?: string) {
   const where = q
     ? {
         OR: [
@@ -134,6 +134,8 @@ export async function getCourses(q?: string, userId?: string) {
   return prisma.course.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    take: limit,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       author: {
         include: {
@@ -188,6 +190,7 @@ export async function getCourseById(courseId: string, userId?: string) {
                     select: {
                         id: true,
                         name: true,
+                        handle: true,
                         avatarUrl: true,
                     },
                 },
@@ -204,6 +207,7 @@ export async function getCourseById(courseId: string, userId?: string) {
                             select: {
                                 id: true,
                                 name: true,
+                                handle: true,
                                 avatarUrl: true,
                             },
                         },

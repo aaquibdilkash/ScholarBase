@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Research Events & Conferences",
+  description: "Conferences, workshops, calls for papers, and academic gatherings worth tracking around the world.",
+  path: "/events",
+  section: "Events",
+});
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { EventsList } from "@/components/events/EventsList";
@@ -10,7 +19,8 @@ export default async function EventsPage({
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const { q, tab } = await searchParams;
+  const { q, tab } = await searchParams as { q?: string; tab?: string };
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -18,7 +28,7 @@ export default async function EventsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const events = isTrendingTab ? [] : await getEvents(q, user?.id);
+  const events = isTrendingTab ? [] : await getEvents(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingEvents()
@@ -35,7 +45,13 @@ export default async function EventsPage({
       allHref="/events"
       trendingHref="/events?tab=trending"
       trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
-      all={<EventsList events={events} initialQuery={q ?? ""} />}
+      all={
+        <EventsList
+          events={events}
+          initialQuery={q ?? ""}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
+        />
+      }
     />
   );
 }

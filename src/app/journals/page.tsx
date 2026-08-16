@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Academic Journals Database - ISSN, Impact Factor & More",
+  description: "Browse and discover academic journals, ISSN, impact factors, Scopus indexing, and publisher information.",
+  path: "/journals",
+  section: "Journals",
+});
 import { createClient } from "@/utils/supabase/server";
 
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -12,6 +21,7 @@ export default async function JournalsPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -19,7 +29,7 @@ export default async function JournalsPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const journals = isTrendingTab ? [] : await getJournals(q, user?.id);
+  const journals = isTrendingTab ? [] : await getJournals(q, user?.id, pageSize);
 
   const trendingItems = isTrendingTab
     ? await getTrendingJournals()
@@ -50,6 +60,7 @@ export default async function JournalsPage({
           journals={journals}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

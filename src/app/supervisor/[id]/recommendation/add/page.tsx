@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Add Recommendation - ScholarBase");
 import prisma from "@/lib/db";
 import RecommendationForm from "@/components/supervisor/RecommendationForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";

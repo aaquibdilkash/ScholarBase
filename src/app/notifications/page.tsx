@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Notifications - ScholarBase");
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";

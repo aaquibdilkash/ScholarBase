@@ -2,7 +2,6 @@
 
 import {
   BarChart2,
-  BookOpen,
   Briefcase,
   Calendar,
   ChevronDown,
@@ -24,6 +23,7 @@ import {
   Shield,
   Star,
   Users,
+  BookMarked,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -38,6 +38,7 @@ type SidebarUser = {
   email?: string | null;
   isAdmin?: boolean | null;
   unreadMessages?: number;
+  avatarUrl?: string | null;
 } | null;
 
 type SidebarProps = {
@@ -199,7 +200,7 @@ export default function Sidebar({ user }: SidebarProps) {
       {
         name: "Learning Zone",
         href: "/learn",
-        icon: <BookOpen className="h-6 w-6 shrink-0" />,
+        icon: <BookMarked className="h-6 w-6 shrink-0" />,
       },
       {
         name: "Journals",
@@ -358,83 +359,106 @@ export default function Sidebar({ user }: SidebarProps) {
           </button>
         ) : null}
 
-        {!isCollapsed ? <ThemeToggle /> : null}
-
-        <div className="mt-auto border-t border-slate-200/70 pt-3 dark:border-slate-800">
-          {user ? (
-            isCollapsed ? (
-              <div className="flex flex-col items-center gap-3">
-                <Link
-                  href={profileHref}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                  aria-label={
-                    user.email ? `Open ${user.email}` : "Open profile"
-                  }
-                  title={user.email ?? "Open profile"}
-                  onClick={() => {
-                    if (!isDesktop) setMobileOpen(false);
-                  }}
-                >
-                  {user.email?.charAt(0).toUpperCase() || "@"}
-                </Link>
-                <SignOutButton
-                  className="sb-button-primary h-11 w-11 rounded-full p-0 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
-                  aria-label="Sign out"
-                >
+        <div className="mt-auto">
+          <div className={`mb-3 ${isCollapsed ? "flex justify-center" : ""}`}>
+            <ThemeToggle collapsed={isCollapsed} />
+          </div>
+          <div className="border-t border-slate-200/70 pt-3 dark:border-slate-800">
+            {user ? (
+              isCollapsed ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Link
+                    href={profileHref}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                    aria-label={
+                      user.email ? `Open ${user.email}` : "Open profile"
+                    }
+                    title={user.email ?? "Open profile"}
+                    onClick={() => {
+                      if (!isDesktop) setMobileOpen(false);
+                    }}
+                  >
+                    {user?.avatarUrl ? (
+                      <img
+                        src={user.avatarUrl}
+                        alt={user.email || "Scholar"}
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      user?.email?.charAt(0).toUpperCase() || "@"
+                    )}
+                  </Link>
+                  <SignOutButton
+                    className="sb-button-primary h-11 w-11 rounded-full p-0 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800"
+                    aria-label="Sign out"
+                  >
                     <LogOut className="h-5 w-5" />
-                </SignOutButton>
-              </div>
-            ) : (
-              <div className="space-y-3">
+                  </SignOutButton>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Link
+                    href={profileHref}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800"
+                    onClick={() => {
+                      if (!isDesktop) setMobileOpen(false);
+                    }}
+                  >
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
+                                        {user?.avatarUrl ? (
+                                          <img
+                                            src={user.avatarUrl}
+                                            alt={user.email || "Scholar"}
+                                            className="h-full w-full rounded-full object-cover"
+                                          />
+                                        ) : (
+                                          user?.email?.charAt(0).toUpperCase() || "@"
+                                        )}
+                                      </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
+                        {user.email || "Open profile"}
+                      </span>
+                      <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                        Open your scholar profile
+                      </span>
+                    </span>
+                  </Link>
+                  <SignOutButton className="sb-button-primary w-full rounded-2xl px-4 py-3 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800">
+                    Sign Out
+                  </SignOutButton>
+                </div>
+              )
+            ) : !isOnLoginPage ? (
+              isCollapsed ? (
                 <Link
-                  href={profileHref}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white px-4 py-3 transition hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800"
+                  href={`/login?callbackUrl=${encodeURIComponent(
+                    isOnLoginPage ? "/" : currentUrl
+                  )}`}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-white"
+                  aria-label="Sign in"
+                  title="Sign in"
                   onClick={() => {
                     if (!isDesktop) setMobileOpen(false);
                   }}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
-                    {user.email?.charAt(0).toUpperCase() || "@"}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
-                      {user.email || "Open profile"}
-                    </span>
-                    <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-                      Open your scholar profile
-                    </span>
-                  </span>
+                  <LogIn className="h-5 w-5" />
                 </Link>
-                <SignOutButton className="sb-button-primary w-full rounded-2xl px-4 py-3 dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800">
-                  Sign Out
-                </SignOutButton>
-              </div>
-            )
-          ) : !isOnLoginPage ? (
-            isCollapsed ? (
-              <Link
-                href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:text-white"
-                aria-label="Sign in"
-                title="Sign in"
-                onClick={() => {
-                  if (!isDesktop) setMobileOpen(false);
-                }}
-              >
-                <LogIn className="h-5 w-5" />
-              </Link>
-            ) : (
-              <Link
-                href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
-                className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black"
-                onClick={() => {
-                  if (!isDesktop) setMobileOpen(false);
-                }}
-              >
-                Sign In
-              </Link>
-            )
-          ) : null}
+              ) : (
+                <Link
+                  href={`/login?callbackUrl=${encodeURIComponent(
+                    isOnLoginPage ? "/" : currentUrl
+                  )}`}
+                  className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black"
+                  onClick={() => {
+                    if (!isDesktop) setMobileOpen(false);
+                  }}
+                >
+                  Sign In
+                </Link>
+              )
+            ) : null}
+          </div>
         </div>
       </aside>
     </>

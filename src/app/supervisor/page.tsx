@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Find PhD Supervisors - Reviews, Ratings & Recommendations",
+  description: "Search for PhD supervisors by university and department, and read student ratings and recommendations.",
+  path: "/supervisor",
+  section: "Supervisors",
+});
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";

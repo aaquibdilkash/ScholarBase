@@ -18,6 +18,7 @@ export default async function VacanciesPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export default async function VacanciesPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const vacancies = isTrendingTab ? [] : await getVacancies(q, user?.id);
+  const vacancies = isTrendingTab ? [] : await getVacancies(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingVacancies()
@@ -47,6 +48,7 @@ export default async function VacanciesPage({
           vacancies={vacancies}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

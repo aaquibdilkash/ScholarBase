@@ -1,44 +1,55 @@
 "use client";
 
-import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { PublicationCard } from "./PublicationCard";
 import type { PublicationWithAuthor } from "@/types/cards";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
 
 export function PublicationsList({
   publications,
   currentUserId,
   initialQuery,
+  loadMoreParams,
 }: {
   publications: PublicationWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
+  loadMoreParams?: Record<string, string | undefined>;
 }) {
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set("q", query);
+    router.push(`/publications?${params.toString()}`);
+  };
+
   return (
-    <FilterableOpportunityList
-      items={publications}
-      placeholder="Search by title, author, keyword, or domain..."
-      filterFn={(pub, query) => {
-        const q = query.toLowerCase();
-        return (
-          (pub.title ?? "").toLowerCase().includes(q) ||
-          (pub.authors ?? "").toLowerCase().includes(q) ||
-          (pub.keywords ?? "").toLowerCase().includes(q) ||
-          (pub.domain ?? "").toLowerCase().includes(q) ||
-          (pub.journalOrConference ?? "").toLowerCase().includes(q) ||
-          (pub.abstract ?? "").toLowerCase().includes(q) ||
-          (pub.author?.name ?? "").toLowerCase().includes(q)
-        );
-      }}
-      renderItem={(pub) => (
-        <PublicationCard
-          key={pub.id}
-          publication={pub}
-          currentUserId={currentUserId}
+    <div>
+      <form onSubmit={handleSearch}>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by title, author, keyword, or domain..."
+          className="mb-4"
         />
-      )}
-      initialQuery={initialQuery ?? ""}
-      queryParamKey="q"
-      basePath="/publications"
-    />
+      </form>
+      <AppendMoreList
+        initialItems={publications}
+        resource="publications"
+        params={loadMoreParams}
+        renderItem={(pub) => (
+          <PublicationCard
+            key={(pub as PublicationWithAuthor).id}
+            publication={pub as PublicationWithAuthor}
+            currentUserId={currentUserId}
+          />
+        )}
+      />
+    </div>
   );
 }

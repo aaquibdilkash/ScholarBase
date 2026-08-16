@@ -8,6 +8,24 @@ import { getJournalById } from "../../actions/journals";
 import { deleteJournal } from "@/app/actions/journals";
 import { RichContent } from "@/components/content/RichContent";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const journal = await getJournalById(id).catch(() => null);
+  if (!journal) return { title: "Academic Journal" };
+  return buildMetadata({
+    title: journal.title,
+    description: (journal.about || `${journal.title}${journal.publisher ? ` by ${journal.publisher}` : ""}${journal.issn ? ` (ISSN ${journal.issn})` : ""}`).replace(/<[^>]*>/g, " "),
+    path: `/journals/${journal.id}`,
+    type: "article",
+    publishedTime: journal.createdAt,
+    modifiedTime: journal.updatedAt,
+    section: "Journals",
+  });
+}
+
 const JournalDetailPage = async ({
   params,
 }: {

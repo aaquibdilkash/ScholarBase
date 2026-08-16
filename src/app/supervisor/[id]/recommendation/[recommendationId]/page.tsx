@@ -9,6 +9,26 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string; recommendationId: string }> }): Promise<Metadata> {
+  const { id, recommendationId } = await params;
+  const rec = await prisma.recommendation.findUnique({
+    where: { id: recommendationId },
+    select: { id: true, feedback: true, rating: true, createdAt: true, supervisor: { select: { id: true, name: true } } },
+  }).catch(() => null);
+  if (!rec || rec.supervisor.id !== id) return { title: "Recommendation" };
+  return buildMetadata({
+    title: `Recommendation for ${rec.supervisor.name || "Supervisor"}`,
+    description: `A ${rec.rating ? `${rec.rating}/5 ` : ""}mentorship recommendation. ${(rec.feedback || "").replace(/<[^>]*>/g, " ")}`,
+    path: `/supervisor/${rec.supervisor.id}/recommendation/${rec.id}`,
+    type: "article",
+    publishedTime: rec.createdAt,
+    section: "Supervisor Recommendations",
+  });
+}
+
 export default async function RecommendationDetailPage({
   params,
 }: {

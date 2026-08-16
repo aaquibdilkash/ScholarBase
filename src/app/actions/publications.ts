@@ -145,7 +145,7 @@ export async function deletePublication(publicationId: string) {
     return { redirect: '/publications' }
 }
 
-export async function getPublications(q?: string, userId?: string) {
+export async function getPublications(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -164,14 +164,17 @@ export async function getPublications(q?: string, userId?: string) {
         orderBy: {
             createdAt: 'desc',
         },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
@@ -240,6 +243,7 @@ export async function getPublicationById(publicationId: string, userId?: string)
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -256,6 +260,7 @@ export async function getPublicationById(publicationId: string, userId?: string)
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },

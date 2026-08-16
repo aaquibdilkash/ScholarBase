@@ -101,7 +101,7 @@ export async function deleteResearchGrant(grantId: string) {
   redirect('/grants')
 }
 
-export async function getResearchGrants(q?: string, userId?: string) {
+export async function getResearchGrants(q?: string, userId?: string, limit = 20, cursor?: string) {
   const where = q
     ? {
         OR: [
@@ -114,12 +114,18 @@ export async function getResearchGrants(q?: string, userId?: string) {
       }
     : {}
 
-  return prisma.researchGrant.findMany({
+    return prisma.researchGrant.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    take: limit,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       author: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -167,6 +173,7 @@ export async function getResearchGrantById(grantId: string, userId?: string) {
             select: {
               id: true,
               name: true,
+              handle: true,
               avatarUrl: true,
             },
           },
@@ -183,6 +190,7 @@ export async function getResearchGrantById(grantId: string, userId?: string) {
                 select: {
                   id: true,
                   name: true,
+                  handle: true,
                   avatarUrl: true,
                 },
               },

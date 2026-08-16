@@ -273,19 +273,19 @@ html[data-theme="dark"] {
     box-shadow: 0 8px 0 rgba(0, 0, 0, 0.3), 0 18px 32px rgba(0, 0, 0, 0.66);
   }
 
-  /* Give every black action control enough separation from dark surfaces. */
-  html.dark :is(a, button, input[type="submit"], input[type="button"])[class*="bg-slate-950"],
-  html.dark :is(a, button, input[type="submit"], input[type="button"])[class*="bg-black"],
-  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"])[class*="bg-slate-950"],
-  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"])[class*="bg-black"] {
+    /* Give every black action control enough separation from dark surfaces. */
+  html.dark :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-slate-950"],
+  html.dark :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-black"],
+  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-slate-950"],
+  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-black"] {
     border: 1px solid rgba(148, 163, 184, 0.28);
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.48);
   }
 
-  html.dark :is(a, button, input[type="submit"], input[type="button"])[class*="bg-slate-950"]:hover,
-  html.dark :is(a, button, input[type="submit"], input[type="button"])[class*="bg-black"]:hover,
-  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"])[class*="bg-slate-950"]:hover,
-  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"])[class*="bg-black"]:hover {
+  html.dark :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-slate-950"]:hover,
+  html.dark :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-black"]:hover,
+  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-slate-950"]:hover,
+  html[data-theme="dark"] :is(a, button, input[type="submit"], input[type="button"], span)[class*="bg-black"]:hover {
     border-color: rgba(203, 213, 225, 0.58);
     box-shadow: 0 8px 0 rgba(0, 0, 0, 0.3), 0 18px 32px rgba(0, 0, 0, 0.66);
     transform: translateY(-1px);

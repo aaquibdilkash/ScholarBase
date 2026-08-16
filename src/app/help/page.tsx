@@ -18,6 +18,7 @@ export default async function HelpPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export default async function HelpPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const posts = isTrendingTab ? [] : await getHelpPosts(q, user?.id);
+  const posts = isTrendingTab ? [] : await getHelpPosts(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingHelpPosts()
@@ -47,6 +48,7 @@ export default async function HelpPage({
           posts={posts}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

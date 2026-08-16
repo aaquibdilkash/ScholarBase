@@ -7,6 +7,27 @@ import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getPost(id).catch(() => null);
+  if (!post) return { title: "Scholar Post" };
+  const text = post.content.replace(/\s+/g, " ").trim();
+  return buildMetadata({
+    title: text.slice(0, 58) || "Scholar Post",
+    description: text,
+    path: `/feed/${post.id}`,
+    type: "article",
+    author: post.author?.name || undefined,
+    publishedTime: post.createdAt,
+    modifiedTime: post.updatedAt,
+    image: post.imageUrl || undefined,
+    section: "Scholar Community",
+  });
+}
+
 export default async function SinglePostPage({
   params,
 }: {
@@ -84,7 +105,7 @@ export default async function SinglePostPage({
         />
       }
     >
-      <p className="text-base sm:text-lg whitespace-pre-wrap leading-relaxed text-slate-800">
+      <p className="text-base break-words sm:text-lg whitespace-pre-wrap leading-relaxed text-slate-800">
         {p.content}
       </p>
 

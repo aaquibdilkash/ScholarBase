@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Contributions - Support ScholarBase",
+  description: "Support ScholarBase and see how the community fuels its servers, infrastructure, and growth.",
+  path: "/contributions",
+  section: "Contributions",
+});
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { ContributionsList } from "@/components/contributions/ContributionsList";
@@ -11,6 +20,7 @@ export default async function ContributionsPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -20,7 +30,7 @@ export default async function ContributionsPage({
 
   const contributions = isTrendingTab
     ? []
-    : await getContributions(q, user?.id);
+    : await getContributions(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingContributions()
@@ -42,6 +52,7 @@ export default async function ContributionsPage({
           contributions={contributions}
           initialQuery={q ?? ""}
           currentUserId={user?.id}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

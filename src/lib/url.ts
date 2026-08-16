@@ -6,6 +6,11 @@ import { headers } from "next/headers";
  * falling back to the host header for other environments.
  */
 export async function getBaseUrl() {
+    const explicitSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (explicitSiteUrl) {
+        return explicitSiteUrl.replace(/\/+$/, '');
+    }
+
     // Prioritize Vercel's environment variables.
     const vercelHost = process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
     if (vercelHost) {

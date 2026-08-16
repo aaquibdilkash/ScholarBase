@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Edit Contribution - ScholarBase");
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import { getContributionForEdit } from "@/app/actions/contributions";

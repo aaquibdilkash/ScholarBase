@@ -1,52 +1,68 @@
 
 "use client";
 
-import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
-import type { Article, User, VoteType } from "@prisma/client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SearchInput } from "@/components/ui/SearchInput";
+import type { Prisma } from "@prisma/client";
 import { ArticleCard } from "@/components/blog/ArticleCard";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
 
-type ArticleWithDetails = Article & {
-  author: User & {
-    followers?: { followerId: string }[];
+type ArticleWithDetails = Prisma.ArticleGetPayload<{
+  include: {
+    author: {
+      select: {
+        id: true;
+        name: true;
+        handle: true;
+        avatarUrl: true;
+        followers: { select: { followerId: true } };
+      };
+    };
+    votes: { select: { userId: true; voteType: true } };
+    _count: { select: { votes: true; comments: true } };
   };
-  votes: {
-    userId: string;
-    voteType: VoteType;
-  }[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
+}>;
 
 export function ArticleList({
   articles,
   currentUserId,
   initialQuery,
+  loadMoreParams,
 }: {
   articles: ArticleWithDetails[];
   currentUserId?: string;
   initialQuery?: string;
+  loadMoreParams?: Record<string, string | undefined>;
 }) {
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set("q", query);
+    router.push(`/blog?${params.toString()}`);
+  };
+
   return (
     <div className="mb-10">
-      <FilterableOpportunityList
-        items={articles}
-        placeholder="Search articles..."
-        filterFn={(article, query) =>
-          (article.title ?? "").toLowerCase().includes(query.toLowerCase()) ||
-          (article.author?.name ?? "")
-            .toLowerCase()
-            .includes(query.toLowerCase())
-        }
-        initialQuery={initialQuery ?? ""}
-        queryParamKey="q"
-        basePath="/blog"
-        enableClientFiltering={false}
+      <form onSubmit={handleSearch}>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search articles..."
+          className="mb-4"
+        />
+      </form>
+      <AppendMoreList
+        initialItems={articles}
+        resource="blog"
+        params={loadMoreParams}
         renderItem={(article) => (
           <ArticleCard
-            key={article.id}
-            article={article}
+            key={(article as ArticleWithDetails).id}
+            article={article as ArticleWithDetails}
             currentUserId={currentUserId}
           />
         )}

@@ -8,6 +8,24 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const post = await getHelpPost(id).catch(() => null);
+  if (!post) return { title: "Help Post" };
+  return buildMetadata({
+    title: post.title,
+    description: `Help request: ${post.subject || post.category || ""}. ${(post.message || "").replace(/<[^>]*>/g, " ")}`,
+    path: `/help/${post.id}`,
+    type: "article",
+    publishedTime: post.createdAt,
+    modifiedTime: post.updatedAt,
+    section: "Help & Support",
+  });
+}
+
 export default async function HelpPostPage({
   params,
 }: {

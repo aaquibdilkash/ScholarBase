@@ -1,37 +1,55 @@
 "use client";
 
-import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { ScholarCard } from "./ScholarCard";
 import type { Scholar } from "@/types/scholar";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
 
 export function ScholarsList({
   scholars,
   currentUserId,
   initialQuery,
+  loadMoreParams,
 }: {
   scholars: Scholar[];
   currentUserId?: string;
   initialQuery?: string;
+  loadMoreParams?: Record<string, string | undefined>;
 }) {
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set("q", query);
+    router.push(`/scholars?${params.toString()}`);
+  };
+
   return (
-    <FilterableOpportunityList
-      items={scholars}
-      placeholder="Search by name, handle, or bio"
-      filterFn={(scholar, query) =>
-        (scholar.name?.toLowerCase().includes(query.toLowerCase()) ||
-        scholar.handle?.toLowerCase().includes(query.toLowerCase()) ||
-        scholar.bio?.toLowerCase().includes(query.toLowerCase())) ?? false
-      }
-      renderItem={(item) => (
-        <ScholarCard
-          key={item.id}
-          scholar={item}
-          currentUserId={currentUserId}
+    <div>
+      <form onSubmit={handleSearch}>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name, handle, or bio"
+          className="mb-4"
         />
-      )}
-      initialQuery={initialQuery ?? ""}
-      queryParamKey="q"
-      basePath="/scholars"
-    />
+      </form>
+      <AppendMoreList
+        initialItems={scholars}
+        resource="scholars"
+        params={loadMoreParams}
+        renderItem={(item) => (
+          <ScholarCard
+            key={(item as Scholar).id}
+            scholar={item as Scholar}
+            currentUserId={currentUserId}
+          />
+        )}
+      />
+    </div>
   );
 }

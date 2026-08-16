@@ -18,7 +18,6 @@ import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 import {
-  CommentThread,
   CommentItem,
   CommentTargetType,
 } from "@/types/comment";
@@ -233,7 +232,7 @@ export function CommentSection({
               name="content"
               value={content}
               onChange={handleContentChange}
-              placeholder="Share your thoughts on this..."
+              placeholder="Share your thoughts on this...type @ to mention a scholar"
               mentionedUsers={mentionedUsers}
               onMentionedUsersChange={setMentionedUsers}
             />
@@ -380,7 +379,7 @@ function ReplyForm({
           name="content"
           value={reply}
           onChange={handleReplyChange}
-          placeholder={`Reply to ${parentComment.author.name}...`}
+          placeholder={`Reply to ${parentComment.author.name}...type @ to mention a scholar`}
           mentionedUsers={mentionedUsers}
           onMentionedUsersChange={setMentionedUsers}
         />
@@ -457,19 +456,19 @@ function CommentEntry({
   };
 
   return (
-    <div className="group flex gap-2 md:gap-4">
+    <div className="group flex gap-1 md:gap-2">
       <Link href={`/scholars/${comment.author.id}`} className="shrink-0 pt-1">
         <div
           className={`overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-200 dark:border-slate-800 dark:bg-slate-900 ${
-            isReply ? "h-8 w-8 md:h-10 md:w-10" : "h-10 w-10 md:h-12 md:w-12"
+            isReply ? "h-10 w-10" : "h-11 w-11 md:h-12 md:w-12"
           }`}
         >
           {comment.author.avatarUrl ? (
             <Image
               src={comment.author.avatarUrl}
               alt="User"
-              width={isReply ? 40 : 48}
-              height={isReply ? 40 : 48}
+              width={isReply ? 40 : 44}
+              height={isReply ? 40 : 44}
               unoptimized
               className="h-full w-full object-cover"
             />
@@ -555,7 +554,7 @@ function CommentEntry({
             </form>
           ) : (
             <>
-              <p className="wrap-break-word whitespace-pre-wrap text-xs text-slate-700 dark:text-slate-300 md:text-sm">
+              <p className="wrap-break-word whitespace-pre-wrap text-xs text-slate-700 mt-2 dark:text-slate-300 md:text-sm">
                 {renderCommentContent(comment.content, comment.mentions)}
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">

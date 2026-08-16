@@ -21,14 +21,16 @@ export default async function ScholarsPage({
 }: {
   searchParams: Promise<{ q?: string; tab?: string; sort?: string }>
 }) {
-  const { q, tab, sort } = await searchParams
+  const { q, tab, sort } = await searchParams as { q?: string; tab?: string; sort?: string }
   const isTrendingTab = tab === 'trending'
   const currentUser = await getCurrentUser()
+  const pageSize = 10
 
   const scholars = isTrendingTab ? [] : await getScholars(
     q,
     sort === 'reputation' ? 'reputation' : 'latest',
     currentUser?.id,
+    pageSize,
   );
 
   const trendingItems = (isTrendingTab
@@ -56,6 +58,7 @@ export default async function ScholarsPage({
           scholars={scholars}
           currentUserId={currentUser?.id}
           initialQuery={q ?? ''}
+          loadMoreParams={!isTrendingTab ? { q, sort } : undefined}
         />
       }
     />

@@ -15,6 +15,26 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const supervisor = await getSupervisor(id).catch(() => null);
+  if (!supervisor) return { title: "PhD Supervisor" };
+  const name = supervisor.name || "PhD Supervisor";
+  const university = supervisor.university ? ` at ${supervisor.university}` : "";
+  return buildMetadata({
+    title: `${name}${university} - PhD Supervisor`,
+    description: (supervisor.about || `Profiles, ratings, and recommendations for PhD supervisor ${supervisor.name || ""}.`).replace(/<[^>]*>/g, " "),
+    path: `/supervisor/${supervisor.id}`,
+    type: "profile",
+    author: supervisor.author?.name || undefined,
+    publishedTime: supervisor.createdAt,
+    section: "Supervisors",
+  });
+}
+
 export default async function SupervisorPage({
   params,
 }: {

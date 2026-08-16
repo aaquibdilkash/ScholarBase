@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Research Blog - Insights, Guides & Essays",
+  description: "Essays, guides, and longer-form research reflections on academia, publishing, and scholarly life.",
+  path: "/blog",
+  section: "Blog",
+});
 import ListPageShell from "@/components/layout/ListPageShell";
 import { getTrendingArticles } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
@@ -10,7 +19,8 @@ export default async function BlogIndex({
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab, q } = await searchParams;
+  const { tab, q } = await searchParams as { tab?: string; q?: string };
+  const pageSize = 10;
 
   const isTrendingTab = tab === "trending";
 
@@ -19,7 +29,7 @@ export default async function BlogIndex({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const articles = isTrendingTab ? [] : await getArticles(q, user?.id);
+  const articles = isTrendingTab ? [] : await getArticles(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingArticles()
@@ -37,12 +47,13 @@ export default async function BlogIndex({
       trendingHref="/blog?tab=trending"
       trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
       all={
-        <ArticleList
-          articles={articles}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
-      }
+          <ArticleList
+            articles={articles}
+            currentUserId={user?.id}
+            initialQuery={q ?? ""}
+            loadMoreParams={!isTrendingTab ? { q, tab } : undefined}
+          />
+        }
     />
   );
 }

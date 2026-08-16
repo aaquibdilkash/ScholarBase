@@ -12,9 +12,10 @@ export const metadata: Metadata = {
 
 export default async function CoursesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
+  const pageSize = 10;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const courses = await getCourses(q, user?.id);
+  const courses = await getCourses(q, user?.id, pageSize);
 
   return (
     <ListPageShell
@@ -25,7 +26,7 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
       enableTrending={false}
       allHref="/learn"
       trending={null}
-      all={<CoursesList courses={courses} currentUserId={user?.id} initialQuery={q ?? ""} />}
+      all={<CoursesList courses={courses} currentUserId={user?.id} initialQuery={q ?? ""} loadMoreParams={q ? { q } : undefined} />}
     />
   );
 }

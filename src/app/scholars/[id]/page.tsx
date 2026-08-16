@@ -11,6 +11,7 @@ import { FollowerCount } from "./FollowerCount";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { getProfile } from "@/app/actions/profile";
+import { formatTimeAgo } from "@/utils/time-ago";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -80,6 +81,7 @@ export default async function ScholarProfile({
                 <Star className="h-3.5 w-3.5 text-amber-500" />
                 {profile.reputation} reputation
               </span>
+              <span>Joined {formatTimeAgo(profile.createdAt)}</span>
             </div>
           </div>
         </div>

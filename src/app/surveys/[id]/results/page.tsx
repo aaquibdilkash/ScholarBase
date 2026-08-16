@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Survey Results - ScholarBase");
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";

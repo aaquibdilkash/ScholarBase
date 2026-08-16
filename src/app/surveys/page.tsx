@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Research Surveys - Participate & Contribute",
+  description: "Create and participate in research surveys built for the academic community.",
+  path: "/surveys",
+  section: "Surveys",
+});
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { SurveysList } from "@/components/surveys/SurveysList";
@@ -11,6 +20,7 @@ export default async function SurveysPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -18,7 +28,7 @@ export default async function SurveysPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const surveys = isTrendingTab ? [] : await getSurveys(q, user?.id);
+  const surveys = isTrendingTab ? [] : await getSurveys(q, user?.id, pageSize);
 
   const trendingItems = (isTrendingTab
     ? await getTrendingSurveys()
@@ -40,6 +50,7 @@ export default async function SurveysPage({
           surveys={surveys}
           initialQuery={q ?? ""}
           currentUserId={user?.id}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

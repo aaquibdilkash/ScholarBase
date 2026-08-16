@@ -1,15 +1,16 @@
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import prisma from '@/lib/db'
 
 import { createClient } from '@/utils/supabase/server'
 
-export async function getCurrentUser(): Promise<SupabaseUser | null> {
+export const getCurrentUser = cache(async (): Promise<SupabaseUser | null> => {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     return user
-}
+})
 
 export async function requireCurrentUser(message = 'Please log in to continue.'): Promise<SupabaseUser> {
     void message
@@ -22,13 +23,13 @@ export async function requireCurrentUser(message = 'Please log in to continue.')
     return user
 }
 
-export async function isUserAdmin(userId: string): Promise<boolean> {
+export const isUserAdmin = cache(async (userId: string): Promise<boolean> => {
     const dbUser = await prisma.user.findUnique({
         where: { id: userId },
         select: { isAdmin: true },
     })
     return dbUser?.isAdmin ?? false
-}
+})
 
 /**
  * Checks if a user is authorized to modify a resource.

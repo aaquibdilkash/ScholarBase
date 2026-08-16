@@ -1,36 +1,56 @@
 "use client";
 
-import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { ResultCard } from "./ResultCard";
 import type { ResultWithAuthor } from "@/types/cards";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
 
 export function ResultsList({
   results,
   currentUserId,
   initialQuery,
+  loadMoreParams,
 }: {
   results: ResultWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
+  loadMoreParams?: Record<string, string | undefined>;
 }) {
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set("q", query);
+    router.push(`/results?${params.toString()}`);
+  };
+
   return (
-    <FilterableOpportunityList
-      items={results}
-      placeholder="Search by title, category, or conducting body..."
-      filterFn={(result, query) =>
-        result.title.toLowerCase().includes(query.toLowerCase()) ||
-        result.description.toLowerCase().includes(query.toLowerCase()) ||
-        (result.category?.toLowerCase().includes(query.toLowerCase()) ??
-          false) ||
-        (result.conductingBody?.toLowerCase().includes(query.toLowerCase()) ??
-          false)
-      }
-      renderItem={(item) => (
-        <ResultCard key={item.id} result={item} currentUserId={currentUserId} />
-      )}
-      initialQuery={initialQuery ?? ""}
-      queryParamKey="q"
-      basePath="/results"
-    />
+    <div>
+      <form onSubmit={handleSearch}>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by title, category, or conducting body..."
+          className="mb-4"
+        />
+      </form>
+      <AppendMoreList
+        initialItems={results}
+        resource="results"
+        params={loadMoreParams}
+        renderItem={(item) => (
+          <ResultCard
+            key={(item as ResultWithAuthor).id}
+            result={item as ResultWithAuthor}
+            currentUserId={currentUserId}
+          />
+        )}
+        className="grid gap-6 md:grid-cols xl:grid-cols"
+      />
+    </div>
   );
 }

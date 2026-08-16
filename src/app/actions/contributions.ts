@@ -10,7 +10,7 @@ import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getContributions(q?: string, userId?: string) {
+export async function getContributions(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where: Prisma.ContributionWhereInput = {
         status: 'APPROVED',
         ...(q
@@ -26,6 +26,8 @@ export async function getContributions(q?: string, userId?: string) {
     return prisma.contribution.findMany({
         where,
         orderBy: { createdAt: 'desc' },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
                 include: {
@@ -90,6 +92,7 @@ export async function getContribution(id: string, userId?: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -106,6 +109,7 @@ export async function getContribution(id: string, userId?: string) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },

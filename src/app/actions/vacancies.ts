@@ -9,7 +9,7 @@ import { createClient } from '@/utils/supabase/server'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getVacancies(q?: string, userId?: string) {
+export async function getVacancies(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -23,6 +23,8 @@ export async function getVacancies(q?: string, userId?: string) {
     return prisma.jobVacancy.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
                 include: {
@@ -75,6 +77,7 @@ export async function getVacancyById(id: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -91,6 +94,7 @@ export async function getVacancyById(id: string) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },

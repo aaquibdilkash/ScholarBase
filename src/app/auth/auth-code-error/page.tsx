@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Authentication - ScholarBase");
 
 export default function AuthCodeError() {
   return (

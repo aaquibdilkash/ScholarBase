@@ -8,6 +8,23 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { Clock } from "lucide-react";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const admission = await getAdmission(id).catch(() => null);
+  if (!admission) return { title: "PhD Admission" };
+  return buildMetadata({
+    title: `${admission.university} - ${admission.department} PhD Admission`,
+    description: `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    path: `/admissions/${admission.id}`,
+    type: "article",
+    publishedTime: admission.createdAt,
+    section: "PhD Admissions",
+  });
+}
+
 const AdmissionDetailPage = async ({
   params,
 }: {

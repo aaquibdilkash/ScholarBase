@@ -62,7 +62,7 @@ export function SocialPostCard({
     >
       <div className={`flex gap-4 ${post.imageUrl ? "items-start" : ""}`}>
         <p
-          className={`mb-4 whitespace-pre-wrap leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600 ${
+          className={`mb-4 whitespace-pre-wrap break-words leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600 ${
             post.imageUrl ? "w-1/2 min-w-0" : "w-full"
           }`}
         >

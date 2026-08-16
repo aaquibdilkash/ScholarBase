@@ -7,7 +7,8 @@ export default function Icon() {
   return new ImageResponse(
     <div
       style={{
-        fontSize: 22, 
+        // Reduced to 16 to create padding inside Google's circular mask
+        fontSize: 18, 
         background: "#020617",
         width: "100%",
         height: "100%",
@@ -15,7 +16,6 @@ export default function Icon() {
         alignItems: "center",
         justifyContent: "center",
         color: "white",
-        // borderRadius removed: let Google handle the container shape cleanly
         fontWeight: 900, 
         fontFamily: "system-ui, sans-serif",
         lineHeight: 1, 

@@ -1,40 +1,56 @@
 "use client";
 
-import { FilterableOpportunityList } from "@/components/opportunities/FilterableList";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { JournalCard } from "./JournalCard";
 import type { JournalWithAuthor } from "@/types/cards";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
 
 export function JournalsList({
   journals,
   currentUserId,
   initialQuery,
+  loadMoreParams,
 }: {
   journals: JournalWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
+  loadMoreParams?: Record<string, string | undefined>;
 }) {
+  const [query, setQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const params = new URLSearchParams(window.location.search);
+    params.set("q", query);
+    router.push(`/journals?${params.toString()}`);
+  };
+
   return (
-    <FilterableOpportunityList
-      items={journals}
-      placeholder="Search by title or ISSN..."
-      filterFn={(journal, query) => {
-        const q = query.toLowerCase();
-        return (
-          (journal.title ?? "").toLowerCase().includes(q) ||
-          (journal.issn ?? "").toLowerCase().includes(q) ||
-          (journal.author?.name ?? "").toLowerCase().includes(q)
-        );
-      }}
-      renderItem={(journal) => (
-        <JournalCard
-          key={journal.id}
-          journal={journal}
-          currentUserId={currentUserId}
+    <div>
+      <form onSubmit={handleSearch}>
+        <SearchInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by title or ISSN..."
+          className="mb-4"
         />
-      )}
-      initialQuery={initialQuery ?? ""}
-      queryParamKey="q"
-      basePath="/journals"
-    />
+      </form>
+      <AppendMoreList
+        initialItems={journals}
+        resource="journals"
+        params={loadMoreParams}
+        renderItem={(journal) => (
+          <JournalCard
+            key={(journal as JournalWithAuthor).id}
+            journal={journal as JournalWithAuthor}
+            currentUserId={currentUserId}
+          />
+        )}
+        className="grid gap-6 md:grid-cols xl:grid-cols"
+      />
+    </div>
   );
 }

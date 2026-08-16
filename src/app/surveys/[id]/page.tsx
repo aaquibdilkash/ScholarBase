@@ -23,6 +23,24 @@ const PRIVACY_LABELS: Record<string, string> = {
   HYBRID: "Hybrid",
 };
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const survey = await getSurvey(id).catch(() => null);
+  if (!survey) return { title: "Research Survey" };
+  return buildMetadata({
+    title: survey.title,
+    description: survey.description || `Research survey: ${survey.title}.`,
+    path: `/surveys/${survey.id}`,
+    type: "article",
+    publishedTime: survey.createdAt,
+    modifiedTime: survey.updatedAt,
+    section: "Research Surveys",
+  });
+}
+
 const SurveyDetailPage = async ({
   params,
 }: {

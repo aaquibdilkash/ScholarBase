@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Scholar Feed - Community Research Updates",
+  description: "Short research updates, news, and conversations from the academic community on ScholarBase.",
+  path: "/feed",
+  section: "Community",
+});
 import { getFeed } from "@/app/actions/feed";
 import { createClient } from "@/utils/supabase/server";
 
@@ -14,7 +23,8 @@ export default async function FeedPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab, q } = await searchParams;
+  const { tab, q } = await searchParams as { tab?: string; q?: string };
+  const pageSize = 10;
 
   const supabase = await createClient();
   const {
@@ -23,7 +33,7 @@ export default async function FeedPage({
 
   const isTrendingTab = tab === "trending";
 
-  const posts = isTrendingTab ? [] : await getFeed(user?.id, tab, q);
+  const posts = isTrendingTab ? [] : await getFeed(user?.id, tab, q, pageSize);
 
   let trendingItems: TrendingItem[] = [];
   if (isTrendingTab) {
@@ -56,6 +66,7 @@ export default async function FeedPage({
             posts={posts}
             currentUserId={user?.id}
             initialQuery={q ?? ""}
+            loadMoreParams={!isTrendingTab ? { q, tab } : undefined}
           />
         </>
       }

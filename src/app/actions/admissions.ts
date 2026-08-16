@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getAdmissions(q?: string, userId?: string) {
+export async function getAdmissions(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -23,6 +23,8 @@ export async function getAdmissions(q?: string, userId?: string) {
     return prisma.phdAdmission.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
                 include: {
@@ -83,6 +85,7 @@ export async function getAdmission(id: string, userId?: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -99,6 +102,7 @@ export async function getAdmission(id: string, userId?: string) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },

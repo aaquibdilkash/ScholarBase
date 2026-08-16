@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { BrandMark } from "@/components/BrandMark";
+import { SBIcon } from "@/components/SBIcon";
 import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
 import UserActionsDropdown from "./UserActionsDropdown";
 import prisma from "@/lib/db";
@@ -25,15 +26,14 @@ export default async function Navbar() {
     <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90">
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
         <Link href="/" className="hidden items-center gap-3 md:flex">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-sm dark:bg-white dark:text-slate-950">
-            SB
-          </div>
+          <SBIcon className="h-10 w-10 text-[18px]" />
           <div className="leading-tight">
             <div className="text-base font-semibold tracking-tight">
               <BrandMark />
             </div>
+            
             <div className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
-              Research, supervisors, and opportunities
+              Research Community Platform
             </div>
           </div>
         </Link>

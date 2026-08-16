@@ -91,20 +91,22 @@ export default async function RootLayout({
 
   let isAdmin = false;
   let unreadMessages = 0;
+  let avatarUrl: string | null = null;
   if (user) {
     await ensureUserProfile(user);
     const [dbUser, messageCount] = await Promise.all([
       prisma.user.findUnique({
         where: { id: user.id },
-        select: { isAdmin: true },
+        select: { isAdmin: true, avatarUrl: true },
       }),
       getUnreadMessageCount(user.id),
     ]);
     isAdmin = dbUser?.isAdmin ?? false;
     unreadMessages = messageCount;
+    avatarUrl = dbUser?.avatarUrl ?? null;
   }
 
-  const sidebarUser = user ? { id: user.id, email: user.email, isAdmin, unreadMessages } : null;
+  const sidebarUser = user ? { id: user.id, email: user.email, isAdmin, unreadMessages, avatarUrl } : null;
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>

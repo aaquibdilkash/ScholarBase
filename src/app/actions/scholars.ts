@@ -8,7 +8,7 @@ import { getBaseUrl } from '@/lib/url'
 import { sendScholarInviteEmail } from '@/lib/email'
 import { Prisma } from '@prisma/client'
 
-export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'latest', currentUserId?: string) {
+export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'latest', currentUserId?: string, limit = 20, cursor?: string) {
   const orderBy: Prisma.UserOrderByWithRelationInput[] =
     sort === 'reputation'
       ? [{ reputation: 'desc' }, { createdAt: 'desc' }]
@@ -43,7 +43,8 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
       },
     },
     orderBy,
-    take: 48,
+    take: limit,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   })
 }
 

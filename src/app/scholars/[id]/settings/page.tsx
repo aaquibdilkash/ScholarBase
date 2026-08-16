@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Account Settings - ScholarBase");
 import { createClient } from "@/utils/supabase/server";
 import prisma from "@/lib/db";
 import { redirect } from "next/navigation";

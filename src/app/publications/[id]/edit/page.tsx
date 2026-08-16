@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Edit Publication - ScholarBase");
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";

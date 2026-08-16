@@ -40,6 +40,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     events,
     results,
     helpPosts,
+    socialPosts,
+    supervisors,
+    contributions,
+    recommendations,
+    users,
   ] = await Promise.all([
     prisma.article.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
     prisma.researchTool.findMany({ select: { id: true, updatedAt: true } }),
@@ -53,6 +58,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.researchEvent.findMany({ select: { id: true, updatedAt: true } }),
     prisma.result.findMany({ select: { id: true, updatedAt: true } }),
     prisma.helpPost.findMany({ select: { id: true, updatedAt: true } }),
+    prisma.socialPost.findMany({ select: { id: true, updatedAt: true } }),
+    prisma.supervisor.findMany({ select: { id: true, updatedAt: true } }),
+    prisma.contribution.findMany({ where: { status: "APPROVED" }, select: { id: true, updatedAt: true } }),
+    prisma.recommendation.findMany({ select: { id: true, supervisorId: true, updatedAt: true } }),
+    prisma.user.findMany({ select: { id: true, updatedAt: true } }),
   ]);
 
   const dynamicRoutes = [
@@ -68,6 +78,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...events.map((item) => ({ path: `/events/${item.id}`, updatedAt: item.updatedAt })),
     ...results.map((item) => ({ path: `/results/${item.id}`, updatedAt: item.updatedAt })),
     ...helpPosts.map((item) => ({ path: `/help/${item.id}`, updatedAt: item.updatedAt })),
+    ...socialPosts.map((item) => ({ path: `/feed/${item.id}`, updatedAt: item.updatedAt })),
+    ...supervisors.map((item) => ({ path: `/supervisor/${item.id}`, updatedAt: item.updatedAt })),
+    ...contributions.map((item) => ({ path: `/contributions/${item.id}`, updatedAt: item.updatedAt })),
+    ...recommendations.map((item) => ({ path: `/supervisor/${item.supervisorId}/recommendation/${item.id}`, updatedAt: item.updatedAt })),
+    ...users.map((item) => ({ path: `/scholars/${item.id}`, updatedAt: item.updatedAt })),
   ];
 
   return [

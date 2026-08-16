@@ -15,9 +15,12 @@ import {
   HelpCircle,
   CreditCard,
   MessageCircle,
+  HandCoins,
 } from "lucide-react";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { BrandMark } from "@/components/BrandMark";
+import { SBIcon } from "@/components/SBIcon";
 
 export const metadata: Metadata = buildMetadata({
   title: "ScholarBase: The Academic Hub for Researchers",
@@ -76,6 +79,12 @@ export default async function HomePage() {
       icon: <GraduationCap className="h-8 w-8" />,
     },
     {
+      title: "Learn",
+      description: "Access educational resources and courses.",
+      href: "/learn",
+      icon: <BookMarked className="h-8 w-8" />, // Reusing BookMarked for learn
+    },
+    {
       title: "Vacancies",
       description: "Academic job openings and research positions.",
       href: "/vacancies",
@@ -117,6 +126,12 @@ export default async function HomePage() {
       href: "/contributions",
       icon: <CreditCard className="h-8 w-8" />,
     },
+    {
+      title: "Grants",
+      description: "Discover and apply for research grants.",
+      href: "/grants",
+      icon: <HandCoins className="h-8 w-8" />,
+    },
   ];
 
   return (
@@ -125,8 +140,14 @@ export default async function HomePage() {
       <section className="sb-surface overflow-hidden">
         <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="p-8 md:p-12 lg:p-14">
-            <div className="mb-6 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
-              Research community platform
+            <div className="mb-6 flex items-center gap-4">
+              <SBIcon className="h-18 w-18 text-[30px] md:h-24 md:w-24 md:text-[44px]" />
+              <div className="leading-tight">
+                <BrandMark className="sb-heading 3xl md:text-6xl font-extrabold tracking-tight" />
+                <div className="xl md:text-2xl text-slate-500 dark:text-slate-400">
+                  Research Community Platform
+                </div>
+              </div>
             </div>
 
             <h1 className="sb-heading max-w-3xl">

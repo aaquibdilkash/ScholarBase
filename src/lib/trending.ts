@@ -1,5 +1,6 @@
 import prisma from '@/lib/db'
 import type { SupervisorWithVotesAndRecommendations } from '@/types/trending'
+import { unstable_cache } from 'next/cache'
 
 const VOTE_WEIGHT = 1
 const COMMENT_WEIGHT = 2
@@ -38,7 +39,7 @@ async function getTrending<T extends { _count: { votes: number; comments: number
     return sortedItems
 }
 
-export async function getTrendingArticles() {
+export const getTrendingArticles = unstable_cache(async function getTrendingArticles() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -55,9 +56,9 @@ export async function getTrendingArticles() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'article')
-}
+}, ['trending-articles'], { revalidate: 300 })
 
-export async function getTrendingVacancies() {
+export const getTrendingVacancies = unstable_cache(async function getTrendingVacancies() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -69,9 +70,9 @@ export async function getTrendingVacancies() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'vacancy')
-}
+}, ['trending-vacancies'], { revalidate: 300 })
 
-export async function getTrendingAdmissions() {
+export const getTrendingAdmissions = unstable_cache(async function getTrendingAdmissions() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -83,9 +84,9 @@ export async function getTrendingAdmissions() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'admission')
-}
+}, ['trending-admissions'], { revalidate: 300 })
 
-export async function getTrendingEvents() {
+export const getTrendingEvents = unstable_cache(async function getTrendingEvents() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -97,9 +98,9 @@ export async function getTrendingEvents() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'event')
-}
+}, ['trending-events'], { revalidate: 300 })
 
-export async function getTrendingSocialPosts() {
+export const getTrendingSocialPosts = unstable_cache(async function getTrendingSocialPosts() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -111,10 +112,10 @@ export async function getTrendingSocialPosts() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'social-post')
-}
+}, ['trending-social-posts'], { revalidate: 300 })
 
 
-export async function getTrendingJournals() {
+export const getTrendingJournals = unstable_cache(async function getTrendingJournals() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -126,9 +127,9 @@ export async function getTrendingJournals() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'journal')
-}
+}, ['trending-journals'], { revalidate: 300 })
 
-export async function getTrendingResearchTools() {
+export const getTrendingResearchTools = unstable_cache(async function getTrendingResearchTools() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -140,9 +141,9 @@ export async function getTrendingResearchTools() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'researchTool')
-}
+}, ['trending-research-tools'], { revalidate: 300 })
 
-export async function getTrendingHelpPosts() {
+export const getTrendingHelpPosts = unstable_cache(async function getTrendingHelpPosts() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -154,9 +155,9 @@ export async function getTrendingHelpPosts() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'help-post')
-}
+}, ['trending-help-posts'], { revalidate: 300 })
 
-export async function getTrendingResults() {
+export const getTrendingResults = unstable_cache(async function getTrendingResults() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -168,9 +169,9 @@ export async function getTrendingResults() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'result')
-}
+}, ['trending-results'], { revalidate: 300 })
 
-export async function getTrendingPublications() {
+export const getTrendingPublications = unstable_cache(async function getTrendingPublications() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -182,9 +183,9 @@ export async function getTrendingPublications() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'publication')
-}
+}, ['trending-publications'], { revalidate: 300 })
 
-export async function getTrendingContributions() {
+export const getTrendingContributions = unstable_cache(async function getTrendingContributions() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -196,9 +197,9 @@ export async function getTrendingContributions() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'contribution')
-}
+}, ['trending-contributions'], { revalidate: 300 })
 
-export async function getTrendingSurveys() {
+export const getTrendingSurveys = unstable_cache(async function getTrendingSurveys() {
     const since = new Date()
     since.setDate(since.getDate() - TRENDING_DAYS)
 
@@ -210,7 +211,7 @@ export async function getTrendingSurveys() {
             votes: { select: { userId: true, voteType: true } },
         },
     }), 'survey')
-}
+}, ['trending-surveys'], { revalidate: 300 })
 
 export async function getTrendingSupervisors() {
     const supervisors = await prisma.supervisor.findMany<{

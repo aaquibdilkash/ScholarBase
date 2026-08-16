@@ -9,7 +9,7 @@ import { formatTimeAgo } from "@/utils/time-ago";
 import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
 import { MessagesLayoutContext } from "./messages-context";
-import { ChevronLeft, ChevronRight } from "lucide-react"; 
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"; 
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
 type Message = { body: string; };
@@ -28,13 +28,22 @@ type MessageRow = {
 
 function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // ⚡ INITIAL LOADING STATE
   const [searchQuery, setSearchQuery] = useState(""); // ⚡ SEARCH STATE
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!; 
 
   useEffect(() => {
-    if (user) getInbox(user.id).then((data) => setInbox(data));
-    else setInbox([]);
+    if (user) {
+      setIsLoading(true);
+      getInbox(user.id)
+        .then((data) => setInbox(data))
+        .catch(() => setInbox([]))
+        .finally(() => setIsLoading(false));
+    } else {
+      setInbox([]);
+      setIsLoading(false);
+    }
   }, [user]);
 
   // ⚡ THE GLOBAL REALTIME SIDEBAR LISTENER
@@ -68,7 +77,13 @@ function ConversationSidebar({ user }: { user: User | null }) {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const handleNewMessageClick = () => { if (user) setIsSidebarOpen(false); };
+  // ⚡ Only auto-collapse the sidebar on mobile, not on laptop/desktop.
+  const closeSidebarIfMobile = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+      setIsSidebarOpen(false);
+    }
+  };
+  const handleNewMessageClick = () => { if (user) closeSidebarIfMobile(); };
 
   // ⚡ FILTER INBOX BY SEARCH QUERY
   const filteredInbox = inbox.filter((conversation) => {
@@ -109,7 +124,12 @@ function ConversationSidebar({ user }: { user: User | null }) {
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {isSidebarOpen && (user ? (
-          filteredInbox.length > 0 ? (
+          isLoading ? (
+            <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500 dark:text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading conversations...
+            </div>
+          ) : filteredInbox.length > 0 ? (
             <div className="space-y-2 p-2 overflow-x-hidden">
               {filteredInbox.map((conversation) => {
                 const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
@@ -131,7 +151,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                             : item,
                         ),
                       );
-                      setIsSidebarOpen(false);
+                      closeSidebarIfMobile();
                     }}
                     className={`block rounded-lg transition ${isSidebarOpen ? "p-3" : "p-3 flex justify-center h-16"} ${isActive ? "bg-slate-100 dark:bg-slate-800 px-3 py-3" : isUnread ? "bg-blue-50 dark:bg-blue-950/40" : "hover:bg-slate-100 dark:hover:bg-slate-800/70"}`}
                   >

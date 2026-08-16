@@ -2,17 +2,22 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import { Pool } from 'pg'
 
-const createPrismaClient = () => {
-    const pool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-    })
-
-    return new PrismaClient({ adapter: new PrismaPg(pool) })
-}
-
 const globalForPrisma = globalThis as typeof globalThis & {
-    prisma?: ReturnType<typeof createPrismaClient>
+    prisma?: PrismaClient
+    pgPool?: Pool
 }
+
+const getPool = () => {
+    if (!globalForPrisma.pgPool) {
+        globalForPrisma.pgPool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+        })
+    }
+
+    return globalForPrisma.pgPool
+}
+
+const createPrismaClient = () => new PrismaClient({ adapter: new PrismaPg(getPool()) })
 
 const prisma = globalForPrisma.prisma ?? createPrismaClient()
 

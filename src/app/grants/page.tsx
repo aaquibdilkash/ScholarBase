@@ -15,10 +15,11 @@ export default async function ResearchGrantsPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q } = await searchParams as { q?: string };
+  const pageSize = 10;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const grants = await getResearchGrants(q, user?.id);
+  const grants = await getResearchGrants(q, user?.id, pageSize);
 
   return (
     <ListPageShell
@@ -29,7 +30,14 @@ export default async function ResearchGrantsPage({
       enableTrending={false}
       allHref="/grants"
       trending={null}
-      all={<ResearchGrantsList grants={grants} currentUserId={user?.id} initialQuery={q ?? ""} />}
+      all={
+        <ResearchGrantsList
+          grants={grants}
+          currentUserId={user?.id}
+          initialQuery={q ?? ""}
+          loadMoreParams={q ? { q } : undefined}
+        />
+      }
     />
   );
 }

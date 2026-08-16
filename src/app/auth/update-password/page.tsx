@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Update Password - ScholarBase");
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 
 export default function UpdatePasswordPage() {

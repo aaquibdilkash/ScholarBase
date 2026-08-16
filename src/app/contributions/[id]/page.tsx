@@ -12,6 +12,24 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { RichContent } from "@/components/content/RichContent";
 import { RejectionReason } from "@/components/contributions/RejectionReason";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const contribution = await getContribution(id).catch(() => null);
+  if (!contribution) return { title: "Contribution" };
+  return buildMetadata({
+    title: contribution.title || "ScholarBase Contribution",
+    description: (contribution.message || "").replace(/<[^>]*>/g, " ") || "A community contribution supporting ScholarBase.",
+    path: `/contributions/${contribution.id}`,
+    type: "article",
+    publishedTime: contribution.createdAt,
+    modifiedTime: contribution.updatedAt,
+    section: "Contributions",
+  });
+}
+
 const ContributionDetailPage = async ({
   params,
 }: {

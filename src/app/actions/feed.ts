@@ -9,7 +9,7 @@ import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notificat
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getFeed(userId?: string, tab?: string, q?: string) {
+export async function getFeed(userId?: string, tab?: string, q?: string, limit = 20, cursor?: string) {
     const isFollowingTab = tab === "following";
     const hasQuery = Boolean(q && q.trim().length > 0);
     let followingIds: string[] = [];
@@ -56,7 +56,11 @@ export async function getFeed(userId?: string, tab?: string, q?: string) {
         },
         include: {
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -73,6 +77,8 @@ export async function getFeed(userId?: string, tab?: string, q?: string) {
             },
         },
         orderBy: { createdAt: "desc" },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     });
 
     return posts;
@@ -94,12 +100,7 @@ export async function getPost(id: string, userId?: string) {
                     name: true,
                     handle: true,
                     avatarUrl: true,
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
+                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
                 },
             },
             votes: { select: { userId: true, voteType: true } },
@@ -115,6 +116,7 @@ export async function getPost(id: string, userId?: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -128,7 +130,7 @@ export async function getPost(id: string, userId?: string) {
                             updatedAt: true,
                             parentId: true,
                             author: {
-                                select: { id: true, name: true, avatarUrl: true },
+                                select: { id: true, name: true, handle: true, avatarUrl: true },
                             },
                             votes: { select: { userId: true, voteType: true } },
                             mentions: true,

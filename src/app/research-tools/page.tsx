@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Research Tools & Software for Academics",
+  description: "Discover and share software, apps, and digital tools that can help with your research.",
+  path: "/research-tools",
+  section: "Research Tools",
+});
 import ListPageShell from "@/components/layout/ListPageShell";
 import { createClient } from "@/utils/supabase/server";
 import { getResearchTools } from "../actions/researchTools";
@@ -10,7 +19,8 @@ export default async function ResearchPage({
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const { q, tab } = await searchParams;
+  const { q, tab } = await searchParams as { q?: string; tab?: string };
+  const pageSize = 10;
   const isTrendingTab = tab === "trending";
 
   const supabase = await createClient();
@@ -18,7 +28,7 @@ export default async function ResearchPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const tools = isTrendingTab ? [] : await getResearchTools(q, user?.id);
+  const tools = isTrendingTab ? [] : await getResearchTools(q, user?.id, pageSize);
 
   const trendingItems = isTrendingTab
     ? await getTrendingResearchTools()
@@ -49,6 +59,7 @@ export default async function ResearchPage({
           tools={tools}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
+          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

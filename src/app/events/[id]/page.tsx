@@ -9,6 +9,24 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { RichContent } from "@/components/content/RichContent";
 import { Calendar, Clock, MapPin } from "lucide-react";
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const event = await getEvent(id).catch(() => null);
+  if (!event) return { title: "Research Event" };
+  const location = event.location ? ` at ${event.location}` : "";
+  return buildMetadata({
+    title: event.title,
+    description: `Academic event / conference${location}. ${new Date(event.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    path: `/events/${event.id}`,
+    type: "article",
+    publishedTime: event.createdAt,
+    section: "Academic Events",
+  });
+}
+
 const EventDetailPage = async ({
   params,
 }: {

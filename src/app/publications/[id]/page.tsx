@@ -19,6 +19,26 @@ const PUBLICATION_TYPE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const p = await getPublicationById(id).catch(() => null);
+  if (!p) return { title: "Publication" };
+  return buildMetadata({
+    title: p.title,
+    description: (p.abstract || p.title).replace(/<[^>]*>/g, " "),
+    path: `/publications/${p.id}`,
+    type: "article",
+    author: p.author?.name || undefined,
+    keywords: p.keywords ? p.keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
+    publishedTime: p.createdAt,
+    modifiedTime: p.updatedAt,
+    section: p.publicationType || "Publications",
+  });
+}
+
 const PublicationDetailPage = async ({
   params,
 }: {

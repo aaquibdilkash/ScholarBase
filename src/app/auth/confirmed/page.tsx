@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { buildNoindexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildNoindexMetadata("Account Confirmed - ScholarBase");
 import Link from "next/link";
 
 export default function EmailConfirmedPage() {

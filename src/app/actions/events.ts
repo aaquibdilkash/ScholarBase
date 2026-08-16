@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
-export async function getEvents(q?: string, userId?: string) {
+export async function getEvents(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -23,14 +23,17 @@ export async function getEvents(q?: string, userId?: string) {
     return prisma.researchEvent.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
@@ -84,6 +87,7 @@ export async function getEvent(id: string, userId?: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -100,6 +104,7 @@ export async function getEvent(id: string, userId?: string) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },
@@ -237,12 +242,13 @@ export async function getUpcomingEvents(count: number, userId?: string) {
         orderBy: { date: "asc" },
         include: {
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },

@@ -20,6 +20,7 @@ export async function getProfile(profileId: string, currentUserId?: string) {
             orcidUrl: true,
             linkedinUrl: true,
             googleScholarUrl: true,
+            createdAt: true,
             reputation: true,
             _count: {
                 select: {

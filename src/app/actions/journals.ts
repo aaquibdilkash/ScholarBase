@@ -114,13 +114,14 @@ export async function deleteJournal(journalId: string) {
     redirect('/journals')
 }
 
-export async function getJournals(q?: string, userId?: string) {
+export async function getJournals(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
         ? {
             OR: [
                 { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { publisher: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { about: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { issn: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
         }
         : {};
@@ -130,6 +131,8 @@ export async function getJournals(q?: string, userId?: string) {
         orderBy: {
             createdAt: 'desc',
         },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         include: {
             author: {
                 include: {
@@ -198,6 +201,7 @@ export async function getJournalById(journalId: string, userId?: string) {
                         select: {
                             id: true,
                             name: true,
+                            handle: true,
                             avatarUrl: true,
                         },
                     },
@@ -214,6 +218,7 @@ export async function getJournalById(journalId: string, userId?: string) {
                                 select: {
                                     id: true,
                                     name: true,
+                                    handle: true,
                                     avatarUrl: true,
                                 },
                             },
