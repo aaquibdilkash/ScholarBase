@@ -16,6 +16,8 @@ export interface SubmitResult {
     success: boolean;
     redirect?: string;
     error?: string;
+    /** Full payload returned by the server action (e.g. created record). */
+    data?: unknown;
 }
 
 /** Options accepted by useFormSubmit. */
@@ -26,4 +28,6 @@ export interface SubmitOptions {
     successMessage?: string;
     /** Custom error message prefix. */
     errorMessage?: string;
+    /** Called with the server result after a successful submit (cache mutation). */
+    onSuccess?: (result: SubmitResult) => void;
 }

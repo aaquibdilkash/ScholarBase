@@ -39,3 +39,16 @@ export async function isAuthorizedOrAdmin(resourceAuthorId: string, userId: stri
     if (resourceAuthorId === userId) return true
     return isUserAdmin(userId)
 }
+
+export async function requireAdmin(message = 'Please log in to continue.'): Promise<SupabaseUser> {
+    const user = await requireCurrentUser(message)
+    const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { isAdmin: true },
+    })
+    if (!dbUser?.isAdmin) {
+        throw new Error('Not authorized. Admin access required.')
+    }
+    return user
+}
+

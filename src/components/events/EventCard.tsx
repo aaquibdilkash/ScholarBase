@@ -1,9 +1,11 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent } from "@/app/actions/events";
+import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
@@ -25,6 +27,8 @@ export function EventCard({
   event: EventWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === event.authorId;
   const isFollowing = (event.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -34,6 +38,23 @@ export function EventCard({
   const downvoteCount =
     event.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const urgency = getTimeLeft(event.deadline);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteResearchEvent,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete event.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["events"] },
+        (oldData: EventWithAuthor[] = []) =>
+          oldData.filter((e) => e.id !== response.data.deletedId),
+      );
+      toast("Event deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -50,9 +71,7 @@ export function EventCard({
           <OwnerActionsDropdown
             editHref={`/events/${event.id}/edit`}
             isOwner={true}
-            onDelete={async () => {
-              await deleteResearchEvent(event.id);
-            }}
+            onDelete={() => { deleteMutation.mutate(event.id); return { refresh: false }; }}
             editLabel="Edit Event"
             deleteLabel="Delete"
           />

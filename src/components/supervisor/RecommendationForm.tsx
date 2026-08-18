@@ -10,6 +10,9 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { useRouter } from "next/navigation";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useQueryClient } from "@tanstack/react-query";
+import { upsertToList } from "@/utils/cacheMutation";
+import type { RecommendationWithAuthor } from "@/types/cards";
 
 export type RecommendationFormValues = {
   rating: string;
@@ -46,6 +49,7 @@ export default function RecommendationForm({
     draftKey,
     initial
   );
+  const queryClient = useQueryClient();
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -53,6 +57,16 @@ export default function RecommendationForm({
       resetOnSuccess: mode !== "edit",
       successMessage: "Recommendation submitted successfully!",
       errorMessage: "Failed to submit recommendation.",
+      onSuccess: (response) => {
+        if (response.success && response.data) {
+          upsertToList<RecommendationWithAuthor>(
+            queryClient,
+            ["recommendations", supervisorId],
+            response.data as RecommendationWithAuthor,
+            mode,
+          );
+        }
+      },
     },
   );
 

@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache';
 
 // Shared select for a single recommendation in the supervisor detail carousel.
 const recommendationSelect = (userId?: string) => ({
@@ -185,12 +184,19 @@ export async function createSupervisor(formData: FormData) {
       university,
       department,
       about,
-      // authorId is required in schema; set it explicitly from the current user
       authorId: user.id,
     },
+    include: {
+        author: true,
+        recommendations: true,
+        votes: true,
+        _count: {
+            select: { comments: true, votes: true, recommendations: true }
+        }
+    }
   })
 
-  return { success: true, redirect: `/supervisor/${supervisor.id}` }
+  return { success: true, data: supervisor }
 }
 
 export async function updateSupervisor(formData: FormData, supervisorId: string) {
@@ -206,17 +212,27 @@ export async function updateSupervisor(formData: FormData, supervisorId: string)
     select: { authorId: true },
   })
 
-  if (!supervisor) return
+  if (!supervisor) {
+    throw new Error('Supervisor not found.')
+  }
   if (!await isAuthorizedOrAdmin(supervisor.authorId, user.id)) {
     throw new Error('Not authorized to edit this supervisor.')
   }
 
-  await prisma.supervisor.update({
+  const updatedSupervisor = await prisma.supervisor.update({
     where: { id: supervisorId },
     data: { name, university, department, about },
+    include: {
+        author: true,
+        recommendations: true,
+        votes: true,
+        _count: {
+            select: { comments: true, votes: true, recommendations: true }
+        }
+    }
   })
 
-  return { success: true, redirect: `/supervisor/${supervisorId}` }
+  return { success: true, data: updatedSupervisor }
 }
 
 
@@ -229,13 +245,15 @@ export async function deleteSupervisor(supervisorId: string) {
     select: { authorId: true },
   })
 
-  if (!supervisor) return
+  if (!supervisor) {
+    throw new Error('Supervisor not found.')
+  }
   if (!await isAuthorizedOrAdmin(supervisor.authorId, user.id)) {
     throw new Error('Not authorized to delete this supervisor.')
   }
 
   await prisma.supervisor.delete({ where: { id: supervisorId } })
-  revalidatePath('/supervisor')
-  return { redirect: '/supervisor' }
+  
+  return { success: true, data: { deletedId: supervisorId } }
 }
 

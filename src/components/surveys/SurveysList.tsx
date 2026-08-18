@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { SurveyCard } from "./SurveyCard";
 import type { SurveyWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getSurveys } from "@/app/actions/surveys";
 
 export function SurveysList({
   surveys,
@@ -20,6 +22,14 @@ export function SurveysList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: surveysData } = useQuery({
+    queryKey: ["surveys", q],
+    queryFn: () => getSurveys(q, currentUserId),
+    initialData: surveys,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function SurveysList({
         />
       </form>
       <AppendMoreList
-        initialItems={surveys}
+        initialItems={surveysData}
         resource="surveys"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(item) => (
           <SurveyCard
             key={(item as SurveyWithAuthor).id}

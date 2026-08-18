@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache';
 import { reverseReputationForRecommendation } from '@/app/actions/interactions';
 
 export async function createRecommendation(formData: FormData, supervisorId: string) {
@@ -43,7 +42,7 @@ export async function createRecommendation(formData: FormData, supervisorId: str
         return { success: false, error: 'You already have a recommendation for this supervisor.' }
     }
 
-    await prisma.recommendation.create({
+    const recommendation = await prisma.recommendation.create({
         data: {
             rating,
             feedback,
@@ -54,6 +53,13 @@ export async function createRecommendation(formData: FormData, supervisorId: str
             supervisorId,
             authorId: user.id,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { comments: true, votes: true }
+            }
+        }
     });
 
     await prisma.user.update({
@@ -61,7 +67,7 @@ export async function createRecommendation(formData: FormData, supervisorId: str
         data: { reputation: { increment: 2 } },
     });
 
-    return { success: true, redirect: `/supervisor/${supervisorId}` }
+    return { success: true, data: recommendation }
 }
 
 export async function updateRecommendation(formData: FormData, recommendationId: string) {
@@ -89,14 +95,14 @@ export async function updateRecommendation(formData: FormData, recommendationId:
         select: { authorId: true, supervisorId: true, isAnonymous: true },
     })
 
-    if (!recommendation) return
+    if (!recommendation) {
+        throw new Error('Recommendation not found.')
+    }
     if (!await isAuthorizedOrAdmin(recommendation.authorId, user.id)) {
         throw new Error('Not authorized to edit this recommendation.')
     }
 
-
-
-    await prisma.recommendation.update({
+    const updatedRecommendation = await prisma.recommendation.update({
         where: { id: recommendationId },
         data: {
             rating,
@@ -106,13 +112,16 @@ export async function updateRecommendation(formData: FormData, recommendationId:
             guidanceScore,
             isAnonymous,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { comments: true, votes: true }
+            }
+        }
     })
 
-    return {
-        success: true,
-        redirect: `/supervisor/${recommendation.supervisorId}/recommendation/${recommendationId}`,
-        supervisorId: recommendation.supervisorId,
-    }
+    return { success: true, data: updatedRecommendation }
 }
 
 
@@ -124,7 +133,9 @@ export async function deleteRecommendation(recommendationId: string) {
         select: { authorId: true, supervisorId: true },
     })
 
-    if (!recommendation) return
+    if (!recommendation) {
+        throw new Error('Recommendation not found.')
+    }
     if (!await isAuthorizedOrAdmin(recommendation.authorId, user.id)) {
         throw new Error('Not authorized to delete this recommendation.')
     }
@@ -134,7 +145,6 @@ export async function deleteRecommendation(recommendationId: string) {
 
     await prisma.recommendation.delete({ where: { id: recommendationId } })
 
-    revalidatePath(`/supervisor/${recommendation.supervisorId}`)
-    return { redirect: `/supervisor/${recommendation.supervisorId}` }
+    return { success: true, data: { deletedId: recommendationId, supervisorId: recommendation.supervisorId } }
 }
 

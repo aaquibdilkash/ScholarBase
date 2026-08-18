@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteCourse } from "@/app/actions/courses";
+import { useToast } from "@/components/ui/Toast";
 import type { CourseWithAuthor } from "@/types/cards";
 
 export function CourseCard({
@@ -15,13 +17,31 @@ export function CourseCard({
   course: CourseWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === course.authorId;
   const isFollowing = (course.author.followers?.length ?? 0) > 0;
   const userVote = course.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount = course.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount = course.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const details = [course.provider, course.instructor, course.format, course.level, course.price, course.duration].filter(Boolean);
-  const handleDelete = () => deleteCourse(course.id);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCourse,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete course.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["courses"] },
+        (oldData: CourseWithAuthor[] = []) =>
+          oldData.filter((c) => c.id !== response.data.deletedId),
+      );
+      toast("Course deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -35,7 +55,7 @@ export function CourseCard({
       detailPageHref={`/learn/${course.id}`}
       managementControls={
         isOwner && (
-          <OwnerActionsDropdown editHref={`/learn/${course.id}/edit`} onDelete={handleDelete} isOwner={true} editLabel="Edit Course" deleteLabel="Delete" />
+          <OwnerActionsDropdown editHref={`/learn/${course.id}/edit`} onDelete={() => { deleteMutation.mutate(course.id); return { refresh: false }; }} isOwner={true} editLabel="Edit Course" deleteLabel="Delete" />
         )
       }
       createdDate={course.createdAt}

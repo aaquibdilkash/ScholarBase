@@ -1,12 +1,14 @@
 "use client";
 
 import { Clock } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deleteJobVacancy } from "@/app/actions/vacancies";
+import { useToast } from "@/components/ui/Toast";
 import { getTimeLeft } from "@/utils/time-ago";
 import type { VacancyWithAuthor } from "@/types/cards";
 
@@ -17,6 +19,8 @@ export function VacancyCard({
   vacancy: VacancyWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === vacancy.authorId;
   const isFollowing = (vacancy.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -26,6 +30,23 @@ export function VacancyCard({
   const downvoteCount =
     vacancy.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const urgency = getTimeLeft(vacancy.deadline);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteJobVacancy,
+    onSuccess: (response) => {
+      if (!response || !response.success || !response.data) {
+        toast("Failed to delete vacancy.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["vacancies"] },
+        (oldData: VacancyWithAuthor[] = []) =>
+          oldData.filter((v) => v.id !== response.data.deletedId),
+      );
+      toast("Vacancy deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -44,7 +65,7 @@ export function VacancyCard({
             isOwner={true}
             editLabel="Edit Vacancy"
             deleteLabel="Delete"
-            onDelete={() => deleteJobVacancy(vacancy.id)}
+            onDelete={() => { deleteMutation.mutate(vacancy.id); return { refresh: false }; }}
           />
         )
       }

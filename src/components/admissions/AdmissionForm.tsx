@@ -2,13 +2,16 @@
 
 import {
   updatePhdAdmission,
-  createAdmissionSafe,
+  createPhdAdmission,
 } from "@/app/actions/admissions";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import type { AdmissionWithAuthor } from "@/types/cards";
 
 export type AdmissionFormValues = {
   university: string;
@@ -28,6 +31,8 @@ export default function AdmissionForm({
   admissionId?: string;
   initialValues?: Partial<AdmissionFormValues>;
 }) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
   const initial = {
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
@@ -53,6 +58,20 @@ export default function AdmissionForm({
       mode === "edit"
         ? "Failed to update admission."
         : "Failed to post admission.",
+    onSuccess: (response) => {
+      if (!response.success) return;
+      const data = response.data as AdmissionWithAuthor;
+      if (mode === 'create') {
+                queryClient.setQueryData(['admissions', ''], (oldData: AdmissionWithAuthor[] | undefined) => {
+          return [data, ...(oldData || [])];
+        });
+        router.push('/admissions');
+      } else {
+                queryClient.setQueryData(['admissions', ''], (oldData: AdmissionWithAuthor[] | undefined) => {
+          return oldData?.map(post => post.id === data.id ? data : post);
+        });
+      }
+    }
   });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -63,7 +82,7 @@ export default function AdmissionForm({
       if (mode === "edit" && admissionId) {
         return updatePhdAdmission(formData, admissionId);
       } else {
-        return createAdmissionSafe(formData);
+        return createPhdAdmission(formData);
       }
     });
   }

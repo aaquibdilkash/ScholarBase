@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchGrant } from "@/app/actions/grants";
+import { useToast } from "@/components/ui/Toast";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
 
 export function ResearchGrantCard({
@@ -15,12 +17,30 @@ export function ResearchGrantCard({
   grant: ResearchGrantWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === grant.authorId;
   const isFollowing = (grant.author.followers?.length ?? 0) > 0;
   const userVote = grant.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
   const upvoteCount = grant.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount = grant.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
-  const handleDelete = () => deleteResearchGrant(grant.id);
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteResearchGrant,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete grant.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["grants"] },
+        (oldData: ResearchGrantWithAuthor[] = []) =>
+          oldData.filter((g) => g.id !== response.data.deletedId),
+      );
+      toast("Grant deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -34,7 +54,7 @@ export function ResearchGrantCard({
       detailPageHref={`/grants/${grant.id}`}
       managementControls={
         isOwner && (
-          <OwnerActionsDropdown editHref={`/grants/${grant.id}/edit`} onDelete={handleDelete} isOwner={true} editLabel="Edit Grant" deleteLabel="Delete" />
+          <OwnerActionsDropdown editHref={`/grants/${grant.id}/edit`} onDelete={() => { deleteMutation.mutate(grant.id); return { refresh: false }; }} isOwner={true} editLabel="Edit Grant" deleteLabel="Delete" />
         )
       }
       createdDate={grant.createdAt}

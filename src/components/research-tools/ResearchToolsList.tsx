@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ResearchToolCard } from "./ResearchToolCard";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getResearchTools } from "@/app/actions/researchTools";
 
 export function ResearchToolsList({
   tools,
@@ -20,6 +22,14 @@ export function ResearchToolsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: toolsData } = useQuery({
+    queryKey: ["researchTools", q],
+    queryFn: () => getResearchTools(q, currentUserId),
+    initialData: tools,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function ResearchToolsList({
         />
       </form>
       <AppendMoreList
-        initialItems={tools}
+        initialItems={toolsData}
         resource="research-tools"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(tool) => (
           <ResearchToolCard
             key={(tool as ResearchToolWithAuthor).id}

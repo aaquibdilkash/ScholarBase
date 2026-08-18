@@ -3,10 +3,9 @@
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation }  from '@/app/actions/interactions'
+import type { HelpPostWithAuthor } from '@/types/cards'
 
 export async function getHelpPosts(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
@@ -149,6 +148,13 @@ export async function createHelpPost(formData: FormData) {
             message,
             authorId: user.id,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -156,15 +162,14 @@ export async function createHelpPost(formData: FormData) {
         type: 'help-post-published',
         targetType: 'help',
         targetId: post.id,
-        title: `${user.email?.split('@')[0] || 'Someone'} posted a help request`,
+        title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} posted a help request`,
         body: `${title} - ${subject}`,
     })
 
-    revalidatePath('/help')
-    return { success: true, redirect: '/help' }
+    return { success: true, data: post }
 }
 
-export async function createHelpPostSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
+export async function createHelpPostSafe(formData: FormData): Promise<{ success: boolean; data?: HelpPostWithAuthor; error?: string }> {
     try {
         return await createHelpPost(formData)
     } catch (err) {
@@ -190,18 +195,36 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
         select: { authorId: true },
     })
 
-    if (!post) return
+    if (!post) {
+		throw new Error('Help post not found.')
+	}
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to edit this help post.')
     }
 
-    await prisma.helpPost.update({
+    const updatedPost = await prisma.helpPost.update({
         where: { id: helpPostId },
         data: { title, subject, category, message },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath(`/help/${helpPostId}`);
-    return { success: true, redirect: `/help/${helpPostId}` };
+    return { success: true, data: updatedPost };
+}
+
+
+export async function updateHelpPostSafe(formData: FormData, helpPostId: string): Promise<{ success: boolean; data?: HelpPostWithAuthor; error?: string }> {
+    try {
+        return await updateHelpPost(formData, helpPostId);
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        return { success: false, error: error.message || 'Failed to update help post' };
+    }
 }
 
 export async function deleteHelpPost(helpPostId: string) {
@@ -212,7 +235,9 @@ export async function deleteHelpPost(helpPostId: string) {
         select: { authorId: true },
     })
 
-    if (!post) return
+    if (!post) {
+		throw new Error('Help post not found.');
+	}
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to delete this help post.')
     }
@@ -224,5 +249,14 @@ export async function deleteHelpPost(helpPostId: string) {
 
     await prisma.helpPost.delete({ where: { id: helpPostId } })
 
-    redirect('/help')
+    return { success: true, data: { deletedId: helpPostId } }
+}
+
+export async function deleteHelpPostSafe(helpPostId: string): Promise<{ success: boolean; data?: { deletedId: string }; error?: string }> {
+    try {
+        return await deleteHelpPost(helpPostId);
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        return { success: false, error: error.message || 'Failed to delete help post' };
+    }
 }

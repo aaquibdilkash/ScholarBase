@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import type { Prisma } from "@prisma/client";
 import { SupervisorCard } from "./SupervisorCard";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getSupervisors } from "@/app/actions/supervisors";
 
 type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
   include: {
@@ -29,6 +31,14 @@ export function SupervisorsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: supervisorsData } = useQuery({
+    queryKey: ["supervisors", q],
+    queryFn: () => getSupervisors(q, currentUserId),
+    initialData: supervisors,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -48,9 +58,9 @@ export function SupervisorsList({
         />
       </form>
       <AppendMoreList
-        initialItems={supervisors}
+        initialItems={supervisorsData}
         resource="supervisors"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(s) => (
           <SupervisorCard
             key={(s as SupervisorWithDetails).id}

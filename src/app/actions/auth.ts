@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getBaseUrl } from '@/lib/url'
 
@@ -37,7 +36,7 @@ export async function login(formData: FormData): Promise<AuthResult> {
         return { success: false, error: 'Incorrect email or password.' }
     }
 
-    revalidatePath('/', 'layout')
+    // REMOVED: revalidatePath
     return { success: true, redirect: callbackUrl }
 }
 
@@ -124,6 +123,6 @@ export async function signOut() {
     const supabase = await createClient()
 
     await supabase.auth.signOut()
-    revalidatePath('/', 'layout')
+    // REMOVED: revalidatePath
     redirect('/login')
 }

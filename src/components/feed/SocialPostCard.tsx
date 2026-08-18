@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -14,6 +15,7 @@ export function SocialPostCard({
   post: PostWithDetails;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
   const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -41,7 +43,15 @@ export function SocialPostCard({
             editLabel="Edit Post"
             deleteLabel="Delete"
             onDelete={async () => {
-              await deleteSocialPost(post.id);
+              const response = await deleteSocialPost(post.id);
+              if (response?.success) {
+                queryClient.setQueriesData<PostWithDetails[]>(
+                  { queryKey: ["feed"] },
+                  (oldData = []) =>
+                    oldData.filter((item) => item.id !== response.data.id),
+                );
+              }
+              return { refresh: false };
             }}
           />
         )

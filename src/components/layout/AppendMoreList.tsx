@@ -28,7 +28,7 @@ export function AppendMoreList<T>({
 
   useEffect(() => {
     setItems(initialItems);
-    setCursor(initialItems.length === chunkSize ? (initialItems[initialItems.length - 1] as any)?.id : null);
+        setCursor(initialItems.length === chunkSize ? (initialItems[initialItems.length - 1] as unknown as { id?: string })?.id ?? null : null);
     setHasMore(initialItems.length === chunkSize);
   }, [initialItems, chunkSize]);
 
@@ -50,7 +50,7 @@ export function AppendMoreList<T>({
     } finally {
       setLoading(false);
     }
-  }, [chunkSize, cursor, hasMore, loading, params, resource]);
+    }, [cursor, hasMore, loading, params, resource]);
 
   return (
     <div className={className}>

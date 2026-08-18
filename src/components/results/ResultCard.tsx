@@ -1,9 +1,11 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult } from "@/app/actions/results";
+import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import type { ResultWithAuthor } from "@/types/cards";
@@ -23,6 +25,8 @@ export function ResultCard({
   result: ResultWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === result.authorId;
   const isFollowing = (result.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -31,6 +35,24 @@ export function ResultCard({
     result.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     result.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteResult,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete result.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["results"] },
+        (oldData: ResultWithAuthor[] = []) =>
+          oldData.filter((r) => r.id !== response.data.deletedId),
+      );
+      toast("Result deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
+
   return (
     <ListPageCardShell
       authorHref={`/scholars/${result.author.id}`}
@@ -46,9 +68,7 @@ export function ResultCard({
           <OwnerActionsDropdown
             editHref={`/results/${result.id}/edit`}
             isOwner={true}
-            onDelete={async () => {
-              await deleteResult(result.id);
-            }}
+            onDelete={() => { deleteMutation.mutate(result.id); return { refresh: false }; }}
             editLabel="Edit Result"
             deleteLabel="Delete"
           />

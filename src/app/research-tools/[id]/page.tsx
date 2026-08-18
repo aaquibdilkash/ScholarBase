@@ -52,7 +52,8 @@ const ResearchToolDetailPage = async ({
   // Define the delete action outside of the JSX
   async function handleDelete() {
     "use server";
-    await deleteResearchTool(tool!.id);
+        await deleteResearchTool(tool!.id);
+    return { redirect: "/research-tools" };
   }
 
   return (

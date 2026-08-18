@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import Image from "next/image";
 import { formatTimeAgo } from "@/utils/time-ago";
@@ -153,11 +154,19 @@ export function CommentSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
+  const queryClient = useQueryClient();
+  const commentsQueryKey = ["comments", type, targetId];
   const draftKey = `draft_comment_${type}_${targetId}`;
   const [content, setContent] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
 
-  const topLevelComments = comments.filter((c) => !c.parentId);
+  const { data: cachedComments = [] } = useQuery({
+    queryKey: commentsQueryKey,
+    queryFn: async () => comments,
+    initialData: comments,
+  });
+
+  const topLevelComments = cachedComments.filter((c) => !c.parentId);
 
   useEffect(() => {
     try {
@@ -198,7 +207,32 @@ export function CommentSection({
     formData.set("mentions", JSON.stringify(mentionedUsers.map(u => ({id: u.id, handle: u.handle}))));
 
     try {
-      await createCommentClientWrapper(formData);
+      const response = await createCommentClientWrapper(formData);
+      if (!response?.success || !response.data) {
+        toast("Failed to post comment. Please try again.", "error");
+        return;
+      }
+      queryClient.setQueryData<RenderableCommentItem[]>(
+        commentsQueryKey,
+        (oldComments = []) => [response.data, ...oldComments],
+      );
+      if (type === "post") {
+        queryClient.setQueriesData<{ id: string; _count: { comments: number } }[]>(
+          { queryKey: ["feed"] },
+          (oldPosts = []) =>
+            oldPosts.map((post) =>
+              post.id === targetId
+                ? {
+                    ...post,
+                    _count: {
+                      ...post._count,
+                      comments: post._count.comments + 1,
+                    },
+                  }
+                : post,
+            ),
+        );
+      }
       toast("Comment posted successfully!", "success");
       setContent("");
       setMentionedUsers([]);
@@ -260,6 +294,72 @@ editingId={editingId}
               setEditingId={setEditingId}
               isReply={false}
               toast={toast}
+              onReplyCreated={(reply) => {
+                queryClient.setQueryData<RenderableCommentItem[]>(
+                  commentsQueryKey,
+                  (oldComments = []) =>
+                    oldComments.map((item) =>
+                      item.id === reply.parentId
+                        ? {
+                            ...item,
+                            replies: [...(item.replies ?? []), reply],
+                          }
+                        : item,
+                    ),
+                );
+                if (type === "post") {
+                  queryClient.setQueriesData<
+                    { id: string; _count: { comments: number } }[]
+                  >({ queryKey: ["feed"] }, (oldPosts = []) =>
+                    oldPosts.map((post) =>
+                      post.id === targetId
+                        ? {
+                            ...post,
+                            _count: {
+                              ...post._count,
+                              comments: post._count.comments + 1,
+                            },
+                          }
+                        : post,
+                    ),
+                  );
+                }
+              }}
+              onDeleted={(deleted) => {
+                queryClient.setQueryData<RenderableCommentItem[]>(
+                  commentsQueryKey,
+                  (oldComments = []) =>
+                    deleted.parentId
+                      ? oldComments.map((item) =>
+                          item.id === deleted.parentId
+                            ? {
+                                ...item,
+                                replies: (item.replies ?? []).filter(
+                                  (reply) => reply.id !== deleted.id,
+                                ),
+                              }
+                            : item,
+                        )
+                      : oldComments.filter((item) => item.id !== deleted.id),
+                );
+                if (type === "post") {
+                  queryClient.setQueriesData<
+                    { id: string; _count: { comments: number } }[]
+                  >({ queryKey: ["feed"] }, (oldPosts = []) =>
+                    oldPosts.map((post) =>
+                      post.id === targetId
+                        ? {
+                            ...post,
+                            _count: {
+                              ...post._count,
+                              comments: Math.max(0, post._count.comments - 1),
+                            },
+                          }
+                        : post,
+                    ),
+                  );
+                }
+              }}
             />
           ))}
 
@@ -312,7 +412,7 @@ function ReplyForm({
   targetId: string;
   type: CommentTargetType;
   parentComment: RenderableCommentItem;
-  onSuccess: () => void;
+  onSuccess: (reply: RenderableCommentItem) => void;
   toast: (message: string, type?: "success" | "error") => void;
 }) {
   const draftKey = `draft_reply_${type}_${targetId}_${parentComment.id}`;
@@ -353,12 +453,16 @@ function ReplyForm({
     formData.set("content", reply);
     formData.set("mentions", JSON.stringify(mentionedUsers.map(u => ({id: u.id, handle: u.handle}))));
     try {
-      await createCommentClientWrapper(formData);
+      const response = await createCommentClientWrapper(formData);
+      if (!response?.success || !response.data) {
+        toast("Failed to post reply. Please try again.", "error");
+        return;
+      }
       toast("Reply posted successfully!", "success");
       setReply("");
       setMentionedUsers([]);
       localStorage.removeItem(draftKey);
-      onSuccess();
+      onSuccess(response.data);
     } catch (error) {
       toast("Failed to post reply. Please try again.", "error");
       console.error(error);
@@ -406,6 +510,8 @@ function CommentEntry({
   setEditingId,
   isReply,
   toast,
+  onReplyCreated,
+  onDeleted,
 }: {
   comment: RenderableCommentItem;
   replies?: RenderableCommentItem[];
@@ -419,6 +525,8 @@ function CommentEntry({
   setEditingId: (id: string | null) => void;
   isReply: boolean;
   toast: (message: string, type?: "success" | "error") => void;
+  onReplyCreated: (reply: RenderableCommentItem) => void;
+  onDeleted: (deleted: { id: string; parentId: string | null }) => void;
 }) {
   const deleteFormRef = useRef<HTMLFormElement>(null);
   const isOwner = !!currentUserId && comment.author.id === currentUserId;
@@ -432,13 +540,38 @@ function CommentEntry({
     Array.isArray(comment.mentions) ? (comment.mentions as MentionUser[]) : [],
   );
 
+  const queryClient = useQueryClient();
+  const commentsQueryKey = ["comments", type, targetId];
+
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.set("content", editedContent);
     formData.set("mentions", JSON.stringify(editedMentions.map(m => ({id: m.id, handle: m.handle}))));
     try {
-      await editCommentClientWrapper(formData);
+      const response = await editCommentClientWrapper(formData);
+      if (!response?.success || !response.data) {
+        toast("Failed to update comment. Please try again.", "error");
+        return;
+      }
+      const updatedComment = response.data as RenderableCommentItem;
+      queryClient.setQueryData<RenderableCommentItem[]>(
+        commentsQueryKey,
+        (oldComments = []) => {
+          const updateCommentRecursive = (comments: RenderableCommentItem[]): RenderableCommentItem[] => {
+            return comments.map(c => {
+              if (c.id === updatedComment.id) {
+                return { ...c, ...updatedComment };
+              }
+              if (c.replies) {
+                return { ...c, replies: updateCommentRecursive(c.replies) };
+              }
+              return c;
+            });
+          };
+          return updateCommentRecursive(oldComments);
+        }
+      );
       toast("Comment updated!", "success");
       setEditingId(null);
     } catch {
@@ -448,7 +581,13 @@ function CommentEntry({
 
   const handleDeleteComment = async (formData: FormData) => {
     try {
-      await deleteCommentClientWrapper(formData);
+      const response = await deleteCommentClientWrapper(formData);
+      if (response?.success && response.data) {
+        onDeleted({
+          id: response.data.id,
+          parentId: response.data.parentId ?? null,
+        });
+      }
       toast("Comment deleted.", "success");
     } catch {
       toast("Failed to delete comment. Please try again.", "error");
@@ -617,7 +756,10 @@ function CommentEntry({
                 targetId={targetId}
                 type={type}
                 parentComment={comment}
-                onSuccess={() => setActiveReplyId(null)}
+                onSuccess={(reply) => {
+                  onReplyCreated(reply);
+                  setActiveReplyId(null);
+                }}
                 toast={toast}
               />
             )}
@@ -640,6 +782,8 @@ function CommentEntry({
                 setEditingId={setEditingId}
                 isReply={true}
                 toast={toast}
+                onReplyCreated={onReplyCreated}
+                onDeleted={onDeleted}
               />
             ))}
           </div>

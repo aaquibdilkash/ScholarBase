@@ -3,18 +3,34 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from "next/navigation";
+
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
+
+const socialPostInclude = {
+    author: {
+        select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+        },
+    },
+    votes: {
+        select: { id: true, createdAt: true, userId: true, voteType: true, socialPostId: true },
+    },
+    _count: {
+        select: { comments: true, votes: true },
+    },
+};
 
 export async function getFeed(userId?: string, tab?: string, q?: string, limit = 20, cursor?: string) {
     const isFollowingTab = tab === "following";
     const hasQuery = Boolean(q && q.trim().length > 0);
     let followingIds: string[] = [];
 
-    if (isFollowingTab) {
+    if (isFollowingTab && userId) {
         const following = await prisma.follows.findMany({
             where: { followerId: userId },
             select: { followingId: true },
@@ -55,26 +71,14 @@ export async function getFeed(userId?: string, tab?: string, q?: string, limit =
                 : {}),
         },
         include: {
+            ...socialPostInclude,
             author: {
+                ...socialPostInclude.author,
                 select: {
-                    id: true,
-                    name: true,
-                    handle: true,
-                    avatarUrl: true,
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
-                },
-            },
-            votes: {
-                select: { id: true, createdAt: true, userId: true, voteType: true, socialPostId: true },
-            },
-            _count: {
-                select: { comments: true, votes: true },
-            },
+                    ...socialPostInclude.author.select,
+                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
+                }
+            }
         },
         orderBy: { createdAt: "desc" },
         take: limit,
@@ -155,7 +159,9 @@ export async function createSocialPost(formData: FormData) {
     const content = readFormValue(formData, 'content')
     const imageUrl = formData.get('imageUrl') as string | null;
 
-    if (!content) return
+    if (!content) {
+        throw new Error('Content cannot be empty.')
+    }
 
     const post = await prisma.socialPost.create({
         data: {
@@ -163,6 +169,7 @@ export async function createSocialPost(formData: FormData) {
             imageUrl: imageUrl || undefined,
             authorId: user.id,
         },
+        include: socialPostInclude,
     })
 
     await Promise.all([
@@ -171,7 +178,7 @@ export async function createSocialPost(formData: FormData) {
             type: 'post-published',
             targetType: 'post',
             targetId: post.id,
-            title: `${user.email?.split('@')[0] || 'Someone'} posted an update`,
+            title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} posted an update`,
             body: content.slice(0, 120),
         }),
         notifyMentionedUsers({
@@ -185,8 +192,7 @@ export async function createSocialPost(formData: FormData) {
         }),
     ])
 
-    revalidatePath('/feed')
-    return { success: true, redirect: '/feed' }
+    return { success: true, data: post }
 }
 
 export async function updateSocialPost(
@@ -217,18 +223,27 @@ export async function updateSocialPost(
     const oldImage = post.imageUrl;
     const newImage = imageUrl || null;
 
-    await prisma.socialPost.update({
+    const updatedPost = await prisma.socialPost.update({
         where: { id: postId },
         data: { content, imageUrl: newImage || undefined },
+        include: {
+            ...socialPostInclude,
+            author: {
+                ...socialPostInclude.author,
+                select: {
+                    ...socialPostInclude.author.select,
+                    followers: { where: { followerId: user.id }, select: { followerId: true } },
+                },
+            },
+        },
     })
 
     if (oldImage && oldImage !== newImage) {
         await deleteFromCloudinary(oldImage);
     }
 
-    revalidatePath('/feed')
-    revalidatePath(`/feed/${postId}`)
-    return { success: true, postId, message: 'Post updated successfully!' }
+    // Client cache updated via React Query - no revalidatePath needed
+    return { success: true, data: updatedPost }
 }
 
 
@@ -283,7 +298,6 @@ export async function deleteSocialPost(postId: string) {
 
     await prisma.socialPost.delete({ where: { id: postId } })
 
-    revalidatePath('/feed')
-    revalidatePath(`/feed/${postId}`)
-    redirect('/feed')
+    // Client cache updated via React Query - no revalidatePath/redirect needed
+    return { success: true, data: { id: postId } }
 }

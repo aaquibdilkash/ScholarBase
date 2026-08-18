@@ -56,7 +56,8 @@ export default async function SupervisorPage({
 
   async function handleDelete() {
     "use server";
-    await deleteSupervisor(supervisor!.id);
+        await deleteSupervisor(supervisor!.id);
+    return { redirect: "/supervisors" };
   }
 
   // Compute vote counts from votes array

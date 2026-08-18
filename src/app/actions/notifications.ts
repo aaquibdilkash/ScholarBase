@@ -2,7 +2,6 @@
 
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 
 export async function markNotificationRead(notificationId: string) {
     const user = await requireCurrentUser('Log in to view your notifications.')
@@ -12,7 +11,7 @@ export async function markNotificationRead(notificationId: string) {
         data: { readAt: new Date() },
     })
 
-    revalidatePath('/notifications')
+    // REMOVED: revalidatePath
 }
 
 export async function markAllNotificationsRead() {
@@ -23,5 +22,5 @@ export async function markAllNotificationsRead() {
         data: { readAt: new Date() },
     })
 
-    revalidatePath('/notifications')
+    // REMOVED: revalidatePath
 }

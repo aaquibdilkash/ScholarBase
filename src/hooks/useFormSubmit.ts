@@ -29,6 +29,7 @@ export function useFormSubmit(
         resetOnSuccess = true,
         successMessage = "Created successfully!",
         errorMessage = "Something went wrong",
+        onSuccess,
     } = options;
 
     const submit = useCallback(
@@ -45,6 +46,11 @@ export function useFormSubmit(
                         // ✅ Success — now reset the draft
                         if (resetOnSuccess && resetDraft) {
                             resetDraft();
+                        }
+
+                        // Let the caller patch the React Query cache (client-side mutation)
+                        if (onSuccess) {
+                            onSuccess(r);
                         }
 
                         if (r.redirect) {
@@ -70,7 +76,7 @@ export function useFormSubmit(
                 setSubmitting(false);
             }
         },
-        [resetDraft, resetOnSuccess, router, toast, successMessage, errorMessage],
+        [resetDraft, resetOnSuccess, router, toast, successMessage, errorMessage, onSuccess],
     );
 
     return { submitting, submit };

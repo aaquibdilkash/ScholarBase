@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { EventCard } from "./EventCard";
 import type { EventWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getEvents } from "@/app/actions/events";
 
 export function EventsList({
   events,
@@ -20,6 +22,14 @@ export function EventsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: eventsData } = useQuery({
+    queryKey: ["events", q],
+    queryFn: () => getEvents(q, currentUserId),
+    initialData: events,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function EventsList({
         />
       </form>
       <AppendMoreList
-        initialItems={events}
+        initialItems={eventsData}
         resource="events"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(event) => (
           <EventCard
             key={(event as EventWithAuthor).id}

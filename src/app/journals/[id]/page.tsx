@@ -54,7 +54,8 @@ const JournalDetailPage = async ({
 
   async function handleDelete() {
     "use server";
-    await deleteJournal(j.id);
+        await deleteJournal(j.id);
+    return { redirect: "/journals" };
   }
 
   return (

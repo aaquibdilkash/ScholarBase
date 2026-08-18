@@ -2,7 +2,6 @@
 
 import prisma from '@/lib/db'
 import { requireCurrentUser, isUserAdmin } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
 import {
@@ -56,8 +55,8 @@ export async function toggleContentFreeze(
     data: { isFrozen: !content.isFrozen },
   })
 
-  revalidatePath('/admin')
-  return { success: true, isFrozen: !content.isFrozen }
+  // REMOVED: revalidatePath('/admin')
+  return { success: true, data: content }
 }
 
 // Freeze/unfreeze author
@@ -80,8 +79,8 @@ export async function toggleAuthorFreeze(authorId: string) {
     data: { isFrozen: !author.isFrozen },
   })
 
-  revalidatePath('/admin')
-  return { success: true, isFrozen: !author.isFrozen }
+  // REMOVED: revalidatePath('/admin')
+  return { success: true, data: author }
 }
 
 // Delete any content by admin
@@ -113,10 +112,10 @@ export async function adminDeleteContent(contentType: string, contentId: string)
   if (!config) throw new Error('Invalid content type')
 
   await config.model.delete({ where: { id: contentId } })
-  revalidatePath(config.path)
-  revalidatePath('/admin')
 
-  return { success: true }
+  // REMOVED: revalidatePath(config.path)
+  // REMOVED: revalidatePath('/admin')
+  return { success: true, data: { id: contentId } }
 }
 
 // Delete comment by admin
@@ -151,9 +150,9 @@ export async function adminDeleteComment(
   if (!model) throw new Error('Invalid comment type')
 
   await model.delete({ where: { id: commentId } })
-  revalidatePath('/admin')
 
-  return { success: true }
+  // REMOVED: revalidatePath('/admin')
+  return { success: true, data: { id: commentId } }
 }
 
 // Get admin dashboard stats (counts per content type + users)
@@ -301,8 +300,8 @@ export async function updateContributionStatus(
     })
   }
 
-  revalidatePath('/admin')
-  return { success: true }
+  // REMOVED: revalidatePath('/admin')
+  return { success: true, data: {} }
 }
 
 

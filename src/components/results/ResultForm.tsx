@@ -6,6 +6,9 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useQueryClient } from "@tanstack/react-query";
+import { upsertToList } from "@/utils/cacheMutation";
+import type { ResultWithAuthor } from "@/types/cards";
 
 export type ResultFormValues = {
   title: string;
@@ -51,6 +54,7 @@ export default function ResultForm({
     draftKey,
     initial
   );
+  const queryClient = useQueryClient();
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -58,6 +62,16 @@ export default function ResultForm({
       resetOnSuccess: mode !== "edit",
       successMessage: "Result published successfully!",
       errorMessage: "Failed to publish result.",
+      onSuccess: (response) => {
+        if (response.success && response.data) {
+          upsertToList<ResultWithAuthor>(
+            queryClient,
+            ["results"],
+            response.data as ResultWithAuthor,
+            mode,
+          );
+        }
+      },
     },
   );
 

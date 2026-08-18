@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -33,6 +31,13 @@ export async function createJournal(formData: FormData) {
             about,
             authorId: user.id
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -44,8 +49,7 @@ export async function createJournal(formData: FormData) {
         body: `${title}${publisher ? ` by ${publisher}` : ''}`,
     })
 
-    revalidatePath('/journals')
-    return { success: true, redirect: '/journals' }
+    return { success: true, data: journal }
 }
 
 export async function updateJournal(formData: FormData, journalId: string) {
@@ -65,12 +69,14 @@ export async function updateJournal(formData: FormData, journalId: string) {
         select: { authorId: true },
     })
 
-    if (!journal) return
+    if (!journal) {
+        throw new Error('Journal not found.')
+    }
     if (!await isAuthorizedOrAdmin(journal.authorId, user.id)) {
         throw new Error('Not authorized to edit this journal.')
     }
 
-    await prisma.journal.update({
+    const updatedJournal = await prisma.journal.update({
         where: { id: journalId },
         data: {
             title,
@@ -82,11 +88,16 @@ export async function updateJournal(formData: FormData, journalId: string) {
             website,
             about,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath('/journals')
-    revalidatePath(`/journals/${journalId}`)
-    return { success: true, redirect: `/journals/${journalId}` }
+    return { success: true, data: updatedJournal }
 }
 
 export async function deleteJournal(journalId: string) {
@@ -97,7 +108,9 @@ export async function deleteJournal(journalId: string) {
         select: { authorId: true },
     })
 
-    if (!journal) return
+    if (!journal) {
+        throw new Error('Journal not found.')
+    }
     if (!await isAuthorizedOrAdmin(journal.authorId, user.id)) {
         throw new Error('Not authorized to delete this journal.')
     }
@@ -109,9 +122,7 @@ export async function deleteJournal(journalId: string) {
 
     await prisma.journal.delete({ where: { id: journalId } })
 
-    revalidatePath('/journals')
-    revalidatePath(`/journals/${journalId}`)
-    redirect('/journals')
+    return { success: true, data: { deletedId: journalId } }
 }
 
 export async function getJournals(q?: string, userId?: string, limit = 20, cursor?: string) {

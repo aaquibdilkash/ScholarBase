@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
 import { getBaseUrl } from '@/lib/url'
 import { sendScholarInviteEmail } from '@/lib/email'
 import { Prisma } from '@prisma/client'
@@ -92,6 +91,6 @@ export async function inviteScholar(formData: FormData) {
     return { success: false, error: 'Failed to send invite. Please try again.' }
   }
 
-  revalidatePath('/scholars')
+  // REMOVED: revalidatePath
   return { success: true, message: 'Invite sent successfully!' }
 }

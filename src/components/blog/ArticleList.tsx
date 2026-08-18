@@ -2,11 +2,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import type { Prisma } from "@prisma/client";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getArticles } from "@/app/actions/blog";
 
 type ArticleWithDetails = Prisma.ArticleGetPayload<{
   include: {
@@ -36,13 +37,15 @@ export function ArticleList({
   loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
-  const router = useRouter();
+  const { data: articlesData, refetch } = useQuery({
+    queryKey: ["articles", query],
+    queryFn: () => getArticles(query),
+    initialData: articles,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/blog?${params.toString()}`);
+    refetch();
   };
 
   return (
@@ -56,9 +59,9 @@ export function ArticleList({
         />
       </form>
       <AppendMoreList
-        initialItems={articles}
+        initialItems={articlesData}
         resource="blog"
-        params={loadMoreParams}
+        params={{ q: query, ...loadMoreParams }}
         renderItem={(article) => (
           <ArticleCard
             key={(article as ArticleWithDetails).id}

@@ -69,6 +69,7 @@ const EventDetailPage = async ({
             onDelete={async () => {
               "use server";
               await deleteResearchEvent(event.id);
+              return { redirect: "/events" };
             }}
             isOwner={true}
             editLabel="Edit Event"

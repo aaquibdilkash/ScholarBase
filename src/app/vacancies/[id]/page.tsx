@@ -1,40 +1,64 @@
+"use client";
+
 import { Clock } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
-import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/hooks/useUser";
+import { useToast } from "@/components/ui/Toast";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  const { id } = await params;
-  const vacancy = await getVacancyById(id).catch(() => null);
-  if (!vacancy) return { title: "Academic Vacancy" };
-  return buildMetadata({
-    title: vacancy.title,
-    description: `${vacancy.title} at ${vacancy.institution}.`,
-    path: `/vacancies/${vacancy.id}`,
-    type: "article",
-  });
-}
-
-const VacancyDetailPage = async ({
+const VacancyDetailPage = ({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) => {
-  const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const vacancy = await getVacancyById(id);
+  const { id } = params;
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useUser();
+  const { toast } = useToast();
 
-  if (!vacancy) {
+  const { data: vacancy, isLoading, isError } = useQuery({
+    queryKey: ['vacancy', id],
+    queryFn: () => getVacancyById(id),
+  });
+
+  const { mutate: deleteVacancy } = useMutation({
+    mutationFn: deleteJobVacancy,
+    onSuccess: () => {
+      toast("Vacancy deleted successfully", "success");
+      queryClient.invalidateQueries({ queryKey: ['vacancies'] });
+      router.push('/vacancies');
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 md:p-8">
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="sb-surface-strong rounded-lg p-6 animate-pulse">
+            <div className="h-8 bg-slate-200 rounded w-3/4 mb-4"></div>
+            <div className="h-6 bg-slate-200 rounded w-1/2 mb-6"></div>
+            <div className="space-y-3">
+              <div className="h-4 bg-slate-200 rounded"></div>
+              <div className="h-4 bg-slate-200 rounded"></div>
+              <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !vacancy) {
     notFound();
   }
 
@@ -48,9 +72,9 @@ const VacancyDetailPage = async ({
       | "DOWNVOTE"
       | null) ?? null;
 
-  async function handleDelete() {
-    "use server";
-    await deleteJobVacancy(vacancy!.id);
+    function handleDelete() {
+    deleteVacancy(vacancy!.id);
+    return { refresh: false };
   }
 
   return (

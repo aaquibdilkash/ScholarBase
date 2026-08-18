@@ -1,8 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { useFollowContext } from "./FollowProvider";
+import { useOptimistic, useTransition } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 import { toggleFollow } from "@/app/actions/follow";
@@ -17,54 +15,49 @@ export function FollowButton({
   isFollowing: boolean;
   currentUserId?: string;
 }) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const { getFollowState, setFollowState } = useFollowContext();
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
+
+  const [optimisticIsFollowing, setOptimisticIsFollowing] = useOptimistic(
+    initialIsFollowing,
+    (state) => !state
+  );
 
   // A user cannot follow themselves, so hide the button entirely.
   if (currentUserId && currentUserId === targetId) {
     return null;
   }
 
-  const isFollowingState = getFollowState(targetId, initialIsFollowing);
-  const nextState = !isFollowingState;
+  const handleClick = async () => {
+    if (!currentUserId) {
+      openAuthModal();
+      return;
+    }
+
+    startTransition(async () => {
+      setOptimisticIsFollowing(!optimisticIsFollowing);
+      const result = await toggleFollow(targetId);
+
+      if (result.error) {
+        toast(result.error, "error");
+      } else if (result.success) {
+        toast(
+          result.data?.newFollowState
+            ? "Started following this scholar"
+            : "Unfollowed this scholar",
+          "success",
+        );
+      }
+    });
+  };
 
   return (
     <button
       disabled={isPending}
-      onClick={() => {
-        setFollowState(targetId, nextState);
-
-        startTransition(async () => {
-          try {
-            const result = await toggleFollow(targetId);
-            if (typeof result === "object" && "error" in result) {
-              setFollowState(targetId, initialIsFollowing);
-              openAuthModal();
-              return;
-            }
-            if (typeof result === "boolean") {
-              setFollowState(targetId, result);
-              toast(
-                result
-                  ? "Started following this scholar"
-                  : "Unfollowed this scholar",
-                "success",
-              );
-              return;
-            }
-            router.refresh();
-          } catch {
-            setFollowState(targetId, !nextState);
-            toast("Failed to update follow status. Please try again.", "error");
-            router.refresh();
-          }
-        });
-      }}
+      onClick={handleClick}
       className={`px-6 py-2 text-sm font-semibold rounded-lg transition ${
-        isFollowingState
+        optimisticIsFollowing
           ? "bg-gray-100 text-gray-800 hover:bg-gray-200"
           : "bg-slate-950 text-white hover:bg-slate-800"
       }`}
@@ -72,9 +65,9 @@ export function FollowButton({
       {isPending ? (
         <span className="inline-flex items-center gap-2">
           <Loader2 className="animate-spin h-4 w-4" />
-          {isFollowingState ? "Following..." : "Unfollowing..."}
+          {optimisticIsFollowing ? "Following..." : "Unfollowing..."}
         </span>
-      ) : isFollowingState ? (
+      ) : optimisticIsFollowing ? (
         "Following"
       ) : (
         "Follow"

@@ -38,7 +38,8 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
 
   async function handleDelete() {
     "use server";
-    await deleteResearchGrant(grant!.id);
+        await deleteResearchGrant(grant!.id);
+    return { redirect: "/grants" };
   }
 
   return (

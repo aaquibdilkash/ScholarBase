@@ -1,8 +1,10 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteSupervisor } from "@/app/actions/supervisors";
+import { useToast } from "@/components/ui/Toast";
 import { StarRating } from "@/components/ui/StarRating";
 import type { SupervisorWithAuthor } from "@/types/cards";
 
@@ -13,8 +15,27 @@ export function SupervisorCard({
   supervisor: SupervisorWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === supervisor.authorId;
   const recommendationCount = supervisor.recommendations?.length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteSupervisor,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete supervisor.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["supervisors"] },
+        (oldData: SupervisorWithAuthor[] = []) =>
+          oldData.filter((s) => s.id !== response.data.deletedId),
+      );
+      toast("Supervisor deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   const avgRating =
     recommendationCount > 0
@@ -48,7 +69,7 @@ export function SupervisorCard({
             isOwner={true}
             editLabel="Edit Supervisor"
             deleteLabel="Delete"
-            onDelete={() => deleteSupervisor(supervisor.id)}
+            onDelete={() => { deleteMutation.mutate(supervisor.id); return { refresh: false }; }}
           />
         )
       }

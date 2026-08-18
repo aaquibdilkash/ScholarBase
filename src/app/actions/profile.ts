@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { normalizeHandle, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import type { ActivityItem, ActivityConfig } from '@/types/activity'
 
@@ -1116,7 +1115,7 @@ export async function updateProfile(formData: FormData) {
         await deleteFromCloudinary(user.avatarUrl);
     }
 
-    const updatedUser = await prisma.user.update({
+        await prisma.user.update({
         where: { id: user.id },
         data: {
             handle: newHandle ? normalizeHandle(newHandle) : user.handle,
@@ -1130,7 +1129,7 @@ export async function updateProfile(formData: FormData) {
         }
     })
 
-    revalidatePath(`/scholars/${updatedUser.id}`)
+    // REMOVED: revalidatePath
 
     return {
         success: true,

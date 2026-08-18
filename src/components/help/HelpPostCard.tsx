@@ -1,11 +1,13 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import { deleteHelpPost } from "@/app/actions/help";
+import { deleteHelpPostSafe } from "@/app/actions/help";
 import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
+import { useToast } from "@/components/ui/Toast";
 
 export function HelpPostCard({
   helpPost,
@@ -14,6 +16,8 @@ export function HelpPostCard({
   helpPost: HelpPostWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === helpPost.authorId;
   const isFollowing = (helpPost.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -22,6 +26,25 @@ export function HelpPostCard({
     helpPost.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     helpPost.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteHelpPostSafe,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast(response.error || "Failed to delete post.", "error");
+        return;
+      }
+      queryClient.setQueryData<HelpPostWithAuthor[]>(
+        ["helpPosts", { q: "" }],
+        (oldData = []) =>
+          oldData.filter((p) => p.id !== response.data?.deletedId),
+      );
+      toast("Post deleted successfully.", "success");
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
+  });
 
   return (
     <ListPageCardShell
@@ -40,9 +63,7 @@ export function HelpPostCard({
             isOwner={true}
             editLabel="Edit Help Post"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteHelpPost(helpPost.id);
-            }}
+            onDelete={() => { deleteMutation.mutate(helpPost.id); return { refresh: false }; }}
           />
         )
       }

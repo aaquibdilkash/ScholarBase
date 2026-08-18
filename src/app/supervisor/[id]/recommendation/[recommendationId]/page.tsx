@@ -70,7 +70,8 @@ export default async function RecommendationDetailPage({
 
   async function handleDelete() {
     "use server";
-    await deleteRecommendation(recommendation!.id);
+        await deleteRecommendation(recommendation!.id);
+    return { redirect: `/supervisor/${id}` };
   }
 
   const upvotes =

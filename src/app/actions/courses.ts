@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseContentCommentVoteReputation, reverseReputationForContent } from '@/app/actions/interactions'
 
@@ -35,6 +33,13 @@ export async function createCourse(formData: FormData) {
       description,
       authorId: user.id,
     },
+    include: {
+        author: true,
+        votes: true,
+        _count: {
+            select: { votes: true, comments: true },
+        },
+    }
   })
 
   await notifyFollowersOfActivity({
@@ -46,8 +51,7 @@ export async function createCourse(formData: FormData) {
     body: provider ? `${title} - ${provider}` : title,
   })
 
-  revalidatePath('/learn')
-  return { success: true, redirect: '/learn' }
+  return { success: true, data: course }
 }
 
 export async function updateCourse(formData: FormData, courseId: string) {
@@ -68,12 +72,14 @@ export async function updateCourse(formData: FormData, courseId: string) {
     select: { authorId: true },
   })
 
-  if (!course) return
+  if (!course) {
+    throw new Error('Course not found.')
+  }
   if (!await isAuthorizedOrAdmin(course.authorId, user.id)) {
     throw new Error('Not authorized to edit this course.')
   }
 
-  await prisma.course.update({
+  const updatedCourse = await prisma.course.update({
     where: { id: courseId },
     data: {
       title,
@@ -86,11 +92,16 @@ export async function updateCourse(formData: FormData, courseId: string) {
       link,
       description,
     },
+    include: {
+        author: true,
+        votes: true,
+        _count: {
+            select: { votes: true, comments: true },
+        },
+    }
   })
 
-  revalidatePath('/learn')
-  revalidatePath(`/learn/${courseId}`)
-  return { success: true, redirect: `/learn/${courseId}` }
+  return { success: true, data: updatedCourse }
 }
 
 export async function deleteCourse(courseId: string) {
@@ -101,7 +112,9 @@ export async function deleteCourse(courseId: string) {
     select: { authorId: true },
   })
 
-  if (!course) return
+  if (!course) {
+    throw new Error('Course not found.')
+  }
   if (!await isAuthorizedOrAdmin(course.authorId, user.id)) {
     throw new Error('Not authorized to delete this course.')
   }
@@ -112,9 +125,7 @@ export async function deleteCourse(courseId: string) {
 
   await prisma.course.delete({ where: { id: courseId } })
 
-  revalidatePath('/learn')
-  revalidatePath(`/learn/${courseId}`)
-  redirect('/learn')
+  return { success: true, data: { deletedId: courseId } }
 }
 
 export async function getCourses(q?: string, userId?: string, limit = 20, cursor?: string) {

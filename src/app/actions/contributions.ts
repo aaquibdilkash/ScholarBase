@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
@@ -224,6 +222,13 @@ export async function createContribution(formData: FormData) {
             status: 'PENDING',
             authorId: user.id,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -235,8 +240,7 @@ export async function createContribution(formData: FormData) {
         body: `${title}${amount ? ` (₹${amount})` : ''}`,
     })
 
-    revalidatePath('/contributions')
-    return { success: true }
+    return { success: true, data: contribution }
 }
 
 export async function approveContribution(contributionId: string) {
@@ -245,7 +249,13 @@ export async function approveContribution(contributionId: string) {
     const contribution = await prisma.contribution.update({
         where: { id: contributionId },
         data: { status: 'APPROVED', approvedAt: new Date() },
-        include: { author: { select: { name: true } } },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     // Award 5 reputation points for approved contribution
@@ -267,9 +277,7 @@ export async function approveContribution(contributionId: string) {
         },
     }).catch(() => { })
 
-    revalidatePath('/contributions')
-    revalidatePath(`/contributions/${contributionId}`)
-    revalidatePath('/admin')
+    return { success: true, data: contribution }
 }
 
 export async function rejectContribution(contributionId: string, formData?: FormData) {
@@ -280,6 +288,13 @@ export async function rejectContribution(contributionId: string, formData?: Form
     const contribution = await prisma.contribution.update({
         where: { id: contributionId },
         data: { status: 'REJECTED', rejectionReason: reason || null },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     // Send notification to contributor
@@ -297,9 +312,7 @@ export async function rejectContribution(contributionId: string, formData?: Form
         },
     }).catch(() => { })
 
-    revalidatePath('/contributions')
-    revalidatePath(`/contributions/${contributionId}`)
-    revalidatePath('/admin')
+    return { success: true, data: contribution }
 }
 
 export async function updateContribution(contributionId: string, formData: FormData) {
@@ -313,16 +326,27 @@ export async function updateContribution(contributionId: string, formData: FormD
         select: { authorId: true, status: true, screenshotUrl: true },
     })
 
-    if (!existingContribution) return
+    if (!existingContribution) {
+        throw new Error('Contribution not found.')
+    }
     if (existingContribution.authorId !== user.id) {
         throw new Error('Not authorized to edit this contribution.')
     }
 
+    let updatedContribution;
+
     // If approved, only allow editing title and message
     if (existingContribution.status === 'APPROVED') {
-        await prisma.contribution.update({
+        updatedContribution = await prisma.contribution.update({
             where: { id: contributionId },
             data: { title, message },
+            include: {
+                author: true,
+                votes: true,
+                _count: {
+                    select: { votes: true, comments: true },
+                },
+            }
         })
     } else {
         const amountStr = readOptionalFormValue(formData, 'amount')
@@ -331,19 +355,21 @@ export async function updateContribution(contributionId: string, formData: FormD
         const screenshotUrl = readOptionalFormValue(formData, 'screenshotUrl')
         const amount = amountStr ? parseFloat(amountStr) : null
 
-        // Persist the edit first so the DB is the source of truth. Then delete
-        // the old screenshot from Cloudinary only after the update succeeded —
-        // so if the user changes their mind before saving, the original is
-        // preserved, and if the update fails, it is never deleted.
         const oldScreenshot = existingContribution.screenshotUrl;
         const newScreenshot = screenshotUrl || null;
 
-        // If contribution was rejected, reset status to PENDING for admin re-review
         const status = existingContribution.status === 'REJECTED' ? 'PENDING' : undefined
 
-        await prisma.contribution.update({
+        updatedContribution = await prisma.contribution.update({
             where: { id: contributionId },
             data: { title, message, amount, upiId, paymentMethod, screenshotUrl, ...(status && { status }) },
+            include: {
+                author: true,
+                votes: true,
+                _count: {
+                    select: { votes: true, comments: true },
+                },
+            }
         })
 
         if (oldScreenshot && oldScreenshot !== newScreenshot) {
@@ -351,9 +377,7 @@ export async function updateContribution(contributionId: string, formData: FormD
         }
     }
 
-    revalidatePath('/contributions')
-    revalidatePath(`/contributions/${contributionId}`)
-    return { success: true, contributionId }
+    return { success: true, data: updatedContribution }
 }
 
 export async function deleteContribution(contributionId: string) {
@@ -364,7 +388,9 @@ export async function deleteContribution(contributionId: string) {
         select: { authorId: true, screenshotUrl: true },
     })
 
-    if (!contribution) return
+    if (!contribution) {
+        throw new Error('Contribution not found.')
+    }
     if (contribution.authorId !== user.id) {
         // Admins can also delete
         const admin = await prisma.user.findUnique({
@@ -388,7 +414,5 @@ export async function deleteContribution(contributionId: string) {
 
     await prisma.contribution.delete({ where: { id: contributionId } })
 
-    revalidatePath('/contributions')
-    revalidatePath('/admin')
-    redirect('/contributions')
+    return { success: true, data: { deletedId: contributionId } }
 }

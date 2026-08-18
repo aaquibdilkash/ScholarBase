@@ -47,7 +47,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
 
   async function handleDelete() {
     "use server";
-    await deleteCourse(course!.id);
+        await deleteCourse(course!.id);
+    return { redirect: "/learn" };
   }
 
   return (

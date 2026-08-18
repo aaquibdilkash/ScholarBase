@@ -57,7 +57,11 @@ const ContributionDetailPage = async ({
       | "DOWNVOTE"
       | null) ?? null;
 
-  const handleDelete = deleteContribution.bind(null, id);
+    const handleDelete = async () => {
+    "use server";
+    await deleteContribution(id);
+    return { redirect: "/contributions" };
+  };
 
   return (
     <DetailPageCardShell

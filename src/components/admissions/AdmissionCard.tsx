@@ -9,6 +9,7 @@ import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Clock } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
+import { useQueryClient } from "@tanstack/react-query";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -25,6 +26,7 @@ export function AdmissionCard({
   admission: AdmissionWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
   const isOwner = currentUserId === admission.authorId;
   const isFollowing = (admission.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -51,7 +53,13 @@ export function AdmissionCard({
             editHref={`/admissions/${admission.id}/edit`}
             isOwner={true}
             onDelete={async () => {
-              await deletePhdAdmission(admission.id);
+              const res = await deletePhdAdmission(admission.id);
+              if (res?.success) {
+                                queryClient.setQueryData(['admissions', ''], (oldData: AdmissionWithAuthor[] | undefined) => {
+                  return oldData?.filter(post => post.id !== admission.id);
+                });
+              }
+              return { refresh: false };
             }}
             editLabel="Edit Admission"
             deleteLabel="Delete"

@@ -2,6 +2,7 @@
 
 import { Image as ImageIcon } from "lucide-react";
 import NextImage from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
 import {
@@ -11,13 +12,15 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { useFormSubmit } from "@/hooks/useFormSubmit";
+import type { SocialPostWithAuthor } from "@/types/cards";
 
 export function CreateSocialPostForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [draftFields, updateDraftField, resetDraft, isRestored] = useFormDraft(
     "draft_social_post",
@@ -42,26 +45,34 @@ export function CreateSocialPostForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl, isRestored, draftFields.imageUrl]);
 
-  const { submit } = useFormSubmit(
-    () => {
-      resetDraft();
-      setImageUrl("");
-    },
-    {
-      resetOnSuccess: true,
-      successMessage: "Post published successfully!",
-      errorMessage: "Failed to create post.",
-    },
-  );
-
   const handleSubmit = async (formData: FormData) => {
     if (uploading) {
       toast("Please wait for images to finish uploading.", "error");
       return;
     }
     if (imageUrl) formData.append("imageUrl", imageUrl);
-    await submit(() => createSocialPost(formData));
-    formRef.current?.reset();
+    setSubmitting(true);
+    try {
+      const response = await createSocialPost(formData);
+      if (!response?.success || !response.data) {
+        toast("Failed to create post.", "error");
+        return;
+      }
+      queryClient.setQueriesData<SocialPostWithAuthor[]>(
+        { queryKey: ["feed"] },
+        (oldData = []) => [response.data, ...oldData],
+      );
+      resetDraft();
+      setImageUrl("");
+      formRef.current?.reset();
+      toast("Post published successfully!", "success");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create post.";
+      toast(message, "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,7 +193,7 @@ export function CreateSocialPostForm() {
           <SubmitBtnWithAuth
             className="sb-button-accent"
             loadingText={uploading ? "Uploading..." : undefined}
-            disabled={uploading}
+            disabled={uploading || submitting}
           >
             Post Update
           </SubmitBtnWithAuth>

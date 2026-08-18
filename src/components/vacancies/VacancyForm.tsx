@@ -3,9 +3,12 @@
 import { createJobVacancy, updateJobVacancy } from "@/app/actions/vacancies";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
+import type { VacancyWithAuthor } from "@/types/cards";
 
 export type VacancyFormValues = {
   title: string;
@@ -40,24 +43,68 @@ export default function VacancyForm({
     initial,
   );
 
-  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
-    resetOnSuccess: mode !== "edit",
-    successMessage: "Vacancy posted successfully!",
-    errorMessage: "Failed to post vacancy.",
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+  const { toast } = useToast();
+
+  const { mutate: create, isPending: isCreating } = useMutation({
+    mutationFn: createJobVacancy,
+    onSuccess: (result) => {
+      if (result.success && result.data) {
+        toast("Vacancy posted successfully!", "success");
+        queryClient.setQueryData(['vacancies', ''], (oldData: VacancyWithAuthor[] | undefined) => {
+          return [result.data as VacancyWithAuthor, ...(oldData || [])];
+        });
+        resetDraft();
+        router.push('/vacancies');
+      } else {
+        toast("Failed to post vacancy.", "error");
+      }
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
+  });
+
+  const { mutate: update, isPending: isUpdating } = useMutation({
+    mutationFn: (data: { formData: FormData, vacancyId: string }) => updateJobVacancy(data.formData, data.vacancyId),
+    onSuccess: (result) => {
+      if (result?.success && result?.data) {
+        const updatedVacancy = result.data as VacancyWithAuthor;
+        toast("Vacancy updated successfully!", "success");
+
+        // Update list cache
+        queryClient.setQueryData(['vacancies', q], (oldData: VacancyWithAuthor[] | undefined) => 
+          oldData?.map(v => v.id === updatedVacancy.id ? updatedVacancy : v)
+        );
+
+        // Update detail cache
+        queryClient.setQueryData(['vacancy', updatedVacancy.id], updatedVacancy);
+        
+        router.push(`/vacancies/${updatedVacancy.id}`);
+      } else {
+        toast("Failed to update vacancy.", "error");
+      }
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
   });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    await submit(() => {
-      if (mode === "edit" && vacancyId) {
-        return updateJobVacancy(formData, vacancyId);
-      } else {
-        return createJobVacancy(formData);
-      }
-    });
+    if (mode === "edit" && vacancyId) {
+      update({ formData, vacancyId });
+    } else {
+      create(formData);
+    }
   }
+
+  const isPending = isCreating || isUpdating;
 
   return (
     <form
@@ -73,6 +120,7 @@ export default function VacancyForm({
           required
           value={draftFields.title}
           onChange={(e) => updateDraftField("title", e.target.value)}
+          disabled={isPending}
         />
       </div>
 
@@ -85,6 +133,7 @@ export default function VacancyForm({
           required
           value={draftFields.institution}
           onChange={(e) => updateDraftField("institution", e.target.value)}
+          disabled={isPending}
         />
       </div>
 
@@ -97,6 +146,7 @@ export default function VacancyForm({
           required
           value={draftFields.deadline}
           onChange={(e) => updateDraftField("deadline", e.target.value)}
+          disabled={isPending}
         />
       </div>
 
@@ -123,6 +173,7 @@ export default function VacancyForm({
           required
           value={draftFields.notificationLink}
           onChange={(e) => updateDraftField("notificationLink", e.target.value)}
+          disabled={isPending}
         />
       </div>
 
@@ -136,6 +187,7 @@ export default function VacancyForm({
           required
           value={draftFields.applyLink}
           onChange={(e) => updateDraftField("applyLink", e.target.value)}
+          disabled={isPending}
         />
       </div>
 
@@ -143,6 +195,7 @@ export default function VacancyForm({
         {mode === "create" && <FormCancelButton href="/vacancies" />}
         <SubmitBtnWithAuth
           className="sb-button-accent"
+          disabled={isPending}
           loadingText={mode === "edit" ? "Saving..." : "Posting..."}
         >
           {mode === "edit" ? "Save Changes" : "Post Vacancy"}

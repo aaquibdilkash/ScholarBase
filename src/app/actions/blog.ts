@@ -3,10 +3,9 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, slugify } from '@/lib/form'
-import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
+import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation }  from '@/app/actions/interactions'
+import type { ArticleWithAuthor } from '@/types/cards'
 
 export async function getArticles(q?: string, userId?: string, limit = 20, cursor?: string) {
     return prisma.article.findMany({
@@ -148,7 +147,7 @@ export async function createArticle(formData: FormData) {
     suffix += 1
   }
 
-  await prisma.article.create({
+    const article = await prisma.article.create({
     data: {
       title,
       content,
@@ -156,6 +155,19 @@ export async function createArticle(formData: FormData) {
       slug,
       authorId: user.id,
       published: true,
+    },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: user.id ? { where: { followerId: user.id }, select: { followerId: true } } : false,
+        },
+      },
+      votes: { select: { userId: true, voteType: true } },
+      _count: { select: { votes: true, comments: true } },
     },
   })
 
@@ -165,7 +177,7 @@ export async function createArticle(formData: FormData) {
       type: 'article-published',
       targetType: 'article',
       targetId: slug,
-      title: `${user.email?.split('@')[0] || 'Someone'} published a new article`,
+      title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} published a new article`,
       body: title,
     }),
     notifyMentionedUsers({
@@ -180,14 +192,21 @@ ${content}`,
     }),
   ])
 
-  revalidatePath('/blog')
-  return { success: true, redirect: `/blog/${slug}` }
+  return { success: true, data: article }
+}
+
+export async function createArticleSafe(formData: FormData): Promise<{ success: boolean; data?: ArticleWithAuthor; error?: string }> {
+    try {
+        return await createArticle(formData);
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        return { success: false, error: error.message || 'Failed to create article' };
+    }
 }
 
 export async function updateArticle(
   formData: FormData,
   articleId: string,
-  slug: string
 ) {
   const user = await requireCurrentUser('Log in to edit this article.')
 
@@ -200,7 +219,9 @@ export async function updateArticle(
     select: { authorId: true, slug: true },
   })
 
-  if (!article) return
+  if (!article) {
+	  throw new Error('Article not found.')
+  }
   if (!await isAuthorizedOrAdmin(article.authorId, user.id)) {
     throw new Error('Not authorized to edit this article.')
   }
@@ -218,7 +239,7 @@ export async function updateArticle(
     suffix += 1
   }
 
-  await prisma.article.update({
+  const updatedArticle = await prisma.article.update({
     where: { id: articleId },
     data: {
       title,
@@ -226,16 +247,34 @@ export async function updateArticle(
       excerpt,
       slug: nextSlug,
     },
+    include: {
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                followers: user.id ? { where: { followerId: user.id }, select: { followerId: true } } : false,
+            },
+        },
+        votes: { select: { userId: true, voteType: true } },
+        _count: { select: { votes: true, comments: true } },
+    }
   })
 
-  revalidatePath('/blog')
-  revalidatePath(`/blog/${slug}`)
-  if (nextSlug !== slug) revalidatePath(`/blog/${nextSlug}`)
-
-  return { success: true, redirect: `/blog/${nextSlug}` }
+  return { success: true, data: updatedArticle }
 }
 
-export async function deleteArticle(articleId: string, slug: string) {
+export async function updateArticleSafe(formData: FormData, articleId: string): Promise<{ success: boolean; data?: ArticleWithAuthor; error?: string }> {
+    try {
+        return await updateArticle(formData, articleId);
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        return { success: false, error: error.message || 'Failed to update article' };
+    }
+}
+
+export async function deleteArticle(articleId: string) {
   const user = await requireCurrentUser('Log in to delete this article.')
 
   const article = await prisma.article.findUnique({
@@ -243,7 +282,9 @@ export async function deleteArticle(articleId: string, slug: string) {
     select: { authorId: true },
   })
 
-  if (!article) return
+  if (!article) {
+	  throw new Error('Article not found.')
+  }
   if (!await isAuthorizedOrAdmin(article.authorId, user.id)) {
     throw new Error('Not authorized to delete this article.')
   }
@@ -254,9 +295,16 @@ export async function deleteArticle(articleId: string, slug: string) {
 
   await prisma.article.delete({ where: { id: articleId } })
 
-  revalidatePath('/blog')
-  revalidatePath(`/blog/${slug}`)
-  redirect('/blog')
+  return { success: true, data: { deletedId: articleId } }
+}
+
+export async function deleteArticleSafe(articleId: string): Promise<{ success: boolean; data?: { deletedId: string }; error?: string }> {
+    try {
+        return await deleteArticle(articleId);
+    } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err));
+        return { success: false, error: error.message || 'Failed to delete article' };
+    }
 }
 
 export async function getLatestArticles(count: number, userId?: string) {

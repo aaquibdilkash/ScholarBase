@@ -9,6 +9,9 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useQueryClient } from "@tanstack/react-query";
+import { upsertToList } from "@/utils/cacheMutation";
+import type { PublicationWithAuthor } from "@/types/cards";
 
 export type PublicationFormValues = {
   title: string;
@@ -73,6 +76,7 @@ export default function PublicationForm({
     draftKey,
     initial
   );
+  const queryClient = useQueryClient();
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -80,6 +84,16 @@ export default function PublicationForm({
       resetOnSuccess: mode !== "edit",
       successMessage: "Publication added successfully!",
       errorMessage: "Failed to add publication.",
+      onSuccess: (response) => {
+        if (response.success && response.data) {
+          upsertToList<PublicationWithAuthor>(
+            queryClient,
+            ["publications"],
+            response.data as PublicationWithAuthor,
+            mode,
+          );
+        }
+      },
     },
   );
 

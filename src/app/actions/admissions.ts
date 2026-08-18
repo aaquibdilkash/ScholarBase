@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -142,6 +140,13 @@ export async function createPhdAdmission(formData: FormData) {
 
     const admission = await prisma.phdAdmission.create({
         data: { university, department, deadline, description, notificationLink, applyLink, authorId: user.id },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -153,19 +158,7 @@ export async function createPhdAdmission(formData: FormData) {
         body: `${department} at ${university} - Deadline: ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
     })
 
-    revalidatePath('/admissions')
-    return { success: true, redirect: '/admissions' }
-}
-
-export async function createAdmissionSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
-    try {
-        return await createPhdAdmission(formData);
-    } catch (err: unknown) {
-        if (err instanceof Error) {
-            return { success: false, error: err.message };
-        }
-        return { success: false, error: 'Failed to create admission post' };
-    }
+    return { success: true, data: admission }
 }
 
 export async function updatePhdAdmission(formData: FormData, admissionId: string) {
@@ -187,19 +180,26 @@ export async function updatePhdAdmission(formData: FormData, admissionId: string
         select: { authorId: true },
     })
 
-    if (!admission) return
+    if (!admission) {
+        throw new Error('Admission not found.')
+    }
     if (!await isAuthorizedOrAdmin(admission.authorId, user.id)) {
         throw new Error('Not authorized to edit this admission.')
     }
 
-    await prisma.phdAdmission.update({
+    const updatedAdmission = await prisma.phdAdmission.update({
         where: { id: admissionId },
         data: { university, department, deadline, description, notificationLink, applyLink },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath('/admissions')
-    revalidatePath(`/admissions/${admissionId}`)
-    return { success: true, redirect: `/admissions/${admissionId}` }
+    return { success: true, data: updatedAdmission }
 }
 
 export async function deletePhdAdmission(admissionId: string) {
@@ -210,7 +210,9 @@ export async function deletePhdAdmission(admissionId: string) {
         select: { authorId: true },
     })
 
-    if (!admission) return
+    if (!admission) {
+        throw new Error('Admission not found.')
+    }
     if (!await isAuthorizedOrAdmin(admission.authorId, user.id)) {
         throw new Error('Not authorized to delete this admission.')
     }
@@ -222,9 +224,7 @@ export async function deletePhdAdmission(admissionId: string) {
 
     await prisma.phdAdmission.delete({ where: { id: admissionId } })
 
-    revalidatePath('/admissions')
-    revalidatePath(`/admissions/${admissionId}`)
-    redirect('/admissions')
+    return { success: true, data: { deletedId: admissionId } }
 }
 
 export async function getLatestAdmissions(count: number, userId?: string) {

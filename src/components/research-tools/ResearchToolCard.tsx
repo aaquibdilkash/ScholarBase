@@ -1,10 +1,13 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { deleteResearchTool } from "@/app/actions/researchTools";
+import { useToast } from "@/components/ui/Toast";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 
 export function ResearchToolCard({
@@ -14,6 +17,8 @@ export function ResearchToolCard({
   tool: ResearchToolWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === tool.authorId;
   const isFollowing = (tool.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -22,6 +27,23 @@ export function ResearchToolCard({
     tool.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     tool.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteResearchTool,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete tool.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["researchTools"] },
+        (oldData: ResearchToolWithAuthor[] = []) =>
+          oldData.filter((t) => t.id !== response.data.deletedId),
+      );
+      toast("Tool deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -40,9 +62,7 @@ export function ResearchToolCard({
             isOwner={true}
             editLabel="Edit Tool"
             deleteLabel="Delete"
-            onDelete={() => {
-              // TODO: wire delete action if available
-            }}
+            onDelete={() => { deleteMutation.mutate(tool.id); return { refresh: false }; }}
           />
         )
       }

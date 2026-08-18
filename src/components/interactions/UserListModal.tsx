@@ -62,12 +62,17 @@ export function UserListModal({
     startTransition(async () => {
       try {
         const result = await toggleFollow(targetId);
-        if (typeof result === "object" && "error" in result) return;
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === targetId ? { ...u, isFollowing: result as boolean } : u,
-          ),
-        );
+        if (result.error) {
+          toast(result.error, "error");
+          return
+        };
+        if (result.success) {
+          setUsers((prev) =>
+            prev.map((u) =>
+              u.id === targetId ? { ...u, isFollowing: result.data!.newFollowState } : u,
+            ),
+          );
+        }
       } catch {
         toast("Failed to update.", "error");
       }

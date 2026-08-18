@@ -1,11 +1,13 @@
 "use client";
 
 import { createCourse, updateCourse } from "@/app/actions/courses";
+import { useQueryClient } from "@tanstack/react-query";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import type { CourseWithAuthor } from "@/types/cards";
 
 export type CourseFormValues = {
   title: string;
@@ -42,10 +44,27 @@ export default function CourseForm({
 
   const draftKey = mode === "edit" ? null : "draft_course_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(draftKey, initial);
+  const queryClient = useQueryClient();
   const { submitting, submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
     successMessage: "Course added successfully!",
     errorMessage: "Failed to save course.",
+    onSuccess: (response) => {
+      if (!response.success || !response.data) return;
+      const data = response.data as CourseWithAuthor;
+      if (mode === "create") {
+        queryClient.setQueriesData(
+          { queryKey: ["courses"] },
+          (oldData: CourseWithAuthor[] = []) => [data, ...oldData],
+        );
+      } else {
+        queryClient.setQueriesData(
+          { queryKey: ["courses"] },
+          (oldData: CourseWithAuthor[] = []) =>
+            oldData.map((c) => (c.id === data.id ? data : c)),
+        );
+      }
+    },
   });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {

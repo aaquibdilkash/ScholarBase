@@ -1,11 +1,39 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { toggleCommentVote } from "@/app/actions/comments";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 import type { VoteType } from "@/types/votes";
+
+type VoteState = {
+  userVote: VoteType | null;
+  upvotes: number;
+  downvotes: number;
+};
+
+function applyVote(state: VoteState, voteType: VoteType): VoteState {
+  if (state.userVote === voteType) {
+    return {
+      userVote: null,
+      upvotes: state.upvotes - (voteType === "UPVOTE" ? 1 : 0),
+      downvotes: state.downvotes - (voteType === "DOWNVOTE" ? 1 : 0),
+    };
+  }
+
+  return {
+    userVote: voteType,
+    upvotes:
+      state.upvotes +
+      (voteType === "UPVOTE" ? 1 : 0) -
+      (state.userVote === "UPVOTE" ? 1 : 0),
+    downvotes:
+      state.downvotes +
+      (voteType === "DOWNVOTE" ? 1 : 0) -
+      (state.userVote === "DOWNVOTE" ? 1 : 0),
+  };
+}
 
 export function CommentVoteButton({
   commentId,
@@ -36,43 +64,30 @@ export function CommentVoteButton({
   initialDownvotes: number;
   initialUserVote: VoteType | null;
 }) {
-  const [userVote, setUserVote] = useState<VoteType | null>(initialUserVote);
-  const [upvotes, setUpvotes] = useState(initialUpvotes);
-  const [downvotes, setDownvotes] = useState(initialDownvotes);
+  const [voteState, setVoteState] = useState<VoteState>({
+    userVote: initialUserVote,
+    upvotes: initialUpvotes,
+    downvotes: initialDownvotes,
+  });
+  const [optimisticVotes, addOptimisticVote] = useOptimistic(
+    voteState,
+    applyVote,
+  );
   const [isPending, startTransition] = useTransition();
   const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
 
-  const netScore = upvotes - downvotes;
+  const { userVote } = optimisticVotes;
+  const netScore = optimisticVotes.upvotes - optimisticVotes.downvotes;
 
   const handleVote = (voteType: VoteType) => {
     setPendingVote(voteType);
     startTransition(async () => {
-      const prevVote = userVote;
-      const prevUpvotes = upvotes;
-      const prevDownvotes = downvotes;
-
-      // Optimistic update
-      if (userVote === voteType) {
-        setUserVote(null);
-        if (voteType === "UPVOTE") setUpvotes((c) => c - 1);
-        else setDownvotes((c) => c - 1);
-      } else {
-        if (userVote === "UPVOTE") setUpvotes((c) => c - 1);
-        if (userVote === "DOWNVOTE") setDownvotes((c) => c - 1);
-
-        setUserVote(voteType);
-        if (voteType === "UPVOTE") setUpvotes((c) => c + 1);
-        else setDownvotes((c) => c + 1);
-      }
-
+      addOptimisticVote(voteType);
       try {
         const res = await toggleCommentVote(commentId, type, voteType);
         if ("error" in res && res.error === "UNAUTHORIZED") {
-          setUserVote(prevVote);
-          setUpvotes(prevUpvotes);
-          setDownvotes(prevDownvotes);
           openAuthModal();
           return;
         }
@@ -81,15 +96,12 @@ export function CommentVoteButton({
           upvotes: number;
           downvotes: number;
         };
-        setUserVote(nextState.userVote);
-        setUpvotes(nextState.upvotes);
-        setDownvotes(nextState.downvotes);
+        setVoteState(nextState);
         toast("Vote registered!", "success");
       } catch {
-        setUserVote(prevVote);
-        setUpvotes(prevUpvotes);
-        setDownvotes(prevDownvotes);
         toast("Failed to register vote. Please try again.", "error");
+      } finally {
+        setPendingVote(null);
       }
     });
   };

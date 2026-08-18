@@ -5,7 +5,9 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deletePublication } from "@/app/actions/publications";
+import { useToast } from "@/components/ui/Toast";
 import type { PublicationWithAuthor } from "@/types/cards";
 
 const PUBLICATION_TYPE_LABELS: Record<string, string> = {
@@ -26,6 +28,8 @@ export function PublicationCard({
   publication: PublicationWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === publication.authorId;
   const isFollowing = (publication.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -35,6 +39,23 @@ export function PublicationCard({
     publication.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     publication.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deletePublication,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete publication.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["publications"] },
+        (oldData: PublicationWithAuthor[] = []) =>
+          oldData.filter((p) => p.id !== response.data.deletedId),
+      );
+      toast("Publication deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -53,7 +74,7 @@ export function PublicationCard({
             isOwner={true}
             editLabel="Edit Publication"
             deleteLabel="Delete"
-            onDelete={() => deletePublication(publication.id)}
+            onDelete={() => { deleteMutation.mutate(publication.id); return { refresh: false }; }}
           />
         )
       }

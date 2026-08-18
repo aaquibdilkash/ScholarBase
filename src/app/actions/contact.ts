@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { Resend } from "resend";
 import { z } from "zod";
 
@@ -55,9 +54,9 @@ export async function sendContactMessage(
           </div>
         </div>
       `,
-    });
+        });
 
-    revalidatePath("/contact");
+    // REMOVED: revalidatePath("/contact");
 
     return {
       success: true,

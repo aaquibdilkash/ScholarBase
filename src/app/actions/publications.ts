@@ -4,7 +4,6 @@ import { Prisma, PublicationType } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -48,6 +47,13 @@ export async function createPublication(formData: FormData) {
             isUserAuthor,
             authorId: user.id,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -59,8 +65,7 @@ export async function createPublication(formData: FormData) {
         body: `${title}${journalOrConference ? ` (${journalOrConference})` : ''}`,
     })
 
-    revalidatePath('/publications')
-    return { success: true, redirect: '/publications' }
+    return { success: true, data: publication }
 }
 
 export async function updatePublication(formData: FormData, publicationId: string) {
@@ -88,12 +93,14 @@ export async function updatePublication(formData: FormData, publicationId: strin
         select: { authorId: true },
     })
 
-    if (!publication) return
+    if (!publication) {
+        throw new Error('Publication not found.')
+    }
     if (!await isAuthorizedOrAdmin(publication.authorId, user.id)) {
         throw new Error('Not authorized to edit this publication.')
     }
 
-    await prisma.publication.update({
+    const updatedPublication = await prisma.publication.update({
         where: { id: publicationId },
         data: {
             title,
@@ -113,11 +120,16 @@ export async function updatePublication(formData: FormData, publicationId: strin
             abstract,
             isUserAuthor,
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath('/publications')
-    revalidatePath(`/publications/${publicationId}`)
-    return { success: true, redirect: `/publications/${publicationId}` }
+    return { success: true, data: updatedPublication }
 }
 
 export async function deletePublication(publicationId: string) {
@@ -128,7 +140,9 @@ export async function deletePublication(publicationId: string) {
         select: { authorId: true },
     })
 
-    if (!publication) return
+    if (!publication) {
+        throw new Error('Publication not found.')
+    }
     if (!await isAuthorizedOrAdmin(publication.authorId, user.id)) {
         throw new Error('Not authorized to delete this publication.')
     }
@@ -140,9 +154,7 @@ export async function deletePublication(publicationId: string) {
 
     await prisma.publication.delete({ where: { id: publicationId } })
 
-    revalidatePath('/publications')
-    revalidatePath(`/publications/${publicationId}`)
-    return { redirect: '/publications' }
+    return { success: true, data: { deletedId: publicationId } }
 }
 
 export async function getPublications(q?: string, userId?: string, limit = 20, cursor?: string) {

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ResultCard } from "./ResultCard";
 import type { ResultWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getResults } from "@/app/actions/results";
 
 export function ResultsList({
   results,
@@ -20,6 +22,14 @@ export function ResultsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: resultsData } = useQuery({
+    queryKey: ["results", q],
+    queryFn: () => getResults(q, currentUserId),
+    initialData: results,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function ResultsList({
         />
       </form>
       <AppendMoreList
-        initialItems={results}
+        initialItems={resultsData}
         resource="results"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(item) => (
           <ResultCard
             key={(item as ResultWithAuthor).id}

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ResearchGrantCard } from "./ResearchGrantCard";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getResearchGrants } from "@/app/actions/grants";
 
 export function ResearchGrantsList({
   grants,
@@ -20,6 +22,14 @@ export function ResearchGrantsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: grantsData } = useQuery({
+    queryKey: ["grants", q],
+    queryFn: () => getResearchGrants(q, currentUserId),
+    initialData: grants,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function ResearchGrantsList({
         />
       </form>
       <AppendMoreList
-        initialItems={grants}
+        initialItems={grantsData}
         resource="grants"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(grant) => (
           <ResearchGrantCard
             key={(grant as ResearchGrantWithAuthor).id}

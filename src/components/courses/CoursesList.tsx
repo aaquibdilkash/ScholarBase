@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { CourseCard } from "./CourseCard";
 import type { CourseWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getCourses } from "@/app/actions/courses";
 
 export function CoursesList({
   courses,
@@ -20,6 +22,14 @@ export function CoursesList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: coursesData } = useQuery({
+    queryKey: ["courses", q],
+    queryFn: () => getCourses(q, currentUserId),
+    initialData: courses,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function CoursesList({
         />
       </form>
       <AppendMoreList
-        initialItems={courses}
+        initialItems={coursesData}
         resource="courses"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(course) => (
           <CourseCard
             key={(course as CourseWithAuthor).id}

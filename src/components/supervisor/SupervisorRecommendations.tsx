@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Carousel } from "@/components/ui/Carousel";
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { getSupervisorRecommendations } from "@/app/actions/supervisors";
@@ -17,10 +18,16 @@ export function SupervisorRecommendations({
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
-  const [recommendations, setRecommendations] = useState<
-    RecommendationWithAuthor[]
-  >(initialRecommendations);
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const queryKey = ["recommendations", supervisor.id];
+
+  const { data: recommendations = [] } = useQuery({
+    queryKey,
+    queryFn: () =>
+      getSupervisorRecommendations(supervisor.id, currentUserId, 0, 10),
+    initialData: initialRecommendations,
+  });
 
   const loadMore = async () => {
     if (loading) return;
@@ -33,11 +40,14 @@ export function SupervisorRecommendations({
         1,
       );
       if (newItems.length > 0) {
-        setRecommendations((prev) => {
-          const existingIds = new Set(prev.map((r) => r.id));
-          const uniqueNew = newItems.filter((r) => !existingIds.has(r.id));
-          return [...prev, ...uniqueNew];
-        });
+        queryClient.setQueryData(
+          queryKey,
+          (prev: RecommendationWithAuthor[] = []) => {
+            const existingIds = new Set(prev.map((r) => r.id));
+            const uniqueNew = newItems.filter((r) => !existingIds.has(r.id));
+            return [...prev, ...uniqueNew];
+          },
+        );
       }
     } catch (err) {
       console.error("Failed to load more recommendations:", err);

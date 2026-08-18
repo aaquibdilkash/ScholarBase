@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { JournalCard } from "./JournalCard";
 import type { JournalWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getJournals } from "@/app/actions/journals";
 
 export function JournalsList({
   journals,
@@ -20,6 +22,14 @@ export function JournalsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: journalsData } = useQuery({
+    queryKey: ["journals", q],
+    queryFn: () => getJournals(q, currentUserId),
+    initialData: journals,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function JournalsList({
         />
       </form>
       <AppendMoreList
-        initialItems={journals}
+        initialItems={journalsData}
         resource="journals"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(journal) => (
           <JournalCard
             key={(journal as JournalWithAuthor).id}

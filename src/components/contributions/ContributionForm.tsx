@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   createContribution,
   updateContribution,
@@ -14,6 +15,8 @@ import {
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { upsertToList } from "@/utils/cacheMutation";
+import type { ContributionWithAuthor } from "@/types/cards";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
@@ -52,6 +55,7 @@ export default function ContributionForm({
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const isApprovedEdit = mode === "edit" && contributionStatus === "APPROVED";
 
@@ -99,8 +103,16 @@ export default function ContributionForm({
       if (mode === "edit" && contributionId) {
         const result = await updateContribution(contributionId, formData);
         if (result?.success) {
+          if (isApprovedEdit && result.data) {
+            upsertToList<ContributionWithAuthor>(
+              queryClient,
+              ["contributions"],
+              result.data as ContributionWithAuthor,
+              "edit",
+            );
+          }
           toast("Contribution updated successfully!");
-          router.push(`/contributions/${result.contributionId}`);
+          router.push(`/contributions/${result.data.id}`);
         }
       } else {
         const result = await createContribution(formData);

@@ -1,8 +1,10 @@
 "use client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
+import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import { StarRating } from "@/components/ui/StarRating";
 import type { RecommendationWithAuthor } from "@/types/cards";
@@ -16,6 +18,8 @@ export function RecommendationCard({
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     recommendation.votes?.find((v) => v.userId === currentUserId)?.voteType ??
     null;
@@ -27,9 +31,22 @@ export function RecommendationCard({
   const isOwner = currentUserId === recommendation.author.id;
   const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
 
-  async function handleDelete() {
-    return deleteRecommendation(recommendation.id);
-  }
+  const deleteMutation = useMutation({
+    mutationFn: deleteRecommendation,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete recommendation.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["recommendations", supervisor.id] },
+        (oldData: RecommendationWithAuthor[] = []) =>
+          oldData.filter((r) => r.id !== response.data.deletedId),
+      );
+      toast("Recommendation deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -45,7 +62,7 @@ export function RecommendationCard({
         isOwner && (
           <OwnerActionsDropdown
             editHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}/edit`}
-            onDelete={handleDelete}
+            onDelete={() => { deleteMutation.mutate(recommendation.id); return { refresh: false }; }}
             isOwner={isOwner}
             editLabel="Edit Recommendation"
             deleteLabel="Delete Recommendation"

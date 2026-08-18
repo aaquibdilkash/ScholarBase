@@ -2,7 +2,6 @@
 
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
 import type { VoteType } from '@/types/votes'
@@ -541,10 +540,10 @@ export async function toggleVote(
   }
   for (const p of paths) {
     if (p.startsWith('/blog')) {
-      revalidatePath('/blog', 'layout')
-      revalidatePath(p, 'page')
+      // REMOVED: revalidatePath
+      // REMOVED: revalidatePath
     } else {
-      revalidatePath(p)
+      // REMOVED: revalidatePath
     }
   }
 

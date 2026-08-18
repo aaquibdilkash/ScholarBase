@@ -9,7 +9,7 @@ import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 export type OwnerActionsDropdownProps = {
   editHref: string;
-  onDelete: () => void | Promise<{ redirect?: string } | void>;
+  onDelete: () => unknown | Promise<unknown>;
   isOwner: boolean;
   isAdmin?: boolean;
   editLabel?: string;
@@ -66,10 +66,17 @@ export default function OwnerActionsDropdown({
     startDeleteTransition(async () => {
       const result = await onDelete();
       toast("Item deleted successfully.", "success");
-      if (result?.redirect) {
-        router.push(result.redirect);
-      } else {
-        router.refresh();
+      const res = (result ?? undefined) as
+        | { redirect?: string; refresh?: boolean }
+        | undefined;
+            if (res?.redirect) {
+        router.push(res.redirect);
+      } else if (res?.refresh === false) {
+        // Handler performed its own client-side cache mutation or navigation;
+        // no global refresh required. Every onDelete caller must opt in by
+        // returning `{ redirect }` (detail pages) or `{ refresh: false }`
+        // (list cards, which evict their own cache). The catch-all
+        // `router.refresh()` was removed to avoid redundant refetches.
       }
     });
   };

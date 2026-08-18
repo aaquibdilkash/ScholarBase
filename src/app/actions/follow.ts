@@ -2,22 +2,21 @@
 
 import prisma from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 
-export async function toggleFollow(followingId: string): Promise<boolean | { error: string }> {
+export async function toggleFollow(followingId: string): Promise<{ success: boolean, data?: { newFollowState: boolean }, error?: string }> {
   const user = await getCurrentUser()
 
   if (!user) {
-    return { error: "UNAUTHORIZED" }
+    return { success: false, error: "UNAUTHORIZED" }
   }
 
-  // Guard against incorrect invocation (e.g. undefined passed from UI)
-  if (!followingId) return false
+  if (!followingId) {
+    return { success: false, error: "No user to follow" }
+  }
 
-  // Prevent users from following themselves
   if (user.id === followingId) {
-    return { error: "You cannot follow yourself" }
+    return { success: false, error: "You cannot follow yourself" }
   }
 
   const existing = await prisma.follows.findUnique({
@@ -29,55 +28,44 @@ export async function toggleFollow(followingId: string): Promise<boolean | { err
     },
   })
 
-  if (existing) {
-    await prisma.follows.delete({
-      where: { followerId_followingId: { followerId: user.id, followingId } },
-    })
-  } else {
-    await prisma.follows.create({
-      data: { followerId: user.id, followingId },
-    })
+  try {
+    if (existing) {
+      await prisma.follows.delete({
+        where: { followerId_followingId: { followerId: user.id, followingId } },
+      })
+      return { success: true, data: { newFollowState: false } }
+    } else {
+      await prisma.follows.create({
+        data: { followerId: user.id, followingId },
+      })
 
-    // A connection is mutual only when the person being followed already
-    // follows the current user back.
-    const isMutualConnection = await prisma.follows.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: followingId,
-          followingId: user.id,
+      const isMutualConnection = await prisma.follows.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: followingId,
+            followingId: user.id,
+          },
         },
-      },
-      select: { followerId: true },
-    })
+        select: { followerId: true },
+      })
 
-    await notifyUserById({
-      recipientId: followingId,
-      actorId: user.id,
-      type: 'follow',
-      targetType: 'follow',
-      targetId: followingId,
-      title: `${user.email?.split('@')[0] || 'Someone'} started following you`,
-      body: isMutualConnection
-        ? 'Someone you follow is now connected with you.'
-        : 'Someone started following you.',
-    })
+      await notifyUserById({
+        recipientId: followingId,
+        actorId: user.id,
+        type: 'follow',
+        targetType: 'follow',
+        targetId: followingId,
+        title: `${user.email?.split('@')[0] || 'Someone'} started following you`,
+        body: isMutualConnection
+          ? 'Someone you follow is now connected with you.'
+          : 'Someone started following you.',
+      })
+      return { success: true, data: { newFollowState: true } }
+    }
+  } catch (error) {
+    console.error(error)
+    return { success: false, error: "Something went wrong" }
   }
-
-  // Return the new state so the client can render the correct label.
-  const updated = await prisma.follows.findUnique({
-    where: {
-      followerId_followingId: {
-        followerId: user.id,
-        followingId: followingId,
-      },
-    },
-    select: { followerId: true },
-  })
-
-  revalidatePath(`/scholars/${followingId}`)
-  revalidatePath('/feed')
-
-  return updated ? true : false
 }
 
 

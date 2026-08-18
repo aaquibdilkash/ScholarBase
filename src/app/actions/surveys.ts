@@ -5,8 +5,6 @@ import { SurveyQuestionType } from '@prisma/client'
 import type { SurveyQuestionInput } from '@/types/survey'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -170,6 +168,14 @@ export async function createSurvey(formData: FormData) {
                 })),
             },
         },
+        include: {
+            author: true,
+            votes: true,
+            questions: { include: { options: true } },
+            _count: {
+                select: { votes: true, comments: true, responses: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -181,8 +187,7 @@ export async function createSurvey(formData: FormData) {
         body: title,
     })
 
-    revalidatePath('/surveys')
-    return { success: true, redirect: '/surveys' }
+    return { success: true, data: survey }
 }
 
 export async function updateSurvey(formData: FormData, surveyId: string) {
@@ -192,7 +197,9 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         where: { id: surveyId },
         select: { authorId: true },
     })
-    if (!survey) return
+    if (!survey) {
+        throw new Error('Survey not found.')
+    }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized to edit this survey.')
 
     const title = readFormValue(formData, 'title')
@@ -311,9 +318,9 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         })
     })
 
-    revalidatePath('/surveys')
-    revalidatePath(`/surveys/${surveyId}`)
-    return { success: true, redirect: `/surveys/${surveyId}` }
+    const updatedSurvey = await getSurvey(surveyId, user.id)
+
+    return { success: true, data: updatedSurvey }
 }
 
 export async function deleteSurvey(surveyId: string) {
@@ -323,7 +330,9 @@ export async function deleteSurvey(surveyId: string) {
         where: { id: surveyId },
         select: { authorId: true },
     })
-    if (!survey) return
+    if (!survey) {
+        throw new Error('Survey not found.')
+    }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized to delete this survey.')
 
     const voteCounts = await countVotesForTarget(prisma.surveyVote, 'surveyId', surveyId)
@@ -332,9 +341,7 @@ export async function deleteSurvey(surveyId: string) {
 
     await prisma.researchSurvey.delete({ where: { id: surveyId } })
 
-    revalidatePath('/surveys')
-    revalidatePath(`/surveys/${surveyId}`)
-    redirect('/surveys')
+    return { success: true, data: { deletedId: surveyId } }
 }
 
 export async function closeSurvey(surveyId: string) {
@@ -344,15 +351,24 @@ export async function closeSurvey(surveyId: string) {
         where: { id: surveyId },
         select: { authorId: true },
     })
-    if (!survey) return
+    if (!survey) {
+        throw new Error('Survey not found.')
+    }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized.')
 
-    await prisma.researchSurvey.update({
+    const updatedSurvey = await prisma.researchSurvey.update({
         where: { id: surveyId },
         data: { status: 'CLOSED' },
+        include: {
+            author: true,
+            votes: true,
+            questions: { include: { options: true } },
+            _count: {
+                select: { votes: true, comments: true, responses: true },
+            },
+        }
     })
-
-    revalidatePath(`/surveys/${surveyId}`)
+    return { success: true, data: updatedSurvey }
 }
 
 export async function reopenSurvey(surveyId: string) {
@@ -362,15 +378,24 @@ export async function reopenSurvey(surveyId: string) {
         where: { id: surveyId },
         select: { authorId: true },
     })
-    if (!survey) return
+    if (!survey) {
+        throw new Error('Survey not found.')
+    }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized.')
 
-    await prisma.researchSurvey.update({
+    const updatedSurvey = await prisma.researchSurvey.update({
         where: { id: surveyId },
         data: { status: 'OPEN' },
+        include: {
+            author: true,
+            votes: true,
+            questions: { include: { options: true } },
+            _count: {
+                select: { votes: true, comments: true, responses: true },
+            },
+        }
     })
-
-    revalidatePath(`/surveys/${surveyId}`)
+    return { success: true, data: updatedSurvey }
 }
 
 export async function toggleShareData(surveyId: string) {
@@ -380,19 +405,28 @@ export async function toggleShareData(surveyId: string) {
         where: { id: surveyId },
         select: { authorId: true, shareData: true },
     })
-    if (!survey) return
+    if (!survey) {
+        throw new Error('Survey not found.')
+    }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized.')
 
-    await prisma.researchSurvey.update({
+    const updatedSurvey = await prisma.researchSurvey.update({
         where: { id: surveyId },
         data: { shareData: !survey.shareData },
+        include: {
+            author: true,
+            votes: true,
+            questions: { include: { options: true } },
+            _count: {
+                select: { votes: true, comments: true, responses: true },
+            },
+        }
     })
 
-    revalidatePath(`/surveys/${surveyId}`)
-    revalidatePath(`/surveys/${surveyId}/results`)
+    return { success: true, data: updatedSurvey }
 }
 
-export async function submitSurveyResponse(formData: FormData, surveyId: string): Promise<{ success: boolean; message: string } | { error: string }> {
+export async function submitSurveyResponse(formData: FormData, surveyId: string) {
     let user;
     try {
         user = await requireCurrentUser('Log in to submit a survey response.')
@@ -437,7 +471,7 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
                 question: { archivedAt: null },
             },
         })
-        await prisma.surveyResponse.update({
+        const updatedResponse = await prisma.surveyResponse.update({
             where: { id: existingResponse.id },
             data: {
                 isAnonymous,
@@ -448,12 +482,12 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
                     })),
                 },
             },
+            include: { answers: true }
         })
-        revalidatePath(`/surveys/${surveyId}`)
-        return { success: true, message: 'Response updated successfully!' }
+        return { success: true, data: updatedResponse }
     }
 
-    await prisma.surveyResponse.create({
+    const newResponse = await prisma.surveyResponse.create({
         data: {
             surveyId,
             // Always link the response to the authenticated user so they can
@@ -468,6 +502,7 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
                 })),
             },
         },
+        include: { answers: true }
     })
 
     // Award 5 reputation points for participating in a survey (first time only)
@@ -476,8 +511,7 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
         data: { reputation: { increment: 5 } },
     })
 
-    revalidatePath(`/surveys/${surveyId}`)
-    return { success: true, message: 'Response submitted successfully!' }
+    return { success: true, data: newResponse }
 }
 
 export async function getSurveyResponses(surveyId: string, userId?: string) {

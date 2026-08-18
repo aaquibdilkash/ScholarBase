@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -129,6 +127,13 @@ export async function createResult(formData: FormData) {
 
     const result = await prisma.result.create({
         data: { title, description, type, category, conductingBody, session, notificationLink, resultLink, authorId: user.id },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -140,8 +145,7 @@ export async function createResult(formData: FormData) {
         body: `${title}${category ? ` (${category})` : ''}${conductingBody ? ` - ${conductingBody}` : ''}`,
     })
 
-    revalidatePath('/results')
-    return { success: true, redirect: '/results' }
+    return { success: true, data: result }
 }
 
 export async function updateResult(formData: FormData, resultId: string) {
@@ -161,19 +165,26 @@ export async function updateResult(formData: FormData, resultId: string) {
         select: { authorId: true },
     })
 
-    if (!result) return
+    if (!result) {
+        throw new Error('Result not found.')
+    }
     if (!await isAuthorizedOrAdmin(result.authorId, user.id)) {
         throw new Error('Not authorized to edit this result.')
     }
 
-    await prisma.result.update({
+    const updatedResult = await prisma.result.update({
         where: { id: resultId },
         data: { title, description, type, category, conductingBody, session, notificationLink, resultLink },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath('/results')
-    revalidatePath(`/results/${resultId}`)
-    return { success: true, redirect: `/results/${resultId}` }
+    return { success: true, data: updatedResult }
 }
 
 export async function deleteResult(resultId: string) {
@@ -184,7 +195,9 @@ export async function deleteResult(resultId: string) {
         select: { authorId: true },
     })
 
-    if (!result) return
+    if (!result) {
+        throw new Error('Result not found.')
+    }
     if (!await isAuthorizedOrAdmin(result.authorId, user.id)) {
         throw new Error('Not authorized to delete this result.')
     }
@@ -196,7 +209,5 @@ export async function deleteResult(resultId: string) {
 
     await prisma.result.delete({ where: { id: resultId } })
 
-    revalidatePath('/results')
-    revalidatePath(`/results/${resultId}`)
-    redirect('/results')
+    return { success: true, data: { deletedId: resultId } }
 }

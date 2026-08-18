@@ -7,7 +7,10 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { QuestionEditor, generateId } from "./QuestionEditor";
 import { Editor } from "@/components/ui/Editor";
+import { useQueryClient } from "@tanstack/react-query";
+import { upsertToList } from "@/utils/cacheMutation";
 import type { Question, QuestionOption } from "@/types/survey";
+import type { SurveyWithAuthor } from "@/types/cards";
 
 export type SurveyFormValues = {
   id?: string;
@@ -41,7 +44,7 @@ export default function SurveyForm({
           label: o.label,
           order: o.order ?? oi,
         })) || [],
-    })) || [];
+  })) || [];
 
   const draftKey = mode === "edit" ? null : "draft_survey_new";
   const [draft, updateDraft, resetDraft] = useFormDraft(draftKey, {
@@ -51,6 +54,7 @@ export default function SurveyForm({
     shareData: initialData?.shareData || false,
     questions: initialQuestions,
   });
+  const queryClient = useQueryClient();
 
   const { submit, submitting } = useFormSubmit(resetDraft, {
     resetOnSuccess: mode !== "edit",
@@ -59,6 +63,16 @@ export default function SurveyForm({
         ? "Survey created successfully!"
         : "Survey updated successfully!",
     errorMessage: "Failed to save survey.",
+    onSuccess: (response) => {
+      if (response.success && response.data) {
+        upsertToList<SurveyWithAuthor>(
+          queryClient,
+          ["surveys"],
+          response.data as SurveyWithAuthor,
+          mode,
+        );
+      }
+    },
   });
 
   const { title, description, privacy, shareData, questions } = draft;

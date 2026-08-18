@@ -1,11 +1,14 @@
 "use client";
 
 import { createSupervisor, updateSupervisor } from "@/app/actions/supervisors";
+import { useQueryClient } from "@tanstack/react-query";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { upsertToList } from "@/utils/cacheMutation";
+import type { SupervisorWithAuthor } from "@/types/cards";
 
 export type SupervisorFormValues = {
   name: string;
@@ -35,6 +38,7 @@ export default function SupervisorForm({
     draftKey,
     initial
   );
+  const queryClient = useQueryClient();
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -42,6 +46,16 @@ export default function SupervisorForm({
       resetOnSuccess: mode !== "edit",
       successMessage: "Supervisor added successfully!",
       errorMessage: "Failed to add supervisor.",
+      onSuccess: (response) => {
+        if (response.success && response.data) {
+          upsertToList<SupervisorWithAuthor>(
+            queryClient,
+            ["supervisors"],
+            response.data as SupervisorWithAuthor,
+            mode,
+          );
+        }
+      },
     },
   );
 

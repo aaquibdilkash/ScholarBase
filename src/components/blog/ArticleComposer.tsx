@@ -4,10 +4,13 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { RichContent } from "@/components/content/RichContent";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
-import { createArticle, updateArticle } from "@/app/actions/blog";
+import { createArticleSafe, updateArticleSafe } from "@/app/actions/blog";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
+import type { Article } from "@prisma/client";
 
 const Editor = dynamic(
   () => import("@/components/ui/Editor").then((m) => m.Editor),
@@ -42,16 +45,55 @@ export function ArticleComposer({
     initial,
   );
 
-  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
-    resetOnSuccess: mode !== "edit",
-    successMessage:
-      mode === "edit"
-        ? "Article updated successfully!"
-        : "Article published successfully!",
-    errorMessage:
-      mode === "edit"
-        ? "Failed to update article."
-        : "Failed to publish article.",
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const createMutation = useMutation({
+    mutationFn: createArticleSafe,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast(response.error || "Failed to publish article.", "error");
+        return;
+      }
+      const newArticle = response.data as Article;
+      queryClient.setQueryData<Article[]>(
+        ["articles", { q: "" }],
+        (oldData = []) => [newArticle, ...oldData],
+      );
+      resetDraft();
+      toast("Article published successfully!", "success");
+      router.push(`/blog/${newArticle.slug}`);
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ formData, id }: { formData: FormData; id: string }) =>
+      updateArticleSafe(formData, id),
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast(response.error || "Failed to update article.", "error");
+        return;
+      }
+      const updatedArticle = response.data as Article;
+      queryClient.setQueryData<Article[]>(
+        ["articles", { q: "" }],
+        (oldData = []) =>
+          oldData.map((p) => (p.id === updatedArticle.id ? updatedArticle : p)),
+      );
+      if (slug && updatedArticle.slug !== slug) {
+        queryClient.removeQueries({ queryKey: ["article", slug] });
+      }
+      queryClient.setQueryData(["article", updatedArticle.slug], updatedArticle);
+      toast("Article updated successfully!", "success");
+      router.push(`/blog/${updatedArticle.slug}`);
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
   });
 
   const previewContent = useMemo(
@@ -65,14 +107,14 @@ export function ArticleComposer({
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    await submit(() => {
-      if (mode === "edit" && articleId && slug) {
-        return updateArticle(formData, articleId, slug);
-      } else {
-        return createArticle(formData);
-      }
-    });
+    if (mode === "edit" && articleId) {
+      updateMutation.mutate({ formData, id: articleId });
+    } else {
+      createMutation.mutate(formData);
+    }
   }
+  
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
@@ -123,8 +165,10 @@ export function ArticleComposer({
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
           {mode === "create" && <FormCancelButton href="/blog" />}
-          <SubmitBtnWithAuth className="sb-button-accent">
-            {mode === "edit" ? "Save Changes" : "Publish Article"}
+          <SubmitBtnWithAuth disabled={isPending} className="sb-button-accent">
+            {isPending 
+              ? mode === 'edit' ? 'Saving...' : 'Publishing...' 
+              : mode === "edit" ? "Save Changes" : "Publish Article"}
           </SubmitBtnWithAuth>
         </div>
       </form>

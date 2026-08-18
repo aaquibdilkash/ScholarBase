@@ -163,7 +163,7 @@ export function SurveyResponseForm({
         return;
       }
       if (result.success) {
-        toast(result.message || "Response submitted successfully!", "success");
+        toast("Response submitted successfully!", "success");
         try {
           localStorage.removeItem(draftKey);
         } catch {

@@ -1,10 +1,13 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
+import { deleteJournal } from "@/app/actions/journals";
+import { useToast } from "@/components/ui/Toast";
 import type { JournalWithAuthor } from "@/types/cards";
 
 export function JournalCard({
@@ -14,6 +17,8 @@ export function JournalCard({
   journal: JournalWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === journal.authorId;
   const isFollowing = (journal.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -22,6 +27,23 @@ export function JournalCard({
     journal.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     journal.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteJournal,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete journal.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["journals"] },
+        (oldData: JournalWithAuthor[] = []) =>
+          oldData.filter((j) => j.id !== response.data.deletedId),
+      );
+      toast("Journal deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -41,9 +63,7 @@ export function JournalCard({
             isOwner={true}
             editLabel="Edit Journal"
             deleteLabel="Delete"
-            onDelete={() => {
-              // TODO: wire delete action if available
-            }}
+            onDelete={() => { deleteMutation.mutate(journal.id); return { refresh: false }; }}
           />
         )
       }

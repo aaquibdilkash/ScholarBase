@@ -3,7 +3,6 @@
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import prisma from '@/lib/db'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
 import { notifyMentionedUsers, notifyUserById } from '@/lib/notifications'
 import { updateReputationIncremental, reverseCommentThreadVoteReputation } from '@/app/actions/interactions'
 import { CommentType, CommentVoteModel } from '@/types/comments'
@@ -19,7 +18,7 @@ export async function createComment(
     const user = await requireCurrentUser('Log in to join the academic discussion.')
 
     const content = readFormValue(formData, 'content')
-    if (!content) return
+    if (!content) return { success: false, error: 'Content cannot be empty.' }
 
     const mentionsRaw = readFormValue(formData, 'mentions');
     let mentions: { id: string, handle: string }[] | undefined;
@@ -44,8 +43,9 @@ export async function createComment(
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.helpPostComment.create({
+        const newComment = await prisma.helpPostComment.create({
             data: { content, helpPostId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
         })
         const target = parentId
             ? await prisma.helpPostComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
@@ -59,16 +59,23 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/help/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'article') {
+        const article = await prisma.article.findUnique({
+            where: { id: targetId },
+            select: { slug: true, authorId: true },
+        });
+        if (!article) return { success: false, error: "Article not found" };
+
         const mentionedUsers = await notifyMentionedUsers({
-            actorId: user.id, content, type: 'mention', targetType: type, targetId: (await prisma.article.findUnique({ where: { id: targetId }, select: { slug: true } }))?.slug ?? '',
+            actorId: user.id, content, type: 'mention', targetType: type, targetId: article.slug,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         });
-        await prisma.articleComment.create({ data: { content, articleId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } });
-        const article = await prisma.article.findUnique({ where: { id: targetId }, select: { slug: true, authorId: true } });
-        if (!article) return
+        const newComment = await prisma.articleComment.create({
+            data: { content, articleId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        });
         const target = parentId
             ? await prisma.articleComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : article;
@@ -81,14 +88,17 @@ export async function createComment(
                 body: content,
             });
         }
-        revalidatePath('/blog/[slug]', 'page')
+        return { success: true, data: newComment };
     } else if (type === 'post') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.socialComment.create({ data: { content, socialPostId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.socialComment.create({
+            data: { content, socialPostId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.socialComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.socialPost.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -101,15 +111,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath('/feed')
-        revalidatePath(`/feed/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'event') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.researchEventComment.create({ data: { content, researchEventId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.researchEventComment.create({
+            data: { content, researchEventId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.researchEventComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchEvent.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -122,14 +134,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/events/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'vacancy') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.jobVacancyComment.create({ data: { content, jobVacancyId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.jobVacancyComment.create({
+            data: { content, jobVacancyId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.jobVacancyComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.jobVacancy.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -142,14 +157,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/vacancies/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'admission') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.phdAdmissionComment.create({ data: { content, phdAdmissionId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.phdAdmissionComment.create({
+            data: { content, phdAdmissionId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.phdAdmissionComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.phdAdmission.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -162,22 +180,28 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/admissions/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'supervisor') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.supervisorComment.create({ data: { content, supervisorId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
-        revalidatePath(`/supervisor/${targetId}`)
+        const newComment = await prisma.supervisorComment.create({
+            data: { content, supervisorId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
+        return { success: true, data: newComment };
     } else if (type === 'recommendation') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.recommendationComment.create({ data: { content, recommendationId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.recommendationComment.create({
+            data: { content, recommendationId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const recommendation = await prisma.recommendation.findUnique({
             where: { id: targetId },
             select: { supervisorId: true, authorId: true }
@@ -195,16 +219,17 @@ export async function createComment(
                 body: content,
             })
         }
-        if (recommendation) {
-            revalidatePath(`/supervisor/${recommendation.supervisorId}/recommendation/${targetId}`)
-        }
+        return { success: true, data: newComment };
     } else if (type === 'journal') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.journalComment.create({ data: { content, journalId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.journalComment.create({
+            data: { content, journalId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.journalComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.journal.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -217,14 +242,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/journals/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'researchTool') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.researchToolComment.create({ data: { content, researchToolId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.researchToolComment.create({
+            data: { content, researchToolId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.researchToolComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchTool.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -237,14 +265,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/research-tools/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'researchGrant') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.researchGrantComment.create({ data: { content, researchGrantId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.researchGrantComment.create({
+            data: { content, researchGrantId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.researchGrantComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchGrant.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -257,14 +288,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/grants/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'course') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.courseComment.create({ data: { content, courseId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.courseComment.create({
+            data: { content, courseId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.courseComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.course.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -277,14 +311,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/learn/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'result') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.resultComment.create({ data: { content, resultId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.resultComment.create({
+            data: { content, resultId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.resultComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.result.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -297,14 +334,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/results/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'contribution') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.contributionComment.create({ data: { content, contributionId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.contributionComment.create({
+            data: { content, contributionId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.contributionComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.contribution.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -317,14 +357,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/contributions/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'publication') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.publicationComment.create({ data: { content, publicationId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.publicationComment.create({
+            data: { content, publicationId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.publicationComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.publication.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -337,14 +380,17 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/publications/${targetId}`)
+        return { success: true, data: newComment };
     } else if (type === 'survey') {
         const mentionedUsers = await notifyMentionedUsers({
             actorId: user.id, content, type: 'mention', targetType: type, targetId,
             titleFactory: (handle) => `@${handle} was mentioned in a comment`, bodyFactory: () => content,
             mentions,
         })
-        await prisma.surveyComment.create({ data: { content, surveyId: targetId, authorId: user.id, parentId, mentions: mentionedUsers } })
+        const newComment = await prisma.surveyComment.create({
+            data: { content, surveyId: targetId, authorId: user.id, parentId, mentions: mentionedUsers },
+            include: { author: true, votes: true, replies: { include: { author: true, votes: true, _count: { select: { votes: true } } } }, _count: { select: { votes: true } } },
+        })
         const target = parentId
             ? await prisma.surveyComment.findUnique({ where: { id: parentId }, select: { authorId: true } })
             : await prisma.researchSurvey.findUnique({ where: { id: targetId }, select: { authorId: true } })
@@ -357,8 +403,10 @@ export async function createComment(
                 body: content,
             })
         }
-        revalidatePath(`/surveys/${targetId}`)
+        return { success: true, data: newComment };
     }
+
+    return { success: false, error: 'Invalid comment type' };
 }
 
 import type { CommentActionConfig } from '@/types/comments';
@@ -379,22 +427,22 @@ export async function editComment(formData: FormData, commentId: string, type: C
     }
 
     const editMap: Record<string, CommentActionConfig> = {
-        article: { model: prisma.articleComment, revalidate: '/blog/[slug]' },
-        post: { model: prisma.socialComment, revalidate: '/feed' },
-        event: { model: prisma.researchEventComment, revalidate: '/events/[id]' },
-        vacancy: { model: prisma.jobVacancyComment, revalidate: '/vacancies/[id]' },
-        admission: { model: prisma.phdAdmissionComment, revalidate: '/admissions/[id]' },
-        supervisor: { model: prisma.supervisorComment, revalidate: '/supervisor/[id]' },
-        recommendation: { model: prisma.recommendationComment, revalidate: '/supervisor/[id]/recommendation/[id]' },
-        help: { model: prisma.helpPostComment, revalidate: '/help/[id]' },
-        journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
-        researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
-        researchGrant: { model: prisma.researchGrantComment, revalidate: '/grants/[id]' },
-        course: { model: prisma.courseComment, revalidate: '/learn/[id]' },
-        result: { model: prisma.resultComment, revalidate: '/results/[id]' },
-        contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
-        publication: { model: prisma.publicationComment, revalidate: '/publications/[id]' },
-        survey: { model: prisma.surveyComment, revalidate: '/surveys/[id]' },
+        article: { model: prisma.articleComment },
+        post: { model: prisma.socialComment },
+        event: { model: prisma.researchEventComment },
+        vacancy: { model: prisma.jobVacancyComment },
+        admission: { model: prisma.phdAdmissionComment },
+        supervisor: { model: prisma.supervisorComment },
+        recommendation: { model: prisma.recommendationComment },
+        help: { model: prisma.helpPostComment },
+        journal: { model: prisma.journalComment },
+        researchTool: { model: prisma.researchToolComment },
+        researchGrant: { model: prisma.researchGrantComment },
+        course: { model: prisma.courseComment },
+        result: { model: prisma.resultComment },
+        contribution: { model: prisma.contributionComment },
+        publication: { model: prisma.publicationComment },
+        survey: { model: prisma.surveyComment },
     }
     const cfg = editMap[type]
     if (!cfg) return
@@ -403,46 +451,35 @@ export async function editComment(formData: FormData, commentId: string, type: C
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
     await cfg.model.update({ where: { id: commentId }, data: { content, mentions } })
-    if (type === 'recommendation') {
-        const recommendationComment = await prisma.recommendationComment.findUnique({
-            where: { id: commentId },
-            select: { recommendation: { select: { id: true, supervisorId: true } } }
-        });
-        if (recommendationComment?.recommendation) {
-            revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
-        }
-    } else if (cfg.revalidate.includes('[id]')) {
-        revalidatePath(cfg.revalidate, 'page')
-    } else {
-        revalidatePath(cfg.revalidate)
-    }
+    // REMOVED: All revalidatePath calls - client cache updated via React Query
+    return { success: true, data: { id: commentId } }
 }
 
 export async function deleteComment(commentId: string, type: CommentType) {
     const user = await requireCurrentUser('Log in to delete this comment.')
 
     const delMap: Record<string, CommentActionConfig> = {
-        article: { model: prisma.articleComment, revalidate: '/blog/[slug]' },
-        post: { model: prisma.socialComment, revalidate: '/feed' },
-        event: { model: prisma.researchEventComment, revalidate: '/events/[id]' },
-        vacancy: { model: prisma.jobVacancyComment, revalidate: '/vacancies/[id]' },
-        admission: { model: prisma.phdAdmissionComment, revalidate: '/admissions/[id]' },
-        supervisor: { model: prisma.supervisorComment, revalidate: '/supervisor/[id]' },
-        recommendation: { model: prisma.recommendationComment, revalidate: '/supervisor/[id]/recommendation/[id]' },
-        help: { model: prisma.helpPostComment, revalidate: '/help/[id]' },
-        journal: { model: prisma.journalComment, revalidate: '/journals/[id]' },
-        researchTool: { model: prisma.researchToolComment, revalidate: '/research-tools/[id]' },
-        researchGrant: { model: prisma.researchGrantComment, revalidate: '/grants/[id]' },
-        course: { model: prisma.courseComment, revalidate: '/learn/[id]' },
-        result: { model: prisma.resultComment, revalidate: '/results/[id]' },
-        contribution: { model: prisma.contributionComment, revalidate: '/contributions/[id]' },
-        publication: { model: prisma.publicationComment, revalidate: '/publications/[id]' },
-        survey: { model: prisma.surveyComment, revalidate: '/surveys/[id]' },
+        article: { model: prisma.articleComment },
+        post: { model: prisma.socialComment },
+        event: { model: prisma.researchEventComment },
+        vacancy: { model: prisma.jobVacancyComment },
+        admission: { model: prisma.phdAdmissionComment },
+        supervisor: { model: prisma.supervisorComment },
+        recommendation: { model: prisma.recommendationComment },
+        help: { model: prisma.helpPostComment },
+        journal: { model: prisma.journalComment },
+        researchTool: { model: prisma.researchToolComment },
+        researchGrant: { model: prisma.researchGrantComment },
+        course: { model: prisma.courseComment },
+        result: { model: prisma.resultComment },
+        contribution: { model: prisma.contributionComment },
+        publication: { model: prisma.publicationComment },
+        survey: { model: prisma.surveyComment },
     }
     const cfg = delMap[type]
     if (!cfg) return
 
-    const comment = await cfg.model.findUnique({ where: { id: commentId }, select: { authorId: true } })
+    const comment = await cfg.model.findUnique({ where: { id: commentId }, select: { authorId: true, parentId: true } })
     if (!comment) throw new Error('Not found.')
     if (!await isAuthorizedOrAdmin(comment.authorId, user.id)) throw new Error('Not authorized.')
 
@@ -451,19 +488,8 @@ export async function deleteComment(commentId: string, type: CommentType) {
     await reverseCommentThreadVoteReputation(type, commentId);
 
     await cfg.model.delete({ where: { id: commentId } })
-    if (type === 'recommendation') {
-        const recommendationComment = await prisma.recommendationComment.findUnique({
-            where: { id: commentId },
-            select: { recommendation: { select: { id: true, supervisorId: true } } }
-        });
-        if (recommendationComment?.recommendation) {
-            revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
-        }
-    } else if (cfg.revalidate.includes('[id]')) {
-        revalidatePath(cfg.revalidate, 'page')
-    } else {
-        revalidatePath(cfg.revalidate)
-    }
+    // REMOVED: All revalidatePath calls - client cache updated via React Query
+    return { success: true, data: { id: commentId, parentId: comment.parentId } }
 }
 
 // --- Vote System ---
@@ -577,18 +603,18 @@ export async function toggleCommentVote(
                 select: { recommendation: { select: { id: true, supervisorId: true } } }
             });
             if (recommendationComment?.recommendation) {
-                revalidatePath(`/supervisor/${recommendationComment.recommendation.supervisorId}/recommendation/${recommendationComment.recommendation.id}`)
+                // REMOVED: revalidatePath
             }
         } else if (path.includes('[id]')) {
-            revalidatePath(path, 'page')
+            // REMOVED: revalidatePath
         } else {
-            revalidatePath(path)
+            // REMOVED: revalidatePath
         }
     }
 
     // Also revalidate author profile
     if (commentAuthorId) {
-        revalidatePath(`/scholars/${commentAuthorId}`)
+        // REMOVED: revalidatePath
     }
 
     return { userVote: finalVoteType, upvotes, downvotes }

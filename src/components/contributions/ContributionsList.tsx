@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ContributionCard } from "./ContributionCard";
 import type { ContributionWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getContributions } from "@/app/actions/contributions";
 
 export function ContributionsList({
   contributions,
@@ -20,6 +22,14 @@ export function ContributionsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: contributionsData } = useQuery({
+    queryKey: ["contributions", q],
+    queryFn: () => getContributions(q, currentUserId),
+    initialData: contributions,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function ContributionsList({
         />
       </form>
       <AppendMoreList
-        initialItems={contributions}
+        initialItems={contributionsData}
         resource="contributions"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(contribution) => (
           <ContributionCard
             key={(contribution as ContributionWithAuthor).id}

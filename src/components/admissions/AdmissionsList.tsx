@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { AdmissionCard } from "./AdmissionCard";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getAdmissions } from "@/app/actions/admissions";
 
 export function AdmissionsList({
   admissions,
@@ -19,13 +20,16 @@ export function AdmissionsList({
   loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
-  const router = useRouter();
+
+  const { data: admissionsData, refetch } = useQuery({
+    queryKey: ["admissions", query],
+    queryFn: () => getAdmissions(query),
+    initialData: admissions,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/admissions?${params.toString()}`);
+    refetch();
   };
 
   return (
@@ -39,9 +43,9 @@ export function AdmissionsList({
         />
       </form>
       <AppendMoreList
-        initialItems={admissions}
+        initialItems={admissionsData}
         resource="admissions"
-        params={loadMoreParams}
+        params={{ q: query, ...loadMoreParams }}
         renderItem={(item) => (
           <AdmissionCard
             key={(item as AdmissionWithAuthor).id}
@@ -49,7 +53,7 @@ export function AdmissionsList({
             currentUserId={currentUserId}
           />
         )}
-        className="grid gap-6 md:grid-cols xl:grid-cols"
+        className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
       />
     </div>
   );

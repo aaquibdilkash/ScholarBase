@@ -52,7 +52,8 @@ export default async function SinglePostPage({
 
   async function handleDelete() {
     "use server";
-    await deleteSocialPost(p.id);
+        await deleteSocialPost(p.id);
+    return { redirect: "/feed" };
   }
 
   return (

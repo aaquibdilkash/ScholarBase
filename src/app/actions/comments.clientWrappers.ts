@@ -22,20 +22,20 @@ export async function deleteCommentClientWrapper(formData: FormData) {
     const commentId = formData.get('_commentId')
     const type = formData.get('_type')
 
-    if (!commentId || typeof commentId !== 'string') return
-    if (!type || typeof type !== 'string') return
+    if (!commentId || typeof commentId !== 'string') return undefined
+    if (!type || typeof type !== 'string') return undefined
 
-    await deleteComment(commentId, type as CommentType)
+    return deleteComment(commentId, type as CommentType)
 }
 
 export async function editCommentClientWrapper(formData: FormData) {
     const commentId = formData.get('_commentId')
     const type = formData.get('_type')
 
-    if (!commentId || typeof commentId !== 'string') return
-    if (!type || typeof type !== 'string') return
+    if (!commentId || typeof commentId !== 'string') return undefined
+    if (!type || typeof type !== 'string') return undefined
 
-    await editComment(formData, commentId, type as CommentType)
+    return editComment(formData, commentId, type as CommentType)
 }
 
 // Used by the client <form> for creating comments/replies.
@@ -44,12 +44,12 @@ export async function createCommentClientWrapper(formData: FormData) {
     const type = formData.get('_type')
     const parentId = formData.get('_parentId')
 
-    if (!targetId || typeof targetId !== 'string') return
-    if (!type || typeof type !== 'string') return
+    if (!targetId || typeof targetId !== 'string') return undefined
+    if (!type || typeof type !== 'string') return undefined
 
     // parentId comes as "" for top-level comments
     const parentIdStr = typeof parentId === 'string' && parentId.trim() ? parentId : undefined
 
-    await createComment(formData, targetId, type as CommentType, parentIdStr)
+    return createComment(formData, targetId, type as CommentType, parentIdStr)
 }
 

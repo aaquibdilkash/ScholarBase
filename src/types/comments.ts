@@ -26,14 +26,15 @@ export type CommentType =
 export interface CommentModel {
   findUnique: (args: {
     where: { id: string };
-    select: { authorId: true };
-  }) => Promise<{ authorId: string } | null>;
+    select: { authorId: true; parentId?: true };
+  }) => Promise<{ authorId: string; parentId?: string | null } | null>;
   update: (args: {
     where: { id: string };
     data: {
       content: string;
       mentions?: { id: string; handle: string }[];
     };
+    select?: object;
   }) => Promise<unknown>;
   delete: (args: { where: { id: string } }) => Promise<unknown>;
 }
@@ -65,5 +66,4 @@ export interface CommentVoteModel {
 
 export interface CommentActionConfig {
   model: CommentModel;
-  revalidate: string;
 }

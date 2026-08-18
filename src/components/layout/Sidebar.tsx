@@ -25,6 +25,7 @@ import {
   Users,
   BookMarked,
 } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -379,10 +380,12 @@ export default function Sidebar({ user }: SidebarProps) {
                     }}
                   >
                     {user?.avatarUrl ? (
-                      <img
+                                            <Image
+                        width={44}
+                        height={44}
                         src={user.avatarUrl}
                         alt={user.email || "Scholar"}
-                        className="h-full w-full rounded-full object-cover"
+                        className="rounded-full object-cover"
                       />
                     ) : (
                       user?.email?.charAt(0).toUpperCase() || "@"
@@ -406,10 +409,12 @@ export default function Sidebar({ user }: SidebarProps) {
                   >
                     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-white dark:text-slate-950">
                                         {user?.avatarUrl ? (
-                                          <img
+                                                                                    <Image
+                                            width={40}
+                                            height={40}
                                             src={user.avatarUrl}
                                             alt={user.email || "Scholar"}
-                                            className="h-full w-full rounded-full object-cover"
+                                            className="rounded-full object-cover"
                                           />
                                         ) : (
                                           user?.email?.charAt(0).toUpperCase() || "@"

@@ -1,9 +1,11 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteContribution } from "@/app/actions/contributions";
+import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import type { ContributionWithAuthor } from "@/types/cards";
 
@@ -14,6 +16,8 @@ export function ContributionCard({
   contribution: ContributionWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === contribution.authorId;
   const isFollowing = (contribution.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -23,6 +27,23 @@ export function ContributionCard({
     contribution.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     contribution.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteContribution,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete contribution.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["contributions"] },
+        (oldData: ContributionWithAuthor[] = []) =>
+          oldData.filter((c) => c.id !== response.data.deletedId),
+      );
+      toast("Contribution deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -41,9 +62,7 @@ export function ContributionCard({
             isOwner={true}
             editLabel="Edit Contribution"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteContribution(contribution.id);
-            }}
+            onDelete={() => { deleteMutation.mutate(contribution.id); return { refresh: false }; }}
           />
         )
       }

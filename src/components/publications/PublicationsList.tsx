@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { PublicationCard } from "./PublicationCard";
 import type { PublicationWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getPublications } from "@/app/actions/publications";
 
 export function PublicationsList({
   publications,
@@ -20,6 +22,14 @@ export function PublicationsList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: publicationsData } = useQuery({
+    queryKey: ["publications", q],
+    queryFn: () => getPublications(q, currentUserId),
+    initialData: publications,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,9 +49,9 @@ export function PublicationsList({
         />
       </form>
       <AppendMoreList
-        initialItems={publications}
+        initialItems={publicationsData}
         resource="publications"
-        params={loadMoreParams}
+        params={{ q, ...loadMoreParams }}
         renderItem={(pub) => (
           <PublicationCard
             key={(pub as PublicationWithAuthor).id}

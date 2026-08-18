@@ -1,11 +1,14 @@
 "use client";
 
-import { updateHelpPost, createHelpPostSafe } from "@/app/actions/help";
+import { createHelpPostSafe, updateHelpPostSafe } from "@/app/actions/help";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useToast } from "@/components/ui/Toast";
+import type { HelpPostWithAuthor } from "@/types/cards";
 
 export type HelpPostFormValues = {
   title: string;
@@ -23,6 +26,9 @@ export default function HelpPostForm({
   helpPostId?: string;
   initialValues?: Partial<HelpPostFormValues>;
 }) {
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { toast } = useToast();
   const initial = {
     title: initialValues?.title ?? "",
     category: initialValues?.category ?? "",
@@ -36,24 +42,65 @@ export default function HelpPostForm({
     initial,
   );
 
-  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
-    resetOnSuccess: mode !== "edit",
-    successMessage: "Help post created successfully!",
-    errorMessage: "Failed to create help post.",
+  const createMutation = useMutation({
+    mutationFn: createHelpPostSafe,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast(response.error || "Failed to create help post.", "error");
+        return;
+      }
+      const newPost = response.data as HelpPostWithAuthor;
+      // Add to the list cache
+      queryClient.setQueryData<HelpPostWithAuthor[]>(
+        ["helpPosts", { q: "" }],
+        (oldData = []) => [newPost, ...oldData],
+      );
+      resetDraft();
+      toast("Help post created successfully!", "success");
+      router.push(`/help/${newPost.id}`);
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ formData, id }: { formData: FormData; id: string }) =>
+      updateHelpPostSafe(formData, id),
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast(response.error || "Failed to update help post.", "error");
+        return;
+      }
+      const updatedPost = response.data as HelpPostWithAuthor;
+      // Update the list cache
+      queryClient.setQueryData<HelpPostWithAuthor[]>(
+        ["helpPosts", { q: "" }],
+        (oldData = []) =>
+          oldData.map((p) => (p.id === updatedPost.id ? updatedPost : p)),
+      );
+      // Update the detail cache
+      queryClient.setQueryData(["helpPost", updatedPost.id], updatedPost);
+      toast("Help post updated successfully!", "success");
+      router.push(`/help/${updatedPost.id}`);
+    },
+    onError: (error) => {
+      toast(error.message, "error");
+    },
   });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    await submit(() => {
-      if (mode === "edit" && helpPostId) {
-        return updateHelpPost(formData, helpPostId);
-      } else {
-        return createHelpPostSafe(formData);
-      }
-    });
+    if (mode === "edit" && helpPostId) {
+      updateMutation.mutate({ formData, id: helpPostId });
+    } else {
+      createMutation.mutate(formData);
+    }
   }
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <form onSubmit={onSubmit} className="sb-surface-strong p-8 md:p-10">
@@ -112,11 +159,18 @@ export default function HelpPostForm({
         <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
           {mode === "create" && <FormCancelButton href="/help" />}
           <SubmitBtnWithAuth
+            disabled={isPending}
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"
             }
           >
-            {mode === "edit" ? "Save" : "Post"}
+            {isPending
+              ? mode === "edit"
+                ? "Saving..."
+                : "Posting..."
+              : mode === "edit"
+                ? "Save"
+                : "Post"}
           </SubmitBtnWithAuth>
         </div>
       </div>

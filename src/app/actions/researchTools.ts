@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -25,6 +23,13 @@ export async function createResearchTool(formData: FormData) {
             description,
             authorId: user.id
         },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -36,8 +41,7 @@ export async function createResearchTool(formData: FormData) {
         body: `${name} - ${use}`,
     })
 
-    revalidatePath('/research-tools')
-    return { success: true, redirect: '/research-tools' }
+    return { success: true, data: tool }
 }
 
 export async function updateResearchTool(formData: FormData, toolId: string) {
@@ -53,19 +57,26 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
         select: { authorId: true },
     })
 
-    if (!tool) return
+    if (!tool) {
+        throw new Error('Research tool not found.')
+    }
     if (!await isAuthorizedOrAdmin(tool.authorId, user.id)) {
         throw new Error('Not authorized to edit this research tool.')
     }
 
-    await prisma.researchTool.update({
+    const updatedTool = await prisma.researchTool.update({
         where: { id: toolId },
         data: { name, website, use, description },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath('/research-tools')
-    revalidatePath(`/research-tools/${toolId}`)
-    return { success: true, redirect: `/research-tools/${toolId}` }
+    return { success: true, data: updatedTool }
 }
 
 export async function deleteResearchTool(toolId: string) {
@@ -76,7 +87,9 @@ export async function deleteResearchTool(toolId: string) {
         select: { authorId: true },
     })
 
-    if (!tool) return
+    if (!tool) {
+        throw new Error('Research tool not found.')
+    }
     if (!await isAuthorizedOrAdmin(tool.authorId, user.id)) {
         throw new Error('Not authorized to delete this research tool.')
     }
@@ -88,9 +101,7 @@ export async function deleteResearchTool(toolId: string) {
 
     await prisma.researchTool.delete({ where: { id: toolId } })
 
-    revalidatePath('/research-tools')
-    revalidatePath(`/research-tools/${toolId}`)
-    redirect('/research-tools')
+    return { success: true, data: { deletedId: toolId } }
 }
 
 

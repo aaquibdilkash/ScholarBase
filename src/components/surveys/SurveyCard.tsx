@@ -1,10 +1,12 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
+import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 import { BarChart2 } from "lucide-react";
 import type { SurveyWithAuthor } from "@/types/cards";
@@ -27,6 +29,8 @@ export function SurveyCard({
   survey: SurveyWithAuthor;
   currentUserId?: string;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === survey.authorId;
   const isFollowing = (survey.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -35,6 +39,23 @@ export function SurveyCard({
     survey.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
   const downvoteCount =
     survey.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteSurvey,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        toast("Failed to delete survey.", "error");
+        return;
+      }
+      queryClient.setQueriesData(
+        { queryKey: ["surveys"] },
+        (oldData: SurveyWithAuthor[] = []) =>
+          oldData.filter((s) => s.id !== response.data.deletedId),
+      );
+      toast("Survey deleted successfully.", "success");
+    },
+    onError: (error) => toast(error.message, "error"),
+  });
 
   return (
     <ListPageCardShell
@@ -52,9 +73,7 @@ export function SurveyCard({
           <OwnerActionsDropdown
             editHref={`/surveys/${survey.id}/edit`}
             isOwner={true}
-            onDelete={async () => {
-              await deleteSurvey(survey.id);
-            }}
+            onDelete={() => { deleteMutation.mutate(survey.id); return { refresh: false }; }}
             editLabel="Edit Survey"
             deleteLabel="Delete"
           />

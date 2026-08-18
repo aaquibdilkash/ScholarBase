@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { JobVacancy, User } from "@prisma/client";
 import { VacancyCard } from "./VacancyCard";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { useQuery } from "@tanstack/react-query";
+import { getVacancies } from "@/app/actions/vacancies";
 
 type VoteShape = {
   userId: string;
@@ -36,6 +38,14 @@ export function VacanciesList({
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const q = searchParams.get("q") ?? "";
+
+  const { data: vacancyData } = useQuery({
+    queryKey: ['vacancies', q],
+    queryFn: () => getVacancies(q, currentUserId),
+    initialData: vacancies,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,7 +65,7 @@ export function VacanciesList({
         />
       </form>
       <AppendMoreList
-        initialItems={vacancies}
+        initialItems={vacancyData}
         resource="vacancies"
         params={loadMoreParams}
         renderItem={(job) => (

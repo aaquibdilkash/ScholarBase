@@ -3,7 +3,9 @@
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
+import type { SocialPostWithAuthor } from "@/types/cards";
 import { generateCloudinarySignature } from "@/app/actions/cloudinary";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
@@ -16,6 +18,7 @@ export default function EditPostPage({
 }) {
   const [postId, setPostId] = useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [content, setContent] = useState("");
@@ -104,11 +107,17 @@ export default function EditPostPage({
       if (imageUrl) formData.append("imageUrl", imageUrl);
 
       const result = await updateSocialPost(formData, postId);
-      if (result.success) {
-        toast(result.message || "Post updated successfully!", "success");
-        router.push(`/feed/${result.postId}`);
+      if (result.success && result.data) {
+        queryClient.setQueriesData({ queryKey: ["feed"] }, (oldData: SocialPostWithAuthor[] = []) =>
+          oldData.map((p) => (p.id === result.data!.id ? result.data : p)),
+        );
+        toast("Post updated successfully!", "success");
+        router.push(`/feed/${result.data.id}`);
       } else {
-        toast(result.message || "Failed to update post.", "error");
+        toast(
+          (result && result.message) || "Failed to update post.",
+          "error",
+        );
       }
     } catch (err) {
       toast(

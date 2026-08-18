@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
 import { notifyUserById } from '@/lib/notifications'
 import type { SubmitResult } from '@/types/form'
 
@@ -243,7 +242,7 @@ export async function startConversation(formData: FormData): Promise<SubmitResul
     body: body,
   });
 
-  revalidatePath('/messages')
+  // REMOVED: revalidatePath
   return { success: true, redirect: `/messages/${conversationId}` }
 }
 
@@ -343,7 +342,7 @@ export async function blockUser(blockedId: string) {
   const user = await requireCurrentUser('Please log in to block a scholar.')
   if (user.id === blockedId) throw new Error('You cannot block yourself.')
   await prisma.block.create({ data: { blockerId: user.id, blockedId } })
-  revalidatePath(`/scholars/${blockedId}`)
+  // REMOVED: revalidatePath
 }
 
 export async function unblockUser(blockedId: string) {
@@ -351,7 +350,7 @@ export async function unblockUser(blockedId: string) {
   await prisma.block.delete({
     where: { blockerId_blockedId: { blockerId: user.id, blockedId } },
   })
-  revalidatePath(`/scholars/${blockedId}`)
+  // REMOVED: revalidatePath
 }
 
 export async function getBlockedUserIds(blockerId: string): Promise<string[]> {

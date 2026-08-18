@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
@@ -146,6 +144,13 @@ export async function createResearchEvent(formData: FormData) {
 
     const event = await prisma.researchEvent.create({
         data: { title, date, location, description, deadline, notificationLink, applyLink, authorId: user.id },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
     await notifyFollowersOfActivity({
@@ -157,17 +162,7 @@ export async function createResearchEvent(formData: FormData) {
         body: `"${title}" - ${new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
     })
 
-    revalidatePath('/events')
-    return { success: true, redirect: '/events' }
-}
-
-export async function createEventSafe(formData: FormData): Promise<{ success: boolean; redirect?: string; error?: string }> {
-    try {
-        return await createResearchEvent(formData)
-    } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        return { success: false, error: error.message || 'Failed to create event' }
-    }
+    return { success: true, data: event }
 }
 
 export async function updateResearchEvent(formData: FormData, eventId: string) {
@@ -191,19 +186,26 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
         select: { authorId: true },
     })
 
-    if (!event) return
+    if (!event) {
+        throw new Error('Event not found.')
+    }
     if (!await isAuthorizedOrAdmin(event.authorId, user.id)) {
         throw new Error('Not authorized to edit this event.')
     }
 
-    await prisma.researchEvent.update({
+    const updatedEvent = await prisma.researchEvent.update({
         where: { id: eventId },
         data: { title, date, location, description, deadline, notificationLink, applyLink },
+        include: {
+            author: true,
+            votes: true,
+            _count: {
+                select: { votes: true, comments: true },
+            },
+        }
     })
 
-    revalidatePath('/events')
-    revalidatePath(`/events/${eventId}`)
-    return { success: true, redirect: `/events/${eventId}` }
+    return { success: true, data: updatedEvent }
 }
 
 export async function deleteResearchEvent(eventId: string) {
@@ -214,7 +216,9 @@ export async function deleteResearchEvent(eventId: string) {
         select: { authorId: true },
     })
 
-    if (!event) return
+    if (!event) {
+        throw new Error('Event not found.')
+    }
     if (!await isAuthorizedOrAdmin(event.authorId, user.id)) {
         throw new Error('Not authorized to delete this event.')
     }
@@ -226,9 +230,7 @@ export async function deleteResearchEvent(eventId: string) {
 
     await prisma.researchEvent.delete({ where: { id: eventId } })
 
-    revalidatePath('/events')
-    revalidatePath(`/events/${eventId}`)
-    redirect('/events')
+    return { success: true, data: { deletedId: eventId } }
 }
 
 export async function getUpcomingEvents(count: number, userId?: string) {

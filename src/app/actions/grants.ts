@@ -4,8 +4,6 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 import { countVotesForTarget, reverseContentCommentVoteReputation, reverseReputationForContent } from '@/app/actions/interactions'
 
@@ -27,6 +25,13 @@ export async function createResearchGrant(formData: FormData) {
       infoLink: infoLink || null,
       authorId: user.id,
     },
+    include: {
+        author: true,
+        votes: true,
+        _count: {
+            select: { votes: true, comments: true },
+        },
+    }
   })
 
   await notifyFollowersOfActivity({
@@ -38,8 +43,7 @@ export async function createResearchGrant(formData: FormData) {
     body: amount ? `${title} - ${amount}` : title,
   })
 
-  revalidatePath('/grants')
-  return { success: true, redirect: '/grants' }
+  return { success: true, data: grant }
 }
 
 export async function updateResearchGrant(formData: FormData, grantId: string) {
@@ -56,12 +60,14 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
     select: { authorId: true },
   })
 
-  if (!grant) return
+  if (!grant) {
+    throw new Error('Research grant not found.')
+  }
   if (!await isAuthorizedOrAdmin(grant.authorId, user.id)) {
     throw new Error('Not authorized to edit this research grant.')
   }
 
-  await prisma.researchGrant.update({
+  const updatedGrant = await prisma.researchGrant.update({
     where: { id: grantId },
     data: {
       title,
@@ -70,11 +76,16 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
       applyLink: applyLink || null,
       infoLink: infoLink || null,
     },
+    include: {
+        author: true,
+        votes: true,
+        _count: {
+            select: { votes: true, comments: true },
+        },
+    }
   })
 
-  revalidatePath('/grants')
-  revalidatePath(`/grants/${grantId}`)
-  return { success: true, redirect: `/grants/${grantId}` }
+  return { success: true, data: updatedGrant }
 }
 
 export async function deleteResearchGrant(grantId: string) {
@@ -85,7 +96,9 @@ export async function deleteResearchGrant(grantId: string) {
     select: { authorId: true },
   })
 
-  if (!grant) return
+  if (!grant) {
+    throw new Error('Research grant not found.')
+  }
   if (!await isAuthorizedOrAdmin(grant.authorId, user.id)) {
     throw new Error('Not authorized to delete this research grant.')
   }
@@ -96,9 +109,7 @@ export async function deleteResearchGrant(grantId: string) {
 
   await prisma.researchGrant.delete({ where: { id: grantId } })
 
-  revalidatePath('/grants')
-  revalidatePath(`/grants/${grantId}`)
-  redirect('/grants')
+  return { success: true, data: { deletedId: grantId } }
 }
 
 export async function getResearchGrants(q?: string, userId?: string, limit = 20, cursor?: string) {

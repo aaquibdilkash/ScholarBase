@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import type { Prisma } from "@prisma/client";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 
 type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
   include: {
@@ -35,7 +36,33 @@ export function FeedList({
   loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
+  const queryKey = ["feed", { q: initialQuery ?? "", tab: loadMoreParams?.tab ?? "" }];
+  const queryClient = useQueryClient();
   const router = useRouter();
+  const [cursor, setCursor] = useState<string | null>(
+    posts.length === 10 ? posts[posts.length - 1]?.id ?? null : null,
+  );
+  const [hasMore, setHasMore] = useState(posts.length === 10);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const { data: feedPosts = [] } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const search = new URLSearchParams();
+      if (initialQuery) search.set("q", initialQuery);
+      if (loadMoreParams?.tab) search.set("tab", loadMoreParams.tab);
+      const response = await fetch(`/api/load-more/feed?${search.toString()}`);
+      if (!response.ok) throw new Error("Failed to load feed");
+      const data = (await response.json()) as {
+        items: SocialPostWithDetails[];
+        hasMore: boolean;
+        nextCursor: string | null;
+      };
+      setCursor(data.nextCursor);
+      setHasMore(data.hasMore);
+      return data.items;
+    },
+    initialData: posts,
+  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,7 +82,7 @@ export function FeedList({
         />
       </form>
 
-      {posts.length === 0 && (
+      {feedPosts.length === 0 && (
         <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
           <p className="font-medium text-slate-500">
             No posts to show right now.
@@ -63,19 +90,49 @@ export function FeedList({
         </div>
       )}
 
-      <AppendMoreList
-        initialItems={posts}
-        resource="feed"
-        params={loadMoreParams}
-        renderItem={(post) => (
+      <div className="flex flex-col gap-6">
+        {feedPosts.map((post) => (
           <SocialPostCard
-            key={(post as SocialPostWithDetails).id}
-            post={post as SocialPostWithDetails}
+            key={post.id}
+            post={post}
             currentUserId={currentUserId}
           />
-        )}
-        className="flex flex-col gap-6"
-      />
+        ))}
+        <LoadMoreSentinel
+          disabled={!hasMore || loadingMore}
+          onVisible={async () => {
+            if (loadingMore || !hasMore) return;
+            setLoadingMore(true);
+            try {
+              const search = new URLSearchParams();
+              if (cursor) search.set("cursor", cursor);
+              Object.entries(loadMoreParams ?? {}).forEach(([key, value]) => {
+                if (value) search.set(key, value);
+              });
+              const response = await fetch(`/api/load-more/feed?${search.toString()}`);
+              if (!response.ok) return;
+              const data = (await response.json()) as {
+                items: SocialPostWithDetails[];
+                hasMore: boolean;
+                nextCursor: string | null;
+              };
+              queryClient.setQueryData<SocialPostWithDetails[]>(
+                queryKey,
+                (oldData = []) => [...oldData, ...data.items],
+              );
+              setCursor(data.nextCursor);
+              setHasMore(data.hasMore);
+            } finally {
+              setLoadingMore(false);
+            }
+          }}
+        />
+        {loadingMore ? (
+          <div className="py-4 text-center text-sm text-slate-500">
+            Loading more...
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
