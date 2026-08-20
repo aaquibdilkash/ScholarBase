@@ -140,12 +140,12 @@ export default function ListPageCardShell({
       {bodyBottomContent}
 
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
-        <span className="font-semibold text-slate-400 dark:text-slate-500">
+        <span suppressHydrationWarning className="font-semibold text-slate-400 dark:text-slate-500">
           {" "}
           {createdLabel} {formatTimeAgo(createdDate)}
         </span>
         {editedDate && (
-          <span className="font-semibold text-slate-400 dark:text-slate-500">
+          <span suppressHydrationWarning className="font-semibold text-slate-400 dark:text-slate-500">
             {editedLabel} {formatTimeAgo(editedDate)}
           </span>
         )}

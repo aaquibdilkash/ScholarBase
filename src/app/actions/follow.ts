@@ -5,22 +5,23 @@ import { getCurrentUser } from '@/lib/auth'
 import { notifyUserById } from '@/lib/notifications'
 import { handleFollowTransaction } from '@/lib/transactions'
 
-export async function toggleFollow(followingId: string): Promise<{ success: boolean, error?: string }> {
+export async function toggleFollow(followingId: string): Promise<{ success: boolean; isFollowing: boolean; error?: string }> {
   const authUser = await getCurrentUser()
 
   if (!authUser) {
-    return { success: false, error: "UNAUTHORIZED" }
+    return { success: false, isFollowing: false, error: "UNAUTHORIZED" }
   }
 
   if (!followingId || authUser.id === followingId) {
-    return { success: false, error: "Invalid user to follow" }
+    return { success: false, isFollowing: false, error: "Invalid user to follow" }
   }
 
   try {
     const { wasFollowing } = await handleFollowTransaction(authUser.id, followingId);
 
-    // Fire-and-forget notification only on a new follow action
-    if (!wasFollowing) {
+    const isNowFollowing = !wasFollowing;
+
+    if (!isNowFollowing) {
       const follower = await prisma.user.findUnique({
           where: { id: authUser.id },
           select: { name: true }
@@ -36,10 +37,10 @@ export async function toggleFollow(followingId: string): Promise<{ success: bool
       });
     }
 
-    return { success: true };
+    return { success: true, isFollowing: isNowFollowing };
   } catch (error) {
     console.error('Error in toggleFollow:', error);
-    return { success: false, error: "Something went wrong" }
+    return { success: false, isFollowing: false, error: "Something went wrong" }
   }
 }
 

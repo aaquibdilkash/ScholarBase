@@ -15,6 +15,7 @@ export async function getSupervisors(q?: string, userId?: string, limit = 20, cu
         university: true,
         department: true,
         createdAt: true,
+        authorId: true,
         author: {
             select: {
                 id: true,
@@ -249,7 +250,7 @@ export async function deleteSupervisor(supervisorId: string) {
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },
-    select: { authorId: true },
+    select: { authorId: true, totalVotes: true },
   })
 
   if (!supervisor) {
@@ -260,7 +261,14 @@ export async function deleteSupervisor(supervisorId: string) {
   }
 
   await prisma.supervisor.update({ where: { id: supervisorId }, data: { isDeleted: true } })
-  
+
+  if (supervisor.totalVotes !== 0) {
+    await prisma.user.update({
+      where: { id: supervisor.authorId },
+      data: { reputation: { decrement: supervisor.totalVotes } },
+    })
+  }
+
   return { success: true, data: { deletedId: supervisorId } }
 }
 

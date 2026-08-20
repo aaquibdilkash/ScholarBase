@@ -105,7 +105,7 @@ export async function deleteJournal(journalId: string) {
 
     const journal = await prisma.journal.findUnique({
         where: { id: journalId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!journal) {
@@ -115,8 +115,14 @@ export async function deleteJournal(journalId: string) {
         throw new Error('Not authorized to delete this journal.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.journal.update({ where: { id: journalId }, data: { isDeleted: true } })
+
+    if (journal.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: journal.authorId },
+            data: { reputation: { decrement: journal.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: journalId } }
 }
@@ -149,6 +155,7 @@ export async function getJournals(q?: string, userId?: string, limit = 20, curso
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,

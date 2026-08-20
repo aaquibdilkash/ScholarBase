@@ -55,11 +55,6 @@ export async function createRecommendation(formData: FormData, supervisorId: str
             },
         });
 
-        await tx.user.update({
-            where: { id: user.id },
-            data: { reputation: { increment: 2 } },
-        });
-
         await tx.userActivity.create({
             data: {
                 userId: user.id,
@@ -130,7 +125,7 @@ export async function deleteRecommendation(recommendationId: string) {
 
     const recommendation = await prisma.recommendation.findUnique({
         where: { id: recommendationId },
-        select: { authorId: true, supervisorId: true },
+        select: { authorId: true, supervisorId: true, totalVotes: true },
     })
 
     if (!recommendation) {
@@ -140,8 +135,14 @@ export async function deleteRecommendation(recommendationId: string) {
         throw new Error('Not authorized to delete this recommendation.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.recommendation.update({ where: { id: recommendationId }, data: { isDeleted: true } })
+
+    if (recommendation.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: recommendation.authorId },
+            data: { reputation: { decrement: recommendation.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: recommendationId, supervisorId: recommendation.supervisorId } }
 }

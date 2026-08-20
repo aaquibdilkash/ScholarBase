@@ -152,11 +152,11 @@ export default function DetailPageCardShell({
         {bodyBottomContent}
 
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
-          <span className="font-semibold text-slate-400">
+          <span suppressHydrationWarning className="font-semibold text-slate-400">
             {createdLabel} {formatTimeAgo(createdDate)}
           </span>
           {editedDate && (
-            <span className="font-semibold text-slate-400">
+            <span suppressHydrationWarning className="font-semibold text-slate-400">
               {editedLabel} {formatTimeAgo(editedDate)}
             </span>
           )}

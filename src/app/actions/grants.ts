@@ -93,7 +93,7 @@ export async function deleteResearchGrant(grantId: string) {
 
   const grant = await prisma.researchGrant.findUnique({
     where: { id: grantId },
-    select: { authorId: true },
+    select: { authorId: true, totalVotes: true },
   })
 
   if (!grant) {
@@ -103,8 +103,14 @@ export async function deleteResearchGrant(grantId: string) {
     throw new Error('Not authorized to delete this research grant.')
   }
 
-  // Soft delete (no reputation reversal)
   await prisma.researchGrant.update({ where: { id: grantId }, data: { isDeleted: true } })
+
+  if (grant.totalVotes !== 0) {
+    await prisma.user.update({
+      where: { id: grant.authorId },
+      data: { reputation: { decrement: grant.totalVotes } },
+    })
+  }
 
   return { success: true, data: { deletedId: grantId } }
 }
@@ -136,6 +142,7 @@ export async function getResearchGrants(q?: string, userId?: string, limit = 20,
         createdAt: true,
         updatedAt: true,
             editedAt: true,
+        authorId: true,
         author: {
             select: {
                 id: true,

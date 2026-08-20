@@ -180,7 +180,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                       </div>
                       {isSidebarOpen && (
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <div className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{formatTimeAgo(conversation.lastMessageAt)}</div>
+                          <div suppressHydrationWarning className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{formatTimeAgo(conversation.lastMessageAt)}</div>
                           {conversation.unreadCount > 0 && (
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold leading-none text-white">
                               {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}

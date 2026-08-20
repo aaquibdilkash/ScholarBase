@@ -1,7 +1,7 @@
 import { getProfileSections } from "@/app/actions/profile";
 
 export type SectionData = Awaited<ReturnType<typeof getProfileSections>>;
-export type SectionKey = Exclude<keyof NonNullable<SectionData>, "id" | "_count">;
+export type SectionKey = Exclude<keyof Omit<NonNullable<SectionData>, "id" | "counts">, number | symbol>;
 export type ArticleType = NonNullable<SectionData>["articles"][number];
 export type SocialPostType = NonNullable<SectionData>["socialPosts"][number];
 export type VacancyType = NonNullable<SectionData>["vacancies"][number];

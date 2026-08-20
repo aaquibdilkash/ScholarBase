@@ -35,6 +35,7 @@ export async function getHelpPosts(q?: string, userId?: string, limit = 20, curs
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,
@@ -219,21 +220,27 @@ export async function deleteHelpPost(helpPostId: string) {
 
     const post = await prisma.helpPost.findUnique({
         where: { id: helpPostId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!post) {
-		throw new Error('Help post not found.');
+		throw new Error('Help post not found.')
 	}
     if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
         throw new Error('Not authorized to delete this help post.')
     }
 
-    // Soft delete the post
     await prisma.helpPost.update({
         where: { id: helpPostId },
         data: { isDeleted: true },
     })
+
+    if (post.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: post.authorId },
+            data: { reputation: { decrement: post.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: helpPostId } }
 }

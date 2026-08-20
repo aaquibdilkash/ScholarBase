@@ -231,7 +231,7 @@ export async function deleteJobVacancy(vacancyId: string) {
 
     const vacancy = await prisma.jobVacancy.findUnique({
         where: { id: vacancyId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!vacancy) return
@@ -239,8 +239,14 @@ export async function deleteJobVacancy(vacancyId: string) {
         throw new Error('Not authorized to delete this vacancy.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.jobVacancy.update({ where: { id: vacancyId }, data: { isDeleted: true } })
+
+    if (vacancy.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: vacancy.authorId },
+            data: { reputation: { decrement: vacancy.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: vacancyId } }
 }

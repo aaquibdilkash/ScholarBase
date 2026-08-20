@@ -36,6 +36,7 @@ export async function getResults(q?: string, userId?: string, limit = 20, cursor
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,
@@ -204,7 +205,7 @@ export async function deleteResult(resultId: string) {
 
     const result = await prisma.result.findUnique({
         where: { id: resultId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!result) {
@@ -214,8 +215,14 @@ export async function deleteResult(resultId: string) {
         throw new Error('Not authorized to delete this result.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.result.update({ where: { id: resultId }, data: { isDeleted: true } })
+
+    if (result.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: result.authorId },
+            data: { reputation: { decrement: result.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: resultId } }
 }

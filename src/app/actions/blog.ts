@@ -233,7 +233,7 @@ export async function deleteArticle(articleId: string) {
 
     const article = await prisma.article.findUnique({
         where: { id: articleId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!article) {
@@ -247,6 +247,13 @@ export async function deleteArticle(articleId: string) {
         where: { id: articleId },
         data: { isDeleted: true },
     })
+
+    if (article.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: article.authorId },
+            data: { reputation: { decrement: article.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: articleId } }
 }

@@ -82,7 +82,7 @@ export async function deleteResearchTool(toolId: string) {
 
     const tool = await prisma.researchTool.findUnique({
         where: { id: toolId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!tool) {
@@ -92,8 +92,14 @@ export async function deleteResearchTool(toolId: string) {
         throw new Error('Not authorized to delete this research tool.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.researchTool.update({ where: { id: toolId }, data: { isDeleted: true } })
+
+    if (tool.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: tool.authorId },
+            data: { reputation: { decrement: tool.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: toolId } }
 }
@@ -126,6 +132,7 @@ export async function getResearchTools(q?: string, userId?: string, limit = 20, 
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,

@@ -258,7 +258,7 @@ export async function handleVoteTransaction(
     const [entity, existingVote] = await Promise.all([
       parent.findUnique({
         where: { id: entityId },
-        select: { [config.titleField]: true, totalVotes: true },
+        select: { [config.titleField]: true, totalVotes: true, authorId: true },
       }),
       vote.findUnique({ where: voteWhere, select: { voteType: true } }),
     ])
@@ -286,6 +286,13 @@ export async function handleVoteTransaction(
       where: { id: entityId },
       data: { totalVotes },
     })
+
+    if (voteValue !== 0 && entity.authorId) {
+      await prisma.user.update({
+        where: { id: entity.authorId },
+        data: { reputation: { increment: voteValue } },
+      })
+    }
 
     await prisma.userActivity.create({
       data: { userId, action: 'VOTED', moduleType: module, entityId, entityTitle },
@@ -319,7 +326,7 @@ export async function handleCommentVoteTransaction(
     const [comment, existingVote] = await Promise.all([
       commentModel.findUnique({
         where: { id: commentId },
-        select: { totalVotes: true, [config.commentFk]: true, content: true },
+        select: { totalVotes: true, [config.commentFk]: true, content: true, authorId: true },
       }),
       commentVote.findUnique({ where: voteWhere, select: { voteType: true } }),
     ])
@@ -347,6 +354,13 @@ export async function handleCommentVoteTransaction(
       where: { id: commentId },
       data: { totalVotes },
     })
+
+    if (voteValue !== 0 && comment.authorId) {
+      await prisma.user.update({
+        where: { id: comment.authorId },
+        data: { reputation: { increment: voteValue } },
+      })
+    }
 
     await prisma.userActivity.create({
       data: {
@@ -465,7 +479,7 @@ export async function deleteCommentTransaction(
   return prisma.$transaction(async (prisma) => {
     const comment = await commentModel.findUnique({
       where: { id: commentId },
-      select: { authorId: true, totalReplies: true, parentId: true, [parentFk]: true, updatedAt: true },
+      select: { authorId: true, totalReplies: true, parentId: true, [parentFk]: true, updatedAt: true, totalVotes: true },
     })
 
     if (!comment) throw new Error('Comment not found.')
@@ -473,6 +487,8 @@ export async function deleteCommentTransaction(
     if (comment.authorId !== userId && !userIsAdmin) {
       throw new Error('Not authorized to delete this comment.')
     }
+
+    const shouldReverseRep = comment.authorId !== null && comment.totalVotes !== 0
 
     if (comment.totalReplies > 0 || (userIsAdmin && comment.authorId !== userId)) {
       await commentModel.update({
@@ -485,6 +501,14 @@ export async function deleteCommentTransaction(
           updatedAt: comment.updatedAt,
         },
       })
+
+      if (shouldReverseRep) {
+        await prisma.user.update({
+          where: { id: comment.authorId },
+          data: { reputation: { decrement: comment.totalVotes } },
+        })
+      }
+
       return { wasTombstoned: true, parentId: comment.parentId }
     } else {
       await commentModel.delete({ where: { id: commentId } })
@@ -504,6 +528,16 @@ export async function deleteCommentTransaction(
           }),
         )
       }
+
+      if (shouldReverseRep) {
+        operations.push(
+          prisma.user.update({
+            where: { id: comment.authorId },
+            data: { reputation: { decrement: comment.totalVotes } },
+          }),
+        )
+      }
+
       await prisma.$transaction(operations)
       return { wasTombstoned: false, parentId: comment.parentId }
     }

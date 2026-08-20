@@ -113,24 +113,14 @@ export default async function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        {/* 1. Native script blocks the DOM paint (ZERO flash of light mode).
+          2. suppressHydrationWarning on the script kills the React console error.
+          3. Minified single-line string kills the text-node mismatch error.
+        */}
         <script
-          id="theme-init"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{
-            __html: `(function(){
-        try {
-          var theme = localStorage.getItem('sb-theme');
-          // If there is NO theme in storage, default to true (dark)
-          var isDark = theme === 'dark' || !theme; 
-          
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.style.colorScheme = 'dark';
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.style.colorScheme = 'light';
-          }
-        } catch(e) {}
-      })();`,
+            __html: `!function(){try{var t=localStorage.getItem("sb-theme"),e=t==="dark"||!t;document.documentElement.classList.toggle("dark",e),document.documentElement.style.colorScheme=e?"dark":"light"}catch(e){}}();`
           }}
         />
       </head>

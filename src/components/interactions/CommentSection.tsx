@@ -178,8 +178,7 @@ export function CommentSection({
 
   useEffect(() => {
     emitCommentCount(
-      cachedComments.filter((c) => !c.parentId).length +
-        cachedComments.filter((c) => c.parentId).length,
+      cachedComments.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0),
     );
   }, [cachedComments]);
 
@@ -551,22 +550,52 @@ function CommentEntry({
         if (response.data.wasTombstoned) {
           queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
             commentsQueryKey,
-            (oldComments = []) =>
-              oldComments.map((c) =>
+            (oldComments = []) => {
+              if (isReply) {
+                return oldComments.map((c) => {
+                  if (c.id !== comment.parentId) return c;
+                  return {
+                    ...c,
+                    replies: (c.replies ?? []).map((r) =>
+                      r.id === comment.id
+                        ? { ...r, content: '[This comment was deleted by author]', authorId: null, author: null }
+                        : r,
+                    ),
+                  };
+                });
+              }
+              return oldComments.map((c) =>
                 c.id === comment.id
-                  ? {
-                      ...c,
-                      content: '[This comment was deleted by author]',
-                      authorId: null,
-                      author: null,
-                    }
+                  ? { ...c, content: '[This comment was deleted by author]', authorId: null, author: null }
                   : c,
-              ),
+              );
+            },
           );
         } else {
           queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
             commentsQueryKey,
-            (oldComments = []) => oldComments.filter((c) => c.id !== comment.id),
+            (oldComments = []) => {
+              if (isReply) {
+                return oldComments.reduce<CommentWithAuthorAndVotes[]>((acc, c) => {
+                  if (c.id !== comment.parentId) {
+                    acc.push(c);
+                    return acc;
+                  }
+                  const updatedReplies = (c.replies ?? []).filter((r) => r.id !== comment.id);
+                  const updatedTotalReplies = Math.max(0, (c.totalReplies ?? 0) - 1);
+                  if (!c.authorId && updatedReplies.length === 0) {
+                    return acc;
+                  }
+                  acc.push({
+                    ...c,
+                    replies: updatedReplies,
+                    totalReplies: updatedTotalReplies,
+                  });
+                  return acc;
+                }, []);
+              }
+              return oldComments.filter((c) => c.id !== comment.id);
+            },
           );
           queryClient.setQueriesData<{ totalComments?: number }>(
             { queryKey: [module, targetId] },
@@ -590,7 +619,7 @@ function CommentEntry({
             },
           );
         }
-        toast({ title: "Success", description: "Comment deleted." });
+        toast({ title: "Success", description: "Comment Deleted!" });
       } else {
         throw new Error("Unknown error");
       }
@@ -700,6 +729,7 @@ function CommentEntry({
               ) : null}
             </div>
             <span
+            suppressHydrationWarning
               className={`font-medium ${
                 isReply
                   ? "text-[10px] text-slate-400 md:text-[11px]"
@@ -740,7 +770,7 @@ function CommentEntry({
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">
                 {wasEdited && (
-                  <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                  <span suppressHydrationWarning className="text-xs font-semibold text-slate-400 dark:text-slate-500">
                     {`Edited ${formatTimeAgo(comment.editedAt)}`}
                   </span>
                 )}

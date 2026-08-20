@@ -67,6 +67,7 @@ const getFeed = async (
       createdAt: true,
       updatedAt: true,
             editedAt: true,
+      authorId: true,
       author: {
         select: {
           id: true,
@@ -322,7 +323,7 @@ export async function deleteSocialPost(postId: string) {
 
   const post = await prisma.socialPost.findUnique({
     where: { id: postId },
-    select: { authorId: true },
+    select: { authorId: true, totalVotes: true },
   })
 
   if (!post) return
@@ -330,14 +331,17 @@ export async function deleteSocialPost(postId: string) {
     throw new Error('Not authorized to delete this post.')
   }
 
-  // Soft delete the post. Reputation is not reversed, as per RULE 3.
   await prisma.socialPost.update({
     where: { id: postId },
     data: { isDeleted: true },
   })
 
-  // The associated image is NOT deleted from Cloudinary on soft delete.
-  // It will be garbage collected later if needed.
+  if (post.totalVotes !== 0) {
+    await prisma.user.update({
+      where: { id: post.authorId },
+      data: { reputation: { decrement: post.totalVotes } },
+    })
+  }
 
   return { success: true, data: { id: postId } }
 }

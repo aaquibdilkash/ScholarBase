@@ -89,7 +89,7 @@ export function VoteButton({
         });
         toast({
           title: "Success",
-          description: result.data.userVote ? "Vote registered!" : "Vote removed.",
+          description: result.data.userVote ? "Vote Registered!" : "Vote Removed!",
         });
       } else {
         toast({

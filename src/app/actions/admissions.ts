@@ -29,6 +29,7 @@ export async function getAdmissions(q?: string, userId?: string, limit = 20, cur
             department: true,
             deadline: true,
             createdAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,
@@ -206,7 +207,7 @@ export async function deletePhdAdmission(admissionId: string) {
 
     const admission = await prisma.phdAdmission.findUnique({
         where: { id: admissionId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!admission) {
@@ -216,8 +217,14 @@ export async function deletePhdAdmission(admissionId: string) {
         throw new Error('Not authorized to delete this admission.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.phdAdmission.update({ where: { id: admissionId }, data: { isDeleted: true } })
+
+    if (admission.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: admission.authorId },
+            data: { reputation: { decrement: admission.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: admissionId } }
 }
@@ -238,6 +245,7 @@ export async function getLatestAdmissions(count: number, userId?: string) {
             department: true,
             deadline: true,
             createdAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,

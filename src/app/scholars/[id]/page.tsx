@@ -81,7 +81,7 @@ export default async function ScholarProfile({
                 <Star className="h-3.5 w-3.5 text-amber-500" />
                 {profile.reputation} reputation
               </span>
-              <span>Joined {formatTimeAgo(profile.createdAt)}</span>
+              <span suppressHydrationWarning>Joined {formatTimeAgo(profile.createdAt)}</span>
             </div>
           </div>
         </div>

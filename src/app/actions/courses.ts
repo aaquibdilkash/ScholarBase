@@ -109,7 +109,7 @@ export async function deleteCourse(courseId: string) {
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { authorId: true },
+    select: { authorId: true, totalVotes: true },
   })
 
   if (!course) {
@@ -119,8 +119,14 @@ export async function deleteCourse(courseId: string) {
     throw new Error('Not authorized to delete this course.')
   }
 
-  // Soft delete (no reputation reversal)
   await prisma.course.update({ where: { id: courseId }, data: { isDeleted: true } })
+
+  if (course.totalVotes !== 0) {
+    await prisma.user.update({
+      where: { id: course.authorId },
+      data: { reputation: { decrement: course.totalVotes } },
+    })
+  }
 
   return { success: true, data: { deletedId: courseId } }
 }
@@ -154,6 +160,7 @@ export async function getCourses(q?: string, userId?: string, limit = 20, cursor
       createdAt: true,
       updatedAt: true,
             editedAt: true,
+      authorId: true,
       author: {
         select: {
           id: true,

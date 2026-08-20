@@ -2,10 +2,12 @@ import { useSyncExternalStore } from 'react';
 
 type Listener = (count: number) => void;
 let count = 0;
+let hasEmitted = false;
 const listeners = new Set<Listener>();
 
 export function emitCommentCount(c: number) {
   count = c;
+  hasEmitted = true;
   listeners.forEach((l) => l(c));
 }
 
@@ -21,7 +23,7 @@ export function getCommentCount() {
 export function useCommentCount(initialCount: number) {
   return useSyncExternalStore(
     subscribeCommentCount,
-    getCommentCount,
+    () => hasEmitted ? count : initialCount,
     () => initialCount,
   );
 }

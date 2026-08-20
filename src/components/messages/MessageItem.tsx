@@ -51,6 +51,7 @@ export const MessageItem = React.memo(
           <p className="text-sm whitespace-pre-wrap">{message.body}</p>
           <div className="mt-1 flex items-center justify-end gap-1.5">
             <p
+              suppressHydrationWarning
               className={`text-[10px] ${
                 isMine ? "text-blue-100" : "text-slate-400 dark:text-slate-500"
               }`}

@@ -111,7 +111,7 @@ export default async function NotificationsPage() {
                 <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                   {notification.body}
                 </p>
-                <p className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                <p suppressHydrationWarning className="mt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
                   {formatTimeAgo(notification.createdAt)}
                 </p>
               </div>

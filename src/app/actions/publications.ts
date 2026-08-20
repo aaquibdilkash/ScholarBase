@@ -137,7 +137,7 @@ export async function deletePublication(publicationId: string) {
 
     const publication = await prisma.publication.findUnique({
         where: { id: publicationId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!publication) {
@@ -147,8 +147,14 @@ export async function deletePublication(publicationId: string) {
         throw new Error('Not authorized to delete this publication.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.publication.update({ where: { id: publicationId }, data: { isDeleted: true } })
+
+    if (publication.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: publication.authorId },
+            data: { reputation: { decrement: publication.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: publicationId } }
 }
@@ -185,6 +191,7 @@ export async function getPublications(q?: string, userId?: string, limit = 20, c
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,

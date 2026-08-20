@@ -91,8 +91,8 @@ function OrcidIcon({ className }: { className?: string }) {
 const SECTIONS: SectionWithCount[] = [
   {
     key: "articles",
-    title: "Research Articles",
-    emptyMessage: "No articles published yet.",
+    title: "Research Blog",
+    emptyMessage: "No Blog posts published yet.",
     renderItems: (items: ArticleType[], currentUserId) =>
       items.map((a) => (
         <ArticleCard key={a.id} article={a} currentUserId={currentUserId} />
@@ -473,7 +473,7 @@ export default function ProfileTabs({
           {sections &&
             SECTIONS.map((section) => {
               const items = sections[section.key] ?? [];
-              const count = items.length;
+              const count = sections.counts?.[section.key] ?? items.length;
               const hasMore = items.length > 0;
 
               return (

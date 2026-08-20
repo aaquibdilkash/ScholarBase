@@ -1,10 +1,11 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useTransition, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 import { toggleFollow } from "@/app/actions/follow";
 import { Loader2 } from "lucide-react";
+import { getFollowState, setFollowStateForUser, subscribeFollowState } from "@/lib/follow-store";
 
 export function FollowButton({
   targetId,
@@ -19,12 +20,27 @@ export function FollowButton({
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
 
+  const [followState, setFollowState] = useState(initialIsFollowing);
+
   const [optimisticIsFollowing, setOptimisticIsFollowing] = useOptimistic(
-    initialIsFollowing,
-    (state) => !state
+    followState,
+    (state) => !state,
   );
 
-  // A user cannot follow themselves, so hide the button entirely.
+  useEffect(() => {
+    const globalState = getFollowState();
+    if (targetId in globalState) {
+      setFollowState(globalState[targetId]);
+    }
+
+    const unsubscribe = subscribeFollowState((globalState) => {
+      if (targetId in globalState) {
+        setFollowState(globalState[targetId]);
+      }
+    });
+    return unsubscribe;
+  }, [targetId]);
+
   if (currentUserId && currentUserId === targetId) {
     return null;
   }
@@ -42,8 +58,10 @@ export function FollowButton({
       if (result.error) {
         toast(result.error, "error");
       } else if (result.success) {
+        setFollowState(result.isFollowing);
+        setFollowStateForUser(targetId, result.isFollowing);
         toast(
-          optimisticIsFollowing
+          result.isFollowing
             ? "Started following this scholar"
             : "Unfollowed this scholar",
           "success",

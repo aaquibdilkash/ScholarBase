@@ -29,6 +29,7 @@ export async function getEvents(q?: string, userId?: string, limit = 20, cursor?
             date: true,
             location: true,
             createdAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,
@@ -211,7 +212,7 @@ export async function deleteResearchEvent(eventId: string) {
 
     const event = await prisma.researchEvent.findUnique({
         where: { id: eventId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
 
     if (!event) {
@@ -221,8 +222,14 @@ export async function deleteResearchEvent(eventId: string) {
         throw new Error('Not authorized to delete this event.')
     }
 
-    // Soft delete (no reputation reversal)
     await prisma.researchEvent.update({ where: { id: eventId }, data: { isDeleted: true } })
+
+    if (event.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: event.authorId },
+            data: { reputation: { decrement: event.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: eventId } }
 }

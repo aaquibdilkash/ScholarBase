@@ -358,15 +358,21 @@ export async function deleteSurvey(surveyId: string) {
 
     const survey = await prisma.researchSurvey.findUnique({
         where: { id: surveyId },
-        select: { authorId: true },
+        select: { authorId: true, totalVotes: true },
     })
     if (!survey) {
         throw new Error('Survey not found.')
     }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized to delete this survey.')
 
-    // Soft delete (no reputation reversal)
     await prisma.researchSurvey.update({ where: { id: surveyId }, data: { isDeleted: true } })
+
+    if (survey.totalVotes !== 0) {
+        await prisma.user.update({
+            where: { id: survey.authorId },
+            data: { reputation: { decrement: survey.totalVotes } },
+        })
+    }
 
     return { success: true, data: { deletedId: surveyId } }
 }
@@ -555,10 +561,10 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
         data: { totalAnswers: { increment: 1 } },
     })
 
-    // Award 5 reputation points for participating in a survey (first time only)
+    // Award 1 reputation point for participating in a survey
     await prisma.user.update({
         where: { id: user.id },
-        data: { reputation: { increment: 5 } },
+        data: { reputation: { increment: 1 } },
     })
 
     return { success: true, data: newResponse }
