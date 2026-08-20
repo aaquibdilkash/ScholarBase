@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { RichContent } from "@/components/content/RichContent";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
-import { createArticleSafe, updateArticleSafe } from "@/app/actions/blog";
+import { createArticle, updateArticle } from "@/app/actions/blog";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -50,10 +50,10 @@ export function ArticleComposer({
   const { toast } = useToast();
 
   const createMutation = useMutation({
-    mutationFn: createArticleSafe,
+      mutationFn: createArticle,
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast(response.error || "Failed to publish article.", "error");
+        toast("Failed to publish article.", "error");
         return;
       }
       const newArticle = response.data as Article;
@@ -72,10 +72,10 @@ export function ArticleComposer({
 
   const updateMutation = useMutation({
     mutationFn: ({ formData, id }: { formData: FormData; id: string }) =>
-      updateArticleSafe(formData, id),
+      updateArticle(formData, id),
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast(response.error || "Failed to update article.", "error");
+        toast("Failed to update article.", "error");
         return;
       }
       const updatedArticle = response.data as Article;
@@ -149,7 +149,7 @@ export function ArticleComposer({
           <div className="mb-3 flex items-center justify-between gap-3">
             <label className="sb-label mb-0">Content</label>
             <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-              CKEditor
+              SB Editor
             </span>
           </div>
 

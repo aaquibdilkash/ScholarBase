@@ -33,12 +33,8 @@ export function PublicationCard({
   const isOwner = currentUserId === publication.authorId;
   const isFollowing = (publication.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    publication.votes?.find((v) => v.userId === currentUserId)?.voteType ??
+    (publication.votes || [])[0]?.voteType ??
     null;
-  const upvoteCount =
-    publication.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    publication.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: deletePublication,
@@ -74,27 +70,29 @@ export function PublicationCard({
             isOwner={true}
             editLabel="Edit Publication"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(publication.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(publication.id);
+              return { refresh: false };
+            }}
           />
         )
       }
       createdDate={publication.createdAt}
       editedDate={
-        publication.updatedAt > publication.createdAt
-          ? publication.updatedAt
+        publication.editedAt && publication.editedAt > publication.createdAt
+          ? publication.editedAt
           : undefined
       }
       footerVoteButton={
         <VoteButton
           targetId={publication.id}
-          type="publication"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="PUBLICATION"
+          initialTotalVotes={publication.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/publications/${publication.id}`}
-      footerCommentsCount={publication._count.comments}
+      footerCommentsCount={publication.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         publication.url && (

@@ -30,11 +30,7 @@ export function ResultCard({
   const isOwner = currentUserId === result.authorId;
   const isFollowing = (result.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    result.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    result.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    result.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    (result.votes || [])[0]?.voteType ?? null;
 
   const deleteMutation = useMutation({
     mutationFn: deleteResult,
@@ -68,7 +64,10 @@ export function ResultCard({
           <OwnerActionsDropdown
             editHref={`/results/${result.id}/edit`}
             isOwner={true}
-            onDelete={() => { deleteMutation.mutate(result.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(result.id);
+              return { refresh: false };
+            }}
             editLabel="Edit Result"
             deleteLabel="Delete"
           />
@@ -76,19 +75,18 @@ export function ResultCard({
       }
       createdDate={result.createdAt}
       editedDate={
-        result.updatedAt > result.createdAt ? result.updatedAt : undefined
+        result.editedAt && result.editedAt > result.createdAt ? result.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
           targetId={result.id}
-          type="result"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="RESULT"
+          initialTotalVotes={result.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/results/${result.id}`}
-      footerCommentsCount={result._count.comments}
+      footerCommentsCount={result.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

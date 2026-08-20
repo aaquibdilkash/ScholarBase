@@ -36,7 +36,6 @@ export async function login(formData: FormData): Promise<AuthResult> {
         return { success: false, error: 'Incorrect email or password.' }
     }
 
-    // REMOVED: revalidatePath
     return { success: true, redirect: callbackUrl }
 }
 
@@ -123,6 +122,5 @@ export async function signOut() {
     const supabase = await createClient()
 
     await supabase.auth.signOut()
-    // REMOVED: revalidatePath
     redirect('/login')
 }

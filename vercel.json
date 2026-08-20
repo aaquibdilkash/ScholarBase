@@ -1,0 +1,20 @@
+{
+  "_crons": [
+    {
+      "path": "/api/cron/update-trending",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/clear-conversation-history",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-deadlines",
+      "schedule": "5 3 * * *"
+    },
+    {
+      "path": "/api/cron/trim-activities",
+      "schedule": "10 3 * * *"
+    }
+  ]
+}

@@ -9,7 +9,13 @@ import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 
 type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
-  include: {
+  select: {
+    id: true;
+    content: true;
+    imageUrl: true;
+    createdAt: true;
+    updatedAt: true;
+    editedAt: true;
     author: {
       select: {
         id: true;
@@ -19,8 +25,9 @@ type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
         followers: { select: { followerId: true } };
       };
     };
-    votes: true;
-    _count: { select: { comments: true; votes: true } };
+    totalVotes: true;
+    totalComments: true;
+    votes: { select: { voteType: true } };
   };
 }>;
 

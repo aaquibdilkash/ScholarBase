@@ -11,7 +11,6 @@ export async function markNotificationRead(notificationId: string) {
         data: { readAt: new Date() },
     })
 
-    // REMOVED: revalidatePath
 }
 
 export async function markAllNotificationsRead() {
@@ -22,5 +21,4 @@ export async function markAllNotificationsRead() {
         data: { readAt: new Date() },
     })
 
-    // REMOVED: revalidatePath
 }

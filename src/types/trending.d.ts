@@ -19,10 +19,8 @@ export type TrendingItemType =
 
 type TrendingItemBase = {
     score: number;
-    _count: {
-        votes: number;
-        comments: number;
-    };
+    totalVotes: number;
+    totalComments: number;
     author: User;
     votes: { userId: string; voteType: VoteType }[];
 };
@@ -33,10 +31,8 @@ export type TrendingSupervisor = Supervisor & {
     score: number;
     type: 'supervisor';
     votes: { userId: string; voteType: VoteType }[];
-    _count: {
-        comments: number;
-        votes: number;
-    };
+    totalVotes: number;
+    totalComments: number;
 };
 
 /** Raw supervisor row fetched in `getTrendingSupervisors` before scoring. */
@@ -44,19 +40,16 @@ export type SupervisorWithVotesAndRecommendations = Supervisor & {
     author: User;
     recommendations: Recommendation[];
     votes: { userId: string; voteType: VoteType }[];
-    _count: {
-        comments: number;
-        votes: number;
-    };
+    totalVotes: number;
+    totalComments: number;
 };
 
 export type TrendingScholar = Scholar & {
     score: number;
     type: 'scholar';
-    _count: {
-        followers: number;
-        following: number;
-    };
+    // RULE 6: materialized counters (also present on the User base type).
+    followersCount: number;
+    followingCount: number;
 };
 
 export type TrendingItem =

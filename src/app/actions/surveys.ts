@@ -6,7 +6,6 @@ import type { SurveyQuestionInput } from '@/types/survey'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getSurveys(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
@@ -23,9 +22,28 @@ export async function getSurveys(q?: string, userId?: string, limit = 20, cursor
         orderBy: { createdAt: 'desc' },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            privacy: true,
+            shareData: true,
+            authorId: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            status: true,
+            isDeleted: true,
+            totalVotes: true,
+            totalComments: true,
+            totalResponses: true,
+            trendingScore: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -34,12 +52,7 @@ export async function getSurveys(q?: string, userId?: string, limit = 20, cursor
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true, responses: true },
-            },
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -47,9 +60,28 @@ export async function getSurveys(q?: string, userId?: string, limit = 20, cursor
 export async function getSurvey(id: string, userId?: string) {
     return prisma.researchSurvey.findUnique({
         where: { id },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            privacy: true,
+            shareData: true,
+            authorId: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            status: true,
+            isDeleted: true,
+            totalVotes: true,
+            totalComments: true,
+            totalResponses: true,
+            trendingScore: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -75,7 +107,11 @@ export async function getSurvey(id: string, userId?: string) {
                     content: true,
                     createdAt: true,
                     updatedAt: true,
+            editedAt: true,
                     parentId: true,
+                    authorId: true,
+                    totalVotes: true,
+                    totalReplies: true,
                     author: {
                         select: {
                             id: true,
@@ -84,15 +120,17 @@ export async function getSurvey(id: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
+            editedAt: true,
                             parentId: true,
+                            authorId: true,
+                            totalVotes: true,
                             author: {
                                 select: {
                                     id: true,
@@ -101,22 +139,14 @@ export async function getSurvey(id: string, userId?: string) {
                                     avatarUrl: true,
                                 },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
                         orderBy: { createdAt: 'asc' },
                     },
-                    _count: { select: { votes: true } },
                 },
                 orderBy: { createdAt: 'desc' },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true, responses: true },
-            },
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -172,9 +202,6 @@ export async function createSurvey(formData: FormData) {
             author: true,
             votes: true,
             questions: { include: { options: true } },
-            _count: {
-                select: { votes: true, comments: true, responses: true },
-            },
         }
     })
 
@@ -222,9 +249,12 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     await prisma.$transaction(async (tx) => {
         const existingQuestions = await tx.surveyQuestion.findMany({
             where: { surveyId, archivedAt: null },
-            include: {
+             select: {
+                id: true,
+                title: true,
+                type: true,
                 options: { where: { archivedAt: null } },
-                _count: { select: { answers: true } },
+                totalAnswers: true,
             },
         })
         const existingById = new Map(existingQuestions.map((question) => [question.id, question]))
@@ -235,7 +265,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
             if (question.id && !existing) {
                 throw new Error('One of the survey questions is no longer available to edit.')
             }
-            if (existing && existing.type !== question.type && existing._count.answers > 0) {
+            if (existing && existing.type !== question.type && existing.totalAnswers > 0) {
                 throw new Error(`Cannot change the type of \"${existing.title}\" because it already has responses.`)
             }
 
@@ -302,7 +332,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
         const removedQuestions = existingQuestions.filter((question) => !submittedIds.includes(question.id))
         for (const question of removedQuestions) {
-            if (question._count.answers > 0) {
+            if (question.totalAnswers > 0) {
                 await tx.surveyQuestion.update({
                     where: { id: question.id },
                     data: { archivedAt: new Date(), options: { updateMany: { where: {}, data: { archivedAt: new Date() } } } },
@@ -314,7 +344,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
         await tx.researchSurvey.update({
             where: { id: surveyId },
-            data: { title, description, privacy: privacy || 'HYBRID', shareData },
+            data: { title, description, privacy: privacy || 'HYBRID', shareData, editedAt: new Date() },
         })
     })
 
@@ -335,11 +365,8 @@ export async function deleteSurvey(surveyId: string) {
     }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized to delete this survey.')
 
-    const voteCounts = await countVotesForTarget(prisma.surveyVote, 'surveyId', surveyId)
-    await reverseReputationForContent(survey.authorId, voteCounts)
-    await reverseContentCommentVoteReputation('survey', surveyId)
-
-    await prisma.researchSurvey.delete({ where: { id: surveyId } })
+    // Soft delete (no reputation reversal)
+    await prisma.researchSurvey.update({ where: { id: surveyId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: surveyId } }
 }
@@ -363,9 +390,6 @@ export async function closeSurvey(surveyId: string) {
             author: true,
             votes: true,
             questions: { include: { options: true } },
-            _count: {
-                select: { votes: true, comments: true, responses: true },
-            },
         }
     })
     return { success: true, data: updatedSurvey }
@@ -390,9 +414,6 @@ export async function reopenSurvey(surveyId: string) {
             author: true,
             votes: true,
             questions: { include: { options: true } },
-            _count: {
-                select: { votes: true, comments: true, responses: true },
-            },
         }
     })
     return { success: true, data: updatedSurvey }
@@ -417,9 +438,6 @@ export async function toggleShareData(surveyId: string) {
             author: true,
             votes: true,
             questions: { include: { options: true } },
-            _count: {
-                select: { votes: true, comments: true, responses: true },
-            },
         }
     })
 
@@ -465,6 +483,13 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
     if (existingResponse) {
         // Retain answers to archived questions as historical data, while
         // replacing responses to questions that remain active in the form.
+        const deletedAnswers = await prisma.surveyAnswer.findMany({
+            where: {
+                responseId: existingResponse.id,
+                question: { archivedAt: null },
+            },
+            select: { questionId: true },
+        })
         await prisma.surveyAnswer.deleteMany({
             where: {
                 responseId: existingResponse.id,
@@ -484,6 +509,25 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
             },
             include: { answers: true }
         })
+
+        const newQuestionIds = [...new Set(answers.map((a) => a.questionId))]
+        const deletedQuestionIds = [...new Set(deletedAnswers.map((a) => a.questionId))]
+        const questionsToDecrement = deletedQuestionIds.filter((id) => !newQuestionIds.includes(id))
+        const questionsToIncrement = newQuestionIds.filter((id) => !deletedQuestionIds.includes(id))
+
+        if (questionsToIncrement.length > 0) {
+            await prisma.surveyQuestion.updateMany({
+                where: { id: { in: questionsToIncrement } },
+                data: { totalAnswers: { increment: 1 } },
+            })
+        }
+        if (questionsToDecrement.length > 0) {
+            await prisma.surveyQuestion.updateMany({
+                where: { id: { in: questionsToDecrement } },
+                data: { totalAnswers: { decrement: 1 } },
+            })
+        }
+
         return { success: true, data: updatedResponse }
     }
 
@@ -503,6 +547,12 @@ export async function submitSurveyResponse(formData: FormData, surveyId: string)
             },
         },
         include: { answers: true }
+    })
+
+    const uniqueQuestionIds = [...new Set(answers.map((a) => a.questionId))]
+    await prisma.surveyQuestion.updateMany({
+        where: { id: { in: uniqueQuestionIds } },
+        data: { totalAnswers: { increment: 1 } },
     })
 
     // Award 5 reputation points for participating in a survey (first time only)
@@ -543,7 +593,12 @@ export async function getSurveyResponses(surveyId: string, userId?: string) {
 export async function getSurveyResults(surveyId: string) {
     const survey = await prisma.researchSurvey.findUnique({
         where: { id: surveyId },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            authorId: true,
+            shareData: true,
+            totalResponses: true,
             questions: {
                 orderBy: { order: 'asc' },
                 include: {
@@ -551,7 +606,6 @@ export async function getSurveyResults(surveyId: string) {
                     answers: true,
                 },
             },
-            _count: { select: { responses: true } },
         },
     })
     return survey

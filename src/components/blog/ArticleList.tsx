@@ -4,26 +4,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
-import type { Prisma } from "@prisma/client";
+import type { ArticleWithAuthor } from "@/types/cards";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
 import { getArticles } from "@/app/actions/blog";
-
-type ArticleWithDetails = Prisma.ArticleGetPayload<{
-  include: {
-    author: {
-      select: {
-        id: true;
-        name: true;
-        handle: true;
-        avatarUrl: true;
-        followers: { select: { followerId: true } };
-      };
-    };
-    votes: { select: { userId: true; voteType: true } };
-    _count: { select: { votes: true; comments: true } };
-  };
-}>;
 
 export function ArticleList({
   articles,
@@ -31,7 +15,7 @@ export function ArticleList({
   initialQuery,
   loadMoreParams,
 }: {
-  articles: ArticleWithDetails[];
+  articles: ArticleWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
   loadMoreParams?: Record<string, string | undefined>;
@@ -64,8 +48,8 @@ export function ArticleList({
         params={{ q: query, ...loadMoreParams }}
         renderItem={(article) => (
           <ArticleCard
-            key={(article as ArticleWithDetails).id}
-            article={article as ArticleWithDetails}
+            key={(article as ArticleWithAuthor).id}
+            article={article as ArticleWithAuthor}
             currentUserId={currentUserId}
           />
         )}

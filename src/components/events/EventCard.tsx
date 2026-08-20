@@ -32,11 +32,7 @@ export function EventCard({
   const isOwner = currentUserId === event.authorId;
   const isFollowing = (event.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    event.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    event.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    event.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    (event.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(event.deadline);
 
   const deleteMutation = useMutation({
@@ -71,7 +67,10 @@ export function EventCard({
           <OwnerActionsDropdown
             editHref={`/events/${event.id}/edit`}
             isOwner={true}
-            onDelete={() => { deleteMutation.mutate(event.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(event.id);
+              return { refresh: false };
+            }}
             editLabel="Edit Event"
             deleteLabel="Delete"
           />
@@ -81,14 +80,13 @@ export function EventCard({
       footerVoteButton={
         <VoteButton
           targetId={event.id}
-          type="event"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="RESEARCH_EVENT"
+          initialTotalVotes={event.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/events/${event.id}`}
-      footerCommentsCount={event._count.comments}
+      footerCommentsCount={event.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

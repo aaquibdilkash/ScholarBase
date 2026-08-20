@@ -5,25 +5,30 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getEvents(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.ResearchEventWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
                 { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { location: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
-        }
-        : {};
+        }),
+    };
 
     return prisma.researchEvent.findMany({
         where,
         orderBy: { createdAt: "desc" },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            title: true,
+            date: true,
+            location: true,
+            createdAt: true,
             author: {
                 select: {
                     id: true,
@@ -35,19 +40,16 @@ export async function getEvents(q?: string, userId?: string, limit = 20, cursor?
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
 
 export async function getEvent(id: string, userId?: string) {
     return prisma.researchEvent.findUnique({
-        where: { id: id },
+        where: { id: id, isDeleted: false },
         select: {
             id: true,
             title: true,
@@ -66,21 +68,23 @@ export async function getEvent(id: string, userId?: string) {
                     handle: true,
                     avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: "desc" },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
                     parentId: true,
+                    authorId: true,
                     author: {
                         select: {
                             id: true,
@@ -89,15 +93,18 @@ export async function getEvent(id: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: "asc" },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
                             parentId: true,
+                            authorId: true,
                             author: {
                                 select: {
                                     id: true,
@@ -106,21 +113,12 @@ export async function getEvent(id: string, userId?: string) {
                                     avatarUrl: true,
                                 },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
                 },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
             },
         },
     });
@@ -142,21 +140,28 @@ export async function createResearchEvent(formData: FormData) {
         throw new Error('Notification and Apply links are required.')
     }
 
-    const event = await prisma.researchEvent.create({
-        data: { title, date, location, description, deadline, notificationLink, applyLink, authorId: user.id },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
+    const event = await prisma.$transaction(async (tx) => {
+        const newEvent = await tx.researchEvent.create({
+            data: { title, date, location, description, deadline, notificationLink, applyLink, authorId: user.id },
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'RESEARCH_EVENT',
+                entityId: newEvent.id,
+                entityTitle: newEvent.title,
+            }
+        });
+
+        return newEvent;
+    });
 
     await notifyFollowersOfActivity({
         actorId: user.id,
         type: 'event-published',
-        targetType: 'event',
+        targetType: 'ResearchEvent',
         targetId: event.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new research event`,
         body: `"${title}" - ${new Date(date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
@@ -195,14 +200,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
 
     const updatedEvent = await prisma.researchEvent.update({
         where: { id: eventId },
-        data: { title, date, location, description, deadline, notificationLink, applyLink },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
+        data: { title, date, location, description, deadline, notificationLink, applyLink, editedAt: new Date() },
     })
 
     return { success: true, data: updatedEvent }
@@ -223,12 +221,8 @@ export async function deleteResearchEvent(eventId: string) {
         throw new Error('Not authorized to delete this event.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.researchEventVote, 'researchEventId', eventId);
-    await reverseReputationForContent(event.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('event', eventId);
-
-    await prisma.researchEvent.delete({ where: { id: eventId } })
+    // Soft delete (no reputation reversal)
+    await prisma.researchEvent.update({ where: { id: eventId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: eventId } }
 }
@@ -239,10 +233,16 @@ export async function getUpcomingEvents(count: number, userId?: string) {
             date: {
                 gte: new Date(),
             },
+            isDeleted: false,
         },
         take: count,
         orderBy: { date: "asc" },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            date: true,
+            location: true,
+            createdAt: true,
             author: {
                 select: {
                     id: true,
@@ -254,15 +254,9 @@ export async function getUpcomingEvents(count: number, userId?: string) {
                         : false,
                 },
             },
-            votes: {
-                select: {
-                    userId: true,
-                    voteType: true,
-                },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }

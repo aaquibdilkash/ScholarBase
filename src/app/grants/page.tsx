@@ -6,7 +6,7 @@ import { ResearchGrantsList } from "@/components/grants/ResearchGrantsList";
 
 export const metadata: Metadata = {
   title: "Research Grants",
-  description: "Discover and share research grants, funding calls, application links, and guidance for scholars.",
+  description: "Discover and share research grants, research scholarships, funding calls, application links, and guidance for scholars.",
   alternates: { canonical: "/grants" },
 };
 
@@ -24,7 +24,7 @@ export default async function ResearchGrantsPage({
   return (
     <ListPageShell
       title="Research Grants"
-      description="Share funding opportunities, application guidance, and useful grant information with scholars."
+      description="Share funding opportunities, application guidance, research scholarships, and useful grant information with scholars."
       addHref="/grants/add"
       addLabel="+ Add Research Grant"
       enableTrending={false}

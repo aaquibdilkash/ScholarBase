@@ -24,11 +24,7 @@ export function VacancyCard({
   const isOwner = currentUserId === vacancy.authorId;
   const isFollowing = (vacancy.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    vacancy.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    vacancy.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    vacancy.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    ((vacancy.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
   const urgency = getTimeLeft(vacancy.deadline);
 
   const deleteMutation = useMutation({
@@ -65,7 +61,10 @@ export function VacancyCard({
             isOwner={true}
             editLabel="Edit Vacancy"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(vacancy.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(vacancy.id);
+              return { refresh: false };
+            }}
           />
         )
       }
@@ -73,14 +72,13 @@ export function VacancyCard({
       footerVoteButton={
         <VoteButton
           targetId={vacancy.id}
-          type="vacancy"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="JOB_VACANCY"
+          initialTotalVotes={vacancy.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/vacancies/${vacancy.id}`}
-      footerCommentsCount={vacancy._count.comments}
+      footerCommentsCount={vacancy.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

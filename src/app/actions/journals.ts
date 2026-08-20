@@ -5,7 +5,6 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function createJournal(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -19,31 +18,38 @@ export async function createJournal(formData: FormData) {
     const website = readOptionalFormValue(formData, 'website')
     const about = readOptionalFormValue(formData, 'about')
 
-    const journal = await prisma.journal.create({
-        data: {
-            title,
-            issn,
-            impactFactor: impactFactor ? parseFloat(impactFactor) : null,
-            scopus,
-            abdcCategory,
-            publisher,
-            website,
-            about,
-            authorId: user.id
-        },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
+    const journal = await prisma.$transaction(async (tx) => {
+        const newJournal = await tx.journal.create({
+            data: {
+                title,
+                issn,
+                impactFactor: impactFactor ? parseFloat(impactFactor) : null,
+                scopus,
+                abdcCategory,
+                publisher,
+                website,
+                about,
+                authorId: user.id
             },
-        }
-    })
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'JOURNAL',
+                entityId: newJournal.id,
+                entityTitle: newJournal.title,
+            }
+        });
+
+        return newJournal;
+    });
 
     await notifyFollowersOfActivity({
         actorId: user.id,
         type: 'journal-published',
-        targetType: 'journal',
+        targetType: 'Journal',
         targetId: journal.id,
         title: `${user.email?.split('@')[0] || 'Someone'} added a new journal`,
         body: `${title}${publisher ? ` by ${publisher}` : ''}`,
@@ -87,14 +93,8 @@ export async function updateJournal(formData: FormData, journalId: string) {
             publisher,
             website,
             about,
+            editedAt: new Date(),
         },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
     })
 
     return { success: true, data: updatedJournal }
@@ -115,27 +115,24 @@ export async function deleteJournal(journalId: string) {
         throw new Error('Not authorized to delete this journal.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.journalVote, 'journalId', journalId);
-    await reverseReputationForContent(journal.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('journal', journalId);
-
-    await prisma.journal.delete({ where: { id: journalId } })
+    // Soft delete (no reputation reversal)
+    await prisma.journal.update({ where: { id: journalId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: journalId } }
 }
 
 export async function getJournals(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.JournalWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
                 { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { publisher: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { about: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { issn: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
-        }
-        : {};
+        }),
+    };
 
     return prisma.journal.findMany({
         where,
@@ -144,9 +141,20 @@ export async function getJournals(q?: string, userId?: string, limit = 20, curso
         },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            title: true,
+            publisher: true,
+            impactFactor: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
                         ? {
                             where: { followerId: userId },
@@ -155,15 +163,9 @@ export async function getJournals(q?: string, userId?: string, limit = 20, curso
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: {
-                    votes: true,
-                    comments: true,
-                },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -172,6 +174,7 @@ export async function getJournalById(journalId: string, userId?: string) {
     return prisma.journal.findUniqueOrThrow({
         where: {
             id: journalId,
+            isDeleted: false,
         },
         select: {
             id: true,
@@ -185,6 +188,7 @@ export async function getJournalById(journalId: string, userId?: string) {
             about: true,
             createdAt: true,
             updatedAt: true,
+            editedAt: true,
             authorId: true,
             author: {
                 select: {
@@ -200,14 +204,20 @@ export async function getJournalById(journalId: string, userId?: string) {
                         : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: "desc" },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
+            editedAt: true,
                     parentId: true,
+                    authorId: true,
                     author: {
                         select: {
                             id: true,
@@ -216,15 +226,19 @@ export async function getJournalById(journalId: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: "asc" },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
+            editedAt: true,
                             parentId: true,
+                            authorId: true,
                             author: {
                                 select: {
                                     id: true,
@@ -233,23 +247,11 @@ export async function getJournalById(journalId: string, userId?: string) {
                                     avatarUrl: true,
                                 },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
-                },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: {
-                    votes: true,
-                    comments: true,
                 },
             },
         },

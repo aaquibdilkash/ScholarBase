@@ -5,11 +5,11 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getResults(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.ResultWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
                 { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
@@ -17,97 +17,110 @@ export async function getResults(q?: string, userId?: string, limit = 20, cursor
                 { conductingBody: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { session: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
-        }
-        : {};
+        })
+    };
 
     return prisma.result.findMany({
         where,
         orderBy: { createdAt: "desc" },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            type: true,
+            category: true,
+            conductingBody: true,
+            session: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
 
 export async function getResult(id: string, userId?: string) {
     return prisma.result.findUnique({
-        where: { id: id },
-        include: {
+        where: { id, isDeleted: false },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            type: true,
+            category: true,
+            conductingBody: true,
+            session: true,
+            notificationLink: true,
+            resultLink: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            authorId: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: "desc" },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
+            editedAt: true,
                     parentId: true,
+                    authorId: true,
                     author: {
-                        select: {
-                            id: true,
-                            name: true,
-                            handle: true,
-                            avatarUrl: true,
-                        },
+                        select: { id: true, name: true, handle: true, avatarUrl: true },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: "asc" },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
+            editedAt: true,
                             parentId: true,
+                            authorId: true,
                             author: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    handle: true,
-                                    avatarUrl: true,
-                                },
+                                select: { id: true, name: true, handle: true, avatarUrl: true },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
                 },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
             },
         },
     });
@@ -125,21 +138,27 @@ export async function createResult(formData: FormData) {
     const notificationLink = readOptionalFormValue(formData, 'notificationLink')
     const resultLink = readOptionalFormValue(formData, 'resultLink')
 
-    const result = await prisma.result.create({
-        data: { title, description, type, category, conductingBody, session, notificationLink, resultLink, authorId: user.id },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
+    const result = await prisma.$transaction(async (tx) => {
+        const newResult = await tx.result.create({
+            data: { title, description, type, category, conductingBody, session, notificationLink, resultLink, authorId: user.id }
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'RESULT',
+                entityId: newResult.id,
+                entityTitle: newResult.title,
+            }
+        });
+        return newResult;
+    });
 
     await notifyFollowersOfActivity({
         actorId: user.id,
         type: 'result-published',
-        targetType: 'result',
+        targetType: 'Result',
         targetId: result.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new result`,
         body: `${title}${category ? ` (${category})` : ''}${conductingBody ? ` - ${conductingBody}` : ''}`,
@@ -174,14 +193,7 @@ export async function updateResult(formData: FormData, resultId: string) {
 
     const updatedResult = await prisma.result.update({
         where: { id: resultId },
-        data: { title, description, type, category, conductingBody, session, notificationLink, resultLink },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
+        data: { title, description, type, category, conductingBody, session, notificationLink, resultLink, editedAt: new Date() },
     })
 
     return { success: true, data: updatedResult }
@@ -202,12 +214,8 @@ export async function deleteResult(resultId: string) {
         throw new Error('Not authorized to delete this result.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.resultVote, 'resultId', resultId);
-    await reverseReputationForContent(result.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('result', resultId);
-
-    await prisma.result.delete({ where: { id: resultId } })
+    // Soft delete (no reputation reversal)
+    await prisma.result.update({ where: { id: resultId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: resultId } }
 }

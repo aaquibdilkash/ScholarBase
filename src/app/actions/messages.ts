@@ -65,8 +65,15 @@ export async function getInbox(userId: string) {
 }
 
 export async function getUnreadMessageCount(userId: string) {
-  const inbox = await getInbox(userId)
-  return inbox.reduce((sum, conversation) => sum + conversation.unreadCount, 0)
+  const result = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT COUNT(*)::int AS count
+    FROM "Message" m
+    INNER JOIN "ConversationParticipant" cp ON m."conversationId" = cp."conversationId"
+    WHERE cp."userId" = ${userId}
+      AND m."senderId" != ${userId}
+      AND m."createdAt" > COALESCE(cp."lastReadAt", ${new Date(0)})
+  `
+  return Number(result[0]?.count ?? 0)
 }
 
 export async function findDirectConversation(userIdA: string, userIdB: string) {
@@ -242,7 +249,6 @@ export async function startConversation(formData: FormData): Promise<SubmitResul
     body: body,
   });
 
-  // REMOVED: revalidatePath
   return { success: true, redirect: `/messages/${conversationId}` }
 }
 
@@ -342,7 +348,6 @@ export async function blockUser(blockedId: string) {
   const user = await requireCurrentUser('Please log in to block a scholar.')
   if (user.id === blockedId) throw new Error('You cannot block yourself.')
   await prisma.block.create({ data: { blockerId: user.id, blockedId } })
-  // REMOVED: revalidatePath
 }
 
 export async function unblockUser(blockedId: string) {
@@ -350,7 +355,6 @@ export async function unblockUser(blockedId: string) {
   await prisma.block.delete({
     where: { blockerId_blockedId: { blockerId: user.id, blockedId } },
   })
-  // REMOVED: revalidatePath
 }
 
 export async function getBlockedUserIds(blockerId: string): Promise<string[]> {

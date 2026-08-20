@@ -72,8 +72,8 @@ export default async function ScholarProfile({
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
               <FollowerCount
-                followerCount={profile._count.followers}
-                followingCount={profile._count.following}
+                followerCount={profile.followersCount}
+                followingCount={profile.followingCount}
                 profileId={profile.id}
                 currentUserId={currentUser?.id}
               />

@@ -55,7 +55,6 @@ export async function toggleContentFreeze(
     data: { isFrozen: !content.isFrozen },
   })
 
-  // REMOVED: revalidatePath('/admin')
   return { success: true, data: content }
 }
 
@@ -79,7 +78,6 @@ export async function toggleAuthorFreeze(authorId: string) {
     data: { isFrozen: !author.isFrozen },
   })
 
-  // REMOVED: revalidatePath('/admin')
   return { success: true, data: author }
 }
 
@@ -111,10 +109,11 @@ export async function adminDeleteContent(contentType: string, contentId: string)
   const config = deleteMap[contentType]
   if (!config) throw new Error('Invalid content type')
 
-  await config.model.delete({ where: { id: contentId } })
+  await config.model.update({
+    where: { id: contentId },
+    data: { isDeleted: true },
+  })
 
-  // REMOVED: revalidatePath(config.path)
-  // REMOVED: revalidatePath('/admin')
   return { success: true, data: { id: contentId } }
 }
 
@@ -149,9 +148,14 @@ export async function adminDeleteComment(
   const model = commentModelMap[commentType]
   if (!model) throw new Error('Invalid comment type')
 
-  await model.delete({ where: { id: commentId } })
+  await model.update({
+    where: { id: commentId },
+    data: {
+      content: '[This comment was deleted by an administrator]',
+      authorId: null,
+    },
+  })
 
-  // REMOVED: revalidatePath('/admin')
   return { success: true, data: { id: commentId } }
 }
 
@@ -163,65 +167,31 @@ export async function getAdminStats() {
     throw new Error('Not authorized.')
   }
 
-  const [
-    totalUsers,
-    feed,
-    blog,
-    publications,
-    journals,
-    researchTools,
-    admissions,
-    events,
-    vacancies,
-    help,
-    results,
-    contributions,
-    supervisors,
-    recommendations,
-    surveys,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.socialPost.count(),
-    prisma.article.count(),
-    prisma.publication.count(),
-    prisma.journal.count(),
-    prisma.researchTool.count(),
-    prisma.phdAdmission.count(),
-    prisma.researchEvent.count(),
-    prisma.jobVacancy.count(),
-    prisma.helpPost.count(),
-    prisma.result.count(),
-    prisma.contribution.count(),
-    prisma.supervisor.count(),
-    prisma.recommendation.count(),
-    prisma.researchSurvey.count(),
-  ])
-
   const sections = {
-    feed,
-    blog,
-    publications,
-    journals,
-    researchTools,
-    admissions,
-    events,
-    vacancies,
-    help,
-    results,
-    contributions,
-    supervisors,
-    recommendations,
-    surveys,
-    users: totalUsers,
-  }
+    users: await prisma.user.count(),
+    feed: await prisma.socialPost.count(),
+    blog: await prisma.article.count(),
+    publications: await prisma.publication.count(),
+    journals: await prisma.journal.count(),
+    researchTools: await prisma.researchTool.count(),
+    admissions: await prisma.phdAdmission.count(),
+    events: await prisma.researchEvent.count(),
+    vacancies: await prisma.jobVacancy.count(),
+    help: await prisma.helpPost.count(),
+    results: await prisma.result.count(),
+    contributions: await prisma.contribution.count(),
+    supervisors: await prisma.supervisor.count(),
+    recommendations: await prisma.recommendation.count(),
+    surveys: await prisma.researchSurvey.count(),
+  };
 
-  const totalContent = Object.values(sections).reduce((a, b) => a + b, 0)
+  const totalContent = Object.values(sections).reduce((a, b) => a + b, 0) - sections.users;
 
   return {
-    totalUsers,
+    totalUsers: sections.users,
     totalContent,
     sections,
-  }
+  };
 }
 
 // Get all users for admin panel
@@ -300,7 +270,6 @@ export async function updateContributionStatus(
     })
   }
 
-  // REMOVED: revalidatePath('/admin')
   return { success: true, data: {} }
 }
 
@@ -378,7 +347,9 @@ export async function getAdminContent(contentType?: string): Promise<AdminConten
     if (!config) return []
 
     const items = await config.model.findMany({
-      include: { author: true },
+      include: {
+        author: true,
+      },
       orderBy: { createdAt: 'desc' },
     })
 

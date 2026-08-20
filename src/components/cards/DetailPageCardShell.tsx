@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
+import CommentCountDisplay from "@/components/interactions/CommentCountDisplay";
 import { formatTimeAgo } from "../../utils/time-ago";
 
 // local tiny utility to avoid adding new deps
@@ -167,16 +168,10 @@ export default function DetailPageCardShell({
           <div className="flex items-center gap-6">
             {footerVoteButton}
 
-            <Link
+            <CommentCountDisplay
               href={footerCommentsHref}
-              className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
-            >
-              <MessageCircle className="w-5 h-5" />
-              {footerCommentsCount}{" "}
-              <span className="hidden md:inline">
-                {footerCommentsCount === 1 ? "Comment" : "Comments"}
-              </span>
-            </Link>
+              initialCount={footerCommentsCount}
+            />
           </div>
 
           <ShareButton label="Share" />

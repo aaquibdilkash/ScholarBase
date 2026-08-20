@@ -4,20 +4,22 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation }  from '@/app/actions/interactions'
-import type { HelpPostWithAuthor } from '@/types/cards'
 
 export async function getHelpPosts(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.HelpPostWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
-                { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-                { subject: { contains: q, mode: Prisma.QueryMode.insensitive } },
-                { message: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { title: { contains: q, mode: 'insensitive' } },
+                { subject: { contains: q, mode: 'insensitive' } },
+                { message: { contains: q, mode: 'insensitive' } },
             ],
-        }
-        : {};
+        })
+    };
 
+    // RULE 6: The query is already optimized with filtered selects and materialized counters.
+    // The `.map()` transformation has been removed to stop doing server-side computation.
+    // The client is now responsible for deriving `isFollowing` and `userVote`.
     return prisma.helpPost.findMany({
         where,
         orderBy: {
@@ -25,25 +27,28 @@ export async function getHelpPosts(q?: string, userId?: string, limit = 20, curs
         },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            title: true,
+            subject: true,
+            category: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
             author: {
-                include: {
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
+                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
-    })
+    });
 }
 
 export async function getHelpPost(id: string, userId?: string) {
@@ -51,8 +56,11 @@ export async function getHelpPost(id: string, userId?: string) {
         throw new Error(`Invalid ID passed to getHelpPost: ${id}`);
     }
 
+    // RULE 6: The query is already optimized. The server-side data mapping
+    // has been removed. The client is now responsible for deriving state
+    // like `isFollowing` and `userVote` from the raw `followers` and `votes` arrays.
     return prisma.helpPost.findUnique({
-        where: { id },
+        where: { id, isDeleted: false },
         select: {
             id: true,
             title: true,
@@ -61,6 +69,7 @@ export async function getHelpPost(id: string, userId?: string) {
             message: true,
             createdAt: true,
             updatedAt: true,
+            editedAt: true,
             authorId: true,
             author: {
                 select: {
@@ -68,18 +77,12 @@ export async function getHelpPost(id: string, userId?: string) {
                     name: true,
                     handle: true,
                     avatarUrl: true,
-                    followers: {
-                        where: { followerId: userId },
-                        select: { followerId: true },
-                    },
+                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
                 select: {
@@ -87,7 +90,9 @@ export async function getHelpPost(id: string, userId?: string) {
                     content: true,
                     createdAt: true,
                     updatedAt: true,
+            editedAt: true,
                     parentId: true,
+                    authorId: true,
                     author: {
                         select: {
                             id: true,
@@ -96,15 +101,18 @@ export async function getHelpPost(id: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
+            editedAt: true,
                             parentId: true,
+                            authorId: true,
                             author: {
                                 select: {
                                     id: true,
@@ -113,24 +121,21 @@ export async function getHelpPost(id: string, userId?: string) {
                                     avatarUrl: true,
                                 },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
                         orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
                 },
-                orderBy: {
-                    createdAt: 'desc'
-                }
+                orderBy: { createdAt: 'desc' }
             }
         },
-    })
+    });
 }
 
 export async function createHelpPost(formData: FormData) {
-    const user = await requireCurrentUser()
+    const user = await requireCurrentUser('You must be logged in to create a post.')
     const title = formData.get('title') as string
     const subject = formData.get('subject') as string
     const category = formData.get('category') as string
@@ -140,46 +145,45 @@ export async function createHelpPost(formData: FormData) {
         throw new Error('Please fill in all fields.')
     }
 
-    const post = await prisma.helpPost.create({
-        data: {
-            title,
-            subject,
-            category,
-            message,
-            authorId: user.id,
-        },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
+    const post = await prisma.$transaction(async (tx) => {
+        const newPost = await tx.helpPost.create({
+            data: {
+                title,
+                subject,
+                category,
+                message,
+                authorId: user.id,
+            }
+        });
 
-    await notifyFollowersOfActivity({
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'HELP_POST',
+                entityId: newPost.id,
+                entityTitle: newPost.title,
+            }
+        });
+
+        return newPost;
+    });
+
+    // Fire-and-forget notification
+    notifyFollowersOfActivity({
         actorId: user.id,
         type: 'help-post-published',
-        targetType: 'help',
+        targetType: 'HelpPost',
         targetId: post.id,
         title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} posted a help request`,
-        body: `${title} - ${subject}`,
+        body: post.title,
     })
 
     return { success: true, data: post }
 }
 
-export async function createHelpPostSafe(formData: FormData): Promise<{ success: boolean; data?: HelpPostWithAuthor; error?: string }> {
-    try {
-        return await createHelpPost(formData)
-    } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        return { success: false, error: error.message || 'Failed to create help post' }
-    }
-}
-
 export async function updateHelpPost(formData: FormData, helpPostId: string) {
-    const user = await requireCurrentUser()
+    const user = await requireCurrentUser('You must be logged in to update a post.')
 
     const title = formData.get('title') as string
     const subject = formData.get('subject') as string
@@ -204,27 +208,10 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 
     const updatedPost = await prisma.helpPost.update({
         where: { id: helpPostId },
-        data: { title, subject, category, message },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
+        data: { title, subject, category, message, editedAt: new Date() },
     })
 
     return { success: true, data: updatedPost };
-}
-
-
-export async function updateHelpPostSafe(formData: FormData, helpPostId: string): Promise<{ success: boolean; data?: HelpPostWithAuthor; error?: string }> {
-    try {
-        return await updateHelpPost(formData, helpPostId);
-    } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        return { success: false, error: error.message || 'Failed to update help post' };
-    }
 }
 
 export async function deleteHelpPost(helpPostId: string) {
@@ -242,21 +229,11 @@ export async function deleteHelpPost(helpPostId: string) {
         throw new Error('Not authorized to delete this help post.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.helpPostVote, 'helpPostId', helpPostId);
-    await reverseReputationForContent(post.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('help', helpPostId);
-
-    await prisma.helpPost.delete({ where: { id: helpPostId } })
+    // Soft delete the post
+    await prisma.helpPost.update({
+        where: { id: helpPostId },
+        data: { isDeleted: true },
+    })
 
     return { success: true, data: { deletedId: helpPostId } }
-}
-
-export async function deleteHelpPostSafe(helpPostId: string): Promise<{ success: boolean; data?: { deletedId: string }; error?: string }> {
-    try {
-        return await deleteHelpPost(helpPostId);
-    } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        return { success: false, error: error.message || 'Failed to delete help post' };
-    }
 }

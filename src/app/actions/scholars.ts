@@ -14,15 +14,18 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
       : [{ createdAt: 'desc' }]
 
   return prisma.user.findMany({
-    where: q
-      ? {
-        OR: [
-          { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { handle: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { bio: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        ],
-      }
-      : undefined,
+    where: {
+      ...(q
+        ? {
+          OR: [
+            { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { handle: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { bio: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          ],
+        }
+        : {}),
+      isDeleted: false, // RULE 3: exclude soft-deleted (tombstoned) scholars
+    },
     select: {
       id: true,
       name: true,
@@ -31,15 +34,15 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
       bio: true,
       reputation: true,
       createdAt: true,
+      // RULE 6: Read materialized counters instead of a live COUNT(*) subquery.
+      followersCount: true,
+      followingCount: true,
       followers: currentUserId
         ? {
           where: { followerId: currentUserId },
           select: { followerId: true },
         }
         : false,
-      _count: {
-        select: { followers: true, following: true },
-      },
     },
     orderBy,
     take: limit,
@@ -49,7 +52,7 @@ export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'l
 
 export async function getScholarById(id: string) {
   return prisma.user.findUnique({
-    where: { id },
+    where: { id, isDeleted: false }, // RULE 3: exclude soft-deleted (tombstoned) scholars
     select: {
       id: true,
       name: true,
@@ -58,10 +61,10 @@ export async function getScholarById(id: string) {
       bio: true,
       reputation: true,
       createdAt: true,
+      // RULE 6: Read materialized counters instead of a live COUNT(*) subquery.
+      followersCount: true,
+      followingCount: true,
       followers: { select: { followerId: true } },
-      _count: {
-        select: { followers: true, following: true },
-      },
     },
   })
 }
@@ -91,6 +94,5 @@ export async function inviteScholar(formData: FormData) {
     return { success: false, error: 'Failed to send invite. Please try again.' }
   }
 
-  // REMOVED: revalidatePath
   return { success: true, message: 'Invite sent successfully!' }
 }

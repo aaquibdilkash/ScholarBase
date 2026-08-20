@@ -4,116 +4,122 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 
-// Shared select for a single recommendation in the supervisor detail carousel.
-const recommendationSelect = (userId?: string) => ({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  rating: true,
-  feedback: true,
-  turnaroundTimeDays: true,
-  responsivenessScore: true,
-  guidanceScore: true,
-  isAnonymous: true,
-  supervisorId: true,
-  author: {
-    include: {
-      followers: userId
-        ? {
-          where: { followerId: userId },
-          select: { followerId: true },
-        }
-        : false,
-    },
-  },
-  votes: { select: { userId: true, voteType: true } },
-  _count: { select: { comments: true, votes: true } },
-});
-
-// For an unknown reason, prisma.$transaction seems to need the unwrapped
-// version of this, while `include` and spreads need the wrapped version.
-const recommendationInclude = (userId?: string) => ({
-  select: recommendationSelect(userId),
-});
-
-
 export async function getSupervisors(q?: string, userId?: string, limit = 20, cursor?: string) {
   return prisma.supervisor.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+    where: { isDeleted: false, ...(q && { name: { contains: q, mode: "insensitive" } }) },
     take: limit,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    include: {
-      author: {
-        include: {
-          followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
-            : false,
+    select: {
+        id: true,
+        name: true,
+        university: true,
+        department: true,
+        createdAt: true,
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                followers: userId
+                    ? { where: { followerId: userId }, select: { followerId: true } }
+                    : false,
+            },
         },
-      },
-      recommendations: true,
-      votes: {
-        select: { id: true, createdAt: true, userId: true, voteType: true, supervisorId: true },
-      },
-      _count: {
-        select: {
-          comments: true,
-          votes: true,
-        },
-      },
+        totalVotes: true,
+        totalComments: true,
+        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
   });
 }
 
 export async function getSupervisor(id: string, userId?: string) {
   return prisma.supervisor.findUnique({
-    where: { id },
-    include: {
-      author: {
-        include: {
-          followers: userId
-            ? {
-              where: { followerId: userId },
-              select: { followerId: true },
-            }
-            : false,
-        },
-      },
-recommendations: {
-        ...recommendationInclude(userId),
-        take: 1,
-        orderBy: { createdAt: "desc" },
-      },
-      comments: {
-        where: { parentId: null },
-        orderBy: { createdAt: "desc" },
-        include: {
-          author: true,
-          votes: { select: { userId: true, voteType: true } },
-          _count: { select: { votes: true } },
-          replies: {
-            orderBy: { createdAt: "desc" },
-            include: {
-              author: true,
-              votes: { select: { userId: true, voteType: true } },
-              _count: { select: { votes: true } },
+    where: { id, isDeleted: false },
+    select: {
+        id: true,
+        name: true,
+        university: true,
+        department: true,
+        about: true,
+        authorId: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                followers: userId
+                    ? { where: { followerId: userId }, select: { followerId: true } }
+                    : false,
             },
-          },
         },
-      },
-      votes: {
-        select: { userId: true, voteType: true },
-      },
-      _count: { select: { votes: true, recommendations: true } },
+        totalVotes: true,
+        totalComments: true,
+        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+        recommendations: {
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                createdAt: true,
+                updatedAt: true,
+                rating: true,
+                feedback: true,
+                turnaroundTimeDays: true,
+                responsivenessScore: true,
+                guidanceScore: true,
+                supervisorId: true,
+                authorId: true,
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        handle: true,
+                        avatarUrl: true,
+                        followers: userId
+                            ? { where: { followerId: userId }, select: { followerId: true } }
+                            : false,
+                    },
+                },
+                totalVotes: true,
+                totalComments: true,
+                votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+            },
+        },
+        comments: {
+            where: { parentId: null },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                content: true,
+                createdAt: true,
+                updatedAt: true,
+                author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+                totalVotes: true,
+                totalReplies: true,
+                votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+                replies: {
+                    orderBy: { createdAt: "asc" },
+                    select: {
+                        id: true,
+                        content: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+                        totalVotes: true,
+                        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+                    },
+                },
+            },
+        },
     },
   });
 }
 
 /**
  * Fetch the next batch of recommendations for a supervisor (lazy-loaded carousel).
- * Mirrors the profile content tab's paginated loading pattern.
  */
 export async function getSupervisorRecommendations(
   supervisorId: string,
@@ -122,35 +128,54 @@ export async function getSupervisorRecommendations(
   take: number = 1,
 ) {
   return prisma.recommendation.findMany({
-    where: { supervisorId },
-    ...recommendationInclude(userId),
+    where: { supervisorId, isDeleted: false },
     skip,
     take,
     orderBy: { createdAt: "desc" },
+    select: {
+        id: true,
+        createdAt: true,
+        updatedAt: true,
+        rating: true,
+        feedback: true,
+        turnaroundTimeDays: true,
+        responsivenessScore: true,
+        guidanceScore: true,
+        supervisorId: true,
+        supervisor: { select: { id: true, name: true } },
+        authorId: true,
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                followers: userId
+                    ? { where: { followerId: userId }, select: { followerId: true } }
+                    : false,
+            },
+        },
+        totalVotes: true,
+        totalComments: true,
+        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+    }
   });
 }
 
 /**
- * Aggregate stats for the supervisor detail page (rating + distribution + ownership),
- * computed without loading every recommendation into the carousel.
+ * Aggregate stats for the supervisor detail page (rating + distribution + ownership).
  */
 export async function getSupervisorRecommendationMeta(
   supervisorId: string,
   userId?: string,
 ) {
-  const [recommendations, total] = await Promise.all([
-    prisma.recommendation.findMany({
-      where: { supervisorId },
+  const recommendations = await prisma.recommendation.findMany({
+      where: { supervisorId, isDeleted: false },
       select: { rating: true, authorId: true },
-    }),
-    prisma.recommendation.count({ where: { supervisorId } }),
-  ]);
+  });
 
-  const avgRating =
-    total > 0
-      ? recommendations.reduce((sum, r) => sum + r.rating, 0) / total
-      : 0;
-
+  const total = recommendations.length;
+  const avgRating = total > 0 ? recommendations.reduce((sum, r) => sum + r.rating, 0) / total : 0;
   const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
     const count = recommendations.filter((r) => r.rating === stars).length;
     return {
@@ -164,9 +189,7 @@ export async function getSupervisorRecommendationMeta(
     totalCount: total,
     avgRating,
     ratingDistribution,
-    hasUserRecommendation: !!(
-      userId && recommendations.some((r) => r.authorId === userId)
-    ),
+    hasUserRecommendation: !!(userId && recommendations.some((r) => r.authorId === userId)),
   };
 }
 
@@ -185,14 +208,6 @@ export async function createSupervisor(formData: FormData) {
       department,
       about,
       authorId: user.id,
-    },
-    include: {
-        author: true,
-        recommendations: true,
-        votes: true,
-        _count: {
-            select: { comments: true, votes: true, recommendations: true }
-        }
     }
   })
 
@@ -221,15 +236,7 @@ export async function updateSupervisor(formData: FormData, supervisorId: string)
 
   const updatedSupervisor = await prisma.supervisor.update({
     where: { id: supervisorId },
-    data: { name, university, department, about },
-    include: {
-        author: true,
-        recommendations: true,
-        votes: true,
-        _count: {
-            select: { comments: true, votes: true, recommendations: true }
-        }
-    }
+    data: { name, university, department, about, editedAt: new Date() },
   })
 
   return { success: true, data: updatedSupervisor }
@@ -252,7 +259,7 @@ export async function deleteSupervisor(supervisorId: string) {
     throw new Error('Not authorized to delete this supervisor.')
   }
 
-  await prisma.supervisor.delete({ where: { id: supervisorId } })
+  await prisma.supervisor.update({ where: { id: supervisorId }, data: { isDeleted: true } })
   
   return { success: true, data: { deletedId: supervisorId } }
 }

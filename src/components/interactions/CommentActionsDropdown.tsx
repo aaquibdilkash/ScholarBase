@@ -6,7 +6,7 @@ import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 export type CommentActionsDropdownProps = {
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: () => void | Promise<void>;
   isOwner: boolean;
   editLabel?: string;
   deleteLabel?: string;
@@ -54,9 +54,10 @@ export default function CommentActionsDropdown({
     setIsModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    startDeleteTransition(() => {
-      onDelete();
+  const confirmDelete = async () => {
+    startDeleteTransition(async () => {
+      await onDelete();
+      setIsModalOpen(false);
     });
   };
 

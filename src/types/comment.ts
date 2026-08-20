@@ -1,6 +1,7 @@
 /**
  * Shared comment types used across CommentSection and related components.
  */
+import type { VoteType } from "./votes";
 
 /** Minimal author shape for comments. */
 export interface CommentUser {
@@ -10,23 +11,18 @@ export interface CommentUser {
     avatarUrl: string | null;
 }
 
-/** Vote shape on a comment. */
-export interface CommentVote {
-    userId: string;
-    voteType: "UPVOTE" | "DOWNVOTE";
-}
-
 /** A single comment (top-level or reply). */
 export interface CommentItem {
     id: string;
     content: string;
     createdAt: Date;
     updatedAt: Date;
-    author: CommentUser;
-    votes: CommentVote[];
+    author: CommentUser | null;
+    totalVotes: number;
+    userVote: VoteType | null;
+    totalReplies: number;
     parentId: string | null;
     mentions?: { id: string, handle: string | null }[] | null;
-    _count: { votes: number };
 }
 
 /** A comment thread: top-level comment with nested replies. */

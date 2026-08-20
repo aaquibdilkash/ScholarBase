@@ -2,16 +2,23 @@
  * Shared context types used across provider components.
  */
 
-export type ToastType = "success" | "error";
+export type ToastVariant = "default" | "destructive";
+
+export interface ToastOptions {
+  title?: string;
+  description?: string;
+  variant?: ToastVariant;
+}
 
 export interface Toast {
   id: string;
-  message: string;
-  type: ToastType;
+  title: string;
+  description?: string;
+  variant: ToastVariant;
 }
 
 export interface ToastContextValue {
-  toast: (message: string, type?: ToastType) => void;
+  toast: (options: ToastOptions | string, variant?: string) => void;
 }
 
 export interface AuthModalContextValue {

@@ -19,11 +19,7 @@ export function SocialPostCard({
   const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    post.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    post.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    post.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    Array.isArray(post.votes) ? post.votes[0]?.voteType ?? null : null;
 
   return (
     <ListPageCardShell
@@ -57,18 +53,17 @@ export function SocialPostCard({
         )
       }
       createdDate={post.createdAt}
-      editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
+      editedDate={post.editedAt && post.editedAt > post.createdAt ? post.editedAt : undefined}
       footerVoteButton={
         <VoteButton
           targetId={post.id}
-          type="post"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="SOCIAL_POST"
+          initialTotalVotes={post.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/feed/${post.id}`}
-      footerCommentsCount={post._count.comments}
+      footerCommentsCount={post.totalComments ?? 0}
     >
       <div className={`flex gap-4 ${post.imageUrl ? "items-start" : ""}`}>
         <p

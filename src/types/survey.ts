@@ -101,11 +101,9 @@ export interface SurveyWithDetails {
     userId: string;
     voteType: 'UPVOTE' | 'DOWNVOTE';
   }[];
-  _count: {
-    votes: number;
-    comments: number;
-    responses: number;
-  };
+  totalVotes: number;
+  totalComments: number;
+  totalResponses: number;
   questions?: SurveyQuestion[];
 }
 
@@ -125,7 +123,7 @@ export interface SurveyResults {
   id: string;
   title: string;
   questions: QuestionResult[];
-  _count: { responses: number };
+  totalResponses: number;
 }
 
 export interface IndividualResponse {

@@ -5,48 +5,51 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getAdmissions(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.PhdAdmissionWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
                 { university: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { department: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
-        }
-        : {};
+        }),
+    };
 
     return prisma.phdAdmission.findMany({
         where,
         orderBy: { createdAt: "desc" },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            university: true,
+            department: true,
+            deadline: true,
+            createdAt: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+        }
     });
 }
 
 export async function getAdmission(id: string, userId?: string) {
     return prisma.phdAdmission.findUnique({
-        where: { id },
+        where: { id, isDeleted: false },
         select: {
             id: true,
             university: true,
@@ -64,21 +67,23 @@ export async function getAdmission(id: string, userId?: string) {
                     handle: true,
                     avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
                     parentId: true,
+                    authorId: true,
                     author: {
                         select: {
                             id: true,
@@ -87,15 +92,18 @@ export async function getAdmission(id: string, userId?: string) {
                             avatarUrl: true,
                         },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: "asc" },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
                             parentId: true,
+                            authorId: true,
                             author: {
                                 select: {
                                     id: true,
@@ -104,21 +112,12 @@ export async function getAdmission(id: string, userId?: string) {
                                     avatarUrl: true,
                                 },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
                 },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
             },
         },
     });
@@ -138,21 +137,28 @@ export async function createPhdAdmission(formData: FormData) {
         throw new Error('Notification and Apply links are required.')
     }
 
-    const admission = await prisma.phdAdmission.create({
-        data: { university, department, deadline, description, notificationLink, applyLink, authorId: user.id },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
+    const admission = await prisma.$transaction(async (tx) => {
+        const newAdmission = await tx.phdAdmission.create({
+            data: { university, department, deadline, description, notificationLink, applyLink, authorId: user.id },
+        });
 
-    await notifyFollowersOfActivity({
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'PHD_ADMISSION',
+                entityId: newAdmission.id,
+                entityTitle: `${newAdmission.department} at ${newAdmission.university}`,
+            }
+        });
+
+        return newAdmission;
+    });
+
+    notifyFollowersOfActivity({
         actorId: user.id,
         type: 'admission-published',
-        targetType: 'admission',
+        targetType: 'PhdAdmission',
         targetId: admission.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new PhD admission`,
         body: `${department} at ${university} - Deadline: ${deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
@@ -189,14 +195,7 @@ export async function updatePhdAdmission(formData: FormData, admissionId: string
 
     const updatedAdmission = await prisma.phdAdmission.update({
         where: { id: admissionId },
-        data: { university, department, deadline, description, notificationLink, applyLink },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
+        data: { university, department, deadline, description, notificationLink, applyLink, editedAt: new Date() },
     })
 
     return { success: true, data: updatedAdmission }
@@ -217,12 +216,8 @@ export async function deletePhdAdmission(admissionId: string) {
         throw new Error('Not authorized to delete this admission.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.phdAdmissionVote, 'phdAdmissionId', admissionId);
-    await reverseReputationForContent(admission.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('admission', admissionId);
-
-    await prisma.phdAdmission.delete({ where: { id: admissionId } })
+    // Soft delete (no reputation reversal)
+    await prisma.phdAdmission.update({ where: { id: admissionId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: admissionId } }
 }
@@ -233,29 +228,30 @@ export async function getLatestAdmissions(count: number, userId?: string) {
             deadline: {
                 gte: new Date(),
             },
+            isDeleted: false,
         },
         take: count,
         orderBy: { createdAt: "desc" },
-        include: {
+        select: {
+            id: true,
+            university: true,
+            department: true,
+            deadline: true,
+            createdAt: true,
             author: {
-                include: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
-            votes: {
-                select: {
-                    userId: true,
-                    voteType: true,
-                },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }

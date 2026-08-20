@@ -30,11 +30,7 @@ export function AdmissionCard({
   const isOwner = currentUserId === admission.authorId;
   const isFollowing = (admission.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    admission.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    admission.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    admission.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    (admission.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(admission.deadline);
 
   return (
@@ -55,9 +51,12 @@ export function AdmissionCard({
             onDelete={async () => {
               const res = await deletePhdAdmission(admission.id);
               if (res?.success) {
-                                queryClient.setQueryData(['admissions', ''], (oldData: AdmissionWithAuthor[] | undefined) => {
-                  return oldData?.filter(post => post.id !== admission.id);
-                });
+                queryClient.setQueryData(
+                  ["admissions", ""],
+                  (oldData: AdmissionWithAuthor[] | undefined) => {
+                    return oldData?.filter((post) => post.id !== admission.id);
+                  },
+                );
               }
               return { refresh: false };
             }}
@@ -70,14 +69,13 @@ export function AdmissionCard({
       footerVoteButton={
         <VoteButton
           targetId={admission.id}
-          type="admission"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="PHD_ADMISSION"
+          initialTotalVotes={admission.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/admissions/${admission.id}`}
-      footerCommentsCount={admission._count.comments}
+      footerCommentsCount={admission.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

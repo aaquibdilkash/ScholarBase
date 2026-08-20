@@ -3,186 +3,231 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
+import {
+  handleVoteTransaction,
+  createCommentTransaction,
+  deleteCommentTransaction,
+} from '@/lib/transactions'
+import { VoteType } from '@prisma/client'
 
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
-
+// Reusable include for the materialized-counter post shape used by the
+// client query cache (author + votes relationship; scalars like
+// totalVotes/totalComments are returned automatically by `include`).
 const socialPostInclude = {
-    author: {
+  author: {
+    select: {
+      id: true,
+      name: true,
+      handle: true,
+      avatarUrl: true,
+    },
+  },
+  votes: {
+    select: { userId: true, voteType: true },
+  },
+} as const;
+
+const getFeed = async (
+  userId?: string,
+  tab?: string,
+  q?: string,
+  limit = 20,
+  cursor?: string,
+) => {
+  const isFollowingTab = tab === 'following'
+  const hasQuery = Boolean(q && q.trim().length > 0)
+  let followingIds: string[] = []
+
+  if (isFollowingTab && userId) {
+    const following = await prisma.follows.findMany({
+      where: { followerId: userId },
+      select: { followingId: true },
+    })
+    followingIds = following.map(f => f.followingId)
+  }
+
+  const posts = await prisma.socialPost.findMany({
+    where: {
+      isDeleted: false, // RULE 3: Filter out soft-deleted posts
+      ...(isFollowingTab && { authorId: { in: followingIds } }),
+      ...(hasQuery && {
+        OR: [
+          { content: { contains: q, mode: 'insensitive' } },
+          { author: { name: { contains: q, mode: 'insensitive' } } },
+          { author: { handle: { contains: q, mode: 'insensitive' } } },
+        ],
+      }),
+    },
+    select: {
+      id: true,
+      content: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+            editedAt: true,
+      author: {
         select: {
-            id: true,
-            name: true,
-            handle: true,
-            avatarUrl: true,
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: userId
+            ? { where: { followerId: userId }, select: { followerId: true } }
+            : false,
         },
+      },
+      // RULE 6: Use materialized counters
+      totalVotes: true,
+      totalComments: true,
+      // RULE 6: Filtered select for user's vote
+      votes: userId
+        ? { where: { userId }, select: { voteType: true } }
+        : false,
     },
-    votes: {
-        select: { id: true, createdAt: true, userId: true, voteType: true, socialPostId: true },
-    },
-    _count: {
-        select: { comments: true, votes: true },
-    },
-};
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+  })
 
-export async function getFeed(userId?: string, tab?: string, q?: string, limit = 20, cursor?: string) {
-    const isFollowingTab = tab === "following";
-    const hasQuery = Boolean(q && q.trim().length > 0);
-    let followingIds: string[] = [];
-
-    if (isFollowingTab && userId) {
-        const following = await prisma.follows.findMany({
-            where: { followerId: userId },
-            select: { followingId: true },
-        });
-        followingIds = following.map((f) => f.followingId);
-    }
-
-    const posts = await prisma.socialPost.findMany({
-        where: {
-            ...(isFollowingTab ? { authorId: { in: followingIds } } : {}),
-            ...(hasQuery
-                ? {
-                    OR: [
-                        {
-                            content: {
-                                contains: q,
-                                mode: "insensitive",
-                            },
-                        },
-                        {
-                            author: {
-                                name: {
-                                    contains: q,
-                                    mode: "insensitive",
-                                },
-                            },
-                        },
-                        {
-                            author: {
-                                handle: {
-                                    contains: q,
-                                    mode: "insensitive",
-                                },
-                            },
-                        },
-                    ],
-                }
-                : {}),
-        },
-        include: {
-            ...socialPostInclude,
-            author: {
-                ...socialPostInclude.author,
-                select: {
-                    ...socialPostInclude.author.select,
-                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
-                }
-            }
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    });
-
-    return posts;
+  return posts
 }
 
+// Re-assign getFeed to the new implementation
+export { getFeed }
+
 export async function getPost(id: string, userId?: string) {
-    return prisma.socialPost.findUnique({
-        where: { id },
+  return prisma.socialPost.findUnique({
+    where: {
+      id,
+      isDeleted: false, // RULE 3: Do not fetch soft-deleted posts
+    },
+    select: {
+      id: true,
+      content: true,
+      imageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+            editedAt: true,
+      authorId: true,
+      author: {
         select: {
-            id: true,
-            content: true,
-            imageUrl: true,
-            createdAt: true,
-            updatedAt: true,
-            authorId: true,
-            author: {
-                select: {
-                    id: true,
-                    name: true,
-                    handle: true,
-                    avatarUrl: true,
-                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
-                },
-            },
-            votes: { select: { userId: true, voteType: true } },
-            comments: {
-                where: { parentId: null },
-                select: {
-                    id: true,
-                    content: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    parentId: true,
-                    author: {
-                        select: {
-                            id: true,
-                            name: true,
-                            handle: true,
-                            avatarUrl: true,
-                        },
-                    },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
-                    replies: {
-                        select: {
-                            id: true,
-                            content: true,
-                            createdAt: true,
-                            updatedAt: true,
-                            parentId: true,
-                            author: {
-                                select: { id: true, name: true, handle: true, avatarUrl: true },
-                            },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
-                        },
-                        orderBy: { createdAt: "asc" },
-                    },
-                    _count: { select: { votes: true } },
-                },
-                orderBy: { createdAt: "asc" },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: userId
+            ? { where: { followerId: userId }, select: { followerId: true } }
+            : false,
         },
-    });
+      },
+      // RULE 6: Use materialized counters and filtered selects
+      totalVotes: true,
+      totalComments: true,
+      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      comments: {
+        where: { parentId: null },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+            editedAt: true,
+          parentId: true,
+          authorId: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              handle: true,
+              avatarUrl: true,
+            },
+          },
+          totalVotes: true,
+          totalReplies: true,
+          votes: userId
+            ? { where: { userId }, select: { voteType: true } }
+            : false,
+          mentions: true,
+          replies: {
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              updatedAt: true,
+            editedAt: true,
+              parentId: true,
+              authorId: true,
+              author: {
+                select: { id: true, name: true, handle: true, avatarUrl: true },
+              },
+              totalVotes: true,
+              votes: userId
+                ? { where: { userId }, select: { voteType: true } }
+                : false,
+              mentions: true,
+            },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  })
 }
 
 export async function createSocialPost(formData: FormData) {
-    const user = await requireCurrentUser('You must be logged in to post.')
+    const authUser = await requireCurrentUser('You must be logged in to post.')
 
-    const content = readFormValue(formData, 'content')
+    const [content, user] = await Promise.all([
+        readFormValue(formData, 'content'),
+        prisma.user.findUnique({ where: { id: authUser.id }, select: { name: true, email: true }})
+    ]);
+    
     const imageUrl = formData.get('imageUrl') as string | null;
 
     if (!content) {
         throw new Error('Content cannot be empty.')
     }
+    if (!user) {
+        throw new Error('User not found in database.')
+    }
 
-    const post = await prisma.socialPost.create({
-        data: {
-            content,
-            imageUrl: imageUrl || undefined,
-            authorId: user.id,
-        },
-        include: socialPostInclude,
-    })
+    const post = await prisma.$transaction(async (tx) => {
+        const newPost = await tx.socialPost.create({
+            data: {
+                content,
+                imageUrl: imageUrl || undefined,
+                authorId: authUser.id,
+            },
+            include: socialPostInclude,
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: authUser.id,
+                action: 'PUBLISHED',
+                moduleType: 'SOCIAL_POST',
+                entityId: newPost.id, 
+                entityTitle: content.substring(0, 100),
+            },
+        });
+        
+        return newPost;
+    });
 
     await Promise.all([
         notifyFollowersOfActivity({
-            actorId: user.id,
+            actorId: authUser.id,
             type: 'post-published',
             targetType: 'post',
             targetId: post.id,
-            title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} posted an update`,
+            title: `${user.name || user.email?.split('@')[0] || 'Someone'} posted an update`,
             body: content.slice(0, 120),
         }),
         notifyMentionedUsers({
-            actorId: user.id,
+            actorId: authUser.id,
             content,
             type: 'mention',
             targetType: 'post',
@@ -225,7 +270,7 @@ export async function updateSocialPost(
 
     const updatedPost = await prisma.socialPost.update({
         where: { id: postId },
-        data: { content, imageUrl: newImage || undefined },
+        data: { content, imageUrl: newImage || undefined, editedAt: new Date() },
         include: {
             ...socialPostInclude,
             author: {
@@ -242,7 +287,6 @@ export async function updateSocialPost(
         await deleteFromCloudinary(oldImage);
     }
 
-    // Client cache updated via React Query - no revalidatePath needed
     return { success: true, data: updatedPost }
 }
 
@@ -274,30 +318,53 @@ export async function getPostEditData(id: string) {
 }
 
 export async function deleteSocialPost(postId: string) {
-    const user = await requireCurrentUser('Log in to delete this post.')
+  const user = await requireCurrentUser('Log in to delete this post.')
 
-    const post = await prisma.socialPost.findUnique({
-        where: { id: postId },
-        select: { authorId: true, imageUrl: true },
-    })
+  const post = await prisma.socialPost.findUnique({
+    where: { id: postId },
+    select: { authorId: true },
+  })
 
-    if (!post) return
-    if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
-        throw new Error('Not authorized to delete this post.')
-    }
+  if (!post) return
+  if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
+    throw new Error('Not authorized to delete this post.')
+  }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.socialVote, 'socialPostId', postId);
-    await reverseReputationForContent(post.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('post', postId);
+  // Soft delete the post. Reputation is not reversed, as per RULE 3.
+  await prisma.socialPost.update({
+    where: { id: postId },
+    data: { isDeleted: true },
+  })
 
-    // Delete associated image from Cloudinary
-    if (post.imageUrl) {
-        await deleteFromCloudinary(post.imageUrl);
-    }
+  // The associated image is NOT deleted from Cloudinary on soft delete.
+  // It will be garbage collected later if needed.
 
-    await prisma.socialPost.delete({ where: { id: postId } })
+  return { success: true, data: { id: postId } }
+}
 
-    // Client cache updated via React Query - no revalidatePath/redirect needed
-    return { success: true, data: { id: postId } }
+export async function voteOnSocialPost(postId: string, voteType: VoteType) {
+  const user = await requireCurrentUser('You must be logged in to vote.')
+  await handleVoteTransaction('SOCIAL_POST', postId, user.id, voteType)
+}
+
+export async function createSocialPostComment(
+  postId: string,
+  content: string,
+  parentId?: string
+) {
+  const user = await requireCurrentUser('You must be logged in to comment.')
+  await createCommentTransaction(
+    'SOCIAL_POST',
+    postId,
+    user.id,
+    content,
+    parentId
+  )
+}
+
+export async function deleteSocialPostComment(commentId: string) {
+  const user = await
+requireCurrentUser('You must be logged in to delete comments.')
+  const { parentId } = await deleteCommentTransaction('SOCIAL_POST', commentId, user.id)
+  return { success: true, parentId }
 }

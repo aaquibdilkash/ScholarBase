@@ -69,7 +69,7 @@ export function UserListModal({
         if (result.success) {
           setUsers((prev) =>
             prev.map((u) =>
-              u.id === targetId ? { ...u, isFollowing: result.data!.newFollowState } : u,
+              u.id === targetId ? { ...u, isFollowing: !u.isFollowing } : u,
             ),
           );
         }

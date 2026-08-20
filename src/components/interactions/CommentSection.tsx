@@ -7,39 +7,31 @@ import Image from "next/image";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { getScholars } from "@/app/actions/scholars";
 import {
-  createCommentClientWrapper,
-  deleteCommentClientWrapper,
-  editCommentClientWrapper,
-} from "@/app/actions/comments.clientWrappers";
+  createComment,
+  deleteComment,
+  editComment,
+} from "@/app/actions/comments";
 
-import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import CommentActionsDropdown from "@/components/interactions/CommentActionsDropdown";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
-import {
-  CommentItem,
-  CommentTargetType,
-} from "@/types/comment";
+import { emitCommentCount } from "@/lib/comment-count-store";
+import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
 
 type MentionUser = { id: string; handle: string | null };
-type RenderableCommentItem = Omit<CommentItem, "mentions"> & {
-  mentions?: unknown;
-  replies?: RenderableCommentItem[];
-};
 
 interface CommentSectionProps {
-  comments: RenderableCommentItem[];
+  comments: CommentWithAuthorAndVotes[];
   targetId: string;
-  type: CommentTargetType;
+  module: CommentEntityType;
   currentUserId: string | null;
   postAuthorId?: string | null;
 }
 
 type ScholarSuggestion = Awaited<ReturnType<typeof getScholars>>[number];
-
-
 
 function MentionComposer({
   name,
@@ -73,12 +65,18 @@ function MentionComposer({
   }, [value]);
 
   const insertSuggestion = (user: ScholarSuggestion) => {
-    const trimmed = value.replace(/(?:^|\s)@([a-z0-9_]{1,})$/i, ` @${user.handle || user.name || "scholar"} `);
+    const trimmed = value.replace(
+      /(?:^|\s)@([a-z0-9_]{1,})$/i,
+      ` @${user.handle || user.name || "scholar"} `,
+    );
     onChange(trimmed.replace(/^ /, ""));
     setSuggestions([]);
     setActiveIndex(0);
-    if (!mentionedUsers.find(u => u.id === user.id)) {
-        onMentionedUsersChange([...mentionedUsers, { id: user.id, handle: user.handle ?? null }]);
+    if (!mentionedUsers.find((u) => u.id === user.id)) {
+      onMentionedUsersChange([
+        ...mentionedUsers,
+        { id: user.id, handle: user.handle ?? null },
+      ]);
     }
   };
 
@@ -99,7 +97,10 @@ function MentionComposer({
             setActiveIndex((current) => (current + 1) % suggestions.length);
           } else if (e.key === "ArrowUp") {
             e.preventDefault();
-            setActiveIndex((current) => (current - 1 + suggestions.length) % suggestions.length);
+            setActiveIndex(
+              (current) =>
+                (current - 1 + suggestions.length) % suggestions.length,
+            );
           } else if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             insertSuggestion(suggestions[activeIndex]);
@@ -119,7 +120,14 @@ function MentionComposer({
             >
               <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 text-xs font-semibold text-white dark:bg-slate-800">
                 {user.avatarUrl ? (
-                  <Image src={user.avatarUrl} alt="" width={36} height={36} unoptimized className="h-full w-full object-cover" />
+                  <Image
+                    src={user.avatarUrl}
+                    alt=""
+                    width={36}
+                    height={36}
+                    unoptimized
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   user.name?.charAt(0).toUpperCase() || "@"
                 )}
@@ -146,7 +154,7 @@ function MentionComposer({
 export function CommentSection({
   comments,
   targetId,
-  type,
+  module,
   currentUserId,
   postAuthorId,
 }: CommentSectionProps) {
@@ -155,8 +163,8 @@ export function CommentSection({
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const queryClient = useQueryClient();
-  const commentsQueryKey = ["comments", type, targetId];
-  const draftKey = `draft_comment_${type}_${targetId}`;
+  const commentsQueryKey = ["comments", module, targetId];
+  const draftKey = `draft_comment_${module}_${targetId}`;
   const [content, setContent] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
 
@@ -169,11 +177,19 @@ export function CommentSection({
   const topLevelComments = cachedComments.filter((c) => !c.parentId);
 
   useEffect(() => {
+    emitCommentCount(
+      cachedComments.filter((c) => !c.parentId).length +
+        cachedComments.filter((c) => c.parentId).length,
+    );
+  }, [cachedComments]);
+
+  useEffect(() => {
     try {
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
-        const { content: savedContent, mentionedUsers: savedMentionedUsers } = JSON.parse(savedDraft);
-        setContent(savedContent || '');
+        const { content: savedContent, mentionedUsers: savedMentionedUsers } =
+          JSON.parse(savedDraft);
+        setContent(savedContent || "");
         setMentionedUsers(savedMentionedUsers || []);
       }
     } catch (error) {
@@ -182,13 +198,18 @@ export function CommentSection({
   }, [draftKey]);
 
   const handleContentChange = (value: string) => {
-    const currentMentions = mentionedUsers.filter(u => value.includes(`@${u.handle}`));
+    const currentMentions = mentionedUsers.filter((u) =>
+      value.includes(`@${u.handle}`),
+    );
     if (currentMentions.length !== mentionedUsers.length) {
-        setMentionedUsers(currentMentions);
+      setMentionedUsers(currentMentions);
     }
     setContent(value);
     try {
-      const draft = JSON.stringify({ content: value, mentionedUsers: currentMentions });
+      const draft = JSON.stringify({
+        content: value,
+        mentionedUsers: currentMentions,
+      });
       localStorage.setItem(draftKey, draft);
     } catch (error) {
       console.error("Failed to save draft to localStorage", error);
@@ -202,43 +223,50 @@ export function CommentSection({
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
-    formData.set("content", content);
-    formData.set("mentions", JSON.stringify(mentionedUsers.map(u => ({id: u.id, handle: u.handle}))));
+    const formData = new FormData();
+    formData.append('content', content);
+    formData.append('mentions', JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))));
 
     try {
-      const response = await createCommentClientWrapper(formData);
+      const response = await createComment(formData, targetId, module);
+
       if (!response?.success || !response.data) {
-        toast("Failed to post comment. Please try again.", "error");
+        toast({ title: "Error", description: "Failed to post comment. Please try again.", variant: "destructive"});
         return;
       }
-      queryClient.setQueryData<RenderableCommentItem[]>(
+      const newComment = response.data as CommentWithAuthorAndVotes;
+      queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
         commentsQueryKey,
-        (oldComments = []) => [response.data, ...oldComments],
+        (oldComments = []) => [newComment, ...oldComments],
       );
-      if (type === "post") {
-        queryClient.setQueriesData<{ id: string; _count: { comments: number } }[]>(
-          { queryKey: ["feed"] },
-          (oldPosts = []) =>
-            oldPosts.map((post) =>
-              post.id === targetId
-                ? {
-                    ...post,
-                    _count: {
-                      ...post._count,
-                      comments: post._count.comments + 1,
-                    },
-                  }
-                : post,
-            ),
-        );
-      }
-      toast("Comment posted successfully!", "success");
+      queryClient.setQueriesData<{ totalComments?: number }>(
+        { queryKey: [module, targetId] },
+        (oldData: any) => {
+          if (!oldData || typeof oldData !== 'object') return oldData;
+          if (typeof oldData.totalComments === 'number') {
+            return { ...oldData, totalComments: oldData.totalComments + 1 };
+          }
+          return oldData;
+        },
+      );
+      queryClient.setQueriesData(
+        { queryKey: ["feed"] },
+        (oldData: any) => {
+          if (!Array.isArray(oldData)) return oldData;
+          return oldData.map((item: any) =>
+            item.id === targetId && typeof item.totalComments === 'number'
+              ? { ...item, totalComments: item.totalComments + 1 }
+              : item,
+          );
+        },
+      );
+
+      toast({ title: "Success", description: "Comment posted successfully!"});
       setContent("");
       setMentionedUsers([]);
       localStorage.removeItem(draftKey);
     } catch (error) {
-      toast("Failed to post comment. Please try again.", "error");
+      toast({ title: "Error", description: "Failed to post comment. Please try again.", variant: "destructive"});
       console.error(error);
     }
   };
@@ -256,11 +284,6 @@ export function CommentSection({
           onSubmit={handleFormSubmit}
           className="flex flex-col gap-3 sm:flex-row"
         >
-          <input type="hidden" name="_targetId" value={targetId} />
-          <input type="hidden" name="_type" value={type} />
-          <input type="hidden" name="_parentId" value="" />
-          <input type="hidden" name="_commentId" value="" />
-
           <div className="flex-1 flex flex-col gap-2">
             <MentionComposer
               name="content"
@@ -285,81 +308,16 @@ export function CommentSection({
               comment={comment}
               replies={comment.replies}
               currentUserId={currentUserId}
-              type={type}
+              module={module}
               targetId={targetId}
               postAuthorId={postAuthorId}
               activeReplyId={activeReplyId}
               setActiveReplyId={setActiveReplyId}
-editingId={editingId}
+              editingId={editingId}
               setEditingId={setEditingId}
               isReply={false}
-              toast={toast}
-              onReplyCreated={(reply) => {
-                queryClient.setQueryData<RenderableCommentItem[]>(
-                  commentsQueryKey,
-                  (oldComments = []) =>
-                    oldComments.map((item) =>
-                      item.id === reply.parentId
-                        ? {
-                            ...item,
-                            replies: [...(item.replies ?? []), reply],
-                          }
-                        : item,
-                    ),
-                );
-                if (type === "post") {
-                  queryClient.setQueriesData<
-                    { id: string; _count: { comments: number } }[]
-                  >({ queryKey: ["feed"] }, (oldPosts = []) =>
-                    oldPosts.map((post) =>
-                      post.id === targetId
-                        ? {
-                            ...post,
-                            _count: {
-                              ...post._count,
-                              comments: post._count.comments + 1,
-                            },
-                          }
-                        : post,
-                    ),
-                  );
-                }
-              }}
-              onDeleted={(deleted) => {
-                queryClient.setQueryData<RenderableCommentItem[]>(
-                  commentsQueryKey,
-                  (oldComments = []) =>
-                    deleted.parentId
-                      ? oldComments.map((item) =>
-                          item.id === deleted.parentId
-                            ? {
-                                ...item,
-                                replies: (item.replies ?? []).filter(
-                                  (reply) => reply.id !== deleted.id,
-                                ),
-                              }
-                            : item,
-                        )
-                      : oldComments.filter((item) => item.id !== deleted.id),
-                );
-                if (type === "post") {
-                  queryClient.setQueriesData<
-                    { id: string; _count: { comments: number } }[]
-                  >({ queryKey: ["feed"] }, (oldPosts = []) =>
-                    oldPosts.map((post) =>
-                      post.id === targetId
-                        ? {
-                            ...post,
-                            _count: {
-                              ...post._count,
-                              comments: Math.max(0, post._count.comments - 1),
-                            },
-                          }
-                        : post,
-                    ),
-                  );
-                }
-              }}
+              toast={(...args) => toast(...args)}
+              commentsQueryKey={commentsQueryKey}
             />
           ))}
 
@@ -377,45 +335,53 @@ editingId={editingId}
 }
 
 function renderCommentContent(content: string, mentions: unknown) {
-    const typedMentions = Array.isArray(mentions) ? mentions as MentionUser[] : null;
-    const parts = content.split(/(@[a-z0-9_]+)/gi);
+  const typedMentions = Array.isArray(mentions)
+    ? (mentions as MentionUser[])
+    : null;
+  const parts = content.split(/(@[a-z0-9_]+)/gi);
 
-    if (!typedMentions || typedMentions.length === 0) {
-        return parts.map((part, index) => <span key={index}>{part}</span>);
+  if (!typedMentions || typedMentions.length === 0) {
+    return parts.map((part, index) => <span key={index}>{part}</span>);
+  }
+
+  const mentionMap = new Map(
+    typedMentions.filter((m) => m.handle).map((m) => [m.handle!, m.id]),
+  );
+
+  return parts.map((part, index) => {
+    if (part.startsWith("@")) {
+      const handle = part.substring(1);
+      const mentionId = mentionMap.get(handle);
+      if (mentionId) {
+        return (
+          <Link
+            key={index}
+            href={`/scholars/${mentionId}`}
+            className="font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            {part}
+          </Link>
+        );
+      }
     }
-
-    const mentionMap = new Map(typedMentions.filter(m => m.handle).map(m => [m.handle!, m.id]));
-
-    return parts.map((part, index) => {
-        if (part.startsWith('@')) {
-            const handle = part.substring(1);
-            const mentionId = mentionMap.get(handle);
-            if (mentionId) {
-                return (
-                    <Link key={index} href={`/scholars/${mentionId}`} className="font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300">
-                        {part}
-                    </Link>
-                );
-            }
-        }
-        return <span key={index}>{part}</span>;
-    });
+    return <span key={index}>{part}</span>;
+  });
 }
 
 function ReplyForm({
   targetId,
-  type,
+  module,
   parentComment,
   onSuccess,
   toast,
 }: {
   targetId: string;
-  type: CommentTargetType;
-  parentComment: RenderableCommentItem;
-  onSuccess: (reply: RenderableCommentItem) => void;
-  toast: (message: string, type?: "success" | "error") => void;
+  module: CommentEntityType;
+  parentComment: CommentWithAuthorAndVotes;
+  onSuccess: (reply: CommentWithAuthorAndVotes) => void;
+  toast: (options: { title: string, description: string, variant?: "default" | "destructive" }) => void;
 }) {
-  const draftKey = `draft_reply_${type}_${targetId}_${parentComment.id}`;
+  const draftKey = `draft_reply_${module}_${targetId}_${parentComment.id}`;
   const [reply, setReply] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
@@ -424,8 +390,9 @@ function ReplyForm({
     try {
       const saved = localStorage.getItem(draftKey);
       if (saved) {
-        const { content: savedContent, mentionedUsers: savedMentionedUsers } = JSON.parse(saved);
-        setReply(savedContent || '');
+        const { content: savedContent, mentionedUsers: savedMentionedUsers } =
+          JSON.parse(saved);
+        setReply(savedContent || "");
         setMentionedUsers(savedMentionedUsers || []);
       }
     } catch (error) {
@@ -434,13 +401,18 @@ function ReplyForm({
   }, [draftKey]);
 
   const handleReplyChange = (value: string) => {
-    const currentMentions = mentionedUsers.filter(u => value.includes(`@${u.handle}`));
+    const currentMentions = mentionedUsers.filter((u) =>
+      value.includes(`@${u.handle}`),
+    );
     if (currentMentions.length !== mentionedUsers.length) {
-        setMentionedUsers(currentMentions);
+      setMentionedUsers(currentMentions);
     }
     setReply(value);
     try {
-      const draft = JSON.stringify({ content: value, mentionedUsers: currentMentions });
+      const draft = JSON.stringify({
+        content: value,
+        mentionedUsers: currentMentions,
+      });
       localStorage.setItem(draftKey, draft);
     } catch (error) {
       console.error("Failed to save reply draft to localStorage", error);
@@ -449,22 +421,25 @@ function ReplyForm({
 
   const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    formData.set("content", reply);
-    formData.set("mentions", JSON.stringify(mentionedUsers.map(u => ({id: u.id, handle: u.handle}))));
+
+    const formData = new FormData();
+    formData.append('content', reply);
+    formData.append('mentions', JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))));
+
     try {
-      const response = await createCommentClientWrapper(formData);
+      const response = await createComment(formData, targetId, module, parentComment.id);
+
       if (!response?.success || !response.data) {
-        toast("Failed to post reply. Please try again.", "error");
+        toast({ title: "Error", description: "Failed to post reply. Please try again.", variant: "destructive"});
         return;
       }
-      toast("Reply posted successfully!", "success");
+      toast({ title: "Success", description: "Reply posted successfully!" });
       setReply("");
       setMentionedUsers([]);
       localStorage.removeItem(draftKey);
-      onSuccess(response.data);
+      onSuccess(response.data as CommentWithAuthorAndVotes);
     } catch (error) {
-      toast("Failed to post reply. Please try again.", "error");
+      toast({ title: "Error", description: "Failed to post reply. Please try again.", variant: "destructive"});
       console.error(error);
     }
   };
@@ -475,15 +450,12 @@ function ReplyForm({
       onSubmit={handleReplySubmit}
       className="mt-2 flex flex-col gap-2 animate-in fade-in slide-in-from-top-2 md:mt-3"
     >
-      <input type="hidden" name="_targetId" value={targetId} />
-      <input type="hidden" name="_type" value={type} />
-      <input type="hidden" name="_parentId" value={parentComment.id} />
       <div className="flex-1">
         <MentionComposer
           name="content"
           value={reply}
           onChange={handleReplyChange}
-          placeholder={`Reply to ${parentComment.author.name}...type @ to mention a scholar`}
+          placeholder={`Reply to ${parentComment.author?.name}...type @ to mention a scholar`}
           mentionedUsers={mentionedUsers}
           onMentionedUsersChange={setMentionedUsers}
         />
@@ -501,7 +473,7 @@ function CommentEntry({
   comment,
   replies,
   currentUserId,
-  type,
+  module,
   targetId,
   postAuthorId,
   activeReplyId,
@@ -510,13 +482,12 @@ function CommentEntry({
   setEditingId,
   isReply,
   toast,
-  onReplyCreated,
-  onDeleted,
+  commentsQueryKey,
 }: {
-  comment: RenderableCommentItem;
-  replies?: RenderableCommentItem[];
+  comment: CommentWithAuthorAndVotes;
+  replies?: CommentWithAuthorAndVotes[];
   currentUserId: string | null;
-  type: CommentTargetType;
+  module: CommentEntityType;
   targetId: string;
   postAuthorId?: string | null;
   activeReplyId: string | null;
@@ -524,16 +495,17 @@ function CommentEntry({
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   isReply: boolean;
-  toast: (message: string, type?: "success" | "error") => void;
-  onReplyCreated: (reply: RenderableCommentItem) => void;
-  onDeleted: (deleted: { id: string; parentId: string | null }) => void;
+  toast: (options: { title: string, description: string, variant?: "default" | "destructive" }) => void;
+  commentsQueryKey: unknown[];
 }) {
-  const deleteFormRef = useRef<HTMLFormElement>(null);
-  const isOwner = !!currentUserId && comment.author.id === currentUserId;
+  const isOwner = !!currentUserId && comment.author?.id === currentUserId;
   const wasEdited =
-    new Date(comment.updatedAt).getTime() -
+    comment.editedAt != null &&
+    new Date(comment.editedAt).getTime() -
       new Date(comment.createdAt).getTime() >
     1000;
+  
+  const isTombstone = !comment.authorId || !comment.author;
 
   const [editedContent, setEditedContent] = useState(comment.content);
   const [editedMentions, setEditedMentions] = useState<MentionUser[]>(
@@ -541,71 +513,143 @@ function CommentEntry({
   );
 
   const queryClient = useQueryClient();
-  const commentsQueryKey = ["comments", type, targetId];
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    formData.set("content", editedContent);
-    formData.set("mentions", JSON.stringify(editedMentions.map(m => ({id: m.id, handle: m.handle}))));
+    
+    const formData = new FormData();
+    formData.append('content', editedContent);
+    formData.append('mentions', JSON.stringify(editedMentions.map((m) => ({ id: m.id, handle: m.handle }))));
+
     try {
-      const response = await editCommentClientWrapper(formData);
+      const response = await editComment(formData, comment.id, module);
       if (!response?.success || !response.data) {
-        toast("Failed to update comment. Please try again.", "error");
+        toast({ title: "Error", description: "Failed to update comment. Please try again.", variant: "destructive"});
         return;
       }
-      const updatedComment = response.data as RenderableCommentItem;
-      queryClient.setQueryData<RenderableCommentItem[]>(
+      
+      queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
         commentsQueryKey,
-        (oldComments = []) => {
-          const updateCommentRecursive = (comments: RenderableCommentItem[]): RenderableCommentItem[] => {
-            return comments.map(c => {
-              if (c.id === updatedComment.id) {
-                return { ...c, ...updatedComment };
-              }
-              if (c.replies) {
-                return { ...c, replies: updateCommentRecursive(c.replies) };
-              }
-              return c;
-            });
-          };
-          return updateCommentRecursive(oldComments);
-        }
+        (oldComments = []) =>
+          oldComments.map((c) =>
+            c.id === comment.id
+              ? { ...c, content: response.data.content, editedAt: response.data.editedAt }
+              : c,
+          ),
       );
-      toast("Comment updated!", "success");
+      toast({ title: "Success", description: "Comment updated!" });
       setEditingId(null);
     } catch {
-      toast("Failed to update comment. Please try again.", "error");
+      toast({ title: "Error", description: "Failed to update comment. Please try again.", variant: "destructive"});
     }
   };
 
-  const handleDeleteComment = async (formData: FormData) => {
+  const handleDeleteComment = async () => {
     try {
-      const response = await deleteCommentClientWrapper(formData);
-      if (response?.success && response.data) {
-        onDeleted({
-          id: response.data.id,
-          parentId: response.data.parentId ?? null,
-        });
+      const response = await deleteComment(comment.id, module);
+      if (response?.success) {
+        if (response.data.wasTombstoned) {
+          queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
+            commentsQueryKey,
+            (oldComments = []) =>
+              oldComments.map((c) =>
+                c.id === comment.id
+                  ? {
+                      ...c,
+                      content: '[This comment was deleted by author]',
+                      authorId: null,
+                      author: null,
+                    }
+                  : c,
+              ),
+          );
+        } else {
+          queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
+            commentsQueryKey,
+            (oldComments = []) => oldComments.filter((c) => c.id !== comment.id),
+          );
+          queryClient.setQueriesData<{ totalComments?: number }>(
+            { queryKey: [module, targetId] },
+            (oldData: any) => {
+              if (!oldData || typeof oldData !== 'object') return oldData;
+              if (typeof oldData.totalComments === 'number') {
+                return { ...oldData, totalComments: Math.max(0, oldData.totalComments - 1) };
+              }
+              return oldData;
+            },
+          );
+          queryClient.setQueriesData(
+            { queryKey: ["feed"] },
+            (oldData: any) => {
+              if (!Array.isArray(oldData)) return oldData;
+              return oldData.map((item: any) =>
+                item.id === targetId && typeof item.totalComments === 'number'
+                  ? { ...item, totalComments: Math.max(0, item.totalComments - 1) }
+                  : item,
+              );
+            },
+          );
+        }
+        toast({ title: "Success", description: "Comment deleted." });
+      } else {
+        throw new Error("Unknown error");
       }
-      toast("Comment deleted.", "success");
-    } catch {
-      toast("Failed to delete comment. Please try again.", "error");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to delete comment. Please try again.";
+      toast({ title: "Error", description: message, variant: "destructive" });
     }
   };
+
+  if (isTombstone) {
+    return (
+        <div className="group flex gap-1 md:gap-2">
+            <div className="shrink-0 pt-1">
+                <div className={`overflow-hidden rounded-full border bg-slate-100 dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-10 w-10" : "h-11 w-11 md:h-12 md:w-12"}`}>
+                    <div className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${isReply ? "text-xs md:text-sm" : "text-sm md:text-base"}`}>?</div>
+                </div>
+            </div>
+            <div className="min-w-0 flex-1">
+                <div className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}>
+                    <p className="italic text-xs text-slate-500 mt-2 dark:text-slate-400 md:text-sm">{comment.content}</p>
+                </div>
+                {replies && replies.length > 0 && (
+                  <div className="mt-2 space-y-2 border-l-2 border-slate-100 pl-2 dark:border-slate-800 md:mt-4 md:space-y-4 md:pl-4">
+                    {replies.map((reply) => (
+                      <CommentEntry
+                        key={reply.id}
+                        comment={reply}
+                        currentUserId={currentUserId}
+                        module={module}
+                        targetId={targetId}
+                        postAuthorId={postAuthorId}
+                        activeReplyId={activeReplyId}
+                        setActiveReplyId={setActiveReplyId}
+                        editingId={editingId}
+                        setEditingId={setEditingId}
+                        isReply={true}
+                        toast={toast}
+                        commentsQueryKey={commentsQueryKey}
+                      />
+                    ))}
+                  </div>
+                )}
+            </div>
+        </div>
+    )
+  }
 
   return (
     <div className="group flex gap-1 md:gap-2">
-      <Link href={`/scholars/${comment.author.id}`} className="shrink-0 pt-1">
+      <Link href={`/scholars/${comment.author?.id ?? '#'}`} className="shrink-0 pt-1">
         <div
           className={`overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-200 dark:border-slate-800 dark:bg-slate-900 ${
             isReply ? "h-10 w-10" : "h-11 w-11 md:h-12 md:w-12"
           }`}
         >
-          {comment.author.avatarUrl ? (
-            <Image
-              src={comment.author.avatarUrl}
-              alt="User"
+          {comment.author?.avatarUrl ? (
+              <Image
+                src={comment.author.avatarUrl}
+                alt="User"
               width={isReply ? 40 : 44}
               height={isReply ? 40 : 44}
               unoptimized
@@ -617,7 +661,7 @@ function CommentEntry({
                 isReply ? "text-xs md:text-sm" : "text-sm md:text-base"
               }`}
             >
-              {comment.author.name?.charAt(0).toUpperCase() || "?"}
+              {comment.author?.name?.charAt(0).toUpperCase() || "?"}
             </div>
           )}
         </div>
@@ -635,23 +679,23 @@ function CommentEntry({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <Link
-                  href={`/scholars/${comment.author.id}`}
+                  href={`/scholars/${comment.author?.id ?? '#'}`}
                   className="truncate text-xs font-bold text-slate-900 hover:text-blue-600 hover:underline dark:text-slate-50 dark:hover:text-blue-300 md:text-sm"
                 >
-                  {comment.author.name || "Scholar"}
+                  {comment.author?.name || "Scholar"}
                 </Link>
-                {postAuthorId && comment.author.id === postAuthorId && (
+                {postAuthorId && comment.author?.id === postAuthorId && (
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 md:text-[10px]">
                     Author
                   </span>
                 )}
               </div>
-              {comment.author.handle ? (
+              {comment.author?.handle ? (
                 <Link
-                  href={`/scholars/${comment.author.id}`}
+                  href={`/scholars/${comment.author?.id ?? '#'}`}
                   className="mt-0.5 block truncate text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
                 >
-                  @{comment.author.handle}
+                  @{comment.author?.handle}
                 </Link>
               ) : null}
             </div>
@@ -668,8 +712,6 @@ function CommentEntry({
 
           {editingId === comment.id ? (
             <form onSubmit={handleEditSubmit}>
-              <input type="hidden" name="_commentId" value={comment.id} />
-              <input type="hidden" name="_type" value={type} />
               <MentionComposer
                 name="content"
                 value={editedContent}
@@ -699,39 +741,20 @@ function CommentEntry({
               <div className="mt-3 flex items-center justify-between gap-3">
                 {wasEdited && (
                   <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                    {`Edited ${formatTimeAgo(comment.updatedAt)}`}
+                    {`Edited ${formatTimeAgo(comment.editedAt)}`}
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-2 md:gap-3">
                   <CommentActionsDropdown
                     isOwner={isOwner}
                     onEdit={() => setEditingId(comment.id)}
-                    onDelete={() => deleteFormRef.current?.requestSubmit()}
+                    onDelete={handleDeleteComment}
                   />
-                  <form
-                    ref={deleteFormRef}
-                    action={handleDeleteComment}
-                    className="hidden"
-                  >
-                    <input type="hidden" name="_commentId" value={comment.id} />
-                    <input type="hidden" name="_type" value={type} />
-                    <button type="submit" />
-                  </form>
                   <CommentVoteButton
                     commentId={comment.id}
-                    type={type}
-                    initialUpvotes={
-                      comment.votes?.filter((v) => v.voteType === "UPVOTE")
-                        .length ?? 0
-                    }
-                    initialDownvotes={
-                      comment.votes?.filter((v) => v.voteType === "DOWNVOTE")
-                        .length ?? 0
-                    }
-                    initialUserVote={
-                      (comment.votes?.find((v) => v.userId === currentUserId)
-                        ?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null
-                    }
+                    type={module}
+                    initialTotalVotes={comment.totalVotes}
+                    initialUserVote={comment.votes?.[0]?.voteType ?? null}
                   />
                 </div>
               </div>
@@ -739,7 +762,7 @@ function CommentEntry({
           )}
         </div>
 
-        {!isReply && (
+        {!isReply && !isTombstone && (
           <>
             <button
               onClick={() =>
@@ -749,15 +772,44 @@ function CommentEntry({
               }
               className="ml-2 mt-2 text-[11px] font-bold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
             >
-              Reply
+                  Reply ({comment.totalReplies ?? 0})
             </button>
             {activeReplyId === comment.id && (
               <ReplyForm
                 targetId={targetId}
-                type={type}
+                module={module}
                 parentComment={comment}
                 onSuccess={(reply) => {
-                  onReplyCreated(reply);
+                  queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
+                    commentsQueryKey,
+                    (oldComments = []) =>
+                      oldComments.map((c) =>
+                        c.id === reply.parentId
+                          ? { ...c, replies: [...(c.replies ?? []), reply], totalReplies: (c.totalReplies ?? 0) + 1 }
+                          : c,
+                      ),
+                  );
+                  queryClient.setQueriesData<{ totalComments?: number }>(
+                    { queryKey: [module, targetId] },
+                    (oldData: any) => {
+                      if (!oldData || typeof oldData !== 'object') return oldData;
+                      if (typeof oldData.totalComments === 'number') {
+                        return { ...oldData, totalComments: oldData.totalComments + 1 };
+                      }
+                      return oldData;
+                    },
+                  );
+                  queryClient.setQueriesData(
+                    { queryKey: ["feed"] },
+                    (oldData: any) => {
+                      if (!Array.isArray(oldData)) return oldData;
+                      return oldData.map((item: any) =>
+                        item.id === targetId && typeof item.totalComments === 'number'
+                          ? { ...item, totalComments: item.totalComments + 1 }
+                          : item,
+                      );
+                    },
+                  );
                   setActiveReplyId(null);
                 }}
                 toast={toast}
@@ -773,7 +825,7 @@ function CommentEntry({
                 key={reply.id}
                 comment={reply}
                 currentUserId={currentUserId}
-                type={type}
+                module={module}
                 targetId={targetId}
                 postAuthorId={postAuthorId}
                 activeReplyId={activeReplyId}
@@ -782,8 +834,7 @@ function CommentEntry({
                 setEditingId={setEditingId}
                 isReply={true}
                 toast={toast}
-                onReplyCreated={onReplyCreated}
-                onDeleted={onDeleted}
+                commentsQueryKey={commentsQueryKey}
               />
             ))}
           </div>

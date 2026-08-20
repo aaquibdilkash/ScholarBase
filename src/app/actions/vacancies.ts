@@ -4,9 +4,7 @@ import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { createClient } from '@/utils/supabase/server'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getVacancies(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where = q
@@ -24,95 +22,110 @@ export async function getVacancies(q?: string, userId?: string, limit = 20, curs
         orderBy: { createdAt: "desc" },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
-            author: {
-                include: {
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
-                },
+        select: {
+          id: true,
+          title: true,
+          institution: true,
+          deadline: true,
+          description: true,
+          notificationLink: true,
+          applyLink: true,
+          createdAt: true,
+          updatedAt: true,
+            editedAt: true,
+          totalVotes: true,
+          totalComments: true,
+          authorId: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              handle: true,
+              avatarUrl: true,
+              ...(userId
+                ? {
+                    followers: {
+                      where: { followerId: userId },
+                      select: { followerId: true },
+                    },
+                  }
+                : {}),
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+          },
+          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
 
-export async function getVacancyById(id: string) {
-    const supabase = await createClient();
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-
+export async function getVacancyById(id: string, userId?: string) {
     return prisma.jobVacancy.findUnique({
         where: { id: id },
-        include: {
-            author: {
-                include: {
-                    followers: user
-                        ? {
-                            where: { followerId: user.id },
-                            select: { followerId: true },
-                        }
-                        : false,
-                },
+        select: {
+          id: true,
+          title: true,
+          institution: true,
+          deadline: true,
+          description: true,
+          notificationLink: true,
+          applyLink: true,
+          createdAt: true,
+          updatedAt: true,
+            editedAt: true,
+          totalVotes: true,
+          totalComments: true,
+          authorId: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              handle: true,
+              avatarUrl: true,
+              followers: userId
+                ? {
+                    where: { followerId: userId },
+                    select: { followerId: true },
+                  }
+                : false,
             },
-            comments: {
-                where: { parentId: null },
+          },
+          comments: {
+            where: { parentId: null },
+            select: {
+              id: true,
+              content: true,
+              createdAt: true,
+              updatedAt: true,
+            editedAt: true,
+              parentId: true,
+              totalVotes: true,
+              totalReplies: true,
+              author: {
+                select: { id: true, name: true, handle: true, avatarUrl: true },
+              },
+              votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+              mentions: true,
+               replies: {
                 select: {
-                    id: true,
-                    content: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    parentId: true,
-                    author: {
-                        select: {
-                            id: true,
-                            name: true,
-                            handle: true,
-                            avatarUrl: true,
-                        },
-                    },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
-                    replies: {
-                        select: {
-                            id: true,
-                            content: true,
-                            createdAt: true,
-                            updatedAt: true,
-                            parentId: true,
-                            author: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    handle: true,
-                                    avatarUrl: true,
-                                },
-                            },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
-                        },
-                        orderBy: { createdAt: "asc" },
-                    },
-                    _count: { select: { votes: true } },
+                  id: true,
+                  content: true,
+                  createdAt: true,
+                  updatedAt: true,
+            editedAt: true,
+                  parentId: true,
+                  totalVotes: true,
+                  totalReplies: true,
+                  author: {
+                    select: { id: true, name: true, handle: true, avatarUrl: true },
+                  },
+                  votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+                  mentions: true,
                 },
-                orderBy: { createdAt: "desc" },
+                orderBy: { createdAt: "asc" },
+              },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+            orderBy: { createdAt: "desc" },
+          },
+          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -133,12 +146,22 @@ export async function createJobVacancy(formData: FormData) {
 
     const vacancy = await prisma.jobVacancy.create({
         data: { title, institution, deadline, description, notificationLink, applyLink, authorId: user.id },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { comments: true, votes: true }
-            }
+        select: {
+            id: true,
+            title: true,
+            institution: true,
+            deadline: true,
+            description: true,
+            notificationLink: true,
+            applyLink: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            totalVotes: true,
+            totalComments: true,
+            author: {
+                select: { id: true, name: true, handle: true, avatarUrl: true },
+            },
         }
     })
 
@@ -180,13 +203,23 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
 
     const updatedVacancy = await prisma.jobVacancy.update({
         where: { id: vacancyId },
-        data: { title, institution, deadline, description, notificationLink, applyLink },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { comments: true, votes: true }
-            }
+        data: { title, institution, deadline, description, notificationLink, applyLink, editedAt: new Date() },
+        select: {
+            id: true,
+            title: true,
+            institution: true,
+            deadline: true,
+            description: true,
+            notificationLink: true,
+            applyLink: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            totalVotes: true,
+            totalComments: true,
+            author: {
+                select: { id: true, name: true, handle: true, avatarUrl: true },
+            },
         }
     })
 
@@ -206,12 +239,8 @@ export async function deleteJobVacancy(vacancyId: string) {
         throw new Error('Not authorized to delete this vacancy.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.jobVacancyVote, 'jobVacancyId', vacancyId);
-    await reverseReputationForContent(vacancy.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('vacancy', vacancyId);
-
-    await prisma.jobVacancy.delete({ where: { id: vacancyId } })
+    // Soft delete (no reputation reversal)
+    await prisma.jobVacancy.update({ where: { id: vacancyId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: vacancyId } }
 }
@@ -225,26 +254,36 @@ export async function getLatestVacancies(count: number, userId?: string) {
         },
         take: count,
         orderBy: { createdAt: "desc" },
-        include: {
-            author: {
-                include: {
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
-                },
+        select: {
+          id: true,
+          title: true,
+          institution: true,
+          deadline: true,
+          description: true,
+          notificationLink: true,
+          applyLink: true,
+          createdAt: true,
+          updatedAt: true,
+            editedAt: true,
+          totalVotes: true,
+          totalComments: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              handle: true,
+              avatarUrl: true,
+              ...(userId
+                ? {
+                    followers: {
+                      where: { followerId: userId },
+                      select: { followerId: true },
+                    },
+                  }
+                : {}),
             },
-            votes: {
-                select: {
-                    userId: true,
-                    voteType: true,
-                },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
+          },
+          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }

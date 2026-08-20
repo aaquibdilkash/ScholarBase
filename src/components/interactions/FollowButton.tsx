@@ -43,7 +43,7 @@ export function FollowButton({
         toast(result.error, "error");
       } else if (result.success) {
         toast(
-          result.data?.newFollowState
+          optimisticIsFollowing
             ? "Started following this scholar"
             : "Unfollowed this scholar",
           "success",

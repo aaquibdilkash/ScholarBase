@@ -3,7 +3,6 @@
 import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
-import { reverseReputationForRecommendation } from '@/app/actions/interactions';
 
 export async function createRecommendation(formData: FormData, supervisorId: string) {
     const user = await requireCurrentUser(
@@ -42,29 +41,36 @@ export async function createRecommendation(formData: FormData, supervisorId: str
         return { success: false, error: 'You already have a recommendation for this supervisor.' }
     }
 
-    const recommendation = await prisma.recommendation.create({
-        data: {
-            rating,
-            feedback,
-            turnaroundTimeDays,
-            responsivenessScore,
-            guidanceScore,
-            isAnonymous,
-            supervisorId,
-            authorId: user.id,
-        },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { comments: true, votes: true }
-            }
-        }
-    });
+    const recommendation = await prisma.$transaction(async (tx) => {
+        const newRecommendation = await tx.recommendation.create({
+            data: {
+                rating,
+                feedback,
+                turnaroundTimeDays,
+                responsivenessScore,
+                guidanceScore,
+                isAnonymous,
+                supervisorId,
+                authorId: user.id,
+            },
+        });
 
-    await prisma.user.update({
-        where: { id: user.id },
-        data: { reputation: { increment: 2 } },
+        await tx.user.update({
+            where: { id: user.id },
+            data: { reputation: { increment: 2 } },
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'RECOMMENDATION',
+                entityId: newRecommendation.id,
+                entityTitle: `Recommendation for supervisor ${supervisorId}`.substring(0, 100),
+            }
+        });
+
+        return newRecommendation;
     });
 
     return { success: true, data: recommendation }
@@ -111,14 +117,8 @@ export async function updateRecommendation(formData: FormData, recommendationId:
             responsivenessScore,
             guidanceScore,
             isAnonymous,
+            editedAt: new Date(),
         },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { comments: true, votes: true }
-            }
-        }
     })
 
     return { success: true, data: updatedRecommendation }
@@ -140,10 +140,8 @@ export async function deleteRecommendation(recommendationId: string) {
         throw new Error('Not authorized to delete this recommendation.')
     }
 
-    // Reverse reputation before deleting
-    await reverseReputationForRecommendation(recommendationId);
-
-    await prisma.recommendation.delete({ where: { id: recommendationId } })
+    // Soft delete (no reputation reversal)
+    await prisma.recommendation.update({ where: { id: recommendationId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: recommendationId, supervisorId: recommendation.supervisorId } }
 }

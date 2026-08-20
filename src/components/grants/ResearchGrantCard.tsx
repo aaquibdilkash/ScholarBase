@@ -21,9 +21,8 @@ export function ResearchGrantCard({
   const { toast } = useToast();
   const isOwner = currentUserId === grant.authorId;
   const isFollowing = (grant.author.followers?.length ?? 0) > 0;
-  const userVote = grant.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount = grant.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount = grant.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote =
+    ((grant.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
 
   const deleteMutation = useMutation({
     mutationFn: deleteResearchGrant,
@@ -54,19 +53,55 @@ export function ResearchGrantCard({
       detailPageHref={`/grants/${grant.id}`}
       managementControls={
         isOwner && (
-          <OwnerActionsDropdown editHref={`/grants/${grant.id}/edit`} onDelete={() => { deleteMutation.mutate(grant.id); return { refresh: false }; }} isOwner={true} editLabel="Edit Grant" deleteLabel="Delete" />
+          <OwnerActionsDropdown
+            editHref={`/grants/${grant.id}/edit`}
+            onDelete={() => {
+              deleteMutation.mutate(grant.id);
+              return { refresh: false };
+            }}
+            isOwner={true}
+            editLabel="Edit Grant"
+            deleteLabel="Delete"
+          />
         )
       }
       createdDate={grant.createdAt}
-      editedDate={grant.updatedAt > grant.createdAt ? grant.updatedAt : undefined}
-      footerVoteButton={<VoteButton targetId={grant.id} type="researchGrant" initialUpvotes={upvoteCount} initialDownvotes={downvoteCount} initialUserVote={userVote} />}
+      editedDate={
+        grant.editedAt && grant.editedAt > grant.createdAt ? grant.editedAt : undefined
+      }
+      footerVoteButton={
+        <VoteButton
+          targetId={grant.id}
+          module="RESEARCH_GRANT"
+          initialTotalVotes={grant.totalVotes ?? 0}
+          initialUserVote={userVote}
+        />
+      }
       footerCommentsHref={`/grants/${grant.id}`}
-      footerCommentsCount={grant._count.comments}
+      footerCommentsCount={grant.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          {grant.applyLink && <a href={grant.applyLink} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800">Apply</a>}
-          {grant.infoLink && <a href={grant.infoLink} target="_blank" rel="noopener noreferrer" className="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900">More Info</a>}
+          {grant.applyLink && (
+            <a
+              href={grant.applyLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+            >
+              Apply
+            </a>
+          )}
+          {grant.infoLink && (
+            <a
+              href={grant.infoLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+            >
+              More Info
+            </a>
+          )}
         </div>
       }
     >
@@ -76,10 +111,16 @@ export function ResearchGrantCard({
         </h2>
         {grant.amount && (
           <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-            <span className="font-semibold text-slate-800 dark:text-slate-100">Amount:</span> {grant.amount}
+            <span className="font-semibold text-slate-800 dark:text-slate-100">
+              Amount:
+            </span>{" "}
+            {grant.amount}
           </p>
         )}
-        <RichContent content={grant.description} className="text-sm leading-relaxed text-slate-600 line-clamp-3" />
+        <RichContent
+          content={grant.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
       </Link>
     </ListPageCardShell>
   );

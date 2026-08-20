@@ -38,18 +38,14 @@ export function SupervisorCard({
   });
 
   const avgRating =
-    recommendationCount > 0
+    recommendationCount > 0 && supervisor.recommendations
       ? supervisor.recommendations.reduce((sum, rec) => {
           return sum + rec.rating;
         }, 0) / recommendationCount
       : 0;
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    supervisor.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    supervisor.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    supervisor.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    (supervisor.votes || []).find((v: { userId?: string; voteType?: string }) => v.userId === currentUserId)?.voteType ?? null;
   const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
 
   return (
@@ -69,7 +65,10 @@ export function SupervisorCard({
             isOwner={true}
             editLabel="Edit Supervisor"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(supervisor.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(supervisor.id);
+              return { refresh: false };
+            }}
           />
         )
       }
@@ -77,14 +76,13 @@ export function SupervisorCard({
       footerVoteButton={
         <VoteButton
           targetId={supervisor.id}
-          type="supervisor"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="SUPERVISOR"
+          initialTotalVotes={supervisor.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
-      footerCommentsCount={supervisor._count.comments}
+      footerCommentsCount={supervisor.totalComments}
     >
       <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
         {supervisor.name}

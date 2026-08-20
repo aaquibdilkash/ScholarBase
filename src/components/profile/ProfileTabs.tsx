@@ -7,8 +7,8 @@ import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 import {
   getProfileSections,
-  getProfileSection,
   getProfileActivity,
+  getProfileSection,
 } from "@/app/actions/profile";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { ArticleCard } from "@/components/blog/ArticleCard";
@@ -473,8 +473,8 @@ export default function ProfileTabs({
           {sections &&
             SECTIONS.map((section) => {
               const items = sections[section.key] ?? [];
-              const count = sections?._count?.[section.key] ?? items.length;
-              const hasMore = items.length < count;
+              const count = items.length;
+              const hasMore = items.length > 0;
 
               return (
                 <section key={section.key}>
@@ -525,7 +525,7 @@ export default function ProfileTabs({
           {activity && activity.length > 0
             ? activity.map((item, index) => (
                 <ActivityItemCard
-                  key={`${item.contentId}-${item.action}-${index}`}
+                  key={`${item.id}-${item.action}-${index}`}
                   item={item}
                 />
               ))
@@ -542,17 +542,67 @@ export default function ProfileTabs({
   );
 }
 
+// Human-readable metadata for each UserActivity module key, so the profile
+// activity tab renders the global activity log without any DB JOINs.
+const ACTIVITY_META: Record<
+  string,
+  { label: string; href?: (entityId: string) => string | undefined }
+> = {
+  SOCIAL_POST: { label: "social post", href: (id) => `/feed/${id}` },
+  ARTICLE: { label: "article", href: (id) => `/blog/${id}` },
+  PUBLICATION: { label: "publication", href: (id) => `/publications/${id}` },
+  JOURNAL: { label: "journal", href: (id) => `/journals/${id}` },
+  RESEARCH_TOOL: { label: "research tool", href: (id) => `/research-tools/${id}` },
+  PHD_ADMISSION: { label: "PhD admission", href: (id) => `/admissions/${id}` },
+  RESEARCH_EVENT: { label: "research event", href: (id) => `/events/${id}` },
+  JOB_VACANCY: { label: "job vacancy", href: (id) => `/vacancies/${id}` },
+  HELP_POST: { label: "help post", href: (id) => `/help/${id}` },
+  RESULT: { label: "result", href: (id) => `/results/${id}` },
+  CONTRIBUTION: { label: "contribution", href: (id) => `/contributions/${id}` },
+  SUPERVISOR: { label: "supervisor", href: (id) => `/supervisor/${id}` },
+  RECOMMENDATION: { label: "recommendation", href: () => undefined },
+  RESEARCH_SURVEY: { label: "survey", href: (id) => `/surveys/${id}` },
+  COURSE: { label: "course", href: (id) => `/learn/${id}` },
+   RESEARCH_GRANT: { label: "research grant", href: (id) => `/grants/${id}` },
+  USER: { label: "scholar", href: () => undefined },
+  SOCIAL_POST_COMMENT: { label: "comment" },
+  ARTICLE_COMMENT: { label: "comment" },
+  JOB_VACANCY_COMMENT: { label: "comment" },
+  PHD_ADMISSION_COMMENT: { label: "comment" },
+  RESEARCH_EVENT_COMMENT: { label: "comment" },
+  SUPERVISOR_COMMENT: { label: "comment" },
+  RECOMMENDATION_COMMENT: { label: "comment" },
+  HELP_POST_COMMENT: { label: "comment" },
+  JOURNAL_COMMENT: { label: "comment" },
+  RESEARCH_TOOL_COMMENT: { label: "comment" },
+  RESEARCH_GRANT_COMMENT: { label: "comment" },
+  COURSE_COMMENT: { label: "comment" },
+  RESULT_COMMENT: { label: "comment" },
+  CONTRIBUTION_COMMENT: { label: "comment" },
+  PUBLICATION_COMMENT: { label: "comment" },
+  RESEARCH_SURVEY_COMMENT: { label: "comment" },
+};
+
+const ACTIVITY_ACTION: Record<string, string> = {
+  VOTED: "voted on",
+  COMMENTED: "commented on",
+  REPLIED: "replied to",
+  FOLLOWED: "followed",
+  PUBLISHED: "published",
+};
+
 function ActivityItemCard({ item }: { item: ActivityItem }) {
+  const meta = ACTIVITY_META[item.moduleType] ?? { label: "content" };
+  const href = meta.href?.(item.entityId);
+  const actionText = ACTIVITY_ACTION[item.action] ?? "interacted with";
+  const label = meta.label;
+
   const Icon =
-    item.action === "commented"
+    item.action === "COMMENTED"
       ? MessageSquare
-      : item.action === "replied"
+      : item.action === "REPLIED"
         ? Reply
         : ThumbsUp;
-
-  const actionText = item.action === "voted" ? "voted on" : `${item.action} on`;
-
-  const user = item.author?.name ? item.author.name : "A scholar";
 
   return (
     <div className="sb-card p-4">
@@ -561,25 +611,25 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
         <div className="flex-1">
           <p className="text-slate-600 dark:text-slate-300">
             <span className="font-semibold text-slate-800 dark:text-slate-100">
-              {user}
+              {actionText}
             </span>{" "}
-            {actionText} the {item.typeLabel.toLowerCase()}{" "}
-            <Link
-              href={item.href}
-              className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
-            >
-              &ldquo;{item.title}&rdquo;
-            </Link>
+            {label}{" "}
+            {href && item.entityTitle ? (
+              <Link
+                href={href}
+                className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
+              >
+                &ldquo;{item.entityTitle}&rdquo;
+              </Link>
+            ) : item.entityTitle ? (
+              <span className="font-semibold text-slate-700">
+                &ldquo;{item.entityTitle}&rdquo;
+              </span>
+            ) : null}
           </p>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
             {formatTimeAgo(new Date(item.createdAt))}
           </p>
-          {item.excerpt && (
-            <RichContent
-              content={item.excerpt}
-              className="mt-2 text-sm text-slate-500 dark:text-slate-400 line-clamp-2"
-            />
-          )}
         </div>
       </div>
     </div>

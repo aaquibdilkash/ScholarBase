@@ -1,6 +1,8 @@
 // src/types/comments.ts
 
-export type CommentType =
+import type { VoteType } from "./votes";
+
+export type CommentEntityType =
   | 'article'
   | 'post'
   | 'vacancy'
@@ -18,11 +20,29 @@ export type CommentType =
   | 'publication'
   | 'survey';
 
-/**
- * Structural model interface for comment delegates. Using a structural
- * interface (rather than a union of Prisma delegate types) keeps method
- * calls like findUnique / update / delete / count type-safe.
- */
+export interface CommentAuthor {
+  id: string;
+  name: string | null;
+  handle: string | null;
+  avatarUrl: string | null;
+}
+
+export interface CommentWithAuthorAndVotes {
+  id: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  editedAt?: Date | null;
+  authorId?: string | null;
+  parentId?: string | null;
+  totalVotes: number;
+  totalReplies?: number;
+  author: CommentAuthor | null;
+  votes: { voteType: VoteType }[] | undefined;
+  mentions?: { id: string; handle: string | null }[] | null;
+  replies?: CommentWithAuthorAndVotes[];
+}
+
 export interface CommentModel {
   findUnique: (args: {
     where: { id: string };
@@ -59,10 +79,6 @@ export interface CommentVoteModel {
     where: { commentId: string; voteType: 'UPVOTE' | 'DOWNVOTE' };
   }) => Promise<number>;
 }
-
-/**
- * Comment action configuration used across comment action files.
- */
 
 export interface CommentActionConfig {
   model: CommentModel;

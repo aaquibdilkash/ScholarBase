@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import { deleteHelpPostSafe } from "@/app/actions/help";
+import { deleteHelpPost } from "@/app/actions/help";
 import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
 import { useToast } from "@/components/ui/Toast";
@@ -20,29 +20,26 @@ export function HelpPostCard({
   const { toast } = useToast();
   const isOwner = currentUserId === helpPost.authorId;
   const isFollowing = (helpPost.author.followers?.length ?? 0) > 0;
-  const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    helpPost.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    helpPost.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    helpPost.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+  
+  // The 'votes' prop is now a filtered select returning an array with 0 or 1 elements.
+  const initialUserVote = helpPost.votes && helpPost.votes.length > 0 ? helpPost.votes[0].voteType : null;
 
   const deleteMutation = useMutation({
-    mutationFn: deleteHelpPostSafe,
+    mutationFn: deleteHelpPost,
     onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast(response.error || "Failed to delete post.", "error");
-        return;
-      }
+       if (!response.success || !response.data) {
+         toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
+         return;
+       }
       queryClient.setQueryData<HelpPostWithAuthor[]>(
         ["helpPosts", { q: "" }],
         (oldData = []) =>
           oldData.filter((p) => p.id !== response.data?.deletedId),
       );
-      toast("Post deleted successfully.", "success");
+      toast({ title: "Success", description: "Post deleted successfully." });
     },
     onError: (error) => {
-      toast(error.message, "error");
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -69,19 +66,18 @@ export function HelpPostCard({
       }
       createdDate={helpPost.createdAt}
       editedDate={
-        helpPost.updatedAt > helpPost.createdAt ? helpPost.updatedAt : undefined
+        helpPost.editedAt && helpPost.editedAt > helpPost.createdAt ? helpPost.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
           targetId={helpPost.id}
-          type="help"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
-          initialUserVote={userVote}
+          module="HELP_POST"
+          initialTotalVotes={helpPost.totalVotes}
+          initialUserVote={initialUserVote}
         />
       }
       footerCommentsHref={`/help/${helpPost.id}`}
-      footerCommentsCount={helpPost._count.comments}
+      footerCommentsCount={helpPost.totalComments}
     >
       <div className="mb-4">
         <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">

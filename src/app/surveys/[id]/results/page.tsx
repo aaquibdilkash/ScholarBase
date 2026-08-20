@@ -24,7 +24,7 @@ export default async function SurveyResultsPage({
 
   // Fetch individual responses ONLY if the current user is the author
   const responses =
-    user?.id === survey.authorId
+    user && user.id === survey.authorId
       ? await getSurveyResponses(id, user.id)
       : null;
 
@@ -55,7 +55,7 @@ export default async function SurveyResultsPage({
   const serializedSurvey = {
     id: survey.id,
     title: survey.title,
-    _count: survey._count,
+    totalResponses: survey.totalResponses,
     questions: survey.questions.map((q) => ({
       id: q.id,
       title: q.title,

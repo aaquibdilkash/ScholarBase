@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
-import type { ToastType, Toast, ToastContextValue } from "@/types/context";
+import type { ToastOptions, Toast, ToastContextValue, ToastVariant } from "@/types/context";
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
@@ -21,14 +21,25 @@ export function useToast() {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = useCallback((message: string, type: ToastType = "success") => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setToasts((prev) => [...prev, { id, message, type }]);
+  const toast = useCallback(
+    (options: ToastOptions | string, variant?: string) => {
+      const normalized: ToastOptions =
+        typeof options === "string"
+          ? { title: options, variant: variant === "error" ? "destructive" : "default" }
+          : options;
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const resolvedVariant: ToastVariant = (normalized.variant as ToastVariant) ?? "default";
+      setToasts((prev) => [
+        ...prev,
+        { id, title: normalized.title ?? "", description: normalized.description, variant: resolvedVariant },
+      ]);
 
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 2200);
-  }, []);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 2200);
+    },
+    [],
+  );
 
   return (
     <ToastContext.Provider value={{ toast }}>
@@ -40,18 +51,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <div
             key={t.id}
             className={`pointer-events-auto animate-in slide-in-from-top-4 fade-in rounded-2xl border px-5 py-3 text-sm font-medium shadow-[0_12px_32px_rgba(15,23,42,0.15)] backdrop-blur-xl dark:shadow-black/30 ${
-              t.type === "error"
+              t.variant === "destructive"
                 ? "border-red-200/70 bg-red-50 text-red-900 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-100"
                 : "border-slate-200/70 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
             }`}
           >
             <span className="inline-flex items-center gap-2">
-              {t.type === "error" ? (
+              {t.variant === "destructive" ? (
                 <XCircle className="w-4 h-4 shrink-0 text-red-500 dark:text-red-300" />
               ) : (
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-green-500 dark:text-green-300" />
               )}
-              {t.message}
+              {t.title}
+              {t.description && (
+                <span className="block text-xs opacity-80">{t.description}</span>
+              )}
             </span>
           </div>
         ))}

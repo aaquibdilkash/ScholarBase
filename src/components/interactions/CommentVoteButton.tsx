@@ -1,85 +1,65 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { toggleCommentVote } from "@/app/actions/comments";
+import { toggleCommentVote } from "@/app/actions/votes";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
+import type { CommentEntityType } from "@/types/comments";
 import type { VoteType } from "@/types/votes";
 
-type VoteState = {
-  userVote: VoteType | null;
-  upvotes: number;
-  downvotes: number;
-};
+type CommentVoteState = {
+   userVote: VoteType | null;
+   totalVotes: number;
+ };
 
-function applyVote(state: VoteState, voteType: VoteType): VoteState {
-  if (state.userVote === voteType) {
+  function applyCommentVote(state: CommentVoteState, voteType: VoteType): CommentVoteState {
+    if (state.userVote === voteType) {
+      return {
+        userVote: null,
+        totalVotes: state.totalVotes + (voteType === "UPVOTE" ? -1 : 1),
+      };
+    }
+
+    if (state.userVote) {
+      return {
+        userVote: voteType,
+        totalVotes: state.totalVotes + (voteType === "UPVOTE" ? 2 : -2),
+      };
+    }
+
     return {
-      userVote: null,
-      upvotes: state.upvotes - (voteType === "UPVOTE" ? 1 : 0),
-      downvotes: state.downvotes - (voteType === "DOWNVOTE" ? 1 : 0),
+      userVote: voteType,
+      totalVotes: state.totalVotes + (voteType === "UPVOTE" ? 1 : -1),
     };
   }
 
-  return {
-    userVote: voteType,
-    upvotes:
-      state.upvotes +
-      (voteType === "UPVOTE" ? 1 : 0) -
-      (state.userVote === "UPVOTE" ? 1 : 0),
-    downvotes:
-      state.downvotes +
-      (voteType === "DOWNVOTE" ? 1 : 0) -
-      (state.userVote === "DOWNVOTE" ? 1 : 0),
-  };
-}
-
+ 
 export function CommentVoteButton({
   commentId,
   type,
-  initialUpvotes,
-  initialDownvotes,
+  initialTotalVotes,
   initialUserVote,
 }: {
   commentId: string;
-  type:
-    | "article"
-    | "post"
-    | "vacancy"
-    | "admission"
-    | "event"
-    | "supervisor"
-    | "recommendation"
-    | "help"
-    | "researchTool"
-    | "researchGrant"
-    | "course"
-    | "journal"
-    | "result"
-    | "contribution"
-    | "publication"
-    | "survey";
-  initialUpvotes: number;
-  initialDownvotes: number;
+  type: CommentEntityType;
+  initialTotalVotes: number;
   initialUserVote: VoteType | null;
 }) {
-  const [voteState, setVoteState] = useState<VoteState>({
+  const [voteState, setVoteState] = useState<CommentVoteState>({
     userVote: initialUserVote,
-    upvotes: initialUpvotes,
-    downvotes: initialDownvotes,
+    totalVotes: initialTotalVotes,
   });
   const [optimisticVotes, addOptimisticVote] = useOptimistic(
     voteState,
-    applyVote,
+    applyCommentVote,
   );
   const [isPending, startTransition] = useTransition();
   const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
 
-  const { userVote } = optimisticVotes;
-  const netScore = optimisticVotes.upvotes - optimisticVotes.downvotes;
+  const { userVote, totalVotes } = optimisticVotes;
 
   const handleVote = (voteType: VoteType) => {
     setPendingVote(voteType);
@@ -91,15 +71,28 @@ export function CommentVoteButton({
           openAuthModal();
           return;
         }
-        const nextState = res as {
-          userVote: VoteType | null;
-          upvotes: number;
-          downvotes: number;
-        };
-        setVoteState(nextState);
-        toast("Vote registered!", "success");
+        if (res.success && typeof res.data?.totalVotes === 'number') {
+          setVoteState(prev => ({
+            totalVotes: res.data!.totalVotes,
+            userVote: applyCommentVote(prev, voteType).userVote,
+          }));
+          toast({
+            title: "Success",
+            description: res.data.userVote ? "Vote registered!" : "Vote removed.",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to register vote. Please try again.",
+            variant: "destructive",
+          });
+        }
       } catch {
-        toast("Failed to register vote. Please try again.", "error");
+        toast({
+          title: "Error",
+          description: "Failed to register vote. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setPendingVote(null);
       }
@@ -126,14 +119,14 @@ export function CommentVoteButton({
 
       <span
         className={`text-xs font-bold min-w-[1rem] text-center ${
-          netScore > 0
+          totalVotes > 0
             ? "text-green-600"
-            : netScore < 0
+            : totalVotes < 0
               ? "text-red-600"
               : "text-black-500"
         }`}
       >
-        {netScore}
+        {totalVotes}
       </span>
 
       <button

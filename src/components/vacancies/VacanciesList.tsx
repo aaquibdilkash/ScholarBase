@@ -2,28 +2,12 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SearchInput } from "@/components/ui/SearchInput";
-import { JobVacancy, User } from "@prisma/client";
-import { VacancyCard } from "./VacancyCard";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
 import { useQuery } from "@tanstack/react-query";
+import { SearchInput } from "@/components/ui/SearchInput";
+import { VacancyCard } from "./VacancyCard";
+import type { VacancyWithAuthor } from "@/types/cards";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
 import { getVacancies } from "@/app/actions/vacancies";
-
-type VoteShape = {
-  userId: string;
-  voteType: "UPVOTE" | "DOWNVOTE";
-};
-
-type VacancyWithDetails = JobVacancy & {
-  author: User & {
-    followers?: { followerId: string }[];
-  };
-  votes: VoteShape[];
-  _count: {
-    votes: number;
-    comments: number;
-  };
-};
 
 export function VacanciesList({
   vacancies,
@@ -31,7 +15,7 @@ export function VacanciesList({
   initialQuery,
   loadMoreParams,
 }: {
-  vacancies: VacancyWithDetails[];
+  vacancies: VacancyWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
   loadMoreParams?: Record<string, string | undefined>;
@@ -70,8 +54,8 @@ export function VacanciesList({
         params={loadMoreParams}
         renderItem={(job) => (
           <VacancyCard
-            key={(job as VacancyWithDetails).id}
-            vacancy={job as VacancyWithDetails}
+            key={(job as VacancyWithAuthor).id}
+            vacancy={job as VacancyWithAuthor}
             currentUserId={currentUserId}
           />
         )}

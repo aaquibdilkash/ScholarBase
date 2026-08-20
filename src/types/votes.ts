@@ -1,5 +1,5 @@
 /**
- * Shared vote types used across the app (VoteButton, interactions, cards).
+ * Shared vote types used across the app (VoteButton, votes, cards).
  */
 
 export type VoteType = "UPVOTE" | "DOWNVOTE";
@@ -21,17 +21,6 @@ export type VoteTargetType =
     | "contribution"
     | "publication"
     | "survey";
-
-export interface VoteCounts {
-    upvotes: number;
-    downvotes: number;
-}
-
-export interface VoteResult {
-    userVote: VoteType | null;
-    upvotes: number;
-    downvotes: number;
-}
 
 export interface AuthErrorResult {
     error: string;

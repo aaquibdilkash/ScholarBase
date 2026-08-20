@@ -5,7 +5,6 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseContentCommentVoteReputation, reverseReputationForContent } from '@/app/actions/interactions'
 
 export async function createCourse(formData: FormData) {
   const user = await requireCurrentUser('Please log in to share a course.')
@@ -20,32 +19,39 @@ export async function createCourse(formData: FormData) {
   const link = readFormValue(formData, 'link')
   const description = readFormValue(formData, 'description')
 
-  const course = await prisma.course.create({
-    data: {
-      title,
-      provider: provider || null,
-      instructor: instructor || null,
-      format: format || null,
-      level: level || null,
-      price: price || null,
-      duration: duration || null,
-      link,
-      description,
-      authorId: user.id,
-    },
-    include: {
-        author: true,
-        votes: true,
-        _count: {
-            select: { votes: true, comments: true },
-        },
-    }
-  })
+  const course = await prisma.$transaction(async (tx) => {
+    const newCourse = await tx.course.create({
+      data: {
+        title,
+        provider: provider || null,
+        instructor: instructor || null,
+        format: format || null,
+        level: level || null,
+        price: price || null,
+        duration: duration || null,
+        link,
+        description,
+        authorId: user.id,
+      },
+    });
 
-  await notifyFollowersOfActivity({
+    await tx.userActivity.create({
+      data: {
+        userId: user.id,
+        action: 'PUBLISHED',
+         moduleType: 'COURSE',
+        entityId: newCourse.id,
+        entityTitle: newCourse.title,
+      }
+    });
+
+    return newCourse;
+  });
+
+  notifyFollowersOfActivity({
     actorId: user.id,
     type: 'course-published',
-    targetType: 'course',
+    targetType: 'Course',
     targetId: course.id,
     title: `${user.email?.split('@')[0] || 'Someone'} shared a research course`,
     body: provider ? `${title} - ${provider}` : title,
@@ -91,14 +97,8 @@ export async function updateCourse(formData: FormData, courseId: string) {
       duration: duration || null,
       link,
       description,
+      editedAt: new Date(),
     },
-    include: {
-        author: true,
-        votes: true,
-        _count: {
-            select: { votes: true, comments: true },
-        },
-    }
   })
 
   return { success: true, data: updatedCourse }
@@ -119,18 +119,16 @@ export async function deleteCourse(courseId: string) {
     throw new Error('Not authorized to delete this course.')
   }
 
-  const voteCounts = await countVotesForTarget(prisma.courseVote, 'courseId', courseId)
-  await reverseReputationForContent(course.authorId, voteCounts)
-  await reverseContentCommentVoteReputation('course', courseId)
-
-  await prisma.course.delete({ where: { id: courseId } })
+  // Soft delete (no reputation reversal)
+  await prisma.course.update({ where: { id: courseId }, data: { isDeleted: true } })
 
   return { success: true, data: { deletedId: courseId } }
 }
 
 export async function getCourses(q?: string, userId?: string, limit = 20, cursor?: string) {
-  const where = q
-    ? {
+  const where: Prisma.CourseWhereInput = {
+    isDeleted: false,
+    ...(q && {
         OR: [
           { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
           { provider: { contains: q, mode: Prisma.QueryMode.insensitive } },
@@ -139,31 +137,44 @@ export async function getCourses(q?: string, userId?: string, limit = 20, cursor
           { level: { contains: q, mode: Prisma.QueryMode.insensitive } },
           { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
         ],
-      }
-    : {}
+      }),
+    };
 
   return prisma.course.findMany({
     where,
     orderBy: { createdAt: 'desc' },
     take: limit,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    include: {
+    select: {
+      id: true,
+      title: true,
+      provider: true,
+      link: true,
+      description: true,
+      createdAt: true,
+      updatedAt: true,
+            editedAt: true,
       author: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
         },
       },
-      votes: { select: { userId: true, voteType: true } },
-      _count: { select: { votes: true, comments: true } },
+      totalVotes: true,
+      totalComments: true,
+      votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
     },
   })
 }
 
 export async function getCourseById(courseId: string, userId?: string) {
   return prisma.course.findUniqueOrThrow({
-    where: { id: courseId },
+    where: { id: courseId, isDeleted: false },
     select: {
         id: true,
         title: true,
@@ -177,6 +188,7 @@ export async function getCourseById(courseId: string, userId?: string) {
         description: true,
         createdAt: true,
         updatedAt: true,
+            editedAt: true,
         authorId: true,
         author: {
             select: {
@@ -189,14 +201,18 @@ export async function getCourseById(courseId: string, userId?: string) {
                     : false,
             },
         },
+        totalVotes: true,
+        totalComments: true,
+        votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
         comments: {
             where: { parentId: null },
+            orderBy: { createdAt: "desc" },
             select: {
                 id: true,
                 content: true,
                 createdAt: true,
                 updatedAt: true,
-                parentId: true,
+            editedAt: true,
                 author: {
                     select: {
                         id: true,
@@ -205,15 +221,17 @@ export async function getCourseById(courseId: string, userId?: string) {
                         avatarUrl: true,
                     },
                 },
-                votes: { select: { userId: true, voteType: true } },
-                mentions: true,
+                totalVotes: true,
+                totalReplies: true,
+                votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
                 replies: {
+                    orderBy: { createdAt: "asc" },
                     select: {
                         id: true,
                         content: true,
                         createdAt: true,
                         updatedAt: true,
-                        parentId: true,
+            editedAt: true,
                         author: {
                             select: {
                                 id: true,
@@ -222,18 +240,12 @@ export async function getCourseById(courseId: string, userId?: string) {
                                 avatarUrl: true,
                             },
                         },
-                        votes: { select: { userId: true, voteType: true } },
-                        mentions: true,
-                        _count: { select: { votes: true } },
+                        totalVotes: true,
+                        votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
                     },
-                    orderBy: { createdAt: "asc" },
                 },
-                _count: { select: { votes: true } },
             },
-            orderBy: { createdAt: "desc" },
         },
-        votes: { select: { userId: true, voteType: true } },
-        _count: { select: { votes: true, comments: true } },
     },
   });
 }

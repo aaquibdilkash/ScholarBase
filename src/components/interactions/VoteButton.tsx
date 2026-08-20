@@ -1,91 +1,110 @@
 "use client";
 
-import { toggleVote } from "@/app/actions/interactions";
+import { voteOnContent } from "@/app/actions/votes";
 import { useOptimistic, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { useAuthModal } from "./AuthModal";
-import type { VoteType, VoteTargetType } from "@/types/votes";
+import type { VoteType } from "@prisma/client";
+import { VOTE_CONFIG } from "@/lib/transactions";
 
 type VoteState = {
+  totalVotes: number;
   userVote: VoteType | null;
-  upvotes: number;
-  downvotes: number;
 };
 
-function applyVote(state: VoteState, voteType: VoteType): VoteState {
-  if (state.userVote === voteType) {
+/**
+ * Client-side logic to predict the outcome of a vote action.
+ * This is used by `useOptimistic` to provide instant UI feedback.
+ */
+function applyVoteChange(state: VoteState, newVote: VoteType): VoteState {
+  const { totalVotes, userVote } = state;
+
+  // Case 1: User is retracting their vote (e.g., clicking upvote when already upvoted).
+  if (userVote === newVote) {
     return {
       userVote: null,
-      upvotes: state.upvotes - (voteType === "UPVOTE" ? 1 : 0),
-      downvotes: state.downvotes - (voteType === "DOWNVOTE" ? 1 : 0),
+      totalVotes: totalVotes + (newVote === "UPVOTE" ? -1 : 1),
     };
   }
 
+  // Case 2: User is changing their vote (e.g., from upvote to downvote).
+  if (userVote) {
+    return {
+      userVote: newVote,
+      totalVotes: totalVotes + (newVote === "UPVOTE" ? 2 : -2),
+    };
+  }
+  
+  // Case 3: User is casting a new vote.
   return {
-    userVote: voteType,
-    upvotes:
-      state.upvotes +
-      (voteType === "UPVOTE" ? 1 : 0) -
-      (state.userVote === "UPVOTE" ? 1 : 0),
-    downvotes:
-      state.downvotes +
-      (voteType === "DOWNVOTE" ? 1 : 0) -
-      (state.userVote === "DOWNVOTE" ? 1 : 0),
+    userVote: newVote,
+    totalVotes: totalVotes + (newVote === "UPVOTE" ? 1 : -1),
   };
 }
 
 export function VoteButton({
   targetId,
-  type,
-  initialUpvotes,
-  initialDownvotes,
+  module,
+  initialTotalVotes,
   initialUserVote,
 }: {
   targetId: string;
-  type: VoteTargetType;
-  initialUpvotes: number;
-  initialDownvotes: number;
+  module: keyof typeof VOTE_CONFIG;
+  initialTotalVotes: number;
   initialUserVote: VoteType | null;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
-  const [voteState, setVoteState] = useState<VoteState>({
+  const [nonOptimisticState, setNonOptimisticState] = useState<VoteState>({
+    totalVotes: initialTotalVotes,
     userVote: initialUserVote,
-    upvotes: initialUpvotes,
-    downvotes: initialDownvotes,
   });
-  const [optimisticVotes, addOptimisticVote] = useOptimistic(
-    voteState,
-    applyVote,
-  );
-  const { toast } = useToast();
-  const { openAuthModal } = useAuthModal();
 
-  const { userVote } = optimisticVotes;
-  const netScore = optimisticVotes.upvotes - optimisticVotes.downvotes;
+  const [optimisticState, setOptimisticState] = useOptimistic(
+    nonOptimisticState,
+    applyVoteChange,
+  );
+
+  const { toast } = useToast();
 
   const handleVote = (voteType: VoteType) => {
-    setPendingVote(voteType);
     startTransition(async () => {
-      addOptimisticVote(voteType);
-      try {
-        const result = await toggleVote(targetId, type, voteType);
-        if ("error" in result) {
-          if (result.error === "UNAUTHORIZED") {
-            openAuthModal();
-          }
-          return;
-        }
-        setVoteState(result);
-        toast("Vote registered!", "success");
-      } catch {
-        toast("Failed to register vote. Please try again.", "error");
-      } finally {
-        setPendingVote(null);
+      // Immediately update the UI with the predicted state.
+      setOptimisticState(voteType);
+      
+      // Call the server action.
+      const result = await voteOnContent(
+        targetId,
+        voteType,
+        module,
+      );
+
+      // If the server action fails, React will automatically discard the
+      // optimistic state. If it succeeds, we update the "real" state
+      // to match the server's response, though it should already match
+      // the optimistic state. This handles any potential discrepancies.
+      if (result.success && result.data) {
+        setNonOptimisticState({
+          totalVotes: result.data.totalVotes,
+          userVote: result.data.userVote,
+        });
+        toast({
+          title: "Success",
+          description: result.data.userVote ? "Vote registered!" : "Vote removed.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to register vote. Please try again.",
+          variant: "destructive",
+        });
+        // On failure, the optimistic update is automatically rolled back.
       }
     });
   };
+
+  const { totalVotes, userVote } = optimisticState;
+  const isUpvoting = isPending && optimisticState.userVote === 'UPVOTE' && nonOptimisticState.userVote !== 'UPVOTE';
+  const isDownvoting = isPending && optimisticState.userVote === 'DOWNVOTE' && nonOptimisticState.userVote !== 'DOWNVOTE';
 
   return (
     <div className="flex items-center gap-1">
@@ -95,11 +114,11 @@ export function VoteButton({
         className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-green-300 hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "UPVOTE"
             ? "bg-green-50 text-green-600 border-green-300"
-            : "text-black-500"
+            : "text-slate-500"
         }`}
         title="Upvote"
       >
-        {isPending && pendingVote === "UPVOTE" ? (
+        {isUpvoting ? (
           <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowUp
@@ -110,14 +129,14 @@ export function VoteButton({
 
       <span
         className={`inline-flex items-center justify-center min-w-[1.5rem] text-xs font-bold px-1 ${
-          netScore > 0
+          totalVotes > 0
             ? "text-green-600"
-            : netScore < 0
+            : totalVotes < 0
               ? "text-red-600"
-              : "text-black-500"
+              : "text-slate-500"
         }`}
       >
-        {netScore}
+        {totalVotes}
       </span>
 
       <button
@@ -126,11 +145,11 @@ export function VoteButton({
         className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-red-300 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "DOWNVOTE"
             ? "bg-red-50 text-red-600 border-red-300"
-            : "text-black-500"
+            : "text-slate-500"
         }`}
         title="Downvote"
       >
-        {isPending && pendingVote === "DOWNVOTE" ? (
+        {isDownvoting ? (
           <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowDown

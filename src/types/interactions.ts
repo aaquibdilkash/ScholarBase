@@ -30,7 +30,6 @@ export interface VoteDelegate {
   create: (args: unknown) => Promise<{ id: string }>;
   update: (args: unknown) => Promise<{ id: string }>;
   delete: (args: unknown) => Promise<{ id: string }>;
-  groupBy: (args: unknown) => Promise<{ voteType: VoteType; _count: { _all: number } }[]>;
 }
 
 export type CommentModel =

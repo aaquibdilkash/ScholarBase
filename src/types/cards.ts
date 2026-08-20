@@ -2,9 +2,6 @@
  * Shared content-card types used across list card components.
  * These wrap the Prisma models with the author + votes + counts shape
  * that ListPageCardShell and VoteButton expect.
- *
- * The model fields are intentionally `Partial` because some callers (e.g.
- * profile sections) pass partial selects, while list pages pass full rows.
  */
 import type {
     Article,
@@ -26,10 +23,7 @@ import type {
 } from "@prisma/client";
 import type { VoteType } from "./votes";
 
-export interface VoteRecord {
-    userId: string;
-    voteType: VoteType;
-}
+export type UserVote = { voteType: VoteType }[] | undefined | false;
 
 /**
  * Author shape used by cards. Structural (not `extends User`) so that
@@ -46,19 +40,15 @@ export interface AuthorWithFollowers {
     followers?: { followerId: string }[];
 }
 
-export interface ContentMeta {
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
-}
-
 export type ArticleWithAuthor = Partial<Article> & {
     id: string;
     createdAt: Date;
     updatedAt: Date;
     slug: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type VacancyWithAuthor = Partial<JobVacancy> & {
@@ -69,8 +59,9 @@ export type VacancyWithAuthor = Partial<JobVacancy> & {
     institution: string;
     description: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type AdmissionWithAuthor = Partial<PhdAdmission> & {
@@ -80,8 +71,9 @@ export type AdmissionWithAuthor = Partial<PhdAdmission> & {
     university: string;
     department: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type EventWithAuthor = Partial<ResearchEvent> & {
@@ -91,8 +83,9 @@ export type EventWithAuthor = Partial<ResearchEvent> & {
     date: Date;
     location: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type HelpPostWithAuthor = Partial<HelpPost> & {
@@ -101,8 +94,9 @@ export type HelpPostWithAuthor = Partial<HelpPost> & {
     updatedAt: Date;
     title: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type ResearchToolWithAuthor = Partial<ResearchTool> & {
@@ -112,8 +106,9 @@ export type ResearchToolWithAuthor = Partial<ResearchTool> & {
     name: string;
     description: string | null;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type ResearchGrantWithAuthor = Partial<ResearchGrant> & {
@@ -123,8 +118,9 @@ export type ResearchGrantWithAuthor = Partial<ResearchGrant> & {
     title: string;
     description: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type CourseWithAuthor = Partial<Course> & {
@@ -135,8 +131,9 @@ export type CourseWithAuthor = Partial<Course> & {
     link: string;
     description: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type JournalWithAuthor = Partial<Journal> & {
@@ -144,8 +141,9 @@ export type JournalWithAuthor = Partial<Journal> & {
     createdAt: Date;
     updatedAt: Date;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type ResultWithAuthor = Partial<Result> & {
@@ -156,8 +154,9 @@ export type ResultWithAuthor = Partial<Result> & {
     type: string;
     description: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type ContributionWithAuthor = Partial<Contribution> & {
@@ -165,8 +164,9 @@ export type ContributionWithAuthor = Partial<Contribution> & {
     createdAt: Date;
     updatedAt: Date;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type PublicationWithAuthor = Partial<Publication> & {
@@ -175,8 +175,9 @@ export type PublicationWithAuthor = Partial<Publication> & {
     updatedAt: Date;
     publicationType: string;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type SurveyWithAuthor = Partial<ResearchSurvey> & {
@@ -190,8 +191,10 @@ export type SurveyWithAuthor = Partial<ResearchSurvey> & {
     createdAt: Date;
     updatedAt: Date;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number; responses: number };
+    totalVotes: number;
+    totalComments: number;
+    totalResponses: number;
+    votes: UserVote;
 };
 
 export type SocialPostWithAuthor = Partial<SocialPost> & {
@@ -199,17 +202,19 @@ export type SocialPostWithAuthor = Partial<SocialPost> & {
     createdAt: Date;
     updatedAt: Date;
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type SupervisorWithAuthor = Partial<Supervisor> & {
     id: string;
     createdAt: Date;
     author: AuthorWithFollowers;
-    recommendations: Recommendation[];
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    recommendations?: Recommendation[];
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };
 
 export type RecommendationWithAuthor = Partial<Recommendation> & {
@@ -224,6 +229,7 @@ export type RecommendationWithAuthor = Partial<Recommendation> & {
     supervisorId: string;
     supervisor?: { id: string; name: string | null };
     author: AuthorWithFollowers;
-    votes: VoteRecord[];
-    _count: { votes: number; comments: number };
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
 };

@@ -106,15 +106,35 @@ export default async function RootLayout({
     avatarUrl = dbUser?.avatarUrl ?? null;
   }
 
-  const sidebarUser = user ? { id: user.id, email: user.email, isAdmin, unreadMessages, avatarUrl } : null;
+  const sidebarUser = user
+    ? { id: user.id, email: user.email, isAdmin, unreadMessages, avatarUrl }
+    : null;
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+        try {
+          var theme = localStorage.getItem('sb-theme');
+          // If there is NO theme in storage, default to true (dark)
+          var isDark = theme === 'dark' || !theme; 
+          
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch(e) {}
+      })();`,
+          }}
+        />
       </head>
-      <body
-        className="min-h-screen bg-background font-sans antialiased text-foreground"
-      >
+      <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders>
           <div className="flex min-h-screen">
@@ -123,7 +143,9 @@ export default async function RootLayout({
             <div className="flex min-w-0 flex-1 flex-col">
               <Navbar />
 
-              <main className="sb-shell flex-1 grow py-8 md:py-10">{children}</main>
+              <main className="sb-shell flex-1 grow py-8 md:py-10">
+                {children}
+              </main>
 
               <Footer />
             </div>
@@ -131,9 +153,6 @@ export default async function RootLayout({
         </AppProviders>
         <SpeedInsights />
         <Analytics />
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(function(){try{var theme=localStorage.getItem('sb-theme');var dark=theme==='dark';document.documentElement.classList.toggle('dark',dark);document.documentElement.dataset.theme=dark?'dark':'light';document.documentElement.style.colorScheme=dark?'dark':'light';}catch(e){}})();`}
-        </Script>
       </body>
     </html>
   );

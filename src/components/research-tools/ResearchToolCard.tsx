@@ -22,11 +22,7 @@ export function ResearchToolCard({
   const isOwner = currentUserId === tool.authorId;
   const isFollowing = (tool.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    tool.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    tool.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    tool.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    ((tool.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
 
   const deleteMutation = useMutation({
     mutationFn: deleteResearchTool,
@@ -62,23 +58,25 @@ export function ResearchToolCard({
             isOwner={true}
             editLabel="Edit Tool"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(tool.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(tool.id);
+              return { refresh: false };
+            }}
           />
         )
       }
       createdDate={tool.createdAt}
-      editedDate={tool.updatedAt > tool.createdAt ? tool.updatedAt : undefined}
+      editedDate={tool.editedAt && tool.editedAt > tool.createdAt ? tool.editedAt : undefined}
       footerVoteButton={
         <VoteButton
           targetId={tool.id}
-          type="researchTool"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="RESEARCH_TOOL"
+          initialTotalVotes={tool.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}`}
-      footerCommentsCount={tool._count.comments}
+      footerCommentsCount={tool.totalComments}
       noBodyLink={true}
       bodyBottomContent={
         tool.website && (

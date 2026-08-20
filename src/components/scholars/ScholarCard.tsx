@@ -13,7 +13,9 @@ type ScholarCardProps = {
     reputation: number;
     createdAt: Date;
     followers?: { followerId: string }[];
-    _count: { followers: number; following: number };
+    // RULE 6: materialized counters maintained in transactions.ts (handleFollow).
+    followersCount: number;
+    followingCount: number;
   };
   currentUserId?: string;
 };
@@ -36,8 +38,8 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
-          <span>{scholar._count.followers} followers</span>
-          <span>{scholar._count.following} following</span>
+          <span>{scholar.followersCount} followers</span>
+          <span>{scholar.followingCount} following</span>
         </div>
       }
       footer={

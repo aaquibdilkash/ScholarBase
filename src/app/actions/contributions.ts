@@ -2,23 +2,21 @@
 
 import { Prisma } from '@prisma/client'
 import prisma from '@/lib/db'
-import { requireCurrentUser } from '@/lib/auth'
+import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function getContributions(q?: string, userId?: string, limit = 20, cursor?: string) {
     const where: Prisma.ContributionWhereInput = {
+        isDeleted: false,
         status: 'APPROVED',
-        ...(q
-            ? {
-                OR: [
-                    { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-                    { message: { contains: q, mode: Prisma.QueryMode.insensitive } },
-                ],
-            }
-            : {}),
+        ...(q && {
+            OR: [
+                { title: { contains: q, mode: 'insensitive' } },
+                { message: { contains: q, mode: 'insensitive' } },
+            ],
+        }),
     }
 
     return prisma.contribution.findMany({
@@ -26,141 +24,98 @@ export async function getContributions(q?: string, userId?: string, limit = 20, 
         orderBy: { createdAt: 'desc' },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
-            author: {
-                include: {
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
-                },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        },
-    })
-}
-
-export async function getContribution(id: string, userId?: string) {
-    return prisma.contribution.findUnique({
-        where: { id },
         select: {
             id: true,
             title: true,
-            amount: true,
-            upiId: true,
             message: true,
-            paymentMethod: true,
-            screenshotUrl: true,
-            status: true,
-            rejectionReason: true,
-            approvedAt: true,
-            authorId: true,
+            amount: true,
             createdAt: true,
             updatedAt: true,
+            editedAt: true,
+            authorId: true,
             author: {
                 select: {
                     id: true,
                     name: true,
                     handle: true,
                     avatarUrl: true,
-                    followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
-                        : false,
+                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+        },
+    })
+}
+
+export async function getContribution(id: string, userId?: string) {
+    return prisma.contribution.findUnique({
+        where: { id, isDeleted: false },
+        select: {
+            id: true,
+            title: true,
+            amount: true,
+            message: true,
+            screenshotUrl: true,
+            status: true,
+            rejectionReason: true,
+            authorId: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            author: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
+                    followers: userId ? { where: { followerId: userId }, select: { followerId: true } } : false,
+                },
+            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
+            editedAt: true,
                     parentId: true,
-                    author: {
-                        select: {
-                            id: true,
-                            name: true,
-                            handle: true,
-                            avatarUrl: true,
-                        },
-                    },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    authorId: true,
+                    author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: 'asc' },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
+            editedAt: true,
                             parentId: true,
-                            author: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    handle: true,
-                                    avatarUrl: true,
-                                },
-                            },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            authorId: true,
+                            author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
                 },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
             },
         },
     });
 }
 
-export async function getAllContributionsAdmin() {
-    return prisma.contribution.findMany({
-        orderBy: { createdAt: 'desc' },
-        select: {
-            id: true,
-            title: true,
-            amount: true,
-            upiId: true,
-            message: true,
-            paymentMethod: true,
-            screenshotUrl: true,
-            status: true,
-            rejectionReason: true,
-            approvedAt: true,
-            createdAt: true,
-            updatedAt: true,
-            authorId: true,
-            author: {
-                select: { id: true, name: true, handle: true, avatarUrl: true, email: true },
-            },
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        },
-    })
-}
-
 export async function getContributionForEdit(id: string, userId: string) {
     const contribution = await prisma.contribution.findUnique({
-        where: { id },
+        where: { id, isDeleted: false },
         select: {
             id: true,
             title: true,
@@ -172,24 +127,12 @@ export async function getContributionForEdit(id: string, userId: string) {
             status: true,
             authorId: true,
         },
-    })
+    });
 
-    if (!contribution) return null
-    if (contribution.authorId !== userId) throw new Error('Not authorized.')
+    if (!contribution) return null;
+    if (!await isAuthorizedOrAdmin(contribution.authorId, userId)) return null;
 
-    return contribution
-}
-
-async function requireAdmin() {
-    const user = await requireCurrentUser('Please log in.')
-    const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { isAdmin: true },
-    })
-    if (!dbUser?.isAdmin) {
-        throw new Error('Not authorized. Admin access required.')
-    }
-    return user
+    return contribution;
 }
 
 export async function createContribution(formData: FormData) {
@@ -203,114 +146,40 @@ export async function createContribution(formData: FormData) {
     const screenshotUrl = readOptionalFormValue(formData, 'screenshotUrl')
     const amount = amountStr ? parseFloat(amountStr) : null
 
-    if (!title || !message) {
-        throw new Error('Title and message are required.')
-    }
+    if (!title || !message) throw new Error('Title and message are required.')
+    if (amount !== null && (isNaN(amount) || amount < 1)) throw new Error('Amount must be at least ₹1.')
 
-    if (amount !== null && (isNaN(amount) || amount < 1)) {
-        throw new Error('Amount must be at least ₹1.')
-    }
-
-    const contribution = await prisma.contribution.create({
-        data: {
-            title,
-            message,
-            amount,
-            upiId,
-            paymentMethod,
-            screenshotUrl,
-            status: 'PENDING',
-            authorId: user.id,
-        },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
+    const contribution = await prisma.$transaction(async (tx) => {
+        const newContribution = await tx.contribution.create({
+            data: {
+                title, message, amount, upiId, paymentMethod, screenshotUrl,
+                status: 'PENDING',
+                authorId: user.id,
             },
-        }
-    })
+        });
 
-    await notifyFollowersOfActivity({
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'CONTRIBUTION',
+                entityId: newContribution.id,
+                entityTitle: newContribution.title.substring(0, 100),
+            }
+        });
+
+        return newContribution;
+    });
+
+    // This is a fire-and-forget notification
+    notifyFollowersOfActivity({
         actorId: user.id,
         type: 'contribution-published',
-        targetType: 'contribution',
+        targetType: 'Contribution',
         targetId: contribution.id,
-        title: `${user.email?.split('@')[0] || 'Someone'} made a contribution`,
+        title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} made a contribution`,
         body: `${title}${amount ? ` (₹${amount})` : ''}`,
     })
-
-    return { success: true, data: contribution }
-}
-
-export async function approveContribution(contributionId: string) {
-    await requireAdmin()
-
-    const contribution = await prisma.contribution.update({
-        where: { id: contributionId },
-        data: { status: 'APPROVED', approvedAt: new Date() },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
-
-    // Award 5 reputation points for approved contribution
-    await prisma.user.update({
-        where: { id: contribution.authorId },
-        data: { reputation: { increment: 5 } },
-    })
-
-    // Send notification to contributor
-    await prisma.notification.create({
-        data: {
-            recipientId: contribution.authorId,
-            actorId: contribution.authorId,
-            type: 'contribution-approved',
-            targetType: 'contribution',
-            targetId: contributionId,
-            title: 'Contribution Approved! 🎉',
-            body: `Your contribution "${contribution.title}" has been approved. Thank you for supporting ScholarBase!`,
-        },
-    }).catch(() => { })
-
-    return { success: true, data: contribution }
-}
-
-export async function rejectContribution(contributionId: string, formData?: FormData) {
-    await requireAdmin()
-
-    const reason = formData ? formData.get('rejectionReason') as string : null
-
-    const contribution = await prisma.contribution.update({
-        where: { id: contributionId },
-        data: { status: 'REJECTED', rejectionReason: reason || null },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
-
-    // Send notification to contributor
-    await prisma.notification.create({
-        data: {
-            recipientId: contribution.authorId,
-            actorId: contribution.authorId,
-            type: 'contribution-rejected',
-            targetType: 'contribution',
-            targetId: contributionId,
-            title: 'Contribution Review Update',
-            body: reason
-                ? `Your contribution "${contribution.title}" was rejected: ${reason}`
-                : `Your contribution "${contribution.title}" was rejected.`,
-        },
-    }).catch(() => { })
 
     return { success: true, data: contribution }
 }
@@ -318,63 +187,46 @@ export async function rejectContribution(contributionId: string, formData?: Form
 export async function updateContribution(contributionId: string, formData: FormData) {
     const user = await requireCurrentUser('Log in to edit this contribution.')
 
-    const title = readFormValue(formData, 'title')
-    const message = readFormValue(formData, 'message')
-
     const existingContribution = await prisma.contribution.findUnique({
         where: { id: contributionId },
         select: { authorId: true, status: true, screenshotUrl: true },
     })
 
-    if (!existingContribution) {
-        throw new Error('Contribution not found.')
-    }
-    if (existingContribution.authorId !== user.id) {
-        throw new Error('Not authorized to edit this contribution.')
-    }
+    if (!existingContribution) throw new Error('Contribution not found.')
+    if (!await isAuthorizedOrAdmin(existingContribution.authorId, user.id)) throw new Error('Not authorized.')
 
-    let updatedContribution;
+    const title = readFormValue(formData, 'title')
+    const message = readFormValue(formData, 'message')
 
     // If approved, only allow editing title and message
     if (existingContribution.status === 'APPROVED') {
-        updatedContribution = await prisma.contribution.update({
+        const updatedContribution = await prisma.contribution.update({
             where: { id: contributionId },
-            data: { title, message },
-            include: {
-                author: true,
-                votes: true,
-                _count: {
-                    select: { votes: true, comments: true },
-                },
-            }
+            data: { title, message, editedAt: new Date() },
         })
-    } else {
-        const amountStr = readOptionalFormValue(formData, 'amount')
-        const upiId = readOptionalFormValue(formData, 'upiId')
-        const paymentMethod = readOptionalFormValue(formData, 'paymentMethod')
-        const screenshotUrl = readOptionalFormValue(formData, 'screenshotUrl')
-        const amount = amountStr ? parseFloat(amountStr) : null
+        return { success: true, data: updatedContribution }
+    } 
+    
+    // Otherwise, allow editing all fields
+    const amountStr = readOptionalFormValue(formData, 'amount')
+    const upiId = readOptionalFormValue(formData, 'upiId')
+    const paymentMethod = readOptionalFormValue(formData, 'paymentMethod')
+    const screenshotUrl = readOptionalFormValue(formData, 'screenshotUrl')
+    const amount = amountStr ? parseFloat(amountStr) : null
 
-        const oldScreenshot = existingContribution.screenshotUrl;
-        const newScreenshot = screenshotUrl || null;
+    const oldScreenshot = existingContribution.screenshotUrl;
+    const newScreenshot = screenshotUrl || null;
 
-        const status = existingContribution.status === 'REJECTED' ? 'PENDING' : undefined
+    // If it was rejected, move it back to pending on edit
+    const status = existingContribution.status === 'REJECTED' ? 'PENDING' : undefined
 
-        updatedContribution = await prisma.contribution.update({
-            where: { id: contributionId },
-            data: { title, message, amount, upiId, paymentMethod, screenshotUrl, ...(status && { status }) },
-            include: {
-                author: true,
-                votes: true,
-                _count: {
-                    select: { votes: true, comments: true },
-                },
-            }
-        })
+    const updatedContribution = await prisma.contribution.update({
+        where: { id: contributionId },
+        data: { title, message, amount, upiId, paymentMethod, screenshotUrl, editedAt: new Date(), ...(status && { status }) },
+    })
 
-        if (oldScreenshot && oldScreenshot !== newScreenshot) {
-            await deleteFromCloudinary(oldScreenshot);
-        }
+    if (oldScreenshot && oldScreenshot !== newScreenshot) {
+        await deleteFromCloudinary(oldScreenshot);
     }
 
     return { success: true, data: updatedContribution }
@@ -385,34 +237,22 @@ export async function deleteContribution(contributionId: string) {
 
     const contribution = await prisma.contribution.findUnique({
         where: { id: contributionId },
-        select: { authorId: true, screenshotUrl: true },
+        select: { authorId: true },
     })
 
-    if (!contribution) {
-        throw new Error('Contribution not found.')
+    if (!contribution) throw new Error('Contribution not found.')
+    if (!await isAuthorizedOrAdmin(contribution.authorId, user.id)) {
+        throw new Error('Not authorized to delete this contribution.')
     }
-    if (contribution.authorId !== user.id) {
-        // Admins can also delete
-        const admin = await prisma.user.findUnique({
-            where: { id: user.id },
-            select: { isAdmin: true },
-        })
-        if (!admin?.isAdmin) {
-            throw new Error('Not authorized to delete this contribution.')
-        }
-    }
+    
+    await prisma.contribution.update({
+        where: { id: contributionId },
+        data: { isDeleted: true },
+    })
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.contributionVote, 'contributionId', contributionId);
-    await reverseReputationForContent(contribution.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('contribution', contributionId);
-
-    // Delete screenshot from Cloudinary if it exists
-    if (contribution.screenshotUrl) {
-        await deleteFromCloudinary(contribution.screenshotUrl);
-    }
-
-    await prisma.contribution.delete({ where: { id: contributionId } })
-
+    // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.
     return { success: true, data: { deletedId: contributionId } }
 }
+
+// Note: Admin-specific actions like approve/reject are in `admin.ts`
+// and are assumed to be refactored separately.

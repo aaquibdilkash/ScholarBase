@@ -1,22 +1,7 @@
 'use server'
 
 import { deleteComment, editComment, createComment } from './comments'
-
-type CommentType =
-    | 'article'
-    | 'post'
-    | 'vacancy'
-    | 'admission'
-    | 'event'
-    | 'supervisor'
-    | 'recommendation'
-    | 'help'
-    | 'journal'
-    | 'researchTool'
-    | 'result'
-    | 'contribution'
-    | 'publication'
-    | 'survey'
+import type { CommentEntityType } from '@/types/comments'
 
 export async function deleteCommentClientWrapper(formData: FormData) {
     const commentId = formData.get('_commentId')
@@ -25,7 +10,7 @@ export async function deleteCommentClientWrapper(formData: FormData) {
     if (!commentId || typeof commentId !== 'string') return undefined
     if (!type || typeof type !== 'string') return undefined
 
-    return deleteComment(commentId, type as CommentType)
+    return deleteComment(commentId, type as CommentEntityType)
 }
 
 export async function editCommentClientWrapper(formData: FormData) {
@@ -35,7 +20,7 @@ export async function editCommentClientWrapper(formData: FormData) {
     if (!commentId || typeof commentId !== 'string') return undefined
     if (!type || typeof type !== 'string') return undefined
 
-    return editComment(formData, commentId, type as CommentType)
+    return editComment(formData, commentId, type as CommentEntityType)
 }
 
 // Used by the client <form> for creating comments/replies.
@@ -50,6 +35,5 @@ export async function createCommentClientWrapper(formData: FormData) {
     // parentId comes as "" for top-level comments
     const parentIdStr = typeof parentId === 'string' && parentId.trim() ? parentId : undefined
 
-    return createComment(formData, targetId, type as CommentType, parentIdStr)
+    return createComment(formData, targetId, type as CommentEntityType, parentIdStr)
 }
-

@@ -21,13 +21,8 @@ export function ContributionCard({
   const isOwner = currentUserId === contribution.authorId;
   const isFollowing = (contribution.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    contribution.votes?.find((v) => v.userId === currentUserId)?.voteType ??
+    (contribution.votes || [])[0]?.voteType ??
     null;
-  const upvoteCount =
-    contribution.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    contribution.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
-
   const deleteMutation = useMutation({
     mutationFn: deleteContribution,
     onSuccess: (response) => {
@@ -62,27 +57,29 @@ export function ContributionCard({
             isOwner={true}
             editLabel="Edit Contribution"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(contribution.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(contribution.id);
+              return { refresh: false };
+            }}
           />
         )
       }
       createdDate={contribution.createdAt}
       editedDate={
-        contribution.updatedAt > contribution.createdAt
-          ? contribution.updatedAt
+        contribution.editedAt && contribution.editedAt > contribution.createdAt
+          ? contribution.editedAt
           : undefined
       }
       footerVoteButton={
         <VoteButton
           targetId={contribution.id}
-          type="contribution"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="CONTRIBUTION"
+          initialTotalVotes={contribution.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/contributions/${contribution.id}`}
-      footerCommentsCount={contribution._count.comments}
+      footerCommentsCount={contribution.totalComments}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span

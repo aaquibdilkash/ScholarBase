@@ -33,12 +33,7 @@ export function SurveyCard({
   const { toast } = useToast();
   const isOwner = currentUserId === survey.authorId;
   const isFollowing = (survey.author.followers?.length ?? 0) > 0;
-  const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    survey.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    survey.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    survey.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+  const userVote = (survey.votes || [])[0]?.voteType ?? null;
 
   const deleteMutation = useMutation({
     mutationFn: deleteSurvey,
@@ -73,7 +68,10 @@ export function SurveyCard({
           <OwnerActionsDropdown
             editHref={`/surveys/${survey.id}/edit`}
             isOwner={true}
-            onDelete={() => { deleteMutation.mutate(survey.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(survey.id);
+              return { refresh: false };
+            }}
             editLabel="Edit Survey"
             deleteLabel="Delete"
           />
@@ -81,19 +79,18 @@ export function SurveyCard({
       }
       createdDate={survey.createdAt}
       editedDate={
-        survey.updatedAt > survey.createdAt ? survey.updatedAt : undefined
+        survey.editedAt && survey.editedAt > survey.createdAt ? survey.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
           targetId={survey.id}
-          type="survey"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="RESEARCH_SURVEY"
+          initialTotalVotes={survey.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/surveys/${survey.id}`}
-      footerCommentsCount={survey._count.comments}
+      footerCommentsCount={survey.totalComments}
     >
       <Link href={`/surveys/${survey.id}`} className="block group">
         <div className="mb-2 flex items-center gap-2">
@@ -108,8 +105,8 @@ export function SurveyCard({
             {PRIVACY_LABELS[survey.privacy] || survey.privacy}
           </span>
           <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-            {survey._count.responses} response
-            {survey._count.responses !== 1 ? "s" : ""}
+            {survey.totalResponses} response
+            {survey.totalResponses !== 1 ? "s" : ""}
           </span>
         </div>
 

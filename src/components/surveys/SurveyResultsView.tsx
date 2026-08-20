@@ -100,7 +100,7 @@ export function SurveyResultsView({
     );
   }
 
-  const totalResponses = survey._count.responses;
+  const totalResponses = survey.totalResponses;
 
   const getQuestionStats = (q: QuestionResult) => {
     const answers = q.answers.map((a) => a.value);

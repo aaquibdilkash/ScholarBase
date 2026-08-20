@@ -22,11 +22,7 @@ export function JournalCard({
   const isOwner = currentUserId === journal.authorId;
   const isFollowing = (journal.author.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    journal.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount =
-    journal.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    journal.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
+    (journal.votes || [])[0]?.voteType ?? null;
 
   const deleteMutation = useMutation({
     mutationFn: deleteJournal,
@@ -63,25 +59,27 @@ export function JournalCard({
             isOwner={true}
             editLabel="Edit Journal"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(journal.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(journal.id);
+              return { refresh: false };
+            }}
           />
         )
       }
       createdDate={journal.createdAt}
       editedDate={
-        journal.updatedAt > journal.createdAt ? journal.updatedAt : undefined
+        journal.editedAt && journal.editedAt > journal.createdAt ? journal.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
           targetId={journal.id}
-          type="journal"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="JOURNAL"
+          initialTotalVotes={journal.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/journals/${journal.id}`}
-      footerCommentsCount={journal._count.comments}
+      footerCommentsCount={journal.totalComments}
       bodyBottomContent={
         <>
           {journal.website && (

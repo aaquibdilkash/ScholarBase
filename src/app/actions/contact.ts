@@ -56,8 +56,6 @@ export async function sendContactMessage(
       `,
         });
 
-    // REMOVED: revalidatePath("/contact");
-
     return {
       success: true,
       message: "Thank you for your message! We'll get back to you soon.",

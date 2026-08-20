@@ -3,79 +3,50 @@
 import prisma from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { notifyUserById } from '@/lib/notifications'
+import { handleFollowTransaction } from '@/lib/transactions'
 
-export async function toggleFollow(followingId: string): Promise<{ success: boolean, data?: { newFollowState: boolean }, error?: string }> {
-  const user = await getCurrentUser()
+export async function toggleFollow(followingId: string): Promise<{ success: boolean, error?: string }> {
+  const authUser = await getCurrentUser()
 
-  if (!user) {
+  if (!authUser) {
     return { success: false, error: "UNAUTHORIZED" }
   }
 
-  if (!followingId) {
-    return { success: false, error: "No user to follow" }
+  if (!followingId || authUser.id === followingId) {
+    return { success: false, error: "Invalid user to follow" }
   }
-
-  if (user.id === followingId) {
-    return { success: false, error: "You cannot follow yourself" }
-  }
-
-  const existing = await prisma.follows.findUnique({
-    where: {
-      followerId_followingId: {
-        followerId: user.id,
-        followingId: followingId,
-      },
-    },
-  })
 
   try {
-    if (existing) {
-      await prisma.follows.delete({
-        where: { followerId_followingId: { followerId: user.id, followingId } },
-      })
-      return { success: true, data: { newFollowState: false } }
-    } else {
-      await prisma.follows.create({
-        data: { followerId: user.id, followingId },
-      })
+    const { wasFollowing } = await handleFollowTransaction(authUser.id, followingId);
 
-      const isMutualConnection = await prisma.follows.findUnique({
-        where: {
-          followerId_followingId: {
-            followerId: followingId,
-            followingId: user.id,
-          },
-        },
-        select: { followerId: true },
-      })
-
-      await notifyUserById({
+    // Fire-and-forget notification only on a new follow action
+    if (!wasFollowing) {
+      const follower = await prisma.user.findUnique({
+          where: { id: authUser.id },
+          select: { name: true }
+      });
+      notifyUserById({
         recipientId: followingId,
-        actorId: user.id,
+        actorId: authUser.id,
         type: 'follow',
-        targetType: 'follow',
-        targetId: followingId,
-        title: `${user.email?.split('@')[0] || 'Someone'} started following you`,
-        body: isMutualConnection
-          ? 'Someone you follow is now connected with you.'
-          : 'Someone started following you.',
-      })
-      return { success: true, data: { newFollowState: true } }
+        targetType: 'user',
+        targetId: authUser.id,
+        title: `${follower?.name || 'Someone'} started following you`,
+        body: `You have a new follower: ${follower?.name || 'a new user'}.`,
+      });
     }
+
+    return { success: true };
   } catch (error) {
-    console.error(error)
+    console.error('Error in toggleFollow:', error);
     return { success: false, error: "Something went wrong" }
   }
 }
 
-
-import type { FollowerInfo } from '@/types/follow';
-
-
-
-export async function getFollowers(userId: string, currentUserId?: string) {
+export async function getFollowers(userId: string, currentUserId?: string, take: number = 50) {
   const follows = await prisma.follows.findMany({
     where: { followingId: userId },
+    take,
     select: {
       follower: {
         select: {
@@ -89,20 +60,23 @@ export async function getFollowers(userId: string, currentUserId?: string) {
         },
       },
     },
-    orderBy: { follower: { name: 'asc' } },
-  })
+    orderBy: { createdAt: 'desc' },
+  });
+
   return follows.map((f) => {
-    const follower = f.follower as FollowerInfo
-    return {
-    ...follower,
-    isFollowing: !!(currentUserId && follower.followers?.length),
-    }
-  })
+      const { followers, ...follower } = f.follower;
+      return {
+          ...follower,
+          isFollowing: !!followers?.length,
+          isOwnProfile: currentUserId === follower.id,
+      };
+  });
 }
 
-export async function getFollowing(userId: string, currentUserId?: string) {
+export async function getFollowing(userId: string, currentUserId?: string, take: number = 50) {
   const follows = await prisma.follows.findMany({
     where: { followerId: userId },
+    take,
     select: {
       following: {
         select: {
@@ -116,13 +90,15 @@ export async function getFollowing(userId: string, currentUserId?: string) {
         },
       },
     },
-    orderBy: { following: { name: 'asc' } },
-  })
+    orderBy: { createdAt: 'desc' },
+  });
+  
   return follows.map((f) => {
-    const following = f.following as FollowerInfo
-    return {
-    ...following,
-    isFollowing: !!(currentUserId && following.followers?.length),
-    }
-  })
+      const { followers, ...following } = f.following;
+      return {
+          ...following,
+          isFollowing: !!followers?.length,
+          isOwnProfile: currentUserId === following.id,
+      }
+  });
 }

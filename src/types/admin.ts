@@ -28,7 +28,10 @@ export interface FreezableContentModel {
 }
 
 export interface DeleteableContentModel {
-  delete: (args: { where: { id: string } }) => Promise<unknown>
+  update: (args: {
+    where: { id: string }
+    data: { isDeleted: boolean }
+  }) => Promise<unknown>
 }
 
 export interface DeleteMapValue {
@@ -37,7 +40,10 @@ export interface DeleteMapValue {
 }
 
 export interface CommentModel {
-  delete: (args: { where: { id: string } }) => Promise<unknown>
+  update: (args: {
+    where: { id: string }
+    data: { content: string; authorId: null }
+  }) => Promise<unknown>
 }
 
 export type ContentItem =

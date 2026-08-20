@@ -10,11 +10,24 @@ import { AppendMoreList } from "@/components/layout/AppendMoreList";
 import { getSupervisors } from "@/app/actions/supervisors";
 
 type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
-  include: {
-    author: true;
-    recommendations: true;
-    votes: true;
-    _count: { select: { comments: true; votes: true } };
+  select: {
+    id: true;
+    name: true;
+    university: true;
+    department: true;
+    createdAt: true;
+    author: {
+      select: {
+        id: true;
+        name: true;
+        handle: true;
+        avatarUrl: true;
+        followers: { select: { followerId: true } } | false;
+      };
+    };
+    totalVotes: true;
+    totalComments: true;
+    votes: { select: { voteType: true } } | false;
   };
 }>;
 

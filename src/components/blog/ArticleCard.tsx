@@ -2,7 +2,7 @@
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import { deleteArticleSafe } from "@/app/actions/blog";
+import { deleteArticle } from "@/app/actions/blog";
 import type { ArticleWithAuthor } from "@/types/cards";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
@@ -19,20 +19,14 @@ export function ArticleCard({
   const isOwner = currentUserId === article.authorId;
   const isFollowing = (article.author.followers?.length ?? 0) > 0;
 
-  const initialUpvotes = article.votes.filter(
-    (v) => v.voteType === "UPVOTE",
-  ).length;
-  const initialDownvotes = article.votes.filter(
-    (v) => v.voteType === "DOWNVOTE",
-  ).length;
-  const initialUserVote =
-    article.votes.find((v) => v.userId === currentUserId)?.voteType ?? null;
+  // The 'votes' prop is now a filtered select returning an array with 0 or 1 elements.
+  const initialUserVote = article.votes && article.votes.length > 0 ? article.votes[0].voteType : null;
 
   const deleteMutation = useMutation({
-    mutationFn: deleteArticleSafe,
+    mutationFn: deleteArticle,
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast(response.error || "Failed to delete article.", "error");
+        toast({ title: "Error", description: "Failed to delete article.", variant: "destructive" });
         return;
       }
       queryClient.setQueryData<ArticleWithAuthor[]>(
@@ -40,10 +34,10 @@ export function ArticleCard({
         (oldData = []) =>
           oldData.filter((p) => p.id !== response.data?.deletedId),
       );
-      toast("Article deleted successfully.", "success");
+      toast({ title: "Success", description: "Article deleted successfully." });
     },
     onError: (error) => {
-      toast(error.message, "error");
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -71,17 +65,16 @@ export function ArticleCard({
       footerVoteButton={
         <VoteButton
           targetId={article.id}
-          type="article"
-          initialUpvotes={initialUpvotes}
-          initialDownvotes={initialDownvotes}
+          module="ARTICLE"
+          initialTotalVotes={article.totalVotes}
           initialUserVote={initialUserVote}
         />
       }
       footerCommentsHref={`/blog/${article.slug}`}
-      footerCommentsCount={article._count.comments}
+      footerCommentsCount={article.totalComments}
       createdDate={article.createdAt}
       editedDate={
-        article.updatedAt > article.createdAt ? article.updatedAt : undefined
+        article.editedAt && article.editedAt > article.createdAt ? article.editedAt : undefined
       }
     >
       <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">

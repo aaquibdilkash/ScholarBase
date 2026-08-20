@@ -14,7 +14,7 @@ import type { HTMLAttributes } from "react";
 export function SBIcon({ className = "", ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
-      className={`inline-flex items-center justify-center gap-0 rounded-2xl bg-slate-950 font-extrabold leading-none text-white shadow-sm transition-all dark:shadow-[0_10px_24px_rgba(0,0,0,0.48)] ${className}`}
+      className={`inline-flex items-center justify-center gap-0 rounded-[20%] bg-slate-950 font-extrabold leading-none text-white shadow-sm transition-all dark:shadow-[0_10px_24px_rgba(0,0,0,0.48)] ${className}`}
       {...props}
     >
       <span>S</span>

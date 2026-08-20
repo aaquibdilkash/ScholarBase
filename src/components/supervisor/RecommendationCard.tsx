@@ -10,9 +10,9 @@ import { StarRating } from "@/components/ui/StarRating";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 export function RecommendationCard({
-    recommendation,
-    supervisor,
-    currentUserId,
+  recommendation,
+  supervisor,
+  currentUserId,
 }: {
   recommendation: RecommendationWithAuthor;
   supervisor: { id: string; name: string | null };
@@ -21,12 +21,8 @@ export function RecommendationCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    recommendation.votes?.find((v) => v.userId === currentUserId)?.voteType ??
+    (recommendation.votes || []).find((v: { userId?: string; voteType?: string }) => v.userId === currentUserId)?.voteType ??
     null;
-  const upvoteCount =
-    recommendation.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount =
-    recommendation.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
 
   const isOwner = currentUserId === recommendation.author.id;
   const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
@@ -51,18 +47,33 @@ export function RecommendationCard({
   return (
     <ListPageCardShell
       authorHref={`/scholars/${recommendation.author.id}`}
-      authorName={recommendation.isAnonymous ? "Anonymous Scholar" : (recommendation.author.name || "Scholar")}
+      authorName={
+        recommendation.isAnonymous
+          ? "Anonymous Scholar"
+          : recommendation.author.name || "Scholar"
+      }
       authorId={recommendation.author.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={recommendation.isAnonymous ? undefined : (recommendation.author.handle || undefined)}
-      authorAvatarUrl={recommendation.isAnonymous ? null : (recommendation.author.avatarUrl || undefined)}
+      authorHandle={
+        recommendation.isAnonymous
+          ? undefined
+          : recommendation.author.handle || undefined
+      }
+      authorAvatarUrl={
+        recommendation.isAnonymous
+          ? null
+          : recommendation.author.avatarUrl || undefined
+      }
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
             editHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}/edit`}
-            onDelete={() => { deleteMutation.mutate(recommendation.id); return { refresh: false }; }}
+            onDelete={() => {
+              deleteMutation.mutate(recommendation.id);
+              return { refresh: false };
+            }}
             isOwner={isOwner}
             editLabel="Edit Recommendation"
             deleteLabel="Delete Recommendation"
@@ -73,17 +84,18 @@ export function RecommendationCard({
       footerVoteButton={
         <VoteButton
           targetId={recommendation.id}
-          type="recommendation"
-          initialUpvotes={upvoteCount}
-          initialDownvotes={downvoteCount}
+          module="RECOMMENDATION"
+          initialTotalVotes={recommendation.totalVotes ?? 0}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
-      footerCommentsCount={recommendation._count.comments}
+      footerCommentsCount={recommendation.totalComments}
     >
       <p className="text-sm font-semibold text-slate-700 mb-2">
-        {recommendation.isAnonymous ? "Anonymous recommendation for " : "Recommendation for "}
+        {recommendation.isAnonymous
+          ? "Anonymous recommendation for "
+          : "Recommendation for "}
         <span className="text-blue-700">{supervisor.name}</span>
       </p>
       <div className="space-y-3 mb-4">

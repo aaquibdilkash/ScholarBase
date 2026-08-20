@@ -21,10 +21,16 @@ export function CourseCard({
   const { toast } = useToast();
   const isOwner = currentUserId === course.authorId;
   const isFollowing = (course.author.followers?.length ?? 0) > 0;
-  const userVote = course.votes?.find((v) => v.userId === currentUserId)?.voteType ?? null;
-  const upvoteCount = course.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvoteCount = course.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
-  const details = [course.provider, course.instructor, course.format, course.level, course.price, course.duration].filter(Boolean);
+  const userVote =
+    ((course.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
+  const details = [
+    course.provider,
+    course.instructor,
+    course.format,
+    course.level,
+    course.price,
+    course.duration,
+  ].filter(Boolean);
 
   const deleteMutation = useMutation({
     mutationFn: deleteCourse,
@@ -55,17 +61,40 @@ export function CourseCard({
       detailPageHref={`/learn/${course.id}`}
       managementControls={
         isOwner && (
-          <OwnerActionsDropdown editHref={`/learn/${course.id}/edit`} onDelete={() => { deleteMutation.mutate(course.id); return { refresh: false }; }} isOwner={true} editLabel="Edit Course" deleteLabel="Delete" />
+          <OwnerActionsDropdown
+            editHref={`/learn/${course.id}/edit`}
+            onDelete={() => {
+              deleteMutation.mutate(course.id);
+              return { refresh: false };
+            }}
+            isOwner={true}
+            editLabel="Edit Course"
+            deleteLabel="Delete"
+          />
         )
       }
       createdDate={course.createdAt}
-      editedDate={course.updatedAt > course.createdAt ? course.updatedAt : undefined}
-      footerVoteButton={<VoteButton targetId={course.id} type="course" initialUpvotes={upvoteCount} initialDownvotes={downvoteCount} initialUserVote={userVote} />}
+      editedDate={
+        course.editedAt && course.editedAt > course.createdAt ? course.editedAt : undefined
+      }
+      footerVoteButton={
+        <VoteButton
+          targetId={course.id}
+          module="COURSE"
+          initialTotalVotes={course.totalVotes ?? 0}
+          initialUserVote={userVote}
+        />
+      }
       footerCommentsHref={`/learn/${course.id}`}
-      footerCommentsCount={course._count.comments}
+      footerCommentsCount={course.totalComments}
       noBodyLink={true}
       bodyBottomContent={
-        <a href={course.link} target="_blank" rel="noopener noreferrer" className="mt-6 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800">
+        <a
+          href={course.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+        >
           Open Course
         </a>
       }
@@ -79,7 +108,10 @@ export function CourseCard({
             {details.join(" • ")}
           </p>
         )}
-        <RichContent content={course.description} className="text-sm leading-relaxed text-slate-600 line-clamp-3" />
+        <RichContent
+          content={course.description}
+          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        />
       </Link>
     </ListPageCardShell>
   );

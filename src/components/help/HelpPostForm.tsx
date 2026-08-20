@@ -1,6 +1,6 @@
 "use client";
 
-import { createHelpPostSafe, updateHelpPostSafe } from "@/app/actions/help";
+import { createHelpPost, updateHelpPost } from "@/app/actions/help";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -43,10 +43,10 @@ export default function HelpPostForm({
   );
 
   const createMutation = useMutation({
-    mutationFn: createHelpPostSafe,
+    mutationFn: createHelpPost,
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast(response.error || "Failed to create help post.", "error");
+        toast("Failed to create help post.", "error");
         return;
       }
       const newPost = response.data as HelpPostWithAuthor;
@@ -66,10 +66,10 @@ export default function HelpPostForm({
 
   const updateMutation = useMutation({
     mutationFn: ({ formData, id }: { formData: FormData; id: string }) =>
-      updateHelpPostSafe(formData, id),
+      updateHelpPost(formData, id),
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast(response.error || "Failed to update help post.", "error");
+        toast("Failed to update help post.", "error");
         return;
       }
       const updatedPost = response.data as HelpPostWithAuthor;

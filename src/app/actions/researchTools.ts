@@ -5,7 +5,6 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function createResearchTool(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -15,27 +14,33 @@ export async function createResearchTool(formData: FormData) {
     const use = readFormValue(formData, 'use')
     const description = readFormValue(formData, 'description')
 
-    const tool = await prisma.researchTool.create({
-        data: {
-            name,
-            website,
-            use,
-            description,
-            authorId: user.id
-        },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
-    })
+    const tool = await prisma.$transaction(async (tx) => {
+        const newTool = await tx.researchTool.create({
+            data: {
+                name,
+                website,
+                use,
+                description,
+                authorId: user.id
+            }
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                moduleType: 'RESEARCH_TOOL',
+                entityId: newTool.id,
+                entityTitle: newTool.name,
+            }
+        });
+        return newTool;
+    });
 
     await notifyFollowersOfActivity({
         actorId: user.id,
         type: 'research-tool-published',
-        targetType: 'researchTool',
+        targetType: 'ResearchTool',
         targetId: tool.id,
         title: `${user.email?.split('@')[0] || 'Someone'} added a new research tool`,
         body: `${name} - ${use}`,
@@ -66,14 +71,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 
     const updatedTool = await prisma.researchTool.update({
         where: { id: toolId },
-        data: { name, website, use, description },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
+        data: { name, website, use, description, editedAt: new Date() },
     })
 
     return { success: true, data: updatedTool }
@@ -94,37 +92,40 @@ export async function deleteResearchTool(toolId: string) {
         throw new Error('Not authorized to delete this research tool.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.researchToolVote, 'researchToolId', toolId);
-    await reverseReputationForContent(tool.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('researchTool', toolId);
-
-    await prisma.researchTool.delete({ where: { id: toolId } })
+    // Soft delete (no reputation reversal)
+    await prisma.researchTool.update({ where: { id: toolId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: toolId } }
 }
 
 
 export async function getResearchTools(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.ResearchToolWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
                 { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { website: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { use: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
-        }
-        : {};
+        })
+    };
 
     return prisma.researchTool.findMany({
         where,
-        orderBy: {
-            createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            name: true,
+            website: true,
+            use: true,
+            description: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
             author: {
                 select: {
                     id: true,
@@ -136,24 +137,16 @@ export async function getResearchTools(q?: string, userId?: string, limit = 20, 
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: {
-                    votes: true,
-                    comments: true,
-                },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
         },
     });
 }
 
 export async function getResearchToolById(toolId: string, userId?: string) {
     return prisma.researchTool.findUniqueOrThrow({
-        where: {
-            id: toolId,
-        },
+        where: { id: toolId, isDeleted: false },
         select: {
             id: true,
             name: true,
@@ -162,6 +155,7 @@ export async function getResearchToolById(toolId: string, userId?: string) {
             description: true,
             createdAt: true,
             updatedAt: true,
+            editedAt: true,
             authorId: true,
             author: {
                 select: {
@@ -170,63 +164,43 @@ export async function getResearchToolById(toolId: string, userId?: string) {
                     handle: true,
                     avatarUrl: true,
                     followers: userId
-                        ? {
-                            where: { followerId: userId },
-                            select: { followerId: true },
-                        }
+                        ? { where: { followerId: userId }, select: { followerId: true } }
                         : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: "desc" },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
-                    parentId: true,
+            editedAt: true,
                     author: {
-                        select: {
-                            id: true,
-                            name: true,
-                            handle: true,
-                            avatarUrl: true,
-                        },
+                        select: { id: true, name: true, handle: true, avatarUrl: true },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: "asc" },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
-                            parentId: true,
+            editedAt: true,
                             author: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    handle: true,
-                                    avatarUrl: true,
-                                },
+                                select: { id: true, name: true, handle: true, avatarUrl: true },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            votes: userId ? { where: { userId }, select: { userId: true, voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
-                },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: {
-                    votes: true,
-                    comments: true,
                 },
             },
         },

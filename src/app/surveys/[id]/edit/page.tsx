@@ -36,7 +36,9 @@ export default async function EditSurveyPage({
     comments: undefined,
     votes: undefined,
     author: undefined,
-    _count: undefined,
+    totalVotes: survey.totalVotes ?? 0,
+    totalComments: survey.totalComments ?? 0,
+    totalResponses: survey.totalResponses ?? 0,
   };
 
   return (

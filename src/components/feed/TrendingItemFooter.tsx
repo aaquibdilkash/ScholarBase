@@ -12,7 +12,8 @@ type FooterItem = {
     | "journal"
     | "researchTool"
     | "contribution";
-  _count: { votes: number; comments: number };
+  totalVotes: number;
+  totalComments: number;
 };
 
 export function TrendingItemFooter({ item }: { item: FooterItem }) {
@@ -37,9 +38,22 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
     <div className="flex items-center gap-6">
       <VoteButton
         targetId={item.id}
-        type={item.type}
-        initialUpvotes={item._count.votes}
-        initialDownvotes={0}
+        module={
+          type === "vacancy"
+            ? "JOB_VACANCY"
+            : type === "admission"
+              ? "PHD_ADMISSION"
+              : type === "help"
+                ? "HELP_POST"
+                : type === "journal"
+                  ? "JOURNAL"
+                  : type === "researchTool"
+                    ? "RESEARCH_TOOL"
+                    : type === "contribution"
+                      ? "CONTRIBUTION"
+                      : "RESEARCH_EVENT"
+        }
+        initialTotalVotes={item.totalVotes ?? 0}
         initialUserVote={null}
       />
       <Link
@@ -47,7 +61,7 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
         className="flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-700"
       >
         <MessageCircle className="w-5 h-5" />
-        {item._count.comments} Comments
+        {item.totalComments} Comments
       </Link>
     </div>
   );

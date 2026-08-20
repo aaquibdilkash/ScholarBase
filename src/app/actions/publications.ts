@@ -5,7 +5,6 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
-import { countVotesForTarget, reverseReputationForContent, reverseContentCommentVoteReputation } from '@/app/actions/interactions'
 
 export async function createPublication(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit a publication.')
@@ -27,39 +26,46 @@ export async function createPublication(formData: FormData) {
     const abstract = readOptionalFormValue(formData, 'abstract')
     const isUserAuthor = readOptionalFormValue(formData, 'isUserAuthor') === 'on'
 
-    const publication = await prisma.publication.create({
-        data: {
-            title,
-            authors,
-            publicationType,
-            journalOrConference,
-            publisher,
-            year: year ? parseInt(year) : null,
-            volume,
-            issue,
-            pages,
-            doi,
-            isbn,
-            url,
-            keywords,
-            domain,
-            abstract,
-            isUserAuthor,
-            authorId: user.id,
-        },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
+    const publication = await prisma.$transaction(async (tx) => {
+        const newPublication = await tx.publication.create({
+            data: {
+                title,
+                authors,
+                publicationType,
+                journalOrConference,
+                publisher,
+                year: year ? parseInt(year) : null,
+                volume,
+                issue,
+                pages,
+                doi,
+                isbn,
+                url,
+                keywords,
+                domain,
+                abstract,
+                isUserAuthor,
+                authorId: user.id,
             },
-        }
-    })
+        });
+
+        await tx.userActivity.create({
+            data: {
+                userId: user.id,
+                action: 'PUBLISHED',
+                 moduleType: 'PUBLICATION',
+                entityId: newPublication.id,
+                entityTitle: newPublication.title,
+            }
+        });
+
+        return newPublication;
+    });
 
     await notifyFollowersOfActivity({
         actorId: user.id,
         type: 'publication-published',
-        targetType: 'publication',
+        targetType: 'Publication',
         targetId: publication.id,
         title: `${user.email?.split('@')[0] || 'Someone'} published a new paper`,
         body: `${title}${journalOrConference ? ` (${journalOrConference})` : ''}`,
@@ -119,14 +125,8 @@ export async function updatePublication(formData: FormData, publicationId: strin
             domain,
             abstract,
             isUserAuthor,
+            editedAt: new Date(),
         },
-        include: {
-            author: true,
-            votes: true,
-            _count: {
-                select: { votes: true, comments: true },
-            },
-        }
     })
 
     return { success: true, data: updatedPublication }
@@ -147,19 +147,16 @@ export async function deletePublication(publicationId: string) {
         throw new Error('Not authorized to delete this publication.')
     }
 
-    // Reverse reputation from votes and comments before deletion
-    const voteCounts = await countVotesForTarget(prisma.publicationVote, 'publicationId', publicationId);
-    await reverseReputationForContent(publication.authorId, voteCounts);
-    await reverseContentCommentVoteReputation('publication', publicationId);
-
-    await prisma.publication.delete({ where: { id: publicationId } })
+    // Soft delete (no reputation reversal)
+    await prisma.publication.update({ where: { id: publicationId }, data: { isDeleted: true } })
 
     return { success: true, data: { deletedId: publicationId } }
 }
 
 export async function getPublications(q?: string, userId?: string, limit = 20, cursor?: string) {
-    const where = q
-        ? {
+    const where: Prisma.PublicationWhereInput = {
+        isDeleted: false,
+        ...(q && {
             OR: [
                 { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { authors: { contains: q, mode: Prisma.QueryMode.insensitive } },
@@ -168,8 +165,8 @@ export async function getPublications(q?: string, userId?: string, limit = 20, c
                 { journalOrConference: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { abstract: { contains: q, mode: Prisma.QueryMode.insensitive } },
             ],
-        }
-        : {};
+        }),
+    };
 
     return prisma.publication.findMany({
         where,
@@ -178,7 +175,16 @@ export async function getPublications(q?: string, userId?: string, limit = 20, c
         },
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        include: {
+        select: {
+            id: true,
+            title: true,
+            authors: true,
+            year: true,
+            journalOrConference: true,
+            publicationType: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
             author: {
                 select: {
                     id: true,
@@ -190,15 +196,9 @@ export async function getPublications(q?: string, userId?: string, limit = 20, c
                         : false,
                 },
             },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: {
-                    votes: true,
-                    comments: true,
-                },
-            },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -207,6 +207,7 @@ export async function getPublicationById(publicationId: string, userId?: string)
     return prisma.publication.findUniqueOrThrow({
         where: {
             id: publicationId,
+            isDeleted: false,
         },
         select: {
             id: true,
@@ -228,6 +229,7 @@ export async function getPublicationById(publicationId: string, userId?: string)
             isUserAuthor: true,
             createdAt: true,
             updatedAt: true,
+            editedAt: true,
             authorId: true,
             author: {
                 select: {
@@ -243,14 +245,20 @@ export async function getPublicationById(publicationId: string, userId?: string)
                         : false,
                 },
             },
+            totalVotes: true,
+            totalComments: true,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             comments: {
                 where: { parentId: null },
+                orderBy: { createdAt: "desc" },
                 select: {
                     id: true,
                     content: true,
                     createdAt: true,
                     updatedAt: true,
+            editedAt: true,
                     parentId: true,
+                    authorId: true,
                     author: {
                         select: {
                             id: true,
@@ -259,15 +267,19 @@ export async function getPublicationById(publicationId: string, userId?: string)
                             avatarUrl: true,
                         },
                     },
-                    votes: { select: { userId: true, voteType: true } },
-                    mentions: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                     replies: {
+                        orderBy: { createdAt: "asc" },
                         select: {
                             id: true,
                             content: true,
                             createdAt: true,
                             updatedAt: true,
+            editedAt: true,
                             parentId: true,
+                            authorId: true,
                             author: {
                                 select: {
                                     id: true,
@@ -276,23 +288,11 @@ export async function getPublicationById(publicationId: string, userId?: string)
                                     avatarUrl: true,
                                 },
                             },
-                            votes: { select: { userId: true, voteType: true } },
-                            mentions: true,
-                            _count: { select: { votes: true } },
+                            totalVotes: true,
+                            totalReplies: true,
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
                         },
-                        orderBy: { createdAt: "asc" },
                     },
-                    _count: { select: { votes: true } },
-                },
-                orderBy: { createdAt: "desc" },
-            },
-            votes: {
-                select: { userId: true, voteType: true },
-            },
-            _count: {
-                select: {
-                    votes: true,
-                    comments: true,
                 },
             },
         },

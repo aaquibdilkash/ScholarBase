@@ -10,6 +10,8 @@ export interface Scholar {
   bio: string | null;
   reputation: number;
   createdAt: Date;
-  followers?: { followerId: string }[];
-  _count: { followers: number; following: number };
+    followers?: { followerId: string }[];
+  // RULE 6: materialized counters maintained in transactions.ts (handleFollow)
+  followersCount: number;
+  followingCount: number;
 }
