@@ -3,6 +3,7 @@
 import { Clock } from "lucide-react";
 import { notFound, useRouter } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
+import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
@@ -62,10 +63,6 @@ const VacancyDetailPage = ({
     notFound();
   }
 
-  const upvotes =
-    vacancy.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    vacancy.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (vacancy.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -103,14 +100,13 @@ const VacancyDetailPage = ({
       footerVoteButton={
         <VoteButton
           targetId={vacancy.id}
-          type="vacancy"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="JOB_VACANCY"
+          initialTotalVotes={vacancy.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}
-      footerCommentsCount={vacancy._count.comments}
+      footerCommentsCount={vacancy.totalComments}
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {vacancy.notificationLink && (
@@ -136,13 +132,13 @@ const VacancyDetailPage = ({
         </div>
       }
       discussion={
-          <CommentSection
-            comments={vacancy.comments}
-            targetId={vacancy.id}
-            type="vacancy"
-            currentUserId={user?.id || null}
-            postAuthorId={vacancy.author.id}
-          />
+           <CommentSection
+              comments={vacancy.comments as CommentWithAuthorAndVotes[]}
+             targetId={vacancy.id}
+             module="vacancy"
+             currentUserId={user?.id || null}
+             postAuthorId={vacancy.author.id}
+           />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

@@ -32,8 +32,6 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
 
   if (!grant) notFound();
 
-  const upvotes = grant.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes = grant.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote = grant.votes?.find((v) => v.userId === user?.id)?.voteType ?? null;
 
   async function handleDelete() {
@@ -56,10 +54,10 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
       createdDate={grant.createdAt}
       editedDate={grant.updatedAt > grant.createdAt ? grant.updatedAt : undefined}
       managementControls={user?.id === grant.author.id ? <OwnerActionsDropdown editHref={`/grants/${grant.id}/edit`} onDelete={handleDelete} isOwner={true} editLabel="Edit Grant" deleteLabel="Delete" /> : null}
-      footerVoteButton={<VoteButton targetId={grant.id} type="researchGrant" initialUpvotes={upvotes} initialDownvotes={downvotes} initialUserVote={userVote} />}
+      footerVoteButton={<VoteButton targetId={grant.id} module="RESEARCH_GRANT" initialTotalVotes={grant.totalVotes} initialUserVote={userVote} />}
       footerCommentsHref={`/grants/${grant.id}#comments`}
-      footerCommentsCount={grant._count.comments}
-      discussion={<CommentSection comments={grant.comments} targetId={grant.id} type="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author.id} />}
+      footerCommentsCount={grant.totalComments}
+      discussion={<CommentSection comments={grant.comments} targetId={grant.id} module="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author.id} />}
     >
       <h1 className="mb-2 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{grant.title}</h1>
       {grant.amount && (

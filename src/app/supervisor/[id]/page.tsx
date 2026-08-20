@@ -60,11 +60,6 @@ export default async function SupervisorPage({
     return { redirect: "/supervisors" };
   }
 
-  // Compute vote counts from votes array
-  const upvotes =
-    supervisor.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    supervisor.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (supervisor.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -91,15 +86,14 @@ export default async function SupervisorPage({
       authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
       createdDate={supervisor.createdAt}
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
-      footerCommentsCount={supervisor.comments.length}
+      footerCommentsCount={supervisor.totalComments}
       footerVoteButton={
-        <VoteButton
-          targetId={supervisor.id}
-          type="supervisor"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
-          initialUserVote={userVote}
-        />
+         <VoteButton
+           targetId={supervisor.id}
+           module="SUPERVISOR"
+           initialTotalVotes={supervisor.totalVotes}
+           initialUserVote={userVote}
+         />
       }
       managementControls={
         user?.id === supervisor.authorId ? (
@@ -116,7 +110,7 @@ export default async function SupervisorPage({
         <CommentSection
           comments={supervisor.comments}
           targetId={supervisor.id}
-          type="supervisor"
+          module="supervisor"
           currentUserId={user?.id ?? null}
           postAuthorId={supervisor.authorId}
         />

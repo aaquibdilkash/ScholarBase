@@ -33,8 +33,6 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
 
   if (!course) notFound();
 
-  const upvotes = course.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes = course.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote = course.votes?.find((v) => v.userId === user?.id)?.voteType ?? null;
   const details = [
     ["Provider", course.provider],
@@ -65,10 +63,10 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       createdDate={course.createdAt}
       editedDate={course.updatedAt > course.createdAt ? course.updatedAt : undefined}
       managementControls={user?.id === course.author.id ? <OwnerActionsDropdown editHref={`/learn/${course.id}/edit`} onDelete={handleDelete} isOwner={true} editLabel="Edit Course" deleteLabel="Delete" /> : null}
-      footerVoteButton={<VoteButton targetId={course.id} type="course" initialUpvotes={upvotes} initialDownvotes={downvotes} initialUserVote={userVote} />}
+      footerVoteButton={<VoteButton targetId={course.id} module="COURSE" initialTotalVotes={course.totalVotes} initialUserVote={userVote} />}
       footerCommentsHref={`/learn/${course.id}#comments`}
-      footerCommentsCount={course._count.comments}
-      discussion={<CommentSection comments={course.comments} targetId={course.id} type="course" currentUserId={user?.id || null} postAuthorId={course.author.id} />}
+      footerCommentsCount={course.totalComments}
+      discussion={<CommentSection comments={course.comments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author.id} />}
     >
       <h1 className="mb-3 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{course.title}</h1>
       {details.length > 0 && (

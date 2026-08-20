@@ -42,10 +42,6 @@ const AdmissionDetailPage = async ({
     notFound();
   }
 
-  const upvotes =
-    admission.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    admission.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (admission.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -84,14 +80,13 @@ const AdmissionDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={admission.id}
-          type="admission"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="PHD_ADMISSION"
+          initialTotalVotes={admission.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/admissions/${admission.id}#comments`}
-      footerCommentsCount={admission._count.comments}
+      footerCommentsCount={admission.totalComments}
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {admission.notificationLink && (
@@ -120,7 +115,7 @@ const AdmissionDetailPage = async ({
           <CommentSection
             comments={admission.comments}
             targetId={admission.id}
-            type="admission"
+            module="admission"
             currentUserId={user?.id || null}
             postAuthorId={admission.author.id}
           />

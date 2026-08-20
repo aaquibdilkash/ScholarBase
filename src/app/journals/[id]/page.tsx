@@ -42,10 +42,6 @@ const JournalDetailPage = async ({
   if (!journal) notFound();
 
   const j = journal;
-  const upvotes =
-    j.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    j.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (j.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -85,22 +81,21 @@ const JournalDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={j.id}
-          type="journal"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="JOURNAL"
+          initialTotalVotes={j.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/journals/${j.id}#comments`}
-      footerCommentsCount={j._count.comments}
+      footerCommentsCount={j.totalComments}
       discussion={
-          <CommentSection
-            comments={j.comments}
-            targetId={j.id}
-            type="journal"
-            currentUserId={user?.id ?? null}
-            postAuthorId={j.author.id}
-          />
+           <CommentSection
+             comments={j.comments}
+             targetId={j.id}
+             module="journal"
+             currentUserId={user?.id ?? null}
+             postAuthorId={j.author.id}
+           />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4">

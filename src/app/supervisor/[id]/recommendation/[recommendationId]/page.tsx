@@ -2,6 +2,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
+import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
@@ -74,12 +75,6 @@ export default async function RecommendationDetailPage({
     return { redirect: `/supervisor/${id}` };
   }
 
-  const upvotes =
-    recommendation.votes?.filter((v) => v.voteType === "UPVOTE").length ??
-    0;
-  const downvotes =
-    recommendation.votes?.filter((v) => v.voteType === "DOWNVOTE")
-      .length ?? 0;
   const userVote =
     (recommendation.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -100,22 +95,21 @@ export default async function RecommendationDetailPage({
       footerVoteButton={
         <VoteButton
           targetId={recommendation.id}
-          type="recommendation"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="RECOMMENDATION"
+          initialTotalVotes={recommendation.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
-      footerCommentsCount={recommendation._count.comments}
+      footerCommentsCount={recommendation.totalComments}
       discussion={
-          <CommentSection
-            comments={recommendation.comments}
-            targetId={recommendation.id}
-            type="recommendation"
-            currentUserId={user?.id ?? null}
-            postAuthorId={recommendation.authorId}
-          />
+           <CommentSection
+             comments={recommendation.comments as CommentWithAuthorAndVotes[]}
+             targetId={recommendation.id}
+             module="recommendation"
+             currentUserId={user?.id ?? null}
+             postAuthorId={recommendation.authorId}
+           />
       }
       managementControls={
         user?.id === recommendation.authorId ? (

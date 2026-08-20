@@ -47,10 +47,6 @@ const ContributionDetailPage = async ({
     notFound();
   }
 
-  const upvotes =
-    contribution.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    contribution.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (contribution.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -99,19 +95,18 @@ const ContributionDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={contribution.id}
-          type="contribution"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="CONTRIBUTION"
+          initialTotalVotes={contribution.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/contributions/${contribution.id}#comments`}
-      footerCommentsCount={contribution._count.comments}
+      footerCommentsCount={contribution.totalComments}
       discussion={
         <CommentSection
           comments={contribution.comments}
           targetId={contribution.id}
-          type="contribution"
+          module="contribution"
           currentUserId={user?.id || null}
           postAuthorId={contribution.author.id}
         />

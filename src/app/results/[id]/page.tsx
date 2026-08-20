@@ -48,10 +48,6 @@ const ResultDetailPage = async ({
     OTHER: "Other Result",
   };
 
-  const upvotes =
-    result.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    result.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (result.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -91,22 +87,21 @@ const ResultDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={result.id}
-          type="result"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="RESULT"
+          initialTotalVotes={result.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/results/${result.id}#comments`}
-      footerCommentsCount={result._count.comments}
+      footerCommentsCount={result.totalComments}
       discussion={
-          <CommentSection
-            comments={result.comments}
-            targetId={result.id}
-            type="result"
-            currentUserId={user?.id || null}
-            postAuthorId={result.author.id}
-          />
+           <CommentSection
+             comments={result.comments}
+             targetId={result.id}
+             module="result"
+             currentUserId={user?.id || null}
+             postAuthorId={result.author.id}
+           />
       }
     >
       <div className="mb-4 flex items-center gap-2">

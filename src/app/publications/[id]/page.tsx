@@ -55,10 +55,6 @@ const PublicationDetailPage = async ({
   if (!publication) notFound();
 
   const p = publication;
-  const upvotes =
-    p.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    p.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (p.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -98,22 +94,21 @@ const PublicationDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={p.id}
-          type="publication"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="PUBLICATION"
+          initialTotalVotes={p.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/publications/${p.id}#comments`}
-      footerCommentsCount={p._count.comments}
+      footerCommentsCount={p.totalComments}
       discussion={
-          <CommentSection
-            comments={p.comments}
-            targetId={p.id}
-            type="publication"
-            currentUserId={user?.id ?? null}
-            postAuthorId={p.author.id}
-          />
+           <CommentSection
+             comments={p.comments}
+             targetId={p.id}
+             module="publication"
+             currentUserId={user?.id ?? null}
+             postAuthorId={p.author.id}
+           />
       }
     >
       <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">

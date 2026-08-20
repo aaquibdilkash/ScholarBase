@@ -35,10 +35,6 @@ export default async function ArticlePage({
 
   const a = article;
 
-  const upvotes =
-    a.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    a.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (a.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -78,22 +74,21 @@ export default async function ArticlePage({
       footerVoteButton={
         <VoteButton
           targetId={a.id}
-          type="article"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="ARTICLE"
+          initialTotalVotes={a.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/blog/${a.slug}#comments`}
-      footerCommentsCount={a._count.comments}
+      footerCommentsCount={a.totalComments}
       discussion={
-          <CommentSection
-            comments={a.comments}
-            targetId={a.id}
-            type="article"
-            currentUserId={user?.id ?? null}
-            postAuthorId={a.authorId}
-          />
+           <CommentSection
+             comments={a.comments}
+             targetId={a.id}
+             module="article"
+             currentUserId={user?.id ?? null}
+             postAuthorId={a.authorId}
+           />
       }
     >
       <h1 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-slate-100 mb-2">

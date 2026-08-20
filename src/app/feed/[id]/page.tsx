@@ -3,6 +3,7 @@ import Image from "next/image";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
+import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -41,9 +42,6 @@ export default async function SinglePostPage({
   if (!post) notFound();
 
   const p = post;
-  const upvotes = p.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    p.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (p.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -88,19 +86,18 @@ export default async function SinglePostPage({
       footerVoteButton={
         <VoteButton
           targetId={p.id}
-          type="post"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="SOCIAL_POST"
+          initialTotalVotes={p.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/feed/${p.id}#comments`}
-      footerCommentsCount={p._count.comments}
+      footerCommentsCount={p.totalComments}
       discussion={
         <CommentSection
-          comments={p.comments}
+          comments={p.comments as CommentWithAuthorAndVotes[]}
           targetId={p.id}
-          type="post"
+          module="post"
           currentUserId={user?.id ?? null}
           postAuthorId={p.authorId}
         />

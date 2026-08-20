@@ -61,10 +61,6 @@ const SurveyDetailPage = async ({
   const response = user ? await getSurveyResponse(id, user.id) : null;
   const hasResponded = !!response;
 
-  const upvotes =
-    survey.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    survey.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (survey.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -112,19 +108,18 @@ const SurveyDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={survey.id}
-          type="survey"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="RESEARCH_SURVEY"
+          initialTotalVotes={survey.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/surveys/${survey.id}#comments`}
-      footerCommentsCount={survey._count.comments}
+      footerCommentsCount={survey.totalComments}
       discussion={
         <CommentSection
           comments={survey.comments}
           targetId={survey.id}
-          type="survey"
+          module="survey"
           currentUserId={user?.id || null}
           postAuthorId={survey.author.id}
         />
@@ -142,8 +137,8 @@ const SurveyDetailPage = async ({
           {PRIVACY_LABELS[survey.privacy] || survey.privacy}
         </span>
         <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-          {survey._count.responses} Response
-          {survey._count.responses !== 1 ? "s" : ""}
+          {survey.totalResponses} Response
+          {survey.totalResponses !== 1 ? "s" : ""}
         </span>
       </div>
 

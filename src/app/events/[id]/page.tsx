@@ -44,10 +44,6 @@ const EventDetailPage = async ({
     notFound();
   }
 
-  const upvotes =
-    event.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    event.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (event.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -89,14 +85,13 @@ const EventDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={event.id}
-          type="event"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="RESEARCH_EVENT"
+          initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/events/${event.id}#comments`}
-      footerCommentsCount={event._count.comments}
+      footerCommentsCount={event.totalComments}
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {event.notificationLink && (
@@ -122,13 +117,13 @@ const EventDetailPage = async ({
         </div>
       }
       discussion={
-          <CommentSection
-            comments={event.comments}
-            targetId={event.id}
-            type="event"
-            currentUserId={user?.id || null}
-            postAuthorId={event.author.id}
-          />
+           <CommentSection
+             comments={event.comments}
+             targetId={event.id}
+             module="event"
+             currentUserId={user?.id || null}
+             postAuthorId={event.author.id}
+           />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

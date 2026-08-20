@@ -39,10 +39,6 @@ export default async function HelpPostPage({
     notFound();
   }
 
-  const upvotes =
-    post.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    post.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (post.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -83,19 +79,18 @@ export default async function HelpPostPage({
       footerVoteButton={
         <VoteButton
           targetId={post.id}
-          type="help"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="HELP_POST"
+          initialTotalVotes={post.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/help/${post.id}#comments`}
-      footerCommentsCount={post._count.comments}
+      footerCommentsCount={post.totalComments}
       discussion={
         <CommentSection
           comments={post.comments}
           targetId={post.id}
-          type="help"
+          module="help"
           currentUserId={user?.id ?? null}
           postAuthorId={post.author.id}
         />

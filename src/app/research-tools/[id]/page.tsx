@@ -39,10 +39,6 @@ const ResearchToolDetailPage = async ({
     notFound();
   }
 
-  const upvotes =
-    tool.votes?.filter((v) => v.voteType === "UPVOTE").length ?? 0;
-  const downvotes =
-    tool.votes?.filter((v) => v.voteType === "DOWNVOTE").length ?? 0;
   const userVote =
     (tool.votes?.find((v) => v.userId === user?.id)?.voteType as
       | "UPVOTE"
@@ -83,22 +79,21 @@ const ResearchToolDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={tool.id}
-          type="researchTool"
-          initialUpvotes={upvotes}
-          initialDownvotes={downvotes}
+          module="RESEARCH_TOOL"
+          initialTotalVotes={tool.totalVotes}
           initialUserVote={userVote}
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}#comments`}
-      footerCommentsCount={tool._count.comments}
+      footerCommentsCount={tool.totalComments}
       discussion={
-          <CommentSection
-            comments={tool.comments}
-            targetId={tool.id}
-            type="researchTool"
-            currentUserId={user?.id || null}
-            postAuthorId={tool.author.id}
-          />
+           <CommentSection
+             comments={tool.comments}
+             targetId={tool.id}
+             module="researchTool"
+             currentUserId={user?.id || null}
+             postAuthorId={tool.author.id}
+           />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
