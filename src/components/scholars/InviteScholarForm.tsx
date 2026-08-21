@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { inviteScholar } from "@/app/actions/scholars";
 import { useToast } from "@/components/ui/Toast";
@@ -9,7 +10,9 @@ export function InviteScholarForm() {
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const homepageUrl =
-    typeof window === "undefined" ? "https://scholarbase.app" : window.location.origin;
+    typeof window === "undefined"
+      ? "https://scholarbase.app"
+      : window.location.origin;
 
   const copyHomepageLink = async () => {
     try {
@@ -20,21 +23,30 @@ export function InviteScholarForm() {
     }
   };
 
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      const formData = new FormData(event.currentTarget);
+      const result = await inviteScholar(formData);
+      if (result?.success) {
+        event.currentTarget.reset();
+        toast(result.message || "Invite sent successfully!", "success");
+      } else {
+        toast(result?.error || result?.message || "Could not send the invite.", "error");
+      }
+    } catch (error) {
+      console.error("Invite submission error:", error);
+      toast("An unexpected error occurred. Please try again.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <form
       className="space-y-5 sb-card p-6 md:p-8"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setSubmitting(true);
-        const result = await inviteScholar(new FormData(event.currentTarget));
-        if (result.success) {
-          event.currentTarget.reset();
-          toast(result.message || "Invite sent successfully!", "success");
-        } else {
-          toast(result.error || "Could not send the invite.", "error");
-        }
-        setSubmitting(false);
-      }}
+      onSubmit={handleSubmit}
     >
       <div>
         <label className="sb-label" htmlFor="name">Name</label>
@@ -62,8 +74,15 @@ export function InviteScholarForm() {
         <label className="sb-label" htmlFor="message">Message</label>
         <textarea id="message" name="message" className="sb-textarea min-h-40" placeholder="Tell them why they should join ScholarBase." required />
       </div>
-      <button type="submit" className="sb-button-primary" disabled={submitting}>
-        {submitting ? "Sending..." : "Send invite"}
+      <button type="submit" className="sb-button-primary w-full justify-center py-3 text-base font-semibold" disabled={submitting}>
+        {submitting ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="animate-spin h-5 w-5" />
+            Sending...
+          </span>
+        ) : (
+          "Send invite"
+        )}
       </button>
     </form>
   );
