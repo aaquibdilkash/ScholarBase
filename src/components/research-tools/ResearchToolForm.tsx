@@ -11,6 +11,13 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_RESEARCH_TOOL_NAME,
+  MAX_RESEARCH_TOOL_WEBSITE,
+  MAX_RESEARCH_TOOL_DESCRIPTION,
+  MAX_RESEARCH_TOOL_USE,
+} from "@/lib/constants";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 
 export type ResearchToolFormValues = {
@@ -80,6 +87,7 @@ export default function ResearchToolForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       <div>
         <label className="sb-label">Tool Name</label>
         <input
@@ -87,9 +95,13 @@ export default function ResearchToolForm({
           placeholder="e.g., Zotero"
           className="sb-input"
           required
+          maxLength={MAX_RESEARCH_TOOL_NAME}
           value={draftFields.name}
           onChange={(e) => updateDraftField("name", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.name.length}/{MAX_RESEARCH_TOOL_NAME} characters
+        </div>
       </div>
 
       <div>
@@ -99,9 +111,13 @@ export default function ResearchToolForm({
           placeholder="e.g., https://www.zotero.org/"
           className="sb-input"
           required
+          maxLength={MAX_RESEARCH_TOOL_WEBSITE}
           value={draftFields.website}
           onChange={(e) => updateDraftField("website", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.website.length}/{MAX_RESEARCH_TOOL_WEBSITE} characters
+        </div>
       </div>
 
       <div>
@@ -111,9 +127,13 @@ export default function ResearchToolForm({
           placeholder="e.g., Reference Management"
           className="sb-input"
           required
+          maxLength={MAX_RESEARCH_TOOL_USE}
           value={draftFields.use}
           onChange={(e) => updateDraftField("use", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.use.length}/{MAX_RESEARCH_TOOL_USE} characters
+        </div>
       </div>
 
       <div>
@@ -121,12 +141,16 @@ export default function ResearchToolForm({
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
+          maxLength={MAX_RESEARCH_TOOL_DESCRIPTION}
         />
         <input
           type="hidden"
           name="description"
           value={draftFields.description}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.description.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_RESEARCH_TOOL_DESCRIPTION} characters
+        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

@@ -11,6 +11,14 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_ADMISSION_UNIVERSITY,
+  MAX_ADMISSION_DEPARTMENT,
+  MAX_ADMISSION_DESCRIPTION,
+  MAX_ADMISSION_NOTIFICATION_LINK,
+  MAX_ADMISSION_APPLY_LINK,
+} from "@/lib/constants";
 import type { AdmissionWithAuthor } from "@/types/cards";
 
 export type AdmissionFormValues = {
@@ -92,6 +100,7 @@ export default function AdmissionForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       <div>
         <label className="sb-label">University / Institute</label>
         <input
@@ -99,9 +108,13 @@ export default function AdmissionForm({
           placeholder="e.g., Jamia Millia Islamia"
           className="sb-input"
           required
+          maxLength={MAX_ADMISSION_UNIVERSITY}
           value={draftFields.university}
           onChange={(e) => updateDraftField("university", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.university.length}/{MAX_ADMISSION_UNIVERSITY} characters
+        </div>
       </div>
 
       <div>
@@ -111,9 +124,13 @@ export default function AdmissionForm({
           placeholder="e.g., Department of Management Studies"
           className="sb-input"
           required
+          maxLength={MAX_ADMISSION_DEPARTMENT}
           value={draftFields.department}
           onChange={(e) => updateDraftField("department", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.department.length}/{MAX_ADMISSION_DEPARTMENT} characters
+        </div>
       </div>
 
       <div>
@@ -133,12 +150,16 @@ export default function AdmissionForm({
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
+          maxLength={MAX_ADMISSION_DESCRIPTION}
         />
         <input
           type="hidden"
           name="description"
           value={draftFields.description}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.description.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_ADMISSION_DESCRIPTION} characters
+        </div>
       </div>
 
       <div>
@@ -149,9 +170,13 @@ export default function AdmissionForm({
           placeholder="https://university.edu/admission-notice.pdf"
           className="sb-input"
           required
+          maxLength={MAX_ADMISSION_NOTIFICATION_LINK}
           value={draftFields.notificationLink}
           onChange={(e) => updateDraftField("notificationLink", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.notificationLink.length}/{MAX_ADMISSION_NOTIFICATION_LINK} characters
+        </div>
       </div>
 
       <div>
@@ -162,9 +187,13 @@ export default function AdmissionForm({
           placeholder="https://jmicoe.in"
           className="sb-input"
           required
+          maxLength={MAX_ADMISSION_APPLY_LINK}
           value={draftFields.applyLink}
           onChange={(e) => updateDraftField("applyLink", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.applyLink.length}/{MAX_ADMISSION_APPLY_LINK} characters
+        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

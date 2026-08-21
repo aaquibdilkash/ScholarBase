@@ -8,6 +8,16 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_RESULT_TITLE,
+  MAX_RESULT_CATEGORY,
+  MAX_RESULT_CONDUCTING_BODY,
+  MAX_RESULT_SESSION,
+  MAX_RESULT_DESCRIPTION,
+  MAX_RESULT_NOTIFICATION_LINK,
+  MAX_RESULT_RESULT_LINK,
+} from "@/lib/constants";
 import type { ResultWithAuthor } from "@/types/cards";
 
 export type ResultFormValues = {
@@ -93,6 +103,7 @@ export default function ResultForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       <div>
         <label className="sb-label">Title</label>
         <input
@@ -100,9 +111,13 @@ export default function ResultForm({
           placeholder="e.g., UGC NET June 2024 Results Declared"
           className="sb-input"
           required
+          maxLength={MAX_RESULT_TITLE}
           value={draftFields.title}
           onChange={(e) => updateDraftField("title", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.title.length}/{MAX_RESULT_TITLE} characters
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -128,9 +143,13 @@ export default function ResultForm({
             name="category"
             placeholder="e.g., NET, JRF, SET, GATE"
             className="sb-input"
+            maxLength={MAX_RESULT_CATEGORY}
             value={draftFields.category}
             onChange={(e) => updateDraftField("category", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.category.length}/{MAX_RESULT_CATEGORY} characters
+          </div>
         </div>
       </div>
 
@@ -141,9 +160,13 @@ export default function ResultForm({
             name="conductingBody"
             placeholder="e.g., UGC, NTA, CBSE"
             className="sb-input"
+            maxLength={MAX_RESULT_CONDUCTING_BODY}
             value={draftFields.conductingBody}
             onChange={(e) => updateDraftField("conductingBody", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.conductingBody.length}/{MAX_RESULT_CONDUCTING_BODY} characters
+          </div>
         </div>
         <div>
           <label className="sb-label">Session (Optional)</label>
@@ -151,9 +174,13 @@ export default function ResultForm({
             name="session"
             placeholder="e.g., June 2024, December 2024"
             className="sb-input"
+            maxLength={MAX_RESULT_SESSION}
             value={draftFields.session}
             onChange={(e) => updateDraftField("session", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.session.length}/{MAX_RESULT_SESSION} characters
+          </div>
         </div>
       </div>
 
@@ -162,12 +189,16 @@ export default function ResultForm({
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
+          maxLength={MAX_RESULT_DESCRIPTION}
         />
         <input
           type="hidden"
           name="description"
           value={draftFields.description}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.description.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_RESULT_DESCRIPTION} characters
+        </div>
       </div>
 
       <div>
@@ -177,9 +208,13 @@ export default function ResultForm({
           name="notificationLink"
           placeholder="https://ugc.ac.in/notification.pdf"
           className="sb-input"
+          maxLength={MAX_RESULT_NOTIFICATION_LINK}
           value={draftFields.notificationLink}
           onChange={(e) => updateDraftField("notificationLink", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.notificationLink.length}/{MAX_RESULT_NOTIFICATION_LINK} characters
+        </div>
       </div>
 
       <div>
@@ -189,9 +224,13 @@ export default function ResultForm({
           name="resultLink"
           placeholder="https://ntaresults.nic.in/..."
           className="sb-input"
+          maxLength={MAX_RESULT_RESULT_LINK}
           value={draftFields.resultLink}
           onChange={(e) => updateDraftField("resultLink", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.resultLink.length}/{MAX_RESULT_RESULT_LINK} characters
+        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

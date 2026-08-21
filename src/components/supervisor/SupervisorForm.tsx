@@ -8,7 +8,15 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
 import type { SupervisorWithAuthor } from "@/types/cards";
+
+import {
+  MAX_SUPERVISOR_NAME,
+  MAX_SUPERVISOR_UNIVERSITY,
+  MAX_SUPERVISOR_DEPARTMENT,
+  MAX_SUPERVISOR_ABOUT,
+} from "@/lib/constants";
 
 export type SupervisorFormValues = {
   name: string;
@@ -77,6 +85,7 @@ export default function SupervisorForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       <div>
         <label className="sb-label">Full Name</label>
         <input
@@ -84,9 +93,13 @@ export default function SupervisorForm({
           placeholder="e.g., Prof. John Smith"
           className="sb-input"
           required
+          maxLength={MAX_SUPERVISOR_NAME}
           value={draftFields.name}
           onChange={(e) => updateDraftField("name", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.name.length}/{MAX_SUPERVISOR_NAME} characters
+        </div>
       </div>
 
       <div>
@@ -96,9 +109,13 @@ export default function SupervisorForm({
           placeholder="e.g., Jamia Millia Islamia"
           className="sb-input"
           required
+          maxLength={MAX_SUPERVISOR_UNIVERSITY}
           value={draftFields.university}
           onChange={(e) => updateDraftField("university", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.university.length}/{MAX_SUPERVISOR_UNIVERSITY} characters
+        </div>
       </div>
 
       <div>
@@ -107,18 +124,30 @@ export default function SupervisorForm({
           name="department"
           placeholder="e.g., Management and Finance"
           className="sb-input"
+          maxLength={MAX_SUPERVISOR_DEPARTMENT}
           value={draftFields.department}
           onChange={(e) => updateDraftField("department", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.department.length}/{MAX_SUPERVISOR_DEPARTMENT} characters
+        </div>
       </div>
 
       <div>
         <label className="sb-label">About (Optional)</label>
         <Editor
+          maxLength={MAX_SUPERVISOR_ABOUT}
           value={draftFields.about}
           onChange={(data) => updateDraftField("about", data)}
         />
         <input type="hidden" name="about" value={draftFields.about} />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.about.length).replace(
+            /(\d+)(?=.(\d{3})*$)/g,
+            "$1,",
+          )}
+          /{MAX_SUPERVISOR_ABOUT} characters
+        </div>
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">

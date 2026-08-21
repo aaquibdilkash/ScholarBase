@@ -20,19 +20,29 @@ import {
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
+  maxLength?: number;
+  showCharCount?: boolean;
 }
 
-const Editor = ({ value, onChange }: EditorProps) => {
+const Editor = ({
+  value,
+  onChange,
+  maxLength,
+  showCharCount = true,
+}: EditorProps) => {
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      let newContent = editor.getHTML();
+      if (maxLength && newContent.length > maxLength) {
+        newContent = newContent.slice(0, maxLength);
+      }
+      onChange(newContent);
     },
     editorProps: {
       attributes: {
-        class:
-          "prose dark:prose-invert m-5 focus:outline-none",
+        class: "prose dark:prose-invert m-5 focus:outline-none",
       },
     },
     immediatelyRender: true,
@@ -43,12 +53,12 @@ const Editor = ({ value, onChange }: EditorProps) => {
       return;
     }
 
-    // Check if the content is actually different before setting it.
-    // This prevents unnecessary re-renders and potential loops.
     if (value !== editor.getHTML()) {
       editor.commands.setContent(value);
     }
   }, [editor, value]);
+
+  const charCount = value.length;
 
   if (!editor) {
     return null;
@@ -145,6 +155,12 @@ const Editor = ({ value, onChange }: EditorProps) => {
         </button>
       </div>
       <EditorContent editor={editor} />
+      {showCharCount && (
+        <div className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(charCount).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}
+          {maxLength ? `/${maxLength}` : ""} characters
+        </div>
+      )}
     </div>
   );
 };

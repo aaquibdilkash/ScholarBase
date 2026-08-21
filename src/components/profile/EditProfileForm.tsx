@@ -12,6 +12,13 @@ import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { Editor } from "@/components/ui/Editor";
 
+import {
+  MAX_PROFILE_NAME,
+  MAX_PROFILE_HANDLE,
+  MAX_PROFILE_BIO,
+  MAX_PROFILE_URL,
+} from "@/lib/constants";
+
 type UserData = {
   id: string;
   name: string | null;
@@ -179,7 +186,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           required
           className="sb-input"
           placeholder="e.g. Dr. Jane Smith"
+          maxLength={MAX_PROFILE_NAME}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {MAX_PROFILE_NAME} characters max
+        </div>
       </div>
 
       <div>
@@ -202,10 +213,14 @@ export default function EditProfileForm({ user }: { user: UserData }) {
                     : ""
             }`}
             placeholder="janesmith"
+            maxLength={MAX_PROFILE_HANDLE}
           />
         </div>
         <p className="mt-2 text-xs text-slate-500">
           Only letters, numbers, and underscores are allowed.
+        </p>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {handle.length}/{MAX_PROFILE_HANDLE} characters
         </p>
         {!isHandleValid && (
           <p className="mt-2 text-xs text-red-500">
@@ -232,8 +247,15 @@ export default function EditProfileForm({ user }: { user: UserData }) {
 
       <div>
         <label className="sb-label">Bio / About Me</label>
-        <Editor value={bio} onChange={(data) => setBio(data)} />
+        <Editor
+          maxLength={MAX_PROFILE_BIO}
+          value={bio}
+          onChange={(data) => setBio(data)}
+        />
         <input type="hidden" name="bio" value={bio} />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(bio.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_PROFILE_BIO} characters
+        </div>
       </div>
 
       <div>
@@ -292,7 +314,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               defaultValue={user.githubUrl || ""}
               className="sb-input"
               placeholder="https://github.com/janesmith"
+              maxLength={MAX_PROFILE_URL}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {MAX_PROFILE_URL} characters max
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-600">
@@ -303,7 +329,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               defaultValue={user.orcidUrl || ""}
               className="sb-input"
               placeholder="https://orcid.org/0000-0001-2345-6789"
+              maxLength={MAX_PROFILE_URL}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {MAX_PROFILE_URL} characters max
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-600">
@@ -314,7 +344,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               defaultValue={user.linkedinUrl || ""}
               className="sb-input"
               placeholder="https://www.linkedin.com/in/janesmith"
+              maxLength={MAX_PROFILE_URL}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {MAX_PROFILE_URL} characters max
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-600">
@@ -325,7 +359,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               defaultValue={user.googleScholarUrl || ""}
               className="sb-input"
               placeholder="https://scholar.google.com/citations?user=..."
+              maxLength={MAX_PROFILE_URL}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {MAX_PROFILE_URL} characters max
+            </div>
           </div>
         </div>
       </div>

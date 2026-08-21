@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { MAX_MESSAGE_BODY } from "@/lib/constants";
 
 type Scholar = Awaited<ReturnType<typeof getScholars>>[0];
 type Recipient = {
@@ -165,7 +166,11 @@ export function NewMessageForm({
           className="sb-textarea min-h-40"
           placeholder="Introduce yourself and explain the collaboration idea."
           required
+          maxLength={MAX_MESSAGE_BODY}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {MAX_MESSAGE_BODY} characters max
+        </div>
       </div>
       <button type="submit" className="sb-button-primary" disabled={submitting}>
         {submitting ? "Sending..." : "Start conversation"}

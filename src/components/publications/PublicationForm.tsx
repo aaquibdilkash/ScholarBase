@@ -11,6 +11,19 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_PUBLICATION_TITLE,
+  MAX_PUBLICATION_AUTHORS,
+  MAX_PUBLICATION_JOURNAL,
+  MAX_PUBLICATION_PUBLISHER,
+  MAX_PUBLICATION_DOI,
+  MAX_PUBLICATION_ISBN,
+  MAX_PUBLICATION_URL,
+  MAX_PUBLICATION_KEYWORDS,
+  MAX_PUBLICATION_DOMAIN,
+  MAX_PUBLICATION_ABSTRACT,
+} from "@/lib/constants";
 import type { PublicationWithAuthor } from "@/types/cards";
 
 export type PublicationFormValues = {
@@ -74,7 +87,7 @@ export default function PublicationForm({
   const draftKey = mode === "edit" ? null : "draft_publication_create";
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
     draftKey,
-    initial
+    initial,
   );
   const queryClient = useQueryClient();
 
@@ -115,6 +128,7 @@ export default function PublicationForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       {/* Title */}
       <div>
         <label className="sb-label">Publication Title *</label>
@@ -123,9 +137,13 @@ export default function PublicationForm({
           placeholder="e.g., A Novel Approach to Natural Language Processing"
           className="sb-input"
           required
+          maxLength={MAX_PUBLICATION_TITLE}
           value={draftFields.title}
           onChange={(e) => updateDraftField("title", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.title.length}/{MAX_PUBLICATION_TITLE} characters
+        </div>
       </div>
 
       {/* Authors */}
@@ -136,9 +154,13 @@ export default function PublicationForm({
           placeholder="e.g., John Doe, Jane Smith, ..."
           className="sb-input"
           required
+          maxLength={MAX_PUBLICATION_AUTHORS}
           value={draftFields.authors}
           onChange={(e) => updateDraftField("authors", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.authors.length}/{MAX_PUBLICATION_AUTHORS} characters
+        </div>
       </div>
 
       {/* Publication Type & Year */}
@@ -189,11 +211,16 @@ export default function PublicationForm({
             name="journalOrConference"
             placeholder="e.g., Journal of AI Research"
             className="sb-input"
+            maxLength={MAX_PUBLICATION_JOURNAL}
             value={draftFields.journalOrConference}
             onChange={(e) =>
               updateDraftField("journalOrConference", e.target.value)
             }
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.journalOrConference.length}/{MAX_PUBLICATION_JOURNAL}{" "}
+            characters
+          </div>
         </div>
         <div>
           <label className="sb-label">Publisher</label>
@@ -201,9 +228,14 @@ export default function PublicationForm({
             name="publisher"
             placeholder="e.g., Springer, IEEE"
             className="sb-input"
+            maxLength={MAX_PUBLICATION_PUBLISHER}
             value={draftFields.publisher}
             onChange={(e) => updateDraftField("publisher", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.publisher.length}/{MAX_PUBLICATION_PUBLISHER}{" "}
+            characters
+          </div>
         </div>
       </div>
 
@@ -215,6 +247,7 @@ export default function PublicationForm({
             name="volume"
             placeholder="e.g., 42"
             className="sb-input"
+            maxLength={20}
             value={draftFields.volume}
             onChange={(e) => updateDraftField("volume", e.target.value)}
           />
@@ -225,6 +258,7 @@ export default function PublicationForm({
             name="issue"
             placeholder="e.g., 3"
             className="sb-input"
+            maxLength={20}
             value={draftFields.issue}
             onChange={(e) => updateDraftField("issue", e.target.value)}
           />
@@ -235,6 +269,7 @@ export default function PublicationForm({
             name="pages"
             placeholder="e.g., 123-145"
             className="sb-input"
+            maxLength={30}
             value={draftFields.pages}
             onChange={(e) => updateDraftField("pages", e.target.value)}
           />
@@ -249,9 +284,13 @@ export default function PublicationForm({
             name="doi"
             placeholder="e.g., 10.1000/xyz123"
             className="sb-input"
+            maxLength={MAX_PUBLICATION_DOI}
             value={draftFields.doi}
             onChange={(e) => updateDraftField("doi", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.doi.length}/{MAX_PUBLICATION_DOI} characters
+          </div>
         </div>
         <div>
           <label className="sb-label">ISBN</label>
@@ -259,9 +298,13 @@ export default function PublicationForm({
             name="isbn"
             placeholder="e.g., 978-0-123-45678-9"
             className="sb-input"
+            maxLength={MAX_PUBLICATION_ISBN}
             value={draftFields.isbn}
             onChange={(e) => updateDraftField("isbn", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.isbn.length}/{MAX_PUBLICATION_ISBN} characters
+          </div>
         </div>
       </div>
 
@@ -272,9 +315,13 @@ export default function PublicationForm({
           name="url"
           placeholder="https://..."
           className="sb-input"
+          maxLength={MAX_PUBLICATION_URL}
           value={draftFields.url}
           onChange={(e) => updateDraftField("url", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.url.length}/{MAX_PUBLICATION_URL} characters
+        </div>
       </div>
 
       {/* Keywords & Domain */}
@@ -285,9 +332,13 @@ export default function PublicationForm({
             name="keywords"
             placeholder="e.g., NLP, deep learning, transformers"
             className="sb-input"
+            maxLength={MAX_PUBLICATION_KEYWORDS}
             value={draftFields.keywords}
             onChange={(e) => updateDraftField("keywords", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.keywords.length}/{MAX_PUBLICATION_KEYWORDS} characters
+          </div>
         </div>
         <div>
           <label className="sb-label">Domain / Area</label>
@@ -295,9 +346,13 @@ export default function PublicationForm({
             name="domain"
             placeholder="e.g., Computer Science, Physics"
             className="sb-input"
+            maxLength={MAX_PUBLICATION_DOMAIN}
             value={draftFields.domain}
             onChange={(e) => updateDraftField("domain", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.domain.length}/{MAX_PUBLICATION_DOMAIN} characters
+          </div>
         </div>
       </div>
 
@@ -307,8 +362,16 @@ export default function PublicationForm({
         <Editor
           value={draftFields.abstract}
           onChange={(data) => updateDraftField("abstract", data)}
+          maxLength={MAX_PUBLICATION_ABSTRACT}
         />
         <input type="hidden" name="abstract" value={draftFields.abstract} />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.abstract.length).replace(
+            /(\d+)(?=.(\d{3})*$)/g,
+            "$1,",
+          )}
+          /{MAX_PUBLICATION_ABSTRACT} characters
+        </div>
       </div>
 
       {/* I am an author checkbox */}

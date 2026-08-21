@@ -32,6 +32,8 @@ export const MAX_HELP_POST_MESSAGE = 256;
 export const MAX_JOURNAL_TITLE = 64;
 export const MAX_JOURNAL_ISSN = 16;
 export const MAX_JOURNAL_DESCRIPTION = 512;
+export const MAX_JOURNAL_PUBLISHER = 64;
+export const MAX_JOURNAL_WEBSITE = 128;
 
 export const MAX_RESULT_TITLE = 64;
 export const MAX_RESULT_CATEGORY = 32;
@@ -49,6 +51,7 @@ export const MAX_SUPERVISOR_ABOUT = 512;
 export const MAX_RESEARCH_TOOL_NAME = 64;
 export const MAX_RESEARCH_TOOL_DESCRIPTION = 512;
 export const MAX_RESEARCH_TOOL_WEBSITE = 128;
+export const MAX_RESEARCH_TOOL_USE = 64;
 
 export const MAX_RESEARCH_GRANT_TITLE = 64;
 export const MAX_RESEARCH_GRANT_AMOUNT = 8;
@@ -68,13 +71,34 @@ export const MAX_COURSE_DESCRIPTION = 512;
 
 export const MAX_SURVEY_TITLE = 64;
 export const MAX_SURVEY_DESCRIPTION = 512;
-export const MAX_SURVEY_QUESTION_TITLE = 64;
-export const MAX_SURVEY_QUESTION_OPTION = 16;
 
 export const MAX_RECOMMENDATION_FEEDBACK = 512;
 
-export const MAX_ADMISSION_UNIVERSITY = 32;
-export const MAX_ADMISSION_DEPARTMENT = 32;
+export const MAX_ADMISSION_UNIVERSITY = 64;
+export const MAX_ADMISSION_DEPARTMENT = 64;
 export const MAX_ADMISSION_DESCRIPTION = 512;
 export const MAX_ADMISSION_NOTIFICATION_LINK = 128;
 export const MAX_ADMISSION_APPLY_LINK = 128;
+
+export const MAX_PROFILE_NAME = 32;
+export const MAX_PROFILE_HANDLE = 16;
+export const MAX_PROFILE_BIO = 512;
+export const MAX_PROFILE_URL = 128;
+
+export const MAX_CONTACT_NAME = 32;
+export const MAX_CONTACT_EMAIL = 64;
+export const MAX_CONTACT_SUBJECT = 64;
+export const MAX_CONTACT_MESSAGE = 512;
+
+export const MAX_INVITE_NAME = 32;
+export const MAX_INVITE_EMAIL = 64;
+export const MAX_INVITE_MESSAGE = 512;
+
+export const MAX_CONTRIBUTION_TITLE = 64;
+export const MAX_CONTRIBUTION_MESSAGE = 512;
+
+export const MAX_SOCIAL_POST_CONTENT = 256;
+
+export const MAX_MESSAGE_BODY = 128;
+
+export const MAX_COMMENT_BODY = 256;

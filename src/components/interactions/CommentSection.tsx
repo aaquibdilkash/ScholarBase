@@ -19,6 +19,7 @@ import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 import { emitCommentCount, getCommentCount } from "@/lib/comment-count-store";
+import { MAX_COMMENT_BODY } from "@/lib/constants";
 import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
 
 type MentionUser = { id: string; handle: string | null };
@@ -87,6 +88,7 @@ function MentionComposer({
         placeholder={placeholder}
         required
         rows={2}
+        maxLength={MAX_COMMENT_BODY}
         className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-600 md:p-4 md:text-base dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder-slate-500 dark:focus:bg-slate-900"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -109,6 +111,9 @@ function MentionComposer({
           }
         }}
       />
+      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        {value.length}/{MAX_COMMENT_BODY} characters
+      </div>
       {suggestions.length > 0 && (
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
           {suggestions.map((user, index) => (

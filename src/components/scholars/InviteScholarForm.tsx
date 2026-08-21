@@ -1,10 +1,14 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Share2 } from "lucide-react";
 import { useState } from "react";
 import { inviteScholar } from "@/app/actions/scholars";
 import { useToast } from "@/components/ui/Toast";
-import { Share2 } from "lucide-react";
+import {
+  MAX_INVITE_NAME,
+  MAX_INVITE_EMAIL,
+  MAX_INVITE_MESSAGE,
+} from "@/lib/constants";
 
 export function InviteScholarForm() {
   const [submitting, setSubmitting] = useState(false);
@@ -50,11 +54,32 @@ export function InviteScholarForm() {
     >
       <div>
         <label className="sb-label" htmlFor="name">Name</label>
-        <input id="name" name="name" className="sb-input" placeholder="Scholar name" />
+        <input 
+          id="name" 
+          name="name" 
+          className="sb-input" 
+          placeholder="Scholar name"
+          maxLength={MAX_INVITE_NAME}
+          required 
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {MAX_INVITE_NAME} characters max
+        </div>
       </div>
       <div>
         <label className="sb-label" htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" className="sb-input" placeholder="scholar@university.edu" required />
+        <input 
+          id="email" 
+          name="email" 
+          type="email" 
+          className="sb-input" 
+          placeholder="scholar@university.edu" 
+          required
+          maxLength={MAX_INVITE_EMAIL}
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {MAX_INVITE_EMAIL} characters max
+        </div>
         <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
             Invites are sent by email. If you do not have their email, share the homepage link with them.
@@ -72,7 +97,17 @@ export function InviteScholarForm() {
       </div>
       <div>
         <label className="sb-label" htmlFor="message">Message</label>
-        <textarea id="message" name="message" className="sb-textarea min-h-40" placeholder="Tell them why they should join ScholarBase." required />
+        <textarea 
+          id="message" 
+          name="message" 
+          className="sb-textarea min-h-40" 
+          placeholder="Tell them why they should join ScholarBase."
+          maxLength={MAX_INVITE_MESSAGE}
+          required
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(MAX_INVITE_MESSAGE).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")} characters max
+        </div>
       </div>
       <button type="submit" className="sb-button-primary w-full justify-center py-3 text-base font-semibold" disabled={submitting}>
         {submitting ? (

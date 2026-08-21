@@ -14,7 +14,10 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import type { SocialPostWithAuthor } from "@/types/cards";
 
+import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
+
 export function CreateSocialPostForm() {
+  const MAX_CHARS = MAX_SOCIAL_POST_CONTENT;
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -145,9 +148,20 @@ export function CreateSocialPostForm() {
           className="w-full resize-none border-none bg-transparent p-2 text-lg text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
           rows={3}
           required
+          maxLength={MAX_CHARS}
           value={draftFields.content}
           onChange={(e) => updateDraftField("content", e.target.value)}
+          onInput={(e) => {
+            const target = e.target as HTMLTextAreaElement;
+            if (target.value.length > MAX_CHARS) {
+              target.value = target.value.slice(0, MAX_CHARS);
+              updateDraftField("content", target.value);
+            }
+          }}
         />
+        <div className="text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.content.length}/{MAX_CHARS} characters
+        </div>
 
         {imageUrl && (
           <div className="relative group w-fit">

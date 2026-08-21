@@ -8,6 +8,14 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_EVENT_TITLE,
+  MAX_EVENT_LOCATION,
+  MAX_EVENT_NOTIFICATION_LINK,
+  MAX_EVENT_APPLY_LINK,
+  MAX_EVENT_DESCRIPTION,
+} from "@/lib/constants";
 import type { EventWithAuthor } from "@/types/cards";
 
 export type EventFormValues = {
@@ -80,92 +88,113 @@ export default function EventForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       <div>
         <label className="sb-label">Conference Title</label>
-        <input
-          name="title"
-          placeholder="e.g., Annual Conference on Financial Econometrics"
-          className="sb-input"
-          required
-          value={draftFields.title}
-          onChange={(e) => updateDraftField("title", e.target.value)}
-        />
-      </div>
+<input
+            name="title"
+            placeholder="e.g., Annual Conference on Financial Econometrics"
+            className="sb-input"
+            required
+            maxLength={MAX_EVENT_TITLE}
+            value={draftFields.title}
+            onChange={(e) => updateDraftField("title", e.target.value)}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.title.length}/{MAX_EVENT_TITLE} characters
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="sb-label">Event Date</label>
+            <input
+              type="date"
+              name="date"
+              className="sb-input"
+              required
+              value={draftFields.date}
+              onChange={(e) => updateDraftField("date", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="sb-label">Location</label>
+            <input
+              name="location"
+              placeholder="e.g., New Delhi, India or Virtual"
+              className="sb-input"
+              required
+              maxLength={MAX_EVENT_LOCATION}
+              value={draftFields.location}
+              onChange={(e) => updateDraftField("location", e.target.value)}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.location.length}/{MAX_EVENT_LOCATION} characters
+            </div>
+          </div>
+        </div>
+
         <div>
-          <label className="sb-label">Event Date</label>
+          <label className="sb-label">Submission Deadline (Optional)</label>
           <input
             type="date"
-            name="date"
+            name="deadline"
             className="sb-input"
-            required
-            value={draftFields.date}
-            onChange={(e) => updateDraftField("date", e.target.value)}
+            value={draftFields.deadline}
+            onChange={(e) => updateDraftField("deadline", e.target.value)}
           />
         </div>
+
         <div>
-          <label className="sb-label">Location</label>
-          <input
-            name="location"
-            placeholder="e.g., New Delhi, India or Virtual"
-            className="sb-input"
-            required
-            value={draftFields.location}
-            onChange={(e) => updateDraftField("location", e.target.value)}
+          <label className="sb-label">Description / Tracks</label>
+          <Editor
+            value={draftFields.description}
+            onChange={(data) => updateDraftField("description", data)}
+            maxLength={MAX_EVENT_DESCRIPTION}
           />
+          <input
+            type="hidden"
+            name="description"
+            value={draftFields.description}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {String(draftFields.description.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_EVENT_DESCRIPTION} characters
+          </div>
         </div>
-      </div>
-
-      <div>
-        <label className="sb-label">Submission Deadline (Optional)</label>
-        <input
-          type="date"
-          name="deadline"
-          className="sb-input"
-          value={draftFields.deadline}
-          onChange={(e) => updateDraftField("deadline", e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="sb-label">Description / Tracks</label>
-        <Editor
-          value={draftFields.description}
-          onChange={(data) => updateDraftField("description", data)}
-        />
-        <input
-          type="hidden"
-          name="description"
-          value={draftFields.description}
-        />
-      </div>
 
       <div>
         <label className="sb-label">Official Brochure URL</label>
-        <input
-          type="url"
-          name="notificationLink"
-          placeholder="https://university.edu/brochure.pdf"
-          className="sb-input"
-          required
-          value={draftFields.notificationLink}
-          onChange={(e) => updateDraftField("notificationLink", e.target.value)}
-        />
-      </div>
+<input
+            type="url"
+            name="notificationLink"
+            placeholder="https://university.edu/brochure.pdf"
+            className="sb-input"
+            required
+            maxLength={MAX_EVENT_NOTIFICATION_LINK}
+            value={draftFields.notificationLink}
+            onChange={(e) => updateDraftField("notificationLink", e.target.value)}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.notificationLink.length}/{MAX_EVENT_NOTIFICATION_LINK} characters
+          </div>
+        </div>
 
-      <div>
-        <label className="sb-label">Submission Portal URL</label>
-        <input
-          type="url"
-          name="applyLink"
-          placeholder="https://easychair.org/cfp/..."
-          className="sb-input"
-          required
-          value={draftFields.applyLink}
-          onChange={(e) => updateDraftField("applyLink", e.target.value)}
-        />
-      </div>
+        <div>
+          <label className="sb-label">Submission Portal URL</label>
+          <input
+            type="url"
+            name="applyLink"
+            placeholder="https://easychair.org/cfp/..."
+            className="sb-input"
+            required
+            maxLength={MAX_EVENT_APPLY_LINK}
+            value={draftFields.applyLink}
+            onChange={(e) => updateDraftField("applyLink", e.target.value)}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.applyLink.length}/{MAX_EVENT_APPLY_LINK} characters
+          </div>
+        </div>
 
       <div className="mt-2 flex justify-end gap-3">
         {mode === "create" && <FormCancelButton href="/events" />}

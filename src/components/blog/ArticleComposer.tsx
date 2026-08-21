@@ -10,6 +10,12 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_ARTICLE_TITLE,
+  MAX_ARTICLE_EXCERPT,
+  MAX_ARTICLE_CONTENT,
+} from "@/lib/constants";
 import type { Article } from "@prisma/client";
 
 const Editor = dynamic(
@@ -50,7 +56,7 @@ export function ArticleComposer({
   const { toast } = useToast();
 
   const createMutation = useMutation({
-      mutationFn: createArticle,
+    mutationFn: createArticle,
     onSuccess: (response) => {
       if (!response.success || !response.data) {
         toast("Failed to publish article.", "error");
@@ -87,7 +93,10 @@ export function ArticleComposer({
       if (slug && updatedArticle.slug !== slug) {
         queryClient.removeQueries({ queryKey: ["article", slug] });
       }
-      queryClient.setQueryData(["article", updatedArticle.slug], updatedArticle);
+      queryClient.setQueryData(
+        ["article", updatedArticle.slug],
+        updatedArticle,
+      );
       toast("Article updated successfully!", "success");
       router.push(`/blog/${updatedArticle.slug}`);
     },
@@ -113,12 +122,13 @@ export function ArticleComposer({
       createMutation.mutate(formData);
     }
   }
-  
+
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
       <form onSubmit={onSubmit} className="flex flex-col gap-6">
+        <CautionNote />
         <div>
           <label className="sb-label">Article Title</label>
           <input
@@ -128,7 +138,11 @@ export function ArticleComposer({
             placeholder="e.g., The Ultimate PhD Survival Guide"
             className="sb-input"
             required
+            maxLength={MAX_ARTICLE_TITLE}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.title.length}/{MAX_ARTICLE_TITLE} characters
+          </div>
         </div>
 
         <div>
@@ -142,7 +156,11 @@ export function ArticleComposer({
             placeholder="A brief summary of your article..."
             className="sb-input"
             required
+            maxLength={MAX_ARTICLE_EXCERPT}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.excerpt.length}/{MAX_ARTICLE_EXCERPT} characters
+          </div>
         </div>
 
         <div>
@@ -153,22 +171,33 @@ export function ArticleComposer({
             </span>
           </div>
 
-          <input type="hidden" name="content" value={draftFields.content} />
-
           <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
             <Editor
+              maxLength={MAX_ARTICLE_CONTENT}
               value={draftFields.content}
               onChange={(value: string) => updateDraftField("content", value)}
             />
+            <input type="hidden" name="content" value={draftFields.content} />
+          </div>
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {String(draftFields.content.length).replace(
+              /(\d+)(?=.(\d{3})*$)/g,
+              "$1,",
+            )}
+            /{MAX_ARTICLE_CONTENT} characters
           </div>
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
           {mode === "create" && <FormCancelButton href="/blog" />}
           <SubmitBtnWithAuth disabled={isPending} className="sb-button-accent">
-            {isPending 
-              ? mode === 'edit' ? 'Saving...' : 'Publishing...' 
-              : mode === "edit" ? "Save Changes" : "Publish Article"}
+            {isPending
+              ? mode === "edit"
+                ? "Saving..."
+                : "Publishing..."
+              : mode === "edit"
+                ? "Save Changes"
+                : "Publish Article"}
           </SubmitBtnWithAuth>
         </div>
       </form>

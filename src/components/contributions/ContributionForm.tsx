@@ -20,6 +20,11 @@ import type { ContributionWithAuthor } from "@/types/cards";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 
+import {
+  MAX_CONTRIBUTION_TITLE,
+  MAX_CONTRIBUTION_MESSAGE,
+} from "@/lib/constants";
+
 export type ContributionFormValues = {
   title: string;
   message: string;
@@ -251,9 +256,13 @@ export default function ContributionForm({
           placeholder="e.g., Server Maintenance Contribution"
           className="sb-input"
           required
+          maxLength={MAX_CONTRIBUTION_TITLE}
           value={draftFields.title}
           onChange={(e) => updateDraftField("title", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.title.length}/{MAX_CONTRIBUTION_TITLE} characters
+        </div>
       </div>
 
       {!isApprovedEdit && (
@@ -374,10 +383,18 @@ export default function ContributionForm({
       <div>
         <label className="sb-label">Message</label>
         <Editor
+          maxLength={MAX_CONTRIBUTION_MESSAGE}
           value={draftFields.message}
           onChange={(data) => updateDraftField("message", data)}
         />
         <input type="hidden" name="message" value={draftFields.message} />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.message.length).replace(
+            /(\d+)(?=.(\d{3})*$)/g,
+            "$1,",
+          )}
+          /{MAX_CONTRIBUTION_MESSAGE} characters
+        </div>
       </div>
 
       {!isApprovedEdit && (

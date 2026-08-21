@@ -8,6 +8,14 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_VACANCY_TITLE,
+  MAX_VACANCY_INSTITUTION,
+  MAX_VACANCY_NOTIFICATION_LINK,
+  MAX_VACANCY_APPLY_LINK,
+  MAX_VACANCY_DESCRIPTION,
+} from "@/lib/constants";
 import type { VacancyWithAuthor } from "@/types/cards";
 
 export type VacancyFormValues = {
@@ -106,11 +114,12 @@ export default function VacancyForm({
 
   const isPending = isCreating || isUpdating;
 
-  return (
+return (
     <form
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+        <CautionNote />
       <div>
         <label className="sb-label">Job Title</label>
         <input
@@ -118,10 +127,14 @@ export default function VacancyForm({
           placeholder="e.g., Assistant Professor (Contractual)"
           className="sb-input"
           required
+          maxLength={MAX_VACANCY_TITLE}
           value={draftFields.title}
           onChange={(e) => updateDraftField("title", e.target.value)}
           disabled={isPending}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.title.length}/{MAX_VACANCY_TITLE} characters
+        </div>
       </div>
 
       <div>
@@ -131,10 +144,14 @@ export default function VacancyForm({
           placeholder="e.g., Delhi University"
           className="sb-input"
           required
+          maxLength={MAX_VACANCY_INSTITUTION}
           value={draftFields.institution}
           onChange={(e) => updateDraftField("institution", e.target.value)}
           disabled={isPending}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.institution.length}/{MAX_VACANCY_INSTITUTION} characters
+        </div>
       </div>
 
       <div>
@@ -155,12 +172,16 @@ export default function VacancyForm({
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
+          maxLength={MAX_VACANCY_DESCRIPTION}
         />
         <input
           type="hidden"
           name="description"
           value={draftFields.description}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.description.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_VACANCY_DESCRIPTION} characters
+        </div>
       </div>
 
       <div>
@@ -171,10 +192,14 @@ export default function VacancyForm({
           placeholder="https://institution.org/jobs/advt-2026.pdf"
           className="sb-input"
           required
+          maxLength={MAX_VACANCY_NOTIFICATION_LINK}
           value={draftFields.notificationLink}
           onChange={(e) => updateDraftField("notificationLink", e.target.value)}
           disabled={isPending}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.notificationLink.length}/{MAX_VACANCY_NOTIFICATION_LINK} characters
+        </div>
       </div>
 
       <div>
@@ -185,10 +210,14 @@ export default function VacancyForm({
           placeholder="https://recruitment.portal or mailto:hr@inst.edu"
           className="sb-input"
           required
+          maxLength={MAX_VACANCY_APPLY_LINK}
           value={draftFields.applyLink}
           onChange={(e) => updateDraftField("applyLink", e.target.value)}
           disabled={isPending}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.applyLink.length}/{MAX_VACANCY_APPLY_LINK} characters
+        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import type { User } from "@supabase/supabase-js";
+import { MAX_MESSAGE_BODY } from "@/lib/constants";
 
 const MAX_TEXTAREA_HEIGHT = 160;
 
@@ -125,6 +126,7 @@ export function MessageInputForm({
           placeholder="Write a message..."
           required
           rows={1}
+          maxLength={MAX_MESSAGE_BODY}
           onKeyDown={handleKeyDown}
         />
         <button

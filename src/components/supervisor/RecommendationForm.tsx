@@ -14,6 +14,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
+import { MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
+
 export type RecommendationFormValues = {
   rating: string;
   turnaroundTimeDays: string;
@@ -171,10 +173,18 @@ export default function RecommendationForm({
           Your Feedback
         </label>
         <Editor
+          maxLength={MAX_RECOMMENDATION_FEEDBACK}
           value={draftFields.feedback}
           onChange={(data) => updateDraftField("feedback", data)}
         />
         <input type="hidden" name="feedback" value={draftFields.feedback} />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.feedback.length).replace(
+            /(\d+)(?=.(\d{3})*$)/g,
+            "$1,",
+          )}
+          /{MAX_RECOMMENDATION_FEEDBACK} characters
+        </div>
       </div>
 
       <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">

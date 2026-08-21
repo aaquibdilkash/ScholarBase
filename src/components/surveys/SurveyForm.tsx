@@ -9,8 +9,14 @@ import { QuestionEditor, generateId } from "./QuestionEditor";
 import { Editor } from "@/components/ui/Editor";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
 import type { Question, QuestionOption } from "@/types/survey";
 import type { SurveyWithAuthor } from "@/types/cards";
+
+import {
+  MAX_SURVEY_TITLE,
+  MAX_SURVEY_DESCRIPTION,
+} from "@/lib/constants";
 
 export type SurveyFormValues = {
   id?: string;
@@ -123,6 +129,7 @@ export default function SurveyForm({
 
   return (
     <form onSubmit={handleFormSubmit} className="space-y-6">
+      <CautionNote />
       {/* Survey Details Section */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Survey Details</h2>
@@ -139,7 +146,11 @@ export default function SurveyForm({
             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Enter survey title"
             required
+            maxLength={MAX_SURVEY_TITLE}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {title.length}/{MAX_SURVEY_TITLE} characters
+          </div>
         </div>
 
         <div>
@@ -147,10 +158,14 @@ export default function SurveyForm({
             Description
           </label>
           <Editor
+            maxLength={MAX_SURVEY_DESCRIPTION}
             value={description ?? ""}
             onChange={(data) => updateDraft("description", data)}
           />
           <input type="hidden" name="description" value={description ?? ""} />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {String((description ?? "").length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_SURVEY_DESCRIPTION} characters
+          </div>
         </div>
 
         <div>

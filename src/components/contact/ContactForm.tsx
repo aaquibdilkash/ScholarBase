@@ -9,6 +9,12 @@ import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { sendContactMessage } from "@/app/actions/contact";
+import {
+  MAX_CONTACT_NAME,
+  MAX_CONTACT_EMAIL,
+  MAX_CONTACT_SUBJECT,
+  MAX_CONTACT_MESSAGE,
+} from "@/lib/constants";
 
 const DRAFT_KEY = "draft_contact";
 
@@ -91,7 +97,11 @@ export function ContactForm() {
           required
           className="sb-input"
           placeholder="John Doe"
+          maxLength={MAX_CONTACT_NAME}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {name.length}/{MAX_CONTACT_NAME} characters
+        </div>
       </div>
 
       <div>
@@ -107,7 +117,11 @@ export function ContactForm() {
           required
           className="sb-input"
           placeholder="you@university.edu"
+          maxLength={MAX_CONTACT_EMAIL}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {email.length}/{MAX_CONTACT_EMAIL} characters
+        </div>
       </div>
 
       <div>
@@ -123,7 +137,11 @@ export function ContactForm() {
           required
           className="sb-input"
           placeholder="Business Partnership Inquiry"
+          maxLength={MAX_CONTACT_SUBJECT}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {subject.length}/{MAX_CONTACT_SUBJECT} characters
+        </div>
       </div>
 
       <div>
@@ -139,7 +157,11 @@ export function ContactForm() {
           rows={6}
           className="sb-textarea resize-y"
           placeholder="Tell us about your inquiry..."
+          maxLength={MAX_CONTACT_MESSAGE}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(message.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_CONTACT_MESSAGE} characters
+        </div>
       </div>
 
       <SubmitButton />

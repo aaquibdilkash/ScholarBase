@@ -8,7 +8,16 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
+
+import {
+  MAX_RESEARCH_GRANT_TITLE,
+  MAX_RESEARCH_GRANT_AMOUNT,
+  MAX_RESEARCH_GRANT_DESCRIPTION,
+  MAX_RESEARCH_GRANT_APPLY_LINK,
+  MAX_RESEARCH_GRANT_INFO_LINK,
+} from "@/lib/constants";
 
 export type ResearchGrantFormValues = {
   title: string;
@@ -36,7 +45,10 @@ export default function ResearchGrantForm({
   };
 
   const draftKey = mode === "edit" ? null : "draft_research_grant_create";
-  const [draftFields, updateDraftField, resetDraft] = useFormDraft(draftKey, initial);
+  const [draftFields, updateDraftField, resetDraft] = useFormDraft(
+    draftKey,
+    initial,
+  );
   const queryClient = useQueryClient();
 
   const { submitting, submit } = useFormSubmit(
@@ -71,33 +83,95 @@ export default function ResearchGrantForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10">
-      <div>
-        <label className="sb-label">Grant Title</label>
-        <input name="title" placeholder="e.g., Early Career Research Grant 2026" className="sb-input" required value={draftFields.title} onChange={(e) => updateDraftField("title", e.target.value)} />
-      </div>
-
-      <div>
-        <label className="sb-label">Amount</label>
-        <input name="amount" placeholder="e.g., USD 25,000 or Fully funded" className="sb-input" value={draftFields.amount} onChange={(e) => updateDraftField("amount", e.target.value)} />
-      </div>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label className="sb-label">Apply Link</label>
-          <input name="applyLink" type="url" placeholder="https://..." className="sb-input" value={draftFields.applyLink} onChange={(e) => updateDraftField("applyLink", e.target.value)} />
+    <form
+      onSubmit={onSubmit}
+      className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+    >
+      <CautionNote />
+<div>
+          <label className="sb-label">Grant Title</label>
+          <input
+            name="title"
+            placeholder="e.g., Early Career Research Grant 2026"
+            className="sb-input"
+            required
+            maxLength={MAX_RESEARCH_GRANT_TITLE}
+            value={draftFields.title}
+            onChange={(e) => updateDraftField("title", e.target.value)}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.title.length}/{MAX_RESEARCH_GRANT_TITLE} characters
+          </div>
         </div>
-        <div>
-          <label className="sb-label">Info Link</label>
-          <input name="infoLink" type="url" placeholder="https://..." className="sb-input" value={draftFields.infoLink} onChange={(e) => updateDraftField("infoLink", e.target.value)} />
-        </div>
-      </div>
 
-      <div>
-        <label className="sb-label">How to Apply</label>
-        <Editor value={draftFields.description} onChange={(data) => updateDraftField("description", data)} />
-        <input type="hidden" name="description" value={draftFields.description} />
-      </div>
+        <div>
+          <label className="sb-label">Amount</label>
+          <input
+            name="amount"
+            placeholder="e.g., USD 25,000 or Fully funded"
+            className="sb-input"
+            maxLength={MAX_RESEARCH_GRANT_AMOUNT}
+            value={draftFields.amount}
+            onChange={(e) => updateDraftField("amount", e.target.value)}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.amount.length}/{MAX_RESEARCH_GRANT_AMOUNT} characters
+          </div>
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <div>
+            <label className="sb-label">Apply Link</label>
+            <input
+              name="applyLink"
+              type="url"
+              placeholder="https://..."
+              className="sb-input"
+              maxLength={MAX_RESEARCH_GRANT_APPLY_LINK}
+              value={draftFields.applyLink}
+              onChange={(e) => updateDraftField("applyLink", e.target.value)}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.applyLink.length}/{MAX_RESEARCH_GRANT_APPLY_LINK} characters
+            </div>
+          </div>
+          <div>
+            <label className="sb-label">Info Link</label>
+            <input
+              name="infoLink"
+              type="url"
+              placeholder="https://..."
+              className="sb-input"
+              maxLength={MAX_RESEARCH_GRANT_INFO_LINK}
+              value={draftFields.infoLink}
+              onChange={(e) => updateDraftField("infoLink", e.target.value)}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.infoLink.length}/{MAX_RESEARCH_GRANT_INFO_LINK} characters
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="sb-label">How to Apply</label>
+          <Editor
+            maxLength={MAX_RESEARCH_GRANT_DESCRIPTION}
+            value={draftFields.description}
+            onChange={(data) => updateDraftField("description", data)}
+          />
+          <input
+            type="hidden"
+            name="description"
+            value={draftFields.description}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {String(draftFields.description.length).replace(
+              /(\d+)(?=.(\d{3})*$)/g,
+              "$1,",
+            )}
+            /{MAX_RESEARCH_GRANT_DESCRIPTION} characters
+          </div>
+        </div>
 
       <div className="mt-2 flex justify-end gap-3">
         {mode === "create" && <FormCancelButton href="/grants" />}

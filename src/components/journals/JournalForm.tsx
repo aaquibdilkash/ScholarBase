@@ -8,6 +8,14 @@ import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { CautionNote } from "@/components/ui/CautionNote";
+import {
+  MAX_JOURNAL_TITLE,
+  MAX_JOURNAL_ISSN,
+  MAX_JOURNAL_DESCRIPTION,
+  MAX_JOURNAL_PUBLISHER,
+  MAX_JOURNAL_WEBSITE,
+} from "@/lib/constants";
 import type { JournalWithAuthor } from "@/types/cards";
 
 export type JournalFormValues = {
@@ -82,29 +90,38 @@ export default function JournalForm({
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
+      <CautionNote />
       <div>
         <label className="sb-label">Journal Name</label>
-        <input
-          name="title"
-          placeholder="e.g., Journal of Financial Economics"
-          className="sb-input"
-          required
-          value={draftFields.title}
-          onChange={(e) => updateDraftField("title", e.target.value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="sb-label">ISSN</label>
-          <input
-            name="issn"
-            placeholder="e.g., 0304-405X"
+<input
+            name="title"
+            placeholder="e.g., Journal of Financial Economics"
             className="sb-input"
-            value={draftFields.issn}
-            onChange={(e) => updateDraftField("issn", e.target.value)}
+            required
+            maxLength={MAX_JOURNAL_TITLE}
+            value={draftFields.title}
+            onChange={(e) => updateDraftField("title", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.title.length}/{MAX_JOURNAL_TITLE} characters
+          </div>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="sb-label">ISSN</label>
+            <input
+              name="issn"
+              placeholder="e.g., 0304-405X"
+              className="sb-input"
+              maxLength={MAX_JOURNAL_ISSN}
+              value={draftFields.issn}
+              onChange={(e) => updateDraftField("issn", e.target.value)}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.issn.length}/{MAX_JOURNAL_ISSN} characters
+            </div>
+          </div>
         <div>
           <label className="sb-label">Impact Factor</label>
           <input
@@ -159,6 +176,9 @@ export default function JournalForm({
           value={draftFields.publisher}
           onChange={(e) => updateDraftField("publisher", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.publisher.length}/{MAX_JOURNAL_PUBLISHER} characters
+        </div>
       </div>
 
       <div>
@@ -170,6 +190,9 @@ export default function JournalForm({
           value={draftFields.website}
           onChange={(e) => updateDraftField("website", e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.website.length}/{MAX_JOURNAL_WEBSITE} characters
+        </div>
       </div>
 
       <div>
@@ -177,8 +200,12 @@ export default function JournalForm({
         <Editor
           value={draftFields.about}
           onChange={(data) => updateDraftField("about", data)}
+          maxLength={MAX_JOURNAL_DESCRIPTION}
         />
         <input type="hidden" name="about" value={draftFields.about} />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {String(draftFields.about.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_JOURNAL_DESCRIPTION} characters
+        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
