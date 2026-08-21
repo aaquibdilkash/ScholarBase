@@ -5,6 +5,7 @@ import { toggleCommentVote } from "@/app/actions/votes";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
+import { useUser } from "@/hooks/useUser";
 import type { CommentEntityType } from "@/types/comments";
 import type { VoteType } from "@/types/votes";
 
@@ -58,19 +59,21 @@ export function CommentVoteButton({
   const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
 
   const { userVote, totalVotes } = optimisticVotes;
 
   const handleVote = (voteType: VoteType) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
     setPendingVote(voteType);
     startTransition(async () => {
       addOptimisticVote(voteType);
       try {
         const res = await toggleCommentVote(commentId, type, voteType);
-        if ("error" in res && res.error === "UNAUTHORIZED") {
-          openAuthModal();
-          return;
-        }
         if (res.success && typeof res.data?.totalVotes === 'number') {
           setVoteState(prev => ({
             totalVotes: res.data!.totalVotes,

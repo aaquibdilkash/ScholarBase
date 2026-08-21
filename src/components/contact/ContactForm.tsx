@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useFormState, useFormStatus } from "react-dom";
 import { useAuthModal } from "@/components/interactions/AuthModal";
@@ -49,6 +49,7 @@ export function ContactForm() {
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const { user } = useUser();
+  const lastShownRef = useRef<string | null>(null);
 
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(DRAFT_KEY, {
     name: (user?.user_metadata.name as string | undefined) || "",
@@ -60,7 +61,8 @@ export function ContactForm() {
   const { name, email, subject, message } = draftFields;
 
   useEffect(() => {
-    if (state.message) {
+    if (state.message && state.message !== lastShownRef.current) {
+      lastShownRef.current = state.message;
       toast(state.message, state.success ? "success" : "error");
       if (state.success) {
         resetDraft();

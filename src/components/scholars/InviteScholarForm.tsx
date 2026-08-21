@@ -4,6 +4,8 @@ import { Loader2, Share2 } from "lucide-react";
 import { useState } from "react";
 import { inviteScholar } from "@/app/actions/scholars";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useUser } from "@/hooks/useUser";
 import {
   MAX_INVITE_NAME,
   MAX_INVITE_EMAIL,
@@ -13,6 +15,8 @@ import {
 export function InviteScholarForm() {
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
   const homepageUrl =
     typeof window === "undefined"
       ? "https://scholarbase.app"
@@ -29,6 +33,12 @@ export function InviteScholarForm() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData(event.currentTarget);

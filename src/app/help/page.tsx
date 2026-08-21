@@ -7,9 +7,9 @@ import ListPageShell from "@/components/layout/ListPageShell";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Help & Support - ScholarBase",
+  title: "Scholar Suggest - ScholarBase",
   description:
-    "Get help from the community, ask questions, and find solutions to your problems.",
+    "Share suggestions, bug reports, or new feature request for ScholarBase with the community.",
 };
 
 export default async function HelpPage({
@@ -34,8 +34,8 @@ export default async function HelpPage({
 
   return (
     <ListPageShell
-      title="Help & Support"
-      description="Get help from the community."
+      title="Scholar Suggest"
+      description="Share posts, suggestions, bug reports, or new feature ideas with the community."
       addHref="/help/add"
       addLabel="+ New Post"
       tab={tab}
