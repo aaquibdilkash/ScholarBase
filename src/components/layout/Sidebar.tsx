@@ -44,32 +44,30 @@ type SidebarUser = {
 
 type SidebarProps = {
   user: SidebarUser;
+  defaultCollapsed: boolean;
 };
 
-export default function Sidebar({ user }: SidebarProps) {
+export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  
+  // We keep this ONLY for click handlers, NOT for rendering classes
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
-  const [sidebarPreferenceLoaded, setSidebarPreferenceLoaded] = useState(false);
+  
+  const [desktopCollapsed, setDesktopCollapsed] = useState(defaultCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrollable, setIsScrollable] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
 
-  const isCollapsed = isDesktop ? desktopCollapsed : !mobileOpen;
-
-  useEffect(() => {
-    setDesktopCollapsed(localStorage.getItem("sb-main-sidebar-collapsed") === "true");
-    setSidebarPreferenceLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (sidebarPreferenceLoaded) {
-      localStorage.setItem("sb-main-sidebar-collapsed", String(desktopCollapsed));
-    }
-  }, [desktopCollapsed, sidebarPreferenceLoaded]);
+  const toggleDesktop = () => {
+    setDesktopCollapsed((current) => {
+      const newState = !current;
+      document.cookie = `sb-main-sidebar-collapsed=${newState}; path=/; max-age=31536000`;
+      return newState;
+    });
+  };
 
   const checkScrollable = useCallback(() => {
     if (!navRef.current) return;
@@ -153,7 +151,7 @@ export default function Sidebar({ user }: SidebarProps) {
       { name: "Journals", href: "/journals", icon: <List className="h-6 w-6 shrink-0" /> },
       { name: "Publications", href: "/publications", icon: <File className="h-6 w-6 shrink-0" /> },
       { name: "Contributions", href: "/contributions", icon: <Gift className="h-6 w-6 shrink-0" /> },
-      { name: "Help", href: "/help", icon: <HelpCircle className="h-6 w-6 shrink-0" /> },
+      { name: "Scholar Suggest", href: "/help", icon: <HelpCircle className="h-6 w-6 shrink-0" /> },
       ...(user?.isAdmin ? [{ name: "Admin", href: "/admin", icon: <Shield className="h-6 w-6 shrink-0" /> }] : []),
     ],
     [user?.isAdmin, user?.unreadMessages],
@@ -162,20 +160,14 @@ export default function Sidebar({ user }: SidebarProps) {
   useEffect(() => {
     const activeHref =
       menuItems.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href;
-    if (!activeHref || !sidebarPreferenceLoaded) return;
+    if (!activeHref) return;
     const el = itemRefs.current[activeHref];
     if (el) {
       requestAnimationFrame(() => {
         el.scrollIntoView({ block: "nearest", behavior: "auto" });
       });
     }
-  }, [menuItems, pathname, sidebarPreferenceLoaded]);
-
-  const asideClasses = `fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/70 bg-white/95 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/20 md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:shadow-none md:dark:bg-slate-950/80 ${
-    isCollapsed
-      ? "-translate-x-full md:translate-x-0 w-72 md:w-24 px-6 md:px-3"
-      : "translate-x-0 w-72 px-6"
-  }`;
+  }, [menuItems, pathname]);
 
   const profileHref = user ? `/scholars/${user.id}` : "/login";
 
@@ -184,32 +176,34 @@ export default function Sidebar({ user }: SidebarProps) {
       <button
         type="button"
         onClick={() => setMobileOpen(false)}
-        className={`fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-[1px] md:hidden dark:bg-black/60 transition-opacity duration-300 ${isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        className={`fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-[1px] md:hidden dark:bg-black/60 transition-opacity duration-300 ${!mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         aria-label="Close navigation overlay"
       />
 
-      <aside className={asideClasses}>
-        <div className={`flex w-full items-center transition-all duration-300 ${isCollapsed ? "justify-center" : "justify-between"}`}>
-          {/* BrandMark perfectly shrinks to 0 */}
+      <aside 
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/70 bg-white/95 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/20 
+        md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:shadow-none md:dark:bg-slate-950/80 
+        ${mobileOpen ? "translate-x-0" : "-translate-x-full"} w-72 px-6 
+        md:translate-x-0 ${desktopCollapsed ? "md:w-24 md:px-3" : "md:w-72 md:px-6"}`}
+      >
+        <div className={`flex w-full items-center transition-all duration-300 justify-between ${desktopCollapsed ? "md:justify-center" : ""}`}>
           <Link
             href="/"
-            className={`overflow-hidden whitespace-nowrap text-2xl font-semibold tracking-tight text-slate-950 transition-all duration-300 ease-in-out dark:text-slate-50 ${
-              isCollapsed ? "w-0 max-w-0 opacity-0 m-0 p-0" : "max-w-[200px] opacity-100 mr-2 pl-4"
-            }`}
+            className={`overflow-hidden whitespace-nowrap text-2xl font-semibold tracking-tight text-slate-950 transition-all duration-300 ease-in-out dark:text-slate-50
+            max-w-[200px] opacity-100 mr-2 pl-4 
+            ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:m-0 md:p-0" : ""}`}
           >
             <BrandMark />
           </Link>
 
-          {/* Hamburger perfectly centered in collapsed mode */}
           <button
             type="button"
-            onClick={() => setDesktopCollapsed((current) => !current)}
-            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-white/80 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center ${
-              isCollapsed ? "h-12 w-12 mx-auto p-0" : "h-11 w-11 p-0"
-            }`}
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={toggleDesktop}
+            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-white/80 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
+            ${desktopCollapsed ? "md:h-12 md:w-12 md:mx-auto md:p-0" : "md:h-11 md:w-11 md:p-0"}`}
+            aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <Menu className="h-6 w-6" /> : <ChevronsLeft className="h-6 w-6" />}
+            {desktopCollapsed ? <Menu className="h-6 w-6" /> : <ChevronsLeft className="h-6 w-6" />}
           </button>
         </div>
 
@@ -228,16 +222,13 @@ export default function Sidebar({ user }: SidebarProps) {
                   key={item.name}
                   href={item.href}
                   ref={(el) => { itemRefs.current[item.href] = el; }}
-                  title={isCollapsed ? item.name : ""}
+                  title={desktopCollapsed ? item.name : ""}
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
-                  // 🔥 Forced w-12 h-12 and p-0 for perfect square centering
-                  className={`flex items-center overflow-hidden rounded-2xl font-semibold transition-all duration-300 ease-in-out ${
-                    isCollapsed ? "w-12 h-12 mx-auto justify-center p-0" : "w-full px-4 py-3 justify-start gap-3"
-                  } ${
-                    isActive
-                      ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300"
-                      : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"
-                  }`}
+                  className={`flex items-center overflow-hidden rounded-2xl font-semibold transition-all duration-300 ease-in-out
+                    w-full px-4 py-3 justify-start gap-3
+                    ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:gap-0" : ""}
+                    ${isActive ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300" : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"}
+                  `}
                 >
                   <div className={`shrink-0 transition-colors ${isActive ? "text-blue-600 dark:text-blue-300" : "text-slate-400 dark:text-slate-500"}`}>
                     <span className="relative inline-flex">
@@ -249,11 +240,11 @@ export default function Sidebar({ user }: SidebarProps) {
                       ) : null}
                     </span>
                   </div>
-                  {/* 🔥 w-0 and m-0 guarantees text won't push the icon off center */}
                   <span
-                    className={`whitespace-nowrap transition-all duration-300 ease-in-out ${
-                      isCollapsed ? "w-0 max-w-0 opacity-0 m-0 p-0" : "max-w-[200px] opacity-100"
-                    }`}
+                    className={`whitespace-nowrap transition-all duration-300 ease-in-out
+                      max-w-[200px] opacity-100
+                      ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:m-0 md:p-0" : ""}
+                    `}
                   >
                     {item.name}
                   </span>
@@ -263,7 +254,7 @@ export default function Sidebar({ user }: SidebarProps) {
           </div>
         </nav>
 
-        {!isCollapsed && isScrollable ? (
+        {!desktopCollapsed && isScrollable ? (
           <button
             type="button"
             onClick={scrollNavDown}
@@ -280,20 +271,18 @@ export default function Sidebar({ user }: SidebarProps) {
 
         <div className="mt-auto overflow-hidden">
           <div className="mb-3 flex justify-center">
-            <ThemeToggle collapsed={isCollapsed} />
+            <ThemeToggle collapsed={desktopCollapsed} />
           </div>
           
           <div className="border-t border-slate-200/70 pt-3 dark:border-slate-800 flex flex-col gap-3">
             {user ? (
               <>
-                {/* Profile matches 48x48 */}
                 <Link
                   href={profileHref}
-                  className={`group flex items-center overflow-hidden rounded-2xl transition-all duration-300 ease-in-out ${
-                    isCollapsed
-                      ? "w-12 h-12 mx-auto justify-center p-0 border-transparent bg-transparent"
-                      : "w-full border border-slate-200/70 bg-white px-4 py-3 gap-3 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800"
-                  }`}
+                  className={`group flex items-center overflow-hidden rounded-2xl transition-all duration-300 ease-in-out
+                    w-full border border-slate-200/70 bg-white px-4 py-3 gap-3 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800
+                    ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:border-transparent md:bg-transparent md:gap-0" : ""}
+                  `}
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white transition-colors dark:bg-white dark:text-slate-950">
@@ -305,9 +294,10 @@ export default function Sidebar({ user }: SidebarProps) {
                   </span>
                   
                   <span
-                    className={`flex flex-col whitespace-nowrap transition-all duration-300 ease-in-out ${
-                      isCollapsed ? "w-0 max-w-0 opacity-0 m-0 p-0" : "max-w-[160px] opacity-100"
-                    }`}
+                    className={`flex flex-col whitespace-nowrap transition-all duration-300 ease-in-out
+                      max-w-[160px] opacity-100
+                      ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:m-0 md:p-0" : ""}
+                    `}
                   >
                     <span className="block truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
                       {user.email || "Open profile"}
@@ -318,45 +308,49 @@ export default function Sidebar({ user }: SidebarProps) {
                   </span>
                 </Link>
 
-                {/* SignOut perfectly matches 48x48 */}
                 <SignOutButton
-                  className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800 ${
-                    isCollapsed ? "h-12 w-12 rounded-2xl p-0 mx-auto" : "w-full rounded-2xl px-4 py-3"
-                  }`}
+                  className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800
+                    w-full rounded-2xl px-4 py-3
+                    ${desktopCollapsed ? "md:h-12 md:w-12 md:p-0 md:mx-auto md:justify-center" : ""}
+                  `}
                   aria-label="Sign out"
                 >
                   <LogOut
-                    className={`absolute h-5 w-5 transition-all duration-300 ease-in-out ${
-                      isCollapsed ? "scale-100 opacity-100" : "scale-50 opacity-0"
-                    }`}
+                    className={`absolute h-5 w-5 transition-all duration-300 ease-in-out
+                      scale-50 opacity-0
+                      ${desktopCollapsed ? "md:scale-100 md:opacity-100" : ""}
+                    `}
                   />
                   <span
-                    className={`whitespace-nowrap transition-all duration-300 ease-in-out ${
-                      isCollapsed ? "w-0 max-w-0 opacity-0 scale-50" : "scale-100 opacity-100"
-                    }`}
+                    className={`whitespace-nowrap transition-all duration-300 ease-in-out
+                      scale-100 opacity-100
+                      ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:scale-50" : ""}
+                    `}
                   >
                     Sign Out
                   </span>
                 </SignOutButton>
               </>
             ) : !isOnLoginPage ? (
-              /* SignIn perfectly matches 48x48 */
               <Link
                 href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
-                className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:bg-black dark:hover:bg-black ${
-                  isCollapsed ? "h-12 w-12 rounded-2xl p-0 mx-auto bg-white border border-slate-200 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300" : "w-full rounded-2xl px-4 py-3"
-                }`}
+                className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:bg-black dark:hover:bg-black
+                  w-full rounded-2xl px-4 py-3
+                  ${desktopCollapsed ? "md:h-12 md:w-12 md:rounded-2xl md:p-0 md:mx-auto md:justify-center md:bg-white md:border md:border-slate-200 md:text-slate-600 md:dark:border-slate-800 md:dark:bg-slate-900 md:dark:text-slate-300" : ""}
+                `}
                 onClick={() => { if (!isDesktop) setMobileOpen(false); }}
               >
                 <LogIn
-                  className={`absolute h-5 w-5 transition-all duration-300 ease-in-out ${
-                    isCollapsed ? "scale-100 opacity-100" : "scale-50 opacity-0"
-                  }`}
+                  className={`absolute h-5 w-5 transition-all duration-300 ease-in-out
+                    scale-50 opacity-0
+                    ${desktopCollapsed ? "md:scale-100 md:opacity-100" : ""}
+                  `}
                 />
                 <span
-                  className={`whitespace-nowrap transition-all duration-300 ease-in-out ${
-                    isCollapsed ? "w-0 max-w-0 opacity-0 scale-50" : "scale-100 opacity-100"
-                  }`}
+                  className={`whitespace-nowrap transition-all duration-300 ease-in-out
+                    scale-100 opacity-100
+                    ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:scale-50" : ""}
+                  `}
                 >
                   Sign In
                 </span>

@@ -74,6 +74,52 @@ export async function getFollowers(userId: string, currentUserId?: string, take:
   });
 }
 
+export async function getFollowersWithCursor(
+  userId: string,
+  currentUserId?: string,
+  take: number = 20,
+  cursor?: string
+) {
+  const follows = await prisma.follows.findMany({
+    where: { 
+      followingId: userId,
+      ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+    },
+    take,
+    select: {
+      follower: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: currentUserId
+            ? { where: { followerId: currentUserId }, select: { followerId: true } }
+            : false,
+        },
+      },
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const hasMore = follows.length === take;
+  const nextCursor = hasMore ? follows[follows.length - 1].createdAt.toISOString() : null;
+
+  return {
+    users: follows.map((f) => {
+      const { followers, ...follower } = f.follower;
+      return {
+        ...follower,
+        isFollowing: !!followers?.length,
+        isOwnProfile: currentUserId === follower.id,
+      };
+    }),
+    nextCursor,
+    hasMore,
+  };
+}
+
 export async function getFollowing(userId: string, currentUserId?: string, take: number = 50) {
   const follows = await prisma.follows.findMany({
     where: { followerId: userId },
@@ -102,4 +148,50 @@ export async function getFollowing(userId: string, currentUserId?: string, take:
           isOwnProfile: currentUserId === following.id,
       }
   });
+}
+
+export async function getFollowingWithCursor(
+  userId: string,
+  currentUserId?: string,
+  take: number = 20,
+  cursor?: string
+) {
+  const follows = await prisma.follows.findMany({
+    where: { 
+      followerId: userId,
+      ...(cursor ? { createdAt: { lt: new Date(cursor) } } : {}),
+    },
+    take,
+    select: {
+      following: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: currentUserId
+            ? { where: { followerId: currentUserId }, select: { followerId: true } }
+            : false,
+        },
+      },
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const hasMore = follows.length === take;
+  const nextCursor = hasMore ? follows[follows.length - 1].createdAt.toISOString() : null;
+
+  return {
+    users: follows.map((f) => {
+      const { followers, ...following } = f.following;
+      return {
+        ...following,
+        isFollowing: !!followers?.length,
+        isOwnProfile: currentUserId === following.id,
+      };
+    }),
+    nextCursor,
+    hasMore,
+  };
 }

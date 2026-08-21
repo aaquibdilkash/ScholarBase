@@ -109,7 +109,7 @@ export default async function HomePage() {
       icon: <BarChart className="h-8 w-8" />,
     },
     {
-      title: "Help",
+      title: "Scholar Suggest",
       description: "Get assistance and support from the community.",
       href: "/help",
       icon: <HelpCircle className="h-8 w-8" />,

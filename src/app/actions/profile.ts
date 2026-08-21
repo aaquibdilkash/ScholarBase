@@ -234,12 +234,64 @@ export async function getProfileSection(
     // `model` is a dynamic Prisma model key; a single intentional cast is used.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (prisma as any)[model].findMany({
-        where: { authorId: profileId },
+        where: { authorId: profileId, isDeleted: false },
         skip,
         take,
         orderBy: { createdAt: 'desc' },
         include,
     })
+}
+
+export async function getProfileSectionWithCursor(
+    profileId: string,
+    section: keyof typeof ProfileSectionMap,
+    currentUserId?: string,
+    cursor?: string,
+    take: number = 5,
+) {
+    const model = ProfileSectionMap[section]
+    if (!model) throw new Error(`Invalid section: ${section}`)
+
+    const include = {
+        author: {
+            select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+                createdAt: true,
+                email: true,
+                bio: true,
+                followers: currentUserId
+                    ? {
+                        where: { followerId: currentUserId },
+                        select: { followerId: true },
+                    }
+                    : false,
+            },
+        },
+        votes: currentUserId
+            ? { where: { userId: currentUserId }, select: { userId: true, voteType: true } }
+            : false,
+        ...(model === 'supervisor' ? { recommendations: true } : {}),
+        ...(model === 'recommendation' ? { supervisor: { select: { id: true, name: true } } } : {}),
+    }
+
+    const items = await (prisma as any)[model].findMany({
+        where: { 
+            authorId: profileId,
+            isDeleted: false,
+            ...(cursor ? { id: { lt: cursor } } : {}),
+        },
+        take,
+        orderBy: { createdAt: 'desc' },
+        include,
+    });
+
+    const hasMore = items.length === take;
+    const nextCursor = hasMore ? items[items.length - 1].id : null;
+
+    return { items, nextCursor, hasMore };
 }
 // ─────────────────────────────────────────────────────────────
 // Activity tab: content the scholar commented on, replied to,

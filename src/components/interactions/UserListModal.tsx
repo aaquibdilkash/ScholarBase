@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getFollowers, getFollowing, toggleFollow } from "@/app/actions/follow";
+import { getFollowersWithCursor, getFollowingWithCursor, toggleFollow } from "@/app/actions/follow";
 import { useToast } from "@/components/ui/Toast";
 
 import { X } from "lucide-react";
@@ -34,24 +34,60 @@ export function UserListModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [, startTransition] = useTransition();
   const { toast } = useToast();
+  
+  const fetcher = mode === "followers" ? getFollowersWithCursor : getFollowingWithCursor;
+
+  const loadUsers = useCallback(async (cursorOverride?: string, replace = false) => {
+    if (loadingMore) return;
+    
+    const isFetchingMore = !!cursorOverride;
+    if (isFetchingMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    
+    try {
+      const result = await fetcher(userId, currentUserId, 20, cursorOverride || undefined);
+      
+      if (replace) {
+        setUsers(result.users);
+        setCursor(result.nextCursor);
+        setHasMore(result.hasMore);
+      } else {
+        setUsers((prev) => [...prev, ...result.users]);
+        if (cursorOverride) {
+          setCursor(result.nextCursor);
+        }
+        setHasMore(result.hasMore);
+      }
+    } catch (err) {
+      console.error(`Failed to load ${mode}:`, err);
+      toast(`Failed to load ${mode.toLowerCase()}.`, "error");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [userId, currentUserId, mode, toast]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open) {
       dialog.showModal();
-      setLoading(true);
-      const fetcher = mode === "followers" ? getFollowers : getFollowing;
-      fetcher(userId, currentUserId)
-        .then(setUsers)
-        .catch(() => toast("Failed to load users.", "error"))
-        .finally(() => setLoading(false));
+      setUsers([]);
+      setCursor(null);
+      setHasMore(false);
+      loadUsers(undefined, true);
     } else {
       dialog.close();
     }
-  }, [open, userId, mode, currentUserId, toast]);
+  }, [open, userId, mode, currentUserId, loadUsers]);
 
   const handleClose = () => {
     dialogRef.current?.close();
@@ -78,6 +114,24 @@ export function UserListModal({
       }
     });
   };
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+    
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting && hasMore) {
+        loadUsers(cursor || undefined, false);
+      }
+    });
+    
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, cursor, loadUsers]);
 
   return (
     <dialog
@@ -160,6 +214,16 @@ export function UserListModal({
                 )}
               </div>
             ))}
+            {hasMore && (
+              <div ref={sentinelRef} className="py-4 text-center">
+                {loadingMore ? (
+                  <div className="flex items-center justify-center gap-2 text-slate-500">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                    Loading more...
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         )}
       </div>

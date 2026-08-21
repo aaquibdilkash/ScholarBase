@@ -11,6 +11,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/components/interactions/AppProviders";
 import { getUnreadMessageCount } from "@/app/actions/messages";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://scholarbase.app"),
@@ -99,7 +100,7 @@ export const viewport: Viewport = {
   maximumScale: 5,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#020617" }, // matching your slate-950
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
   ],
 };
 
@@ -131,13 +132,12 @@ export default async function RootLayout({
     ? { id: user.id, email: user.email, isAdmin, unreadMessages, avatarUrl }
     : null;
 
+  const cookieStore = await cookies();
+  const isSidebarCollapsed = cookieStore.get("sb-main-sidebar-collapsed")?.value === "true";
+
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        {/* 1. Native script blocks the DOM paint (ZERO flash of light mode).
-          2. suppressHydrationWarning on the script kills the React console error.
-          3. Minified single-line string kills the text-node mismatch error.
-        */}
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
@@ -149,7 +149,7 @@ export default async function RootLayout({
         <NextTopLoader showSpinner={false} />
         <AppProviders>
           <div className="flex min-h-screen">
-            <Sidebar user={sidebarUser} />
+            <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
             <div className="flex min-w-0 flex-1 flex-col">
               <Navbar />

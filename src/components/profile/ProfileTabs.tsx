@@ -8,7 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import {
   getProfileSections,
   getProfileActivity,
-  getProfileSection,
+  getProfileSectionWithCursor,
 } from "@/app/actions/profile";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { ArticleCard } from "@/components/blog/ArticleCard";
@@ -256,6 +256,8 @@ export default function ProfileTabs({
   const [sections, setSections] = useState<SectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
+  const [sectionCursors, setSectionCursors] = useState<Record<string, string | null>>({});
+  const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>({});
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
 
@@ -263,8 +265,9 @@ export default function ProfileTabs({
     if (sections || isLoading) return;
     setIsLoading(true);
     try {
-      const data = await getProfileSections(profileId, currentUserId, 1);
+      const data = await getProfileSections(profileId, currentUserId, 10);
       setSections(data);
+      setSectionHasMore({});
     } catch (err) {
       console.error("Failed to load profile sections:", err);
     } finally {
@@ -303,31 +306,41 @@ export default function ProfileTabs({
     setActiveTab(tab);
   };
 
-  const loadMore = async (sectionKey: SectionKey) => {
-    if (loadingMore) return;
+  const loadMore = useCallback(async (sectionKey: SectionKey) => {
+    const currentLoadingKey = loadingMore;
+    if (currentLoadingKey) return;
 
-    setLoadingMore(sectionKey);
+    setLoadingMore(currentLoadingKey as string);
     try {
       const currentItems = sections?.[sectionKey] ?? [];
-      const newItems = await getProfileSection(
+      const currentCursor = sectionCursors[sectionKey];
+      
+      const result = await getProfileSectionWithCursor(
         profileId,
         sectionKey,
         currentUserId,
-        currentItems.length,
+        currentCursor || undefined,
+        10,
       );
 
-      if (newItems) {
+      if (result.items.length > 0) {
         setSections((prevSections) => ({
           ...(prevSections as NonNullable<SectionData>),
-          [sectionKey]: [...currentItems, ...newItems],
+          [sectionKey]: [...currentItems, ...result.items],
         }));
+        if (result.nextCursor) {
+          setSectionCursors((prev) => ({ ...prev, [sectionKey]: result.nextCursor }));
+        }
+        if (!result.hasMore && result.items.length < 10) {
+          setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
+        }
       }
     } catch (err) {
       console.error(`Failed to load more ${sectionKey}:`, err);
     } finally {
       setLoadingMore(null);
     }
-  };
+  }, [sections, sectionCursors, profileId, currentUserId, loadingMore]);
 
   const handleContentTabClick = () => {
     setTab("content");
@@ -474,7 +487,7 @@ export default function ProfileTabs({
             SECTIONS.map((section) => {
               const items = sections[section.key] ?? [];
               const count = sections.counts?.[section.key] ?? items.length;
-              const hasMore = items.length > 0;
+              const sectionHasMoreItems = sectionHasMore[section.key] !== false && items.length > 0;
 
               return (
                 <section key={section.key}>
@@ -485,9 +498,9 @@ export default function ProfileTabs({
                     <div className="relative">
                       <Carousel
                         onLoadMore={
-                          hasMore ? () => loadMore(section.key) : undefined
+                          sectionHasMoreItems ? () => loadMore(section.key) : undefined
                         }
-                        hasMore={hasMore}
+                        hasMore={sectionHasMoreItems}
                       >
                         {/* TypeScript cannot correlate the dynamic section.key with the items type */}
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

@@ -128,6 +128,11 @@ export default function ConversationPage({
 
           await markConversationAsRead(conversationId);
 
+          // Notify the sidebar that this conversation was read
+          window.dispatchEvent(new CustomEvent('conversation-read', { 
+            detail: { conversationId, userId: user.id } 
+          }));
+
           const otherP = (conv as unknown as Conversation).participants.find(
             (p) => p.user.id !== user.id,
           );
