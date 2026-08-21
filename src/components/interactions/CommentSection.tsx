@@ -18,7 +18,7 @@ import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
-import { emitCommentCount } from "@/lib/comment-count-store";
+import { emitCommentCount, getCommentCount } from "@/lib/comment-count-store";
 import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
 
 type MentionUser = { id: string; handle: string | null };
@@ -547,27 +547,48 @@ function CommentEntry({
     try {
       const response = await deleteComment(comment.id, module);
       if (response?.success) {
+        let newCount = getCommentCount();
+        
         if (response.data.wasTombstoned) {
           queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
             commentsQueryKey,
             (oldComments = []) => {
-              if (isReply) {
-                return oldComments.map((c) => {
-                  if (c.id !== comment.parentId) return c;
-                  return {
-                    ...c,
-                    replies: (c.replies ?? []).map((r) =>
-                      r.id === comment.id
-                        ? { ...r, content: '[This comment was deleted by author]', authorId: null, author: null }
-                        : r,
-                    ),
-                  };
-                });
-              }
-              return oldComments.map((c) =>
-                c.id === comment.id
-                  ? { ...c, content: '[This comment was deleted by author]', authorId: null, author: null }
-                  : c,
+              const result = isReply
+                ? oldComments.map((c) => {
+                    if (c.id !== comment.parentId) return c;
+                    return {
+                      ...c,
+                      replies: (c.replies ?? []).map((r) =>
+                        r.id === comment.id
+                          ? { ...r, content: '[This comment was deleted by author]', authorId: null, author: null }
+                          : r,
+                      ),
+                    };
+                  })
+                : oldComments.map((c) =>
+                    c.id === comment.id
+                      ? { ...c, content: '[This comment was deleted by author]', authorId: null, author: null }
+                      : c,
+                  );
+              newCount = result.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0);
+              return result;
+            },
+          );
+          queryClient.setQueriesData<{ totalComments?: number }>(
+            { queryKey: [module, targetId] },
+            (oldData: any) => {
+              if (!oldData || typeof oldData !== 'object') return oldData;
+              return { ...oldData, totalComments: newCount };
+            },
+          );
+          queryClient.setQueriesData(
+            { queryKey: ["feed"] },
+            (oldData: any) => {
+              if (!Array.isArray(oldData)) return oldData;
+              return oldData.map((item: any) =>
+                item.id === targetId && typeof item.totalComments === 'number'
+                  ? { ...item, totalComments: newCount }
+                  : item,
               );
             },
           );
@@ -576,7 +597,7 @@ function CommentEntry({
             commentsQueryKey,
             (oldComments = []) => {
               if (isReply) {
-                return oldComments.reduce<CommentWithAuthorAndVotes[]>((acc, c) => {
+                const result = oldComments.reduce<CommentWithAuthorAndVotes[]>((acc, c) => {
                   if (c.id !== comment.parentId) {
                     acc.push(c);
                     return acc;
@@ -593,18 +614,19 @@ function CommentEntry({
                   });
                   return acc;
                 }, []);
+                newCount = result.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0);
+                return result;
               }
-              return oldComments.filter((c) => c.id !== comment.id);
+              const result = oldComments.filter((c) => c.id !== comment.id);
+              newCount = result.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0);
+              return result;
             },
           );
           queryClient.setQueriesData<{ totalComments?: number }>(
             { queryKey: [module, targetId] },
             (oldData: any) => {
               if (!oldData || typeof oldData !== 'object') return oldData;
-              if (typeof oldData.totalComments === 'number') {
-                return { ...oldData, totalComments: Math.max(0, oldData.totalComments - 1) };
-              }
-              return oldData;
+              return { ...oldData, totalComments: newCount };
             },
           );
           queryClient.setQueriesData(
@@ -613,12 +635,14 @@ function CommentEntry({
               if (!Array.isArray(oldData)) return oldData;
               return oldData.map((item: any) =>
                 item.id === targetId && typeof item.totalComments === 'number'
-                  ? { ...item, totalComments: Math.max(0, item.totalComments - 1) }
+                  ? { ...item, totalComments: newCount }
                   : item,
               );
             },
           );
         }
+        
+        emitCommentCount(Math.max(0, newCount));
         toast({ title: "Success", description: "Comment Deleted!" });
       } else {
         throw new Error("Unknown error");
@@ -647,6 +671,7 @@ function CommentEntry({
                       <CommentEntry
                         key={reply.id}
                         comment={reply}
+                        replies={reply.replies}
                         currentUserId={currentUserId}
                         module={module}
                         targetId={targetId}
@@ -854,6 +879,7 @@ function CommentEntry({
               <CommentEntry
                 key={reply.id}
                 comment={reply}
+                replies={reply.replies}
                 currentUserId={currentUserId}
                 module={module}
                 targetId={targetId}

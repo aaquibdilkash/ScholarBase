@@ -2,7 +2,6 @@ import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/db";
@@ -74,6 +73,25 @@ export const metadata: Metadata = {
     canonical: "https://scholarbase.app",
   },
   category: "Education",
+  manifest: "/manifest.json",
+  themeColor: "#15202b",
+  appleWebApp: {
+    title: "ScholarBase",
+    capable: true,
+  },
+  icons: [
+    {
+      rel: "icon",
+      type: "image/png",
+      sizes: "32x32",
+      url: "/logo.png",
+    },
+    {
+      rel: "apple-touch-icon",
+      sizes: "180x180",
+      url: "/logo.png",
+    },
+  ],
 };
 
 export const viewport: Viewport = {

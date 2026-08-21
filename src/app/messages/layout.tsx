@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense, useContext } from "react";
+// 🔥 Added useRef here
+import { useState, useEffect, Suspense, useContext, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -23,15 +24,23 @@ type MessageRow = {
   conversation_id?: string;
   conversationId?: string;
   created_at: string;
-  createdAt?: string; // Re-added
+  createdAt?: string; 
 };
 
 function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // ⚡ INITIAL LOADING STATE
-  const [searchQuery, setSearchQuery] = useState(""); // ⚡ SEARCH STATE
+  
+  // 🔥 1. Add a ref to track the latest inbox state without stale closures
+  const inboxRef = useRef<InboxConversation[]>([]); 
+  const [isLoading, setIsLoading] = useState(true); 
+  const [searchQuery, setSearchQuery] = useState(""); 
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!; 
+
+  // 🔥 2. Keep the ref perfectly synced with the state
+  useEffect(() => {
+    inboxRef.current = inbox;
+  }, [inbox]);
 
   useEffect(() => {
     if (user) {
@@ -54,30 +63,38 @@ function ConversationSidebar({ user }: { user: User | null }) {
           const rawMessage = payload.new as MessageRow;
           const msgConvId = rawMessage.conversationId || rawMessage.conversation_id;
 
-          setInbox((currentInbox) => {
-            const convIndex = currentInbox.findIndex((c) => c.id === msgConvId);
-            if (convIndex === -1) {
-              getInbox(user.id).then((data) => setInbox(data));
-              return currentInbox;
-            }
-            const updatedInbox = [...currentInbox];
-            const targetConv = { ...updatedInbox[convIndex] };
-            targetConv.messages = [{ body: rawMessage.body }];
-            targetConv.lastMessageAt = rawMessage.createdAt || rawMessage.created_at;
-            const senderId = rawMessage.senderId || rawMessage.sender_id;
-            if (senderId !== user.id) {
-              targetConv.unreadCount = (targetConv.unreadCount || 0) + 1;
-            }
-            updatedInbox.splice(convIndex, 1);
-            updatedInbox.unshift(targetConv);
-            return updatedInbox;
-          });
+          // 🔥 3. Check the ref synchronously OUTSIDE the setInbox updater
+          const convExists = inboxRef.current.some((c) => c.id === msgConvId);
+
+          if (!convExists) {
+            // Safe side-effect: We trigger the fetch completely outside the React render loop!
+            getInbox(user.id).then((data) => setInbox(data));
+          } else {
+            // Safe pure update: The conversation exists, just reorder the array
+            setInbox((currentInbox) => {
+              const convIndex = currentInbox.findIndex((c) => c.id === msgConvId);
+              if (convIndex === -1) return currentInbox; // Fallback safeguard
+
+              const updatedInbox = [...currentInbox];
+              const targetConv = { ...updatedInbox[convIndex] };
+              targetConv.messages = [{ body: rawMessage.body }];
+              targetConv.lastMessageAt = rawMessage.createdAt || rawMessage.created_at;
+              const senderId = rawMessage.senderId || rawMessage.sender_id;
+              
+              if (senderId !== user.id) {
+                targetConv.unreadCount = (targetConv.unreadCount || 0) + 1;
+              }
+              
+              updatedInbox.splice(convIndex, 1);
+              updatedInbox.unshift(targetConv);
+              return updatedInbox;
+            });
+          }
         }
       ).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // ⚡ Only auto-collapse the sidebar on mobile, not on laptop/desktop.
   const closeSidebarIfMobile = () => {
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
       setIsSidebarOpen(false);
@@ -85,7 +102,6 @@ function ConversationSidebar({ user }: { user: User | null }) {
   };
   const handleNewMessageClick = () => { if (user) closeSidebarIfMobile(); };
 
-  // ⚡ FILTER INBOX BY SEARCH QUERY
   const filteredInbox = inbox.filter((conversation) => {
     const otherParticipant = conversation.participants.find(p => p.user.id !== user?.id)?.user;
     const searchLower = searchQuery.toLowerCase();
@@ -109,7 +125,6 @@ function ConversationSidebar({ user }: { user: User | null }) {
         </div>
       </div>
 
-      {/* ⚡ THE SEARCH BAR */}
       {isSidebarOpen && (
         <div className="px-4 pb-2 pt-2 border-b border-slate-100 dark:border-slate-900">
           <input
