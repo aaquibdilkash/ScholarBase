@@ -1,5 +1,5 @@
 {
-  "_crons": [
+  "crons": [
     {
       "path": "/api/cron/update-trending",
       "schedule": "0 * * * *"
