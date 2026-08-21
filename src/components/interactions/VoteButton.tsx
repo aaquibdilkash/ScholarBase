@@ -4,6 +4,8 @@ import { voteOnContent } from "@/app/actions/votes";
 import { useOptimistic, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useUser } from "@/hooks/useUser";
 import type { VoteType } from "@prisma/client";
 import { VOTE_CONFIG } from "@/lib/transactions";
 
@@ -65,23 +67,24 @@ export function VoteButton({
   );
 
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
 
   const handleVote = (voteType: VoteType) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
     startTransition(async () => {
-      // Immediately update the UI with the predicted state.
       setOptimisticState(voteType);
       
-      // Call the server action.
       const result = await voteOnContent(
         targetId,
         voteType,
         module,
       );
 
-      // If the server action fails, React will automatically discard the
-      // optimistic state. If it succeeds, we update the "real" state
-      // to match the server's response, though it should already match
-      // the optimistic state. This handles any potential discrepancies.
       if (result.success && result.data) {
         setNonOptimisticState({
           totalVotes: result.data.totalVotes,
@@ -97,7 +100,6 @@ export function VoteButton({
           description: "Failed to register vote. Please try again.",
           variant: "destructive",
         });
-        // On failure, the optimistic update is automatically rolled back.
       }
     });
   };
