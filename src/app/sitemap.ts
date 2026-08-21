@@ -1,7 +1,18 @@
 import type { MetadataRoute } from "next";
 import prisma from "@/lib/db";
 
-const baseUrl = "https://scholarbase.app";
+// 1. Bypass Next.js static build crash & cache for 24 hours
+export const dynamic = "force-dynamic";
+export const revalidate = 86400; 
+
+// 2. Safely grab the correct URL based on Vercel's build environment
+const baseUrl = 
+  process.env.VERCEL_ENV === "production"
+    ? "https://scholarbase.app"
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}` // Vercel Preview Deployment URL
+      : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"; // Local Fallback
+
 
 const staticRoutes = [
   "",

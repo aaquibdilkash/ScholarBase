@@ -74,7 +74,6 @@ export const metadata: Metadata = {
   },
   category: "Education",
   manifest: "/manifest.json",
-  themeColor: "#15202b",
   appleWebApp: {
     title: "ScholarBase",
     capable: true,
@@ -98,6 +97,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" }, // matching your slate-950
+  ],
 };
 
 export default async function RootLayout({
