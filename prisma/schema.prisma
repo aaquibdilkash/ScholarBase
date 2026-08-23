@@ -538,10 +538,27 @@ model User {
   editedAt DateTime?
 
   // ZERO-COMPUTE COUNTERS & LOG
-  followersCount Int            @default(0)
-  followingCount Int            @default(0)
-  isDeleted      Boolean        @default(false)
-  activities     UserActivity[]
+  followersCount       Int    @default(0)
+  followingCount       Int    @default(0)
+  isDeleted            Boolean @default(false)
+  activities           UserActivity[]
+
+  articleCount         Int @default(0)
+  socialPostCount      Int @default(0)
+  jobVacancyCount      Int @default(0)
+  phdAdmissionCount    Int @default(0)
+  researchEventCount   Int @default(0)
+  helpPostCount        Int @default(0)
+  journalCount         Int @default(0)
+  researchToolCount    Int @default(0)
+  recommendationCount  Int @default(0)
+  supervisorCount      Int @default(0)
+  resultCount          Int @default(0)
+  contributionCount    Int @default(0)
+  publicationCount     Int @default(0)
+  surveyCount          Int @default(0)
+  researchGrantCount   Int @default(0)
+  courseCount          Int @default(0)
 
   articles            Article[]
   articleComments     ArticleComment[]
