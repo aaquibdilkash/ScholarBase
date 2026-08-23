@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createSurvey, updateSurvey } from "@/app/actions/surveys";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -10,6 +10,7 @@ import { Editor } from "@/components/ui/Editor";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import type { Question, QuestionOption } from "@/types/survey";
 import type { SurveyWithAuthor } from "@/types/cards";
 
@@ -34,6 +35,7 @@ export default function SurveyForm({
   mode: "create" | "edit";
   initialData?: Partial<SurveyFormValues>;
 }) {
+  const router = useRouter();
   const initialQuestions =
     initialData?.questions?.map((q: Question, i: number) => ({
       id: q.id || generateId(),
@@ -50,7 +52,7 @@ export default function SurveyForm({
           label: o.label,
           order: o.order ?? oi,
         })) || [],
-  })) || [];
+    })) || [];
 
   const draftKey = mode === "edit" ? null : "draft_survey_new";
   const [draft, updateDraft, resetDraft] = useFormDraft(draftKey, {
@@ -71,12 +73,14 @@ export default function SurveyForm({
     errorMessage: "Failed to save survey.",
     onSuccess: (response) => {
       if (response.success && response.data) {
+        const survey = response.data as SurveyWithAuthor;
         upsertToList<SurveyWithAuthor>(
           queryClient,
           ["surveys"],
-          response.data as SurveyWithAuthor,
+          survey,
           mode,
         );
+        router.push(`/surveys/${survey.id}`);
       }
     },
   });
@@ -282,9 +286,7 @@ export default function SurveyForm({
 
       {/* Actions */}
       <div className="flex justify-end gap-3">
-        <Link href="/surveys" className="sb-button-accent px-6 py-2.5">
-          Cancel
-        </Link>
+        <FormCancelButton />
         <SubmitBtnWithAuth
           loadingText={mode === "create" ? "Creating..." : "Saving..."}
           disabled={submitting}

@@ -1,9 +1,16 @@
-import Link from "next/link";
+"use client";
 
-export function FormCancelButton({ href }: { href: string }) {
+import { useRouter } from "next/navigation";
+
+export function FormCancelButton({ href }: { href?: string }) {
+  const router = useRouter();
   return (
-    <Link href={href} className="sb-button-accent">
+    <button
+      type="button"
+      onClick={() => (href ? router.push(href) : router.back())}
+      className="sb-button-accent"
+    >
       Cancel
-    </Link>
+    </button>
   );
 }

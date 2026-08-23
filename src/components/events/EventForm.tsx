@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { updateResearchEvent, createResearchEvent } from "@/app/actions/events";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -37,6 +38,7 @@ export default function EventForm({
   eventId?: string;
   initialValues?: Partial<EventFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
     date: initialValues?.date ?? "",
@@ -56,16 +58,24 @@ export default function EventForm({
 
   const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
-    successMessage: "Event published successfully!",
-    errorMessage: "Failed to publish event.",
+    successMessage:
+      mode === "create"
+        ? "Event published successfully!"
+        : "Event updated successfully!",
+    errorMessage:
+      mode === "create"
+        ? "Failed to publish event."
+        : "Failed to update event.",
     onSuccess: (response) => {
       if (response.success && response.data) {
+        const event = response.data as EventWithAuthor;
         upsertToList<EventWithAuthor>(
           queryClient,
           ["events"],
-          response.data as EventWithAuthor,
+          event,
           mode,
         );
+        router.push(`/events/${event.id}`);
       }
     },
   });
@@ -197,7 +207,7 @@ export default function EventForm({
         </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/events" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent">
           {mode === "edit" ? "Save Changes" : "Publish Event"}
         </SubmitBtnWithAuth>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { createResearchGrant, updateResearchGrant } from "@/app/actions/grants";
 import { useQueryClient } from "@tanstack/react-query";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -36,6 +37,7 @@ export default function ResearchGrantForm({
   grantId?: string;
   initialValues?: Partial<ResearchGrantFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
     amount: initialValues?.amount ?? "",
@@ -55,16 +57,24 @@ export default function ResearchGrantForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Research grant added successfully!",
-      errorMessage: "Failed to save research grant.",
+      successMessage:
+        mode === "create"
+          ? "Research grant added successfully!"
+          : "Research grant updated successfully!",
+      errorMessage:
+        mode === "create"
+          ? "Failed to save research grant."
+          : "Failed to update research grant.",
       onSuccess: (response) => {
         if (response.success && response.data) {
+          const data = response.data as ResearchGrantWithAuthor;
           upsertToList<ResearchGrantWithAuthor>(
             queryClient,
             ["grants"],
-            response.data as ResearchGrantWithAuthor,
+            data,
             mode,
           );
+          router.push(`/grants/${data.id}`);
         }
       },
     },
@@ -174,7 +184,7 @@ export default function ResearchGrantForm({
         </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/grants" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Research Grant"}
         </SubmitBtnWithAuth>

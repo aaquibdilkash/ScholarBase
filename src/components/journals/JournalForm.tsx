@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { createJournal, updateJournal } from "@/app/actions/journals";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -38,6 +39,7 @@ export default function JournalForm({
   journalId?: string;
   initialValues?: Partial<JournalFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
     issn: initialValues?.issn ?? "",
@@ -58,16 +60,24 @@ export default function JournalForm({
 
   const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
-    successMessage: "Journal added successfully!",
-    errorMessage: "Failed to add journal.",
+    successMessage:
+      mode === "create"
+        ? "Journal added successfully!"
+        : "Journal updated successfully!",
+    errorMessage:
+      mode === "create"
+        ? "Failed to add journal."
+        : "Failed to update journal.",
     onSuccess: (response) => {
       if (response.success && response.data) {
+        const data = response.data as JournalWithAuthor;
         upsertToList<JournalWithAuthor>(
           queryClient,
           ["journals"],
-          response.data as JournalWithAuthor,
+          data,
           mode,
         );
+        router.push(`/journals/${data.id}`);
       }
     },
   });
@@ -209,7 +219,7 @@ export default function JournalForm({
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/journals" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent">
           {mode === "edit" ? "Save Changes" : "Add Journal"}
         </SubmitBtnWithAuth>

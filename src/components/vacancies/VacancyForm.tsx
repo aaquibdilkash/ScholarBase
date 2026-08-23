@@ -221,7 +221,7 @@ return (
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/vacancies" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
           disabled={isPending}

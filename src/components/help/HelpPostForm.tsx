@@ -173,7 +173,7 @@ export default function HelpPostForm({
         </div>
 
         <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-          {mode === "create" && <FormCancelButton href="/help" />}
+          <FormCancelButton />
           <SubmitBtnWithAuth
             disabled={isPending}
             className={

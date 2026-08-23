@@ -49,6 +49,7 @@ export function ScholarsList({
             currentUserId={currentUserId}
           />
         )}
+        className="grid gap-6 md:grid-cols xl:grid-cols"
       />
     </div>
   );

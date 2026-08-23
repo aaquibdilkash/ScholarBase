@@ -10,6 +10,7 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
+import { upsertToList } from "@/utils/cacheMutation";
 import { useRouter } from "next/navigation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import {
@@ -69,16 +70,13 @@ export default function AdmissionForm({
     onSuccess: (response) => {
       if (!response.success) return;
       const data = response.data as AdmissionWithAuthor;
-      if (mode === 'create') {
-                queryClient.setQueryData(['admissions', ''], (oldData: AdmissionWithAuthor[] | undefined) => {
-          return [data, ...(oldData || [])];
-        });
-        router.push('/admissions');
-      } else {
-                queryClient.setQueryData(['admissions', ''], (oldData: AdmissionWithAuthor[] | undefined) => {
-          return oldData?.map(post => post.id === data.id ? data : post);
-        });
-      }
+      upsertToList<AdmissionWithAuthor>(
+        queryClient,
+        ["admissions", ""],
+        data,
+        mode,
+      );
+      router.push(`/admissions/${data.id}`);
     }
   });
 
@@ -197,7 +195,7 @@ export default function AdmissionForm({
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/admissions" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent">
           {mode === "edit" ? "Save Changes" : "Post Notification"}
         </SubmitBtnWithAuth>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createResearchTool,
   updateResearchTool,
@@ -36,6 +37,7 @@ export default function ResearchToolForm({
   toolId?: string;
   initialValues?: Partial<ResearchToolFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     name: initialValues?.name ?? "",
     website: initialValues?.website ?? "",
@@ -54,16 +56,24 @@ export default function ResearchToolForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Research tool added successfully!",
-      errorMessage: "Failed to add research tool.",
+      successMessage:
+        mode === "create"
+          ? "Research tool added successfully!"
+          : "Research tool updated successfully!",
+      errorMessage:
+        mode === "create"
+          ? "Failed to add research tool."
+          : "Failed to update research tool.",
       onSuccess: (response) => {
         if (response.success && response.data) {
+          const data = response.data as ResearchToolWithAuthor;
           upsertToList<ResearchToolWithAuthor>(
             queryClient,
             ["researchTools"],
-            response.data as ResearchToolWithAuthor,
+            data,
             mode,
           );
+          router.push(`/research-tools/${data.id}`);
         }
       },
     },
@@ -154,7 +164,7 @@ export default function ResearchToolForm({
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/research-tools" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Research Tool"}
         </SubmitBtnWithAuth>

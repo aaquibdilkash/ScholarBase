@@ -9,6 +9,7 @@ import type { SocialPostWithAuthor } from "@/types/cards";
 import { generateCloudinarySignature } from "@/app/actions/cloudinary";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default function EditPostPage({
@@ -112,7 +113,7 @@ export default function EditPostPage({
           oldData.map((p) => (p.id === result.data!.id ? result.data : p)),
         );
         toast("Post updated successfully!", "success");
-        router.push(`/feed/${result.data.id}`);
+        router.back();
       } else {
         toast(
           (result && result.message) || "Failed to update post.",
@@ -143,8 +144,8 @@ export default function EditPostPage({
     <CreateOrEditPageShell
       title="Edit Post"
       description="Edit your social post."
-      backHref={`/feed/${postId ?? ""}`}
-      backLabel="← Cancel and Back to Post"
+      backHref={`/feed`}
+      backLabel="← Back to Feed"
       maxWidth="lg"
     >
       <form
@@ -152,6 +153,7 @@ export default function EditPostPage({
         onSubmit={handleSubmit}
         className="sb-surface-strong p-6 md:p-8 flex flex-col gap-4"
       >
+        
         <div>
           <label className="sb-label mb-2 block">Post Content</label>
           <textarea
@@ -215,6 +217,8 @@ export default function EditPostPage({
               disabled={uploading}
             />
           </label>
+          <div className="flex justify-end gap-3">
+          <FormCancelButton />
           <button
             type="submit"
             disabled={submitting || uploading}
@@ -229,6 +233,7 @@ export default function EditPostPage({
               "Save Changes"
             )}
           </button>
+        </div>
         </div>
       </form>
     </CreateOrEditPageShell>

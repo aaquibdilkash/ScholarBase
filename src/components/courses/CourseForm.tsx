@@ -1,12 +1,14 @@
 "use client";
 
-import { createCourse, updateCourse } from "@/app/actions/courses";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { createCourse, updateCourse } from "@/app/actions/courses";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import {
   MAX_COURSE_TITLE,
@@ -42,6 +44,7 @@ export default function CourseForm({
   courseId?: string;
   initialValues?: Partial<CourseFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
     provider: initialValues?.provider ?? "",
@@ -64,23 +67,24 @@ export default function CourseForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Course added successfully!",
-      errorMessage: "Failed to save course.",
+      successMessage:
+        mode === "create"
+          ? "Course added successfully!"
+          : "Course updated successfully!",
+      errorMessage:
+        mode === "create"
+          ? "Failed to save course."
+          : "Failed to update course.",
       onSuccess: (response) => {
         if (!response.success || !response.data) return;
         const data = response.data as CourseWithAuthor;
-        if (mode === "create") {
-          queryClient.setQueriesData(
-            { queryKey: ["courses"] },
-            (oldData: CourseWithAuthor[] = []) => [data, ...oldData],
-          );
-        } else {
-          queryClient.setQueriesData(
-            { queryKey: ["courses"] },
-            (oldData: CourseWithAuthor[] = []) =>
-              oldData.map((c) => (c.id === data.id ? data : c)),
-          );
-        }
+        upsertToList<CourseWithAuthor>(
+          queryClient,
+          ["courses"],
+          data,
+          mode,
+        );
+        router.push(`/learn/${data.id}`);
       },
     },
   );
@@ -248,7 +252,7 @@ export default function CourseForm({
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/learn" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Course"}
         </SubmitBtnWithAuth>

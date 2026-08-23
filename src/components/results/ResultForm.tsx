@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { createResult, updateResult } from "@/app/actions/results";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -48,6 +49,7 @@ export default function ResultForm({
   resultId?: string;
   initialValues?: Partial<ResultFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
     type: initialValues?.type ?? "EXAM",
@@ -70,16 +72,24 @@ export default function ResultForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Result published successfully!",
-      errorMessage: "Failed to publish result.",
+      successMessage:
+        mode === "create"
+          ? "Result published successfully!"
+          : "Result updated successfully!",
+      errorMessage:
+        mode === "create"
+          ? "Failed to publish result."
+          : "Failed to update result.",
       onSuccess: (response) => {
         if (response.success && response.data) {
+          const data = response.data as ResultWithAuthor;
           upsertToList<ResultWithAuthor>(
             queryClient,
             ["results"],
-            response.data as ResultWithAuthor,
+            data,
             mode,
           );
+          router.push(`/results/${data.id}`);
         }
       },
     },
@@ -234,7 +244,7 @@ export default function ResultForm({
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/results" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
           loadingText={mode === "edit" ? "Saving..." : "Publishing..."}

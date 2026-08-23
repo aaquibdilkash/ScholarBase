@@ -77,12 +77,18 @@ export default function RecommendationForm({
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && recommendationId) {
-      await updateRecommendation(formData, recommendationId);
+      const result = await updateRecommendation(formData, recommendationId);
+      if (result?.success && result.data) {
+        upsertToList<RecommendationWithAuthor>(
+          queryClient,
+          ["recommendations", supervisorId],
+          result.data as RecommendationWithAuthor,
+          "edit",
+        );
+        router.push(`/supervisor/${supervisorId}`);
+      }
     } else if (supervisorId) {
       await submit(() => createRecommendation(formData, supervisorId));
-    }
-    if (supervisorId && mode === "edit") {
-      router.push(`/supervisor/${supervisorId}`);
     }
   }
 
@@ -205,9 +211,7 @@ export default function RecommendationForm({
         </span>
       </label>
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-        {mode === "create" && supervisorId && (
-          <FormCancelButton href={`/supervisor/${supervisorId}`} />
-        )}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-primary" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
         </SubmitBtnWithAuth>

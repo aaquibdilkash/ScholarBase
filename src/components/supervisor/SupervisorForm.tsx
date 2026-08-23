@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { createSupervisor, updateSupervisor } from "@/app/actions/supervisors";
 import { useQueryClient } from "@tanstack/react-query";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -10,7 +11,6 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import type { SupervisorWithAuthor } from "@/types/cards";
-
 import {
   MAX_SUPERVISOR_NAME,
   MAX_SUPERVISOR_UNIVERSITY,
@@ -34,6 +34,7 @@ export default function SupervisorForm({
   supervisorId?: string;
   initialValues?: Partial<SupervisorFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     name: initialValues?.name ?? "",
     university: initialValues?.university ?? "",
@@ -52,16 +53,24 @@ export default function SupervisorForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Supervisor added successfully!",
-      errorMessage: "Failed to add supervisor.",
+      successMessage:
+        mode === "create"
+          ? "Supervisor added successfully!"
+          : "Supervisor updated successfully!",
+      errorMessage:
+        mode === "create"
+          ? "Failed to add supervisor."
+          : "Failed to update supervisor.",
       onSuccess: (response) => {
         if (response.success && response.data) {
+          const data = response.data as SupervisorWithAuthor;
           upsertToList<SupervisorWithAuthor>(
             queryClient,
             ["supervisors"],
-            response.data as SupervisorWithAuthor,
+            data,
             mode,
           );
+          router.push(`/supervisor/${data.id}`);
         }
       },
     },
@@ -151,7 +160,7 @@ export default function SupervisorForm({
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/supervisor" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Supervisor"}
         </SubmitBtnWithAuth>

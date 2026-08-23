@@ -53,7 +53,7 @@ export function AdmissionsList({
             currentUserId={currentUserId}
           />
         )}
-        className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+        className="grid gap-6 md:grid-cols xl:grid-cols"
       />
     </div>
   );

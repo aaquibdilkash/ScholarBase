@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createPublication,
   updatePublication,
@@ -65,6 +66,7 @@ export default function PublicationForm({
   publicationId?: string;
   initialValues?: Partial<PublicationFormValues>;
 }) {
+  const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
     authors: initialValues?.authors ?? "",
@@ -95,16 +97,24 @@ export default function PublicationForm({
     mode !== "edit" ? resetDraft : undefined,
     {
       resetOnSuccess: mode !== "edit",
-      successMessage: "Publication added successfully!",
-      errorMessage: "Failed to add publication.",
+      successMessage:
+        mode === "create"
+          ? "Publication added successfully!"
+          : "Publication updated successfully!",
+      errorMessage:
+        mode === "create"
+          ? "Failed to add publication."
+          : "Failed to update publication.",
       onSuccess: (response) => {
         if (response.success && response.data) {
+          const data = response.data as PublicationWithAuthor;
           upsertToList<PublicationWithAuthor>(
             queryClient,
             ["publications"],
-            response.data as PublicationWithAuthor,
+            data,
             mode,
           );
+          router.push(`/publications/${data.id}`);
         }
       },
     },
@@ -398,7 +408,7 @@ export default function PublicationForm({
       </div>
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/publications" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
           {mode === "edit" ? "Save Changes" : "Add Publication"}
         </SubmitBtnWithAuth>

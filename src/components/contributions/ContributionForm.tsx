@@ -16,10 +16,9 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { upsertToList } from "@/utils/cacheMutation";
-import type { ContributionWithAuthor } from "@/types/cards";
-import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
-
+import { Editor } from "@/components/ui/Editor";
+import type { ContributionWithAuthor } from "@/types/cards";
 import {
   MAX_CONTRIBUTION_TITLE,
   MAX_CONTRIBUTION_MESSAGE,
@@ -123,12 +122,11 @@ export default function ContributionForm({
         const result = await createContribution(formData);
         if (result?.success) {
           resetDraft();
-          toast(
-            "Contribution submitted successfully! It will be reviewed by an admin.",
-          );
-          setTimeout(() => {
+          if (result.data) {
+            router.push(`/contributions/${result.data.id}`);
+          } else {
             router.push("/contributions");
-          }, 1500);
+          }
         }
       }
     } catch (err) {
@@ -412,7 +410,7 @@ export default function ContributionForm({
       )}
 
       <div className="mt-2 flex justify-end gap-3">
-        {mode === "create" && <FormCancelButton href="/contributions" />}
+        <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
           loadingText="Submitting..."
