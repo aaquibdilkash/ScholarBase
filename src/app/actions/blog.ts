@@ -155,6 +155,11 @@ export async function createArticle(formData: FormData) {
             }
         });
         
+        await tx.user.update({
+            where: { id: user.id },
+            data: { articleCount: { increment: 1 } },
+        })
+
         return newArticle;
     });
 
@@ -243,17 +248,24 @@ export async function deleteArticle(articleId: string) {
         throw new Error('Not authorized to delete this article.')
     }
 
-    await prisma.article.update({
-        where: { id: articleId },
-        data: { isDeleted: true },
-    })
-
-    if (article.totalVotes !== 0) {
-        await prisma.user.update({
-            where: { id: article.authorId },
-            data: { reputation: { decrement: article.totalVotes } },
+    await prisma.$transaction(async (tx) => {
+        await tx.article.update({
+            where: { id: articleId },
+            data: { isDeleted: true },
         })
-    }
+
+        await tx.user.update({
+            where: { id: article.authorId },
+            data: { articleCount: { decrement: 1 } },
+        })
+
+        if (article.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: article.authorId },
+                data: { reputation: { decrement: article.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: articleId } }
 }

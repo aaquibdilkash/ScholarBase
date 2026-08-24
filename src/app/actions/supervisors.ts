@@ -202,14 +202,23 @@ export async function createSupervisor(formData: FormData) {
   const department = readFormValue(formData, 'department')
   const about = readFormValue(formData, 'about')
 
-  const supervisor = await prisma.supervisor.create({
-    data: {
-      name,
-      university,
-      department,
-      about,
-      authorId: user.id,
-    }
+  const supervisor = await prisma.$transaction(async (tx) => {
+    const newSupervisor = await tx.supervisor.create({
+      data: {
+        name,
+        university,
+        department,
+        about,
+        authorId: user.id,
+      }
+    })
+
+    await tx.user.update({
+      where: { id: user.id },
+      data: { supervisorCount: { increment: 1 } },
+    })
+
+    return newSupervisor
   })
 
   return { success: true, data: supervisor }
@@ -260,14 +269,21 @@ export async function deleteSupervisor(supervisorId: string) {
     throw new Error('Not authorized to delete this supervisor.')
   }
 
-  await prisma.supervisor.update({ where: { id: supervisorId }, data: { isDeleted: true } })
+  await prisma.$transaction(async (tx) => {
+    await tx.supervisor.update({ where: { id: supervisorId }, data: { isDeleted: true } })
 
-  if (supervisor.totalVotes !== 0) {
-    await prisma.user.update({
+    await tx.user.update({
       where: { id: supervisor.authorId },
-      data: { reputation: { decrement: supervisor.totalVotes } },
+      data: { supervisorCount: { decrement: 1 } },
     })
-  }
+
+    if (supervisor.totalVotes !== 0) {
+      await tx.user.update({
+        where: { id: supervisor.authorId },
+        data: { reputation: { decrement: supervisor.totalVotes } },
+      })
+    }
+  })
 
   return { success: true, data: { deletedId: supervisorId } }
 }

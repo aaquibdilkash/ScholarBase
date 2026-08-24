@@ -153,6 +153,11 @@ export async function createResult(formData: FormData) {
                 entityTitle: newResult.title,
             }
         });
+        await tx.user.update({
+            where: { id: user.id },
+            data: { resultCount: { increment: 1 } },
+        })
+
         return newResult;
     });
 
@@ -215,14 +220,21 @@ export async function deleteResult(resultId: string) {
         throw new Error('Not authorized to delete this result.')
     }
 
-    await prisma.result.update({ where: { id: resultId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.result.update({ where: { id: resultId }, data: { isDeleted: true } })
 
-    if (result.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: result.authorId },
-            data: { reputation: { decrement: result.totalVotes } },
+            data: { resultCount: { decrement: 1 } },
         })
-    }
+
+        if (result.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: result.authorId },
+                data: { reputation: { decrement: result.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: resultId } }
 }

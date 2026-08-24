@@ -153,6 +153,11 @@ export async function createPhdAdmission(formData: FormData) {
             }
         });
 
+        await tx.user.update({
+            where: { id: user.id },
+            data: { phdAdmissionCount: { increment: 1 } },
+        })
+
         return newAdmission;
     });
 
@@ -217,14 +222,21 @@ export async function deletePhdAdmission(admissionId: string) {
         throw new Error('Not authorized to delete this admission.')
     }
 
-    await prisma.phdAdmission.update({ where: { id: admissionId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.phdAdmission.update({ where: { id: admissionId }, data: { isDeleted: true } })
 
-    if (admission.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: admission.authorId },
-            data: { reputation: { decrement: admission.totalVotes } },
+            data: { phdAdmissionCount: { decrement: 1 } },
         })
-    }
+
+        if (admission.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: admission.authorId },
+                data: { reputation: { decrement: admission.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: admissionId } }
 }

@@ -168,6 +168,11 @@ export async function createContribution(formData: FormData) {
             }
         });
 
+        await tx.user.update({
+            where: { id: user.id },
+            data: { contributionCount: { increment: 1 } },
+        })
+
         return newContribution;
     });
 
@@ -245,9 +250,16 @@ export async function deleteContribution(contributionId: string) {
         throw new Error('Not authorized to delete this contribution.')
     }
     
-    await prisma.contribution.update({
-        where: { id: contributionId },
-        data: { isDeleted: true },
+    await prisma.$transaction(async (tx) => {
+        await tx.contribution.update({
+            where: { id: contributionId },
+            data: { isDeleted: true },
+        })
+
+        await tx.user.update({
+            where: { id: contribution.authorId },
+            data: { contributionCount: { decrement: 1 } },
+        })
     })
 
     // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.

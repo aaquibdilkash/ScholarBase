@@ -177,32 +177,41 @@ export async function createSurvey(formData: FormData) {
 
     const questions = JSON.parse(questionsJson) as SurveyQuestionInput[]
 
-    const survey = await prisma.researchSurvey.create({
-        data: {
-            title,
-            description,
-            privacy: privacy || 'HYBRID',
-            shareData,
-            authorId: user.id,
-            questions: {
-                create: questions.map((q) => ({
-                    type: q.type as SurveyQuestionType,
-                    title: q.title,
-                    required: q.required,
-                    order: q.order,
-                    minValue: q.minValue,
-                    maxValue: q.maxValue,
-                    options: q.options?.length
-                        ? { create: q.options.map(({ value, label, order }) => ({ value, label, order })) }
-                        : undefined,
-                })),
+    const survey = await prisma.$transaction(async (tx) => {
+        const newSurvey = await tx.researchSurvey.create({
+            data: {
+                title,
+                description,
+                privacy: privacy || 'HYBRID',
+                shareData,
+                authorId: user.id,
+                questions: {
+                    create: questions.map((q) => ({
+                        type: q.type as SurveyQuestionType,
+                        title: q.title,
+                        required: q.required,
+                        order: q.order,
+                        minValue: q.minValue,
+                        maxValue: q.maxValue,
+                        options: q.options?.length
+                            ? { create: q.options.map(({ value, label, order }) => ({ value, label, order })) }
+                            : undefined,
+                    })),
+                },
             },
-        },
-        include: {
-            author: true,
-            votes: true,
-            questions: { include: { options: true } },
-        }
+            include: {
+                author: true,
+                votes: true,
+                questions: { include: { options: true } },
+            }
+        })
+
+        await tx.user.update({
+            where: { id: user.id },
+            data: { surveyCount: { increment: 1 } },
+        })
+
+        return newSurvey
     })
 
     await notifyFollowersOfActivity({
@@ -365,14 +374,21 @@ export async function deleteSurvey(surveyId: string) {
     }
     if (!await isAuthorizedOrAdmin(survey.authorId, user.id)) throw new Error('Not authorized to delete this survey.')
 
-    await prisma.researchSurvey.update({ where: { id: surveyId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.researchSurvey.update({ where: { id: surveyId }, data: { isDeleted: true } })
 
-    if (survey.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: survey.authorId },
-            data: { reputation: { decrement: survey.totalVotes } },
+            data: { surveyCount: { decrement: 1 } },
         })
-    }
+
+        if (survey.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: survey.authorId },
+                data: { reputation: { decrement: survey.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: surveyId } }
 }

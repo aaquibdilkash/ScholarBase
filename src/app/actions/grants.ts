@@ -37,6 +37,11 @@ export async function createResearchGrant(formData: FormData) {
         }
     });
 
+    await tx.user.update({
+      where: { id: user.id },
+      data: { researchGrantCount: { increment: 1 } },
+    })
+
     return newGrant;
   });
 
@@ -103,14 +108,21 @@ export async function deleteResearchGrant(grantId: string) {
     throw new Error('Not authorized to delete this research grant.')
   }
 
-  await prisma.researchGrant.update({ where: { id: grantId }, data: { isDeleted: true } })
+  await prisma.$transaction(async (tx) => {
+    await tx.researchGrant.update({ where: { id: grantId }, data: { isDeleted: true } })
 
-  if (grant.totalVotes !== 0) {
-    await prisma.user.update({
+    await tx.user.update({
       where: { id: grant.authorId },
-      data: { reputation: { decrement: grant.totalVotes } },
+      data: { researchGrantCount: { decrement: 1 } },
     })
-  }
+
+    if (grant.totalVotes !== 0) {
+      await tx.user.update({
+        where: { id: grant.authorId },
+        data: { reputation: { decrement: grant.totalVotes } },
+      })
+    }
+  })
 
   return { success: true, data: { deletedId: grantId } }
 }

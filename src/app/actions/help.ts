@@ -167,6 +167,11 @@ export async function createHelpPost(formData: FormData) {
             }
         });
 
+        await tx.user.update({
+            where: { id: user.id },
+            data: { helpPostCount: { increment: 1 } },
+        })
+
         return newPost;
     });
 
@@ -230,17 +235,24 @@ export async function deleteHelpPost(helpPostId: string) {
         throw new Error('Not authorized to delete this help post.')
     }
 
-    await prisma.helpPost.update({
-        where: { id: helpPostId },
-        data: { isDeleted: true },
-    })
-
-    if (post.totalVotes !== 0) {
-        await prisma.user.update({
-            where: { id: post.authorId },
-            data: { reputation: { decrement: post.totalVotes } },
+    await prisma.$transaction(async (tx) => {
+        await tx.helpPost.update({
+            where: { id: helpPostId },
+            data: { isDeleted: true },
         })
-    }
+
+        await tx.user.update({
+            where: { id: post.authorId },
+            data: { helpPostCount: { decrement: 1 } },
+        })
+
+        if (post.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: post.authorId },
+                data: { reputation: { decrement: post.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: helpPostId } }
 }

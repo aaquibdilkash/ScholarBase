@@ -65,6 +65,13 @@ export async function createRecommendation(formData: FormData, supervisorId: str
             }
         });
 
+        if (!isAnonymous) {
+            await tx.user.update({
+                where: { id: user.id },
+                data: { recommendationCount: { increment: 1 } },
+            })
+        }
+
         return newRecommendation;
     });
 
@@ -125,7 +132,7 @@ export async function deleteRecommendation(recommendationId: string) {
 
     const recommendation = await prisma.recommendation.findUnique({
         where: { id: recommendationId },
-        select: { authorId: true, supervisorId: true, totalVotes: true },
+        select: { authorId: true, supervisorId: true, totalVotes: true, isAnonymous: true },
     })
 
     if (!recommendation) {
@@ -135,14 +142,23 @@ export async function deleteRecommendation(recommendationId: string) {
         throw new Error('Not authorized to delete this recommendation.')
     }
 
-    await prisma.recommendation.update({ where: { id: recommendationId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.recommendation.update({ where: { id: recommendationId }, data: { isDeleted: true } })
 
-    if (recommendation.totalVotes !== 0) {
-        await prisma.user.update({
-            where: { id: recommendation.authorId },
-            data: { reputation: { decrement: recommendation.totalVotes } },
-        })
-    }
+        if (!recommendation.isAnonymous) {
+            await tx.user.update({
+                where: { id: recommendation.authorId },
+                data: { recommendationCount: { decrement: 1 } },
+            })
+        }
+
+        if (recommendation.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: recommendation.authorId },
+                data: { reputation: { decrement: recommendation.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: recommendationId, supervisorId: recommendation.supervisorId } }
 }

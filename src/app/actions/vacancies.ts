@@ -144,25 +144,34 @@ export async function createJobVacancy(formData: FormData) {
         throw new Error('Notification and Apply links are required.')
     }
 
-    const vacancy = await prisma.jobVacancy.create({
-        data: { title, institution, deadline, description, notificationLink, applyLink, authorId: user.id },
-        select: {
-            id: true,
-            title: true,
-            institution: true,
-            deadline: true,
-            description: true,
-            notificationLink: true,
-            applyLink: true,
-            createdAt: true,
-            updatedAt: true,
-            editedAt: true,
-            totalVotes: true,
-            totalComments: true,
-            author: {
-                select: { id: true, name: true, handle: true, avatarUrl: true },
-            },
-        }
+    const vacancy = await prisma.$transaction(async (tx) => {
+        const newVacancy = await tx.jobVacancy.create({
+            data: { title, institution, deadline, description, notificationLink, applyLink, authorId: user.id },
+            select: {
+                id: true,
+                title: true,
+                institution: true,
+                deadline: true,
+                description: true,
+                notificationLink: true,
+                applyLink: true,
+                createdAt: true,
+                updatedAt: true,
+                editedAt: true,
+                totalVotes: true,
+                totalComments: true,
+                author: {
+                    select: { id: true, name: true, handle: true, avatarUrl: true },
+                },
+            }
+        })
+
+        await tx.user.update({
+            where: { id: user.id },
+            data: { jobVacancyCount: { increment: 1 } },
+        })
+
+        return newVacancy
     })
 
     await notifyFollowersOfActivity({
@@ -239,14 +248,21 @@ export async function deleteJobVacancy(vacancyId: string) {
         throw new Error('Not authorized to delete this vacancy.')
     }
 
-    await prisma.jobVacancy.update({ where: { id: vacancyId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.jobVacancy.update({ where: { id: vacancyId }, data: { isDeleted: true } })
 
-    if (vacancy.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: vacancy.authorId },
-            data: { reputation: { decrement: vacancy.totalVotes } },
+            data: { jobVacancyCount: { decrement: 1 } },
         })
-    }
+
+        if (vacancy.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: vacancy.authorId },
+                data: { reputation: { decrement: vacancy.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: vacancyId } }
 }

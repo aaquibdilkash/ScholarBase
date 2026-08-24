@@ -59,6 +59,11 @@ export async function createPublication(formData: FormData) {
             }
         });
 
+        await tx.user.update({
+            where: { id: user.id },
+            data: { publicationCount: { increment: 1 } },
+        })
+
         return newPublication;
     });
 
@@ -147,14 +152,21 @@ export async function deletePublication(publicationId: string) {
         throw new Error('Not authorized to delete this publication.')
     }
 
-    await prisma.publication.update({ where: { id: publicationId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.publication.update({ where: { id: publicationId }, data: { isDeleted: true } })
 
-    if (publication.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: publication.authorId },
-            data: { reputation: { decrement: publication.totalVotes } },
+            data: { publicationCount: { decrement: 1 } },
         })
-    }
+
+        if (publication.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: publication.authorId },
+                data: { reputation: { decrement: publication.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: publicationId } }
 }

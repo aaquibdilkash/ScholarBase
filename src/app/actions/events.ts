@@ -156,6 +156,11 @@ export async function createResearchEvent(formData: FormData) {
             }
         });
 
+        await tx.user.update({
+            where: { id: user.id },
+            data: { researchEventCount: { increment: 1 } },
+        })
+
         return newEvent;
     });
 
@@ -222,14 +227,21 @@ export async function deleteResearchEvent(eventId: string) {
         throw new Error('Not authorized to delete this event.')
     }
 
-    await prisma.researchEvent.update({ where: { id: eventId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.researchEvent.update({ where: { id: eventId }, data: { isDeleted: true } })
 
-    if (event.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: event.authorId },
-            data: { reputation: { decrement: event.totalVotes } },
+            data: { researchEventCount: { decrement: 1 } },
         })
-    }
+
+        if (event.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: event.authorId },
+                data: { reputation: { decrement: event.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: eventId } }
 }

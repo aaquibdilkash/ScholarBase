@@ -215,6 +215,11 @@ export async function createSocialPost(formData: FormData) {
             },
         });
         
+        await tx.user.update({
+            where: { id: authUser.id },
+            data: { socialPostCount: { increment: 1 } },
+        })
+
         return newPost;
     });
 
@@ -331,17 +336,24 @@ export async function deleteSocialPost(postId: string) {
     throw new Error('Not authorized to delete this post.')
   }
 
-  await prisma.socialPost.update({
-    where: { id: postId },
-    data: { isDeleted: true },
-  })
-
-  if (post.totalVotes !== 0) {
-    await prisma.user.update({
-      where: { id: post.authorId },
-      data: { reputation: { decrement: post.totalVotes } },
+    await prisma.$transaction(async (tx) => {
+    await tx.socialPost.update({
+      where: { id: postId },
+      data: { isDeleted: true },
     })
-  }
+
+    await tx.user.update({
+      where: { id: post.authorId },
+      data: { socialPostCount: { decrement: 1 } },
+    })
+
+    if (post.totalVotes !== 0) {
+      await tx.user.update({
+        where: { id: post.authorId },
+        data: { reputation: { decrement: post.totalVotes } },
+      })
+    }
+  })
 
   return { success: true, data: { id: postId } }
 }

@@ -56,6 +56,29 @@ export async function getProfileSections(
     currentUserId?: string,
     take: number = 1,
 ) {
+    // ── Task 2.1: Fetch all 16 materialized counters in a single query ──
+    const userCounters = await prisma.user.findUnique({
+        where: { id: profileId },
+        select: {
+            articleCount: true,
+            socialPostCount: true,
+            jobVacancyCount: true,
+            phdAdmissionCount: true,
+            researchEventCount: true,
+            helpPostCount: true,
+            journalCount: true,
+            researchToolCount: true,
+            recommendationCount: true,
+            supervisorCount: true,
+            resultCount: true,
+            contributionCount: true,
+            publicationCount: true,
+            surveyCount: true,
+            researchGrantCount: true,
+            courseCount: true,
+        },
+    })
+
     const authorSelect = {
         select: {
             id: true,
@@ -93,7 +116,6 @@ export async function getProfileSections(
         contributionPosts,
         publications,
         surveys,
-        counts,
     ] = await Promise.all([
         prisma.article.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.socialPost.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
@@ -109,40 +131,7 @@ export async function getProfileSections(
         prisma.contribution.findMany({ where: { authorId: profileId, isDeleted: false, status: 'APPROVED' }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.publication.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.researchSurvey.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
-        Promise.all([
-            prisma.article.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.socialPost.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.jobVacancy.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.phdAdmission.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.researchEvent.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.helpPost.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.journal.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.researchTool.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.recommendation.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.supervisor.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.result.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.contribution.count({ where: { authorId: profileId, isDeleted: false, status: 'APPROVED' } }),
-            prisma.publication.count({ where: { authorId: profileId, isDeleted: false } }),
-            prisma.researchSurvey.count({ where: { authorId: profileId, isDeleted: false } }),
-        ]),
     ])
-
-    const [
-        articleCount,
-        socialPostCount,
-        vacancyCount,
-        admissionCount,
-        eventCount,
-        helpPostCount,
-        journalCount,
-        researchToolCount,
-        recommendationCount,
-        supervisorCount,
-        resultCount,
-        contributionCount,
-        publicationCount,
-        surveyCount,
-    ] = counts
 
     return {
         id: profileId,
@@ -161,20 +150,22 @@ export async function getProfileSections(
         publications,
         surveys,
         counts: {
-            articles: articleCount,
-            socialPosts: socialPostCount,
-            vacancies: vacancyCount,
-            admissions: admissionCount,
-            events: eventCount,
-            helpPosts: helpPostCount,
-            journals: journalCount,
-            researchTools: researchToolCount,
-            recommendations: recommendationCount,
-            supervisors: supervisorCount,
-            results: resultCount,
-            contributionPosts: contributionCount,
-            publications: publicationCount,
-            surveys: surveyCount,
+            articles: userCounters?.articleCount ?? 0,
+            socialPosts: userCounters?.socialPostCount ?? 0,
+            vacancies: userCounters?.jobVacancyCount ?? 0,
+            admissions: userCounters?.phdAdmissionCount ?? 0,
+            events: userCounters?.researchEventCount ?? 0,
+            helpPosts: userCounters?.helpPostCount ?? 0,
+            journals: userCounters?.journalCount ?? 0,
+            researchTools: userCounters?.researchToolCount ?? 0,
+            recommendations: userCounters?.recommendationCount ?? 0,
+            supervisors: userCounters?.supervisorCount ?? 0,
+            results: userCounters?.resultCount ?? 0,
+            contributionPosts: userCounters?.contributionCount ?? 0,
+            publications: userCounters?.publicationCount ?? 0,
+            surveys: userCounters?.surveyCount ?? 0,
+            researchGrants: userCounters?.researchGrantCount ?? 0,
+            courses: userCounters?.courseCount ?? 0,
         },
     }
 }

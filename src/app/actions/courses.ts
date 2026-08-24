@@ -45,6 +45,11 @@ export async function createCourse(formData: FormData) {
       }
     });
 
+    await tx.user.update({
+      where: { id: user.id },
+      data: { courseCount: { increment: 1 } },
+    })
+
     return newCourse;
   });
 
@@ -119,14 +124,21 @@ export async function deleteCourse(courseId: string) {
     throw new Error('Not authorized to delete this course.')
   }
 
-  await prisma.course.update({ where: { id: courseId }, data: { isDeleted: true } })
+  await prisma.$transaction(async (tx) => {
+    await tx.course.update({ where: { id: courseId }, data: { isDeleted: true } })
 
-  if (course.totalVotes !== 0) {
-    await prisma.user.update({
+    await tx.user.update({
       where: { id: course.authorId },
-      data: { reputation: { decrement: course.totalVotes } },
+      data: { courseCount: { decrement: 1 } },
     })
-  }
+
+    if (course.totalVotes !== 0) {
+      await tx.user.update({
+        where: { id: course.authorId },
+        data: { reputation: { decrement: course.totalVotes } },
+      })
+    }
+  })
 
   return { success: true, data: { deletedId: courseId } }
 }

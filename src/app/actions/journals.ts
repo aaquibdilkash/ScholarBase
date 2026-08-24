@@ -43,6 +43,11 @@ export async function createJournal(formData: FormData) {
             }
         });
 
+        await tx.user.update({
+            where: { id: user.id },
+            data: { journalCount: { increment: 1 } },
+        })
+
         return newJournal;
     });
 
@@ -115,14 +120,21 @@ export async function deleteJournal(journalId: string) {
         throw new Error('Not authorized to delete this journal.')
     }
 
-    await prisma.journal.update({ where: { id: journalId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.journal.update({ where: { id: journalId }, data: { isDeleted: true } })
 
-    if (journal.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: journal.authorId },
-            data: { reputation: { decrement: journal.totalVotes } },
+            data: { journalCount: { decrement: 1 } },
         })
-    }
+
+        if (journal.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: journal.authorId },
+                data: { reputation: { decrement: journal.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: journalId } }
 }

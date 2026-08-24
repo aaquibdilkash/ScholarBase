@@ -34,6 +34,11 @@ export async function createResearchTool(formData: FormData) {
                 entityTitle: newTool.name,
             }
         });
+        await tx.user.update({
+            where: { id: user.id },
+            data: { researchToolCount: { increment: 1 } },
+        })
+
         return newTool;
     });
 
@@ -92,14 +97,21 @@ export async function deleteResearchTool(toolId: string) {
         throw new Error('Not authorized to delete this research tool.')
     }
 
-    await prisma.researchTool.update({ where: { id: toolId }, data: { isDeleted: true } })
+    await prisma.$transaction(async (tx) => {
+        await tx.researchTool.update({ where: { id: toolId }, data: { isDeleted: true } })
 
-    if (tool.totalVotes !== 0) {
-        await prisma.user.update({
+        await tx.user.update({
             where: { id: tool.authorId },
-            data: { reputation: { decrement: tool.totalVotes } },
+            data: { researchToolCount: { decrement: 1 } },
         })
-    }
+
+        if (tool.totalVotes !== 0) {
+            await tx.user.update({
+                where: { id: tool.authorId },
+                data: { reputation: { decrement: tool.totalVotes } },
+            })
+        }
+    })
 
     return { success: true, data: { deletedId: toolId } }
 }
