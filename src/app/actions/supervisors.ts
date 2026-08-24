@@ -27,9 +27,13 @@ export async function getSupervisors(q?: string, userId?: string, limit = 20, cu
                     : false,
             },
         },
-        totalVotes: true,
+                totalVotes: true,
         totalComments: true,
         votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+        // Zero-compute materialized aggregates (Rule 2): count + avg derive
+        // from these scalars. No recommendation rows are fetched.
+        recommendationCount: true,
+        ratingSum: true,
     },
   });
 }
@@ -61,6 +65,7 @@ export async function getSupervisor(id: string, userId?: string) {
         totalComments: true,
         votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         recommendations: {
+            where: { isDeleted: false },
             orderBy: { createdAt: "desc" },
             select: {
                 id: true,
@@ -71,6 +76,7 @@ export async function getSupervisor(id: string, userId?: string) {
                 turnaroundTimeDays: true,
                 responsivenessScore: true,
                 guidanceScore: true,
+                isAnonymous: true,
                 supervisorId: true,
                 authorId: true,
                 author: {
@@ -142,6 +148,7 @@ export async function getSupervisorRecommendations(
         turnaroundTimeDays: true,
         responsivenessScore: true,
         guidanceScore: true,
+        isAnonymous: true,
         supervisorId: true,
         supervisor: { select: { id: true, name: true } },
         authorId: true,
@@ -172,7 +179,7 @@ export async function getSupervisorRecommendationMeta(
 ) {
   const recommendations = await prisma.recommendation.findMany({
       where: { supervisorId, isDeleted: false },
-      select: { rating: true, authorId: true },
+      select: { id: true, rating: true, authorId: true },
   });
 
   const total = recommendations.length;
@@ -186,11 +193,14 @@ export async function getSupervisorRecommendationMeta(
     };
   });
 
-  return {
+    return {
     totalCount: total,
     avgRating,
     ratingDistribution,
     hasUserRecommendation: !!(userId && recommendations.some((r) => r.authorId === userId)),
+    // Id of the caller's own active recommendation (for "Edit your recommendation" UX)
+    userRecommendationId:
+      recommendations.find((r) => r.authorId === userId)?.id ?? null,
   };
 }
 

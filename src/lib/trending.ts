@@ -187,7 +187,6 @@ export async function getTrendingSupervisors() {
     where: { isDeleted: false },
     include: {
       author: { select: AUTHOR_SELECT },
-      recommendations: true,
       ...TRENDING_INCLUDE,
     },
     orderBy: { trendingScore: 'desc' },

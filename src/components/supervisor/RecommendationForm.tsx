@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { resetRecommendationCount } from "./recommendationCount";
+import { useToast } from "@/components/ui/Toast";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 import { MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
@@ -51,7 +53,8 @@ export default function RecommendationForm({
     draftKey,
     initial
   );
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -67,6 +70,10 @@ export default function RecommendationForm({
             response.data as RecommendationWithAuthor,
             mode,
           );
+          // On create/update the count may have changed (brand-new rec, or an
+          // anonymity flip). Drop the cached total so the following
+          // router.push to the supervisor page reseeds from fresh server data.
+          if (supervisorId) resetRecommendationCount(queryClient, supervisorId);
         }
       },
     },
@@ -85,11 +92,23 @@ export default function RecommendationForm({
           result.data as RecommendationWithAuthor,
           "edit",
         );
+        // The rating/star distribution may have changed. Drop the cached
+        // aggregates so the overall rating + star bars reseed from the fresh
+        // server data on the next render. (The useFormSubmit onSuccess hook
+        // only runs on the create path, so we must reset here for edits.)
+        if (supervisorId) resetRecommendationCount(queryClient, supervisorId);
+        toast("Recommendation updated successfully!", "success");
         router.push(`/supervisor/${supervisorId}`);
+      } else {
+        // Surface the server message and stay on the form so the user can retry.
+        toast(result?.error ?? "Failed to update recommendation.", "error");
       }
+      return;
     } else if (supervisorId) {
       await submit(() => createRecommendation(formData, supervisorId));
+      
     }
+    router.push(`/supervisor/${supervisorId}`);
   }
 
   return (

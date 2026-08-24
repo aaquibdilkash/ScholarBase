@@ -119,6 +119,9 @@ model Supervisor {
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
+  // Materialized recommendation aggregates (avg = ratingSum / recommendationCount)
+  recommendationCount Int @default(0)
+  ratingSum           Int @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
 
@@ -1602,7 +1605,11 @@ model Recommendation {
   votes      RecommendationVote[]
   comments   RecommendationComment[]
 
-  @@unique([authorId, supervisorId])
+    // NOTE: uniqueness of one ACTIVE recommendation per (author, supervisor) is
+  // enforced by a PARTIAL unique index in SQL:
+  //   CREATE UNIQUE INDEX ... ON "Recommendation"("authorId","supervisorId") WHERE "isDeleted" = false;
+  // A full @@unique here would count soft-deleted tombstones and crash
+  // re-submission after a delete.
   @@index([createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }

@@ -19,6 +19,8 @@ import { EventCard } from "@/components/events/EventCard";
 import { HelpPostCard } from "@/components/help/HelpPostCard";
 import { JournalCard } from "@/components/journals/JournalCard";
 import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
+import { ResearchGrantCard } from "@/components/grants/ResearchGrantCard";
+import { CourseCard } from "@/components/courses/CourseCard";
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
@@ -44,6 +46,8 @@ import {
   ContributionType,
   PublicationType,
   SurveyType,
+  ResearchGrantType,
+  CourseType,
   SectionWithCount,
 } from "@/types/components";
 
@@ -232,6 +236,24 @@ const SECTIONS: SectionWithCount[] = [
         <SurveyCard key={s.id} survey={s} currentUserId={currentUserId} />
       )),
   },
+  {
+    key: "researchGrants",
+    title: "Research Grants",
+    emptyMessage: "No research grants added yet.",
+    renderItems: (items: ResearchGrantType[], currentUserId) =>
+      items.map((g) => (
+        <ResearchGrantCard key={g.id} grant={g} currentUserId={currentUserId} />
+      )),
+  },
+  {
+    key: "courses",
+    title: "Courses",
+    emptyMessage: "No courses created yet.",
+    renderItems: (items: CourseType[], currentUserId) =>
+      items.map((c) => (
+        <CourseCard key={c.id} course={c} currentUserId={currentUserId} />
+      )),
+  },
 ];
 
 export default function ProfileTabs({
@@ -265,9 +287,21 @@ export default function ProfileTabs({
     if (sections || isLoading) return;
     setIsLoading(true);
     try {
-      const data = await getProfileSections(profileId, currentUserId, 10);
+      const data = await getProfileSections(profileId, currentUserId, 1);
       setSections(data);
       setSectionHasMore({});
+
+      // Initialize cursors from the last item of each section so paginations
+      // start from the item *after* the initial one
+      const initialCursors: Record<string, string | null> = {};
+      for (const key of Object.keys(data) as (keyof NonNullable<typeof data>)[]) {
+        if (key === 'id' || key === 'counts') continue;
+        const sectionItems = data[key];
+        if (Array.isArray(sectionItems) && sectionItems.length > 0) {
+          initialCursors[key as string] = sectionItems[sectionItems.length - 1].id;
+        }
+      }
+      setSectionCursors(initialCursors);
     } catch (err) {
       console.error("Failed to load profile sections:", err);
     } finally {
@@ -320,7 +354,7 @@ export default function ProfileTabs({
         sectionKey,
         currentUserId,
         currentCursor || undefined,
-        10,
+        1,
       );
 
       if (result.items.length > 0) {
@@ -331,7 +365,7 @@ export default function ProfileTabs({
         if (result.nextCursor) {
           setSectionCursors((prev) => ({ ...prev, [sectionKey]: result.nextCursor }));
         }
-        if (!result.hasMore && result.items.length < 10) {
+        if (!result.hasMore && result.items.length < 1) {
           setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
         }
       }

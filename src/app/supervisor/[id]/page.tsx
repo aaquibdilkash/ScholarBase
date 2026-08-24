@@ -1,10 +1,10 @@
-import Link from "next/link";
-
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 
-import { SupervisorRecommendations } from "@/components/supervisor/SupervisorRecommendations";
+import { RecommendButton } from "@/components/supervisor/RecommendButton";
+import { RecommendationsSection } from "@/components/supervisor/RecommendationsSection";
+import { OverallRatingSection } from "@/components/supervisor/OverallRatingSection";
 import {
   deleteSupervisor,
   getSupervisor,
@@ -12,7 +12,6 @@ import {
 } from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata } from "@/lib/seo";
@@ -138,78 +137,30 @@ export default async function SupervisorPage({
             )}
           </div>
 
-          {!hasUserRecommendation && (
-            <Link
-              href={`/supervisor/${supervisor.id}/recommendation/add`}
-              className="sb-button-primary w-full md:w-auto"
-            >
-              + Recommend
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {recommendationCount > 0 && (
-        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-3 sm:p-4 md:p-5 lg:p-6 mb-6 sm:mb-8">
-          <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-3 sm:mb-4">
-            Overall Rating
-          </h3>
-          <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-3 md:gap-4">
-            <div className="flex flex-col items-center justify-center text-center">
-              <p className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
-                {avgRating.toFixed(1)}
-              </p>
-              <StarRating rating={avgRating} size="sm" />
-              <p className="text-xs sm:text-sm text-slate-500 mt-1.5 sm:mt-2">
-                ({recommendationCount} ratings)
-              </p>
-            </div>
-            <div className="w-full flex-1 space-y-1 sm:space-y-1.5">
-              {ratingDistribution.map((item) => (
-                <div
-                  key={item.stars}
-                  className="flex items-center gap-2 sm:gap-3"
-                >
-                  <span className="text-xs sm:text-sm font-semibold text-slate-600 w-14 sm:w-16">
-                    {item.stars} star
-                  </span>
-                  <div className="w-full bg-slate-100 rounded-full h-1 sm:h-1.5">
-                    <div
-                      className="bg-yellow-400 h-1 sm:h-1.5 rounded-full"
-                      style={{ width: `${item.percentage}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-xs sm:text-sm font-medium text-slate-500 w-10 sm:w-12 text-right">
-                    {item.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Recommendations List */}
-      <div className="space-y-4 sm:space-y-6 mb-4 sm:mb-6">
-        <h3
-          className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 mb-4 sm:mb-6"
-          id="recommendations"
-        >
-          Recommendations ({recommendationCount})
-        </h3>
-        {recommendationCount === 0 ? (
-          <p className="text-slate-500 bg-white p-8 rounded-2xl border border-slate-200/60 text-center">
-            No recommendations yet. Be the first to share your experience!
-          </p>
-        ) : (
-          <SupervisorRecommendations
-            initialRecommendations={supervisor.recommendations}
-            totalCount={recommendationCount}
-            supervisor={supervisor}
+                              <RecommendButton
+            supervisorId={supervisor.id}
             currentUserId={user?.id}
+            initialHasRecommendation={hasUserRecommendation}
+            initialUserRecommendationId={recMeta.userRecommendationId}
           />
-        )}
+        </div>
       </div>
+
+      <OverallRatingSection
+        supervisorId={supervisor.id}
+        initialCount={recommendationCount}
+        initialAvgRating={avgRating}
+        initialDistribution={ratingDistribution}
+      />
+
+      {/* Recommendations List — reactive count/empty-state, no server refetch */}
+      <RecommendationsSection
+        supervisorId={supervisor.id}
+        supervisorName={supervisor.name}
+        initialRecommendations={supervisor.recommendations}
+        initialCount={recommendationCount}
+        currentUserId={user?.id}
+      />
     </DetailPageCardShell>
   );
 }

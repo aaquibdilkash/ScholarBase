@@ -63,23 +63,26 @@ export default function OwnerActionsDropdown({
   };
 
   const confirmDelete = () => {
-    startDeleteTransition(async () => {
-      const result = await onDelete();
-      toast("Item deleted successfully.", "success");
-      const res = (result ?? undefined) as
-        | { redirect?: string; refresh?: boolean }
-        | undefined;
-            if (res?.redirect) {
-        router.push(res.redirect);
-      } else if (res?.refresh === false) {
-        // Handler performed its own client-side cache mutation or navigation;
-        // no global refresh required. Every onDelete caller must opt in by
-        // returning `{ redirect }` (detail pages) or `{ refresh: false }`
-        // (list cards, which evict their own cache). The catch-all
-        // `router.refresh()` was removed to avoid redundant refetches.
-      }
-    });
-  };
+      startDeleteTransition(async () => {
+        const result = await onDelete();
+        const res = (result ?? undefined) as
+          | { redirect?: string; refresh?: boolean }
+          | undefined;
+        // Close the confirm modal now that the deletion has settled.
+        setIsModalOpen(false);
+        if (res?.redirect) {
+          router.push(res.redirect);
+          toast("Item deleted successfully.", "success");
+        } else if (res?.refresh === false) {
+          // Handler performed its own client-side cache mutation/navigation
+          // (and its own toast). No global refresh required.
+          return;
+        } else {
+          router.refresh();
+          toast("Item deleted successfully.", "success");
+        }
+      });
+    };
 
   return (
     <>

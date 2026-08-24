@@ -85,11 +85,15 @@ export default async function RecommendationDetailPage({
     <DetailPageCardShell
       backHref={`/supervisor/${recommendation.supervisor.id}`}
       backLabel="Back to Supervisor Profile"
-      authorHref={`/scholars/${recommendation.author.id}`}
+            authorHref={
+        recommendation.isAnonymous
+          ? undefined
+          : `/scholars/${recommendation.author.id}`
+      }
       authorName={recommendation.isAnonymous ? "Anonymous Scholar" : (recommendation.author.name || "Scholar")}
       authorHandle={recommendation.isAnonymous ? undefined : (recommendation.author.handle || undefined)}
       authorAvatarUrl={recommendation.isAnonymous ? null : (recommendation.author.avatarUrl || undefined)}
-      authorId={recommendation.authorId}
+      authorId={recommendation.isAnonymous ? undefined : recommendation.authorId}
       currentUserId={user?.id}
       createdDate={recommendation.createdAt}
       footerVoteButton={

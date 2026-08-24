@@ -116,6 +116,8 @@ export async function getProfileSections(
         contributionPosts,
         publications,
         surveys,
+        researchGrants,
+        courses,
     ] = await Promise.all([
         prisma.article.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.socialPost.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
@@ -125,12 +127,14 @@ export async function getProfileSections(
         prisma.helpPost.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.journal.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.researchTool.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
-        prisma.recommendation.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect, supervisor: { select: { id: true, name: true } } } }),
-        prisma.supervisor.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect, recommendations: true } }),
+        prisma.recommendation.findMany({ where: { authorId: profileId, isDeleted: false, isAnonymous: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect, supervisor: { select: { id: true, name: true } } } }),
+        prisma.supervisor.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.result.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.contribution.findMany({ where: { authorId: profileId, isDeleted: false, status: 'APPROVED' }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.publication.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
         prisma.researchSurvey.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
+        prisma.researchGrant.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
+        prisma.course.findMany({ where: { authorId: profileId, isDeleted: false }, take, orderBy: { createdAt: 'desc' }, include: { author: authorSelect, votes: votesSelect } }),
     ])
 
     return {
@@ -149,6 +153,8 @@ export async function getProfileSections(
         contributionPosts,
         publications,
         surveys,
+        researchGrants,
+        courses,
         counts: {
             articles: userCounters?.articleCount ?? 0,
             socialPosts: userCounters?.socialPostCount ?? 0,
@@ -185,6 +191,8 @@ const ProfileSectionMap = {
     contributionPosts: 'contribution',
     publications: 'publication',
     surveys: 'researchSurvey',
+    researchGrants: 'researchGrant',
+    courses: 'course',
 } as const
 
 export async function getProfileSection(
@@ -218,14 +226,13 @@ export async function getProfileSection(
         votes: currentUserId
             ? { where: { userId: currentUserId }, select: { userId: true, voteType: true } }
             : false,
-        ...(model === 'supervisor' ? { recommendations: true } : {}),
         ...(model === 'recommendation' ? { supervisor: { select: { id: true, name: true } } } : {}),
     }
 
     // `model` is a dynamic Prisma model key; a single intentional cast is used.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (prisma as any)[model].findMany({
-        where: { authorId: profileId, isDeleted: false },
+        where: { authorId: profileId, isDeleted: false, ...(model === 'recommendation' ? { isAnonymous: false } : {}) },
         skip,
         take,
         orderBy: { createdAt: 'desc' },
@@ -264,14 +271,16 @@ export async function getProfileSectionWithCursor(
         votes: currentUserId
             ? { where: { userId: currentUserId }, select: { userId: true, voteType: true } }
             : false,
-        ...(model === 'supervisor' ? { recommendations: true } : {}),
         ...(model === 'recommendation' ? { supervisor: { select: { id: true, name: true } } } : {}),
     }
 
+    // `model` is a dynamic Prisma model key; a single intentional cast is used.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items = await (prisma as any)[model].findMany({
-        where: { 
+        where: {
             authorId: profileId,
             isDeleted: false,
+            ...(model === 'recommendation' ? { isAnonymous: false } : {}),
             ...(cursor ? { id: { lt: cursor } } : {}),
         },
         take,

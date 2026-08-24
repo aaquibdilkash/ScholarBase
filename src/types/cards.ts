@@ -208,10 +208,12 @@ export type SocialPostWithAuthor = Partial<SocialPost> & {
 };
 
 export type SupervisorWithAuthor = Partial<Supervisor> & {
-    id: string;
+        id: string;
     createdAt: Date;
     author: AuthorWithFollowers;
-    recommendations?: Recommendation[];
+        // Zero-compute materialized aggregates — cards never hydrate rows
+    recommendationCount?: number;
+    ratingSum?: number;
     totalVotes: number;
     totalComments: number;
     votes: UserVote;

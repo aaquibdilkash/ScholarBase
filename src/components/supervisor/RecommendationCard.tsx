@@ -1,11 +1,13 @@
 "use client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
+import { decrementRecommendation } from "./recommendationCount";
 import { StarRating } from "@/components/ui/StarRating";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
@@ -18,42 +20,70 @@ export function RecommendationCard({
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
   const { toast } = useToast();
-  const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    (recommendation.votes || []).find((v: { userId?: string; voteType?: string }) => v.userId === currentUserId)?.voteType ??
-    null;
+  const router = useRouter();
 
-  const isOwner = currentUserId === recommendation.author.id;
-  const isFollowing = (recommendation.author.followers?.length ?? 0) > 0;
+  // Navigate to the supervisor's detail page. The card body is wrapped in a
+  // <Link> to the recommendation detail, so we cannot nest another anchor
+  // (invalid HTML + the outer link swallows clicks). Instead we stop
+  // propagation and route programmatically.
+  const openSupervisorPage = () => router.push(`/supervisor/${supervisor.id}`);
+  const openRecommendationPage = () =>
+    router.push(`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`);
+  const userVote: "UPVOTE" | "DOWNVOTE" | null =
+    (recommendation.votes || []).find(
+      (v: { userId?: string; voteType?: string }) => v.userId === currentUserId,
+    )?.voteType ?? null;
+
+  // Ownership works regardless of anonymity: the authorId is always present
+  // on the record even when the public author identity is masked.
+  const ownerId = recommendation.authorId ?? recommendation.author?.id;
+  const isOwner = !!currentUserId && ownerId === currentUserId;
+  const isFollowing = (recommendation.author?.followers?.length ?? 0) > 0;
 
   const deleteMutation = useMutation({
     mutationFn: deleteRecommendation,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
+  });
+
+  const handleDeleteFromDropdown = async () => {
+    try {
+      const response = await deleteMutation.mutateAsync(recommendation.id);
+      if (!response?.success || !response.data) {
         toast("Failed to delete recommendation.", "error");
-        return;
+        return { refresh: false };
       }
+      // Remove from the array cache + keep the reactive count in sync.
       queryClient.setQueriesData(
         { queryKey: ["recommendations", supervisor.id] },
         (oldData: RecommendationWithAuthor[] = []) =>
           oldData.filter((r) => r.id !== response.data.deletedId),
       );
+      decrementRecommendation(queryClient, supervisor.id, recommendation.rating);
       toast("Recommendation deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
+      return { refresh: false };
+    } catch (error) {
+      toast((error as Error).message, "error");
+      return { refresh: false };
+    }
+  };
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${recommendation.author.id}`}
+      authorHref={
+        recommendation.isAnonymous
+          ? undefined
+          : `/scholars/${recommendation.author.id}`
+      }
       authorName={
         recommendation.isAnonymous
           ? "Anonymous Scholar"
           : recommendation.author.name || "Scholar"
       }
-      authorId={recommendation.author.id}
-      isFollowing={isFollowing}
+      authorId={
+        recommendation.isAnonymous ? undefined : recommendation.author.id
+      }
+      isFollowing={recommendation.isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
       authorHandle={
         recommendation.isAnonymous
@@ -66,14 +96,12 @@ export function RecommendationCard({
           : recommendation.author.avatarUrl || undefined
       }
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
+      noBodyLink
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
             editHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}/edit`}
-            onDelete={() => {
-              deleteMutation.mutate(recommendation.id);
-              return { refresh: false };
-            }}
+            onDelete={handleDeleteFromDropdown}
             isOwner={isOwner}
             editLabel="Edit Recommendation"
             deleteLabel="Delete Recommendation"
@@ -92,11 +120,38 @@ export function RecommendationCard({
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       footerCommentsCount={recommendation.totalComments}
     >
-      <p className="text-sm font-semibold text-slate-700 mb-2">
+      <div
+        role="link"
+        tabIndex={0}
+        onClick={() => openRecommendationPage()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") openRecommendationPage();
+        }}
+        className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
+      >
+            <p className="text-sm font-semibold text-slate-700 mb-2">
         {recommendation.isAnonymous
           ? "Anonymous recommendation for "
           : "Recommendation for "}
-        <span className="text-blue-700">{supervisor.name}</span>
+        <span
+          role="link"
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openSupervisorPage();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              openSupervisorPage();
+            }
+          }}
+          className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+        >
+          {supervisor.name}
+        </span>
       </p>
       <div className="space-y-3 mb-4">
         <div>
@@ -137,6 +192,7 @@ export function RecommendationCard({
           content={recommendation.feedback}
           className="text-sm leading-relaxed text-slate-600 line-clamp-4"
         />
+      </div>
       </div>
     </ListPageCardShell>
   );

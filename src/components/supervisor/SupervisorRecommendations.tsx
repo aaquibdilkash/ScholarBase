@@ -6,6 +6,7 @@ import { Carousel } from "@/components/ui/Carousel";
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
 import { getSupervisorRecommendations } from "@/app/actions/supervisors";
 import type { RecommendationWithAuthor } from "@/types/cards";
+import { recommendationCountKey, RecommendationAggregates } from "./recommendationCount";
 
 export function SupervisorRecommendations({
   initialRecommendations,
@@ -28,6 +29,21 @@ export function SupervisorRecommendations({
       getSupervisorRecommendations(supervisor.id, currentUserId, 0, 10),
     initialData: initialRecommendations,
   });
+
+  // Reactive total count (decremented on delete) so the carousel's hasMore
+  // and any count display stay in sync without a server re-fetch.
+  const { data: aggregate } = useQuery<RecommendationAggregates>({
+    queryKey: recommendationCountKey(supervisor.id),
+    queryFn: () =>
+      Promise.resolve({
+        count: totalCount,
+        ratingSum: 0,
+        dist: {},
+      }),
+    enabled: false,
+    initialData: { count: totalCount, ratingSum: 0, dist: {} },
+  });
+  const reactiveTotal = aggregate?.count ?? totalCount;
 
   const loadMore = async () => {
     if (loading) return;
@@ -56,7 +72,7 @@ export function SupervisorRecommendations({
     }
   };
 
-  const hasMore = recommendations.length < totalCount;
+  const hasMore = recommendations.length < reactiveTotal;
 
   return (
     <div className="relative">

@@ -11,8 +11,9 @@ const clsx = (...inputs: Array<string | false | null | undefined>) =>
   inputs.filter(Boolean).join(" ");
 
 export type ListPageCardShellProps = {
-  // Common header (author)
-  authorHref: string;
+    // Common header (author). When omitted (e.g., anonymous authors), the
+  // header renders as plain text and does NOT link to any profile.
+  authorHref?: string;
   authorName: string;
   authorHandle?: string;
   authorAvatarUrl?: string | null;
@@ -80,32 +81,44 @@ export default function ListPageCardShell({
     <div className={clsx("sb-card p-5 sm:p-6 md:p-8", className)}>
       {/* Common header */}
       <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
-        <div className="flex items-center gap-3">
-          <Link href={authorHref} className="shrink-0">
-            <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border-slate-700 dark:bg-slate-800">
-              {authorAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={authorAvatarUrl}
-                  alt={authorName}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <span className="font-semibold text-slate-400 text-lg">
-                  {authorName?.charAt(0).toUpperCase() || "?"}
-                </span>
-              )}
+                <div className="flex items-center gap-3">
+          {authorHref ? (
+            <Link href={authorHref} className="shrink-0">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border-slate-700 dark:bg-slate-800">
+                {authorAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={authorAvatarUrl}
+                    alt={authorName}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="font-semibold text-slate-400 text-lg">
+                    {authorName?.charAt(0).toUpperCase() || "?"}
+                  </span>
+                )}
+              </div>
+            </Link>
+          ) : (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+              <span className="font-semibold text-slate-400 text-lg">?</span>
             </div>
-          </Link>
+          )}
 
           <div>
-            <Link
-              href={authorHref}
-              className="font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
-            >
-              {authorName || "Scholar"}
-            </Link>
+            {authorHref ? (
+              <Link
+                href={authorHref}
+                className="font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
+              >
+                {authorName || "Scholar"}
+              </Link>
+            ) : (
+              <span className="font-semibold italic text-slate-500 dark:text-slate-400">
+                {authorName || "Scholar"}
+              </span>
+            )}
             {authorHandle ? (
               <div className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                 @{authorHandle}

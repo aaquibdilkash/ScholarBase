@@ -17,8 +17,9 @@ export function SupervisorCard({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isOwner = currentUserId === supervisor.authorId;
-  const recommendationCount = supervisor.recommendations?.length ?? 0;
+        const isOwner = currentUserId === supervisor.authorId;
+  // Zero-compute: count + average derive from materialized scalars.
+  const recommendationCount = supervisor.recommendationCount ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: deleteSupervisor,
@@ -37,12 +38,8 @@ export function SupervisorCard({
     onError: (error) => toast(error.message, "error"),
   });
 
-  const avgRating =
-    recommendationCount > 0 && supervisor.recommendations
-      ? supervisor.recommendations.reduce((sum, rec) => {
-          return sum + rec.rating;
-        }, 0) / recommendationCount
-      : 0;
+      const avgRating =
+    recommendationCount > 0 ? (supervisor.ratingSum ?? 0) / recommendationCount : 0;
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (supervisor.votes || []).find((v: { userId?: string; voteType?: string }) => v.userId === currentUserId)?.voteType ?? null;
