@@ -108,3 +108,8 @@ export const MAX_SOCIAL_POST_CONTENT = 256;
 export const MAX_MESSAGE_BODY = 128;
 
 export const MAX_COMMENT_BODY = 256;
+
+// Shallow page size for lazy comment/reply pagination (see fetchParentComments /
+// fetchReplies in src/app/actions/comments.ts). Lives here because "use server"
+// files may only export async functions.
+export const COMMENT_PAGE_SIZE = 5;

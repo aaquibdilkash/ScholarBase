@@ -97,6 +97,8 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       },
       comments: {
         where: { parentId: null },
+        // LAZY PAGINATION: first page of parents only; replies load on demand.
+        take: 5,
         select: {
           id: true,
           content: true,
@@ -113,26 +115,6 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
             ? { where: { userId }, select: { voteType: true } }
             : false,
           mentions: true,
-          replies: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              updatedAt: true,
-              editedAt: true,
-              parentId: true,
-              totalVotes: true,
-              totalReplies: true,
-              author: {
-                select: { id: true, name: true, handle: true, avatarUrl: true },
-              },
-              votes: userId
-                ? { where: { userId }, select: { voteType: true } }
-                : false,
-              mentions: true,
-            },
-            orderBy: { createdAt: "asc" },
-          },
         },
         orderBy: { createdAt: "desc" },
       },

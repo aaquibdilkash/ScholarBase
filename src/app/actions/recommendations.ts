@@ -11,28 +11,65 @@ export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
     return prisma.recommendation.findUnique({
       where: { id: recommendationId },
-      include: {
-        author: true,
-        supervisor: true,
-        comments: {
-          where: { parentId: null },
-          orderBy: { createdAt: "asc" },
-          include: {
-            author: true,
-            votes: userId ? { where: { userId } } : false,
-            _count: { select: { votes: true } },
-            replies: {
-              orderBy: { createdAt: "asc" },
-              include: {
-                author: true,
-                votes: userId ? { where: { userId } } : false,
-                _count: { select: { votes: true } },
-              },
-            },
+      // RULE 2 (Zero-Compute): strict select + materialized counters.
+      // No include trees, no dynamic _count aggregation.
+      select: {
+        id: true,
+        rating: true,
+        feedback: true,
+        turnaroundTimeDays: true,
+        responsivenessScore: true,
+        guidanceScore: true,
+        isAnonymous: true,
+        authorId: true,
+        createdAt: true,
+        updatedAt: true,
+        editedAt: true,
+        totalVotes: true,
+        totalComments: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
           },
         },
-        votes: { select: { userId: true, voteType: true } },
-        _count: { select: { votes: true, comments: true } },
+        supervisor: { select: { id: true, name: true } },
+        // Filtered select resolves the viewer's vote in the same round-trip
+        // instead of shipping every vote row into memory.
+        votes: userId
+          ? { where: { userId }, select: { voteType: true } }
+          : false,
+        comments: {
+          where: { parentId: null },
+          // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            parentId: true,
+            authorId: true,
+            totalVotes: true,
+            totalReplies: true,
+            author: {
+              select: {
+                id: true,
+                name: true,
+                handle: true,
+                avatarUrl: true,
+              },
+            },
+            mentions: true,
+            votes: userId
+              ? { where: { userId }, select: { voteType: true } }
+              : false,
+          },
+        },
       },
     });
   },

@@ -97,6 +97,8 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
         where: { parentId: null },
+        // LAZY PAGINATION: first page of parents only; replies load on demand.
+        take: 5,
         select: {
           id: true,
           content: true,
@@ -118,31 +120,6 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
-          replies: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              updatedAt: true,
-              editedAt: true,
-              parentId: true,
-              authorId: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  handle: true,
-                  avatarUrl: true,
-                },
-              },
-              totalVotes: true,
-              totalReplies: true,
-              votes: userId
-                ? { where: { userId }, select: { voteType: true } }
-                : false,
-            },
-            orderBy: { createdAt: "asc" },
-          },
         },
         orderBy: { createdAt: "desc" },
       },

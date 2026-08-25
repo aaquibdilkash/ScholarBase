@@ -5,13 +5,86 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
 import { notifyMentionedUsers, notifyUserById } from "@/lib/notifications";
-import { CommentEntityType } from "@/types/comments";
+import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
 import {
   COMMENT_TYPE_TO_MODULE,
   createCommentTransaction,
   deleteCommentTransaction,
   ENTITY_CONFIG,
 } from "@/lib/transactions";
+
+// ============================================
+// LAZY PAGINATION (Zero-Compute Reads)
+// ============================================
+// Shallow offset pagination for discussion threads. Neither action ever pulls
+// an entire thread into memory: parents and replies are fetched in slices of
+// PAGE_SIZE on demand by CommentSection / CommentThread respectively.
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+
+function commentPageSelect(currentUserId: string | null) {
+  return {
+    id: true,
+    content: true,
+    createdAt: true,
+    updatedAt: true,
+    editedAt: true,
+    parentId: true,
+    authorId: true,
+    // Materialized counters — no dynamic _count aggregation
+    totalVotes: true,
+    totalReplies: true,
+    author: {
+      select: { id: true, name: true, handle: true, avatarUrl: true },
+    },
+    // RULE 2: resolve the viewer's vote state directly in this query (N+1 fix)
+    votes: currentUserId
+      ? { where: { userId: currentUserId }, select: { voteType: true } }
+      : false,
+    mentions: true,
+  };
+}
+
+export async function fetchParentComments(
+  type: CommentEntityType,
+  postId: string,
+  skip: number,
+  currentUserId: string | null = null,
+): Promise<CommentWithAuthorAndVotes[]> {
+  const moduleKey = COMMENT_TYPE_TO_MODULE[type];
+  if (!moduleKey) throw new Error(`Invalid comment type: ${type}`);
+
+  const config = ENTITY_CONFIG[moduleKey];
+  const commentModel = config.comment as any;
+
+  return (await commentModel.findMany({
+    where: { parentId: null, [config.commentFk]: postId },
+    select: commentPageSelect(currentUserId),
+    orderBy: { createdAt: "asc" },
+    skip,
+    take: COMMENT_PAGE_SIZE,
+  })) as CommentWithAuthorAndVotes[];
+}
+
+export async function fetchReplies(
+  type: CommentEntityType,
+  parentId: string,
+  skip: number,
+  currentUserId: string | null = null,
+): Promise<CommentWithAuthorAndVotes[]> {
+  const moduleKey = COMMENT_TYPE_TO_MODULE[type];
+  if (!moduleKey) throw new Error(`Invalid comment type: ${type}`);
+
+  const config = ENTITY_CONFIG[moduleKey];
+  const commentModel = config.comment as any;
+
+  return (await commentModel.findMany({
+    where: { parentId },
+    select: commentPageSelect(currentUserId),
+    orderBy: { createdAt: "asc" },
+    skip,
+    take: COMMENT_PAGE_SIZE,
+  })) as CommentWithAuthorAndVotes[];
+}
 
 async function getParentAuthorId(
   type: CommentEntityType,

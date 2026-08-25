@@ -304,7 +304,9 @@ export const getPublicationById = cache(
           : false,
         comments: {
           where: { parentId: null },
+          // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
+          take: 5,
           select: {
             id: true,
             content: true,
@@ -326,31 +328,6 @@ export const getPublicationById = cache(
             votes: userId
               ? { where: { userId }, select: { voteType: true } }
               : false,
-            replies: {
-              orderBy: { createdAt: "asc" },
-              select: {
-                id: true,
-                content: true,
-                createdAt: true,
-                updatedAt: true,
-                editedAt: true,
-                parentId: true,
-                authorId: true,
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    handle: true,
-                    avatarUrl: true,
-                  },
-                },
-                totalVotes: true,
-                totalReplies: true,
-                votes: userId
-                  ? { where: { userId }, select: { voteType: true } }
-                  : false,
-              },
-            },
           },
         },
       },

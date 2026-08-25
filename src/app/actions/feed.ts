@@ -131,6 +131,8 @@ export const getPost = cache(async (id: string, userId?: string) => {
       totalVotes: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      // LAZY PAGINATION: ship only the first page of parent comments.
+      // Replies are fetched on demand by CommentThread via fetchReplies().
       comments: {
         where: { parentId: null },
         select: {
@@ -155,28 +157,9 @@ export const getPost = cache(async (id: string, userId?: string) => {
             ? { where: { userId }, select: { voteType: true } }
             : false,
           mentions: true,
-          replies: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              updatedAt: true,
-              editedAt: true,
-              parentId: true,
-              authorId: true,
-              author: {
-                select: { id: true, name: true, handle: true, avatarUrl: true },
-              },
-              totalVotes: true,
-              votes: userId
-                ? { where: { userId }, select: { voteType: true } }
-                : false,
-              mentions: true,
-            },
-            orderBy: { createdAt: "asc" },
-          },
         },
         orderBy: { createdAt: "asc" },
+        take: 5,
       },
     },
   });

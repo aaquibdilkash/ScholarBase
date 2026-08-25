@@ -53,9 +53,11 @@ export default async function RecommendationDetailPage({
     return { redirect: `/supervisor/${id}` };
   }
 
+  // Filtered select in getRecommendation returns at most one row (the
+  // current user's vote) — no full vote-array scan needed.
   const userVote =
-    (recommendation.votes?.find((v) => v.userId === user?.id)?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (recommendation.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ??
+    null;
 
   return (
     <DetailPageCardShell

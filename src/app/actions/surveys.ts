@@ -109,6 +109,8 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       },
       comments: {
         where: { parentId: null },
+        // LAZY PAGINATION: first page of parents only; replies load on demand.
+        take: 5,
         select: {
           id: true,
           content: true,
@@ -130,30 +132,6 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
-          replies: {
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              updatedAt: true,
-              editedAt: true,
-              parentId: true,
-              authorId: true,
-              totalVotes: true,
-              author: {
-                select: {
-                  id: true,
-                  name: true,
-                  handle: true,
-                  avatarUrl: true,
-                },
-              },
-              votes: userId
-                ? { where: { userId }, select: { voteType: true } }
-                : false,
-            },
-            orderBy: { createdAt: "asc" },
-          },
         },
         orderBy: { createdAt: "desc" },
       },
