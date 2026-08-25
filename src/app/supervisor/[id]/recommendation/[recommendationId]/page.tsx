@@ -1,10 +1,12 @@
-import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { VoteButton } from "@/components/interactions/VoteButton";
-import { deleteRecommendation } from "@/app/actions/recommendations";
+import {
+  deleteRecommendation,
+  getRecommendation,
+} from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
@@ -13,12 +15,13 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string; recommendationId: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string; recommendationId: string }>;
+}): Promise<Metadata> {
   const { id, recommendationId } = await params;
-  const rec = await prisma.recommendation.findUnique({
-    where: { id: recommendationId },
-    select: { id: true, feedback: true, rating: true, createdAt: true, supervisor: { select: { id: true, name: true } } },
-  }).catch(() => null);
+  const rec = await getRecommendation(recommendationId).catch(() => null);
   if (!rec || rec.supervisor.id !== id) return { title: "Recommendation" };
   return buildMetadata({
     title: `Recommendation for ${rec.supervisor.name || "Supervisor"}`,
@@ -38,32 +41,7 @@ export default async function RecommendationDetailPage({
   const { id, recommendationId } = await params;
   const user = await getCurrentUser();
 
-  const recommendation = await prisma.recommendation.findUnique({
-    where: { id: recommendationId },
-      include: {
-        author: true,
-        supervisor: true,
-      comments: {
-        where: { parentId: null },
-        orderBy: { createdAt: "asc" },
-        include: {
-          author: true,
-          votes: user ? { where: { userId: user.id } } : false,
-          _count: { select: { votes: true } },
-          replies: {
-            orderBy: { createdAt: "asc" },
-            include: {
-              author: true,
-              votes: user ? { where: { userId: user.id } } : false,
-              _count: { select: { votes: true } },
-            },
-          },
-        },
-      },
-      votes: { select: { userId: true, voteType: true } },
-      _count: { select: { votes: true, comments: true } },
-    },
-  });
+  const recommendation = await getRecommendation(recommendationId, user?.id);
 
   if (!recommendation || recommendation.supervisor.id !== id) {
     notFound();
@@ -71,29 +49,41 @@ export default async function RecommendationDetailPage({
 
   async function handleDelete() {
     "use server";
-        await deleteRecommendation(recommendation!.id);
+    await deleteRecommendation(recommendation!.id);
     return { redirect: `/supervisor/${id}` };
   }
 
   const userVote =
     (recommendation.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (
     <DetailPageCardShell
       backHref={`/supervisor/${recommendation.supervisor.id}`}
       backLabel="Back to Supervisor Profile"
-            authorHref={
+      authorHref={
         recommendation.isAnonymous
           ? undefined
           : `/scholars/${recommendation.author.id}`
       }
-      authorName={recommendation.isAnonymous ? "Anonymous Scholar" : (recommendation.author.name || "Scholar")}
-      authorHandle={recommendation.isAnonymous ? undefined : (recommendation.author.handle || undefined)}
-      authorAvatarUrl={recommendation.isAnonymous ? null : (recommendation.author.avatarUrl || undefined)}
-      authorId={recommendation.isAnonymous ? undefined : recommendation.authorId}
+      authorName={
+        recommendation.isAnonymous
+          ? "Anonymous Scholar"
+          : recommendation.author.name || "Scholar"
+      }
+      authorHandle={
+        recommendation.isAnonymous
+          ? undefined
+          : recommendation.author.handle || undefined
+      }
+      authorAvatarUrl={
+        recommendation.isAnonymous
+          ? null
+          : recommendation.author.avatarUrl || undefined
+      }
+      authorId={
+        recommendation.isAnonymous ? undefined : recommendation.authorId
+      }
       currentUserId={user?.id}
       createdDate={recommendation.createdAt}
       footerVoteButton={
@@ -107,13 +97,13 @@ export default async function RecommendationDetailPage({
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
       footerCommentsCount={recommendation.totalComments}
       discussion={
-           <CommentSection
-             comments={recommendation.comments as CommentWithAuthorAndVotes[]}
-             targetId={recommendation.id}
-             module="recommendation"
-             currentUserId={user?.id ?? null}
-             postAuthorId={recommendation.authorId}
-           />
+        <CommentSection
+          comments={recommendation.comments as CommentWithAuthorAndVotes[]}
+          targetId={recommendation.id}
+          module="recommendation"
+          currentUserId={user?.id ?? null}
+          postAuthorId={recommendation.authorId}
+        />
       }
       managementControls={
         user?.id === recommendation.authorId ? (
@@ -126,7 +116,7 @@ export default async function RecommendationDetailPage({
           />
         ) : null
       }
-      >
+    >
       {recommendation.isAnonymous ? (
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
           Anonymous recommendation

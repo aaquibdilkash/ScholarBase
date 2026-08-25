@@ -1,9 +1,42 @@
 "use server";
 
+import { cache } from "react";
+
 import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
+
+export const getRecommendation = cache(
+  async (recommendationId: string, userId?: string) => {
+    return prisma.recommendation.findUnique({
+      where: { id: recommendationId },
+      include: {
+        author: true,
+        supervisor: true,
+        comments: {
+          where: { parentId: null },
+          orderBy: { createdAt: "asc" },
+          include: {
+            author: true,
+            votes: userId ? { where: { userId } } : false,
+            _count: { select: { votes: true } },
+            replies: {
+              orderBy: { createdAt: "asc" },
+              include: {
+                author: true,
+                votes: userId ? { where: { userId } } : false,
+                _count: { select: { votes: true } },
+              },
+            },
+          },
+        },
+        votes: { select: { userId: true, voteType: true } },
+        _count: { select: { votes: true, comments: true } },
+      },
+    });
+  },
+);
 
 export async function createRecommendation(
   formData: FormData,
