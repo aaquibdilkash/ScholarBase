@@ -21,6 +21,12 @@ interface CommentSectionProps {
   module: CommentEntityType;
   currentUserId: string | null;
   postAuthorId?: string | null;
+  /**
+   * Materialized totalComments for this entity. The header/footer badge shows
+   * the TRUE total even though only one page of comments is loaded, and stays
+   * accurate via +/- deltas as comments and replies are added or deleted.
+   */
+  totalComments?: number;
 }
 
 export function CommentSection({
@@ -29,6 +35,7 @@ export function CommentSection({
   module,
   currentUserId,
   postAuthorId,
+  totalComments,
 }: CommentSectionProps) {
   // Parent slice ONLY. Replies live inside each CommentThread's local state.
   const [parents, setParents] = useState<CommentWithAuthorAndVotes[]>(
@@ -48,8 +55,11 @@ export function CommentSection({
   const queryClient = useQueryClient();
 
   // Track how many comments are visible so the header badge stays accurate
-  // without ever recounting the DB.
+  // without ever recounting the DB. Seed with the materialized totalComments
+  // when available (only one PAGE of comments is actually loaded); fall back
+  // to counting what was shipped for callers that don't pass it.
   const [visibleCount, setVisibleCount] = useState(() =>
+    totalComments ??
     initialComments.reduce(
       (sum, c) => sum + (c.authorId ? 1 : 0) + (c.replies?.length ?? 0),
       0,

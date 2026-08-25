@@ -125,6 +125,7 @@ export function MentionComposer({
       </div>
       <textarea
         name={name}
+        value={value}
         placeholder={placeholder}
         required
         rows={2}

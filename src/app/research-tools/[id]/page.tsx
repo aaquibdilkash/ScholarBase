@@ -89,6 +89,7 @@ const ResearchToolDetailPage = async ({
       discussion={
            <CommentSection
              comments={tool.comments}
+             totalComments={tool.totalComments}
              targetId={tool.id}
              module="researchTool"
              currentUserId={user?.id || null}

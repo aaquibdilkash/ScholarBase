@@ -101,6 +101,7 @@ export default async function RecommendationDetailPage({
       discussion={
         <CommentSection
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}
+          totalComments={recommendation.totalComments}
           targetId={recommendation.id}
           module="recommendation"
           currentUserId={user?.id ?? null}

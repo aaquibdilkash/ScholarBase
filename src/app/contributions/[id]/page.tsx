@@ -105,6 +105,7 @@ const ContributionDetailPage = async ({
       discussion={
         <CommentSection
           comments={contribution.comments}
+          totalComments={contribution.totalComments}
           targetId={contribution.id}
           module="contribution"
           currentUserId={user?.id || null}

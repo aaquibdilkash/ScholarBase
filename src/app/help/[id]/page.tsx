@@ -89,6 +89,7 @@ export default async function HelpPostPage({
       discussion={
         <CommentSection
           comments={post.comments}
+          totalComments={post.totalComments}
           targetId={post.id}
           module="help"
           currentUserId={user?.id ?? null}

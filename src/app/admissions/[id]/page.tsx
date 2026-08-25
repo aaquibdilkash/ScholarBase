@@ -114,6 +114,7 @@ const AdmissionDetailPage = async ({
       discussion={
           <CommentSection
             comments={admission.comments}
+            totalComments={admission.totalComments}
             targetId={admission.id}
             module="admission"
             currentUserId={user?.id || null}

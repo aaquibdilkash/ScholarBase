@@ -57,7 +57,7 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
       footerVoteButton={<VoteButton targetId={grant.id} module="RESEARCH_GRANT" initialTotalVotes={grant.totalVotes} initialUserVote={userVote} />}
       footerCommentsHref={`/grants/${grant.id}#comments`}
       footerCommentsCount={grant.totalComments}
-      discussion={<CommentSection comments={grant.comments} targetId={grant.id} module="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author.id} />}
+      discussion={<CommentSection comments={grant.comments} totalComments={grant.totalComments} targetId={grant.id} module="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author.id} />}
     >
       <h1 className="mb-2 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{grant.title}</h1>
       {grant.amount && (

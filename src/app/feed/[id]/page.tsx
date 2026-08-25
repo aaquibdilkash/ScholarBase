@@ -96,6 +96,7 @@ export default async function SinglePostPage({
       discussion={
         <CommentSection
           comments={p.comments as CommentWithAuthorAndVotes[]}
+          totalComments={p.totalComments}
           targetId={p.id}
           module="post"
           currentUserId={user?.id ?? null}

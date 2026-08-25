@@ -66,7 +66,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       footerVoteButton={<VoteButton targetId={course.id} module="COURSE" initialTotalVotes={course.totalVotes} initialUserVote={userVote} />}
       footerCommentsHref={`/learn/${course.id}#comments`}
       footerCommentsCount={course.totalComments}
-      discussion={<CommentSection comments={course.comments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author.id} />}
+      discussion={<CommentSection comments={course.comments} totalComments={course.totalComments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author.id} />}
     >
       <h1 className="mb-3 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{course.title}</h1>
       {details.length > 0 && (

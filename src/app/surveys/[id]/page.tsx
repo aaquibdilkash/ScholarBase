@@ -118,6 +118,7 @@ const SurveyDetailPage = async ({
       discussion={
         <CommentSection
           comments={survey.comments}
+          totalComments={survey.totalComments}
           targetId={survey.id}
           module="survey"
           currentUserId={user?.id || null}

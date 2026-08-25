@@ -134,6 +134,7 @@ const VacancyDetailPage = ({
       discussion={
            <CommentSection
               comments={vacancy.comments as CommentWithAuthorAndVotes[]}
+              totalComments={vacancy.totalComments}
              targetId={vacancy.id}
              module="vacancy"
              currentUserId={user?.id || null}

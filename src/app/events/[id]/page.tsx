@@ -119,6 +119,7 @@ const EventDetailPage = async ({
       discussion={
            <CommentSection
              comments={event.comments}
+             totalComments={event.totalComments}
              targetId={event.id}
              module="event"
              currentUserId={user?.id || null}

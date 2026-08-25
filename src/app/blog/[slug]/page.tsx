@@ -84,6 +84,7 @@ export default async function ArticlePage({
       discussion={
            <CommentSection
              comments={a.comments}
+             totalComments={a.totalComments}
              targetId={a.id}
              module="article"
              currentUserId={user?.id ?? null}

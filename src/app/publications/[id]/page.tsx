@@ -104,6 +104,7 @@ const PublicationDetailPage = async ({
       discussion={
            <CommentSection
              comments={p.comments}
+             totalComments={p.totalComments}
              targetId={p.id}
              module="publication"
              currentUserId={user?.id ?? null}

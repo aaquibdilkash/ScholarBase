@@ -108,6 +108,7 @@ export default async function SupervisorPage({
       discussion={
         <CommentSection
           comments={supervisor.comments}
+          totalComments={supervisor.totalComments}
           targetId={supervisor.id}
           module="supervisor"
           currentUserId={user?.id ?? null}
