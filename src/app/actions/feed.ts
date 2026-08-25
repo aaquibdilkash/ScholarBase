@@ -33,7 +33,7 @@ const getFeed = async (
   userId?: string,
   tab?: string,
   q?: string,
-  limit = 20,
+  limit = 10,
   cursor?: string,
 ) => {
   const isFollowingTab = tab === 'following'
@@ -226,7 +226,7 @@ export async function createSocialPost(formData: FormData) {
     await Promise.all([
         notifyFollowersOfActivity({
             actorId: authUser.id,
-            type: 'post-published',
+            type: 'content-published',
             targetType: 'post',
             targetId: post.id,
             title: `${user.name || user.email?.split('@')[0] || 'Someone'} posted an update`,

@@ -37,7 +37,7 @@ export async function createJournal(formData: FormData) {
             data: {
                 userId: user.id,
                 action: 'PUBLISHED',
-                 moduleType: 'JOURNAL',
+                moduleType: 'JOURNAL',
                 entityId: newJournal.id,
                 entityTitle: newJournal.title,
             }
@@ -53,7 +53,7 @@ export async function createJournal(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'journal-published',
+        type: 'content-published',
         targetType: 'Journal',
         targetId: journal.id,
         title: `${user.email?.split('@')[0] || 'Someone'} added a new journal`,
@@ -139,7 +139,7 @@ export async function deleteJournal(journalId: string) {
     return { success: true, data: { deletedId: journalId } }
 }
 
-export async function getJournals(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getJournals(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.JournalWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -234,7 +234,7 @@ export async function getJournalById(journalId: string, userId?: string) {
                     content: true,
                     createdAt: true,
                     updatedAt: true,
-            editedAt: true,
+                    editedAt: true,
                     parentId: true,
                     authorId: true,
                     author: {
@@ -255,7 +255,7 @@ export async function getJournalById(journalId: string, userId?: string) {
                             content: true,
                             createdAt: true,
                             updatedAt: true,
-            editedAt: true,
+                            editedAt: true,
                             parentId: true,
                             authorId: true,
                             author: {

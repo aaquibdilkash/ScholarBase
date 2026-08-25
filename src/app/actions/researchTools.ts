@@ -44,7 +44,7 @@ export async function createResearchTool(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'research-tool-published',
+        type: 'content-published',
         targetType: 'ResearchTool',
         targetId: tool.id,
         title: `${user.email?.split('@')[0] || 'Someone'} added a new research tool`,
@@ -117,7 +117,7 @@ export async function deleteResearchTool(toolId: string) {
 }
 
 
-export async function getResearchTools(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getResearchTools(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.ResearchToolWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -198,7 +198,7 @@ export async function getResearchToolById(toolId: string, userId?: string) {
                     content: true,
                     createdAt: true,
                     updatedAt: true,
-            editedAt: true,
+                    editedAt: true,
                     author: {
                         select: { id: true, name: true, handle: true, avatarUrl: true },
                     },
@@ -212,7 +212,7 @@ export async function getResearchToolById(toolId: string, userId?: string) {
                             content: true,
                             createdAt: true,
                             updatedAt: true,
-            editedAt: true,
+                            editedAt: true,
                             author: {
                                 select: { id: true, name: true, handle: true, avatarUrl: true },
                             },

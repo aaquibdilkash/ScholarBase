@@ -53,7 +53,7 @@ export async function createPublication(formData: FormData) {
             data: {
                 userId: user.id,
                 action: 'PUBLISHED',
-                 moduleType: 'PUBLICATION',
+                moduleType: 'PUBLICATION',
                 entityId: newPublication.id,
                 entityTitle: newPublication.title,
             }
@@ -69,7 +69,7 @@ export async function createPublication(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'publication-published',
+        type: 'content-published',
         targetType: 'Publication',
         targetId: publication.id,
         title: `${user.email?.split('@')[0] || 'Someone'} published a new paper`,
@@ -171,7 +171,7 @@ export async function deletePublication(publicationId: string) {
     return { success: true, data: { deletedId: publicationId } }
 }
 
-export async function getPublications(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getPublications(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.PublicationWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -275,7 +275,7 @@ export async function getPublicationById(publicationId: string, userId?: string)
                     content: true,
                     createdAt: true,
                     updatedAt: true,
-            editedAt: true,
+                    editedAt: true,
                     parentId: true,
                     authorId: true,
                     author: {
@@ -296,7 +296,7 @@ export async function getPublicationById(publicationId: string, userId?: string)
                             content: true,
                             createdAt: true,
                             updatedAt: true,
-            editedAt: true,
+                            editedAt: true,
                             parentId: true,
                             authorId: true,
                             author: {

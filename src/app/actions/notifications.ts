@@ -7,7 +7,7 @@ const notificationInclude = {
     actor: true,
 } as const;
 
-export async function getNotifications(userId: string, limit = 20, cursor?: string) {
+export async function getNotifications(userId: string, limit = 10, cursor?: string) {
     const notifications = await prisma.notification.findMany({
         where: { recipientId: userId },
         include: notificationInclude,

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Notification } from "@prisma/client";
 import { getNotifications } from "@/app/actions/notifications";
-import { getNotificationLink } from "@/lib/notifications";
+import { getNotificationLink } from "@/lib/notification-links";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 import Image from "next/image";
@@ -25,38 +25,10 @@ type NotificationWithActor = Notification & {
 
 function typeLabel(type: string) {
   switch (type) {
-    case "article-upvoted":
-      return "Article upvote";
-    case "post-upvoted":
-      return "Post upvote";
-    case "vacancy-upvoted":
-      return "Vacancy upvote";
-    case "admission-upvoted":
-      return "Admission upvote";
-    case "event-upvoted":
-      return "Event upvote";
-    case "recommendation-upvoted":
-      return "Recommendation upvote";
-    case "help-post-upvoted":
-      return "Help post upvote";
-    case "journal-upvoted":
-      return "Journal upvote";
-    case "contribution-upvoted":
-      return "Contribution upvote";
-    case "publication-upvoted":
-      return "Publication upvote";
-    case "research-tool-upvoted":
-      return "Research tool upvote";
-    case "research-grant-upvoted":
-      return "Research grant upvote";
-    case "course-upvoted":
-      return "Course upvote";
-    case "survey-upvoted":
-      return "Survey upvote";
-    case "supervisor-upvoted":
-      return "Supervisor upvote";
-    case "result-upvoted":
-      return "Result upvote";
+    case "content-upvoted":
+      return "Upvote";
+    case "content-published":
+      return "New post";
     case "comment-created":
       return "Comment";
     case "reply-created":
@@ -65,10 +37,8 @@ function typeLabel(type: string) {
       return "Follow";
     case "mention":
       return "Mention";
-    case "article-published":
-      return "New article";
-    case "post-published":
-      return "New post";
+    case "message-received":
+      return "New message";
     case "contribution-approved":
       return "Contribution approved";
     case "contribution-rejected":
@@ -155,7 +125,7 @@ export function NotificationsList({
   initialNotifications: NotificationWithActor[];
   initialUnreadCount: number;
 }) {
-  const [hasMore, setHasMore] = useState(initialNotifications.length === 20);
+  const [hasMore, setHasMore] = useState(initialNotifications.length === 10);
   const [loadingMore, setLoadingMore] = useState(false);
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => ["notifications", userId], [userId]);
@@ -163,7 +133,7 @@ export function NotificationsList({
   const { data: notifications = [] } = useQuery({
     queryKey,
     queryFn: async () => {
-      const items = await getNotifications(userId, 20);
+      const items = await getNotifications(userId, 10);
       return items as NotificationWithActor[];
     },
     initialData: initialNotifications,
@@ -178,9 +148,9 @@ export function NotificationsList({
         notifications.length > 0
           ? notifications[notifications.length - 1].id
           : undefined;
-      const newItems = await getNotifications(userId, 20, lastItemId);
+      const newItems = await getNotifications(userId, 10, lastItemId);
 
-      if (newItems.length === 20) {
+      if (newItems.length === 10) {
         setHasMore(true);
       } else {
         setHasMore(false);

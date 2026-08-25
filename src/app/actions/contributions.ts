@@ -7,7 +7,7 @@ import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { deleteFromCloudinary } from '@/app/actions/cloudinary'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getContributions(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getContributions(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.ContributionWhereInput = {
         isDeleted: false,
         status: 'APPROVED',
@@ -179,7 +179,7 @@ export async function createContribution(formData: FormData) {
     // This is a fire-and-forget notification
     notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'contribution-published',
+        type: 'content-published',
         targetType: 'Contribution',
         targetId: contribution.id,
         title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} made a contribution`,

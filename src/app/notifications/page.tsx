@@ -21,7 +21,7 @@ export default async function NotificationsPage() {
     where: { recipientId: user.id },
     include: { actor: true },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 10,
   });
 
   const unreadCount = notifications.filter(

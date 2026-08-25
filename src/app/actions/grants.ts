@@ -47,7 +47,7 @@ export async function createResearchGrant(formData: FormData) {
 
   await notifyFollowersOfActivity({
     actorId: user.id,
-    type: 'research-grant-published',
+    type: 'content-published',
     targetType: 'ResearchGrant',
     targetId: grant.id,
     title: `${user.email?.split('@')[0] || 'Someone'} shared a research grant`,
@@ -127,7 +127,7 @@ export async function deleteResearchGrant(grantId: string) {
   return { success: true, data: { deletedId: grantId } }
 }
 
-export async function getResearchGrants(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getResearchGrants(q?: string, userId?: string, limit = 10, cursor?: string) {
   const where: Prisma.ResearchGrantWhereInput = {
     isDeleted: false,
     ...(q && {

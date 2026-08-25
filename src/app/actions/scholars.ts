@@ -15,7 +15,7 @@ const inviteSchema = z.object({
   message: z.string().min(1, { message: 'A message is required' }),
 })
 
-export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'latest', currentUserId?: string, limit = 20, cursor?: string) {
+export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'latest', currentUserId?: string, limit = 10, cursor?: string) {
   const orderBy: Prisma.UserOrderByWithRelationInput[] =
     sort === 'reputation'
       ? [{ reputation: 'desc' }, { createdAt: 'desc' }]

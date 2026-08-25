@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, slugify } from '@/lib/form'
 import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
 
-export async function getArticles(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getArticles(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.ArticleWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -166,7 +166,7 @@ export async function createArticle(formData: FormData) {
     await Promise.all([
         notifyFollowersOfActivity({
             actorId: user.id,
-            type: 'article-published',
+            type: 'content-published',
             targetType: 'Article',
             targetId: article.id,
             title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} published a new article`,

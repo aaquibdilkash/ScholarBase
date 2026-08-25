@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getResults(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getResults(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.ResultWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -94,7 +94,7 @@ export async function getResult(id: string, userId?: string) {
                     content: true,
                     createdAt: true,
                     updatedAt: true,
-            editedAt: true,
+                    editedAt: true,
                     parentId: true,
                     authorId: true,
                     author: {
@@ -110,7 +110,7 @@ export async function getResult(id: string, userId?: string) {
                             content: true,
                             createdAt: true,
                             updatedAt: true,
-            editedAt: true,
+                            editedAt: true,
                             parentId: true,
                             authorId: true,
                             author: {
@@ -148,7 +148,7 @@ export async function createResult(formData: FormData) {
             data: {
                 userId: user.id,
                 action: 'PUBLISHED',
-                 moduleType: 'RESULT',
+                moduleType: 'RESULT',
                 entityId: newResult.id,
                 entityTitle: newResult.title,
             }
@@ -163,7 +163,7 @@ export async function createResult(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'result-published',
+        type: 'content-published',
         targetType: 'Result',
         targetId: result.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new result`,

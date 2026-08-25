@@ -15,6 +15,14 @@
     {
       "path": "/api/cron/trim-activities",
       "schedule": "10 3 * * *"
+    },
+    {
+      "path": "/api/cron/trim-notifications",
+      "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/trim-soft-deleted-posts",
+      "schedule": "20 3 * * *"
     }
   ]
 }

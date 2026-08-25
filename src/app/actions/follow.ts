@@ -77,7 +77,7 @@ export async function getFollowers(userId: string, currentUserId?: string, take:
 export async function getFollowersWithCursor(
   userId: string,
   currentUserId?: string,
-  take: number = 20,
+  take: number = 10,
   cursor?: string
 ) {
   const follows = await prisma.follows.findMany({
@@ -153,7 +153,7 @@ export async function getFollowing(userId: string, currentUserId?: string, take:
 export async function getFollowingWithCursor(
   userId: string,
   currentUserId?: string,
-  take: number = 20,
+  take: number = 10,
   cursor?: string
 ) {
   const follows = await prisma.follows.findMany({

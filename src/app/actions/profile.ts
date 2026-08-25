@@ -245,7 +245,7 @@ export async function getProfileSection(
 // and voted on. Returns a flat, unified list for rendering.
 // ─────────────────────────────────────────────────────────────
 
-export async function getProfileActivity(profileId: string, take = 20) {
+export async function getProfileActivity(profileId: string, take = 10) {
     if (!profileId) return [];
 
     return prisma.userActivity.findMany({
@@ -299,7 +299,7 @@ export async function updateProfile(formData: FormData) {
         await deleteFromCloudinary(user.avatarUrl);
     }
 
-        await prisma.user.update({
+    await prisma.user.update({
         where: { id: user.id },
         data: {
             handle: newHandle ? normalizeHandle(newHandle) : user.handle,

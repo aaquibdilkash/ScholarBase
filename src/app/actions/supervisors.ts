@@ -4,36 +4,36 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 
-export async function getSupervisors(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getSupervisors(q?: string, userId?: string, limit = 10, cursor?: string) {
   return prisma.supervisor.findMany({
     where: { isDeleted: false, ...(q && { name: { contains: q, mode: "insensitive" } }) },
     take: limit,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
-        id: true,
-        name: true,
-        university: true,
-        department: true,
-        createdAt: true,
-        authorId: true,
-        author: {
-            select: {
-                id: true,
-                name: true,
-                handle: true,
-                avatarUrl: true,
-                followers: userId
-                    ? { where: { followerId: userId }, select: { followerId: true } }
-                    : false,
-            },
+      id: true,
+      name: true,
+      university: true,
+      department: true,
+      createdAt: true,
+      authorId: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: userId
+            ? { where: { followerId: userId }, select: { followerId: true } }
+            : false,
         },
-                totalVotes: true,
-        totalComments: true,
-        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-        // Zero-compute materialized aggregates (Rule 2): count + avg derive
-        // from these scalars. No recommendation rows are fetched.
-        recommendationCount: true,
-        ratingSum: true,
+      },
+      totalVotes: true,
+      totalComments: true,
+      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      // Zero-compute materialized aggregates (Rule 2): count + avg derive
+      // from these scalars. No recommendation rows are fetched.
+      recommendationCount: true,
+      ratingSum: true,
     },
   });
 }
@@ -42,86 +42,86 @@ export async function getSupervisor(id: string, userId?: string) {
   return prisma.supervisor.findUnique({
     where: { id, isDeleted: false },
     select: {
-        id: true,
-        name: true,
-        university: true,
-        department: true,
-        about: true,
-        authorId: true,
-        createdAt: true,
-        updatedAt: true,
-        author: {
-            select: {
-                id: true,
-                name: true,
-                handle: true,
-                avatarUrl: true,
-                followers: userId
-                    ? { where: { followerId: userId }, select: { followerId: true } }
-                    : false,
-            },
+      id: true,
+      name: true,
+      university: true,
+      department: true,
+      about: true,
+      authorId: true,
+      createdAt: true,
+      updatedAt: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: userId
+            ? { where: { followerId: userId }, select: { followerId: true } }
+            : false,
         },
-        totalVotes: true,
-        totalComments: true,
-        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-        recommendations: {
-            where: { isDeleted: false },
-            orderBy: { createdAt: "desc" },
-            take: 1,
+      },
+      totalVotes: true,
+      totalComments: true,
+      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      recommendations: {
+        where: { isDeleted: false },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          createdAt: true,
+          updatedAt: true,
+          rating: true,
+          feedback: true,
+          turnaroundTimeDays: true,
+          responsivenessScore: true,
+          guidanceScore: true,
+          isAnonymous: true,
+          supervisorId: true,
+          authorId: true,
+          author: {
             select: {
-                id: true,
-                createdAt: true,
-                updatedAt: true,
-                rating: true,
-                feedback: true,
-                turnaroundTimeDays: true,
-                responsivenessScore: true,
-                guidanceScore: true,
-                isAnonymous: true,
-                supervisorId: true,
-                authorId: true,
-                author: {
-                    select: {
-                        id: true,
-                        name: true,
-                        handle: true,
-                        avatarUrl: true,
-                        followers: userId
-                            ? { where: { followerId: userId }, select: { followerId: true } }
-                            : false,
-                    },
-                },
-                totalVotes: true,
-                totalComments: true,
-                votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+              id: true,
+              name: true,
+              handle: true,
+              avatarUrl: true,
+              followers: userId
+                ? { where: { followerId: userId }, select: { followerId: true } }
+                : false,
             },
+          },
+          totalVotes: true,
+          totalComments: true,
+          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
-        comments: {
-            where: { parentId: null },
-            orderBy: { createdAt: "desc" },
+      },
+      comments: {
+        where: { parentId: null },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+          totalVotes: true,
+          totalReplies: true,
+          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+          replies: {
+            orderBy: { createdAt: "asc" },
             select: {
-                id: true,
-                content: true,
-                createdAt: true,
-                updatedAt: true,
-                author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
-                totalVotes: true,
-                totalReplies: true,
-                votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-                replies: {
-                    orderBy: { createdAt: "asc" },
-                    select: {
-                        id: true,
-                        content: true,
-                        createdAt: true,
-                        updatedAt: true,
-                        author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
-                        totalVotes: true,
-                        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-                    },
-                },
+              id: true,
+              content: true,
+              createdAt: true,
+              updatedAt: true,
+              author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+              totalVotes: true,
+              votes: userId ? { where: { userId }, select: { voteType: true } } : false,
             },
+          },
         },
+      },
     },
   });
 }
@@ -141,32 +141,32 @@ export async function getSupervisorRecommendations(
     take,
     orderBy: { createdAt: "desc" },
     select: {
-        id: true,
-        createdAt: true,
-        updatedAt: true,
-        rating: true,
-        feedback: true,
-        turnaroundTimeDays: true,
-        responsivenessScore: true,
-        guidanceScore: true,
-        isAnonymous: true,
-        supervisorId: true,
-        supervisor: { select: { id: true, name: true } },
-        authorId: true,
-        author: {
-            select: {
-                id: true,
-                name: true,
-                handle: true,
-                avatarUrl: true,
-                followers: userId
-                    ? { where: { followerId: userId }, select: { followerId: true } }
-                    : false,
-            },
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      rating: true,
+      feedback: true,
+      turnaroundTimeDays: true,
+      responsivenessScore: true,
+      guidanceScore: true,
+      isAnonymous: true,
+      supervisorId: true,
+      supervisor: { select: { id: true, name: true } },
+      authorId: true,
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followers: userId
+            ? { where: { followerId: userId }, select: { followerId: true } }
+            : false,
         },
-        totalVotes: true,
-        totalComments: true,
-        votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      },
+      totalVotes: true,
+      totalComments: true,
+      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     }
   });
 }
@@ -179,8 +179,8 @@ export async function getSupervisorRecommendationMeta(
   userId?: string,
 ) {
   const recommendations = await prisma.recommendation.findMany({
-      where: { supervisorId, isDeleted: false },
-      select: { id: true, rating: true, authorId: true },
+    where: { supervisorId, isDeleted: false },
+    select: { id: true, rating: true, authorId: true },
   });
 
   const total = recommendations.length;
@@ -194,7 +194,7 @@ export async function getSupervisorRecommendationMeta(
     };
   });
 
-    return {
+  return {
     totalCount: total,
     avgRating,
     ratingDistribution,

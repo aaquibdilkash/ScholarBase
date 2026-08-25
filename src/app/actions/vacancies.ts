@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getVacancies(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getVacancies(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -23,36 +23,36 @@ export async function getVacancies(q?: string, userId?: string, limit = 20, curs
         take: limit,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
         select: {
-          id: true,
-          title: true,
-          institution: true,
-          deadline: true,
-          description: true,
-          notificationLink: true,
-          applyLink: true,
-          createdAt: true,
-          updatedAt: true,
+            id: true,
+            title: true,
+            institution: true,
+            deadline: true,
+            description: true,
+            notificationLink: true,
+            applyLink: true,
+            createdAt: true,
+            updatedAt: true,
             editedAt: true,
-          totalVotes: true,
-          totalComments: true,
-          authorId: true,
-          author: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              avatarUrl: true,
-              ...(userId
-                ? {
-                    followers: {
-                      where: { followerId: userId },
-                      select: { followerId: true },
-                    },
-                  }
-                : {}),
+            totalVotes: true,
+            totalComments: true,
+            authorId: true,
+            author: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
+                    ...(userId
+                        ? {
+                            followers: {
+                                where: { followerId: userId },
+                                select: { followerId: true },
+                            },
+                        }
+                        : {}),
+                },
             },
-          },
-          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -61,71 +61,71 @@ export async function getVacancyById(id: string, userId?: string) {
     return prisma.jobVacancy.findUnique({
         where: { id: id },
         select: {
-          id: true,
-          title: true,
-          institution: true,
-          deadline: true,
-          description: true,
-          notificationLink: true,
-          applyLink: true,
-          createdAt: true,
-          updatedAt: true,
+            id: true,
+            title: true,
+            institution: true,
+            deadline: true,
+            description: true,
+            notificationLink: true,
+            applyLink: true,
+            createdAt: true,
+            updatedAt: true,
             editedAt: true,
-          totalVotes: true,
-          totalComments: true,
-          authorId: true,
-          author: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              avatarUrl: true,
-              followers: userId
-                ? {
-                    where: { followerId: userId },
-                    select: { followerId: true },
-                  }
-                : false,
-            },
-          },
-          comments: {
-            where: { parentId: null },
-            select: {
-              id: true,
-              content: true,
-              createdAt: true,
-              updatedAt: true,
-            editedAt: true,
-              parentId: true,
-              totalVotes: true,
-              totalReplies: true,
-              author: {
-                select: { id: true, name: true, handle: true, avatarUrl: true },
-              },
-              votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-              mentions: true,
-               replies: {
+            totalVotes: true,
+            totalComments: true,
+            authorId: true,
+            author: {
                 select: {
-                  id: true,
-                  content: true,
-                  createdAt: true,
-                  updatedAt: true,
-            editedAt: true,
-                  parentId: true,
-                  totalVotes: true,
-                  totalReplies: true,
-                  author: {
-                    select: { id: true, name: true, handle: true, avatarUrl: true },
-                  },
-                  votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-                  mentions: true,
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
+                    followers: userId
+                        ? {
+                            where: { followerId: userId },
+                            select: { followerId: true },
+                        }
+                        : false,
                 },
-                orderBy: { createdAt: "asc" },
-              },
             },
-            orderBy: { createdAt: "desc" },
-          },
-          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+            comments: {
+                where: { parentId: null },
+                select: {
+                    id: true,
+                    content: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    editedAt: true,
+                    parentId: true,
+                    totalVotes: true,
+                    totalReplies: true,
+                    author: {
+                        select: { id: true, name: true, handle: true, avatarUrl: true },
+                    },
+                    votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+                    mentions: true,
+                    replies: {
+                        select: {
+                            id: true,
+                            content: true,
+                            createdAt: true,
+                            updatedAt: true,
+                            editedAt: true,
+                            parentId: true,
+                            totalVotes: true,
+                            totalReplies: true,
+                            author: {
+                                select: { id: true, name: true, handle: true, avatarUrl: true },
+                            },
+                            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+                            mentions: true,
+                        },
+                        orderBy: { createdAt: "asc" },
+                    },
+                },
+                orderBy: { createdAt: "desc" },
+            },
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }
@@ -176,7 +176,7 @@ export async function createJobVacancy(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'vacancy-published',
+        type: 'content-published',
         targetType: 'vacancy',
         targetId: vacancy.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new academic vacancy`,
@@ -277,35 +277,35 @@ export async function getLatestVacancies(count: number, userId?: string) {
         take: count,
         orderBy: { createdAt: "desc" },
         select: {
-          id: true,
-          title: true,
-          institution: true,
-          deadline: true,
-          description: true,
-          notificationLink: true,
-          applyLink: true,
-          createdAt: true,
-          updatedAt: true,
+            id: true,
+            title: true,
+            institution: true,
+            deadline: true,
+            description: true,
+            notificationLink: true,
+            applyLink: true,
+            createdAt: true,
+            updatedAt: true,
             editedAt: true,
-          totalVotes: true,
-          totalComments: true,
-          author: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              avatarUrl: true,
-              ...(userId
-                ? {
-                    followers: {
-                      where: { followerId: userId },
-                      select: { followerId: true },
-                    },
-                  }
-                : {}),
+            totalVotes: true,
+            totalComments: true,
+            author: {
+                select: {
+                    id: true,
+                    name: true,
+                    handle: true,
+                    avatarUrl: true,
+                    ...(userId
+                        ? {
+                            followers: {
+                                where: { followerId: userId },
+                                select: { followerId: true },
+                            },
+                        }
+                        : {}),
+                },
             },
-          },
-          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+            votes: userId ? { where: { userId }, select: { voteType: true } } : false,
         },
     });
 }

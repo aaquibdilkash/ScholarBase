@@ -5,7 +5,7 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getHelpPosts(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getHelpPosts(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.HelpPostWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -178,7 +178,7 @@ export async function createHelpPost(formData: FormData) {
     // Fire-and-forget notification
     notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'help-post-published',
+        type: 'content-published',
         targetType: 'HelpPost',
         targetId: post.id,
         title: `${user.user_metadata?.name || user.email?.split('@')[0] || 'Someone'} posted a help request`,

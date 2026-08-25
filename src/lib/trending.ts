@@ -36,7 +36,7 @@ export const getTrendingArticles = async () =>
       where: { published: true, isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'article',
   )
@@ -46,7 +46,7 @@ export const getTrendingVacancies = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'vacancy',
   )
@@ -57,7 +57,7 @@ export const getTrendingAdmissions = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'admission',
   )
@@ -68,7 +68,7 @@ export const getTrendingEvents = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'event',
   )
@@ -79,7 +79,7 @@ export const getTrendingSocialPosts = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'social-post',
   )
@@ -89,7 +89,7 @@ export const getTrendingJournals = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'journal',
   )
@@ -100,7 +100,7 @@ export const getTrendingResearchTools = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'researchTool',
   )
@@ -111,7 +111,7 @@ export const getTrendingHelpPosts = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'help-post',
   )
@@ -122,7 +122,7 @@ export const getTrendingResults = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'result',
   )
@@ -133,7 +133,7 @@ export const getTrendingPublications = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'publication',
   )
@@ -144,7 +144,7 @@ export const getTrendingContributions = async () =>
       where: { isDeleted: false, status: 'APPROVED' },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'contribution',
   )
@@ -155,7 +155,7 @@ export const getTrendingSurveys = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'survey',
   )
@@ -166,7 +166,7 @@ export const getTrendingGrants = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'grant',
   )
@@ -177,7 +177,7 @@ export const getTrendingCourses = async () =>
       where: { isDeleted: false },
       include: { author: { select: AUTHOR_SELECT }, ...TRENDING_INCLUDE },
       orderBy: { trendingScore: 'desc' },
-      take: 20,
+      take: 10,
     }),
     'course',
   )
@@ -190,7 +190,7 @@ export async function getTrendingSupervisors() {
       ...TRENDING_INCLUDE,
     },
     orderBy: { trendingScore: 'desc' },
-    take: 20,
+    take: 10,
   })
 
   return supervisors.map((supervisor) => ({
@@ -216,7 +216,7 @@ export async function getTrendingScholars(userId?: string) {
         : false,
     },
     orderBy: { reputation: 'desc' },
-    take: 20,
+    take: 10,
   })
 
   return scholars.map((scholar) => ({

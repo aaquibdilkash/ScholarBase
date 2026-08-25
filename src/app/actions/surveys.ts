@@ -7,7 +7,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getSurveys(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getSurveys(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where = q
         ? {
             OR: [
@@ -107,7 +107,7 @@ export async function getSurvey(id: string, userId?: string) {
                     content: true,
                     createdAt: true,
                     updatedAt: true,
-            editedAt: true,
+                    editedAt: true,
                     parentId: true,
                     authorId: true,
                     totalVotes: true,
@@ -127,7 +127,7 @@ export async function getSurvey(id: string, userId?: string) {
                             content: true,
                             createdAt: true,
                             updatedAt: true,
-            editedAt: true,
+                            editedAt: true,
                             parentId: true,
                             authorId: true,
                             totalVotes: true,
@@ -216,7 +216,7 @@ export async function createSurvey(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'survey-published',
+        type: 'content-published',
         targetType: 'survey',
         targetId: survey.id,
         title: `${user.email?.split('@')[0] || 'Someone'} created a new survey`,
@@ -258,7 +258,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     await prisma.$transaction(async (tx) => {
         const existingQuestions = await tx.surveyQuestion.findMany({
             where: { surveyId, archivedAt: null },
-             select: {
+            select: {
                 id: true,
                 title: true,
                 type: true,

@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getEvents(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getEvents(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.ResearchEventWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -166,7 +166,7 @@ export async function createResearchEvent(formData: FormData) {
 
     await notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'event-published',
+        type: 'content-published',
         targetType: 'ResearchEvent',
         targetId: event.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new research event`,

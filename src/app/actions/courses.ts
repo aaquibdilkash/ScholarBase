@@ -55,7 +55,7 @@ export async function createCourse(formData: FormData) {
 
   notifyFollowersOfActivity({
     actorId: user.id,
-    type: 'course-published',
+    type: 'content-published',
     targetType: 'Course',
     targetId: course.id,
     title: `${user.email?.split('@')[0] || 'Someone'} shared a research course`,
@@ -143,7 +143,7 @@ export async function deleteCourse(courseId: string) {
   return { success: true, data: { deletedId: courseId } }
 }
 
-export async function getCourses(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getCourses(q?: string, userId?: string, limit = 10, cursor?: string) {
   const where: Prisma.CourseWhereInput = {
     isDeleted: false,
     ...(q && {

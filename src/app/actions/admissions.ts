@@ -6,7 +6,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
 
-export async function getAdmissions(q?: string, userId?: string, limit = 20, cursor?: string) {
+export async function getAdmissions(q?: string, userId?: string, limit = 10, cursor?: string) {
     const where: Prisma.PhdAdmissionWhereInput = {
         isDeleted: false,
         ...(q && {
@@ -147,7 +147,7 @@ export async function createPhdAdmission(formData: FormData) {
             data: {
                 userId: user.id,
                 action: 'PUBLISHED',
-                 moduleType: 'PHD_ADMISSION',
+                moduleType: 'PHD_ADMISSION',
                 entityId: newAdmission.id,
                 entityTitle: `${newAdmission.department} at ${newAdmission.university}`,
             }
@@ -163,7 +163,7 @@ export async function createPhdAdmission(formData: FormData) {
 
     notifyFollowersOfActivity({
         actorId: user.id,
-        type: 'admission-published',
+        type: 'content-published',
         targetType: 'PhdAdmission',
         targetId: admission.id,
         title: `${user.email?.split('@')[0] || 'Someone'} posted a new PhD admission`,

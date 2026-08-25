@@ -24,6 +24,9 @@ import {
   MAX_PUBLICATION_KEYWORDS,
   MAX_PUBLICATION_DOMAIN,
   MAX_PUBLICATION_ABSTRACT,
+  MAX_PUBLICATION_VOLUME,
+  MAX_PUBLICATION_ISSUE,
+  MAX_PUBLICATION_PAGES,
 } from "@/lib/constants";
 import type { PublicationWithAuthor } from "@/types/cards";
 
@@ -257,10 +260,13 @@ export default function PublicationForm({
             name="volume"
             placeholder="e.g., 42"
             className="sb-input"
-            maxLength={20}
+            maxLength={MAX_PUBLICATION_VOLUME}
             value={draftFields.volume}
             onChange={(e) => updateDraftField("volume", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.volume.length}/{MAX_PUBLICATION_VOLUME} characters
+          </div>
         </div>
         <div>
           <label className="sb-label">Issue</label>
@@ -268,10 +274,13 @@ export default function PublicationForm({
             name="issue"
             placeholder="e.g., 3"
             className="sb-input"
-            maxLength={20}
+            maxLength={MAX_PUBLICATION_ISSUE}
             value={draftFields.issue}
             onChange={(e) => updateDraftField("issue", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.issue.length}/{MAX_PUBLICATION_ISSUE} characters
+          </div>
         </div>
         <div>
           <label className="sb-label">Pages</label>
@@ -279,10 +288,13 @@ export default function PublicationForm({
             name="pages"
             placeholder="e.g., 123-145"
             className="sb-input"
-            maxLength={30}
+            maxLength={MAX_PUBLICATION_PAGES}
             value={draftFields.pages}
             onChange={(e) => updateDraftField("pages", e.target.value)}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.pages.length}/{MAX_PUBLICATION_PAGES} characters
+          </div>
         </div>
       </div>
 
