@@ -124,14 +124,39 @@ export function JournalCard({
               IF: {journal.impactFactor}
             </span>
           )}
-          {journal.scopus && (
+          {journal.scopusQuartile && journal.scopusQuartile !== "NONE" && (
             <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-              Scopus: {journal.scopus}
+              Scopus: {journal.scopusQuartile}
             </span>
           )}
-          {journal.abdcCategory && (
+          {journal.abdcRanking && journal.abdcRanking !== "NONE" && (
             <span className="rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-700 dark:bg-purple-500/10 dark:text-purple-300">
-              ABDC: {journal.abdcCategory}
+              ABDC: {journal.abdcRanking.replace("_STAR", "*")}
+            </span>
+          )}
+          {journal.wosIndex && journal.wosIndex !== "NONE" && (
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+              WoS: {journal.wosIndex}
+            </span>
+          )}
+          {journal.wosQuartile && journal.wosQuartile !== "NONE" && (
+            <span className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+              WoS Q: {journal.wosQuartile}
+            </span>
+          )}
+          {journal.sjrQuartile && journal.sjrQuartile !== "NONE" && (
+            <span className="rounded-full bg-orange-50 px-2.5 py-1 font-medium text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+              SJR Q: {journal.sjrQuartile}
+            </span>
+          )}
+          {journal.sjrScore != null && (
+            <span className="rounded-full bg-orange-50 px-2.5 py-1 font-medium text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+              SJR: {journal.sjrScore}
+            </span>
+          )}
+          {journal.citeScore != null && (
+            <span className="rounded-full bg-teal-50 px-2.5 py-1 font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">
+              CiteScore: {journal.citeScore}
             </span>
           )}
         </div>

@@ -23,7 +23,7 @@ export default async function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90">
+    <nav className="sticky top-0 z-50 border-b border-white/70 bg-white/70 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90">
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
         <Link href="/" className="hidden items-center gap-3 md:flex">
           <SBIcon className="h-10 w-10 text-[18px]" />

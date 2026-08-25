@@ -37,6 +37,9 @@ export const MAX_JOURNAL_ISSN = 16;
 export const MAX_JOURNAL_DESCRIPTION = 512;
 export const MAX_JOURNAL_PUBLISHER = 64;
 export const MAX_JOURNAL_WEBSITE = 128;
+export const MAX_JOURNAL_IMPACT_FACTOR = 8;
+export const MAX_JOURNAL_CITESCORE = 8;
+export const MAX_JOURNAL_SJR_SCORE = 8;
 
 export const MAX_RESULT_TITLE = 64;
 export const MAX_RESULT_CATEGORY = 32;

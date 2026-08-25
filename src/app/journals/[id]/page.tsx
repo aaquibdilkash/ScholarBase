@@ -133,23 +133,73 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-        {j.scopus && (
+         {j.scopusQuartile && j.scopusQuartile !== "NONE" && (
           <div className="rounded-xl bg-emerald-50 p-3">
             <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
-              Scopus
+              Scopus Quartile
             </p>
             <p className="text-sm font-semibold text-emerald-800 mt-1">
-              {j.scopus}
+              {j.scopusQuartile}
             </p>
           </div>
         )}
-        {j.abdcCategory && (
+         {j.abdcRanking && j.abdcRanking !== "NONE" && (
           <div className="rounded-xl bg-purple-50 p-3">
             <p className="text-xs text-purple-500 font-medium uppercase tracking-wider">
-              ABDC Category
+              ABDC Ranking
             </p>
             <p className="text-sm font-semibold text-purple-800 mt-1">
-              {j.abdcCategory}
+              {j.abdcRanking.replace("_STAR", "*")}
+            </p>
+          </div>
+        )}
+         {j.wosIndex && j.wosIndex !== "NONE" && (
+          <div className="rounded-xl bg-blue-50 p-3">
+            <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
+              Web of Science Index
+            </p>
+            <p className="text-sm font-semibold text-blue-800 mt-1">
+              {j.wosIndex}
+            </p>
+          </div>
+        )}
+         {j.wosQuartile && j.wosQuartile !== "NONE" && (
+          <div className="rounded-xl bg-sky-50 p-3">
+            <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
+              Web of Science Quartile
+            </p>
+            <p className="text-sm font-semibold text-sky-800 mt-1">
+              {j.wosQuartile}
+            </p>
+          </div>
+        )}
+         {j.sjrQuartile && j.sjrQuartile !== "NONE" && (
+          <div className="rounded-xl bg-orange-50 p-3">
+            <p className="text-xs text-orange-500 font-medium uppercase tracking-wider">
+              SJR Quartile
+            </p>
+            <p className="text-sm font-semibold text-orange-800 mt-1">
+              {j.sjrQuartile}
+            </p>
+          </div>
+        )}
+         {j.sjrScore != null && (
+          <div className="rounded-xl bg-orange-50 p-3">
+            <p className="text-xs text-orange-500 font-medium uppercase tracking-wider">
+              SJR Score
+            </p>
+            <p className="text-sm font-semibold text-orange-800 mt-1">
+              {j.sjrScore}
+            </p>
+          </div>
+        )}
+         {j.citeScore != null && (
+          <div className="rounded-xl bg-teal-50 p-3">
+            <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
+              CiteScore
+            </p>
+            <p className="text-sm font-semibold text-teal-800 mt-1">
+              {j.citeScore}
             </p>
           </div>
         )}

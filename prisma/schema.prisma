@@ -48,6 +48,30 @@ enum PublicationType {
   OTHER
 }
 
+enum Quartile {
+  NONE
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+enum WosIndex {
+  NONE
+  SCIE
+  SSCI
+  AHCI
+  ESCI
+}
+
+enum AbdcTier {
+  NONE
+  A_STAR @map("A*")
+  A
+  B
+  C
+}
+
 enum SurveyQuestionType {
   SHORT_TEXT
   LONG_TEXT
@@ -961,8 +985,13 @@ model Journal {
   title        String
   issn         String?
   impactFactor Float?
-  scopus       String?
-  abdcCategory String?
+  scopusQuartile Quartile   @default(NONE)
+  abdcRanking   AbdcTier    @default(NONE)
+  wosIndex       WosIndex    @default(NONE)
+  wosQuartile    Quartile    @default(NONE)
+  sjrQuartile    Quartile    @default(NONE)
+  sjrScore       Float?
+  citeScore      Float?
   publisher    String?
   website      String?
   authorId     String

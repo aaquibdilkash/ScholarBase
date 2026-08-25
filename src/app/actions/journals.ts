@@ -5,6 +5,7 @@ import prisma from '@/lib/db'
 import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
 import { readFormValue, readOptionalFormValue } from '@/lib/form'
 import { notifyFollowersOfActivity } from '@/lib/notifications'
+import type { Quartile, AbdcTier, WosIndex } from '@prisma/client'
 
 export async function createJournal(formData: FormData) {
     const user = await requireCurrentUser('Please log in to submit details.')
@@ -12,8 +13,13 @@ export async function createJournal(formData: FormData) {
     const title = readFormValue(formData, 'title')
     const issn = readOptionalFormValue(formData, 'issn')
     const impactFactor = readOptionalFormValue(formData, 'impactFactor')
-    const scopus = readOptionalFormValue(formData, 'scopus')
-    const abdcCategory = readOptionalFormValue(formData, 'abdcCategory')
+    const scopusQuartile = readOptionalFormValue(formData, 'scopusQuartile')
+    const abdcRanking = readOptionalFormValue(formData, 'abdcRanking')
+    const wosIndex = readOptionalFormValue(formData, 'wosIndex')
+    const wosQuartile = readOptionalFormValue(formData, 'wosQuartile')
+    const sjrQuartile = readOptionalFormValue(formData, 'sjrQuartile')
+    const sjrScore = readOptionalFormValue(formData, 'sjrScore')
+    const citeScore = readOptionalFormValue(formData, 'citeScore')
     const publisher = readOptionalFormValue(formData, 'publisher')
     const website = readOptionalFormValue(formData, 'website')
     const about = readOptionalFormValue(formData, 'about')
@@ -24,8 +30,13 @@ export async function createJournal(formData: FormData) {
                 title,
                 issn,
                 impactFactor: impactFactor ? parseFloat(impactFactor) : null,
-                scopus,
-                abdcCategory,
+                scopusQuartile: scopusQuartile ? (scopusQuartile as Quartile) : undefined,
+                abdcRanking: abdcRanking ? (abdcRanking as AbdcTier) : undefined,
+                wosIndex: wosIndex ? (wosIndex as WosIndex) : undefined,
+                wosQuartile: wosQuartile ? (wosQuartile as Quartile) : undefined,
+                sjrQuartile: sjrQuartile ? (sjrQuartile as Quartile) : undefined,
+                sjrScore: sjrScore ? parseFloat(sjrScore) : null,
+                citeScore: citeScore ? parseFloat(citeScore) : null,
                 publisher,
                 website,
                 about,
@@ -69,8 +80,13 @@ export async function updateJournal(formData: FormData, journalId: string) {
     const title = readFormValue(formData, 'title')
     const issn = readOptionalFormValue(formData, 'issn')
     const impactFactor = readOptionalFormValue(formData, 'impactFactor')
-    const scopus = readOptionalFormValue(formData, 'scopus')
-    const abdcCategory = readOptionalFormValue(formData, 'abdcCategory')
+    const scopusQuartile = readOptionalFormValue(formData, 'scopusQuartile')
+    const abdcRanking = readOptionalFormValue(formData, 'abdcRanking')
+    const wosIndex = readOptionalFormValue(formData, 'wosIndex')
+    const wosQuartile = readOptionalFormValue(formData, 'wosQuartile')
+    const sjrQuartile = readOptionalFormValue(formData, 'sjrQuartile')
+    const sjrScore = readOptionalFormValue(formData, 'sjrScore')
+    const citeScore = readOptionalFormValue(formData, 'citeScore')
     const publisher = readOptionalFormValue(formData, 'publisher')
     const website = readOptionalFormValue(formData, 'website')
     const about = readOptionalFormValue(formData, 'about')
@@ -93,8 +109,13 @@ export async function updateJournal(formData: FormData, journalId: string) {
             title,
             issn,
             impactFactor: impactFactor ? parseFloat(impactFactor) : null,
-            scopus,
-            abdcCategory,
+            scopusQuartile: scopusQuartile ? (scopusQuartile as Quartile) : undefined,
+            abdcRanking: abdcRanking ? (abdcRanking as AbdcTier) : undefined,
+            wosIndex: wosIndex ? (wosIndex as WosIndex) : undefined,
+            wosQuartile: wosQuartile ? (wosQuartile as Quartile) : undefined,
+            sjrQuartile: sjrQuartile ? (sjrQuartile as Quartile) : undefined,
+            sjrScore: sjrScore ? parseFloat(sjrScore) : null,
+            citeScore: citeScore ? parseFloat(citeScore) : null,
             publisher,
             website,
             about,
@@ -200,8 +221,13 @@ export async function getJournalById(journalId: string, userId?: string) {
             title: true,
             issn: true,
             impactFactor: true,
-            scopus: true,
-            abdcCategory: true,
+            scopusQuartile: true,
+            abdcRanking: true,
+            wosIndex: true,
+            wosQuartile: true,
+            sjrQuartile: true,
+            sjrScore: true,
+            citeScore: true,
             publisher: true,
             website: true,
             about: true,

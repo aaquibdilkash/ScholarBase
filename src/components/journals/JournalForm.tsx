@@ -12,19 +12,27 @@ import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import {
   MAX_JOURNAL_TITLE,
-  MAX_JOURNAL_ISSN,
   MAX_JOURNAL_DESCRIPTION,
   MAX_JOURNAL_PUBLISHER,
   MAX_JOURNAL_WEBSITE,
+  MAX_JOURNAL_IMPACT_FACTOR,
+  MAX_JOURNAL_CITESCORE,
+  MAX_JOURNAL_SJR_SCORE,
 } from "@/lib/constants";
+import { QUARTILE_OPTIONS, WOS_INDEX_OPTIONS, ABDC_OPTIONS } from "@/constants/journal-metrics";
 import type { JournalWithAuthor } from "@/types/cards";
 
 export type JournalFormValues = {
   title: string;
   issn: string;
   impactFactor: string;
-  scopus: string;
-  abdcCategory: string;
+  scopusQuartile: string;
+  abdcRanking: string;
+  wosIndex: string;
+  wosQuartile: string;
+  sjrQuartile: string;
+  sjrScore: string;
+  citeScore: string;
   publisher: string;
   website: string;
   about: string;
@@ -44,8 +52,13 @@ export default function JournalForm({
     title: initialValues?.title ?? "",
     issn: initialValues?.issn ?? "",
     impactFactor: initialValues?.impactFactor ?? "",
-    scopus: initialValues?.scopus ?? "",
-    abdcCategory: initialValues?.abdcCategory ?? "",
+    scopusQuartile: initialValues?.scopusQuartile ?? "",
+    abdcRanking: initialValues?.abdcRanking ?? "",
+    wosIndex: initialValues?.wosIndex ?? "",
+    wosQuartile: initialValues?.wosQuartile ?? "",
+    sjrQuartile: initialValues?.sjrQuartile ?? "",
+    sjrScore: initialValues?.sjrScore ?? "",
+    citeScore: initialValues?.citeScore ?? "",
     publisher: initialValues?.publisher ?? "",
     website: initialValues?.website ?? "",
     about: initialValues?.about ?? "",
@@ -103,7 +116,7 @@ export default function JournalForm({
       <CautionNote />
       <div>
         <label className="sb-label">Journal Name</label>
-<input
+        <input
             name="title"
             placeholder="e.g., Journal of Financial Economics"
             className="sb-input"
@@ -119,61 +132,128 @@ export default function JournalForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="sb-label">ISSN</label>
+            <label className="sb-label">WoS Index</label>
+            <select
+              name="wosIndex"
+              value={draftFields.wosIndex}
+              onChange={(e) => updateDraftField("wosIndex", e.target.value)}
+              className="sb-select"
+            >
+              {WOS_INDEX_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="sb-label">WoS Quartile</label>
+            <select
+              name="wosQuartile"
+              value={draftFields.wosQuartile}
+              onChange={(e) => updateDraftField("wosQuartile", e.target.value)}
+              className="sb-select"
+            >
+              {QUARTILE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="sb-label">Scopus Quartile</label>
+            <select
+              name="scopusQuartile"
+              value={draftFields.scopusQuartile}
+              onChange={(e) => updateDraftField("scopusQuartile", e.target.value)}
+              className="sb-select"
+            >
+              {QUARTILE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="sb-label">ABDC Ranking</label>
+            <select
+              name="abdcRanking"
+              value={draftFields.abdcRanking}
+              onChange={(e) => updateDraftField("abdcRanking", e.target.value)}
+              className="sb-select"
+            >
+              {ABDC_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="sb-label">SJR Quartile</label>
+            <select
+              name="sjrQuartile"
+              value={draftFields.sjrQuartile}
+              onChange={(e) => updateDraftField("sjrQuartile", e.target.value)}
+              className="sb-select"
+            >
+              {QUARTILE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="sb-label">SJR Score</label>
             <input
-              name="issn"
-              placeholder="e.g., 0304-405X"
+              name="sjrScore"
+              placeholder="e.g., 2.5"
               className="sb-input"
-              maxLength={MAX_JOURNAL_ISSN}
-              value={draftFields.issn}
-              onChange={(e) => updateDraftField("issn", e.target.value)}
+              maxLength={MAX_JOURNAL_SJR_SCORE}
+              value={draftFields.sjrScore}
+              onChange={(e) => updateDraftField("sjrScore", e.target.value)}
             />
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {draftFields.issn.length}/{MAX_JOURNAL_ISSN} characters
+              {draftFields.sjrScore.length}/{MAX_JOURNAL_SJR_SCORE} characters
             </div>
           </div>
-        <div>
+          <div>
+            <label className="sb-label">CiteScore</label>
+            <input
+              name="citeScore"
+              placeholder="e.g., 8.3"
+              className="sb-input"
+              maxLength={MAX_JOURNAL_CITESCORE}
+              value={draftFields.citeScore}
+              onChange={(e) => updateDraftField("citeScore", e.target.value)}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.citeScore.length}/{MAX_JOURNAL_CITESCORE} characters
+            </div>
+          </div>
+
+      <div>
           <label className="sb-label">Impact Factor</label>
           <input
             name="impactFactor"
             placeholder="e.g., 5.467"
             className="sb-input"
+            maxLength={MAX_JOURNAL_IMPACT_FACTOR}
             value={draftFields.impactFactor}
             onChange={(e) => updateDraftField("impactFactor", e.target.value)}
           />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="sb-label">Scopus Ranking</label>
-          <select
-            name="scopus"
-            value={draftFields.scopus}
-            onChange={(e) => updateDraftField("scopus", e.target.value)}
-            className="sb-select"
-          >
-            <option value="">Select ranking</option>
-            <option value="Q1">Q1</option>
-            <option value="Q2">Q2</option>
-            <option value="Q3">Q3</option>
-            <option value="Q4">Q4</option>
-          </select>
-        </div>
-        <div>
-          <label className="sb-label">ABDC Category</label>
-          <select
-            name="abdcCategory"
-            value={draftFields.abdcCategory}
-            onChange={(e) => updateDraftField("abdcCategory", e.target.value)}
-            className="sb-select"
-          >
-            <option value="">Select category</option>
-            <option value="A*">A*</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-          </select>
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.impactFactor.length}/{MAX_JOURNAL_IMPACT_FACTOR} characters
+          </div>
         </div>
       </div>
 
