@@ -2,6 +2,15 @@
 
 import { X } from "lucide-react";
 import type { QuestionOption, Question } from "@/types/survey";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  SURVEY_QUESTION_TITLE_TIP,
+  SURVEY_QUESTION_TYPE_TIP,
+  SURVEY_QUESTION_REQUIRED_TIP,
+  SURVEY_QUESTION_MIN_TIP,
+  SURVEY_QUESTION_MAX_TIP,
+  SURVEY_QUESTION_OPTION_TIP,
+} from "@/constants/tooltips";
 
 export const QUESTION_TYPES = [
   { value: "SHORT_TEXT", label: "Short Text" },

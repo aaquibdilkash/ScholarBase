@@ -11,6 +11,13 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import type { SupervisorWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  SUPERVISOR_NAME_TIP,
+  SUPERVISOR_UNIVERSITY_TIP,
+  SUPERVISOR_DEPARTMENT_TIP,
+  SUPERVISOR_ABOUT_TIP,
+} from "@/constants/tooltips";
 import {
   MAX_SUPERVISOR_NAME,
   MAX_SUPERVISOR_UNIVERSITY,
@@ -96,7 +103,10 @@ export default function SupervisorForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">Full Name</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Full Name
+          <InfoTooltip message={SUPERVISOR_NAME_TIP} />
+        </label>
         <input
           name="name"
           placeholder="e.g., Prof. John Smith"
@@ -112,7 +122,10 @@ export default function SupervisorForm({
       </div>
 
       <div>
-        <label className="sb-label">University / Institution</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          University / Institution
+          <InfoTooltip message={SUPERVISOR_UNIVERSITY_TIP} />
+        </label>
         <input
           name="university"
           placeholder="e.g., Jamia Millia Islamia"
@@ -128,7 +141,10 @@ export default function SupervisorForm({
       </div>
 
       <div>
-        <label className="sb-label">Department (Optional)</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Department (Optional)
+          <InfoTooltip message={SUPERVISOR_DEPARTMENT_TIP} />
+        </label>
         <input
           name="department"
           placeholder="e.g., Management and Finance"
@@ -143,7 +159,10 @@ export default function SupervisorForm({
       </div>
 
       <div>
-        <label className="sb-label">About (Optional)</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          About (Optional)
+          <InfoTooltip message={SUPERVISOR_ABOUT_TIP} />
+        </label>
         <Editor
           maxLength={MAX_SUPERVISOR_ABOUT}
           value={draftFields.about}

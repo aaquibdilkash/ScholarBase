@@ -12,6 +12,7 @@ import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import {
   MAX_JOURNAL_TITLE,
+  MAX_JOURNAL_ISSN,
   MAX_JOURNAL_DESCRIPTION,
   MAX_JOURNAL_PUBLISHER,
   MAX_JOURNAL_WEBSITE,
@@ -21,6 +22,22 @@ import {
 } from "@/lib/constants";
 import { QUARTILE_OPTIONS, WOS_INDEX_OPTIONS, ABDC_OPTIONS } from "@/constants/journal-metrics";
 import type { JournalWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  JOURNAL_TITLE_TIP,
+  JOURNAL_ISSN_TIP,
+  JOURNAL_IMPACT_FACTOR_TIP,
+  JOURNAL_SCOPUS_QUARTILE_TIP,
+  JOURNAL_ABDC_RANKING_TIP,
+  JOURNAL_WOS_INDEX_TIP,
+  JOURNAL_WOS_QUARTILE_TIP,
+  JOURNAL_SJR_QUARTILE_TIP,
+  JOURNAL_SJR_SCORE_TIP,
+  JOURNAL_CITESCORE_TIP,
+  JOURNAL_PUBLISHER_TIP,
+  JOURNAL_WEBSITE_TIP,
+  JOURNAL_ABOUT_TIP,
+} from "@/constants/tooltips";
 
 export type JournalFormValues = {
   title: string;
@@ -115,7 +132,10 @@ export default function JournalForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">Journal Name</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Journal Name
+          <InfoTooltip message={JOURNAL_TITLE_TIP} />
+        </label>
         <input
             name="title"
             placeholder="e.g., Journal of Financial Economics"
@@ -130,9 +150,30 @@ export default function JournalForm({
           </div>
         </div>
 
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            ISSN
+            <InfoTooltip message={JOURNAL_ISSN_TIP} />
+          </label>
+          <input
+            name="issn"
+            placeholder="e.g., 0304-405X"
+            className="sb-input"
+            maxLength={MAX_JOURNAL_ISSN}
+            value={draftFields.issn}
+            onChange={(e) => updateDraftField("issn", e.target.value)}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.issn.length}/{MAX_JOURNAL_ISSN} characters
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="sb-label">WoS Index</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              WoS Index
+              <InfoTooltip message={JOURNAL_WOS_INDEX_TIP} />
+            </label>
             <select
               name="wosIndex"
               value={draftFields.wosIndex}
@@ -147,7 +188,10 @@ export default function JournalForm({
             </select>
           </div>
           <div>
-            <label className="sb-label">WoS Quartile</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              WoS Quartile
+              <InfoTooltip message={JOURNAL_WOS_QUARTILE_TIP} />
+            </label>
             <select
               name="wosQuartile"
               value={draftFields.wosQuartile}
@@ -165,7 +209,10 @@ export default function JournalForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="sb-label">Scopus Quartile</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Scopus Quartile
+              <InfoTooltip message={JOURNAL_SCOPUS_QUARTILE_TIP} />
+            </label>
             <select
               name="scopusQuartile"
               value={draftFields.scopusQuartile}
@@ -180,7 +227,10 @@ export default function JournalForm({
             </select>
           </div>
           <div>
-            <label className="sb-label">ABDC Ranking</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              ABDC Ranking
+              <InfoTooltip message={JOURNAL_ABDC_RANKING_TIP} />
+            </label>
             <select
               name="abdcRanking"
               value={draftFields.abdcRanking}
@@ -198,7 +248,10 @@ export default function JournalForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="sb-label">SJR Quartile</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              SJR Quartile
+              <InfoTooltip message={JOURNAL_SJR_QUARTILE_TIP} />
+            </label>
             <select
               name="sjrQuartile"
               value={draftFields.sjrQuartile}
@@ -213,7 +266,10 @@ export default function JournalForm({
             </select>
           </div>
           <div>
-            <label className="sb-label">SJR Score</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              SJR Score
+              <InfoTooltip message={JOURNAL_SJR_SCORE_TIP} />
+            </label>
             <input
               name="sjrScore"
               placeholder="e.g., 2.5"
@@ -227,7 +283,10 @@ export default function JournalForm({
             </div>
           </div>
           <div>
-            <label className="sb-label">CiteScore</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              CiteScore
+              <InfoTooltip message={JOURNAL_CITESCORE_TIP} />
+            </label>
             <input
               name="citeScore"
               placeholder="e.g., 8.3"
@@ -242,7 +301,10 @@ export default function JournalForm({
           </div>
 
       <div>
-          <label className="sb-label">Impact Factor</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Impact Factor
+            <InfoTooltip message={JOURNAL_IMPACT_FACTOR_TIP} />
+          </label>
           <input
             name="impactFactor"
             placeholder="e.g., 5.467"
@@ -258,7 +320,10 @@ export default function JournalForm({
       </div>
 
       <div>
-        <label className="sb-label">Publisher</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Publisher
+          <InfoTooltip message={JOURNAL_PUBLISHER_TIP} />
+        </label>
         <input
           name="publisher"
           placeholder="e.g., Elsevier"
@@ -272,7 +337,10 @@ export default function JournalForm({
       </div>
 
       <div>
-        <label className="sb-label">Website</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Website
+          <InfoTooltip message={JOURNAL_WEBSITE_TIP} />
+        </label>
         <input
           name="website"
           placeholder="https://www.sciencedirect.com/journal/..."
@@ -286,7 +354,10 @@ export default function JournalForm({
       </div>
 
       <div>
-        <label className="sb-label">About</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          About
+          <InfoTooltip message={JOURNAL_ABOUT_TIP} />
+        </label>
         <Editor
           value={draftFields.about}
           onChange={(data) => updateDraftField("about", data)}

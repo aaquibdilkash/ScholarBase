@@ -17,6 +17,15 @@ import { useToast } from "@/components/ui/Toast";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 import { MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  RECOMMENDATION_RATING_TIP,
+  RECOMMENDATION_TURNAROUND_TIP,
+  RECOMMENDATION_RESPONSIVENESS_TIP,
+  RECOMMENDATION_GUIDANCE_TIP,
+  RECOMMENDATION_FEEDBACK_TIP,
+  RECOMMENDATION_ANONYMOUS_TIP,
+} from "@/constants/tooltips";
 
 export type RecommendationFormValues = {
   rating: string;
@@ -114,8 +123,9 @@ export default function RecommendationForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-slate-700 mb-2 inline-flex items-center gap-1.5">
           Mentorship Rating
+          <InfoTooltip message={RECOMMENDATION_RATING_TIP} />
         </label>
         <select
           name="rating"
@@ -134,9 +144,10 @@ export default function RecommendationForm({
 
       <div className="grid gap-4 md:grid-cols-2">
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-slate-700 mb-2 inline-flex items-center gap-1.5">
           Feedback Turnaround Time (days)
-          </label>
+          <InfoTooltip message={RECOMMENDATION_TURNAROUND_TIP} />
+        </label>
           <input
             type="number"
             name="turnaroundTimeDays"
@@ -153,8 +164,9 @@ export default function RecommendationForm({
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-2 inline-flex items-center gap-1.5">
             Responsiveness (1-5)
+            <InfoTooltip message={RECOMMENDATION_RESPONSIVENESS_TIP} />
           </label>
           <select
             name="responsivenessScore"
@@ -174,8 +186,9 @@ export default function RecommendationForm({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
+          <label className="block text-sm font-semibold text-slate-700 mb-2 inline-flex items-center gap-1.5">
             Guidance Quality (1-5)
+            <InfoTooltip message={RECOMMENDATION_GUIDANCE_TIP} />
           </label>
           <select
             name="guidanceScore"
@@ -194,8 +207,9 @@ export default function RecommendationForm({
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-2">
+        <label className="block text-sm font-semibold text-slate-700 mb-2 inline-flex items-center gap-1.5">
           Your Feedback
+          <InfoTooltip message={RECOMMENDATION_FEEDBACK_TIP} />
         </label>
         <Editor
           maxLength={MAX_RECOMMENDATION_FEEDBACK}
@@ -214,8 +228,9 @@ export default function RecommendationForm({
           className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
         />
         <span>
-          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1.5">
             Post anonymously
+            <InfoTooltip message={RECOMMENDATION_ANONYMOUS_TIP} />
           </span>
           <span className="block text-xs text-slate-500 dark:text-slate-400">
             Other scholars will see the recommendation, but your name will stay hidden.

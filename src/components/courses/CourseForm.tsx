@@ -22,6 +22,18 @@ import {
   MAX_COURSE_DESCRIPTION,
 } from "@/lib/constants";
 import type { CourseWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  COURSE_TITLE_TIP,
+  COURSE_PROVIDER_TIP,
+  COURSE_INSTRUCTOR_TIP,
+  COURSE_FORMAT_TIP,
+  COURSE_LEVEL_TIP,
+  COURSE_PRICE_TIP,
+  COURSE_DURATION_TIP,
+  COURSE_LINK_TIP,
+  COURSE_DESCRIPTION_TIP,
+} from "@/constants/tooltips";
 
 export type CourseFormValues = {
   title: string;
@@ -106,7 +118,10 @@ export default function CourseForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">Course Title</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Course Title
+          <InfoTooltip message={COURSE_TITLE_TIP} />
+        </label>
         <input
           name="title"
           placeholder="e.g., Research Methodology for Beginners"
@@ -123,7 +138,10 @@ export default function CourseForm({
 
       <div className="grid gap-5 md:grid-cols-2">
         <div>
-          <label className="sb-label">Provider</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Provider
+            <InfoTooltip message={COURSE_PROVIDER_TIP} />
+          </label>
           <input
             name="provider"
             placeholder="YouTube, Udemy, Unacademy, university..."
@@ -137,7 +155,10 @@ export default function CourseForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Instructor</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Instructor
+            <InfoTooltip message={COURSE_INSTRUCTOR_TIP} />
+          </label>
           <input
             name="instructor"
             placeholder="Instructor or channel name"
@@ -154,7 +175,10 @@ export default function CourseForm({
 
       <div className="grid gap-5 md:grid-cols-4">
         <div>
-          <label className="sb-label">Format</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Format
+            <InfoTooltip message={COURSE_FORMAT_TIP} />
+          </label>
           <input
             name="format"
             placeholder="Video, cohort, self-paced"
@@ -168,7 +192,10 @@ export default function CourseForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Level</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Level
+            <InfoTooltip message={COURSE_LEVEL_TIP} />
+          </label>
           <input
             name="level"
             placeholder="Beginner, advanced..."
@@ -182,7 +209,10 @@ export default function CourseForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Price</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Price
+            <InfoTooltip message={COURSE_PRICE_TIP} />
+          </label>
           <input
             name="price"
             placeholder="Free, paid, INR 499..."
@@ -196,7 +226,10 @@ export default function CourseForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Duration</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Duration
+            <InfoTooltip message={COURSE_DURATION_TIP} />
+          </label>
           <input
             name="duration"
             placeholder="2 hours, 4 weeks..."
@@ -212,7 +245,10 @@ export default function CourseForm({
       </div>
 
       <div>
-        <label className="sb-label">Course Link</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Course Link
+          <InfoTooltip message={COURSE_LINK_TIP} />
+        </label>
         <input
           name="link"
           type="url"
@@ -229,8 +265,9 @@ export default function CourseForm({
       </div>
 
       <div>
-        <label className="sb-label">
+        <label className="sb-label inline-flex items-center gap-1.5">
           Learning Outcomes and Instructor Notes
+          <InfoTooltip message={COURSE_DESCRIPTION_TIP} />
         </label>
         <Editor
           value={draftFields.description}

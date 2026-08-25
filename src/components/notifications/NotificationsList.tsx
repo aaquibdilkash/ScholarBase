@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Notification } from "@prisma/client";
 import { getNotifications } from "@/app/actions/notifications";
@@ -169,6 +169,41 @@ export function NotificationsList({
       setLoadingMore(false);
     }
   }, [notifications, userId, hasMore, loadingMore, queryClient, queryKey]);
+
+  useEffect(() => {
+    const handleRead = (event: Event) => {
+      const { delta, notificationId } = (event as CustomEvent<{ delta: number; notificationId: string }>).detail || {};
+      if (typeof delta === "number" && delta > 0 && notificationId) {
+        queryClient.setQueryData<NotificationWithActor[]>(
+          queryKey,
+          (oldData = []) =>
+            oldData.map((notification) =>
+              notification.id === notificationId
+                ? { ...notification, readAt: new Date() }
+                : notification,
+            ),
+        );
+      }
+    };
+
+    const handleAllRead = () => {
+      queryClient.setQueryData<NotificationWithActor[]>(
+        queryKey,
+        (oldData = []) =>
+          oldData.map((notification) => ({
+            ...notification,
+            readAt: new Date(),
+          })),
+      );
+    };
+
+    window.addEventListener("notification-read", handleRead);
+    window.addEventListener("all-notifications-read", handleAllRead);
+    return () => {
+      window.removeEventListener("notification-read", handleRead);
+      window.removeEventListener("all-notifications-read", handleAllRead);
+    };
+  }, [queryClient, queryKey]);
 
   return (
     <div>

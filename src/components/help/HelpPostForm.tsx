@@ -15,6 +15,13 @@ import {
   MAX_HELP_POST_MESSAGE,
 } from "@/lib/constants";
 import type { HelpPostWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  HELP_TITLE_TIP,
+  HELP_CATEGORY_TIP,
+  HELP_SUBJECT_TIP,
+  HELP_MESSAGE_TIP,
+} from "@/constants/tooltips";
 
 export type HelpPostFormValues = {
   title: string;
@@ -109,8 +116,11 @@ export default function HelpPostForm({
     <form onSubmit={onSubmit} className="sb-surface-strong p-8 md:p-10">
       <CautionNote />
       <div className="flex flex-col gap-6">
-        <div>
-          <label className="sb-label">Title</label>
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
+             Title
+             <InfoTooltip message={HELP_TITLE_TIP} />
+           </label>
           <input
             type="text"
             name="title"
@@ -126,8 +136,11 @@ export default function HelpPostForm({
           </div>
         </div>
 
-        <div>
-          <label className="sb-label">Category</label>
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
+             Category
+             <InfoTooltip message={HELP_CATEGORY_TIP} />
+           </label>
           <select
             name="category"
             className="sb-select"
@@ -143,8 +156,11 @@ export default function HelpPostForm({
           </select>
         </div>
 
-        <div>
-          <label className="sb-label">Subject</label>
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
+             Subject
+             <InfoTooltip message={HELP_SUBJECT_TIP} />
+           </label>
           <input
             name="subject"
             placeholder="Short summary of your requirement..."
@@ -159,8 +175,11 @@ export default function HelpPostForm({
           </div>
         </div>
 
-        <div>
-          <label className="sb-label">Message</label>
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
+             Message
+             <InfoTooltip message={HELP_MESSAGE_TIP} />
+           </label>
           <Editor
             value={draftFields.message}
             onChange={(data) => updateDraftField("message", data)}

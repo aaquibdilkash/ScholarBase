@@ -11,6 +11,14 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  GRANT_TITLE_TIP,
+  GRANT_AMOUNT_TIP,
+  GRANT_APPLY_LINK_TIP,
+  GRANT_INFO_LINK_TIP,
+  GRANT_DESCRIPTION_TIP,
+} from "@/constants/tooltips";
 
 import {
   MAX_RESEARCH_GRANT_TITLE,
@@ -98,8 +106,11 @@ export default function ResearchGrantForm({
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
       <CautionNote />
-<div>
-          <label className="sb-label">Grant Title</label>
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Grant Title
+          <InfoTooltip message={GRANT_TITLE_TIP} />
+        </label>
           <input
             name="title"
             placeholder="e.g., Early Career Research Grant 2026"
@@ -115,7 +126,10 @@ export default function ResearchGrantForm({
         </div>
 
         <div>
-          <label className="sb-label">Amount</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Amount
+            <InfoTooltip message={GRANT_AMOUNT_TIP} />
+          </label>
           <input
             name="amount"
             placeholder="e.g., USD 25,000 or Fully funded"
@@ -131,7 +145,10 @@ export default function ResearchGrantForm({
 
         <div className="grid gap-5 md:grid-cols-2">
           <div>
-            <label className="sb-label">Apply Link</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Apply Link
+              <InfoTooltip message={GRANT_APPLY_LINK_TIP} />
+            </label>
             <input
               name="applyLink"
               type="url"
@@ -146,7 +163,10 @@ export default function ResearchGrantForm({
             </div>
           </div>
           <div>
-            <label className="sb-label">Info Link</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Info Link
+              <InfoTooltip message={GRANT_INFO_LINK_TIP} />
+            </label>
             <input
               name="infoLink"
               type="url"
@@ -163,7 +183,10 @@ export default function ResearchGrantForm({
         </div>
 
         <div>
-          <label className="sb-label">How to Apply</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            How to Apply
+            <InfoTooltip message={GRANT_DESCRIPTION_TIP} />
+          </label>
           <Editor
             maxLength={MAX_RESEARCH_GRANT_DESCRIPTION}
             value={draftFields.description}

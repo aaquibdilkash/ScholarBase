@@ -17,6 +17,12 @@ import {
   MAX_ARTICLE_CONTENT,
 } from "@/lib/constants";
 import type { Article } from "@prisma/client";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  ARTICLE_TITLE_TIP,
+  ARTICLE_EXCERPT_TIP,
+  ARTICLE_CONTENT_TIP,
+} from "@/constants/tooltips";
 
 const Editor = dynamic(
   () => import("@/components/ui/Editor").then((m) => m.Editor),
@@ -129,8 +135,11 @@ export function ArticleComposer({
     <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
       <form onSubmit={onSubmit} className="flex flex-col gap-6">
         <CautionNote />
-        <div>
-          <label className="sb-label">Article Title</label>
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
+             Article Title
+             <InfoTooltip message={ARTICLE_TITLE_TIP} />
+           </label>
           <input
             name="title"
             value={draftFields.title}
@@ -145,8 +154,11 @@ export function ArticleComposer({
           </div>
         </div>
 
-        <div>
-          <label className="sb-label">Short Description</label>
+         <div>
+           <label className="sb-label inline-flex items-center gap-1.5">
+             Short Description
+             <InfoTooltip message={ARTICLE_EXCERPT_TIP} />
+           </label>
           <input
             name="excerpt"
             value={draftFields.excerpt}
@@ -163,9 +175,12 @@ export function ArticleComposer({
           </div>
         </div>
 
-        <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <label className="sb-label mb-0">Content</label>
+         <div>
+           <div className="mb-3 flex items-center justify-between gap-3">
+             <label className="sb-label mb-0 inline-flex items-center gap-1.5">
+               Content
+               <InfoTooltip message={ARTICLE_CONTENT_TIP} />
+             </label>
             <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
               SB Editor
             </span>

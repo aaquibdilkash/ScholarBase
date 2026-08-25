@@ -20,6 +20,13 @@ import {
   MAX_RESEARCH_TOOL_USE,
 } from "@/lib/constants";
 import type { ResearchToolWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  RESEARCH_TOOL_NAME_TIP,
+  RESEARCH_TOOL_WEBSITE_TIP,
+  RESEARCH_TOOL_USE_TIP,
+  RESEARCH_TOOL_DESCRIPTION_TIP,
+} from "@/constants/tooltips";
 
 export type ResearchToolFormValues = {
   name: string;
@@ -99,7 +106,10 @@ export default function ResearchToolForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">Tool Name</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Tool Name
+          <InfoTooltip message={RESEARCH_TOOL_NAME_TIP} />
+        </label>
         <input
           name="name"
           placeholder="e.g., Zotero"
@@ -115,7 +125,10 @@ export default function ResearchToolForm({
       </div>
 
       <div>
-        <label className="sb-label">Website</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Website
+          <InfoTooltip message={RESEARCH_TOOL_WEBSITE_TIP} />
+        </label>
         <input
           name="website"
           placeholder="e.g., https://www.zotero.org/"
@@ -131,7 +144,10 @@ export default function ResearchToolForm({
       </div>
 
       <div>
-        <label className="sb-label">Primary Use</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Primary Use
+          <InfoTooltip message={RESEARCH_TOOL_USE_TIP} />
+        </label>
         <input
           name="use"
           placeholder="e.g., Reference Management"
@@ -147,7 +163,10 @@ export default function ResearchToolForm({
       </div>
 
       <div>
-        <label className="sb-label">Description</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Description
+          <InfoTooltip message={RESEARCH_TOOL_DESCRIPTION_TIP} />
+        </label>
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}

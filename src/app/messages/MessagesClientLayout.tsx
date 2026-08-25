@@ -9,7 +9,7 @@ import { formatTimeAgo } from "@/utils/time-ago";
 import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
 import { MessagesLayoutContext } from "./messages-context";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"; 
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
 type Message = { body: string; createdAt?: Date | string; created_at?: Date | string; senderId?: string; sender_id?: string; };
@@ -23,21 +23,36 @@ type MessageRow = {
   conversation_id?: string;
   conversationId?: string;
   created_at: string;
-  createdAt?: string; 
+  createdAt?: string;
+};
+
+type PresenceState = {
+  [userId: string]: Array<{
+    online_at?: string;
+  }>;
 };
 
 function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
-  
-  const inboxRef = useRef<InboxConversation[]>([]); 
-  const [isLoading, setIsLoading] = useState(true); 
-  const [searchQuery, setSearchQuery] = useState(""); 
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [, setTick] = useState(0);
+
+  const inboxRef = useRef<InboxConversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const pathname = usePathname();
-  const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!; 
+  const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!;
 
   useEffect(() => {
     inboxRef.current = inbox;
   }, [inbox]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -50,6 +65,44 @@ function ConversationSidebar({ user }: { user: User | null }) {
       setInbox([]);
       setIsLoading(false);
     }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const presenceChannel = supabase.channel('online-presence', {
+      config: { presence: { key: user.id } },
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState() as PresenceState;
+        const onlineIds = new Set(Object.keys(state));
+        setOnlineUserIds(onlineIds);
+      })
+      .on('presence', { event: 'join' }, ({ key }: { key: string }) => {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.add(key);
+          return next;
+        });
+      })
+      .on('presence', { event: 'leave' }, ({ key }: { key: string }) => {
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      })
+      .subscribe(async (status: string) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -179,17 +232,18 @@ function ConversationSidebar({ user }: { user: User | null }) {
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading conversations...
             </div>
-          ) : filteredInbox.length > 0 ? (
-            <div className="space-y-2 p-2 overflow-x-hidden">
-              {filteredInbox.map((conversation) => {
-                const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
-                const latestMessage = conversation.messages[0];
-                const participantData = conversation.participants.find((p) => p.user.id === user.id);
-                const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
-                const isUnread = conversation.unreadCount > 0 || new Date(conversation.lastMessageAt) > lastReadAt;
-                const isActive = pathname === `/messages/${conversation.id}`;
+           ) : filteredInbox.length > 0 ? (
+             <div className="space-y-2 p-2 overflow-x-hidden">
+               {filteredInbox.map((conversation) => {
+                 const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
+                 const latestMessage = conversation.messages[0];
+                 const participantData = conversation.participants.find((p) => p.user.id === user.id);
+                 const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
+                 const isUnread = conversation.unreadCount > 0 || new Date(conversation.lastMessageAt) > lastReadAt;
+                 const isActive = pathname === `/messages/${conversation.id}`;
+                 const isOtherUserOnline = onlineUserIds.has(otherParticipant?.id || "");
 
-                return (
+                 return (
                   <Link
                     key={conversation.id}
                     href={`/messages/${conversation.id}`}
@@ -215,7 +269,8 @@ function ConversationSidebar({ user }: { user: User | null }) {
                               {otherParticipant?.name?.charAt(0).toUpperCase() || otherParticipant?.handle?.charAt(0).toUpperCase() || "@"}
                             </div>
                           )}
-                          {isUnread && <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-950"></div>}
+                          {isOtherUserOnline && otherParticipant?.id && <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white dark:border-slate-950"></div>}
+                          {!isOtherUserOnline && isUnread && <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-950"></div>}
                         </div>
                         {isSidebarOpen && ( 
                           <div className="min-w-0">

@@ -17,6 +17,15 @@ import {
   MAX_VACANCY_DESCRIPTION,
 } from "@/lib/constants";
 import type { VacancyWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  VACANCY_TITLE_TIP,
+  VACANCY_INSTITUTION_TIP,
+  VACANCY_DEADLINE_TIP,
+  VACANCY_DESCRIPTION_TIP,
+  VACANCY_NOTIFICATION_LINK_TIP,
+  VACANCY_APPLY_LINK_TIP,
+} from "@/constants/tooltips";
 
 export type VacancyFormValues = {
   title: string;
@@ -119,9 +128,12 @@ return (
       onSubmit={onSubmit}
       className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
     >
-        <CautionNote />
+         <CautionNote />
       <div>
-        <label className="sb-label">Job Title</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Job Title
+          <InfoTooltip message={VACANCY_TITLE_TIP} />
+        </label>
         <input
           name="title"
           placeholder="e.g., Assistant Professor (Contractual)"
@@ -138,7 +150,10 @@ return (
       </div>
 
       <div>
-        <label className="sb-label">Institution / College</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Institution / College
+          <InfoTooltip message={VACANCY_INSTITUTION_TIP} />
+        </label>
         <input
           name="institution"
           placeholder="e.g., Delhi University"
@@ -155,7 +170,10 @@ return (
       </div>
 
       <div>
-        <label className="sb-label">Last Date to Apply</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Last Date to Apply
+          <InfoTooltip message={VACANCY_DEADLINE_TIP} />
+        </label>
         <input
           type="date"
           name="deadline"
@@ -168,7 +186,10 @@ return (
       </div>
 
       <div>
-        <label className="sb-label">Details (Pay Scale, Qualifications)</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Details (Pay Scale, Qualifications)
+          <InfoTooltip message={VACANCY_DESCRIPTION_TIP} />
+        </label>
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
@@ -182,7 +203,10 @@ return (
       </div>
 
       <div>
-        <label className="sb-label">Official Advertisement link</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Official Advertisement link
+          <InfoTooltip message={VACANCY_NOTIFICATION_LINK_TIP} />
+        </label>
         <input
           type="url"
           name="notificationLink"
@@ -200,7 +224,10 @@ return (
       </div>
 
       <div>
-        <label className="sb-label">Application Link / Email</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Application Link / Email
+          <InfoTooltip message={VACANCY_APPLY_LINK_TIP} />
+        </label>
         <input
           type="url"
           name="applyLink"

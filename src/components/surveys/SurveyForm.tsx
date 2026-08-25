@@ -18,6 +18,13 @@ import {
   MAX_SURVEY_TITLE,
   MAX_SURVEY_DESCRIPTION,
 } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  SURVEY_TITLE_TIP,
+  SURVEY_DESCRIPTION_TIP,
+  SURVEY_PRIVACY_TIP,
+  SURVEY_SHARE_DATA_TIP,
+} from "@/constants/tooltips";
 
 export type SurveyFormValues = {
   id?: string;
@@ -138,10 +145,11 @@ export default function SurveyForm({
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Survey Details</h2>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-slate-700">
-            Survey Title
-          </label>
+         <div>
+           <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+             Survey Title
+             <InfoTooltip message={SURVEY_TITLE_TIP} />
+           </label>
           <input
             type="text"
             name="title"
@@ -157,10 +165,11 @@ export default function SurveyForm({
           </div>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-slate-700">
-            Description
-          </label>
+         <div>
+           <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+             Description
+             <InfoTooltip message={SURVEY_DESCRIPTION_TIP} />
+           </label>
           <Editor
             maxLength={MAX_SURVEY_DESCRIPTION}
             value={description ?? ""}
@@ -169,10 +178,11 @@ export default function SurveyForm({
           <input type="hidden" name="description" value={description ?? ""} />
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-semibold text-slate-700">
-            Response Privacy Mode
-          </label>
+         <div>
+           <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+             Response Privacy Mode
+             <InfoTooltip message={SURVEY_PRIVACY_TIP} />
+           </label>
           <p className="mb-2 text-xs text-slate-500">
             Control how responses are collected.
           </p>
@@ -227,9 +237,10 @@ export default function SurveyForm({
           <div>
             <label
               htmlFor="shareData"
-              className="cursor-pointer text-sm font-semibold text-slate-700"
+              className="cursor-pointer text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5"
             >
               Share anonymized response data publicly
+              <InfoTooltip message={SURVEY_SHARE_DATA_TIP} />
             </label>
             <p className="mt-0.5 text-xs text-slate-500">
               Allow other researchers to view aggregated response data on the

@@ -29,6 +29,25 @@ import {
   MAX_PUBLICATION_PAGES,
 } from "@/lib/constants";
 import type { PublicationWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  PUBLICATION_TITLE_TIP,
+  PUBLICATION_AUTHORS_TIP,
+  PUBLICATION_TYPE_TIP,
+  PUBLICATION_YEAR_TIP,
+  PUBLICATION_JOURNAL_TIP,
+  PUBLICATION_PUBLISHER_TIP,
+  PUBLICATION_VOLUME_TIP,
+  PUBLICATION_ISSUE_TIP,
+  PUBLICATION_PAGES_TIP,
+  PUBLICATION_DOI_TIP,
+  PUBLICATION_ISBN_TIP,
+  PUBLICATION_URL_TIP,
+  PUBLICATION_KEYWORDS_TIP,
+  PUBLICATION_DOMAIN_TIP,
+  PUBLICATION_ABSTRACT_TIP,
+  PUBLICATION_IS_USER_AUTHOR_TIP,
+} from "@/constants/tooltips";
 
 export type PublicationFormValues = {
   title: string;
@@ -144,7 +163,10 @@ export default function PublicationForm({
       <CautionNote />
       {/* Title */}
       <div>
-        <label className="sb-label">Publication Title *</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Publication Title *
+          <InfoTooltip message={PUBLICATION_TITLE_TIP} />
+        </label>
         <input
           name="title"
           placeholder="e.g., A Novel Approach to Natural Language Processing"
@@ -161,7 +183,10 @@ export default function PublicationForm({
 
       {/* Authors */}
       <div>
-        <label className="sb-label">Authors *</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Authors *
+          <InfoTooltip message={PUBLICATION_AUTHORS_TIP} />
+        </label>
         <input
           name="authors"
           placeholder="e.g., John Doe, Jane Smith, ..."
@@ -179,7 +204,10 @@ export default function PublicationForm({
       {/* Publication Type & Year */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">Publication Type *</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Publication Type *
+            <InfoTooltip message={PUBLICATION_TYPE_TIP} />
+          </label>
           <select
             name="publicationType"
             className="sb-select"
@@ -197,7 +225,10 @@ export default function PublicationForm({
           </select>
         </div>
         <div>
-          <label className="sb-label">Year</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Year
+            <InfoTooltip message={PUBLICATION_YEAR_TIP} />
+          </label>
           <select
             name="year"
             className="sb-select"
@@ -219,7 +250,10 @@ export default function PublicationForm({
       {/* Journal/Conference & Publisher */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">Journal / Conference / Book</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Journal / Conference / Book
+            <InfoTooltip message={PUBLICATION_JOURNAL_TIP} />
+          </label>
           <input
             name="journalOrConference"
             placeholder="e.g., Journal of AI Research"
@@ -236,7 +270,10 @@ export default function PublicationForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Publisher</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Publisher
+            <InfoTooltip message={PUBLICATION_PUBLISHER_TIP} />
+          </label>
           <input
             name="publisher"
             placeholder="e.g., Springer, IEEE"
@@ -255,7 +292,10 @@ export default function PublicationForm({
       {/* Volume, Issue, Pages */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
-          <label className="sb-label">Volume</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Volume
+            <InfoTooltip message={PUBLICATION_VOLUME_TIP} />
+          </label>
           <input
             name="volume"
             placeholder="e.g., 42"
@@ -269,7 +309,10 @@ export default function PublicationForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Issue</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Issue
+            <InfoTooltip message={PUBLICATION_ISSUE_TIP} />
+          </label>
           <input
             name="issue"
             placeholder="e.g., 3"
@@ -283,7 +326,10 @@ export default function PublicationForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Pages</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Pages
+            <InfoTooltip message={PUBLICATION_PAGES_TIP} />
+          </label>
           <input
             name="pages"
             placeholder="e.g., 123-145"
@@ -301,7 +347,10 @@ export default function PublicationForm({
       {/* DOI & ISBN */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">DOI</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            DOI
+            <InfoTooltip message={PUBLICATION_DOI_TIP} />
+          </label>
           <input
             name="doi"
             placeholder="e.g., 10.1000/xyz123"
@@ -315,7 +364,10 @@ export default function PublicationForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">ISBN</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            ISBN
+            <InfoTooltip message={PUBLICATION_ISBN_TIP} />
+          </label>
           <input
             name="isbn"
             placeholder="e.g., 978-0-123-45678-9"
@@ -332,7 +384,10 @@ export default function PublicationForm({
 
       {/* URL */}
       <div>
-        <label className="sb-label">URL</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          URL
+          <InfoTooltip message={PUBLICATION_URL_TIP} />
+        </label>
         <input
           name="url"
           placeholder="https://..."
@@ -349,7 +404,10 @@ export default function PublicationForm({
       {/* Keywords & Domain */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">Keywords</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Keywords
+            <InfoTooltip message={PUBLICATION_KEYWORDS_TIP} />
+          </label>
           <input
             name="keywords"
             placeholder="e.g., NLP, deep learning, transformers"
@@ -363,7 +421,10 @@ export default function PublicationForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Domain / Area</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Domain / Area
+            <InfoTooltip message={PUBLICATION_DOMAIN_TIP} />
+          </label>
           <input
             name="domain"
             placeholder="e.g., Computer Science, Physics"
@@ -380,7 +441,10 @@ export default function PublicationForm({
 
       {/* Abstract */}
       <div>
-        <label className="sb-label">Abstract / Description</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Abstract / Description
+          <InfoTooltip message={PUBLICATION_ABSTRACT_TIP} />
+        </label>
         <Editor
           value={draftFields.abstract}
           onChange={(data) => updateDraftField("abstract", data)}
@@ -406,9 +470,10 @@ export default function PublicationForm({
         />
         <label
           htmlFor="isUserAuthor"
-          className="text-sm font-medium text-slate-700"
+          className="text-sm font-medium text-slate-700 inline-flex items-center gap-1.5"
         >
           I am an author / co-author of this publication
+          <InfoTooltip message={PUBLICATION_IS_USER_AUTHOR_TIP} />
         </label>
       </div>
 

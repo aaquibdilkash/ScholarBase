@@ -22,12 +22,15 @@ export async function getNotifications(userId: string, limit = 10, cursor?: stri
 export async function markNotificationRead(notificationId: string) {
     const user = await requireCurrentUser('Log in to view your notifications.')
 
-    const result = await prisma.notification.updateMany({
+    const notification = await prisma.notification.update({
         where: { id: notificationId, recipientId: user.id },
         data: { readAt: new Date() },
+        include: {
+            actor: true,
+        },
     })
-    return result.count
 
+    return notification
 }
 
 export async function markAllNotificationsRead() {

@@ -23,6 +23,15 @@ import {
   MAX_CONTRIBUTION_TITLE,
   MAX_CONTRIBUTION_MESSAGE,
 } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  CONTRIBUTION_TITLE_TIP,
+  CONTRIBUTION_PAYMENT_METHOD_TIP,
+  CONTRIBUTION_AMOUNT_TIP,
+  CONTRIBUTION_UPI_ID_TIP,
+  CONTRIBUTION_SCREENSHOT_TIP,
+  CONTRIBUTION_MESSAGE_TIP,
+} from "@/constants/tooltips";
 
 export type ContributionFormValues = {
   title: string;
@@ -248,7 +257,10 @@ export default function ContributionForm({
       )}
 
       <div>
-        <label className="sb-label">Title</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Title
+          <InfoTooltip message={CONTRIBUTION_TITLE_TIP} />
+        </label>
         <input
           name="title"
           placeholder="e.g., Server Maintenance Contribution"
@@ -266,7 +278,10 @@ export default function ContributionForm({
       {!isApprovedEdit && (
         <>
           <div>
-            <label className="sb-label">Payment Method</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Payment Method
+              <InfoTooltip message={CONTRIBUTION_PAYMENT_METHOD_TIP} />
+            </label>
             <input
               type="hidden"
               name="paymentMethod"
@@ -291,7 +306,10 @@ export default function ContributionForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="sb-label">Amount (₹, Optional)</label>
+              <label className="sb-label inline-flex items-center gap-1.5">
+                Amount (₹, Optional)
+                <InfoTooltip message={CONTRIBUTION_AMOUNT_TIP} />
+              </label>
               <input
                 type="number"
                 min="10"
@@ -305,8 +323,9 @@ export default function ContributionForm({
               />
             </div>
             <div>
-              <label className="sb-label">
+              <label className="sb-label inline-flex items-center gap-1.5">
                 Transaction ID / UPI ID (Optional)
+                <InfoTooltip message={CONTRIBUTION_UPI_ID_TIP} />
               </label>
               <input
                 name="upiId"
@@ -320,7 +339,10 @@ export default function ContributionForm({
 
           {/* Screenshot Upload */}
           <div>
-            <label className="sb-label">Payment Screenshot (Optional)</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Payment Screenshot (Optional)
+              <InfoTooltip message={CONTRIBUTION_SCREENSHOT_TIP} />
+            </label>
             <div className="mt-1 flex items-center gap-4">
               <label className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
                 <span>{uploading ? "Uploading..." : "Choose Image"}</span>
@@ -379,7 +401,10 @@ export default function ContributionForm({
       )}
 
       <div>
-        <label className="sb-label">Message</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Message
+          <InfoTooltip message={CONTRIBUTION_MESSAGE_TIP} />
+        </label>
         <Editor
           maxLength={MAX_CONTRIBUTION_MESSAGE}
           value={draftFields.message}

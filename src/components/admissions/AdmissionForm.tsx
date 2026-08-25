@@ -21,6 +21,15 @@ import {
   MAX_ADMISSION_APPLY_LINK,
 } from "@/lib/constants";
 import type { AdmissionWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  ADMISSION_UNIVERSITY_TIP,
+  ADMISSION_DEPARTMENT_TIP,
+  ADMISSION_DEADLINE_TIP,
+  ADMISSION_DESCRIPTION_TIP,
+  ADMISSION_NOTIFICATION_LINK_TIP,
+  ADMISSION_APPLY_LINK_TIP,
+} from "@/constants/tooltips";
 
 export type AdmissionFormValues = {
   university: string;
@@ -100,7 +109,10 @@ export default function AdmissionForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">University / Institute</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          University / Institute
+          <InfoTooltip message={ADMISSION_UNIVERSITY_TIP} />
+        </label>
         <input
           name="university"
           placeholder="e.g., Jamia Millia Islamia"
@@ -116,7 +128,10 @@ export default function AdmissionForm({
       </div>
 
       <div>
-        <label className="sb-label">Department / Faculty</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Department / Faculty
+          <InfoTooltip message={ADMISSION_DEPARTMENT_TIP} />
+        </label>
         <input
           name="department"
           placeholder="e.g., Department of Management Studies"
@@ -132,7 +147,10 @@ export default function AdmissionForm({
       </div>
 
       <div>
-        <label className="sb-label">Last Date to Apply</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Last Date to Apply
+          <InfoTooltip message={ADMISSION_DEADLINE_TIP} />
+        </label>
         <input
           type="date"
           name="deadline"
@@ -144,7 +162,10 @@ export default function AdmissionForm({
       </div>
 
       <div>
-        <label className="sb-label">Seat Matrix / Eligibility Notes</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Seat Matrix / Eligibility Notes
+          <InfoTooltip message={ADMISSION_DESCRIPTION_TIP} />
+        </label>
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
@@ -158,7 +179,10 @@ export default function AdmissionForm({
       </div>
 
       <div>
-        <label className="sb-label">Notification Circular URL</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Notification Circular URL
+          <InfoTooltip message={ADMISSION_NOTIFICATION_LINK_TIP} />
+        </label>
         <input
           type="url"
           name="notificationLink"
@@ -175,7 +199,10 @@ export default function AdmissionForm({
       </div>
 
       <div>
-        <label className="sb-label">Application Portal URL</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Application Portal URL
+          <InfoTooltip message={ADMISSION_APPLY_LINK_TIP} />
+        </label>
         <input
           type="url"
           name="applyLink"

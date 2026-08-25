@@ -20,6 +20,17 @@ import {
   MAX_RESULT_RESULT_LINK,
 } from "@/lib/constants";
 import type { ResultWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  RESULT_TITLE_TIP,
+  RESULT_TYPE_TIP,
+  RESULT_CATEGORY_TIP,
+  RESULT_CONDUCTING_BODY_TIP,
+  RESULT_SESSION_TIP,
+  RESULT_DESCRIPTION_TIP,
+  RESULT_NOTIFICATION_LINK_TIP,
+  RESULT_RESULT_LINK_TIP,
+} from "@/constants/tooltips";
 
 export type ResultFormValues = {
   title: string;
@@ -115,7 +126,10 @@ export default function ResultForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">Title</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Title
+          <InfoTooltip message={RESULT_TITLE_TIP} />
+        </label>
         <input
           name="title"
           placeholder="e.g., UGC NET June 2024 Results Declared"
@@ -132,7 +146,10 @@ export default function ResultForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">Result Type</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Result Type
+            <InfoTooltip message={RESULT_TYPE_TIP} />
+          </label>
           <select
             name="type"
             className="sb-select"
@@ -148,7 +165,10 @@ export default function ResultForm({
           </select>
         </div>
         <div>
-          <label className="sb-label">Category (Optional)</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Category (Optional)
+            <InfoTooltip message={RESULT_CATEGORY_TIP} />
+          </label>
           <input
             name="category"
             placeholder="e.g., NET, JRF, SET, GATE"
@@ -165,7 +185,10 @@ export default function ResultForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="sb-label">Conducting Body (Optional)</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Conducting Body (Optional)
+            <InfoTooltip message={RESULT_CONDUCTING_BODY_TIP} />
+          </label>
           <input
             name="conductingBody"
             placeholder="e.g., UGC, NTA, CBSE"
@@ -179,7 +202,10 @@ export default function ResultForm({
           </div>
         </div>
         <div>
-          <label className="sb-label">Session (Optional)</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Session (Optional)
+            <InfoTooltip message={RESULT_SESSION_TIP} />
+          </label>
           <input
             name="session"
             placeholder="e.g., June 2024, December 2024"
@@ -195,7 +221,10 @@ export default function ResultForm({
       </div>
 
       <div>
-        <label className="sb-label">Description / Details</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Description / Details
+          <InfoTooltip message={RESULT_DESCRIPTION_TIP} />
+        </label>
         <Editor
           value={draftFields.description}
           onChange={(data) => updateDraftField("description", data)}
@@ -209,7 +238,10 @@ export default function ResultForm({
       </div>
 
       <div>
-        <label className="sb-label">Official Notification URL (Optional)</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Official Notification URL (Optional)
+          <InfoTooltip message={RESULT_NOTIFICATION_LINK_TIP} />
+        </label>
         <input
           type="url"
           name="notificationLink"
@@ -225,7 +257,10 @@ export default function ResultForm({
       </div>
 
       <div>
-        <label className="sb-label">Result / Outcome URL (Optional)</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Result / Outcome URL (Optional)
+          <InfoTooltip message={RESULT_RESULT_LINK_TIP} />
+        </label>
         <input
           type="url"
           name="resultLink"

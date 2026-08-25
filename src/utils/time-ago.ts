@@ -1,9 +1,18 @@
-export function formatTimeAgo(date: Date | string | null | undefined): string {
-  if (!date) return "recently";
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+export function formatTimeAgo(date: Date | string | number | null | undefined): string {
+  if (!date && date !== 0) return "recently";
+  let dateObj: Date;
+  if (typeof date === 'number') {
+    dateObj = new Date(date);
+  } else if (typeof date === 'string') {
+    dateObj = new Date(date);
+  } else {
+    dateObj = date;
+  }
   if (isNaN(dateObj.getTime())) return "recently";
   const now = new Date();
   const diffMs = now.getTime() - dateObj.getTime();
+
+  if (diffMs < 0) return "just now";
 
   const seconds = Math.floor(diffMs / 1000);
   const minutes = Math.floor(seconds / 60);

@@ -18,6 +18,16 @@ import {
   MAX_EVENT_DESCRIPTION,
 } from "@/lib/constants";
 import type { EventWithAuthor } from "@/types/cards";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  EVENT_TITLE_TIP,
+  EVENT_DATE_TIP,
+  EVENT_LOCATION_TIP,
+  EVENT_DEADLINE_TIP,
+  EVENT_DESCRIPTION_TIP,
+  EVENT_NOTIFICATION_LINK_TIP,
+  EVENT_APPLY_LINK_TIP,
+} from "@/constants/tooltips";
 
 export type EventFormValues = {
   title: string;
@@ -100,7 +110,10 @@ export default function EventForm({
     >
       <CautionNote />
       <div>
-        <label className="sb-label">Conference Title</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Conference Title
+          <InfoTooltip message={EVENT_TITLE_TIP} />
+        </label>
 <input
             name="title"
             placeholder="e.g., Annual Conference on Financial Econometrics"
@@ -117,7 +130,10 @@ export default function EventForm({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="sb-label">Event Date</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Event Date
+              <InfoTooltip message={EVENT_DATE_TIP} />
+            </label>
             <input
               type="date"
               name="date"
@@ -128,7 +144,10 @@ export default function EventForm({
             />
           </div>
           <div>
-            <label className="sb-label">Location</label>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Location
+              <InfoTooltip message={EVENT_LOCATION_TIP} />
+            </label>
             <input
               name="location"
               placeholder="e.g., New Delhi, India or Virtual"
@@ -145,7 +164,10 @@ export default function EventForm({
         </div>
 
         <div>
-          <label className="sb-label">Submission Deadline (Optional)</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Submission Deadline (Optional)
+            <InfoTooltip message={EVENT_DEADLINE_TIP} />
+          </label>
           <input
             type="date"
             name="deadline"
@@ -156,7 +178,10 @@ export default function EventForm({
         </div>
 
         <div>
-          <label className="sb-label">Description / Tracks</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Description / Tracks
+            <InfoTooltip message={EVENT_DESCRIPTION_TIP} />
+          </label>
           <Editor
             value={draftFields.description}
             onChange={(data) => updateDraftField("description", data)}
@@ -170,7 +195,10 @@ export default function EventForm({
         </div>
 
       <div>
-        <label className="sb-label">Official Brochure URL</label>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Official Brochure URL
+          <InfoTooltip message={EVENT_NOTIFICATION_LINK_TIP} />
+        </label>
 <input
             type="url"
             name="notificationLink"
@@ -187,7 +215,10 @@ export default function EventForm({
         </div>
 
         <div>
-          <label className="sb-label">Submission Portal URL</label>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Submission Portal URL
+            <InfoTooltip message={EVENT_APPLY_LINK_TIP} />
+          </label>
           <input
             type="url"
             name="applyLink"

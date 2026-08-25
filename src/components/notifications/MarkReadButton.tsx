@@ -19,9 +19,9 @@ export function MarkReadButton({ notificationId }: { notificationId: string }) {
       onClick={() => {
         startTransition(async () => {
           try {
-            const count = await markNotificationRead(notificationId);
+            await markNotificationRead(notificationId);
             toast("Marked as read", "success");
-            window.dispatchEvent(new CustomEvent('notification-read', { detail: { delta: count } }));
+            window.dispatchEvent(new CustomEvent('notification-read', { detail: { delta: 1, notificationId } }));
           } catch {
             toast("Failed to mark as read. Please try again.", "error");
           }
