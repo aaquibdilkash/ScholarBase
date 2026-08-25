@@ -67,6 +67,7 @@ export async function getSupervisor(id: string, userId?: string) {
         recommendations: {
             where: { isDeleted: false },
             orderBy: { createdAt: "desc" },
+            take: 1,
             select: {
                 id: true,
                 createdAt: true,

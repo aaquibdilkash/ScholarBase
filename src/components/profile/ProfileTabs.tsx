@@ -8,7 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import {
   getProfileSections,
   getProfileActivity,
-  getProfileSectionWithCursor,
+  getProfileSection,
 } from "@/app/actions/profile";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { ArticleCard } from "@/components/blog/ArticleCard";
@@ -278,7 +278,6 @@ export default function ProfileTabs({
   const [sections, setSections] = useState<SectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
-  const [sectionCursors, setSectionCursors] = useState<Record<string, string | null>>({});
   const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>({});
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -290,18 +289,6 @@ export default function ProfileTabs({
       const data = await getProfileSections(profileId, currentUserId, 1);
       setSections(data);
       setSectionHasMore({});
-
-      // Initialize cursors from the last item of each section so paginations
-      // start from the item *after* the initial one
-      const initialCursors: Record<string, string | null> = {};
-      for (const key of Object.keys(data) as (keyof NonNullable<typeof data>)[]) {
-        if (key === 'id' || key === 'counts') continue;
-        const sectionItems = data[key];
-        if (Array.isArray(sectionItems) && sectionItems.length > 0) {
-          initialCursors[key as string] = sectionItems[sectionItems.length - 1].id;
-        }
-      }
-      setSectionCursors(initialCursors);
     } catch (err) {
       console.error("Failed to load profile sections:", err);
     } finally {
@@ -344,37 +331,38 @@ export default function ProfileTabs({
     const currentLoadingKey = loadingMore;
     if (currentLoadingKey) return;
 
-    setLoadingMore(currentLoadingKey as string);
+    setLoadingMore(sectionKey);
     try {
       const currentItems = sections?.[sectionKey] ?? [];
-      const currentCursor = sectionCursors[sectionKey];
-      
-      const result = await getProfileSectionWithCursor(
+      const totalCount = sections?.counts?.[sectionKey] ?? currentItems.length;
+
+      if (currentItems.length >= totalCount) {
+        setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
+        return;
+      }
+
+      const result = await getProfileSection(
         profileId,
         sectionKey,
         currentUserId,
-        currentCursor || undefined,
+        currentItems.length,
         1,
       );
 
-      if (result.items.length > 0) {
+      if (result.length > 0) {
         setSections((prevSections) => ({
           ...(prevSections as NonNullable<SectionData>),
-          [sectionKey]: [...currentItems, ...result.items],
+          [sectionKey]: [...currentItems, ...result],
         }));
-        if (result.nextCursor) {
-          setSectionCursors((prev) => ({ ...prev, [sectionKey]: result.nextCursor }));
-        }
-        if (!result.hasMore && result.items.length < 1) {
-          setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
-        }
+      } else {
+        setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
       }
     } catch (err) {
       console.error(`Failed to load more ${sectionKey}:`, err);
     } finally {
       setLoadingMore(null);
     }
-  }, [sections, sectionCursors, profileId, currentUserId, loadingMore]);
+  }, [sections, profileId, currentUserId, loadingMore]);
 
   const handleContentTabClick = () => {
     setTab("content");
@@ -521,7 +509,7 @@ export default function ProfileTabs({
             SECTIONS.map((section) => {
               const items = sections[section.key] ?? [];
               const count = sections.counts?.[section.key] ?? items.length;
-              const sectionHasMoreItems = sectionHasMore[section.key] !== false && items.length > 0;
+              const sectionHasMoreItems = sectionHasMore[section.key] !== false && items.length < count;
 
               return (
                 <section key={section.key}>
