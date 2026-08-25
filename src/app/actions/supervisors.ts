@@ -1,12 +1,22 @@
-'use server'
+"use server";
 
-import prisma from '@/lib/db'
-import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
-import { readFormValue } from '@/lib/form'
+import { cache } from "react";
 
-export async function getSupervisors(q?: string, userId?: string, limit = 10, cursor?: string) {
+import prisma from "@/lib/db";
+import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { readFormValue } from "@/lib/form";
+
+export async function getSupervisors(
+  q?: string,
+  userId?: string,
+  limit = 10,
+  cursor?: string,
+) {
   return prisma.supervisor.findMany({
-    where: { isDeleted: false, ...(q && { name: { contains: q, mode: "insensitive" } }) },
+    where: {
+      isDeleted: false,
+      ...(q && { name: { contains: q, mode: "insensitive" } }),
+    },
     take: limit,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
@@ -38,7 +48,7 @@ export async function getSupervisors(q?: string, userId?: string, limit = 10, cu
   });
 }
 
-export async function getSupervisor(id: string, userId?: string) {
+export const getSupervisor = cache(async (id: string, userId?: string) => {
   return prisma.supervisor.findUnique({
     where: { id, isDeleted: false },
     select: {
@@ -87,13 +97,18 @@ export async function getSupervisor(id: string, userId?: string) {
               handle: true,
               avatarUrl: true,
               followers: userId
-                ? { where: { followerId: userId }, select: { followerId: true } }
+                ? {
+                    where: { followerId: userId },
+                    select: { followerId: true },
+                  }
                 : false,
             },
           },
           totalVotes: true,
           totalComments: true,
-          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+          votes: userId
+            ? { where: { userId }, select: { voteType: true } }
+            : false,
         },
       },
       comments: {
@@ -104,10 +119,14 @@ export async function getSupervisor(id: string, userId?: string) {
           content: true,
           createdAt: true,
           updatedAt: true,
-          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+          author: {
+            select: { id: true, name: true, handle: true, avatarUrl: true },
+          },
           totalVotes: true,
           totalReplies: true,
-          votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+          votes: userId
+            ? { where: { userId }, select: { voteType: true } }
+            : false,
           replies: {
             orderBy: { createdAt: "asc" },
             select: {
@@ -115,16 +134,20 @@ export async function getSupervisor(id: string, userId?: string) {
               content: true,
               createdAt: true,
               updatedAt: true,
-              author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+              author: {
+                select: { id: true, name: true, handle: true, avatarUrl: true },
+              },
               totalVotes: true,
-              votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+              votes: userId
+                ? { where: { userId }, select: { voteType: true } }
+                : false,
             },
           },
         },
       },
     },
   });
-}
+});
 
 /**
  * Fetch the next batch of recommendations for a supervisor (lazy-loaded carousel).
@@ -167,7 +190,7 @@ export async function getSupervisorRecommendations(
       totalVotes: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-    }
+    },
   });
 }
 
@@ -184,7 +207,10 @@ export async function getSupervisorRecommendationMeta(
   });
 
   const total = recommendations.length;
-  const avgRating = total > 0 ? recommendations.reduce((sum, r) => sum + r.rating, 0) / total : 0;
+  const avgRating =
+    total > 0
+      ? recommendations.reduce((sum, r) => sum + r.rating, 0) / total
+      : 0;
   const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
     const count = recommendations.filter((r) => r.rating === stars).length;
     return {
@@ -198,7 +224,9 @@ export async function getSupervisorRecommendationMeta(
     totalCount: total,
     avgRating,
     ratingDistribution,
-    hasUserRecommendation: !!(userId && recommendations.some((r) => r.authorId === userId)),
+    hasUserRecommendation: !!(
+      userId && recommendations.some((r) => r.authorId === userId)
+    ),
     // Id of the caller's own active recommendation (for "Edit your recommendation" UX)
     userRecommendationId:
       recommendations.find((r) => r.authorId === userId)?.id ?? null,
@@ -206,12 +234,12 @@ export async function getSupervisorRecommendationMeta(
 }
 
 export async function createSupervisor(formData: FormData) {
-  const user = await requireCurrentUser('Log in to add a supervisor entry.')
+  const user = await requireCurrentUser("Log in to add a supervisor entry.");
 
-  const name = readFormValue(formData, 'name')
-  const university = readFormValue(formData, 'university')
-  const department = readFormValue(formData, 'department')
-  const about = readFormValue(formData, 'about')
+  const name = readFormValue(formData, "name");
+  const university = readFormValue(formData, "university");
+  const department = readFormValue(formData, "department");
+  const about = readFormValue(formData, "about");
 
   const supervisor = await prisma.$transaction(async (tx) => {
     const newSupervisor = await tx.supervisor.create({
@@ -221,81 +249,84 @@ export async function createSupervisor(formData: FormData) {
         department,
         about,
         authorId: user.id,
-      }
-    })
+      },
+    });
 
     await tx.user.update({
       where: { id: user.id },
       data: { supervisorCount: { increment: 1 } },
-    })
+    });
 
-    return newSupervisor
-  })
+    return newSupervisor;
+  });
 
-  return { success: true, data: supervisor }
+  return { success: true, data: supervisor };
 }
 
-export async function updateSupervisor(formData: FormData, supervisorId: string) {
-  const user = await requireCurrentUser('Log in to edit this supervisor.')
+export async function updateSupervisor(
+  formData: FormData,
+  supervisorId: string,
+) {
+  const user = await requireCurrentUser("Log in to edit this supervisor.");
 
-  const name = readFormValue(formData, 'name')
-  const university = readFormValue(formData, 'university')
-  const department = readFormValue(formData, 'department')
-  const about = readFormValue(formData, 'about')
+  const name = readFormValue(formData, "name");
+  const university = readFormValue(formData, "university");
+  const department = readFormValue(formData, "department");
+  const about = readFormValue(formData, "about");
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },
     select: { authorId: true },
-  })
+  });
 
   if (!supervisor) {
-    throw new Error('Supervisor not found.')
+    throw new Error("Supervisor not found.");
   }
-  if (!await isAuthorizedOrAdmin(supervisor.authorId, user.id)) {
-    throw new Error('Not authorized to edit this supervisor.')
+  if (!(await isAuthorizedOrAdmin(supervisor.authorId, user.id))) {
+    throw new Error("Not authorized to edit this supervisor.");
   }
 
   const updatedSupervisor = await prisma.supervisor.update({
     where: { id: supervisorId },
     data: { name, university, department, about, editedAt: new Date() },
-  })
+  });
 
-  return { success: true, data: updatedSupervisor }
+  return { success: true, data: updatedSupervisor };
 }
 
-
-
 export async function deleteSupervisor(supervisorId: string) {
-  const user = await requireCurrentUser('Log in to delete this supervisor.')
+  const user = await requireCurrentUser("Log in to delete this supervisor.");
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },
     select: { authorId: true, totalVotes: true },
-  })
+  });
 
   if (!supervisor) {
-    throw new Error('Supervisor not found.')
+    throw new Error("Supervisor not found.");
   }
-  if (!await isAuthorizedOrAdmin(supervisor.authorId, user.id)) {
-    throw new Error('Not authorized to delete this supervisor.')
+  if (!(await isAuthorizedOrAdmin(supervisor.authorId, user.id))) {
+    throw new Error("Not authorized to delete this supervisor.");
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.supervisor.update({ where: { id: supervisorId }, data: { isDeleted: true } })
+    await tx.supervisor.update({
+      where: { id: supervisorId },
+      data: { isDeleted: true },
+    });
 
     await tx.user.update({
       where: { id: supervisor.authorId },
       data: { supervisorCount: { decrement: 1 } },
-    })
+    });
 
     if (supervisor.totalVotes !== 0) {
       await tx.user.update({
         where: { id: supervisor.authorId },
         data: { reputation: { decrement: supervisor.totalVotes } },
-      })
+      });
     }
-  })
+  });
 
-  return { success: true, data: { deletedId: supervisorId } }
+  return { success: true, data: { deletedId: supervisorId } };
 }
-

@@ -12,11 +12,11 @@ const contactSchema = z.object({
   message: z.string().min(1, { message: "Message is required" }),
 });
 
-import type { ContactFormState } from '@/types/contact';
+import type { ContactFormState } from "@/types/contact";
 
 export async function sendContactMessage(
   prevState: ContactFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ContactFormState> {
   const validatedFields = contactSchema.safeParse({
     name: formData.get("name"),
@@ -34,7 +34,7 @@ export async function sendContactMessage(
 
   const { name, email, subject, message } = validatedFields.data;
 
-try {
+  try {
     await resend.emails.send({
       from: "ScholarBase Contact <contact@scholarbase.app>",
       to: ["connect@scholarbase.app"],

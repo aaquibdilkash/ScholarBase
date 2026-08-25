@@ -1,17 +1,23 @@
-'use server'
+"use server";
 
-import prisma from '@/lib/db'
-import { requireCurrentUser, isAuthorizedOrAdmin } from '@/lib/auth'
-import { readFormValue } from '@/lib/form'
+import { cache } from "react";
+
+import prisma from "@/lib/db";
+import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { readFormValue } from "@/lib/form";
+
 import {
   handleVoteTransaction,
   createCommentTransaction,
   deleteCommentTransaction,
-} from '@/lib/transactions'
-import { VoteType } from '@prisma/client'
+} from "@/lib/transactions";
+import { VoteType } from "@prisma/client";
 
-import { notifyFollowersOfActivity, notifyMentionedUsers } from '@/lib/notifications'
-import { deleteFromCloudinary } from '@/app/actions/cloudinary'
+import {
+  notifyFollowersOfActivity,
+  notifyMentionedUsers,
+} from "@/lib/notifications";
+import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 // Reusable include for the materialized-counter post shape used by the
 // client query cache (author + votes relationship; scalars like
 // totalVotes/totalComments are returned automatically by `include`).
@@ -36,16 +42,16 @@ const getFeed = async (
   limit = 10,
   cursor?: string,
 ) => {
-  const isFollowingTab = tab === 'following'
-  const hasQuery = Boolean(q && q.trim().length > 0)
-  let followingIds: string[] = []
+  const isFollowingTab = tab === "following";
+  const hasQuery = Boolean(q && q.trim().length > 0);
+  let followingIds: string[] = [];
 
   if (isFollowingTab && userId) {
     const following = await prisma.follows.findMany({
       where: { followerId: userId },
       select: { followingId: true },
-    })
-    followingIds = following.map(f => f.followingId)
+    });
+    followingIds = following.map((f) => f.followingId);
   }
 
   const posts = await prisma.socialPost.findMany({
@@ -54,9 +60,9 @@ const getFeed = async (
       ...(isFollowingTab && { authorId: { in: followingIds } }),
       ...(hasQuery && {
         OR: [
-          { content: { contains: q, mode: 'insensitive' } },
-          { author: { name: { contains: q, mode: 'insensitive' } } },
-          { author: { handle: { contains: q, mode: 'insensitive' } } },
+          { content: { contains: q, mode: "insensitive" } },
+          { author: { name: { contains: q, mode: "insensitive" } } },
+          { author: { handle: { contains: q, mode: "insensitive" } } },
         ],
       }),
     },
@@ -66,7 +72,7 @@ const getFeed = async (
       imageUrl: true,
       createdAt: true,
       updatedAt: true,
-            editedAt: true,
+      editedAt: true,
       authorId: true,
       author: {
         select: {
@@ -83,22 +89,20 @@ const getFeed = async (
       totalVotes: true,
       totalComments: true,
       // RULE 6: Filtered select for user's vote
-      votes: userId
-        ? { where: { userId }, select: { voteType: true } }
-        : false,
+      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: limit,
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-  })
+  });
 
-  return posts
-}
+  return posts;
+};
 
 // Re-assign getFeed to the new implementation
-export { getFeed }
+export { getFeed };
 
-export async function getPost(id: string, userId?: string) {
+export const getPost = cache(async (id: string, userId?: string) => {
   return prisma.socialPost.findUnique({
     where: {
       id,
@@ -110,7 +114,7 @@ export async function getPost(id: string, userId?: string) {
       imageUrl: true,
       createdAt: true,
       updatedAt: true,
-            editedAt: true,
+      editedAt: true,
       authorId: true,
       author: {
         select: {
@@ -134,7 +138,7 @@ export async function getPost(id: string, userId?: string) {
           content: true,
           createdAt: true,
           updatedAt: true,
-            editedAt: true,
+          editedAt: true,
           parentId: true,
           authorId: true,
           author: {
@@ -157,7 +161,7 @@ export async function getPost(id: string, userId?: string) {
               content: true,
               createdAt: true,
               updatedAt: true,
-            editedAt: true,
+              editedAt: true,
               parentId: true,
               authorId: true,
               author: {
@@ -169,218 +173,225 @@ export async function getPost(id: string, userId?: string) {
                 : false,
               mentions: true,
             },
-            orderBy: { createdAt: 'asc' },
+            orderBy: { createdAt: "asc" },
           },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
       },
     },
-  })
-}
+  });
+});
 
 export async function createSocialPost(formData: FormData) {
-    const authUser = await requireCurrentUser('You must be logged in to post.')
+  const authUser = await requireCurrentUser("You must be logged in to post.");
 
-    const [content, user] = await Promise.all([
-        readFormValue(formData, 'content'),
-        prisma.user.findUnique({ where: { id: authUser.id }, select: { name: true, email: true }})
-    ]);
-    
-    const imageUrl = formData.get('imageUrl') as string | null;
+  const [content, user] = await Promise.all([
+    readFormValue(formData, "content"),
+    prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: { name: true, email: true },
+    }),
+  ]);
 
-    if (!content) {
-        throw new Error('Content cannot be empty.')
-    }
-    if (!user) {
-        throw new Error('User not found in database.')
-    }
+  const imageUrl = formData.get("imageUrl") as string | null;
 
-    const post = await prisma.$transaction(async (tx) => {
-        const newPost = await tx.socialPost.create({
-            data: {
-                content,
-                imageUrl: imageUrl || undefined,
-                authorId: authUser.id,
-            },
-            include: socialPostInclude,
-        });
+  if (!content) {
+    throw new Error("Content cannot be empty.");
+  }
+  if (!user) {
+    throw new Error("User not found in database.");
+  }
 
-        await tx.userActivity.create({
-            data: {
-                userId: authUser.id,
-                action: 'PUBLISHED',
-                moduleType: 'SOCIAL_POST',
-                entityId: newPost.id, 
-                entityTitle: content.substring(0, 100),
-            },
-        });
-        
-        await tx.user.update({
-            where: { id: authUser.id },
-            data: { socialPostCount: { increment: 1 } },
-        })
-
-        return newPost;
+  const post = await prisma.$transaction(async (tx) => {
+    const newPost = await tx.socialPost.create({
+      data: {
+        content,
+        imageUrl: imageUrl || undefined,
+        authorId: authUser.id,
+      },
+      include: socialPostInclude,
     });
 
-    await Promise.all([
-        notifyFollowersOfActivity({
-            actorId: authUser.id,
-            type: 'content-published',
-            targetType: 'post',
-            targetId: post.id,
-            title: `${user.name || user.email?.split('@')[0] || 'Someone'} posted an update`,
-            body: content.slice(0, 120),
-        }),
-        notifyMentionedUsers({
-            actorId: authUser.id,
-            content,
-            type: 'mention',
-            targetType: 'post',
-            targetId: post.id,
-            titleFactory: (handle) => `@${handle} was mentioned in a post`,
-            bodyFactory: () => content.slice(0, 120),
-        }),
-    ])
+    await tx.userActivity.create({
+      data: {
+        userId: authUser.id,
+        action: "PUBLISHED",
+        moduleType: "SOCIAL_POST",
+        entityId: newPost.id,
+        entityTitle: content.substring(0, 100),
+      },
+    });
 
-    return { success: true, data: post }
+    await tx.user.update({
+      where: { id: authUser.id },
+      data: { socialPostCount: { increment: 1 } },
+    });
+
+    return newPost;
+  });
+
+  await Promise.all([
+    notifyFollowersOfActivity({
+      actorId: authUser.id,
+      type: "content-published",
+      targetType: "post",
+      targetId: post.id,
+      title: `${user.name || user.email?.split("@")[0] || "Someone"} posted an update`,
+      body: content.slice(0, 120),
+    }),
+    notifyMentionedUsers({
+      actorId: authUser.id,
+      content,
+      type: "mention",
+      targetType: "post",
+      targetId: post.id,
+      titleFactory: (handle) => `@${handle} was mentioned in a post`,
+      bodyFactory: () => content.slice(0, 120),
+    }),
+  ]);
+
+  return { success: true, data: post };
 }
 
-export async function updateSocialPost(
-    formData: FormData,
-    postId: string
-) {
-    const user = await requireCurrentUser('Log in to edit this post.')
+export async function updateSocialPost(formData: FormData, postId: string) {
+  const user = await requireCurrentUser("Log in to edit this post.");
 
-    const content = readFormValue(formData, 'content')
-    if (!content) return { success: false, message: 'Content cannot be empty.' }
+  const content = readFormValue(formData, "content");
+  if (!content) return { success: false, message: "Content cannot be empty." };
 
-    const imageUrl = formData.get('imageUrl') as string | null;
+  const imageUrl = formData.get("imageUrl") as string | null;
 
-    const post = await prisma.socialPost.findUnique({
-        where: { id: postId },
-        select: { authorId: true, imageUrl: true },
-    })
+  const post = await prisma.socialPost.findUnique({
+    where: { id: postId },
+    select: { authorId: true, imageUrl: true },
+  });
 
-    if (!post) return { success: false, message: 'Post not found.' }
-    if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
-        throw new Error('Not authorized to edit this post.')
-    }
+  if (!post) return { success: false, message: "Post not found." };
+  if (!(await isAuthorizedOrAdmin(post.authorId, user.id))) {
+    throw new Error("Not authorized to edit this post.");
+  }
 
-    // Persist the edit first so the DB is the source of truth. Then delete the
-    // old image from Cloudinary only after the update has succeeded — so if the
-    // user changes their mind before saving, the original image is preserved,
-    // and if the update fails, the old image is never deleted.
-    const oldImage = post.imageUrl;
-    const newImage = imageUrl || null;
+  // Persist the edit first so the DB is the source of truth. Then delete the
+  // old image from Cloudinary only after the update has succeeded — so if the
+  // user changes their mind before saving, the original image is preserved,
+  // and if the update fails, the old image is never deleted.
+  const oldImage = post.imageUrl;
+  const newImage = imageUrl || null;
 
-    const updatedPost = await prisma.socialPost.update({
-        where: { id: postId },
-        data: { content, imageUrl: newImage || undefined, editedAt: new Date() },
-        include: {
-            ...socialPostInclude,
-            author: {
-                ...socialPostInclude.author,
-                select: {
-                    ...socialPostInclude.author.select,
-                    followers: { where: { followerId: user.id }, select: { followerId: true } },
-                },
-            },
+  const updatedPost = await prisma.socialPost.update({
+    where: { id: postId },
+    data: { content, imageUrl: newImage || undefined, editedAt: new Date() },
+    include: {
+      ...socialPostInclude,
+      author: {
+        ...socialPostInclude.author,
+        select: {
+          ...socialPostInclude.author.select,
+          followers: {
+            where: { followerId: user.id },
+            select: { followerId: true },
+          },
         },
-    })
+      },
+    },
+  });
 
-    if (oldImage && oldImage !== newImage) {
-        await deleteFromCloudinary(oldImage);
-    }
+  if (oldImage && oldImage !== newImage) {
+    await deleteFromCloudinary(oldImage);
+  }
 
-    return { success: true, data: updatedPost }
+  return { success: true, data: updatedPost };
 }
-
 
 export async function getPostEditData(id: string) {
-    const user = await requireCurrentUser('Log in to edit this post.');
+  const user = await requireCurrentUser("Log in to edit this post.");
 
-    const post = await prisma.socialPost.findUnique({
-        where: { id },
-        select: {
-            content: true,
-            imageUrl: true,
-            authorId: true,
-        },
-    });
+  const post = await prisma.socialPost.findUnique({
+    where: { id },
+    select: {
+      content: true,
+      imageUrl: true,
+      authorId: true,
+    },
+  });
 
-    if (!post) {
-        throw new Error('Post not found');
-    }
+  if (!post) {
+    throw new Error("Post not found");
+  }
 
-    if (post.authorId !== user.id) {
-        throw new Error('You are not authorized to edit this post.');
-    }
+  if (post.authorId !== user.id) {
+    throw new Error("You are not authorized to edit this post.");
+  }
 
-    return {
-        content: post.content,
-        imageUrl: post.imageUrl,
-    };
+  return {
+    content: post.content,
+    imageUrl: post.imageUrl,
+  };
 }
 
 export async function deleteSocialPost(postId: string) {
-  const user = await requireCurrentUser('Log in to delete this post.')
+  const user = await requireCurrentUser("Log in to delete this post.");
 
   const post = await prisma.socialPost.findUnique({
     where: { id: postId },
     select: { authorId: true, totalVotes: true },
-  })
+  });
 
-  if (!post) return
-  if (!await isAuthorizedOrAdmin(post.authorId, user.id)) {
-    throw new Error('Not authorized to delete this post.')
+  if (!post) return;
+  if (!(await isAuthorizedOrAdmin(post.authorId, user.id))) {
+    throw new Error("Not authorized to delete this post.");
   }
 
-    await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     await tx.socialPost.update({
       where: { id: postId },
       data: { isDeleted: true },
-    })
+    });
 
     await tx.user.update({
       where: { id: post.authorId },
       data: { socialPostCount: { decrement: 1 } },
-    })
+    });
 
     if (post.totalVotes !== 0) {
       await tx.user.update({
         where: { id: post.authorId },
         data: { reputation: { decrement: post.totalVotes } },
-      })
+      });
     }
-  })
+  });
 
-  return { success: true, data: { id: postId } }
+  return { success: true, data: { id: postId } };
 }
 
 export async function voteOnSocialPost(postId: string, voteType: VoteType) {
-  const user = await requireCurrentUser('You must be logged in to vote.')
-  await handleVoteTransaction('SOCIAL_POST', postId, user.id, voteType)
+  const user = await requireCurrentUser("You must be logged in to vote.");
+  await handleVoteTransaction("SOCIAL_POST", postId, user.id, voteType);
 }
 
 export async function createSocialPostComment(
   postId: string,
   content: string,
-  parentId?: string
+  parentId?: string,
 ) {
-  const user = await requireCurrentUser('You must be logged in to comment.')
+  const user = await requireCurrentUser("You must be logged in to comment.");
   await createCommentTransaction(
-    'SOCIAL_POST',
+    "SOCIAL_POST",
     postId,
     user.id,
     content,
-    parentId
-  )
+    parentId,
+  );
 }
 
 export async function deleteSocialPostComment(commentId: string) {
-  const user = await
-requireCurrentUser('You must be logged in to delete comments.')
-  const { parentId } = await deleteCommentTransaction('SOCIAL_POST', commentId, user.id)
-  return { success: true, parentId }
+  const user = await requireCurrentUser(
+    "You must be logged in to delete comments.",
+  );
+  const { parentId } = await deleteCommentTransaction(
+    "SOCIAL_POST",
+    commentId,
+    user.id,
+  );
+  return { success: true, parentId };
 }
