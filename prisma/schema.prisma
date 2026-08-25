@@ -72,6 +72,14 @@ enum AbdcTier {
   C
 }
 
+enum OpenAccessStatus {
+  CLOSED
+  HYBRID
+  GOLD
+  DIAMOND
+  UNKNOWN
+}
+
 enum SurveyQuestionType {
   SHORT_TEXT
   LONG_TEXT
@@ -1013,6 +1021,10 @@ model Journal {
   updatedAt    DateTime @updatedAt
   editedAt DateTime?
   isFrozen     Boolean  @default(false)
+
+  subjectArea  String?
+  frequency    String?
+  openAccess   OpenAccessStatus @default(UNKNOWN)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)

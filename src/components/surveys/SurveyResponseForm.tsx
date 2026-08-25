@@ -6,6 +6,10 @@ import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { Loader2, PencilLine, RefreshCw } from "lucide-react";
+import {
+  MAX_SURVEY_ANSWER_SHORT,
+  MAX_SURVEY_ANSWER_LONG,
+} from "@/lib/constants";
 
 type Answer = {
   id: string;
@@ -183,26 +187,40 @@ export function SurveyResponseForm({
     switch (q.type) {
       case "SHORT_TEXT":
         return (
-          <input
-            type="text"
-            value={answers[q.id] || ""}
-            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="sb-input"
-            placeholder="Your answer..."
-            required={q.required}
-          />
+          <div>
+            <input
+              type="text"
+              value={answers[q.id] || ""}
+              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+              className="sb-input"
+              placeholder="Your answer..."
+              required={q.required}
+              maxLength={MAX_SURVEY_ANSWER_SHORT}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {(answers[q.id] || "").length}/{MAX_SURVEY_ANSWER_SHORT}{" "}
+              characters
+            </div>
+          </div>
         );
 
       case "LONG_TEXT":
         return (
-          <textarea
-            value={answers[q.id] || ""}
-            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            rows={4}
-            className="sb-textarea resize-y"
-            placeholder="Your detailed answer..."
-            required={q.required}
-          />
+          <div>
+            <textarea
+              value={answers[q.id] || ""}
+              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+              rows={4}
+              className="sb-textarea resize-y"
+              placeholder="Your detailed answer..."
+              required={q.required}
+              maxLength={MAX_SURVEY_ANSWER_LONG}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {(answers[q.id] || "").length}/{MAX_SURVEY_ANSWER_LONG}{" "}
+              characters
+            </div>
+          </div>
         );
 
       case "MULTIPLE_CHOICE":
@@ -374,13 +392,20 @@ export function SurveyResponseForm({
 
       default:
         return (
-          <input
-            type="text"
-            value={answers[q.id] || ""}
-            onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-            className="sb-input"
-            placeholder="Your answer..."
-          />
+          <div>
+            <input
+              type="text"
+              value={answers[q.id] || ""}
+              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+              className="sb-input"
+              placeholder="Your answer..."
+              maxLength={MAX_SURVEY_ANSWER_SHORT}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {(answers[q.id] || "").length}/{MAX_SURVEY_ANSWER_SHORT}{" "}
+              characters
+            </div>
+          </div>
         );
     }
   };

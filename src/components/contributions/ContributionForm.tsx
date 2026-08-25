@@ -21,6 +21,7 @@ import { Editor } from "@/components/ui/Editor";
 import type { ContributionWithAuthor } from "@/types/cards";
 import {
   MAX_CONTRIBUTION_TITLE,
+  MAX_CONTRIBUTION_UPI_ID,
   MAX_CONTRIBUTION_MESSAGE,
 } from "@/lib/constants";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -331,9 +332,13 @@ export default function ContributionForm({
                 name="upiId"
                 placeholder="e.g., xyz@upi or TXN12345"
                 className="sb-input"
+                maxLength={MAX_CONTRIBUTION_UPI_ID}
                 value={draftFields.upiId}
                 onChange={(e) => updateDraftField("upiId", e.target.value)}
               />
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {draftFields.upiId.length}/{MAX_CONTRIBUTION_UPI_ID} characters
+              </div>
             </div>
           </div>
 

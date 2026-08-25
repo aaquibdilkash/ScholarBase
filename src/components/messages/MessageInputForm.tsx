@@ -136,6 +136,11 @@ export function MessageInputForm({
           <span className="absolute -top-5 left-0 text-xs text-slate-400 inline-flex items-center gap-1">
             <InfoTooltip message={MESSAGE_BODY_TIP} />
           </span>
+          {draft.length > 0 && (
+            <span className="absolute -top-5 right-0 text-xs text-slate-400">
+              {draft.length}/{MAX_MESSAGE_BODY}
+            </span>
+          )}
         </div>
         <button
           type="submit"

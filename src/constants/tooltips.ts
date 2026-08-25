@@ -19,6 +19,9 @@ export const JOURNAL_CITESCORE_TIP = "The Scopus CiteScore measuring average cit
 export const JOURNAL_PUBLISHER_TIP = "The organization or institution that publishes this journal.";
 export const JOURNAL_WEBSITE_TIP = "The official URL of the journal's homepage.";
 export const JOURNAL_ABOUT_TIP = "A brief description of the journal's scope, aims, and target audience.";
+export const JOURNAL_SUBJECT_AREA_TIP = "The primary academic discipline or field of study (e.g., Financial Econometrics, Computer Science).";
+export const JOURNAL_FREQUENCY_TIP = "How often issues are published (e.g., Monthly, Quarterly, Bi-annually).";
+export const JOURNAL_OPEN_ACCESS_TIP = "The publishing model. Gold requires author fees; Diamond is completely free for authors and readers.";
 
 // -----------------------------------------------------------------------------
 // ADMISSIONS MODULE

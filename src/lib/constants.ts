@@ -40,6 +40,8 @@ export const MAX_JOURNAL_WEBSITE = 128;
 export const MAX_JOURNAL_IMPACT_FACTOR = 8;
 export const MAX_JOURNAL_CITESCORE = 8;
 export const MAX_JOURNAL_SJR_SCORE = 8;
+export const MAX_JOURNAL_SUBJECT_AREA = 64;
+export const MAX_JOURNAL_FREQUENCY = 16;
 
 export const MAX_RESULT_TITLE = 64;
 export const MAX_RESULT_CATEGORY = 32;
@@ -77,6 +79,12 @@ export const MAX_COURSE_DESCRIPTION = 512;
 
 export const MAX_SURVEY_TITLE = 64;
 export const MAX_SURVEY_DESCRIPTION = 512;
+export const MAX_SURVEY_QUESTION_TITLE = 128;
+export const MAX_SURVEY_QUESTION_OPTION = 64;
+export const MAX_SURVEY_ANSWER_SHORT = 64;
+export const MAX_SURVEY_ANSWER_LONG = 512;
+
+export const MAX_REJECTION_REASON = 64;
 
 export const MAX_RECOMMENDATION_FEEDBACK = 512;
 
@@ -100,7 +108,11 @@ export const MAX_INVITE_NAME = 32;
 export const MAX_INVITE_EMAIL = 64;
 export const MAX_INVITE_MESSAGE = 512;
 
+export const MAX_AUTH_EMAIL = 32;
+export const MAX_AUTH_PASSWORD = 16;
+
 export const MAX_CONTRIBUTION_TITLE = 64;
+export const MAX_CONTRIBUTION_UPI_ID = 64;
 export const MAX_CONTRIBUTION_MESSAGE = 512;
 
 export const MAX_SOCIAL_POST_CONTENT = 256;

@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { AUTH_NEW_PASSWORD_TIP, AUTH_CONFIRM_PASSWORD_TIP } from "@/constants/tooltips";
+import { MAX_AUTH_PASSWORD } from "@/lib/constants";
 
 export function UpdatePasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const router = useRouter();
   const { toast } = useToast();
 
@@ -70,7 +73,13 @@ export function UpdatePasswordForm() {
           placeholder="••••••••"
           required
           minLength={6}
+          maxLength={MAX_AUTH_PASSWORD}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {password.length}/{MAX_AUTH_PASSWORD} characters
+        </div>
       </div>
        <div>
          <label className="sb-label inline-flex items-center gap-1.5" htmlFor="confirmPassword">
@@ -85,7 +94,13 @@ export function UpdatePasswordForm() {
           placeholder="••••••••"
           required
           minLength={6}
+          maxLength={MAX_AUTH_PASSWORD}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
         />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {confirmPassword.length}/{MAX_AUTH_PASSWORD} characters
+        </div>
       </div>
 
       {error && (

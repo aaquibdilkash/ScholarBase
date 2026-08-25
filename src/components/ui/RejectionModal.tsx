@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "./button";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { MAX_REJECTION_REASON } from "@/lib/constants";
 
 interface RejectionModalProps {
   isOpen: boolean;
@@ -55,9 +56,11 @@ export function RejectionModal({
              placeholder="Enter rejection reason"
              className="w-full p-2 border rounded"
              aria-label="Rejection reason"
+             maxLength={MAX_REJECTION_REASON}
            />
            <span className="text-xs text-slate-500 inline-flex items-center gap-1">
              <InfoTooltip message="Provide a clear reason for rejection. This will be visible to the content author." />
+             {reason.length}/{MAX_REJECTION_REASON} characters
            </span>
           <div className="flex justify-end gap-4 mt-4">
             <Button

@@ -7,7 +7,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import type { Quartile, AbdcTier, WosIndex } from "@prisma/client";
+import type { Quartile, AbdcTier, WosIndex, OpenAccessStatus } from "@prisma/client";
 
 export async function createJournal(formData: FormData) {
   const user = await requireCurrentUser("Please log in to submit details.");
@@ -25,6 +25,9 @@ export async function createJournal(formData: FormData) {
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
   const about = readOptionalFormValue(formData, "about");
+  const subjectArea = readOptionalFormValue(formData, "subjectArea");
+  const frequency = readOptionalFormValue(formData, "frequency");
+  const openAccess = readOptionalFormValue(formData, "openAccess");
 
   const journal = await prisma.$transaction(async (tx) => {
     const newJournal = await tx.journal.create({
@@ -44,6 +47,9 @@ export async function createJournal(formData: FormData) {
         publisher,
         website,
         about,
+        subjectArea,
+        frequency,
+        openAccess: openAccess ? (openAccess as OpenAccessStatus) : undefined,
         authorId: user.id,
       },
     });
@@ -94,6 +100,9 @@ export async function updateJournal(formData: FormData, journalId: string) {
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
   const about = readOptionalFormValue(formData, "about");
+  const subjectArea = readOptionalFormValue(formData, "subjectArea");
+  const frequency = readOptionalFormValue(formData, "frequency");
+  const openAccess = readOptionalFormValue(formData, "openAccess");
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },
@@ -123,6 +132,9 @@ export async function updateJournal(formData: FormData, journalId: string) {
       publisher,
       website,
       about,
+      subjectArea,
+      frequency,
+      openAccess: openAccess ? (openAccess as OpenAccessStatus) : undefined,
       editedAt: new Date(),
     },
   });
@@ -244,6 +256,9 @@ export const getJournalById = cache(
         publisher: true,
         website: true,
         about: true,
+        subjectArea: true,
+        frequency: true,
+        openAccess: true,
         createdAt: true,
         updatedAt: true,
         editedAt: true,

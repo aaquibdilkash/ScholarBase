@@ -8,11 +8,14 @@ import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { useToast } from "@/components/ui/Toast";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { AUTH_EMAIL_TIP, AUTH_PASSWORD_TIP } from "@/constants/tooltips";
+import { MAX_AUTH_EMAIL, MAX_AUTH_PASSWORD } from "@/lib/constants";
 
 export function LoginForm({ returnUrl }: { returnUrl: string }) {
   const router = useRouter();
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<"signin" | "register" | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6">
@@ -107,7 +110,13 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
               type="email"
               placeholder="scholar@university.edu"
               required
+              maxLength={MAX_AUTH_EMAIL}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {email.length}/{MAX_AUTH_EMAIL} characters
+            </div>
           </div>
 
            <div>
@@ -122,7 +131,13 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
               type="password"
               placeholder="••••••••"
               required
+              maxLength={MAX_AUTH_PASSWORD}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {password.length}/{MAX_AUTH_PASSWORD} characters
+            </div>
           </div>
 
           <div className="flex gap-4 mt-2">

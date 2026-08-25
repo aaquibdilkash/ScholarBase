@@ -21,3 +21,11 @@ export const ABDC_OPTIONS = [
   { label: "B (Good)", value: "B" },
   { label: "C (Satisfactory)", value: "C" },
 ] as const;
+
+export const OA_OPTIONS = [
+  { label: "Unknown / Not Specified", value: "UNKNOWN" },
+  { label: "Closed (Subscription Only)", value: "CLOSED" },
+  { label: "Hybrid (Mix of OA and Closed)", value: "HYBRID" },
+  { label: "Gold (Author pays APC, free to read)", value: "GOLD" },
+  { label: "Diamond (Free to publish and read)", value: "DIAMOND" },
+] as const;

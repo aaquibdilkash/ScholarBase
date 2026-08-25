@@ -13,6 +13,7 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
+import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
 export default function EditPostPage({
   params,
@@ -166,7 +167,11 @@ export default function EditPostPage({
             rows={6}
             className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 resize-y"
             placeholder="What's on your mind?"
+            maxLength={MAX_SOCIAL_POST_CONTENT}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {content.length}/{MAX_SOCIAL_POST_CONTENT} characters
+          </div>
         </div>
 
         {/* Image */}
