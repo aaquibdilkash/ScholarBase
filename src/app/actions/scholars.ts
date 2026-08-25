@@ -2,10 +2,18 @@
 
 import prisma from '@/lib/db'
 import { requireCurrentUser } from '@/lib/auth'
-import { readFormValue } from '@/lib/form'
 import { getBaseUrl } from '@/lib/url'
 import { sendScholarInviteEmail } from '@/lib/email'
 import { Prisma } from '@prisma/client'
+import type { InviteFormState } from '@/types/invite'
+
+import { z } from 'zod'
+
+const inviteSchema = z.object({
+  name: z.string().min(1, { message: 'Name is required' }),
+  email: z.string().email({ message: 'A valid email address is required' }),
+  message: z.string().min(1, { message: 'A message is required' }),
+})
 
 export async function getScholars(q?: string, sort: 'latest' | 'reputation' = 'latest', currentUserId?: string, limit = 20, cursor?: string) {
   const orderBy: Prisma.UserOrderByWithRelationInput[] =
@@ -69,16 +77,26 @@ export async function getScholarById(id: string) {
   })
 }
 
-export async function inviteScholar(formData: FormData) {
+export async function inviteScholar(
+  prevState: InviteFormState,
+  formData: FormData
+): Promise<InviteFormState> {
   const user = await requireCurrentUser('Please log in to invite a scholar.')
 
-  const email = readFormValue(formData, 'email')
-  const name = readFormValue(formData, 'name')
-  const message = readFormValue(formData, 'message')
+  const validatedFields = inviteSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    message: formData.get('message'),
+  })
 
-  if (!email || !message) {
-    return { success: false, error: 'Email and message are required.' }
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      message: validatedFields.error.issues.map((e) => e.message).join(', '),
+    }
   }
+
+  const { name, email, message } = validatedFields.data
 
   const baseUrl = await getBaseUrl()
   const inviteUrl = `${baseUrl}/login?callbackUrl=${encodeURIComponent('/scholars')}`
@@ -91,7 +109,7 @@ export async function inviteScholar(formData: FormData) {
   })
 
   if (!result.success) {
-    return { success: false, error: 'Failed to send invite. Please try again.' }
+    return { success: false, message: 'Failed to send invite. Please try again.' }
   }
 
   return { success: true, message: 'Invite sent successfully!' }

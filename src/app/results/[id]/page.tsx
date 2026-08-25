@@ -125,7 +125,7 @@ const ResultDetailPage = async ({
       />
 
       {(result.conductingBody || result.session) && (
-        <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600">
+         <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-[#020617] dark:border-slate-700 dark:text-slate-300">
           {result.conductingBody && (
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />

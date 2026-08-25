@@ -99,6 +99,12 @@ export function getNotificationLink(notification: Notification) {
     case "course-published":
     case "course-upvoted":
       return `/learn/${notification.targetId}`;
+    case "survey-upvoted":
+      return `/surveys/${notification.targetId}`;
+    case "supervisor-upvoted":
+      return `/supervisor/${notification.targetId}`;
+    case "result-upvoted":
+      return `/results/${notification.targetId}`;
     case "survey-published":
       return `/surveys/${notification.targetId}`;
     case "result-published":

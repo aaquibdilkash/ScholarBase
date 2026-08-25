@@ -1,7 +1,8 @@
 "use client";
 
 import { Loader2, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { inviteScholar } from "@/app/actions/scholars";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "@/components/interactions/AuthModal";
@@ -11,12 +12,42 @@ import {
   MAX_INVITE_EMAIL,
   MAX_INVITE_MESSAGE,
 } from "@/lib/constants";
+import type { InviteFormState } from "@/types/invite";
+
+const initialState: InviteFormState = {
+  success: false,
+  message: "",
+};
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="sb-button-primary w-full justify-center py-3 text-base font-semibold"
+    >
+      {pending ? (
+        <span className="flex items-center gap-2">
+          <Loader2 className="animate-spin h-5 w-5" />
+          Sending...
+        </span>
+      ) : (
+        "Send invite"
+      )}
+    </button>
+  );
+}
 
 export function InviteScholarForm() {
-  const [submitting, setSubmitting] = useState(false);
+  const [state, formAction] = useFormState(inviteScholar, initialState);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const { user } = useUser();
+  const lastShownRef = useRef<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
   const homepageUrl =
     typeof window === "undefined"
       ? "https://scholarbase.app"
@@ -31,37 +62,31 @@ export function InviteScholarForm() {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    
+  useEffect(() => {
+    if (state.message && state.message !== lastShownRef.current) {
+      lastShownRef.current = state.message;
+      toast(state.message, state.success ? "success" : "error");
+      if (state.success) {
+        formRef.current?.reset();
+      }
+    }
+  }, [state, toast]);
+
+  const handleFormAction = (formData: FormData) => {
     if (!user) {
       openAuthModal();
       return;
     }
-
-    setSubmitting(true);
-    try {
-      const formData = new FormData(event.currentTarget);
-      const result = await inviteScholar(formData);
-      if (result?.success) {
-        event.currentTarget.reset();
-        toast(result.message || "Invite sent successfully!", "success");
-      } else {
-        toast(result?.error || result?.message || "Could not send the invite.", "error");
-      }
-    } catch (error) {
-      console.error("Invite submission error:", error);
-      toast("An unexpected error occurred. Please try again.", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    formAction(formData);
   };
 
   return (
-    <form
-      className="space-y-5 sb-card p-6 md:p-8"
-      onSubmit={handleSubmit}
-    >
+    <form ref={formRef} action={handleFormAction} className="space-y-5 sb-card p-6 md:p-8">
+      {state.message && !state.success && (
+        <div className="p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-500/30 rounded-md">
+          <p className="text-sm text-red-700 dark:text-red-300">{state.message}</p>
+        </div>
+      )}
       <div>
         <label className="sb-label" htmlFor="name">Name</label>
         <input 
@@ -119,16 +144,7 @@ export function InviteScholarForm() {
           {String(MAX_INVITE_MESSAGE).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")} characters max
         </div>
       </div>
-      <button type="submit" className="sb-button-primary w-full justify-center py-3 text-base font-semibold" disabled={submitting}>
-        {submitting ? (
-          <span className="flex items-center gap-2">
-            <Loader2 className="animate-spin h-5 w-5" />
-            Sending...
-          </span>
-        ) : (
-          "Send invite"
-        )}
-      </button>
+      <SubmitButton />
     </form>
   );
 }

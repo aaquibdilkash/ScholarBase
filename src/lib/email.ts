@@ -52,7 +52,7 @@ export async function sendScholarInviteEmail({
     inviteUrl,
 }: ScholarInviteProps) {
     try {
-        const data = await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: 'ScholarBase <invitations@scholarbase.app>',
             to: [recipientEmail],
             subject: `${inviterName} invited you to join ScholarBase`,
@@ -76,6 +76,11 @@ export async function sendScholarInviteEmail({
         </div>
       `,
         });
+
+        if (error) {
+            console.error('Failed to send scholar invite email:', error);
+            return { success: false, error };
+        }
 
         return { success: true, data };
     } catch (error) {

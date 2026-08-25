@@ -20,6 +20,34 @@ function typeLabel(type: string) {
       return "Article upvote";
     case "post-upvoted":
       return "Post upvote";
+    case "vacancy-upvoted":
+      return "Vacancy upvote";
+    case "admission-upvoted":
+      return "Admission upvote";
+    case "event-upvoted":
+      return "Event upvote";
+    case "recommendation-upvoted":
+      return "Recommendation upvote";
+    case "help-post-upvoted":
+      return "Help post upvote";
+    case "journal-upvoted":
+      return "Journal upvote";
+    case "contribution-upvoted":
+      return "Contribution upvote";
+    case "publication-upvoted":
+      return "Publication upvote";
+    case "research-tool-upvoted":
+      return "Research tool upvote";
+    case "research-grant-upvoted":
+      return "Research grant upvote";
+    case "course-upvoted":
+      return "Course upvote";
+    case "survey-upvoted":
+      return "Survey upvote";
+    case "supervisor-upvoted":
+      return "Supervisor upvote";
+    case "result-upvoted":
+      return "Result upvote";
     case "comment-created":
       return "Comment";
     case "reply-created":

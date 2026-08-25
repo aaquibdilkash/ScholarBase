@@ -181,6 +181,44 @@ export const VOTE_CONFIG = ENTITY_CONFIG
 
 export type ModuleKey = keyof typeof ENTITY_CONFIG
 
+const MODULE_VOTE_NOTIFICATION: Record<ModuleKey, { type: string; targetType: string }> = {
+  SOCIAL_POST: { type: 'post-upvoted', targetType: 'post' },
+  ARTICLE: { type: 'article-upvoted', targetType: 'article' },
+  HELP_POST: { type: 'help-post-upvoted', targetType: 'help' },
+  CONTRIBUTION: { type: 'contribution-upvoted', targetType: 'contribution' },
+  PUBLICATION: { type: 'publication-upvoted', targetType: 'publication' },
+  RESEARCH_TOOL: { type: 'research-tool-upvoted', targetType: 'researchTool' },
+  RESEARCH_GRANT: { type: 'research-grant-upvoted', targetType: 'researchGrant' },
+  COURSE: { type: 'course-upvoted', targetType: 'course' },
+  JOURNAL: { type: 'journal-upvoted', targetType: 'journal' },
+  RESULT: { type: 'result-upvoted', targetType: 'result' },
+  RESEARCH_SURVEY: { type: 'survey-upvoted', targetType: 'survey' },
+  RESEARCH_EVENT: { type: 'event-upvoted', targetType: 'event' },
+  PHD_ADMISSION: { type: 'admission-upvoted', targetType: 'admission' },
+  JOB_VACANCY: { type: 'vacancy-upvoted', targetType: 'vacancy' },
+  SUPERVISOR: { type: 'supervisor-upvoted', targetType: 'supervisor' },
+  RECOMMENDATION: { type: 'recommendation-upvoted', targetType: 'recommendation' },
+}
+
+const MODULE_DISPLAY_NAME: Record<ModuleKey, string> = {
+  SOCIAL_POST: 'post',
+  ARTICLE: 'article',
+  HELP_POST: 'help post',
+  CONTRIBUTION: 'contribution',
+  PUBLICATION: 'publication',
+  RESEARCH_TOOL: 'research tool',
+  RESEARCH_GRANT: 'research grant',
+  COURSE: 'course',
+  JOURNAL: 'journal',
+  RESULT: 'result',
+  RESEARCH_SURVEY: 'survey',
+  RESEARCH_EVENT: 'event',
+  PHD_ADMISSION: 'admission',
+  JOB_VACANCY: 'vacancy',
+  SUPERVISOR: 'profile',
+  RECOMMENDATION: 'recommendation',
+}
+
 const getVoteValue = (current: VoteType | null, next: VoteType): number => {
   if (current === next) return next === 'UPVOTE' ? -1 : 1
   if (current === null) return next === 'UPVOTE' ? 1 : -1
@@ -297,6 +335,42 @@ export async function handleVoteTransaction(
     await prisma.userActivity.create({
       data: { userId, action: 'VOTED', moduleType: module, entityId, entityTitle },
     })
+
+    if (newVote === 'UPVOTE' && voteValue > 0 && entity.authorId && entity.authorId !== userId) {
+      const notifyConfig = MODULE_VOTE_NOTIFICATION[module as ModuleKey]
+      if (notifyConfig) {
+        let targetId = entityId
+        if (module === 'RECOMMENDATION') {
+          const rec = await (prisma.recommendation as unknown as AnyDelegate).findUnique({
+            where: { id: entityId },
+            select: { supervisorId: true },
+          })
+          if (rec?.supervisorId) {
+            targetId = `${rec.supervisorId}/${entityId}`
+          }
+        }
+
+        const actor = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true, handle: true, email: true },
+        })
+        const actorName =
+          actor?.name || actor?.handle || actor?.email?.split('@')[0] || 'Someone'
+        const moduleName = MODULE_DISPLAY_NAME[module as ModuleKey] || 'content'
+
+        await prisma.notification.create({
+          data: {
+            recipientId: entity.authorId,
+            actorId: userId,
+            type: notifyConfig.type,
+            targetType: notifyConfig.targetType,
+            targetId,
+            title: `${actorName} upvoted your ${moduleName}`,
+            body: entityTitle,
+          },
+        })
+      }
+    }
 
     return { totalVotes, userVote: newVote === currentVote ? null : newVote }
   })
