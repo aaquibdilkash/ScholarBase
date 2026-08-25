@@ -6,6 +6,8 @@ import { login, signup, signInWithGoogle } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { useToast } from "@/components/ui/Toast";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { AUTH_EMAIL_TIP, AUTH_PASSWORD_TIP } from "@/constants/tooltips";
 
 export function LoginForm({ returnUrl }: { returnUrl: string }) {
   const router = useRouter();
@@ -93,10 +95,11 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
         >
           <input type="hidden" name="callbackUrl" value={returnUrl} />
 
-          <div>
-            <label className="sb-label" htmlFor="email">
-              Email
-            </label>
+           <div>
+             <label className="sb-label inline-flex items-center gap-1.5" htmlFor="email">
+               Email
+               <InfoTooltip message={AUTH_EMAIL_TIP} />
+             </label>
             <input
               className="sb-input"
               id="email"
@@ -107,10 +110,11 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             />
           </div>
 
-          <div>
-            <label className="sb-label" htmlFor="password">
-              Password
-            </label>
+           <div>
+             <label className="sb-label inline-flex items-center gap-1.5" htmlFor="password">
+               Password
+               <InfoTooltip message={AUTH_PASSWORD_TIP} />
+             </label>
             <input
               className="sb-input"
               id="password"

@@ -15,6 +15,8 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import type { SocialPostWithAuthor } from "@/types/cards";
 
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 
 export function CreateSocialPostForm() {
   const MAX_CHARS = MAX_SOCIAL_POST_CONTENT;
@@ -142,6 +144,10 @@ export function CreateSocialPostForm() {
   return (
     <div className="sb-surface-strong mb-10 p-6 md:p-7">
       <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
+        <div className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
+          Post Content
+          <InfoTooltip message={FEED_CONTENT_TIP} />
+        </div>
         <textarea
           name="content"
           placeholder="What are you researching today?"
@@ -203,6 +209,7 @@ export function CreateSocialPostForm() {
               onChange={handleFileUpload}
               disabled={uploading}
             />
+            <InfoTooltip message={FEED_IMAGE_TIP} />
           </label>
           <SubmitBtnWithAuth
             className="sb-button-accent"

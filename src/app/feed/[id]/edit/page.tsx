@@ -11,6 +11,8 @@ import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 
 export default function EditPostPage({
   params,
@@ -154,8 +156,8 @@ export default function EditPostPage({
         className="sb-surface-strong p-6 md:p-8 flex flex-col gap-4"
       >
         
-        <div>
-          <label className="sb-label mb-2 block">Post Content</label>
+         <div>
+           <label className="sb-label mb-2 block inline-flex items-center gap-1.5">Post Content<InfoTooltip message={FEED_CONTENT_TIP} /></label>
           <textarea
             name="content"
             value={content}
@@ -216,6 +218,7 @@ export default function EditPostPage({
               onChange={handleFileUpload}
               disabled={uploading}
             />
+            <InfoTooltip message={FEED_IMAGE_TIP} />
           </label>
           <div className="flex justify-end gap-3">
           <FormCancelButton />

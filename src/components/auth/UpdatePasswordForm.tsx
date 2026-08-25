@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { AUTH_NEW_PASSWORD_TIP, AUTH_CONFIRM_PASSWORD_TIP } from "@/constants/tooltips";
 
 export function UpdatePasswordForm() {
   const [error, setError] = useState<string | null>(null);
@@ -55,10 +57,11 @@ export function UpdatePasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div>
-        <label className="sb-label" htmlFor="password">
-          New Password
-        </label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="password">
+           New Password
+           <InfoTooltip message={AUTH_NEW_PASSWORD_TIP} />
+         </label>
         <input
           className="sb-input"
           id="password"
@@ -69,10 +72,11 @@ export function UpdatePasswordForm() {
           minLength={6}
         />
       </div>
-      <div>
-        <label className="sb-label" htmlFor="confirmPassword">
-          Confirm Password
-        </label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="confirmPassword">
+           Confirm Password
+           <InfoTooltip message={AUTH_CONFIRM_PASSWORD_TIP} />
+         </label>
         <input
           className="sb-input"
           id="confirmPassword"

@@ -15,6 +15,13 @@ import {
   MAX_CONTACT_SUBJECT,
   MAX_CONTACT_MESSAGE,
 } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  CONTACT_NAME_TIP,
+  CONTACT_EMAIL_TIP,
+  CONTACT_SUBJECT_TIP,
+  CONTACT_MESSAGE_TIP,
+} from "@/constants/tooltips";
 
 const DRAFT_KEY = "draft_contact";
 
@@ -86,10 +93,11 @@ export function ContactForm() {
            <p className="text-sm text-red-700 dark:text-red-300">{state.message}</p>
          </div>
       )}
-      <div>
-        <label htmlFor="name" className="sb-label">
-          Your Name
-        </label>
+       <div>
+         <label htmlFor="name" className="sb-label inline-flex items-center gap-1.5">
+           Your Name
+           <InfoTooltip message={CONTACT_NAME_TIP} />
+         </label>
         <input
           type="text"
           id="name"
@@ -106,10 +114,11 @@ export function ContactForm() {
         </div>
       </div>
 
-      <div>
-        <label htmlFor="email" className="sb-label">
-          Email Address
-        </label>
+       <div>
+         <label htmlFor="email" className="sb-label inline-flex items-center gap-1.5">
+           Email Address
+           <InfoTooltip message={CONTACT_EMAIL_TIP} />
+         </label>
         <input
           type="email"
           id="email"
@@ -126,10 +135,11 @@ export function ContactForm() {
         </div>
       </div>
 
-      <div>
-        <label htmlFor="subject" className="sb-label">
-          Subject
-        </label>
+       <div>
+         <label htmlFor="subject" className="sb-label inline-flex items-center gap-1.5">
+           Subject
+           <InfoTooltip message={CONTACT_SUBJECT_TIP} />
+         </label>
         <input
           type="text"
           id="subject"
@@ -146,10 +156,11 @@ export function ContactForm() {
         </div>
       </div>
 
-      <div>
-        <label htmlFor="message" className="sb-label">
-          Message
-        </label>
+       <div>
+         <label htmlFor="message" className="sb-label inline-flex items-center gap-1.5">
+           Message
+           <InfoTooltip message={CONTACT_MESSAGE_TIP} />
+         </label>
         <textarea
           id="message"
           name="message"

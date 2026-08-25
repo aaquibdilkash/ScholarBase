@@ -12,6 +12,8 @@ import { useUser } from "@/hooks/useUser";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { MESSAGE_BODY_TIP, MESSAGE_SEARCH_TIP } from "@/constants/tooltips";
 
 type Scholar = Awaited<ReturnType<typeof getScholars>>[0];
 type Recipient = {
@@ -90,8 +92,9 @@ export function NewMessageForm({
   return (
     <form onSubmit={handleSubmit} className="sb-card space-y-5 p-6 md:p-8">
       <div className="space-y-2">
-        <label className="sb-label" htmlFor="recipientId">
+        <label className="sb-label inline-flex items-center gap-1.5" htmlFor="recipientId">
           Recipient
+          <InfoTooltip message={MESSAGE_SEARCH_TIP} />
         </label>
         {selectedRecipient ? (
           <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
@@ -157,8 +160,9 @@ export function NewMessageForm({
         )}
       </div>
       <div>
-        <label className="sb-label" htmlFor="body">
+        <label className="sb-label inline-flex items-center gap-1.5" htmlFor="body">
           Message
+          <InfoTooltip message={MESSAGE_BODY_TIP} />
         </label>
         <textarea
           id="body"

@@ -6,6 +6,8 @@ import { ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import type { User } from "@supabase/supabase-js";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { MESSAGE_BODY_TIP } from "@/constants/tooltips";
 
 const MAX_TEXTAREA_HEIGHT = 160;
 
@@ -116,19 +118,25 @@ export function MessageInputForm({
   return (
     <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4 dark:border-slate-800">
       <div className="flex items-end gap-2">
-        <textarea
-          ref={textAreaRef}
-          id="body"
-          name="body"
-          value={draft}
-          onChange={handleInput}
-          className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pr-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
-          placeholder="Write a message..."
-          required
-          rows={1}
-          maxLength={MAX_MESSAGE_BODY}
-          onKeyDown={handleKeyDown}
-        />
+        <div className="relative flex-1">
+          <textarea
+            ref={textAreaRef}
+            id="body"
+            name="body"
+            value={draft}
+            onChange={handleInput}
+            className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pr-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
+            placeholder="Write a message..."
+            required
+            rows={1}
+            maxLength={MAX_MESSAGE_BODY}
+            onKeyDown={handleKeyDown}
+            aria-label="Message"
+          />
+          <span className="absolute -top-5 left-0 text-xs text-slate-400 inline-flex items-center gap-1">
+            <InfoTooltip message={MESSAGE_BODY_TIP} />
+          </span>
+        </div>
         <button
           type="submit"
           disabled={!draft.trim() || isSubmitting}

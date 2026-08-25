@@ -3,6 +3,8 @@
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { forgotPassword } from "@/app/actions/auth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { AUTH_EMAIL_TIP } from "@/constants/tooltips";
 
 export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
   const { submit } = useFormSubmit(undefined, {
@@ -22,8 +24,9 @@ export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
     <form action={handleSubmit} className="flex flex-col gap-4">
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <div>
-        <label className="sb-label" htmlFor="email-forgot">
+        <label className="sb-label inline-flex items-center gap-1.5" htmlFor="email-forgot">
           Email
+          <InfoTooltip message={AUTH_EMAIL_TIP} />
         </label>
         <input
           className="sb-input"

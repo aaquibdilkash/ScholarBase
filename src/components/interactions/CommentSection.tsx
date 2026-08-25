@@ -21,6 +21,8 @@ import { useAuthModal } from "./AuthModal";
 import { emitCommentCount, getCommentCount } from "@/lib/comment-count-store";
 import { MAX_COMMENT_BODY } from "@/lib/constants";
 import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
 
 type MentionUser = { id: string; handle: string | null };
 
@@ -83,6 +85,10 @@ function MentionComposer({
 
   return (
     <div className="relative">
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Add a comment</span>
+        <InfoTooltip message={COMMENT_CONTENT_TIP} />
+      </div>
       <textarea
         name={name}
         placeholder={placeholder}

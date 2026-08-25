@@ -13,6 +13,12 @@ import {
   MAX_INVITE_MESSAGE,
 } from "@/lib/constants";
 import type { InviteFormState } from "@/types/invite";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  INVITE_NAME_TIP,
+  INVITE_EMAIL_TIP,
+  INVITE_MESSAGE_TIP,
+} from "@/constants/tooltips";
 
 const initialState: InviteFormState = {
   success: false,
@@ -87,8 +93,8 @@ export function InviteScholarForm() {
           <p className="text-sm text-red-700 dark:text-red-300">{state.message}</p>
         </div>
       )}
-      <div>
-        <label className="sb-label" htmlFor="name">Name</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="name">Name<InfoTooltip message={INVITE_NAME_TIP} /></label>
         <input 
           id="name" 
           name="name" 
@@ -101,8 +107,8 @@ export function InviteScholarForm() {
           {MAX_INVITE_NAME} characters max
         </div>
       </div>
-      <div>
-        <label className="sb-label" htmlFor="email">Email</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="email">Email<InfoTooltip message={INVITE_EMAIL_TIP} /></label>
         <input 
           id="email" 
           name="email" 
@@ -130,8 +136,8 @@ export function InviteScholarForm() {
           </button>
         </div>
       </div>
-      <div>
-        <label className="sb-label" htmlFor="message">Message</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="message">Message<InfoTooltip message={INVITE_MESSAGE_TIP} /></label>
         <textarea 
           id="message" 
           name="message" 

@@ -109,8 +109,9 @@ export function QuestionEditor({
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+          <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
             Question Title
+            <InfoTooltip message={SURVEY_QUESTION_TITLE_TIP} />
           </label>
           <input
             type="text"
@@ -124,8 +125,9 @@ export function QuestionEditor({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
               Question Type
+              <InfoTooltip message={SURVEY_QUESTION_TYPE_TIP} />
             </label>
             <select
               value={question.type}
@@ -175,8 +177,9 @@ export function QuestionEditor({
                 }
                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
                 Required
+                <InfoTooltip message={SURVEY_QUESTION_REQUIRED_TIP} />
               </span>
             </label>
           </div>
@@ -184,10 +187,11 @@ export function QuestionEditor({
 
         {isLinearScale && (
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700">
-                Min Value
-              </label>
+             <div>
+               <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+                 Min Value
+                 <InfoTooltip message={SURVEY_QUESTION_MIN_TIP} />
+               </label>
               <input
                 type="number"
                 value={question.minValue ?? 1}
@@ -201,10 +205,11 @@ export function QuestionEditor({
                 min={0}
               />
             </div>
-            <div>
-              <label className="mb-1 block text-sm font-semibold text-slate-700">
-                Max Value
-              </label>
+             <div>
+               <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+                 Max Value
+                 <InfoTooltip message={SURVEY_QUESTION_MAX_TIP} />
+               </label>
               <input
                 type="number"
                 value={question.maxValue ?? 10}
@@ -275,11 +280,12 @@ export function QuestionEditor({
           </div>
         )}
 
-        {needsOptions && (
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
-              Options
-            </label>
+         {needsOptions && (
+           <div>
+             <label className="mb-2 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+               Options
+               <InfoTooltip message={SURVEY_QUESTION_OPTION_TIP} />
+             </label>
             <div className="space-y-2">
               {question.options.map((opt, optIndex) => (
                 <div key={opt.value} className="flex items-center gap-2">

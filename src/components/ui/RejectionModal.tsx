@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "./button";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
 interface RejectionModalProps {
   isOpen: boolean;
@@ -48,12 +49,16 @@ export function RejectionModal({
         <div className="flex flex-col gap-4">
           <h2 className="text-xl font-bold">{title}</h2>
           <p>{message}</p>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Enter rejection reason"
-            className="w-full p-2 border rounded"
-          />
+           <textarea
+             value={reason}
+             onChange={(e) => setReason(e.target.value)}
+             placeholder="Enter rejection reason"
+             className="w-full p-2 border rounded"
+             aria-label="Rejection reason"
+           />
+           <span className="text-xs text-slate-500 inline-flex items-center gap-1">
+             <InfoTooltip message="Provide a clear reason for rejection. This will be visible to the content author." />
+           </span>
           <div className="flex justify-end gap-4 mt-4">
             <Button
               onClick={handleClose}

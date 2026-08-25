@@ -18,6 +18,17 @@ import {
   MAX_PROFILE_BIO,
   MAX_PROFILE_URL,
 } from "@/lib/constants";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import {
+  PROFILE_NAME_TIP,
+  PROFILE_HANDLE_TIP,
+  PROFILE_BIO_TIP,
+  PROFILE_AVATAR_TIP,
+  PROFILE_GITHUB_TIP,
+  PROFILE_ORCID_TIP,
+  PROFILE_LINKEDIN_TIP,
+  PROFILE_GOOGLE_SCHOLAR_TIP,
+} from "@/constants/tooltips";
 
 type UserData = {
   id: string;
@@ -178,8 +189,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         </div>
       )}
 
-      <div>
-        <label className="sb-label">Full Name</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5">
+           Full Name
+           <InfoTooltip message={PROFILE_NAME_TIP} />
+         </label>
         <input
           name="name"
           defaultValue={user.name || ""}
@@ -193,8 +207,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         </div>
       </div>
 
-      <div>
-        <label className="sb-label">Scholar Handle</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5">
+           Scholar Handle
+           <InfoTooltip message={PROFILE_HANDLE_TIP} />
+         </label>
         <div className="relative">
           <span className="absolute left-4 top-3.5 font-medium text-slate-400">
             @
@@ -245,8 +262,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         )}
       </div>
 
-      <div>
-        <label className="sb-label">Bio / About Me</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5">
+           Bio / About Me
+           <InfoTooltip message={PROFILE_BIO_TIP} />
+         </label>
         <Editor
           maxLength={MAX_PROFILE_BIO}
           value={bio}
@@ -255,8 +275,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         <input type="hidden" name="bio" value={bio} />
       </div>
 
-      <div>
-        <label className="sb-label">Avatar</label>
+       <div>
+         <label className="sb-label inline-flex items-center gap-1.5">
+           Avatar
+           <InfoTooltip message={PROFILE_AVATAR_TIP} />
+         </label>
         <div className="mt-1 flex items-center gap-4">
           {avatarUrl && (
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shrink-0">
@@ -302,10 +325,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           profile page.
         </p>
         <div className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-600">
-              GitHub Profile URL
-            </label>
+           <div>
+             <label className="mb-1 block text-xs font-semibold text-slate-600 inline-flex items-center gap-1.5">
+               GitHub Profile URL
+               <InfoTooltip message={PROFILE_GITHUB_TIP} />
+             </label>
             <input
               name="githubUrl"
               defaultValue={user.githubUrl || ""}
@@ -317,10 +341,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               {MAX_PROFILE_URL} characters max
             </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-600">
-              ORCID Profile URL
-            </label>
+           <div>
+             <label className="mb-1 block text-xs font-semibold text-slate-600 inline-flex items-center gap-1.5">
+               ORCID Profile URL
+               <InfoTooltip message={PROFILE_ORCID_TIP} />
+             </label>
             <input
               name="orcidUrl"
               defaultValue={user.orcidUrl || ""}
@@ -332,10 +357,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               {MAX_PROFILE_URL} characters max
             </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-600">
-              LinkedIn Profile URL
-            </label>
+           <div>
+             <label className="mb-1 block text-xs font-semibold text-slate-600 inline-flex items-center gap-1.5">
+               LinkedIn Profile URL
+               <InfoTooltip message={PROFILE_LINKEDIN_TIP} />
+             </label>
             <input
               name="linkedinUrl"
               defaultValue={user.linkedinUrl || ""}
@@ -347,10 +373,11 @@ export default function EditProfileForm({ user }: { user: UserData }) {
               {MAX_PROFILE_URL} characters max
             </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-600">
-              Google Scholar Profile URL
-            </label>
+           <div>
+             <label className="mb-1 block text-xs font-semibold text-slate-600 inline-flex items-center gap-1.5">
+               Google Scholar Profile URL
+               <InfoTooltip message={PROFILE_GOOGLE_SCHOLAR_TIP} />
+             </label>
             <input
               name="googleScholarUrl"
               defaultValue={user.googleScholarUrl || ""}
