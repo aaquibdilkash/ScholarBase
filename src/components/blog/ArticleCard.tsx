@@ -77,10 +77,10 @@ export function ArticleCard({
         article.editedAt && article.editedAt > article.createdAt ? article.editedAt : undefined
       }
     >
-      <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+      <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors dark:text-white dark:group-hover:text-blue-300">
         {article.title}
       </h2>
-      <p className="text-sm leading-relaxed text-slate-600 line-clamp-3">
+      <p className="text-sm leading-relaxed text-slate-900 dark:text-white line-clamp-3">
         {article.excerpt}
       </p>
     </ListPageCardShell>

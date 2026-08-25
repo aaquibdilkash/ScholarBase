@@ -179,13 +179,6 @@ export function ArticleComposer({
             />
             <input type="hidden" name="content" value={draftFields.content} />
           </div>
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {String(draftFields.content.length).replace(
-              /(\d+)(?=.(\d{3})*$)/g,
-              "$1,",
-            )}
-            /{MAX_ARTICLE_CONTENT} characters
-          </div>
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
@@ -223,7 +216,7 @@ export function ArticleComposer({
             {draftFields.excerpt || "Your short description will appear here."}
           </p>
 
-          <div className="prose prose-slate max-w-none prose-headings:text-slate-950 prose-a:text-blue-700 hover:prose-a:text-blue-600">
+          <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
             <RichContent content={previewContent} />
           </div>
         </div>

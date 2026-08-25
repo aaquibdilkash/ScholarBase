@@ -242,13 +242,6 @@ export default function CourseForm({
           name="description"
           value={draftFields.description}
         />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(draftFields.description.length).replace(
-            /(\d+)(?=.(\d{3})*$)/g,
-            "$1,",
-          )}
-          /{MAX_COURSE_DESCRIPTION} characters
-        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

@@ -213,9 +213,6 @@ export default function JournalForm({
           maxLength={MAX_JOURNAL_DESCRIPTION}
         />
         <input type="hidden" name="about" value={draftFields.about} />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(draftFields.about.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_JOURNAL_DESCRIPTION} characters
-        </div>
       </div>
 
       <div className="mt-2 flex justify-end gap-3">

@@ -155,9 +155,6 @@ export default function AdmissionForm({
           name="description"
           value={draftFields.description}
         />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(draftFields.description.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_ADMISSION_DESCRIPTION} characters
-        </div>
       </div>
 
       <div>

@@ -386,13 +386,6 @@ export default function ContributionForm({
           onChange={(data) => updateDraftField("message", data)}
         />
         <input type="hidden" name="message" value={draftFields.message} />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(draftFields.message.length).replace(
-            /(\d+)(?=.(\d{3})*$)/g,
-            "$1,",
-          )}
-          /{MAX_CONTRIBUTION_MESSAGE} characters
-        </div>
       </div>
 
       {!isApprovedEdit && (

@@ -167,9 +167,6 @@ export default function HelpPostForm({
             maxLength={MAX_HELP_POST_MESSAGE}
           />
           <input type="hidden" name="message" value={draftFields.message} />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {String(draftFields.message.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_HELP_POST_MESSAGE} characters
-          </div>
         </div>
 
         <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">

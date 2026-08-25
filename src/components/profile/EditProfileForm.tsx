@@ -253,9 +253,6 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           onChange={(data) => setBio(data)}
         />
         <input type="hidden" name="bio" value={bio} />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(bio.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_PROFILE_BIO} characters
-        </div>
       </div>
 
       <div>

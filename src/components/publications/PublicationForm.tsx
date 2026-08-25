@@ -375,13 +375,6 @@ export default function PublicationForm({
           maxLength={MAX_PUBLICATION_ABSTRACT}
         />
         <input type="hidden" name="abstract" value={draftFields.abstract} />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(draftFields.abstract.length).replace(
-            /(\d+)(?=.(\d{3})*$)/g,
-            "$1,",
-          )}
-          /{MAX_PUBLICATION_ABSTRACT} characters
-        </div>
       </div>
 
       {/* I am an author checkbox */}

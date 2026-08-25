@@ -150,13 +150,6 @@ export default function SupervisorForm({
           onChange={(data) => updateDraftField("about", data)}
         />
         <input type="hidden" name="about" value={draftFields.about} />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(draftFields.about.length).replace(
-            /(\d+)(?=.(\d{3})*$)/g,
-            "$1,",
-          )}
-          /{MAX_SUPERVISOR_ABOUT} characters
-        </div>
       </div>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">

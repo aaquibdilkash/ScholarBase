@@ -58,7 +58,7 @@ const Editor = ({
     }
   }, [editor, value]);
 
-  const charCount = value.length;
+  const charCount = editor ? editor.getText().length : 0;
 
   if (!editor) {
     return null;
@@ -157,7 +157,7 @@ const Editor = ({
       <EditorContent editor={editor} />
       {showCharCount && (
         <div className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(charCount).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}
+          {charCount.toLocaleString("en-US")}
           {maxLength ? `/${maxLength}` : ""} characters
         </div>
       )}

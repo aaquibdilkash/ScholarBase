@@ -167,9 +167,6 @@ export default function SurveyForm({
             onChange={(data) => updateDraft("description", data)}
           />
           <input type="hidden" name="description" value={description ?? ""} />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {String((description ?? "").length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_SURVEY_DESCRIPTION} characters
-          </div>
         </div>
 
         <div>
