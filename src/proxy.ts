@@ -37,6 +37,8 @@ export async function proxy(request: NextRequest) {
     if (!user && isProtectedPath) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
+        const originalPath = request.nextUrl.pathname + request.nextUrl.search
+        url.searchParams.set("callbackUrl", originalPath)
         return NextResponse.redirect(url)
     }
 

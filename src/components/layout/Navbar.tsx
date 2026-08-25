@@ -6,8 +6,8 @@ import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
 import UserActionsDropdown from "./UserActionsDropdown";
 import prisma from "@/lib/db";
 import NavLoginButton from "./NavLoginButton";
-import { Bell } from "lucide-react";
 import SignOutButton from "@/components/auth/SignOutButton";
+import NotificationBadge from "./NotificationBadge";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -51,18 +51,7 @@ export default async function Navbar() {
           {user ? (
             <>
               <div className="hidden items-center gap-2 sm:gap-3 md:flex md:gap-4">
-                <Link
-                  href="/notifications"
-                  className="sb-button-soft relative p-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-6 w-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold leading-none text-white">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </Link>
+                <NotificationBadge initialUnreadCount={unreadCount} />
                 <Link
                   href={`/scholars/${user.id}`}
                   className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2"

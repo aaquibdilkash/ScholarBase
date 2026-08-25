@@ -509,6 +509,12 @@ export async function deleteCommentTransaction(
         })
       }
 
+      const parentEntityId = (comment as any)[parentFk] as string
+      await parent.update({
+        where: { id: parentEntityId },
+        data: { totalComments: { decrement: 1 } },
+      })
+
       return { wasTombstoned: true, parentId: comment.parentId }
     } else {
       await commentModel.delete({ where: { id: commentId } })
@@ -539,6 +545,44 @@ export async function deleteCommentTransaction(
       }
 
       await prisma.$transaction(operations)
+
+      if (comment.parentId) {
+        const parentComment = await commentModel.findUnique({
+          where: { id: comment.parentId },
+          select: { authorId: true, totalReplies: true, [parentFk]: true },
+        })
+        if (parentComment && !parentComment.authorId && parentComment.totalReplies === 0) {
+          const parentEntityId2 = (parentComment as any)[parentFk] as string
+          const cleanupOps: any[] = [
+            commentModel.delete({ where: { id: comment.parentId } }),
+          ]
+          if (parentEntityId2) {
+            const parentEntity = await parent.findUnique({
+              where: { id: parentEntityId2 },
+              select: { totalComments: true },
+            })
+            if (parentEntity && parentEntity.totalComments > 0) {
+              cleanupOps.push(
+                parent.update({
+                  where: { id: parentEntityId2 },
+                  data: { totalComments: { decrement: 1 } },
+                }),
+              )
+            }
+          }
+          const parentParentId = (parentComment as any).parentId
+          if (parentParentId) {
+            cleanupOps.push(
+              commentModel.update({
+                where: { id: parentParentId },
+                data: { totalReplies: { decrement: 1 } },
+              }),
+            )
+          }
+          await prisma.$transaction(cleanupOps)
+        }
+      }
+
       return { wasTombstoned: false, parentId: comment.parentId }
     }
   })

@@ -22,7 +22,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   const { callbackUrl } = await searchParams;
-  const returnUrl = callbackUrl || "/";
+  let returnUrl = callbackUrl || "/";
+
+  if (returnUrl === "/") {
+    try {
+      const cookieStore = await (await import("next/headers")).cookies();
+      const stored = cookieStore.get("sb_callback_url");
+      if (stored?.value) {
+        returnUrl = stored.value;
+      }
+    } catch {}
+  }
 
   return (
     <Suspense fallback={<div>Loading...</div>}>

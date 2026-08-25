@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Kilo agent worktrees (not part of the active source tree):
+    ".kilo/worktrees/**",
   ]),
   // Project-specific lint policy.
   //

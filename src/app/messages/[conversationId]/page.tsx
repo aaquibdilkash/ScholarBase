@@ -128,9 +128,15 @@ export default function ConversationPage({
 
           await markConversationAsRead(conversationId);
 
-          // Notify the sidebar that this conversation was read
-          window.dispatchEvent(new CustomEvent('conversation-read', { 
-            detail: { conversationId, userId: user.id } 
+          const currentParticipant = (conv as unknown as Conversation).participants.find(
+            (p) => p.user.id === user.id,
+          );
+          const unreadDelta = (conv as unknown as Conversation).messages.filter(
+            (m) => m.senderId !== user.id && new Date(m.createdAt) > new Date(currentParticipant?.lastReadAt || 0),
+          ).length;
+
+          window.dispatchEvent(new CustomEvent('conversation-read', {
+            detail: { conversationId, userId: user.id, delta: unreadDelta }
           }));
 
           const otherP = (conv as unknown as Conversation).participants.find(

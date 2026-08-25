@@ -41,7 +41,8 @@ export function UpdatePasswordForm() {
 
       if (response.ok) {
         toast(data.message, "success");
-        router.replace("/login");
+        const callbackUrl = new URLSearchParams(window.location.search).get("callbackUrl");
+        router.replace(callbackUrl ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}` : "/login");
       } else {
         setError(data.error || "Could not update password. Please try again.");
         setSubmitting(false);

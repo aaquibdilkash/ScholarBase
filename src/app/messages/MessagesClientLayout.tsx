@@ -94,7 +94,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                 if (conv.id !== change.conversationId) return conv;
                 const lastReadAt = new Date(change.lastReadAt!);
                 const unreadCount = conv.messages.filter((m) => {
-                  const senderId = (m as any).senderId || (m as any).sender_id;
+                  const senderId = m.senderId || m.sender_id;
                   const msgDate = m.createdAt || m.created_at;
                   return senderId !== user.id && msgDate && new Date(msgDate) > lastReadAt;
                 }).length;
@@ -114,7 +114,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
           if (conv.id !== conversationId) return conv;
           const lastReadAt = new Date();
           const unreadCount = conv.messages.filter((m) => {
-            const senderId = (m as any).senderId || (m as any).sender_id;
+            const senderId = m.senderId || m.sender_id;
             const msgDate = m.createdAt || m.created_at;
             return senderId !== user.id && msgDate && new Date(msgDate) > lastReadAt;
           }).length;

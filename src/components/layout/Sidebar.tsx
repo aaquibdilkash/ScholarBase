@@ -130,6 +130,23 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
     };
   }, [checkScrollable]);
 
+  const [optimisticUnreadMessages, setOptimisticUnreadMessages] = useState(user?.unreadMessages ?? 0);
+
+  useEffect(() => {
+    setOptimisticUnreadMessages(user?.unreadMessages ?? 0);
+  }, [user?.unreadMessages]);
+
+  useEffect(() => {
+    const handleConversationRead = (event: Event) => {
+      const { delta } = (event as CustomEvent<{ delta: number }>).detail || {};
+      if (typeof delta === 'number' && delta > 0) {
+        setOptimisticUnreadMessages((prev) => Math.max(0, prev - delta));
+      }
+    };
+    window.addEventListener('conversation-read', handleConversationRead as EventListener);
+    return () => window.removeEventListener('conversation-read', handleConversationRead as EventListener);
+  }, []);
+
   const isOnLoginPage = pathname === "/login";
   const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
 
@@ -137,7 +154,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
     () => [
       { name: "Feed", href: "/feed", icon: <Newspaper className="h-6 w-6 shrink-0" /> },
       { name: "Scholars", href: "/scholars", icon: <Users className="h-6 w-6 shrink-0" /> },
-      { name: "Messages", href: "/messages", icon: <MessageSquare className="h-6 w-6 shrink-0" />, badge: user?.unreadMessages ?? 0 },
+      { name: "Messages", href: "/messages", icon: <MessageSquare className="h-6 w-6 shrink-0" />, badge: optimisticUnreadMessages },
       { name: "Supervisors", href: "/supervisor", icon: <Star className="h-6 w-6 shrink-0" /> },
       { name: "Research Survey", href: "/surveys", icon: <ClipboardList className="h-6 w-6 shrink-0" /> },
       { name: "Admissions", href: "/admissions", icon: <GraduationCap className="h-6 w-6 shrink-0" /> },
@@ -154,7 +171,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Scholar Suggest", href: "/help", icon: <HelpCircle className="h-6 w-6 shrink-0" /> },
       ...(user?.isAdmin ? [{ name: "Admin", href: "/admin", icon: <Shield className="h-6 w-6 shrink-0" /> }] : []),
     ],
-    [user?.isAdmin, user?.unreadMessages],
+    [user?.isAdmin, optimisticUnreadMessages],
   );
 
   useEffect(() => {

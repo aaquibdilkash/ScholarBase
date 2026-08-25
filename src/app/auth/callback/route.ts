@@ -14,16 +14,16 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
   const flowId = searchParams.get("sb_flow_id");
   const next = getSafeNextPath(searchParams.get("next"));
+  const callbackUrl = getSafeNextPath(searchParams.get("callbackUrl"));
   const fallbackNext = type === "recovery" ? "/auth/update-password" : "/";
   const destination = getSafeNextPath(next === "/" ? fallbackNext : next);
+  const finalDestination = destination === "/" && callbackUrl !== "/" ? callbackUrl : destination;
 
   if (!code && !(tokenHash && type)) {
     return NextResponse.redirect(new URL("/auth/auth-code-error", origin));
   }
 
-  // Keep the response instance that Supabase writes its recovery-session
-  // cookies to. Creating a separate redirect response drops those cookies.
-  const response = NextResponse.redirect(new URL(destination, origin));
+  const response = NextResponse.redirect(new URL(finalDestination, origin));
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

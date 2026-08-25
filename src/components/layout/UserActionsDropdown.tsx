@@ -16,6 +16,31 @@ export default function UserActionsDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [optimisticUnreadCount, setOptimisticUnreadCount] = useState(unreadCount);
+
+  useEffect(() => {
+    setOptimisticUnreadCount(unreadCount);
+  }, [unreadCount]);
+
+  useEffect(() => {
+    const handleRead = (event: Event) => {
+      const { delta } = (event as CustomEvent<{ delta: number }>).detail || {};
+      if (typeof delta === "number" && delta > 0) {
+        setOptimisticUnreadCount((prev) => Math.max(0, prev - delta));
+      }
+    };
+
+    const handleAllRead = () => {
+      setOptimisticUnreadCount(0);
+    };
+
+    window.addEventListener("notification-read", handleRead);
+    window.addEventListener("all-notifications-read", handleAllRead);
+    return () => {
+      window.removeEventListener("notification-read", handleRead);
+      window.removeEventListener("all-notifications-read", handleAllRead);
+    };
+  }, []);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -85,9 +110,9 @@ export default function UserActionsDropdown({
                 onClick={() => setOpen(false)}
               >
                 Notifications
-                {unreadCount > 0 && (
+                {optimisticUnreadCount > 0 && (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold leading-none text-white">
-                    {unreadCount > 99 ? "99+" : unreadCount}
+                    {optimisticUnreadCount > 99 ? "99+" : optimisticUnreadCount}
                   </span>
                 )}
               </Link>

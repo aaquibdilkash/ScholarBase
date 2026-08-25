@@ -63,10 +63,10 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
   }, [isOpen]);
 
   useEffect(() => {
-    // Preserve the callback URL in sessionStorage so it survives redirect
+    // Preserve the callback URL in a cookie so it survives redirect
     if (callbackUrl && callbackUrl !== "/") {
       try {
-        sessionStorage.setItem("auth_redirect_url", callbackUrl);
+        document.cookie = `sb_callback_url=${encodeURIComponent(callbackUrl)}; path=/; max-age=300; SameSite=Lax`;
       } catch {}
     }
   }, [callbackUrl]);

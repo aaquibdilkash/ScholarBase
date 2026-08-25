@@ -183,7 +183,7 @@ export function CommentSection({
 
   useEffect(() => {
     emitCommentCount(
-      cachedComments.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0),
+      cachedComments.reduce((sum, c) => sum + (c.authorId ? 1 : 0) + (c.replies?.length ?? 0), 0),
     );
   }, [cachedComments]);
 
@@ -245,23 +245,25 @@ export function CommentSection({
       );
       queryClient.setQueriesData<{ totalComments?: number }>(
         { queryKey: [module, targetId] },
-        (oldData: any) => {
+        (oldData) => {
           if (!oldData || typeof oldData !== 'object') return oldData;
-          if (typeof oldData.totalComments === 'number') {
-            return { ...oldData, totalComments: oldData.totalComments + 1 };
+          const data = oldData as { totalComments?: number };
+          if (typeof data.totalComments === 'number') {
+            return { ...data, totalComments: data.totalComments + 1 };
           }
-          return oldData;
+          return data;
         },
       );
       queryClient.setQueriesData(
         { queryKey: ["feed"] },
-        (oldData: any) => {
+        (oldData) => {
           if (!Array.isArray(oldData)) return oldData;
-          return oldData.map((item: any) =>
-            item.id === targetId && typeof item.totalComments === 'number'
-              ? { ...item, totalComments: item.totalComments + 1 }
-              : item,
-          );
+          return oldData.map((item) => {
+            const feedItem = item as { id: string; totalComments?: number };
+            if (feedItem.id !== targetId) return item;
+            if (typeof feedItem.totalComments !== 'number') return item;
+            return { ...feedItem, totalComments: feedItem.totalComments + 1 };
+          });
         },
       );
 
@@ -575,28 +577,30 @@ function CommentEntry({
                       ? { ...c, content: '[This comment was deleted by author]', authorId: null, author: null }
                       : c,
                   );
-              newCount = result.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0);
+              newCount = result.reduce((sum, c) => sum + (c.authorId ? 1 : 0) + (c.replies?.length ?? 0), 0);
               return result;
             },
           );
           queryClient.setQueriesData<{ totalComments?: number }>(
             { queryKey: [module, targetId] },
-            (oldData: any) => {
+            (oldData) => {
               if (!oldData || typeof oldData !== 'object') return oldData;
-              return { ...oldData, totalComments: newCount };
+              const data = oldData as { totalComments?: number };
+              return { ...data, totalComments: newCount };
             },
           );
-          queryClient.setQueriesData(
-            { queryKey: ["feed"] },
-            (oldData: any) => {
-              if (!Array.isArray(oldData)) return oldData;
-              return oldData.map((item: any) =>
-                item.id === targetId && typeof item.totalComments === 'number'
-                  ? { ...item, totalComments: newCount }
-                  : item,
-              );
-            },
-          );
+            queryClient.setQueriesData(
+              { queryKey: ["feed"] },
+              (oldData) => {
+                if (!Array.isArray(oldData)) return oldData;
+                return oldData.map((item) => {
+                  const feedItem = item as { id: string; totalComments?: number };
+                  if (feedItem.id !== targetId) return item;
+                  if (typeof feedItem.totalComments !== 'number') return item;
+                  return { ...feedItem, totalComments: newCount };
+                });
+              },
+            );
         } else {
           queryClient.setQueryData<CommentWithAuthorAndVotes[]>(
             commentsQueryKey,
@@ -619,30 +623,35 @@ function CommentEntry({
                   });
                   return acc;
                 }, []);
-                newCount = result.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0);
+              newCount = result.reduce((sum, c) => sum + (c.authorId ? 1 : 0) + (c.replies?.length ?? 0), 0);
                 return result;
               }
               const result = oldComments.filter((c) => c.id !== comment.id);
-              newCount = result.reduce((sum, c) => sum + 1 + (c.replies?.length ?? 0), 0);
+              newCount = result.reduce((sum, c) => sum + (c.authorId ? 1 : 0) + (c.replies?.length ?? 0), 0);
               return result;
             },
-          );
-          queryClient.setQueriesData<{ totalComments?: number }>(
-            { queryKey: [module, targetId] },
-            (oldData: any) => {
-              if (!oldData || typeof oldData !== 'object') return oldData;
-              return { ...oldData, totalComments: newCount };
-            },
-          );
-          queryClient.setQueriesData(
+                   );
+                    queryClient.setQueriesData<{ totalComments?: number }>(
+                      { queryKey: [module, targetId] },
+                      (oldData) => {
+                        if (!oldData || typeof oldData !== 'object') return oldData;
+                        const data = oldData as { totalComments?: number };
+                        if (typeof data.totalComments === 'number') {
+                          return { ...data, totalComments: newCount };
+                        }
+                        return data;
+                      },
+                    );
+           queryClient.setQueriesData(
             { queryKey: ["feed"] },
-            (oldData: any) => {
+            (oldData) => {
               if (!Array.isArray(oldData)) return oldData;
-              return oldData.map((item: any) =>
-                item.id === targetId && typeof item.totalComments === 'number'
-                  ? { ...item, totalComments: newCount }
-                  : item,
-              );
+              return oldData.map((item) => {
+                const feedItem = item as { id: string; totalComments?: number };
+                if (feedItem.id !== targetId) return item;
+                if (typeof feedItem.totalComments !== 'number') return item;
+                return { ...feedItem, totalComments: newCount };
+              });
             },
           );
         }
@@ -662,8 +671,8 @@ function CommentEntry({
     return (
         <div className="group flex gap-1 md:gap-2">
             <div className="shrink-0 pt-1">
-                <div className={`overflow-hidden rounded-full border bg-slate-100 dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-10 w-10" : "h-11 w-11 md:h-12 md:w-12"}`}>
-                    <div className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${isReply ? "text-xs md:text-sm" : "text-sm md:text-base"}`}>?</div>
+                <div className={`overflow-hidden rounded-full border bg-slate-100 dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"}`}>
+                    <div className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${isReply ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}`}>?</div>
                 </div>
             </div>
             <div className="min-w-0 flex-1">
@@ -702,7 +711,7 @@ function CommentEntry({
       <Link href={`/scholars/${comment.author?.id ?? '#'}`} className="shrink-0 pt-1">
         <div
           className={`overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-200 dark:border-slate-800 dark:bg-slate-900 ${
-            isReply ? "h-10 w-10" : "h-11 w-11 md:h-12 md:w-12"
+            isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"
           }`}
         >
           {comment.author?.avatarUrl ? (
@@ -717,7 +726,7 @@ function CommentEntry({
           ) : (
             <div
               className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${
-                isReply ? "text-xs md:text-sm" : "text-sm md:text-base"
+                isReply ? "text-[10px] md:text-xs" : "text-xs md:text-sm"
               }`}
             >
               {comment.author?.name?.charAt(0).toUpperCase() || "?"}
@@ -849,27 +858,29 @@ function CommentEntry({
                           : c,
                       ),
                   );
-                  queryClient.setQueriesData<{ totalComments?: number }>(
-                    { queryKey: [module, targetId] },
-                    (oldData: any) => {
-                      if (!oldData || typeof oldData !== 'object') return oldData;
-                      if (typeof oldData.totalComments === 'number') {
-                        return { ...oldData, totalComments: oldData.totalComments + 1 };
-                      }
-                      return oldData;
-                    },
-                  );
-                  queryClient.setQueriesData(
-                    { queryKey: ["feed"] },
-                    (oldData: any) => {
-                      if (!Array.isArray(oldData)) return oldData;
-                      return oldData.map((item: any) =>
-                        item.id === targetId && typeof item.totalComments === 'number'
-                          ? { ...item, totalComments: item.totalComments + 1 }
-                          : item,
-                      );
-                    },
-                  );
+                   queryClient.setQueriesData<{ totalComments?: number }>(
+                     { queryKey: [module, targetId] },
+                     (oldData) => {
+                       if (!oldData || typeof oldData !== 'object') return oldData;
+                       const data = oldData as { totalComments?: number };
+                       if (typeof data.totalComments === 'number') {
+                         return { ...data, totalComments: data.totalComments + 1 };
+                       }
+                       return data;
+                     },
+                   );
+         queryClient.setQueriesData(
+           { queryKey: ["feed"] },
+           (oldData) => {
+             if (!Array.isArray(oldData)) return oldData;
+             return oldData.map((item) => {
+               const feedItem = item as { id: string; totalComments?: number };
+               if (feedItem.id !== targetId) return item;
+               if (typeof feedItem.totalComments !== 'number') return item;
+               return { ...feedItem, totalComments: feedItem.totalComments + 1 };
+             });
+           },
+         );
                   setActiveReplyId(null);
                 }}
                 toast={toast}

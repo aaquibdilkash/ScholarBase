@@ -41,9 +41,16 @@ export function UserListModal({
   const { toast } = useToast();
   
   const fetcher = mode === "followers" ? getFollowersWithCursor : getFollowingWithCursor;
+  const fetcherRef = useRef(fetcher);
+  const loadingMoreRef = useRef(loadingMore);
+
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+    loadingMoreRef.current = loadingMore;
+  });
 
   const loadUsers = useCallback(async (cursorOverride?: string, replace = false) => {
-    if (loadingMore) return;
+    if (loadingMoreRef.current) return;
     
     const isFetchingMore = !!cursorOverride;
     if (isFetchingMore) {
@@ -53,7 +60,7 @@ export function UserListModal({
     }
     
     try {
-      const result = await fetcher(userId, currentUserId, 20, cursorOverride || undefined);
+      const result = await fetcherRef.current(userId, currentUserId, 20, cursorOverride || undefined);
       
       if (replace) {
         setUsers(result.users);
