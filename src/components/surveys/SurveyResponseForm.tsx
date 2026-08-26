@@ -14,7 +14,8 @@ import {
 type Answer = {
   id: string;
   questionId: string;
-  value: string;
+  // Allow Prisma's JSON arrays to pass through without type errors
+  value: any; 
 };
 
 type Response = {
@@ -72,7 +73,10 @@ export function SurveyResponseForm({
       const initialAnswers = response.answers.reduce(
         (acc, answer) => {
           if (activeQuestionIds.has(answer.questionId)) {
-            acc[answer.questionId] = answer.value;
+            // FIX: If Prisma returns an array, stringify it so our internal state stays happy
+            acc[answer.questionId] = typeof answer.value === 'string' 
+              ? answer.value 
+              : JSON.stringify(answer.value);
           }
           return acc;
         },

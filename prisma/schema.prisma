@@ -10,7 +10,7 @@ datasource db {
 // GLOBAL ACTIVITY LOG (Added)
 // ============================================
 model UserActivity {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   userId      String
   action      String // e.g., 'COMMENTED', 'REPLIED', 'VOTED', 'PUBLISHED'
   moduleType  String // e.g., 'SOCIAL_POST', 'ARTICLE', 'RESEARCH_EVENT'
@@ -114,7 +114,7 @@ enum DigestPreference {
 }
 
 model Article {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   title     String
   slug      String   @unique
   excerpt   String?
@@ -141,7 +141,7 @@ model Article {
 }
 
 model Supervisor {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   name       String
   university String
   department String
@@ -174,7 +174,7 @@ model Supervisor {
 }
 
 model SocialPost {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   imageUrl  String?
   imageUrls String[]
@@ -199,7 +199,7 @@ model SocialPost {
 }
 
 model ArticleComment {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   articleId String
   parentId  String?
@@ -223,7 +223,7 @@ model ArticleComment {
 }
 
 model ArticleVote {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   articleId String
   userId    String
   voteType  VoteType
@@ -236,7 +236,7 @@ model ArticleVote {
 }
 
 model SocialComment {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   content      String
   socialPostId String
   parentId     String?
@@ -260,7 +260,7 @@ model SocialComment {
 }
 
 model ArticleCommentVote {
-  id        String         @id @default(uuid())
+  id        String         @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -273,7 +273,7 @@ model ArticleCommentVote {
 }
 
 model SocialCommentVote {
-  id        String        @id @default(uuid())
+  id        String        @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -286,7 +286,7 @@ model SocialCommentVote {
 }
 
 model SocialVote {
-  id           String     @id @default(uuid())
+  id           String     @id @default(cuid())
   socialPostId String
   userId       String
   voteType     VoteType
@@ -299,7 +299,7 @@ model SocialVote {
 }
 
 model HelpPost {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   title     String
   subject   String
   category  String
@@ -326,7 +326,7 @@ model HelpPost {
 }
 
 model HelpPostVote {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   helpPostId String
   userId     String
   voteType   VoteType
@@ -340,7 +340,7 @@ model HelpPostVote {
 }
 
 model HelpPostComment {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   content    String
   helpPostId String
   parentId   String?
@@ -366,7 +366,7 @@ model HelpPostComment {
 }
 
 model HelpPostCommentVote {
-  id        String          @id @default(uuid())
+  id        String          @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -379,7 +379,7 @@ model HelpPostCommentVote {
 }
 
 model Contribution {
-  id              String             @id @default(uuid())
+  id              String             @id @default(cuid())
   title           String
   amount          Float?
   upiId           String?
@@ -411,7 +411,7 @@ model Contribution {
 }
 
 model ContributionVote {
-  id             String   @id @default(uuid())
+  id             String   @id @default(cuid())
   contributionId String
   userId         String
   voteType       VoteType
@@ -425,7 +425,7 @@ model ContributionVote {
 }
 
 model ContributionComment {
-  id             String   @id @default(uuid())
+  id             String   @id @default(cuid())
   content        String
   contributionId String
   parentId       String?
@@ -449,7 +449,7 @@ model ContributionComment {
 }
 
 model ContributionCommentVote {
-  id        String              @id @default(uuid())
+  id        String              @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -462,7 +462,7 @@ model ContributionCommentVote {
 }
 
 model Publication {
-  id                  String          @id @default(uuid())
+  id                  String          @id @default(cuid())
   title               String
   authors             String
   publicationType     PublicationType
@@ -500,7 +500,7 @@ model Publication {
 }
 
 model PublicationVote {
-  id            String      @id @default(uuid())
+  id            String      @id @default(cuid())
   publicationId String
   userId        String
   voteType      VoteType
@@ -513,7 +513,7 @@ model PublicationVote {
 }
 
 model PublicationComment {
-  id            String   @id @default(uuid())
+  id            String   @id @default(cuid())
   content       String
   publicationId String
   parentId      String?
@@ -537,7 +537,7 @@ model PublicationComment {
 }
 
 model PublicationCommentVote {
-  id        String             @id @default(uuid())
+  id        String             @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -688,15 +688,17 @@ model User {
   conversationParticipants ConversationParticipant[]
   messagesSent             Message[]
 
+  trendingScore Float   @default(0)
+
   // INDEX: The scholar directory (getScholars / getTrendingScholars) orders by
   // reputation and createdAt. The User table previously had NO non-unique
   // indexes on these columns, so every listing triggered a full-table filesort.
-  @@index([reputation(sort: Desc)])
+  @@index([trendingScore(sort: Desc)])
   @@index([createdAt(sort: Desc)])
 }
 
 model Notification {
-  id          String    @id @default(uuid())
+  id          String    @id @default(cuid())
   recipientId String
   actorId     String
   type        String
@@ -721,7 +723,7 @@ model Notification {
 }
 
 model Conversation {
-  id            String                    @id @default(uuid())
+  id            String                    @id @default(cuid())
   type          ConversationType          @default(DIRECT)
   createdById   String
   lastMessageAt DateTime                  @default(now())
@@ -751,14 +753,14 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String       @id @default(uuid())
+  id             String       @id @default(cuid())
   conversationId String
   senderId       String
   body           String
   createdAt      DateTime     @default(now())
   updatedAt  DateTime  @updatedAt
   editedAt DateTime?
-  isDeleted DateTime?
+  isDeleted Boolean?
   readAt         DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -769,7 +771,7 @@ model Message {
 }
 
 model ResearchTool {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   name        String
   website     String
   use         String
@@ -795,7 +797,7 @@ model ResearchTool {
 }
 
 model ResearchToolVote {
-  id             String       @id @default(uuid())
+  id             String       @id @default(cuid())
   researchToolId String
   userId         String
   voteType       VoteType
@@ -808,7 +810,7 @@ model ResearchToolVote {
 }
 
 model ResearchToolComment {
-  id             String   @id @default(uuid())
+  id             String   @id @default(cuid())
   content        String
   researchToolId String
   parentId       String?
@@ -832,7 +834,7 @@ model ResearchToolComment {
 }
 
 model ResearchToolCommentVote {
-  id        String              @id @default(uuid())
+  id        String              @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -845,7 +847,7 @@ model ResearchToolCommentVote {
 }
 
 model ResearchGrant {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   title       String
   amount      String?
   description String
@@ -872,7 +874,7 @@ model ResearchGrant {
 }
 
 model ResearchGrantVote {
-  id              String        @id @default(uuid())
+  id              String        @id @default(cuid())
   researchGrantId String
   userId          String
   voteType        VoteType
@@ -885,7 +887,7 @@ model ResearchGrantVote {
 }
 
 model ResearchGrantComment {
-  id              String   @id @default(uuid())
+  id              String   @id @default(cuid())
   content         String
   researchGrantId String
   parentId        String?
@@ -909,7 +911,7 @@ model ResearchGrantComment {
 }
 
 model ResearchGrantCommentVote {
-  id        String               @id @default(uuid())
+  id        String               @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -922,7 +924,7 @@ model ResearchGrantCommentVote {
 }
 
 model Course {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   title       String
   provider    String?
   instructor  String?
@@ -953,7 +955,7 @@ model Course {
 }
 
 model CourseVote {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   courseId  String
   userId    String
   voteType  VoteType
@@ -966,7 +968,7 @@ model CourseVote {
 }
 
 model CourseComment {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   courseId  String
   parentId  String?
@@ -990,7 +992,7 @@ model CourseComment {
 }
 
 model CourseCommentVote {
-  id        String        @id @default(uuid())
+  id        String        @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1003,7 +1005,7 @@ model CourseCommentVote {
 }
 
 model Journal {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   title        String
   issn         String?
   impactFactor Float?
@@ -1042,7 +1044,7 @@ model Journal {
 }
 
 model JournalVote {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   journalId String
   userId    String
   voteType  VoteType
@@ -1055,7 +1057,7 @@ model JournalVote {
 }
 
 model JournalComment {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   journalId String
   parentId  String?
@@ -1079,7 +1081,7 @@ model JournalComment {
 }
 
 model JournalCommentVote {
-  id        String         @id @default(uuid())
+  id        String         @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1123,7 +1125,7 @@ model Result {
 }
 
 model ResultVote {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   resultId  String
   userId    String
   voteType  VoteType
@@ -1136,7 +1138,7 @@ model ResultVote {
 }
 
 model ResultComment {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   resultId  String
   parentId  String?
@@ -1162,7 +1164,7 @@ model ResultComment {
 }
 
 model ResultCommentVote {
-  id        String        @id @default(uuid())
+  id        String        @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1175,7 +1177,7 @@ model ResultCommentVote {
 }
 
 model ResearchSurvey {
-  id          String        @id @default(uuid())
+  id          String        @id @default(cuid())
   title       String
   description String?
   privacy     SurveyPrivacy @default(HYBRID)
@@ -1206,7 +1208,7 @@ model ResearchSurvey {
 }
 
 model SurveyQuestion {
-  id         String             @id @default(uuid())
+  id         String             @id @default(cuid())
   surveyId   String
   type       SurveyQuestionType
   title      String
@@ -1227,7 +1229,7 @@ model SurveyQuestion {
 }
 
 model SurveyQuestionOption {
-  id         String    @id @default(uuid())
+  id         String    @id @default(cuid())
   questionId String
   value      String
   label      String
@@ -1240,7 +1242,7 @@ model SurveyQuestionOption {
 }
 
 model SurveyResponse {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   surveyId     String
   respondentId String?
   isAnonymous  Boolean  @default(false)
@@ -1253,17 +1255,17 @@ model SurveyResponse {
 }
 
 model SurveyAnswer {
-  id         String @id @default(uuid())
+  id         String @id @default(cuid())
   responseId String
   questionId String
-  value      String // JSON string for multiple values
+  value      Json // JSON string for multiple values
 
   response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
   question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model SurveyVote {
-  id        String         @id @default(uuid())
+  id        String         @id @default(cuid())
   surveyId  String
   userId    String
   voteType  VoteType
@@ -1276,7 +1278,7 @@ model SurveyVote {
 }
 
 model SurveyComment {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   content   String
   surveyId  String
   parentId  String?
@@ -1302,7 +1304,7 @@ model SurveyComment {
 }
 
 model SurveyCommentVote {
-  id        String        @id @default(uuid())
+  id        String        @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1328,7 +1330,7 @@ model Follows {
 }
 
 model Block {
-  id        String   @id @default(uuid())
+  id        String   @id @default(cuid())
   blockerId String
   blockedId String
   createdAt DateTime @default(now())
@@ -1371,7 +1373,7 @@ model ResearchEvent {
 }
 
 model ResearchEventVote {
-  id              String        @id @default(uuid())
+  id              String        @id @default(cuid())
   researchEventId String
   userId          String
   voteType        VoteType
@@ -1384,7 +1386,7 @@ model ResearchEventVote {
 }
 
 model ResearchEventComment {
-  id              String   @id @default(uuid())
+  id              String   @id @default(cuid())
   content         String
   researchEventId String
   parentId        String?
@@ -1410,7 +1412,7 @@ model ResearchEventComment {
 }
 
 model ResearchEventCommentVote {
-  id        String               @id @default(uuid())
+  id        String               @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1452,7 +1454,7 @@ model PhdAdmission {
 }
 
 model PhdAdmissionVote {
-  id             String       @id @default(uuid())
+  id             String       @id @default(cuid())
   phdAdmissionId String
   userId         String
   voteType       VoteType
@@ -1465,7 +1467,7 @@ model PhdAdmissionVote {
 }
 
 model PhdAdmissionComment {
-  id             String   @id @default(uuid())
+  id             String   @id @default(cuid())
   content        String
   phdAdmissionId String
   parentId       String?
@@ -1491,7 +1493,7 @@ model PhdAdmissionComment {
 }
 
 model PhdAdmissionCommentVote {
-  id        String              @id @default(uuid())
+  id        String              @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1533,7 +1535,7 @@ model JobVacancy {
 }
 
 model JobVacancyVote {
-  id           String     @id @default(uuid())
+  id           String     @id @default(cuid())
   jobVacancyId String
   userId       String
   voteType     VoteType
@@ -1546,7 +1548,7 @@ model JobVacancyVote {
 }
 
 model JobVacancyComment {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   content      String
   jobVacancyId String
   parentId     String?
@@ -1572,7 +1574,7 @@ model JobVacancyComment {
 }
 
 model JobVacancyCommentVote {
-  id        String            @id @default(uuid())
+  id        String            @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1585,7 +1587,7 @@ model JobVacancyCommentVote {
 }
 
 model SupervisorVote {
-  id           String     @id @default(uuid())
+  id           String     @id @default(cuid())
   supervisorId String
   userId       String
   voteType     VoteType
@@ -1598,7 +1600,7 @@ model SupervisorVote {
 }
 
 model SupervisorComment {
-  id           String   @id @default(uuid())
+  id           String   @id @default(cuid())
   content      String
   supervisorId String
   parentId     String?
@@ -1622,7 +1624,7 @@ model SupervisorComment {
 }
 
 model SupervisorCommentVote {
-  id        String            @id @default(uuid())
+  id        String            @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
@@ -1635,7 +1637,7 @@ model SupervisorCommentVote {
 }
 
 model Recommendation {
-  id                  String   @id @default(uuid())
+  id                  String   @id @default(cuid())
   rating              Int
   feedback            String
   turnaroundTimeDays  Int
@@ -1670,7 +1672,7 @@ model Recommendation {
 }
 
 model RecommendationVote {
-  id               String         @id @default(uuid())
+  id               String         @id @default(cuid())
   recommendationId String
   userId           String
   voteType         VoteType
@@ -1683,7 +1685,7 @@ model RecommendationVote {
 }
 
 model RecommendationComment {
-  id               String   @id @default(uuid())
+  id               String   @id @default(cuid())
   content          String
   recommendationId String
   parentId         String?
@@ -1707,7 +1709,7 @@ model RecommendationComment {
 }
 
 model RecommendationCommentVote {
-  id        String                @id @default(uuid())
+  id        String                @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType

@@ -53,7 +53,7 @@ export interface Question {
 export interface SurveyAnswer {
   id: string;
   questionId: string;
-  value: string;
+  value: any;
 }
 
 /** Input shape for a survey option when creating/updating a survey. */
@@ -116,7 +116,7 @@ export interface QuestionResult {
   maxValue?: number | null;
   archivedAt?: string | null;
   options: Array<{ id: string; value: string; label: string; order: number }>;
-  answers: Array<{ value: string }>;
+  answers: Array<{ value: any }>;
 }
 
 export interface SurveyResults {
@@ -136,6 +136,6 @@ export interface IndividualResponse {
   } | null;
   answers: Array<{
     questionId: string;
-    value: string;
+    value: any;
   }>;
 }

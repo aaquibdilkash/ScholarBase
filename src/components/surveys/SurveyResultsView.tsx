@@ -5,23 +5,35 @@ import * as XLSX from "xlsx";
 import { ChevronDown, Download } from "lucide-react";
 import type { QuestionResult, SurveyResults, IndividualResponse } from "@/types/survey";
 
-function mapValueToLabel(q: QuestionResult, value: string): string {
-  // For checkbox multi-values
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .map((v: string) => {
-          const opt = q.options.find((o) => o.value === v);
-          return opt?.label || v;
-        })
-        .join(", ");
-    }
-  } catch {}
+function mapValueToLabel(q: QuestionResult, value: any): string {
+  // If Prisma already returned an array, handle it directly
+  if (Array.isArray(value)) {
+    return value
+      .map((v: string) => {
+        const opt = q.options.find((o) => o.value === v);
+        return opt?.label || v;
+      })
+      .join(", ");
+  }
 
-  // For single choice / dropdown
-  const opt = q.options.find((o) => o.value === value);
-  return opt?.label || value;
+  // If it's still a string, try parsing it just in case
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((v: string) => {
+            const opt = q.options.find((o) => o.value === v);
+            return opt?.label || v;
+          })
+          .join(", ");
+      }
+    } catch {}
+  }
+
+  // Fallback for single choice / dropdown / raw string
+  const opt = q.options.find((o) => o.value === String(value));
+  return opt?.label || String(value);
 }
 
 function exportToExcel(
@@ -102,6 +114,10 @@ export function SurveyResultsView({
 
   const totalResponses = survey.totalResponses;
 
+  function safeParse(str: string) {
+      try { return JSON.parse(str) } catch { return [str] }
+    }
+
   const getQuestionStats = (q: QuestionResult) => {
     const answers = q.answers.map((a) => a.value);
     const total = answers.length;
@@ -132,15 +148,14 @@ export function SurveyResultsView({
     if (q.type === "CHECKBOXES") {
       const counts: Record<string, number> = {};
       answers.forEach((a) => {
-        try {
-          const vals = JSON.parse(a);
+        // 'a' might already be a JS array because of Prisma JSONB
+        const vals = Array.isArray(a) ? a : (typeof a === 'string' ? safeParse(a) : [a]);
+        
+        if (Array.isArray(vals)) {
           vals.forEach((v: string) => {
-            const label = mapValueToLabel(q, v); // Map value to label
+            const label = mapValueToLabel(q, v); 
             counts[label] = (counts[label] || 0) + 1;
           });
-        } catch {
-          const label = mapValueToLabel(q, a); // Map value to label
-          counts[label] = (counts[label] || 0) + 1;
         }
       });
       return { total, counts };

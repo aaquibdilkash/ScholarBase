@@ -532,13 +532,38 @@ export async function submitSurveyResponse(
   }
 
   const isAnonymous = formData.get("isAnonymous") === "true";
+
+
   const answersJson = readFormValue(formData, "answers");
   if (!answersJson) throw new Error("Answers are required");
 
-  const answers = JSON.parse(answersJson) as Array<{
+  // 1. Parse the initial FormData string
+  const rawAnswers = JSON.parse(answersJson) as Array<{
     questionId: string;
     value: string;
   }>;
+
+  // 2. Format the values for Prisma JSONB
+  const answers = rawAnswers.map((ans) => {
+    let finalValue: any = ans.value;
+    
+    // Try to parse stringified arrays (from checkboxes) into real JS arrays.
+    // This allows Prisma to save them as native JSON arrays in PostgreSQL.
+    try {
+      const parsed = JSON.parse(ans.value);
+      if (typeof parsed === "object" && parsed !== null) {
+        finalValue = parsed;
+      }
+    } catch (e) {
+      // It's a normal text string (Short text, radio, etc.), leave it alone
+    }
+
+    return {
+      questionId: ans.questionId,
+      value: finalValue,
+    };
+  });
+
 
   const activeQuestionCount = await prisma.surveyQuestion.count({
     where: {

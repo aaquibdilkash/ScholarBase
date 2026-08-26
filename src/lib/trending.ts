@@ -209,19 +209,20 @@ export async function getTrendingScholars(userId?: string) {
       avatarUrl: true,
       bio: true,
       reputation: true,
+      trendingScore: true,
       followersCount: true,
       followingCount: true,
       followers: userId
         ? { where: { followerId: userId }, select: { followerId: true } }
         : false,
     },
-    orderBy: { reputation: 'desc' },
+    orderBy: { trendingScore: 'desc' },
     take: 10,
   })
 
   return scholars.map((scholar) => ({
     ...scholar,
     type: 'scholar' as const,
-    score: scholar.reputation,
+    score: scholar.trendingScore,
   }))
 }
