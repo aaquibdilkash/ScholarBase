@@ -148,7 +148,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
         <button
           type="button"
           onClick={() => scroll("left")}
-          className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
+          className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/2 z-5 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
           aria-label="Scroll left"
         >
           <ChevronLeft className="w-6 h-6 text-slate-700" />
@@ -159,7 +159,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
         <button
           type="button"
           onClick={() => scroll("right")}
-          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 z-10 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
+          className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1/2 z-5 rounded-full bg-white/80 border border-slate-200 p-2 shadow-md"
           aria-label="Scroll right"
         >
           <ChevronRight className="w-6 h-6 text-slate-700" />
