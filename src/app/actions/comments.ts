@@ -142,7 +142,7 @@ export async function createComment(
           Boolean(m.handle),
         ) ?? [];
       if (validMentions.length > 0) {
-        notifyMentionedUsers({
+        await notifyMentionedUsers({
           actorId: user.id,
           content,
           type: "mention",
@@ -179,7 +179,7 @@ export async function createComment(
     actor?.name || actor?.handle || actor?.email?.split("@")[0] || "Someone";
 
   if (parentAuthorId && parentAuthorId !== user.id) {
-    notifyUserById({
+    await notifyUserById({
       recipientId: parentAuthorId,
       actorId: user.id,
       type: parentId ? "reply-created" : "comment-created",

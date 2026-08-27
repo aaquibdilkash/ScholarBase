@@ -171,7 +171,7 @@ export async function createHelpPost(formData: FormData) {
   });
 
   // Fire-and-forget notification
-  notifyFollowersOfActivity({
+  await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
     targetType: "HelpPost",

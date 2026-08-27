@@ -56,7 +56,7 @@ export async function createCourse(formData: FormData) {
     return newCourse;
   });
 
-  notifyFollowersOfActivity({
+  await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
     targetType: "Course",

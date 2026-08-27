@@ -186,8 +186,7 @@ export async function createContribution(formData: FormData) {
     return newContribution;
   });
 
-  // This is a fire-and-forget notification
-  notifyFollowersOfActivity({
+  await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
     targetType: "Contribution",

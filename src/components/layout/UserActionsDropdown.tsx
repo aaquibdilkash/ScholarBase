@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import { ChevronDown } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 export default function UserActionsDropdown({
   user,
@@ -16,6 +17,7 @@ export default function UserActionsDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [optimisticUnreadCount, setOptimisticUnreadCount] = useState(unreadCount);
 
   useEffect(() => {
@@ -77,6 +79,7 @@ export default function UserActionsDropdown({
       return;
     }
 
+    setIsModalOpen(false);
     router.replace("/login");
     router.refresh();
   }, [router]);
@@ -133,7 +136,7 @@ export default function UserActionsDropdown({
                 role="menuitem"
                 onClick={() => {
                   setOpen(false);
-                  handleSignOut();
+                  setIsModalOpen(true);
                 }}
                 disabled={signingOut}
                 className="sb-menu-item w-full text-left disabled:opacity-50"
@@ -144,6 +147,17 @@ export default function UserActionsDropdown({
           </ul>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleSignOut}
+        title="Confirm Sign Out"
+        message="Are you sure you want to sign out? You will be redirected to the login page."
+        isConfirming={signingOut}
+        confirmLabel="Sign Out"
+        confirmingLabel="Signing out..."
+        confirmVariant="outline"
+      />
     </div>
   );
 }

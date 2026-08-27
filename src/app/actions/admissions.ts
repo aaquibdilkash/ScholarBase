@@ -159,7 +159,7 @@ export async function createPhdAdmission(formData: FormData) {
     return newAdmission;
   });
 
-  notifyFollowersOfActivity({
+  await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
     targetType: "PhdAdmission",

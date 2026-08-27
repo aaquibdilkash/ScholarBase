@@ -168,7 +168,7 @@ export async function createArticle(formData: FormData) {
   });
 
   await Promise.all([
-    notifyFollowersOfActivity({
+    await notifyFollowersOfActivity({
       actorId: user.id,
       type: "content-published",
       targetType: "Article",
@@ -176,7 +176,7 @@ export async function createArticle(formData: FormData) {
       title: `${user.user_metadata?.name || user.email?.split("@")[0] || "Someone"} published a new article`,
       body: article.title,
     }),
-    notifyMentionedUsers({
+    await notifyMentionedUsers({
       actorId: user.id,
       content: `${title}\n${content}`,
       type: "mention",

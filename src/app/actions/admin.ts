@@ -252,7 +252,7 @@ export async function updateContributionStatus(
 
   if (status === "APPROVED") {
     // This is a fire-and-forget, no need to await
-    notifyUserById({
+    await notifyUserById({
       recipientId: updatedContribution.author.id,
       actorId: user.id,
       type: "contribution-approved",
@@ -263,7 +263,7 @@ export async function updateContributionStatus(
     });
   } else if (status === "REJECTED") {
     // This is a fire-and-forget, no need to await
-    notifyUserById({
+    await notifyUserById({
       recipientId: updatedContribution.author.id,
       actorId: user.id,
       type: "contribution-rejected",

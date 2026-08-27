@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "./button";
 
 interface ConfirmationModalProps {
@@ -9,6 +11,9 @@ interface ConfirmationModalProps {
   title: string;
   message: string;
   isConfirming: boolean;
+  confirmLabel?: string;
+  confirmVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  confirmingLabel?: string;
 }
 
 export function ConfirmationModal({
@@ -18,14 +23,23 @@ export function ConfirmationModal({
   title,
   message,
   isConfirming,
+  confirmLabel = "Delete",
+  confirmVariant = "destructive",
+  confirmingLabel = "Deleting...",
 }: ConfirmationModalProps) {
-  if (!isOpen) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-[900] flex items-center justify-center bg-black bg-opacity-50"
       onClick={onClose}
     >
       <div
@@ -39,12 +53,13 @@ export function ConfirmationModal({
             <Button onClick={onClose} variant="outline" disabled={isConfirming}>
               Cancel
             </Button>
-            <Button onClick={onConfirm} variant="destructive" disabled={isConfirming}>
-              {isConfirming ? "Deleting..." : "Delete"}
+            <Button onClick={onConfirm} variant={confirmVariant} disabled={isConfirming}>
+              {isConfirming ? confirmingLabel : confirmLabel}
             </Button>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

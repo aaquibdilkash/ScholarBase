@@ -35,7 +35,7 @@ export async function toggleFollow(
         where: { id: authUser.id },
         select: { name: true },
       });
-      notifyUserById({
+      await notifyUserById({
         recipientId: followingId,
         actorId: authUser.id,
         type: "follow",
