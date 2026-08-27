@@ -67,21 +67,21 @@ const Editor = ({
   return (
     <div className="border border-slate-200 dark:border-slate-800 rounded-lg">
       <div className="p-2 border-b border-slate-200 dark:border-slate-800 flex items-center flex-wrap gap-2">
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-2 rounded-lg ${editor.isActive("bold") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Bold"
         >
           <Bold className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-2 rounded-lg ${editor.isActive("italic") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Italic"
         >
           <Italic className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleStrike().run()}
           className={`p-2 rounded-lg ${editor.isActive("strike") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Strikethrough"
@@ -89,7 +89,7 @@ const Editor = ({
           <Strikethrough className="h-4 w-4" />
         </button>
         <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
-        <button
+        <button type="button"
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 1 }).run()
           }
@@ -98,7 +98,7 @@ const Editor = ({
         >
           <Heading1 className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
@@ -107,7 +107,7 @@ const Editor = ({
         >
           <Heading2 className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 3 }).run()
           }
@@ -117,28 +117,28 @@ const Editor = ({
           <Heading3 className="h-4 w-4" />
         </button>
         <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`p-2 rounded-lg ${editor.isActive("bulletList") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Bullet List"
         >
           <List className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`p-2 rounded-lg ${editor.isActive("orderedList") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Ordered List"
         >
           <ListOrdered className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={`p-2 rounded-lg ${editor.isActive("blockquote") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Blockquote"
         >
           <Quote className="h-4 w-4" />
         </button>
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={`p-2 rounded-lg ${editor.isActive("codeBlock") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
           aria-label="Code Block"
@@ -146,7 +146,7 @@ const Editor = ({
           <Code className="h-4 w-4" />
         </button>
         <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
-        <button
+        <button type="button"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           className="p-2 rounded-lg"
           aria-label="Horizontal Rule"
