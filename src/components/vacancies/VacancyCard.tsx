@@ -22,7 +22,7 @@ export function VacancyCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === vacancy.authorId;
-  const isFollowing = (vacancy.author.followers?.length ?? 0) > 0;
+  const isFollowing = (vacancy.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     ((vacancy.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
   const urgency = getTimeLeft(vacancy.deadline);
@@ -46,13 +46,13 @@ export function VacancyCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${vacancy.author.id}`}
-      authorName={vacancy.author.name || "Scholar"}
-      authorId={vacancy.author.id}
+      authorHref={`/scholars/${vacancy.author?.id}`}
+      authorName={vacancy.author?.name || "Scholar"}
+      authorId={vacancy.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={vacancy.author.handle || undefined}
-      authorAvatarUrl={vacancy.author.avatarUrl || undefined}
+      authorHandle={vacancy.author?.handle || undefined}
+      authorAvatarUrl={vacancy.author?.avatarUrl || undefined}
       detailPageHref={`/vacancies/${vacancy.id}`}
       managementControls={
         isOwner && (

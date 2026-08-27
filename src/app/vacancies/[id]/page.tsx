@@ -78,16 +78,16 @@ const VacancyDetailPage = ({
     <DetailPageCardShell
       backHref="/vacancies"
       backLabel="Back to Academic Vacancies"
-      authorHref={`/scholars/${vacancy.author.id}`}
-      authorName={vacancy.author.name || "Scholar"}
-      authorHandle={vacancy.author.handle || undefined}
-      authorAvatarUrl={vacancy.author.avatarUrl || undefined}
-      authorId={vacancy.author.id}
+      authorHref={`/scholars/${vacancy.author?.id}`}
+      authorName={vacancy.author?.name || "Scholar"}
+      authorHandle={vacancy.author?.handle || undefined}
+      authorAvatarUrl={vacancy.author?.avatarUrl || undefined}
+      authorId={vacancy.author?.id}
       isFollowing={(vacancy.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={vacancy.createdAt}
       managementControls={
-        user?.id === vacancy.author.id ? (
+        user?.id === vacancy.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/vacancies/${vacancy.id}/edit`}
             onDelete={handleDelete}
@@ -138,7 +138,7 @@ const VacancyDetailPage = ({
              targetId={vacancy.id}
              module="vacancy"
              currentUserId={user?.id || null}
-             postAuthorId={vacancy.author.id}
+              postAuthorId={vacancy.author?.id}
            />
       }
     >

@@ -53,20 +53,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
     <DetailPageCardShell
       backHref="/learn"
       backLabel="Back to Courses"
-      authorHref={`/scholars/${course.author.id}`}
-      authorName={course.author.name || "Scholar"}
-      authorHandle={course.author.handle || undefined}
-      authorAvatarUrl={course.author.avatarUrl || undefined}
-      authorId={course.author.id}
-      isFollowing={!!course.author.followers?.length}
+      authorHref={`/scholars/${course.author?.id}`}
+      authorName={course.author?.name || "Scholar"}
+      authorHandle={course.author?.handle || undefined}
+      authorAvatarUrl={course.author?.avatarUrl || undefined}
+      authorId={course.author?.id}
+      isFollowing={!!course.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={course.createdAt}
       editedDate={course.updatedAt > course.createdAt ? course.updatedAt : undefined}
-      managementControls={user?.id === course.author.id ? <OwnerActionsDropdown editHref={`/learn/${course.id}/edit`} onDelete={handleDelete} isOwner={true} editLabel="Edit Course" deleteLabel="Delete" /> : null}
+      managementControls={user?.id === course.author?.id ? <OwnerActionsDropdown editHref={`/learn/${course.id}/edit`} onDelete={handleDelete} isOwner={true} editLabel="Edit Course" deleteLabel="Delete" /> : null}
       footerVoteButton={<VoteButton targetId={course.id} module="COURSE" initialTotalVotes={course.totalVotes} initialUserVote={userVote} />}
       footerCommentsHref={`/learn/${course.id}#comments`}
       footerCommentsCount={course.totalComments}
-      discussion={<CommentSection comments={course.comments} totalComments={course.totalComments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author.id} />}
+      discussion={<CommentSection comments={course.comments} totalComments={course.totalComments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author?.id} />}
     >
       <h1 className="mb-3 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{course.title}</h1>
       {details.length > 0 && (

@@ -51,10 +51,10 @@ export default async function ArticlePage({
     <DetailPageCardShell
       backHref="/blog"
       backLabel="Back to Blogs"
-      authorHref={`/scholars/${a.author.id}`}
-      authorName={a.author.name || "Scholar"}
-      authorHandle={a.author.handle || undefined}
-      authorAvatarUrl={a.author.avatarUrl || undefined}
+      authorHref={`/scholars/${a.author?.id}`}
+      authorName={a.author?.name || "Scholar"}
+      authorHandle={a.author?.handle || undefined}
+      authorAvatarUrl={a.author?.avatarUrl || undefined}
       managementControls={
         user?.id === a.authorId ? (
           <OwnerActionsDropdown

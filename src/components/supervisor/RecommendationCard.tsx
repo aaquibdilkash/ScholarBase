@@ -84,27 +84,27 @@ export function RecommendationCard({
       authorHref={
         recommendation.isAnonymous
           ? undefined
-          : `/scholars/${recommendation.author.id}`
+          : `/scholars/${recommendation.author?.id}`
       }
       authorName={
         recommendation.isAnonymous
           ? "Anonymous Scholar"
-          : recommendation.author.name || "Scholar"
+          : recommendation.author?.name || "Scholar"
       }
       authorId={
-        recommendation.isAnonymous ? undefined : recommendation.author.id
+        recommendation.isAnonymous ? undefined : recommendation.author?.id
       }
       isFollowing={recommendation.isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
       authorHandle={
         recommendation.isAnonymous
           ? undefined
-          : recommendation.author.handle || undefined
+          : recommendation.author?.handle || undefined
       }
       authorAvatarUrl={
         recommendation.isAnonymous
           ? null
-          : recommendation.author.avatarUrl || undefined
+          : recommendation.author?.avatarUrl || undefined
       }
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       noBodyLink

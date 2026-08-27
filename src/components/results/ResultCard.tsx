@@ -28,7 +28,7 @@ export function ResultCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === result.authorId;
-  const isFollowing = (result.author.followers?.length ?? 0) > 0;
+  const isFollowing = (result.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (result.votes || [])[0]?.voteType ?? null;
 
@@ -51,13 +51,13 @@ export function ResultCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${result.author.id}`}
-      authorName={result.author.name || "Scholar"}
-      authorId={result.author.id}
+      authorHref={`/scholars/${result.author?.id}`}
+      authorName={result.author?.name || "Scholar"}
+      authorId={result.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={result.author.handle || undefined}
-      authorAvatarUrl={result.author.avatarUrl || undefined}
+      authorHandle={result.author?.handle || undefined}
+      authorAvatarUrl={result.author?.avatarUrl || undefined}
       detailPageHref={`/results/${result.id}`}
       managementControls={
         isOwner && (

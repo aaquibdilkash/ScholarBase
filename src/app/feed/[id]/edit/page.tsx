@@ -112,16 +112,16 @@ export default function EditPostPage({
 
       const result = await updateSocialPost(formData, postId);
       if (result.success && result.data) {
-        queryClient.setQueriesData({ queryKey: ["feed"] }, (oldData: SocialPostWithAuthor[] = []) =>
-          oldData.map((p) => (p.id === result.data!.id ? result.data : p)),
+        queryClient.setQueriesData(
+          { queryKey: ["feed"] },
+          (oldData: SocialPostWithAuthor[] = []) =>
+            oldData.map((p) => (p.id === result.data!.id ? result.data : p)),
         );
         toast("Post updated successfully!", "success");
-        router.back();
+
+        router.push(`/feed/${result.data.id}`);
       } else {
-        toast(
-          (result && result.message) || "Failed to update post.",
-          "error",
-        );
+        toast((result && result.message) || "Failed to update post.", "error");
       }
     } catch (err) {
       toast(
@@ -156,9 +156,11 @@ export default function EditPostPage({
         onSubmit={handleSubmit}
         className="sb-surface-strong p-6 md:p-8 flex flex-col gap-4"
       >
-        
-         <div>
-           <label className="sb-label mb-2 block inline-flex items-center gap-1.5">Post Content<InfoTooltip message={FEED_CONTENT_TIP} /></label>
+        <div>
+          <label className="sb-label mb-2 block inline-flex items-center gap-1.5">
+            Post Content
+            <InfoTooltip message={FEED_CONTENT_TIP} />
+          </label>
           <textarea
             name="content"
             value={content}
@@ -226,22 +228,22 @@ export default function EditPostPage({
             <InfoTooltip message={FEED_IMAGE_TIP} />
           </label>
           <div className="flex justify-end gap-3">
-          <FormCancelButton />
-          <button
-            type="submit"
-            disabled={submitting || uploading}
-            className="sb-button-accent"
-          >
-            {submitting ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="animate-spin h-4 w-4" />
-                Saving...
-              </span>
-            ) : (
-              "Save Changes"
-            )}
-          </button>
-        </div>
+            <FormCancelButton />
+            <button
+              type="submit"
+              disabled={submitting || uploading}
+              className="sb-button-accent"
+            >
+              {submitting ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  Saving...
+                </span>
+              ) : (
+                "Save Changes"
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </CreateOrEditPageShell>

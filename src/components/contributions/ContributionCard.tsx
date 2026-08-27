@@ -19,7 +19,7 @@ export function ContributionCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === contribution.authorId;
-  const isFollowing = (contribution.author.followers?.length ?? 0) > 0;
+  const isFollowing = (contribution.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (contribution.votes || [])[0]?.voteType ??
     null;
@@ -42,13 +42,13 @@ export function ContributionCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${contribution.author.id}`}
-      authorName={contribution.author.name || "Scholar"}
-      authorId={contribution.author.id}
+      authorHref={`/scholars/${contribution.author?.id}`}
+      authorName={contribution.author?.name || "Scholar"}
+      authorId={contribution.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={contribution.author.handle || undefined}
-      authorAvatarUrl={contribution.author.avatarUrl || undefined}
+      authorHandle={contribution.author?.handle || undefined}
+      authorAvatarUrl={contribution.author?.avatarUrl || undefined}
       detailPageHref={`/contributions/${contribution.id}`}
       managementControls={
         isOwner && (

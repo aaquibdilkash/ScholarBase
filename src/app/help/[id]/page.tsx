@@ -56,17 +56,17 @@ export default async function HelpPostPage({
     <DetailPageCardShell
       backHref="/help"
       backLabel="Back to Help & Support"
-      authorHref={`/scholars/${post.author.id}`}
-      authorName={post.author.name || "Scholar"}
-      authorHandle={post.author.handle || undefined}
-      authorAvatarUrl={post.author.avatarUrl || undefined}
-      authorId={post.author.id}
-      isFollowing={!!post.author.followers?.length}
+      authorHref={`/scholars/${post.author?.id}`}
+      authorName={post.author?.name || "Scholar"}
+      authorHandle={post.author?.handle || undefined}
+      authorAvatarUrl={post.author?.avatarUrl || undefined}
+      authorId={post.author?.id}
+      isFollowing={!!post.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={post.createdAt}
       editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
       managementControls={
-        user?.id === post.author.id ? (
+        user?.id === post.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/help/${post.id}/edit`}
             onDelete={handleDelete}
@@ -93,7 +93,7 @@ export default async function HelpPostPage({
           targetId={post.id}
           module="help"
           currentUserId={user?.id ?? null}
-          postAuthorId={post.author.id}
+          postAuthorId={post.author?.id}
         />
       }
     >

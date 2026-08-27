@@ -67,17 +67,17 @@ const SurveyDetailPage = async ({
       | "DOWNVOTE"
       | null) ?? null;
 
-  const isOwner = user?.id === survey.author.id;
+  const isOwner = user?.id === survey.author?.id;
   const isOpen = survey.status === "OPEN";
 
   return (
     <DetailPageCardShell
       backHref="/surveys"
       backLabel="Back to Surveys"
-      authorHref={`/scholars/${survey.author.id}`}
-      authorName={survey.author.name || "Scholar"}
-      authorHandle={survey.author.handle || undefined}
-      authorAvatarUrl={survey.author.avatarUrl || undefined}
+      authorHref={`/scholars/${survey.author?.id}`}
+      authorName={survey.author?.name || "Scholar"}
+      authorHandle={survey.author?.handle || undefined}
+      authorAvatarUrl={survey.author?.avatarUrl || undefined}
       managementControls={
         isOwner ? (
           <OwnerActionsDropdown
@@ -93,7 +93,7 @@ const SurveyDetailPage = async ({
           />
         ) : null
       }
-      authorId={survey.author.id}
+      authorId={survey.author?.id}
       isFollowing={
         (survey.author as { followers?: { followerId: string }[] })?.followers
           ?.length
@@ -122,7 +122,7 @@ const SurveyDetailPage = async ({
           targetId={survey.id}
           module="survey"
           currentUserId={user?.id || null}
-          postAuthorId={survey.author.id}
+          postAuthorId={survey.author?.id}
         />
       }
     >

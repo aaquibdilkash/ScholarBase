@@ -66,22 +66,22 @@ export default async function RecommendationDetailPage({
       authorHref={
         recommendation.isAnonymous
           ? undefined
-          : `/scholars/${recommendation.author.id}`
+          : `/scholars/${recommendation.author?.id}`
       }
       authorName={
         recommendation.isAnonymous
           ? "Anonymous Scholar"
-          : recommendation.author.name || "Scholar"
+          : recommendation.author?.name || "Scholar"
       }
       authorHandle={
         recommendation.isAnonymous
           ? undefined
-          : recommendation.author.handle || undefined
+          : recommendation.author?.handle || undefined
       }
       authorAvatarUrl={
         recommendation.isAnonymous
           ? null
-          : recommendation.author.avatarUrl || undefined
+          : recommendation.author?.avatarUrl || undefined
       }
       authorId={
         recommendation.isAnonymous ? undefined : recommendation.authorId

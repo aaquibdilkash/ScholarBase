@@ -43,17 +43,17 @@ export function SupervisorCard({
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (supervisor.votes || []).find((v: { userId?: string; voteType?: string }) => v.userId === currentUserId)?.voteType ?? null;
-  const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
+  const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${supervisor.author.id}`}
-      authorName={supervisor.author.name || "Supervisor"}
-      authorId={supervisor.author.id}
+      authorHref={`/scholars/${supervisor.author?.id}`}
+      authorName={supervisor.author?.name || "Supervisor"}
+      authorId={supervisor.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={supervisor.author.handle || undefined}
-      authorAvatarUrl={supervisor.author.avatarUrl || undefined}
+      authorHandle={supervisor.author?.handle || undefined}
+      authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
       detailPageHref={`/supervisor/${supervisor.id}`}
       managementControls={
         isOwner && (

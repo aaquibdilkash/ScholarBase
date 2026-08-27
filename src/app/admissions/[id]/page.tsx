@@ -58,12 +58,12 @@ const AdmissionDetailPage = async ({
     <DetailPageCardShell
       backHref="/admissions"
       backLabel="Back to PhD Admissions"
-      authorHref={`/scholars/${admission.author.id}`}
-      authorName={admission.author.name || "Scholar"}
-      authorHandle={admission.author.handle || undefined}
-      authorAvatarUrl={admission.author.avatarUrl || undefined}
+      authorHref={`/scholars/${admission.author?.id}`}
+      authorName={admission.author?.name || "Scholar"}
+      authorHandle={admission.author?.handle || undefined}
+      authorAvatarUrl={admission.author?.avatarUrl || undefined}
       managementControls={
-        user?.id === admission.author.id ? (
+        user?.id === admission.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/admissions/${admission.id}/edit`}
             onDelete={handleDelete}
@@ -73,7 +73,7 @@ const AdmissionDetailPage = async ({
           />
         ) : null
       }
-      authorId={admission.author.id}
+      authorId={admission.author?.id}
       isFollowing={(admission.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={admission.createdAt}
@@ -118,7 +118,7 @@ const AdmissionDetailPage = async ({
             targetId={admission.id}
             module="admission"
             currentUserId={user?.id || null}
-            postAuthorId={admission.author.id}
+            postAuthorId={admission.author?.id}
           />
       }
     >

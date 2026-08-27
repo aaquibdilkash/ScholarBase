@@ -17,7 +17,7 @@ export function ArticleCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === article.authorId;
-  const isFollowing = (article.author.followers?.length ?? 0) > 0;
+  const isFollowing = (article.author?.followers?.length ?? 0) > 0;
 
   // The 'votes' prop is now a filtered select returning an array with 0 or 1 elements.
   const initialUserVote = article.votes && article.votes.length > 0 ? article.votes[0].voteType : null;
@@ -44,12 +44,12 @@ export function ArticleCard({
   return (
     <ListPageCardShell
       authorHref={`/scholars/${article.authorId}`}
-      authorName={article.author.name || "Scholar"}
+      authorName={article.author?.name || "Scholar"}
       authorId={article.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={article.author.handle || undefined}
-      authorAvatarUrl={article.author.avatarUrl || undefined}
+      authorHandle={article.author?.handle || undefined}
+      authorAvatarUrl={article.author?.avatarUrl || undefined}
       detailPageHref={`/blog/${article.slug}`}
       managementControls={
         isOwner && (

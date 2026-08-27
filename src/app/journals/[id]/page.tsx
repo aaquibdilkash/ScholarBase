@@ -58,17 +58,17 @@ const JournalDetailPage = async ({
     <DetailPageCardShell
       backHref="/journals"
       backLabel="Back to Journals"
-      authorHref={`/scholars/${j.author.id}`}
-      authorName={j.author.name || "Scholar"}
-      authorHandle={j.author.handle || undefined}
-      authorAvatarUrl={j.author.avatarUrl || undefined}
-      authorId={j.author.id}
-      isFollowing={!!j.author.followers?.length}
+      authorHref={`/scholars/${j.author?.id}`}
+      authorName={j.author?.name || "Scholar"}
+      authorHandle={j.author?.handle || undefined}
+      authorAvatarUrl={j.author?.avatarUrl || undefined}
+      authorId={j.author?.id}
+      isFollowing={!!j.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={j.createdAt}
       editedDate={j.updatedAt > j.createdAt ? j.updatedAt : undefined}
       managementControls={
-        user?.id === j.author.id ? (
+        user?.id === j.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/journals/${j.id}/edit`}
             onDelete={handleDelete}
@@ -95,7 +95,7 @@ const JournalDetailPage = async ({
              targetId={j.id}
              module="journal"
              currentUserId={user?.id ?? null}
-             postAuthorId={j.author.id}
+              postAuthorId={j.author?.id}
            />
       }
     >

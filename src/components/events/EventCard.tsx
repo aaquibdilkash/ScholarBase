@@ -30,7 +30,7 @@ export function EventCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === event.authorId;
-  const isFollowing = (event.author.followers?.length ?? 0) > 0;
+  const isFollowing = (event.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (event.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(event.deadline);
@@ -54,13 +54,13 @@ export function EventCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${event.author.id}`}
-      authorName={event.author.name || "Scholar"}
-      authorId={event.author.id}
+      authorHref={`/scholars/${event.author?.id}`}
+      authorName={event.author?.name || "Scholar"}
+      authorId={event.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={event.author.handle || undefined}
-      authorAvatarUrl={event.author.avatarUrl || undefined}
+      authorHandle={event.author?.handle || undefined}
+      authorAvatarUrl={event.author?.avatarUrl || undefined}
       detailPageHref={`/events/${event.id}`}
       managementControls={
         isOwner && (

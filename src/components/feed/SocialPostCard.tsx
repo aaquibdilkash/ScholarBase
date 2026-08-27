@@ -17,7 +17,7 @@ export function SocialPostCard({
 }) {
   const queryClient = useQueryClient();
   const isOwner = currentUserId === post.authorId;
-  const isFollowing = (post.author.followers?.length ?? 0) > 0;
+  const isFollowing = (post.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     Array.isArray(post.votes) ? post.votes[0]?.voteType ?? null : null;
 
@@ -27,9 +27,9 @@ export function SocialPostCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHref={`/scholars/${post.authorId}`}
-      authorName={post.author.name || "Scholar"}
-      authorHandle={post.author.handle || undefined}
-      authorAvatarUrl={post.author.avatarUrl || undefined}
+      authorName={post.author?.name || "Scholar"}
+      authorHandle={post.author?.handle || undefined}
+      authorAvatarUrl={post.author?.avatarUrl || undefined}
       detailPageHref={`/feed/${post.id}`}
       managementControls={
         isOwner && (

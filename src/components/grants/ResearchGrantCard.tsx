@@ -20,7 +20,7 @@ export function ResearchGrantCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === grant.authorId;
-  const isFollowing = (grant.author.followers?.length ?? 0) > 0;
+  const isFollowing = (grant.author?.followers?.length ?? 0) > 0;
   const userVote =
     ((grant.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
 
@@ -43,13 +43,13 @@ export function ResearchGrantCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${grant.author.id}`}
-      authorName={grant.author.name || "Scholar"}
-      authorId={grant.author.id}
+      authorHref={`/scholars/${grant.author?.id}`}
+      authorName={grant.author?.name || "Scholar"}
+      authorId={grant.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={grant.author.handle || undefined}
-      authorAvatarUrl={grant.author.avatarUrl || undefined}
+      authorHandle={grant.author?.handle || undefined}
+      authorAvatarUrl={grant.author?.avatarUrl || undefined}
       detailPageHref={`/grants/${grant.id}`}
       managementControls={
         isOwner && (

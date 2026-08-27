@@ -21,7 +21,7 @@ export default async function EditSurveyPage({
 
   const survey = await getSurvey(id, user?.id);
   if (!survey) notFound();
-  if (user?.id !== survey.author.id) notFound();
+  if (user?.id !== survey.author?.id) notFound();
 
   // Serialize dates for client component
   const serializedSurvey = {

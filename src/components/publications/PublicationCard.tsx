@@ -31,7 +31,7 @@ export function PublicationCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === publication.authorId;
-  const isFollowing = (publication.author.followers?.length ?? 0) > 0;
+  const isFollowing = (publication.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (publication.votes || [])[0]?.voteType ??
     null;
@@ -55,13 +55,13 @@ export function PublicationCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${publication.author.id}`}
-      authorName={publication.author.name || "Scholar"}
-      authorId={publication.author.id}
+      authorHref={`/scholars/${publication.author?.id}`}
+      authorName={publication.author?.name || "Scholar"}
+      authorId={publication.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={publication.author.handle || undefined}
-      authorAvatarUrl={publication.author.avatarUrl || undefined}
+      authorHandle={publication.author?.handle || undefined}
+      authorAvatarUrl={publication.author?.avatarUrl || undefined}
       detailPageHref={`/publications/${publication.id}`}
       managementControls={
         isOwner && (

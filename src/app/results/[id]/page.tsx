@@ -58,12 +58,12 @@ const ResultDetailPage = async ({
     <DetailPageCardShell
       backHref="/results"
       backLabel="Back to Results"
-      authorHref={`/scholars/${result.author.id}`}
-      authorName={result.author.name || "Scholar"}
-      authorHandle={result.author.handle || undefined}
-      authorAvatarUrl={result.author.avatarUrl || undefined}
+      authorHref={`/scholars/${result.author?.id}`}
+      authorName={result.author?.name || "Scholar"}
+      authorHandle={result.author?.handle || undefined}
+      authorAvatarUrl={result.author?.avatarUrl || undefined}
       managementControls={
-        user?.id === result.author.id ? (
+        user?.id === result.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/results/${result.id}/edit`}
             onDelete={async () => {
@@ -77,7 +77,7 @@ const ResultDetailPage = async ({
           />
         ) : null
       }
-      authorId={result.author.id}
+      authorId={result.author?.id}
       isFollowing={(result.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
       currentUserId={user?.id}
       createdDate={result.createdAt}
@@ -101,7 +101,7 @@ const ResultDetailPage = async ({
              targetId={result.id}
              module="result"
              currentUserId={user?.id || null}
-             postAuthorId={result.author.id}
+              postAuthorId={result.author?.id}
            />
       }
     >

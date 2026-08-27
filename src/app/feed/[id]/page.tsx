@@ -58,10 +58,10 @@ export default async function SinglePostPage({
     <DetailPageCardShell
       backHref="/feed"
       backLabel="Back to Feed"
-      authorHref={`/scholars/${p.author.id}`}
-      authorName={p.author.name || "Scholar"}
-      authorHandle={p.author.handle || undefined}
-      authorAvatarUrl={p.author.avatarUrl || undefined}
+      authorHref={`/scholars/${p.author?.id}`}
+      authorName={p.author?.name || "Scholar"}
+      authorHandle={p.author?.handle || undefined}
+      authorAvatarUrl={p.author?.avatarUrl || undefined}
       managementControls={
         user?.id === p.authorId ? (
           <OwnerActionsDropdown
@@ -116,7 +116,8 @@ export default async function SinglePostPage({
             width={800}
             height={416}
             unoptimized
-            className="w-full h-48 sm:h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
+            // className="w-full h-48 sm:h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
+            className="block w-full h-auto rounded-xl object-contain hover:opacity-90 transition"
           />
         </div>
       )}

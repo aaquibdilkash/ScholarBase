@@ -20,7 +20,7 @@ export function CourseCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === course.authorId;
-  const isFollowing = (course.author.followers?.length ?? 0) > 0;
+  const isFollowing = (course.author?.followers?.length ?? 0) > 0;
   const userVote =
     ((course.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
   const details = [
@@ -51,13 +51,13 @@ export function CourseCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${course.author.id}`}
-      authorName={course.author.name || "Scholar"}
-      authorId={course.author.id}
+      authorHref={`/scholars/${course.author?.id}`}
+      authorName={course.author?.name || "Scholar"}
+      authorId={course.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={course.author.handle || undefined}
-      authorAvatarUrl={course.author.avatarUrl || undefined}
+      authorHandle={course.author?.handle || undefined}
+      authorAvatarUrl={course.author?.avatarUrl || undefined}
       detailPageHref={`/learn/${course.id}`}
       managementControls={
         isOwner && (

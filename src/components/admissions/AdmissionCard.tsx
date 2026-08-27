@@ -28,20 +28,20 @@ export function AdmissionCard({
 }) {
   const queryClient = useQueryClient();
   const isOwner = currentUserId === admission.authorId;
-  const isFollowing = (admission.author.followers?.length ?? 0) > 0;
+  const isFollowing = (admission.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (admission.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(admission.deadline);
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${admission.author.id}`}
-      authorName={admission.author.name || "Scholar"}
-      authorId={admission.author.id}
+      authorHref={`/scholars/${admission.author?.id}`}
+      authorName={admission.author?.name || "Scholar"}
+      authorId={admission.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={admission.author.handle || undefined}
-      authorAvatarUrl={admission.author.avatarUrl || undefined}
+      authorHandle={admission.author?.handle || undefined}
+      authorAvatarUrl={admission.author?.avatarUrl || undefined}
       detailPageHref={`/admissions/${admission.id}`}
       managementControls={
         isOwner && (

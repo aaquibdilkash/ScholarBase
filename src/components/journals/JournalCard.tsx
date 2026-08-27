@@ -20,7 +20,7 @@ export function JournalCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === journal.authorId;
-  const isFollowing = (journal.author.followers?.length ?? 0) > 0;
+  const isFollowing = (journal.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (journal.votes || [])[0]?.voteType ?? null;
 
@@ -43,13 +43,13 @@ export function JournalCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${journal.author.id}`}
-      authorName={journal.author.name || "Scholar"}
-      authorId={journal.author.id}
+      authorHref={`/scholars/${journal.author?.id}`}
+      authorName={journal.author?.name || "Scholar"}
+      authorId={journal.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={journal.author.handle || undefined}
-      authorAvatarUrl={journal.author.avatarUrl || undefined}
+      authorHandle={journal.author?.handle || undefined}
+      authorAvatarUrl={journal.author?.avatarUrl || undefined}
       detailPageHref={`/journals/${journal.id}`}
       noBodyLink={true}
       managementControls={

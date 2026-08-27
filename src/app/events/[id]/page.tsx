@@ -54,12 +54,12 @@ const EventDetailPage = async ({
     <DetailPageCardShell
       backHref="/events"
       backLabel="Back to Events"
-      authorHref={`/scholars/${event.author.id}`}
-      authorName={event.author.name || "Scholar"}
-      authorHandle={event.author.handle || undefined}
-      authorAvatarUrl={event.author.avatarUrl || undefined}
+      authorHref={`/scholars/${event.author?.id}`}
+      authorName={event.author?.name || "Scholar"}
+      authorHandle={event.author?.handle || undefined}
+      authorAvatarUrl={event.author?.avatarUrl || undefined}
       managementControls={
-        user?.id === event.author.id ? (
+        user?.id === event.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/events/${event.id}/edit`}
             onDelete={async () => {
@@ -73,7 +73,7 @@ const EventDetailPage = async ({
           />
         ) : null
       }
-      authorId={event.author.id}
+      authorId={event.author?.id}
       isFollowing={
         (event.author as { followers?: { followerId: string }[] })?.followers
           ?.length
@@ -123,7 +123,7 @@ const EventDetailPage = async ({
              targetId={event.id}
              module="event"
              currentUserId={user?.id || null}
-             postAuthorId={event.author.id}
+              postAuthorId={event.author?.id}
            />
       }
     >

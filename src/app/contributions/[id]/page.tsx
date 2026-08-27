@@ -63,12 +63,12 @@ const ContributionDetailPage = async ({
     <DetailPageCardShell
       backHref="/contributions"
       backLabel="Back to Contributions"
-      authorHref={`/scholars/${contribution.author.id}`}
-      authorName={contribution.author.name || "Scholar"}
-      authorHandle={contribution.author.handle || undefined}
-      authorAvatarUrl={contribution.author.avatarUrl || undefined}
+      authorHref={`/scholars/${contribution.author?.id}`}
+      authorName={contribution.author?.name || "Scholar"}
+      authorHandle={contribution.author?.handle || undefined}
+      authorAvatarUrl={contribution.author?.avatarUrl || undefined}
       managementControls={
-        user?.id === contribution.author.id ? (
+        user?.id === contribution.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/contributions/${contribution.id}/edit`}
             onDelete={handleDelete}
@@ -78,7 +78,7 @@ const ContributionDetailPage = async ({
           />
         ) : null
       }
-      authorId={contribution.author.id}
+      authorId={contribution.author?.id}
       isFollowing={
         (contribution.author as { followers?: { followerId: string }[] })
           ?.followers?.length
@@ -109,7 +109,7 @@ const ContributionDetailPage = async ({
           targetId={contribution.id}
           module="contribution"
           currentUserId={user?.id || null}
-          postAuthorId={contribution.author.id}
+          postAuthorId={contribution.author?.id}
         />
       }
     >

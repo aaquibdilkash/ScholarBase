@@ -19,7 +19,7 @@ export function HelpPostCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === helpPost.authorId;
-  const isFollowing = (helpPost.author.followers?.length ?? 0) > 0;
+  const isFollowing = (helpPost.author?.followers?.length ?? 0) > 0;
   
   // The 'votes' prop is now a filtered select returning an array with 0 or 1 elements.
   const initialUserVote = helpPost.votes && helpPost.votes.length > 0 ? helpPost.votes[0].voteType : null;
@@ -45,13 +45,13 @@ export function HelpPostCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${helpPost.author.id}`}
-      authorName={helpPost.author.name || "Scholar"}
-      authorId={helpPost.author.id}
+      authorHref={`/scholars/${helpPost.author?.id}`}
+      authorName={helpPost.author?.name || "Scholar"}
+      authorId={helpPost.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={helpPost.author.handle || undefined}
-      authorAvatarUrl={helpPost.author.avatarUrl || undefined}
+      authorHandle={helpPost.author?.handle || undefined}
+      authorAvatarUrl={helpPost.author?.avatarUrl || undefined}
       detailPageHref={`/help/${helpPost.id}`}
       managementControls={
         isOwner && (

@@ -32,7 +32,7 @@ export function SurveyCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === survey.authorId;
-  const isFollowing = (survey.author.followers?.length ?? 0) > 0;
+  const isFollowing = (survey.author?.followers?.length ?? 0) > 0;
   const userVote = (survey.votes || [])[0]?.voteType ?? null;
 
   const deleteMutation = useMutation({
@@ -54,13 +54,13 @@ export function SurveyCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${survey.author.id}`}
-      authorName={survey.author.name || "Scholar"}
-      authorId={survey.author.id}
+      authorHref={`/scholars/${survey.author?.id}`}
+      authorName={survey.author?.name || "Scholar"}
+      authorId={survey.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={survey.author.handle || undefined}
-      authorAvatarUrl={survey.author.avatarUrl || undefined}
+      authorHandle={survey.author?.handle || undefined}
+      authorAvatarUrl={survey.author?.avatarUrl || undefined}
       detailPageHref={`/surveys/${survey.id}`}
       noBodyLink={true}
       managementControls={

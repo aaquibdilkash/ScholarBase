@@ -56,17 +56,17 @@ const ResearchToolDetailPage = async ({
     <DetailPageCardShell
       backHref="/research-tools"
       backLabel="Back to Research Tools"
-      authorHref={`/scholars/${tool.author.id}`}
-      authorName={tool.author.name || "Scholar"}
-      authorHandle={tool.author.handle || undefined}
-      authorAvatarUrl={tool.author.avatarUrl || undefined}
-      authorId={tool.author.id}
-      isFollowing={!!tool.author.followers?.length}
+      authorHref={`/scholars/${tool.author?.id}`}
+      authorName={tool.author?.name || "Scholar"}
+      authorHandle={tool.author?.handle || undefined}
+      authorAvatarUrl={tool.author?.avatarUrl || undefined}
+      authorId={tool.author?.id}
+      isFollowing={!!tool.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={tool.createdAt}
       editedDate={tool.updatedAt > tool.createdAt ? tool.updatedAt : undefined}
       managementControls={
-        user?.id === tool.author.id ? (
+        user?.id === tool.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/research-tools/${tool.id}/edit`}
             onDelete={handleDelete}
@@ -93,7 +93,7 @@ const ResearchToolDetailPage = async ({
              targetId={tool.id}
              module="researchTool"
              currentUserId={user?.id || null}
-             postAuthorId={tool.author.id}
+              postAuthorId={tool.author?.id}
            />
       }
     >

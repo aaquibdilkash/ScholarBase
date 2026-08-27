@@ -20,7 +20,7 @@ export function ResearchToolCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === tool.authorId;
-  const isFollowing = (tool.author.followers?.length ?? 0) > 0;
+  const isFollowing = (tool.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     ((tool.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
 
@@ -43,13 +43,13 @@ export function ResearchToolCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${tool.author.id}`}
-      authorName={tool.author.name || "Scholar"}
-      authorId={tool.author.id}
+      authorHref={`/scholars/${tool.author?.id}`}
+      authorName={tool.author?.name || "Scholar"}
+      authorId={tool.author?.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={tool.author.handle || undefined}
-      authorAvatarUrl={tool.author.avatarUrl || undefined}
+      authorHandle={tool.author?.handle || undefined}
+      authorAvatarUrl={tool.author?.avatarUrl || undefined}
       detailPageHref={`/research-tools/${tool.id}`}
       managementControls={
         isOwner && (

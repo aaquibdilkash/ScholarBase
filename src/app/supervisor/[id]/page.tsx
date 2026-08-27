@@ -75,7 +75,7 @@ export default async function SupervisorPage({
       | null) ?? null;
 
   const hasUserRecommendation = recMeta.hasUserRecommendation;
-  const isFollowing = (supervisor.author.followers?.length ?? 0) > 0;
+  const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
 
   const recommendationCount = recMeta.totalCount;
   const avgRating = recMeta.avgRating;

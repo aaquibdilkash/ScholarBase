@@ -38,8 +38,8 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
-          <span>{scholar.followersCount} followers</span>
-          <span>{scholar.followingCount} following</span>
+          <span>{scholar.followersCount ?? 0} followers</span>
+          <span>{scholar.followingCount ?? 0} following</span>
         </div>
       }
       footer={

@@ -71,17 +71,17 @@ const PublicationDetailPage = async ({
     <DetailPageCardShell
       backHref="/publications"
       backLabel="Back to Publications"
-      authorHref={`/scholars/${p.author.id}`}
-      authorName={p.author.name || "Scholar"}
-      authorHandle={p.author.handle || undefined}
-      authorAvatarUrl={p.author.avatarUrl || undefined}
-      authorId={p.author.id}
-      isFollowing={!!p.author.followers?.length}
+      authorHref={`/scholars/${p.author?.id}`}
+      authorName={p.author?.name || "Scholar"}
+      authorHandle={p.author?.handle || undefined}
+      authorAvatarUrl={p.author?.avatarUrl || undefined}
+      authorId={p.author?.id}
+      isFollowing={!!p.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={p.createdAt}
       editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
       managementControls={
-        user?.id === p.author.id ? (
+        user?.id === p.author?.id ? (
           <OwnerActionsDropdown
             editHref={`/publications/${p.id}/edit`}
             onDelete={handleDelete}
@@ -108,7 +108,7 @@ const PublicationDetailPage = async ({
              targetId={p.id}
              module="publication"
              currentUserId={user?.id ?? null}
-             postAuthorId={p.author.id}
+              postAuthorId={p.author?.id}
            />
       }
     >
