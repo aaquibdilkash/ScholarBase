@@ -56,7 +56,7 @@ export default async function SupervisorPage({
   async function handleDelete() {
     "use server";
         await deleteSupervisor(supervisor!.id);
-    return { redirect: "/supervisors" };
+    return { redirect: "/supervisor" };
   }
 
   const userVote =
