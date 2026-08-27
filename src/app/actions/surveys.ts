@@ -8,6 +8,7 @@ import type { SurveyQuestionInput } from "@/types/survey";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function getSurveys(
   q?: string,
@@ -110,7 +111,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       comments: {
         where: { parentId: null },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
-        take: 5,
+        take: COMMENT_PAGE_SIZE + 1,
         select: {
           id: true,
           content: true,

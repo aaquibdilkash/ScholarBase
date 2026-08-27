@@ -6,6 +6,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 import {
   handleVoteTransaction,
   createCommentTransaction,
@@ -158,8 +159,8 @@ export const getPost = cache(async (id: string, userId?: string) => {
             : false,
           mentions: true,
         },
-        orderBy: { createdAt: "asc" },
-        take: 5,
+        orderBy: { createdAt: "desc" },
+        take: COMMENT_PAGE_SIZE + 1,
       },
     },
   });

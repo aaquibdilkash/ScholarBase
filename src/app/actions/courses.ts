@@ -7,6 +7,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createCourse(formData: FormData) {
   const user = await requireCurrentUser("Please log in to share a course.");
@@ -242,7 +243,7 @@ export const getCourseById = cache(
           where: { parentId: null },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
-          take: 5,
+          take: COMMENT_PAGE_SIZE + 1,
           select: {
             id: true,
             content: true,

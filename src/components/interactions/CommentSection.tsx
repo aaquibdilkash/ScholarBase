@@ -38,13 +38,20 @@ export function CommentSection({
   totalComments,
 }: CommentSectionProps) {
   // Parent slice ONLY. Replies live inside each CommentThread's local state.
-  const [parents, setParents] = useState<CommentWithAuthorAndVotes[]>(
-    initialComments,
+  // Dedupe by id so offset pagination (which can overlap when a new comment is
+  // inserted server-side at the head) never yields two rows with the same key.
+  const [parents, setParents] = useState<CommentWithAuthorAndVotes[]>(() => {
+    const seen = new Set<string>();
+    return initialComments
+      .slice(0, COMMENT_PAGE_SIZE)
+      .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
+  });
+  const [parentSkip, setParentSkip] = useState(
+    Math.min(initialComments.length, COMMENT_PAGE_SIZE),
   );
-  const [parentSkip, setParentSkip] = useState(initialComments.length);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(
-    initialComments.length >= COMMENT_PAGE_SIZE,
+    initialComments.length > COMMENT_PAGE_SIZE,
   );
 
   const [content, setContent] = useState("");
@@ -147,9 +154,17 @@ export function CommentSection({
         parentSkip,
         currentUserId,
       );
-      setParents((prev) => [...prev, ...(next ?? [])]);
-      setParentSkip((s) => s + (next?.length ?? 0));
-      if ((next?.length ?? 0) < COMMENT_PAGE_SIZE) setHasMore(false);
+      if (next && next.length > 0) {
+        // Drop any rows we already hold (offset overlap after a head insert).
+        setParents((prev) => {
+          const seen = new Set(prev.map((c) => c.id));
+          return [...prev, ...next.filter((c) => !seen.has(c.id))];
+        });
+        setParentSkip((s) => s + next.length);
+        if (next.length < COMMENT_PAGE_SIZE) setHasMore(false);
+      } else {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error(error);
       toast({ title: "Error", description: "Failed to load comments.", variant: "destructive" });
@@ -176,11 +191,13 @@ export function CommentSection({
         toast({ title: "Error", description: "Failed to post comment. Please try again.", variant: "destructive"});
         return;
       }
+
       // RULE 1: optimistic local prepend — no revalidatePath, no refetch.
-      setParents((prev) => [
-        response.data as CommentWithAuthorAndVotes,
-        ...prev,
-      ]);
+      setParents((prev) => {
+        const newComment = response.data as CommentWithAuthorAndVotes;
+        if (prev.some((c) => c.id === newComment.id)) return prev;
+        return [newComment, ...prev];
+      });
       handleCountDelta(1);
 
       toast({ title: "Success", description: "Comment posted successfully!"});

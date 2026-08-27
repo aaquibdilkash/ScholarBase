@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function getHelpPosts(
   q?: string,
@@ -98,7 +99,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       comments: {
         where: { parentId: null },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
-        take: 5,
+        take: COMMENT_PAGE_SIZE + 1,
         select: {
           id: true,
           content: true,

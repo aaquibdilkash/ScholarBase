@@ -10,6 +10,7 @@ import {
   notifyFollowersOfActivity,
   notifyMentionedUsers,
 } from "@/lib/notifications";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function getArticles(
   q?: string,
@@ -96,7 +97,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
         where: { parentId: null },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: COMMENT_PAGE_SIZE + 1,
         select: {
           id: true,
           content: true,

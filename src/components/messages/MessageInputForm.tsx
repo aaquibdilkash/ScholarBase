@@ -117,7 +117,7 @@ export function MessageInputForm({
 
   return (
     <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4 dark:border-slate-800">
-      <div className="flex items-end gap-2">
+      <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <textarea
             ref={textAreaRef}
@@ -136,16 +136,14 @@ export function MessageInputForm({
           <span className="absolute -top-5 left-0 text-xs text-slate-400 inline-flex items-center gap-1">
             <InfoTooltip message={MESSAGE_BODY_TIP} />
           </span>
-          {draft.length > 0 && (
-            <span className="absolute -top-5 right-0 text-xs text-slate-400">
-              {draft.length}/{MAX_MESSAGE_BODY}
-            </span>
-          )}
+          <span className="absolute -top-5 right-0 text-xs text-slate-400">
+            {draft.length}/{MAX_MESSAGE_BODY}
+          </span>
         </div>
         <button
           type="submit"
           disabled={!draft.trim() || isSubmitting}
-          className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-950 text-white transition hover:bg-slate-800 disabled:opacity-50"
+          className="sb-button-primary rounded-full !p-0 h-10 w-10 flex items-center justify-center disabled:opacity-50"
         >
           <ArrowRight className="h-5 w-5" />
         </button>

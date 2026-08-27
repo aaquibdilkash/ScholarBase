@@ -7,6 +7,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function getVacancies(
   q?: string,
@@ -98,7 +99,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       comments: {
         where: { parentId: null },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
-        take: 5,
+        take: COMMENT_PAGE_SIZE + 1,
         select: {
           id: true,
           content: true,

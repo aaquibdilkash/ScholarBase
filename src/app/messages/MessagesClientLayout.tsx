@@ -105,6 +105,18 @@ function ConversationSidebar({ user }: { user: User | null }) {
     };
   }, [user]);
 
+  function normalizeTimestamp(value: Date | string | number | null | undefined): Date | string | number {
+    if (!value && value !== 0) return new Date();
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(trimmed)) {
+        return trimmed + 'Z';
+      }
+    }
+    return value;
+  }
+
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel('sidebar-global-listener')
@@ -124,7 +136,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
               const updatedInbox = [...currentInbox];
               const targetConv = { ...updatedInbox[convIndex] };
               targetConv.messages = [{ body: rawMessage.body }];
-              targetConv.lastMessageAt = rawMessage.createdAt || rawMessage.created_at;
+              targetConv.lastMessageAt = normalizeTimestamp(rawMessage.createdAt || rawMessage.created_at) as string | Date;
               const senderId = rawMessage.senderId || rawMessage.sender_id;
               
               if (senderId !== user.id) {
@@ -176,10 +188,30 @@ function ConversationSidebar({ user }: { user: User | null }) {
       });
     };
 
+    const handleMessageSent = (event: CustomEvent) => {
+      const { conversationId, message } = event.detail;
+      
+      setInbox((currentInbox) => {
+        const convIndex = currentInbox.findIndex((c) => c.id === conversationId);
+        if (convIndex === -1) return currentInbox;
+
+        const updatedInbox = [...currentInbox];
+        const targetConv = { ...updatedInbox[convIndex] };
+        targetConv.messages = [{ body: message.body }];
+        targetConv.lastMessageAt = message.createdAt;
+        
+        updatedInbox.splice(convIndex, 1);
+        updatedInbox.unshift(targetConv);
+        return updatedInbox;
+      });
+    };
+
     window.addEventListener('conversation-read', handleConversationRead as EventListener);
+    window.addEventListener('message-sent', handleMessageSent as EventListener);
     return () => { 
       supabase.removeChannel(channel);
       window.removeEventListener('conversation-read', handleConversationRead as EventListener);
+      window.removeEventListener('message-sent', handleMessageSent as EventListener);
     };
   }, [user]);
 

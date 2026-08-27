@@ -108,8 +108,13 @@ export default function ConversationPage({
     (message: SentMessage) => {
       appendMessageRef.current?.(message);
       triggerMarkRead(true);
+      window.dispatchEvent(
+        new CustomEvent("message-sent", {
+          detail: { conversationId, message },
+        }),
+      );
     },
-    [triggerMarkRead],
+    [triggerMarkRead, conversationId],
   );
 
   // Initial fetch on mount only

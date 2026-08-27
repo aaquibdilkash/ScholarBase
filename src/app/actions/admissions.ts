@@ -7,6 +7,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function getAdmissions(
   q?: string,
@@ -86,7 +87,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
         where: { parentId: null },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: COMMENT_PAGE_SIZE + 1,
         select: {
           id: true,
           content: true,

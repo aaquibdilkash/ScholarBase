@@ -59,7 +59,9 @@ export async function fetchParentComments(
   return (await commentModel.findMany({
     where: { parentId: null, [config.commentFk]: postId },
     select: commentPageSelect(currentUserId),
-    orderBy: { createdAt: "asc" },
+    // Must match the seed order (createdAt desc) used by every detail-page
+    // loader so offset pagination continues from where the first page ended.
+    orderBy: { createdAt: "desc" },
     skip,
     take: COMMENT_PAGE_SIZE,
   })) as CommentWithAuthorAndVotes[];

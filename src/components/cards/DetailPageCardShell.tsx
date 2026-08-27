@@ -14,7 +14,7 @@ export type DetailPageCardShellProps = {
   backLabel: string;
 
   // Common header (author)
-    authorHref?: string;
+  authorHref?: string;
   authorName: string;
   authorHandle?: string;
   authorAvatarUrl?: string | null;
@@ -97,7 +97,7 @@ export default function DetailPageCardShell({
       >
         {/* Common header */}
         <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
-                    <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
             {authorHref ? (
               <Link href={authorHref} className="shrink-0">
                 <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
@@ -117,7 +117,7 @@ export default function DetailPageCardShell({
                 </div>
               </Link>
             ) : (
-              <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden">
+              <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden dark:border-slate-700 dark:bg-slate-800">
                 <span className="font-semibold text-slate-400 text-lg">?</span>
               </div>
             )}
@@ -147,7 +147,7 @@ export default function DetailPageCardShell({
           <div className="flex items-center">
             {isOwner ? (
               managementControls
-                        ) : authorId ? (
+            ) : authorId ? (
               <FollowButton
                 targetId={authorId}
                 isFollowing={Boolean(isFollowing)}
@@ -162,11 +162,17 @@ export default function DetailPageCardShell({
         {bodyBottomContent}
 
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
-          <span suppressHydrationWarning className="font-semibold text-slate-400">
+          <span
+            suppressHydrationWarning
+            className="font-semibold text-slate-400"
+          >
             {createdLabel} {formatTimeAgo(createdDate)}
           </span>
           {editedDate && (
-            <span suppressHydrationWarning className="font-semibold text-slate-400">
+            <span
+              suppressHydrationWarning
+              className="font-semibold text-slate-400"
+            >
               {editedLabel} {formatTimeAgo(editedDate)}
             </span>
           )}

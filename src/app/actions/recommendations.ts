@@ -6,6 +6,7 @@ import prisma from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -45,7 +46,7 @@ export const getRecommendation = cache(
           where: { parentId: null },
           // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
           orderBy: { createdAt: "desc" },
-          take: 5,
+          take: COMMENT_PAGE_SIZE + 1,
           select: {
             id: true,
             content: true,

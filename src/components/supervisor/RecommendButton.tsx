@@ -2,23 +2,12 @@
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getSupervisorRecommendations } from "@/app/actions/supervisors";
 import { deleteRecommendation as deleteRecommendationAction } from "@/app/actions/recommendations";
 import { decrementRecommendation } from "./recommendationCount";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { useToast } from "@/components/ui/Toast";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
-/**
- * Reactive "+ Recommend" CTA on the supervisor detail page.
- *
- * - No recommendation  → "+ Recommend"
- * - Has one (anonymous or not) → OwnerActionsDropdown with working Edit + Delete.
- *
- * State is derived from the same ["recommendations", supervisorId] cache that
- * RecommendationForm / RecommendationCard mutate via queryClient, so the CTA
- * flips between states INSTANTLY without a refresh.
- */
 export function RecommendButton({
   supervisorId,
   currentUserId,
@@ -33,29 +22,15 @@ export function RecommendButton({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // enabled: false → never fetches; purely observes the shared cache.
-  const { data: recommendations } = useQuery<RecommendationWithAuthor[]>({
-    queryKey: ["recommendations", supervisorId],
-    queryFn: () => getSupervisorRecommendations(supervisorId, currentUserId, 0, 10),
-    enabled: false,
-    initialData: undefined,
+  // 🟢 CORE FIX: Use React Query as a global state store for the button status.
+  // It starts with the server-provided ID. If we set this to null later, the button flips.
+  const { data: activeRecId } = useQuery({
+    queryKey: ["user_rec_status", supervisorId],
+    // 🟢 ADD THIS LINE: A dummy function to satisfy React Query's strict requirements
+    queryFn: () => initialUserRecommendationId ?? null, 
+    initialData: initialUserRecommendationId ?? null,
+    staleTime: Infinity, // Never fetch this from the network, just hold it in memory
   });
-
-  // Own active recommendation — resolved from the cache first (reactive to
-  // create/delete), falling back to the server-rendered id.
-  const ownFromCache = currentUserId
-    ? (recommendations ?? []).find(
-        (r) => (r.authorId ?? r.author?.id) === currentUserId,
-      )
-    : undefined;
-  // Once the shared cache has been observed (any create/delete updated it),
-  // trust it exclusively — the server-rendered initial prop is stale after
-  // client-side mutations.
-  const hasUserRecommendation =
-    recommendations !== undefined
-      ? !!ownFromCache
-      : initialHasRecommendation;
-  const userRecommendationId = ownFromCache?.id ?? initialUserRecommendationId ?? null;
 
   const deleteMutation = useMutation({
     mutationFn: deleteRecommendationAction,
@@ -63,40 +38,38 @@ export function RecommendButton({
 
   if (!currentUserId) return null;
 
-  // Already recommended (anonymous or not)? Show the owner actions dropdown —
-  // same edit/delete controls as on the recommendation card header.
-  if (hasUserRecommendation && userRecommendationId) {
+  if (initialHasRecommendation && activeRecId) {
     return (
       <OwnerActionsDropdown
-        editHref={`/supervisor/${supervisorId}/recommendation/${userRecommendationId}/edit`}
+        editHref={`/supervisor/${supervisorId}/recommendation/${activeRecId}/edit`}
         onDelete={async () => {
           try {
-            const response = await deleteMutation.mutateAsync(userRecommendationId);
+            const response = await deleteMutation.mutateAsync(activeRecId);
             if (!response?.success || !response.data) {
               toast("Failed to delete recommendation.", "error");
               return { refresh: false };
             }
-            // Instant flip back to "+ Recommend" via the shared cache.
+
+            // 1. Remove from the carousel cache instantly
             queryClient.setQueriesData(
               { queryKey: ["recommendations", supervisorId] },
               (oldData: RecommendationWithAuthor[] = []) =>
                 oldData.filter((r) => r.id !== response.data.deletedId),
             );
-            // Determine the deleted recommendation's rating (from the cached
-            // array) so the overall rating + distribution update live.
-            const cachedRecs =
-              queryClient.getQueryData<RecommendationWithAuthor[]>([
-                "recommendations",
-                supervisorId,
-              ]) ?? [];
-            const deleted = cachedRecs.find(
-              (r) => (r.id ?? r.author?.id) === response.data.deletedId
-            );
-            const removedRating = deleted?.rating ??
-              ownFromCache?.rating ??
-              cachedRecs.find((r) => (r.authorId ?? r.author?.id) === currentUserId)
-                ?.rating ?? 5;
+            
+            // 2. Invalidate cache to refill the carousel gap
+            queryClient.invalidateQueries({ queryKey: ["recommendations", supervisorId] });
+            
+            // 3. Adjust the overall rating instantly
+            const cachedRecs = queryClient.getQueryData<RecommendationWithAuthor[]>(["recommendations", supervisorId]) ?? [];
+            const deleted = cachedRecs.find((r) => (r.id ?? r.author?.id) === response.data.deletedId);
+            const removedRating = deleted?.rating ?? 5;
             decrementRecommendation(queryClient, supervisorId, removedRating);
+            
+            // 🟢 4. Flip the global status to null so THIS button instantly turns into "+ Recommend"
+            queryClient.setQueryData(["user_rec_status", supervisorId], null);
+
+            toast("Recommendation deleted successfully", "success");
             return { refresh: false };
           } catch (error) {
             toast((error as Error).message, "error");
@@ -109,7 +82,6 @@ export function RecommendButton({
       />
     );
   }
-  if (hasUserRecommendation) return null;
 
   return (
     <Link

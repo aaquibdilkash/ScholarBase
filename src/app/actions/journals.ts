@@ -8,6 +8,7 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import type { Quartile, AbdcTier, WosIndex, OpenAccessStatus } from "@prisma/client";
+import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createJournal(formData: FormData) {
   const user = await requireCurrentUser("Please log in to submit details.");
@@ -286,7 +287,7 @@ export const getJournalById = cache(
           where: { parentId: null },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
-          take: 5,
+          take: COMMENT_PAGE_SIZE + 1,
           select: {
             id: true,
             content: true,

@@ -105,7 +105,9 @@ export default async function RecommendationDetailPage({
           targetId={recommendation.id}
           module="recommendation"
           currentUserId={user?.id ?? null}
-          postAuthorId={recommendation.authorId}
+          postAuthorId={
+            recommendation.isAnonymous ? undefined : recommendation.authorId
+          }
         />
       }
       managementControls={
@@ -115,7 +117,7 @@ export default async function RecommendationDetailPage({
             onDelete={handleDelete}
             isOwner={true}
             editLabel="Edit Recommendation"
-            deleteLabel="Delete"
+            deleteLabel="Delete Recommendation"
           />
         ) : null
       }

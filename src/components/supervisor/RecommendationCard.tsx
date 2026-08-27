@@ -20,24 +20,21 @@ export function RecommendationCard({
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
-    const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const router = useRouter();
 
-  // Navigate to the supervisor's detail page. The card body is wrapped in a
-  // <Link> to the recommendation detail, so we cannot nest another anchor
-  // (invalid HTML + the outer link swallows clicks). Instead we stop
-  // propagation and route programmatically.
   const openSupervisorPage = () => router.push(`/supervisor/${supervisor.id}`);
   const openRecommendationPage = () =>
-    router.push(`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`);
+    router.push(
+      `/supervisor/${supervisor.id}/recommendation/${recommendation.id}`,
+    );
+
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (recommendation.votes || []).find(
       (v: { userId?: string; voteType?: string }) => v.userId === currentUserId,
     )?.voteType ?? null;
 
-  // Ownership works regardless of anonymity: the authorId is always present
-  // on the record even when the public author identity is masked.
   const ownerId = recommendation.authorId ?? recommendation.author?.id;
   const isOwner = !!currentUserId && ownerId === currentUserId;
   const isFollowing = (recommendation.author?.followers?.length ?? 0) > 0;
@@ -53,13 +50,27 @@ export function RecommendationCard({
         toast("Failed to delete recommendation.", "error");
         return { refresh: false };
       }
-      // Remove from the array cache + keep the reactive count in sync.
+
+      // 1. Remove from the array cache instantly & refill
       queryClient.setQueriesData(
         { queryKey: ["recommendations", supervisor.id] },
         (oldData: RecommendationWithAuthor[] = []) =>
           oldData.filter((r) => r.id !== response.data.deletedId),
       );
-      decrementRecommendation(queryClient, supervisor.id, recommendation.rating);
+      queryClient.invalidateQueries({
+        queryKey: ["recommendations", supervisor.id],
+      });
+
+      // 2. Keep the reactive count in sync
+      decrementRecommendation(
+        queryClient,
+        supervisor.id,
+        recommendation.rating,
+      );
+
+      // 🟢 3. CRITICAL: Tell the RecommendButton in the header to change its state!
+      queryClient.setQueryData(["user_rec_status", supervisor.id], null);
+
       toast("Recommendation deleted successfully.", "success");
       return { refresh: false };
     } catch (error) {
@@ -129,70 +140,73 @@ export function RecommendationCard({
         }}
         className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
       >
-            <p className="text-sm font-semibold text-slate-700 mb-2">
-        {recommendation.isAnonymous
-          ? "Anonymous recommendation for "
-          : "Recommendation for "}
-        <span
-          role="link"
-          tabIndex={0}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openSupervisorPage();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
+        <p className="text-sm font-semibold text-slate-700 mb-2">
+          {recommendation.isAnonymous
+            ? "Anonymous recommendation for "
+            : "Recommendation for "}
+          <span
+            role="link"
+            tabIndex={0}
+            onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               openSupervisorPage();
-            }
-          }}
-          className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
-        >
-          {supervisor.name}
-        </span>
-      </p>
-      <div className="space-y-3 mb-4">
-        <div>
-          <p className="text-xs font-semibold text-slate-700 mb-1">
-            Overall Mentorship Rating
-          </p>
-          <StarRating rating={recommendation.rating} size="md" />
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <div className="col-span-2 sm:col-span-1">
-            <p className="text-xs font-semibold text-slate-600 mb-1">
-              Responsiveness
-            </p>
-            <StarRating rating={recommendation.responsivenessScore} size="sm" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-600 mb-1">
-              Guidance
-            </p>
-            <StarRating rating={recommendation.guidanceScore} size="sm" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-600 mb-1">
-              Turnaround
-            </p>
-            <p className="text-sm font-bold text-slate-800">
-              {recommendation.turnaroundTimeDays}d
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <p className="text-sm font-semibold text-slate-700 mb-2">
-          Mentorship Feedback
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                openSupervisorPage();
+              }
+            }}
+            className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+          >
+            {supervisor.name}
+          </span>
         </p>
-        <RichContent
-          content={recommendation.feedback}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-4"
-        />
-      </div>
+        <div className="space-y-3 mb-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-700 mb-1">
+              Overall Mentorship Rating
+            </p>
+            <StarRating rating={recommendation.rating} size="md" />
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <div className="col-span-2 sm:col-span-1">
+              <p className="text-xs font-semibold text-slate-600 mb-1">
+                Responsiveness
+              </p>
+              <StarRating
+                rating={recommendation.responsivenessScore}
+                size="sm"
+              />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-600 mb-1">
+                Guidance
+              </p>
+              <StarRating rating={recommendation.guidanceScore} size="sm" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-600 mb-1">
+                Turnaround
+              </p>
+              <p className="text-sm font-bold text-slate-800">
+                {recommendation.turnaroundTimeDays}d
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-slate-700 mb-2">
+            Mentorship Feedback
+          </p>
+          <RichContent
+            content={recommendation.feedback}
+            className="text-sm leading-relaxed text-slate-600 line-clamp-4"
+          />
+        </div>
       </div>
     </ListPageCardShell>
   );

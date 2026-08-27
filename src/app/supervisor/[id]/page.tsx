@@ -17,15 +17,24 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const supervisor = await getSupervisor(id).catch(() => null);
   if (!supervisor) return { title: "PhD Supervisor" };
   const name = supervisor.name || "PhD Supervisor";
-  const university = supervisor.university ? ` at ${supervisor.university}` : "";
+  const university = supervisor.university
+    ? ` at ${supervisor.university}`
+    : "";
   return buildMetadata({
     title: `${name}${university} - PhD Supervisor`,
-    description: (supervisor.about || `Profiles, ratings, and recommendations for PhD supervisor ${supervisor.name || ""}.`).replace(/<[^>]*>/g, " "),
+    description: (
+      supervisor.about ||
+      `Profiles, ratings, and recommendations for PhD supervisor ${supervisor.name || ""}.`
+    ).replace(/<[^>]*>/g, " "),
     path: `/supervisor/${supervisor.id}`,
     type: "profile",
     author: supervisor.author?.name || undefined,
@@ -55,7 +64,7 @@ export default async function SupervisorPage({
 
   async function handleDelete() {
     "use server";
-        await deleteSupervisor(supervisor!.id);
+    await deleteSupervisor(supervisor!.id);
     return { redirect: "/supervisor" };
   }
 
@@ -87,12 +96,12 @@ export default async function SupervisorPage({
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
       footerVoteButton={
-         <VoteButton
-           targetId={supervisor.id}
-           module="SUPERVISOR"
-           initialTotalVotes={supervisor.totalVotes}
-           initialUserVote={userVote}
-         />
+        <VoteButton
+          targetId={supervisor.id}
+          module="SUPERVISOR"
+          initialTotalVotes={supervisor.totalVotes}
+          initialUserVote={userVote}
+        />
       }
       managementControls={
         user?.id === supervisor.authorId ? (
@@ -138,7 +147,7 @@ export default async function SupervisorPage({
             )}
           </div>
 
-                              <RecommendButton
+          <RecommendButton
             supervisorId={supervisor.id}
             currentUserId={user?.id}
             initialHasRecommendation={hasUserRecommendation}

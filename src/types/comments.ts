@@ -1,6 +1,7 @@
 // src/types/comments.ts
 
 import type { VoteType } from "./votes";
+import type { Prisma } from "@prisma/client";
 
 export type CommentEntityType =
   | 'article'
@@ -39,7 +40,9 @@ export interface CommentWithAuthorAndVotes {
   totalReplies?: number;
   author: CommentAuthor | null;
   votes: { voteType: VoteType }[] | undefined;
-  mentions?: { id: string; handle: string | null }[] | null;
+  // Prisma stores mentions as a Json column, so the wire type is JsonValue
+  // (array-shaped at runtime). Consumers defensively cast after Array.isArray.
+  mentions?: Prisma.JsonValue | null;
   replies?: CommentWithAuthorAndVotes[];
 }
 
