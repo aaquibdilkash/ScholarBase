@@ -180,10 +180,10 @@ export default async function HomePage() {
 
           <div className="border-t border-white/70 bg-white/55 p-8 md:p-10 lg:border-l lg:border-t-0 dark:border-slate-800 dark:bg-slate-900/60">
             <div className="grid gap-4">
-              <StatCard title="Research Posts" value="Fast updates" />
-              <StatCard title="Supervisor Reviews" value="Verified notes" />
-              <StatCard title="Opportunities" value="Always current" />
-              <StatCard title="Open Source" value="Community driven" />
+              <StatCard title="Research Survey" value="Active Data Collection" />
+              <StatCard title="Supervisor Suggest" value="Community Recommended" />
+              <StatCard title="Research Feed" value="Real-time Updates" />
+              <StatCard title="Opportunities" value="Grants & Vacancies" />
             </div>
           </div>
         </div>
