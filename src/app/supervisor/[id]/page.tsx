@@ -11,6 +11,7 @@ import {
   getSupervisorRecommendationMeta,
 } from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 
@@ -95,6 +96,9 @@ export default async function SupervisorPage({
       createdDate={supervisor.createdAt}
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={supervisor.id} entityType="POST" module="SUPERVISOR" />
+      }
       footerVoteButton={
         <VoteButton
           targetId={supervisor.id}

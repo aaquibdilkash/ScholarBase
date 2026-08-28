@@ -6,6 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent, getEvent } from "@/app/actions/events";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { Calendar, Clock, MapPin } from "lucide-react";
 
@@ -92,6 +93,9 @@ const EventDetailPage = async ({
       }
       footerCommentsHref={`/events/${event.id}#comments`}
       footerCommentsCount={event.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={event.id} entityType="POST" module="RESEARCH_EVENT" />
+      }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {event.notificationLink && (

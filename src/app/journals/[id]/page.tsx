@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -88,6 +89,9 @@ const JournalDetailPage = async ({
       }
       footerCommentsHref={`/journals/${j.id}#comments`}
       footerCommentsCount={j.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={j.id} entityType="POST" module="JOURNAL" />
+      }
       discussion={
            <CommentSection
              comments={j.comments}

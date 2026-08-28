@@ -1,6 +1,7 @@
 "use client";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
 import type { ArticleWithAuthor } from "@/types/cards";
@@ -72,6 +73,9 @@ export function ArticleCard({
       }
       footerCommentsHref={`/blog/${article.slug}`}
       footerCommentsCount={article.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={article.id} entityType="POST" module="ARTICLE_PAGE" />
+      }
       createdDate={article.createdAt}
       editedDate={
         article.editedAt && article.editedAt > article.createdAt ? article.editedAt : undefined

@@ -14,11 +14,13 @@ import {
 
 import { MAX_COMMENT_BODY } from "@/lib/constants";
 import CommentActionsDropdown from "@/components/interactions/CommentActionsDropdown";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
 import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
+import type { ReportModule } from "@/types/reports";
 import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
@@ -29,6 +31,31 @@ type ToastFn = (options: {
   description: string;
   variant?: "default" | "destructive";
 }) => void;
+
+// ============================================
+// COMMENT MODULE -> REPORT MODULE MAP
+// ============================================
+// When reporting a comment row, the underlying content model is resolved from
+// the report `module`. Comments for each parent entity map to the matching
+// comment module (defaulting to SOCIAL_COMMENT).
+const COMMENT_REPORT_MODULE: Record<CommentEntityType, ReportModule> = {
+  post: "SOCIAL_COMMENT",
+  article: "ARTICLE_COMMENT",
+  vacancy: "JOB_VACANCY_COMMENT",
+  admission: "PHD_ADMISSION_COMMENT",
+  event: "RESEARCH_EVENT_COMMENT",
+  supervisor: "SUPERVISOR_COMMENT",
+  recommendation: "RECOMMENDATION_COMMENT",
+  help: "HELP_COMMENT",
+  journal: "JOURNAL_COMMENT",
+  researchTool: "RESEARCH_TOOL_COMMENT",
+  researchGrant: "RESEARCH_GRANT_COMMENT",
+  course: "COURSE_COMMENT",
+  result: "RESULT_COMMENT",
+  contribution: "CONTRIBUTION_COMMENT",
+  publication: "PUBLICATION_COMMENT",
+  survey: "SURVEY_COMMENT",
+};
 
 // ============================================
 // SHARED HELPERS (used by CommentSection too)
@@ -526,6 +553,11 @@ function CommentCard({
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-2 md:gap-3">
+                  <ReportMenu
+                    entityId={comment.id}
+                    entityType="COMMENT"
+                    module={COMMENT_REPORT_MODULE[module]}
+                  />
                   <CommentActionsDropdown
                     isOwner={isOwner}
                     onEdit={() => setEditingId(comment.id)}

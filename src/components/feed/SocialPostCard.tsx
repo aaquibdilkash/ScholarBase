@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteSocialPost } from "@/app/actions/feed";
 import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
 
@@ -64,6 +65,9 @@ export function SocialPostCard({
       }
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post.totalComments ?? 0}
+      footerReportMenu={
+        <ReportMenu entityId={post.id} entityType="POST" module="SOCIAL_FEED" />
+      }
     >
       <div className={`flex gap-4 ${post.imageUrl ? "items-start" : ""}`}>
         <p

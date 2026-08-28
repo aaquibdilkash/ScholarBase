@@ -6,6 +6,7 @@ import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -57,6 +58,9 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
       footerVoteButton={<VoteButton targetId={grant.id} module="RESEARCH_GRANT" initialTotalVotes={grant.totalVotes} initialUserVote={userVote} />}
       footerCommentsHref={`/grants/${grant.id}#comments`}
       footerCommentsCount={grant.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={grant.id} entityType="POST" module="RESEARCH_GRANT" />
+      }
       discussion={<CommentSection comments={grant.comments} totalComments={grant.totalComments} targetId={grant.id} module="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author?.id} />}
     >
       <h1 className="mb-2 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{grant.title}</h1>

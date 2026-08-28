@@ -1,6 +1,7 @@
 "use client";
 
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
@@ -93,6 +94,9 @@ export function PublicationCard({
       }
       footerCommentsHref={`/publications/${publication.id}`}
       footerCommentsCount={publication.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={publication.id} entityType="POST" module="PUBLICATION" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         publication.url && (

@@ -29,11 +29,14 @@ export type ListPageCardShellProps = {
   // Current logged-in user id, used to hide the follow button for own content
   currentUserId?: string;
 
-  // Common footer (vote + comments)
+    // Common footer (vote + comments)
   footerVoteButton?: ReactNode;
   footerCommentsHref?: string;
   footerCommentsCount?: number;
   footer?: ReactNode;
+
+  // Dedicated report menu in the footer (far-right edge)
+  footerReportMenu?: ReactNode;
 
   className?: string;
   bodyClassName?: string;
@@ -63,10 +66,11 @@ export default function ListPageCardShell({
   currentUserId,
   managementControls,
   children,
-  footerVoteButton,
+    footerVoteButton,
   footerCommentsHref,
   footerCommentsCount,
   footer,
+  footerReportMenu,
   className,
   bodyClassName,
   detailPageHref,
@@ -164,30 +168,33 @@ export default function ListPageCardShell({
         )}
       </div>
 
-      {/* Common footer */}
-      <div className="mt-2 flex items-center gap-4 border-t border-slate-200 pt-2 dark:border-slate-800 sm:gap-6">
+      {/* Common footer — votes/comments left, Share + Report far right */}
+      <div className="mt-2 flex items-center justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-800 sm:gap-6">
         {footer ? (
           footer
         ) : (
           <>
             <div className="flex items-center gap-4 sm:gap-6">
               {footerVoteButton}
+
+              {footerCommentsHref && (
+                <Link
+                  href={footerCommentsHref}
+                  className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 sm:gap-2"
+                >
+                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {(footerCommentsCount || 0).toString()}{" "}
+                  <span className="hidden md:inline">
+                    {footerCommentsCount === 1 ? "Comment" : "Comments"}
+                  </span>
+                </Link>
+              )}
             </div>
 
-            {footerCommentsHref && (
-              <Link
-                href={footerCommentsHref}
-                className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 sm:gap-2"
-              >
-                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                {(footerCommentsCount || 0).toString()}{" "}
-                <span className="hidden md:inline">
-                  {footerCommentsCount === 1 ? "Comment" : "Comments"}
-                </span>
-              </Link>
-            )}
-
-            <ShareButton href={detailPageHref} label="Share" />
+            <div className="flex items-center gap-2">
+              <ShareButton href={detailPageHref} label="Share" />
+              {footerReportMenu}
+            </div>
           </>
         )}
       </div>

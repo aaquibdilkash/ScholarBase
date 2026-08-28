@@ -7,6 +7,7 @@ import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -107,6 +108,9 @@ const VacancyDetailPage = ({
       }
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}
       footerCommentsCount={vacancy.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={vacancy.id} entityType="POST" module="JOB_VACANCY" />
+      }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {vacancy.notificationLink && (

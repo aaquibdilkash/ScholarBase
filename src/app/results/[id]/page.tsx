@@ -6,6 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult, getResult } from "@/app/actions/results";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { Building2, Calendar } from "lucide-react";
 import { RichContent } from "@/components/content/RichContent";
 import type { Metadata } from "next";
@@ -94,6 +95,9 @@ const ResultDetailPage = async ({
       }
       footerCommentsHref={`/results/${result.id}#comments`}
       footerCommentsCount={result.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={result.id} entityType="POST" module="RESULT" />
+      }
       discussion={
            <CommentSection
              comments={result.comments}

@@ -5,12 +5,15 @@ import { requireCurrentUser, isUserAdmin } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 
 import {
+  AdminCommentModel,
   AdminContentItem,
+  AdminPage,
   CommentModel,
   ContentMap,
   DeleteMapValue,
   FreezableContentModel,
 } from "@/types/admin";
+import { ADMIN_PAGE_SIZE } from "@/lib/constants";
 
 // Freeze/unfreeze content
 export async function toggleContentFreeze(
@@ -198,25 +201,54 @@ export async function getAdminStats() {
   };
 }
 
-// Get all users for admin panel
-export async function getAdminUsers() {
+// Get all users for admin panel (paginated, newest first)
+export async function getAdminUsers(
+  page = 1,
+  pageSize: number = ADMIN_PAGE_SIZE,
+  statusFilter: "all" | "active" | "frozen" | "deleted" = "all",
+): Promise<AdminPage<AdminContentItem>> {
   const user = await requireCurrentUser("Log in to access admin.");
 
   if (!(await isUserAdmin(user.id))) {
     throw new Error("Not authorized.");
   }
 
-  return prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      isFrozen: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const where =
+    statusFilter === "active"
+      ? { isDeleted: false, isFrozen: false }
+      : statusFilter === "frozen"
+        ? { isFrozen: true }
+        : statusFilter === "deleted"
+          ? { isDeleted: true }
+          : undefined;
+
+  const [items, total] = await Promise.all([
+    prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isFrozen: true,
+        isDeleted: true,
+        reportCount: true,
+      },
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 // Approve or reject a contribution
@@ -277,14 +309,100 @@ export async function updateContributionStatus(
   return { success: true, data: {} };
 }
 
-// Get all content for admin panel
+// Get content for admin panel — paginated (10 rows per page).
+// `view` selects the section's own posts table or its comment table.
 export async function getAdminContent(
   contentType?: string,
-): Promise<AdminContentItem[]> {
+  sortBy?: "createdAt" | "reportCount",
+  page = 1,
+  pageSize: number = ADMIN_PAGE_SIZE,
+  view: "posts" | "comments" = "posts",
+  statusFilter: "all" | "active" | "frozen" | "deleted" = "all",
+): Promise<AdminPage<AdminContentItem>> {
   const user = await requireCurrentUser("Log in to access admin.");
 
   if (!(await isUserAdmin(user.id))) {
     throw new Error("Not authorized.");
+  }
+
+  const skip = (page - 1) * pageSize;
+  const totalPages = (total: number) =>
+    Math.max(1, Math.ceil(total / pageSize));
+
+  // Prisma delegates share a common count() signature, but their generic
+  // typing doesn't fit the loose delegates above — cast for indexed counts.
+  const countOf = (model: unknown, where?: Record<string, unknown>) =>
+    (model as { count: (args?: { where?: Record<string, unknown> }) => Promise<number> }).count({ where });
+
+  // Status filter → Prisma where. Comments have no isFrozen/isDeleted
+  // columns; their "deleted" state is the tombstone (authorId: null).
+  const buildStatusWhere = (): Record<string, unknown> | undefined => {
+    if (view === "comments") {
+      if (statusFilter === "deleted") return { authorId: null };
+      if (statusFilter === "active") return { authorId: { not: null } };
+      return undefined; // "frozen" — comments have no frozen flag
+    }
+    if (statusFilter === "active") return { isDeleted: false, isFrozen: false };
+    if (statusFilter === "frozen") return { isFrozen: true };
+    if (statusFilter === "deleted") return { isDeleted: true };
+    return undefined;
+  };
+
+  const where = buildStatusWhere();
+
+  // Comments for a specific section — each section owns one comment table,
+  // queried with indexed ordering + skip/take so we never scan full tables
+  // (RULE 2). modelKey routes moderation actions to the correct delegate.
+  if (view === "comments") {
+    const sectionCommentModels: Record<string, { modelKey: string; model: AdminCommentModel }> = {
+      feed: { modelKey: "socialComment", model: prisma.socialComment as unknown as AdminCommentModel },
+      blog: { modelKey: "articleComment", model: prisma.articleComment as unknown as AdminCommentModel },
+      publications: { modelKey: "publicationComment", model: prisma.publicationComment as unknown as AdminCommentModel },
+      journals: { modelKey: "journalComment", model: prisma.journalComment as unknown as AdminCommentModel },
+      researchTools: { modelKey: "researchToolComment", model: prisma.researchToolComment as unknown as AdminCommentModel },
+      admissions: { modelKey: "admissionComment", model: prisma.phdAdmissionComment as unknown as AdminCommentModel },
+      events: { modelKey: "researchEventComment", model: prisma.researchEventComment as unknown as AdminCommentModel },
+      vacancies: { modelKey: "vacancyComment", model: prisma.jobVacancyComment as unknown as AdminCommentModel },
+      help: { modelKey: "helpComment", model: prisma.helpPostComment as unknown as AdminCommentModel },
+      results: { modelKey: "resultComment", model: prisma.resultComment as unknown as AdminCommentModel },
+      contributions: { modelKey: "contributionComment", model: prisma.contributionComment as unknown as AdminCommentModel },
+      supervisors: { modelKey: "supervisorComment", model: prisma.supervisorComment as unknown as AdminCommentModel },
+      recommendations: { modelKey: "recommendationComment", model: prisma.recommendationComment as unknown as AdminCommentModel },
+      surveys: { modelKey: "surveyComment", model: prisma.surveyComment as unknown as AdminCommentModel },
+    };
+
+    const commentConfig = contentType ? sectionCommentModels[contentType] : undefined;
+    if (!commentConfig || statusFilter === "frozen") {
+      // Comments have no isFrozen column — a "frozen" filter yields nothing.
+      return { items: [], total: 0, page, pageSize, totalPages: 1 };
+    }
+
+    const orderBy:
+      | { createdAt: "desc" }
+      | { reportCount: "desc" } =
+      sortBy === "reportCount"
+        ? { reportCount: "desc" as const }
+        : { createdAt: "desc" as const };
+
+    const [rows, total] = await Promise.all([
+      commentConfig.model.findMany({
+        include: { author: true },
+        orderBy,
+        take: pageSize,
+        skip,
+        where,
+      }),
+      countOf(commentConfig.model, where),
+    ]);
+
+    // Comments have no detail page; the table renders them as plain text.
+    const items = rows.map((row) => ({
+      ...row,
+      modelKey: commentConfig.modelKey,
+      detailHref: "",
+    })) as AdminContentItem[];
+
+    return { items, total, page, pageSize, totalPages: totalPages(total) };
   }
 
   if (contentType) {
@@ -349,20 +467,37 @@ export async function getAdminContent(
     };
 
     const config = contentMap[contentType];
-    if (!config) return [];
+    if (!config) {
+      return { items: [], total: 0, page, pageSize, totalPages: 1 };
+    }
 
-    const items = await config.model.findMany({
-      include: {
-        author: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const orderBy: { createdAt: "desc" } | { reportCount: "desc" } =
+      sortBy === "reportCount" ? { reportCount: "desc" } : { createdAt: "desc" };
 
-    return items.map((item) => ({
-      ...item,
-      detailHref: config.detailHref(item),
-    }));
+    const [items, total] = await Promise.all([
+      config.model.findMany({
+        include: {
+          author: true,
+        },
+        where,
+        orderBy,
+        take: pageSize,
+        skip,
+      }),
+      countOf(config.model, where),
+    ]);
+
+    return {
+      items: items.map((item) => ({
+        ...item,
+        detailHref: config.detailHref(item),
+      })) as AdminContentItem[],
+      total,
+      page,
+      pageSize,
+      totalPages: totalPages(total),
+    };
   }
 
-  return [];
+  return { items: [], total: 0, page, pageSize, totalPages: 1 };
 }

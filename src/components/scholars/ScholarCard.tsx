@@ -2,6 +2,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ShareButton } from "@/components/interactions/ShareButton";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 
 type ScholarCardProps = {
   scholar: {
@@ -60,7 +61,16 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
               </Link>
             ) : null}
           </div>
-          <ShareButton href={`/scholars/${scholar.id}`} />
+          <div className="flex items-center gap-2">
+            <ShareButton href={`/scholars/${scholar.id}`} />
+            {currentUserId && currentUserId !== scholar.id ? (
+              <ReportMenu
+                entityId={scholar.id}
+                entityType="POST"
+                module="SCHOLAR_PROFILE"
+              />
+            ) : null}
+          </div>
         </div>
       }
     >

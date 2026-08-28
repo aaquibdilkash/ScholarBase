@@ -31,10 +31,13 @@ export type DetailPageCardShellProps = {
 
   children: ReactNode; // middle body
 
-  // Common footer (votes + comments)
+    // Common footer (votes + comments)
   footerVoteButton?: ReactNode;
   footerCommentsHref: string;
   footerCommentsCount: number;
+
+  // Dedicated report menu in the footer (far-right edge)
+  footerReportMenu?: ReactNode;
 
   discussion?: ReactNode;
 
@@ -62,9 +65,10 @@ export default function DetailPageCardShell({
   currentUserId,
   managementControls,
   children,
-  footerVoteButton,
+    footerVoteButton,
   footerCommentsHref,
   footerCommentsCount,
+  footerReportMenu,
   discussion,
   className,
   bodyClassName,
@@ -89,12 +93,7 @@ export default function DetailPageCardShell({
         ← {backLabel}
       </Link>
 
-      <div
-        className={clsx(
-          bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8",
-          "overflow-hidden",
-        )}
-      >
+      <div className={clsx(bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8")}>
         {/* Common header */}
         <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -157,9 +156,14 @@ export default function DetailPageCardShell({
           </div>
         </div>
 
-        {children}
+        {/* Body — clipping is scoped here so wide media can't bleed past the
+            card's rounded corners, while header/footer dropdown menus (which
+            render outside this box) are never cut off. */}
+        <div className="overflow-hidden">
+          {children}
 
-        {bodyBottomContent}
+          {bodyBottomContent}
+        </div>
 
         <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
           <span
@@ -178,9 +182,8 @@ export default function DetailPageCardShell({
           )}
         </div>
 
-        {/* Common footer */}
-        {/* Order required: votes, comments, share */}
-        <div className="border-t border-slate-200 pt-2 mt-2 flex items-center gap-6">
+        {/* Common footer — votes/comments left, Share + Report far right */}
+        <div className="border-t border-slate-200 pt-2 mt-2 flex items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             {footerVoteButton}
 
@@ -190,7 +193,10 @@ export default function DetailPageCardShell({
             />
           </div>
 
-          <ShareButton label="Share" />
+          <div className="flex items-center gap-2">
+            <ShareButton label="Share" />
+            {footerReportMenu}
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
@@ -77,6 +78,9 @@ export function ResearchToolCard({
       }
       footerCommentsHref={`/research-tools/${tool.id}`}
       footerCommentsCount={tool.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={tool.id} entityType="POST" module="RESEARCH_TOOL" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         tool.website && (

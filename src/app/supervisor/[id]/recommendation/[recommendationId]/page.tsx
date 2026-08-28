@@ -8,6 +8,7 @@ import {
   getRecommendation,
 } from "@/app/actions/recommendations";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
@@ -98,6 +99,9 @@ export default async function RecommendationDetailPage({
       }
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
       footerCommentsCount={recommendation.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={recommendation.id} entityType="POST" module="RECOMMENDATION" />
+      }
       discussion={
         <CommentSection
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}

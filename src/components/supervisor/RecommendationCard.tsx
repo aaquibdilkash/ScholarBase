@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
@@ -130,6 +131,13 @@ export function RecommendationCard({
       }
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       footerCommentsCount={recommendation.totalComments}
+      footerReportMenu={
+        <ReportMenu
+          entityId={recommendation.id}
+          entityType="POST"
+          module="RECOMMENDATION"
+        />
+      }
     >
       <div
         role="link"

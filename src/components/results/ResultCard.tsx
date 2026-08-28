@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResult } from "@/app/actions/results";
 import { useToast } from "@/components/ui/Toast";
@@ -87,6 +88,9 @@ export function ResultCard({
       }
       footerCommentsHref={`/results/${result.id}`}
       footerCommentsCount={result.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={result.id} entityType="POST" module="RESULT" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

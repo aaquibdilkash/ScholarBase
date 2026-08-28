@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
@@ -93,6 +94,9 @@ export default async function SinglePostPage({
       }
       footerCommentsHref={`/feed/${p.id}#comments`}
       footerCommentsCount={p.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={p.id} entityType="POST" module="SOCIAL_FEED" />
+      }
       discussion={
         <CommentSection
           comments={p.comments as CommentWithAuthorAndVotes[]}

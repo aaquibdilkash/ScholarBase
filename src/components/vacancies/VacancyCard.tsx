@@ -3,6 +3,7 @@
 import { Clock } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
@@ -79,6 +80,9 @@ export function VacancyCard({
       }
       footerCommentsHref={`/vacancies/${vacancy.id}`}
       footerCommentsCount={vacancy.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={vacancy.id} entityType="POST" module="JOB_VACANCY" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

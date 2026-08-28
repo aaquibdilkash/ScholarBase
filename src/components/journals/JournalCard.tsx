@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -80,6 +81,9 @@ export function JournalCard({
       }
       footerCommentsHref={`/journals/${journal.id}`}
       footerCommentsCount={journal.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={journal.id} entityType="POST" module="JOURNAL" />
+      }
       bodyBottomContent={
         <>
           {journal.website && (

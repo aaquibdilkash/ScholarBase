@@ -2,6 +2,7 @@
 
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deletePhdAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
@@ -76,6 +77,9 @@ export function AdmissionCard({
       }
       footerCommentsHref={`/admissions/${admission.id}`}
       footerCommentsCount={admission.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={admission.id} entityType="POST" module="PHD_ADMISSION" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">

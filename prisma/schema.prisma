@@ -131,6 +131,7 @@ model Article {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author   User             @relation(fields: [authorId], references: [id])
   comments ArticleComment[]
@@ -162,6 +163,7 @@ model Supervisor {
   ratingSum           Int @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -189,6 +191,7 @@ model SocialPost {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   comments SocialComment[]
   votes    SocialVote[]
@@ -206,11 +209,13 @@ model ArticleComment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   editedAt DateTime?
+  
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   article  Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -248,6 +253,7 @@ model SocialComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   author     User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
   parent     SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
@@ -298,6 +304,48 @@ model SocialVote {
   @@index([socialPostId, voteType])
 }
 
+// ============================================
+// REPORT / MODERATION
+// ============================================
+enum ReportStatus {
+  PENDING
+  DISMISSED
+  RESOLVED
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  PLAGIARISM
+  MISINFORMATION
+  OFF_TOPIC
+  COPYRIGHT
+  OTHER
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  entityId   String
+  // Coarse entity category ("POST" | "COMMENT"); the exact model is resolved
+  // from `module` in the server action (see MODULE_MODEL_MAP).
+  entityType String
+  // Where the report originated (SOCIAL_FEED, SUPERVISOR, SOCIAL_COMMENT, ...).
+  module     String
+  reason     ReportReason
+  details    String?
+  reporterId String
+  status     ReportStatus  @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([entityId, status])
+  @@index([status])
+  @@index([module, status])
+  @@index([reporterId, createdAt(sort: Desc)])
+}
+
 model HelpPost {
   id        String   @id @default(cuid())
   title     String
@@ -315,6 +363,7 @@ model HelpPost {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -352,6 +401,7 @@ model HelpPostComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
   author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -400,6 +450,7 @@ model Contribution {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -437,6 +488,7 @@ model ContributionComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   contribution Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -490,6 +542,7 @@ model Publication {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes    PublicationVote[]
@@ -525,6 +578,7 @@ model PublicationComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   author      User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -582,6 +636,7 @@ model User {
   followersCount       Int    @default(0)
   followingCount       Int    @default(0)
   isDeleted            Boolean @default(false)
+  reportCount          Int     @default(0)
   activities           UserActivity[]
 
   articleCount         Int @default(0)
@@ -619,6 +674,7 @@ model User {
   socialVotes        SocialVote[]
   socialCommentVotes SocialCommentVote[]
   socialPosts        SocialPost[]
+  reports            Report[]
 
   jobVacancyVotes        JobVacancyVote[]
   jobVacancyComments     JobVacancyComment[]
@@ -787,6 +843,7 @@ model ResearchTool {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author   User                  @relation(fields: [authorId], references: [id])
   comments ResearchToolComment[]
@@ -822,6 +879,7 @@ model ResearchToolComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   researchTool ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -864,6 +922,7 @@ model ResearchGrant {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author   User                   @relation(fields: [authorId], references: [id])
   comments ResearchGrantComment[]
@@ -899,6 +958,7 @@ model ResearchGrantComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   researchGrant ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
   author        User?                      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -945,6 +1005,7 @@ model Course {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author   User            @relation(fields: [authorId], references: [id])
   comments CourseComment[]
@@ -980,6 +1041,7 @@ model CourseComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   course   Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   author   User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1033,6 +1095,7 @@ model Journal {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author   User             @relation(fields: [authorId], references: [id])
   comments JournalComment[]
@@ -1069,6 +1132,7 @@ model JournalComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   journal  Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1114,6 +1178,7 @@ model Result {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1150,6 +1215,7 @@ model ResultComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
   author User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1195,6 +1261,7 @@ model ResearchSurvey {
   totalResponses Int     @default(0)
   trendingScore  Float   @default(0)
   isDeleted      Boolean @default(false)
+  reportCount    Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -1290,6 +1357,7 @@ model SurveyComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   author User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1362,6 +1430,7 @@ model ResearchEvent {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1398,6 +1467,7 @@ model ResearchEventComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
   author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1443,6 +1513,7 @@ model PhdAdmission {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1479,6 +1550,7 @@ model PhdAdmissionComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
   author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1524,6 +1596,7 @@ model JobVacancy {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1560,6 +1633,7 @@ model JobVacancyComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
   author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1612,6 +1686,7 @@ model SupervisorComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User?                   @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1656,6 +1731,7 @@ model Recommendation {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
+  reportCount  Int     @default(0)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User                    @relation(fields: [authorId], references: [id])
@@ -1697,6 +1773,7 @@ model RecommendationComment {
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
+  reportCount  Int     @default(0)
 
   recommendation Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   author         User?                       @relation(fields: [authorId], references: [id], onDelete: SetNull)

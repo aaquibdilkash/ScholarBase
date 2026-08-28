@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteContribution } from "@/app/actions/contributions";
@@ -80,6 +81,9 @@ export function ContributionCard({
       }
       footerCommentsHref={`/contributions/${contribution.id}`}
       footerCommentsCount={contribution.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={contribution.id} entityType="POST" module="CONTRIBUTION" />
+      }
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span

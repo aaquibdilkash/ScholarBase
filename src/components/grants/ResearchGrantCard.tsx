@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
@@ -79,6 +80,9 @@ export function ResearchGrantCard({
       }
       footerCommentsHref={`/grants/${grant.id}`}
       footerCommentsCount={grant.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={grant.id} entityType="POST" module="RESEARCH_GRANT" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">

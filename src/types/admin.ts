@@ -14,6 +14,22 @@ import {
   SocialPost,
   Supervisor,
   User,
+  ArticleComment,
+  SocialComment,
+  HelpPostComment,
+  ContributionComment,
+  PublicationComment,
+  ResearchToolComment,
+  ResearchGrantComment,
+  CourseComment,
+  JournalComment,
+  ResultComment,
+  SurveyComment,
+  ResearchEventComment,
+  PhdAdmissionComment,
+  JobVacancyComment,
+  SupervisorComment,
+  RecommendationComment,
 } from '@prisma/client'
 
 export interface FreezableContentModel {
@@ -46,6 +62,28 @@ export interface CommentModel {
   }) => Promise<unknown>
 }
 
+/**
+ * Union of all comment models. Comments are authored-optional (tombstoning
+ * sets authorId to null), so the included author is `User | null`.
+ */
+export type CommentItem =
+  | SocialComment
+  | ArticleComment
+  | HelpPostComment
+  | ContributionComment
+  | PublicationComment
+  | ResearchToolComment
+  | ResearchGrantComment
+  | CourseComment
+  | JournalComment
+  | ResultComment
+  | SurveyComment
+  | ResearchEventComment
+  | PhdAdmissionComment
+  | JobVacancyComment
+  | SupervisorComment
+  | RecommendationComment
+
 export type ContentItem =
   | (Article & { author: User })
   | (Recommendation & { author: User })
@@ -61,6 +99,31 @@ export type ContentItem =
   | (Contribution & { author: User })
   | (Supervisor & { author: User })
   | (ResearchSurvey & { author: User })
+  | (CommentItem & { author: User | null })
+
+/**
+ * Loosely-typed delegate for the comment tables used by the admin
+ * "Comments" view. Each comment model is a separate Prisma table, so the
+ * delegates are cast to this common shape.
+ */
+export interface AdminCommentModel {
+  findMany: (args: {
+    include: { author: true }
+    orderBy: { createdAt: 'desc' | 'asc' } | { reportCount: 'desc' | 'asc' }
+    take?: number
+    skip?: number
+    where?: Record<string, unknown>
+  }) => Promise<ContentItem[]>
+}
+
+/** Paginated envelope returned by admin list actions (10 rows per page). */
+export interface AdminPage<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
 
 export type AdminContentItem = {
   id: string;
@@ -70,7 +133,13 @@ export type AdminContentItem = {
   content?: string | null;
   detailHref?: string;
   isFrozen?: boolean;
+  /** Soft-delete flag (RULE 4) — true means the content is tombstoned. */
+  isDeleted?: boolean;
   status?: string;
+  /** Materialized report counter (RULE 2) used to surface highly reported items. */
+  reportCount?: number;
+  /** For comment rows: the Prisma model key used to route moderation actions. */
+  modelKey?: string;
   author?: {
     id: string;
     name: string | null;
@@ -82,7 +151,10 @@ export type AdminContentItem = {
 export interface ContentModel {
   findMany: (args: {
     include: { author: true }
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: "desc" | "asc" } | { reportCount: "desc" | "asc" }
+    take?: number
+    skip?: number
+    where?: Record<string, unknown>
   }) => Promise<ContentItem[]>
 }
 

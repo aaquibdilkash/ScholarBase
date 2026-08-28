@@ -6,6 +6,7 @@ import { getResearchToolById } from "../../actions/researchTools";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchTool } from "@/app/actions/researchTools";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
@@ -86,6 +87,9 @@ const ResearchToolDetailPage = async ({
       }
       footerCommentsHref={`/research-tools/${tool.id}#comments`}
       footerCommentsCount={tool.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={tool.id} entityType="POST" module="RESEARCH_TOOL" />
+      }
       discussion={
            <CommentSection
              comments={tool.comments}

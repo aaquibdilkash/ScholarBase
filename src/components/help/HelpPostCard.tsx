@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
@@ -78,6 +79,9 @@ export function HelpPostCard({
       }
       footerCommentsHref={`/help/${helpPost.id}`}
       footerCommentsCount={helpPost.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={helpPost.id} entityType="POST" module="HELP_POST" />
+      }
     >
       <div className="mb-4">
         <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">

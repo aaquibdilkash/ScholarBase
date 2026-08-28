@@ -125,3 +125,6 @@ export const MAX_COMMENT_BODY = 256;
 // fetchReplies in src/app/actions/comments.ts). Lives here because "use server"
 // files may only export async functions.
 export const COMMENT_PAGE_SIZE = 5;
+
+// Rows per page in the admin panel tables (feeds, comments, users).
+export const ADMIN_PAGE_SIZE = 10;

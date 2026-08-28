@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
@@ -91,6 +92,9 @@ export function SurveyCard({
       }
       footerCommentsHref={`/surveys/${survey.id}`}
       footerCommentsCount={survey.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={survey.id} entityType="POST" module="RESEARCH_SURVEY" />
+      }
     >
       <Link href={`/surveys/${survey.id}`} className="block group">
         <div className="mb-2 flex items-center gap-2">

@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deletePhdAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { Clock } from "lucide-react";
@@ -87,6 +88,9 @@ const AdmissionDetailPage = async ({
       }
       footerCommentsHref={`/admissions/${admission.id}#comments`}
       footerCommentsCount={admission.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={admission.id} entityType="POST" module="PHD_ADMISSION" />
+      }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           {admission.notificationLink && (

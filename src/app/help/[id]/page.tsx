@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteHelpPost } from "@/app/actions/help";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 
@@ -86,6 +87,9 @@ export default async function HelpPostPage({
       }
       footerCommentsHref={`/help/${post.id}#comments`}
       footerCommentsCount={post.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={post.id} entityType="POST" module="HELP_POST" />
+      }
       discussion={
         <CommentSection
           comments={post.comments}

@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/contributions";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { RejectionReason } from "@/components/contributions/RejectionReason";
 
@@ -102,6 +103,9 @@ const ContributionDetailPage = async ({
       }
       footerCommentsHref={`/contributions/${contribution.id}#comments`}
       footerCommentsCount={contribution.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={contribution.id} entityType="POST" module="CONTRIBUTION" />
+      }
       discussion={
         <CommentSection
           comments={contribution.comments}

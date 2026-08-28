@@ -15,6 +15,7 @@ import {
 } from "@/app/actions/surveys";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SurveyResponseForm } from "@/components/surveys/SurveyResponseForm";
 
 const PRIVACY_LABELS: Record<string, string> = {
@@ -115,6 +116,9 @@ const SurveyDetailPage = async ({
       }
       footerCommentsHref={`/surveys/${survey.id}#comments`}
       footerCommentsCount={survey.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={survey.id} entityType="POST" module="RESEARCH_SURVEY" />
+      }
       discussion={
         <CommentSection
           comments={survey.comments}

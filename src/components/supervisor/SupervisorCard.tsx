@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteSupervisor } from "@/app/actions/supervisors";
 import { useToast } from "@/components/ui/Toast";
 import { StarRating } from "@/components/ui/StarRating";
@@ -80,6 +81,9 @@ export function SupervisorCard({
       }
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={supervisor.id} entityType="POST" module="SUPERVISOR" />
+      }
     >
       <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
         {supervisor.name}

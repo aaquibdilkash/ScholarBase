@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
@@ -87,6 +88,9 @@ export function CourseCard({
       }
       footerCommentsHref={`/learn/${course.id}`}
       footerCommentsCount={course.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={course.id} entityType="POST" module="COURSE" />
+      }
       noBodyLink={true}
       bodyBottomContent={
         <a

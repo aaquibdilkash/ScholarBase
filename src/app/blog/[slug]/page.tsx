@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { RichContent } from "@/components/content/RichContent";
@@ -81,6 +82,9 @@ export default async function ArticlePage({
       }
       footerCommentsHref={`/blog/${a.slug}#comments`}
       footerCommentsCount={a.totalComments}
+      footerReportMenu={
+        <ReportMenu entityId={a.id} entityType="POST" module="ARTICLE_PAGE" />
+      }
       discussion={
            <CommentSection
              comments={a.comments}

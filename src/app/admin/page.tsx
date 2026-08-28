@@ -38,7 +38,7 @@ export default async function AdminPage() {
             Manage content, moderate posts, and control user access
           </p>
         </div>
-        <AdminDashboard initialStats={stats} initialContent={initialContent} />
+        <AdminDashboard initialStats={stats} initialData={initialContent} />
       </div>
     </main>
   );
