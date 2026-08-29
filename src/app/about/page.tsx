@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
-import { ArrowRight, BookOpen, Globe2, HeartHandshake, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Code2, Globe2, HeartHandshake, Sparkles, Users } from "lucide-react";
 
 export const metadata = buildMetadata({
   title: "About Us | ScholarBase",
@@ -71,7 +71,7 @@ export default function AboutPage() {
                 ScholarBase started with a simple question: <strong className="text-slate-900 dark:text-slate-200">why should a brilliant student&apos;s access to opportunity depend on being in the right group chat?</strong> We decided the answer was to build one open platform where the academic community itself shares, discovers, and discusses what matters — and where the best contributions rise to the top through community votes, not advertising budgets.
               </p>
               <p>
-                We are a small, independent team with no external funding. That independence is a feature: it means ScholarBase answers only to its users, and every feature we ship is chosen because the community asked for it.
+                And we are <strong className="text-slate-900 dark:text-slate-200">open source</strong> — built for the community, by the community. There is no company behind ScholarBase, no investors, and no revenue engine. Everything we write is public, and anyone can read it, contribute to it, or build on it. That independence is a feature: it means ScholarBase answers only to its users, and every feature we ship is chosen because the community asked for it — not because it pays.
               </p>
             </div>
           </section>
@@ -102,6 +102,13 @@ export default function AboutPage() {
               What We Believe
             </h2>
             <ul className="space-y-3 text-lg text-slate-600 dark:text-slate-400">
+              <li className="flex gap-3">
+                <Code2 className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <span>
+                  <strong className="text-slate-900 dark:text-slate-200">We are open source.</strong>{" "}
+                  Built for the community, by the community — every line of code is public and anyone can contribute.
+                </span>
+              </li>
               <li className="flex gap-3">
                 <Sparkles className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <span>
@@ -141,6 +148,13 @@ export default function AboutPage() {
               </Link>
             </div>
           </section>
+
+          {/* Asterisk note */}
+          <p className="mt-12 text-center text-sm text-slate-400 dark:text-slate-500 italic">
+            * Yes, every em dash on this page was placed by a human with great
+            care and questionable restraint — not by AI. If you find an em dash
+            you don&apos;t like, that&apos;s on us, personally.
+          </p>
         </div>
       </div>
     </main>

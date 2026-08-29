@@ -44,7 +44,7 @@ const whatYouGet = [
     icon: Rocket,
     title: "Real Platform, Real Users",
     description:
-      "Skip the toy projects. Everything you market, grow, or break-and-report happens on a live production platform used by scholars around the world.",
+      "Skip the toy projects. Everything you do — campaigns, curated listings, bug reports — happens on a live, open-source platform used by scholars around the world, and your contributions are public for anyone to see.",
   },
   {
     icon: GraduationCap,
@@ -91,7 +91,14 @@ export default function CareersPage() {
             </div>
             <div className="space-y-4 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
               <p>
-                ScholarBase is a bootstrapped, independent platform. We don&apos;t run ads, we don&apos;t charge users, and we don&apos;t have investors. Which means, quite simply: <strong className="text-slate-900 dark:text-slate-200">we can&apos;t pay you right now.</strong>
+                ScholarBase is a <strong className="text-slate-900 dark:text-slate-200">fully open-source</strong> platform — built for the community, by the community. Our entire codebase is public on{" "}
+                {/* <a href="https://github.com/" target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"> */}
+                GitHub
+                {/* </a> */}
+                , and we don&apos;t run ads, we don&apos;t charge users, and we don&apos;t have investors.
+              </p>
+              <p>
+                That&apos;s exactly why, quite simply: <strong className="text-slate-900 dark:text-slate-200">we can&apos;t pay you right now.</strong> There is no revenue behind this platform — by design. It exists to serve scholars, not to earn from them.
               </p>
               <p>
                 What we <em>can</em> offer is something far more valuable for your early journey: <strong className="text-slate-900 dark:text-slate-200">the opportunity to learn how a real platform grows and how real software is tested</strong> — hands-on, with mentorship, and with your name on the results.
@@ -144,7 +151,7 @@ export default function CareersPage() {
                 </div>
               </div>
               <p className="text-lg text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                You&apos;ll put ScholarBase through every scenario a real user could throw at it — and plenty they shouldn&apos;t. Our developers will know about <strong className="text-slate-900 dark:text-slate-200">every teeny-tiny bug in every corner</strong> before our users ever find them. Along the way you&apos;ll learn:
+                You&apos;ll put ScholarBase through every scenario a real user could throw at it — and plenty they shouldn&apos;t. Our developers will know about <strong className="text-slate-900 dark:text-slate-200">every teeny-tiny bug in every corner </strong>before our users ever find them. Along the way you&apos;ll learn:
               </p>
               <ul className="space-y-2.5">
                 {qaLearnings.map((item) => (
@@ -168,7 +175,7 @@ export default function CareersPage() {
                 </div>
               </div>
               <p className="text-lg text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                You&apos;ll grow ScholarBase&apos;s most valuable asset: <strong className="text-slate-900 dark:text-slate-200">trustworthy information</strong>. That means finding and verifying opportunities in <strong className="text-slate-900 dark:text-slate-200">admissions, vacancies, events, and results</strong>, and building our directories — <strong className="text-slate-900 dark:text-slate-200">PhD supervisors, research grants, research tools, the learning zone, and research journals</strong> — so scholars everywhere get one reliable place for everything academic. Along the way you&apos;ll learn:
+                You&apos;ll grow ScholarBase&apos;s most valuable asset: <strong className="text-slate-900 dark:text-slate-200">trustworthy information</strong>. That means finding and verifying opportunities in <strong className="text-slate-900 dark:text-slate-200">admissions, vacancies, events, and results</strong>, and building our directories — <strong className="text-slate-900 dark:text-slate-200">PhD supervisors, research grants, research tools, the learning zone, and research journals </strong>— so scholars everywhere get one reliable place for everything academic. Along the way you&apos;ll learn:
               </p>
               <ul className="space-y-2.5">
                 {curationLearnings.map((item) => (
@@ -236,7 +243,7 @@ export default function CareersPage() {
               Send your CV to <a href="mailto:connect@scholarbase.app?subject=Joining%20ScholarBase%20—%20CV" className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">connect@scholarbase.app</a> with the subject line <span className="font-semibold text-slate-900 dark:text-slate-200">&quot;Joining ScholarBase&quot;</span>.
             </p>
             <p className="text-lg text-slate-500 dark:text-slate-400 mb-8 max-w-xl mx-auto leading-relaxed">
-              Along with your CV, tell us one thing: <strong className="text-slate-700 dark:text-slate-300">which of the three tracks do you want, and how would you use it to grow ScholarBase?</strong> A campus you&apos;d start with, a community you&apos;d reach, or the first corner of the app you&apos;d tear apart looking for bugs — we want to see how you think.
+              Along with your CV, tell us one thing: <strong className="text-slate-700 dark:text-slate-300">which of the three tracks do you want, and how would you use it to grow ScholarBase? </strong>A campus you&apos;d start with, a community you&apos;d reach, or the first corner of the app you&apos;d tear apart looking for bugs — we want to see how you think.
             </p>
             <a href="mailto:connect@scholarbase.app?subject=Joining%20ScholarBase%20—%20CV" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-blue-700">
               <Mail className="h-5 w-5" />
@@ -246,6 +253,13 @@ export default function CareersPage() {
               Want to learn more about the platform first? <Link href="/about" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Read our story</Link>.
             </p>
           </section>
+
+          {/* Asterisk note */}
+          <p className="mt-12 text-center text-sm text-slate-400 dark:text-slate-500 italic">
+            * All em dashes on this page are 100% human-written. An AI would
+            have used far more of them — believe us — and we simply refuse to
+            be outdashed by a machine. Yes, we see the irony of that sentence.
+          </p>
         </div>
       </div>
     </main>
