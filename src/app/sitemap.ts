@@ -33,6 +33,8 @@ const staticRoutes = [
   "/contributions",
   "/help",
   "/contact",
+  "/about",
+  "/careers",
   "/privacy",
   "/terms",
 ];

@@ -28,6 +28,18 @@ export default function Footer() {
           >
             Contact Us
           </Link>
+          <Link
+            href="/about"
+            className="text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          >
+            About Us
+          </Link>
+          <Link
+            href="/careers"
+            className="text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          >
+            Careers
+          </Link>
         </nav>
       </div>
     </footer>
