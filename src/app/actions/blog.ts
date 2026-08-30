@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, slugify } from "@/lib/form";
 import {
@@ -103,6 +104,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -252,14 +254,12 @@ export async function deleteArticle(articleId: string) {
   if (!article) {
     throw new Error("Article not found.");
   }
-  if (!(await isAuthorizedOrAdmin(article.authorId, user.id))) {
-    throw new Error("Not authorized to delete this article.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, article.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.article.update({
       where: { id: articleId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

@@ -33,6 +33,7 @@ function commentPageSelect(currentUserId: string | null) {
     // Soft-delete flags (RULE 4) — tombstoned comments render a placeholder
     isDeleted: true,
     isFrozen: true,
+    deletedByType: true,
     // Materialized counters — no dynamic _count aggregation
     totalVotes: true,
     totalReplies: true,

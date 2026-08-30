@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -96,14 +97,12 @@ export async function deleteResearchTool(toolId: string) {
   if (!tool) {
     throw new Error("Research tool not found.");
   }
-  if (!(await isAuthorizedOrAdmin(tool.authorId, user.id))) {
-    throw new Error("Not authorized to delete this research tool.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, tool.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.researchTool.update({
       where: { id: toolId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({
@@ -215,6 +214,7 @@ export const getResearchToolById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            deletedByType: true,
             id: true,
             content: true,
             createdAt: true,

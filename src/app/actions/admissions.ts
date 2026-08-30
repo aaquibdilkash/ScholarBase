@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -93,6 +94,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -231,14 +233,12 @@ export async function deletePhdAdmission(admissionId: string) {
   if (!admission) {
     throw new Error("Admission not found.");
   }
-  if (!(await isAuthorizedOrAdmin(admission.authorId, user.id))) {
-    throw new Error("Not authorized to delete this admission.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, admission.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.phdAdmission.update({
       where: { id: admissionId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

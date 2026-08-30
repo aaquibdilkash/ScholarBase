@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -105,6 +106,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -260,14 +262,12 @@ export async function deleteJobVacancy(vacancyId: string) {
   });
 
   if (!vacancy) return;
-  if (!(await isAuthorizedOrAdmin(vacancy.authorId, user.id))) {
-    throw new Error("Not authorized to delete this vacancy.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, vacancy.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.jobVacancy.update({
       where: { id: vacancyId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

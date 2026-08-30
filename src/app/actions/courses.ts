@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -123,14 +124,12 @@ export async function deleteCourse(courseId: string) {
   if (!course) {
     throw new Error("Course not found.");
   }
-  if (!(await isAuthorizedOrAdmin(course.authorId, user.id))) {
-    throw new Error("Not authorized to delete this course.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, course.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.course.update({
       where: { id: courseId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({
@@ -249,6 +248,7 @@ export const getCourseById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            deletedByType: true,
             id: true,
             content: true,
             createdAt: true,

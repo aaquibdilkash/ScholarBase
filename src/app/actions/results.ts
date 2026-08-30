@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -104,6 +105,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -234,14 +236,12 @@ export async function deleteResult(resultId: string) {
   if (!result) {
     throw new Error("Result not found.");
   }
-  if (!(await isAuthorizedOrAdmin(result.authorId, user.id))) {
-    throw new Error("Not authorized to delete this result.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, result.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.result.update({
       where: { id: resultId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

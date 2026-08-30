@@ -3,6 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -117,6 +118,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -424,13 +426,12 @@ export async function deleteSurvey(surveyId: string) {
   if (!survey) {
     throw new Error("Survey not found.");
   }
-  if (!(await isAuthorizedOrAdmin(survey.authorId, user.id)))
-    throw new Error("Not authorized to delete this survey.");
+  const deletedByType = await resolvePostDeletePermission(user.id, survey.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.researchSurvey.update({
       where: { id: surveyId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

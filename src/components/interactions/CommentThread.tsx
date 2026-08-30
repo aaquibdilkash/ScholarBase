@@ -324,6 +324,26 @@ function ReplyForm({
   );
 }
 
+// Maps the deletedByType tracker (RULE 4) to a human-readable tombstone.
+function getDeletedMessage(
+  deletedByType: CommentWithAuthorAndVotes["deletedByType"],
+  isReply: boolean,
+): string {
+  switch (deletedByType) {
+    case "ADMIN":
+      return "This content was removed by a moderator.";
+    case "POST_AUTHOR":
+      return "This comment was removed by the author of the post.";
+    case "PARENT_COMMENT_AUTHOR":
+      return "This reply was removed by the author of the comment it replies to.";
+    case "AUTHOR":
+    default:
+      return isReply
+        ? "This reply was deleted by its author."
+        : "This comment was deleted by its author.";
+  }
+}
+
 // ============================================
 // SINGLE COMMENT CARD (parent or reply)
 // ============================================
@@ -444,7 +464,7 @@ function CommentCard({
           <div className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}>
             <p className="italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
               {comment.isDeleted
-                ? "[This comment was deleted by the author]"
+                ? getDeletedMessage(comment.deletedByType, isReply)
                 : comment.content}
             </p>
           </div>

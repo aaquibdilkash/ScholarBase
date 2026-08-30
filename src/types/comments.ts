@@ -41,6 +41,13 @@ export interface CommentWithAuthorAndVotes {
   author: CommentAuthor | null;
   /** Soft-delete flag (RULE 4) — true renders the "[deleted]" placeholder. */
   isDeleted?: boolean;
+  /** Who performed the soft delete (RULE 4 tracking). */
+  deletedByType?:
+    | "AUTHOR"
+    | "PARENT_COMMENT_AUTHOR"
+    | "POST_AUTHOR"
+    | "ADMIN"
+    | null;
   /** Admin freeze flag (RULE 4) — true blocks further interaction. */
   isFrozen?: boolean;
   votes: { voteType: VoteType }[] | undefined;

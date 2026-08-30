@@ -9,6 +9,13 @@ datasource db {
 // ============================================
 // GLOBAL ACTIVITY LOG (Added)
 // ============================================
+enum DeletedByType {
+  AUTHOR
+  PARENT_COMMENT_AUTHOR
+  POST_AUTHOR
+  ADMIN
+}
+
 model UserActivity {
   id          String   @id @default(cuid())
   userId      String
@@ -127,11 +134,13 @@ model Article {
   editedAt  DateTime?
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author   User             @relation(fields: [authorId], references: [id])
   comments ArticleComment[]
@@ -156,14 +165,16 @@ model Supervisor {
   authorId String
 
   // ZERO-COMPUTE FIELDS
-  totalVotes          Int     @default(0)
-  totalComments       Int     @default(0)
+  totalVotes          Int            @default(0)
+  totalComments       Int            @default(0)
   // Materialized recommendation aggregates (avg = ratingSum / recommendationCount)
-  recommendationCount Int     @default(0)
-  ratingSum           Int     @default(0)
-  trendingScore       Float   @default(0)
-  isDeleted           Boolean @default(false)
-  reportCount         Int     @default(0)
+  recommendationCount Int            @default(0)
+  ratingSum           Int            @default(0)
+  trendingScore       Float          @default(0)
+  isDeleted           Boolean        @default(false)
+  deletedByType       DeletedByType?
+  deletedById         String?
+  reportCount         Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -187,11 +198,13 @@ model SocialPost {
   isFrozen  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   comments SocialComment[]
   votes    SocialVote[]
@@ -211,12 +224,14 @@ model ArticleComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   article  Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -251,12 +266,14 @@ model SocialComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   author     User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
   parent     SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
@@ -362,11 +379,13 @@ model HelpPost {
   isFrozen  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -401,12 +420,14 @@ model HelpPostComment {
   editedAt   DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
   author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -451,11 +472,13 @@ model Contribution {
   isFrozen        Boolean            @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -490,12 +513,14 @@ model ContributionComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   contribution Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -545,11 +570,13 @@ model Publication {
   editedAt            DateTime?
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes    PublicationVote[]
@@ -582,12 +609,14 @@ model PublicationComment {
   editedAt      DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   author      User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -848,11 +877,13 @@ model ResearchTool {
   isFrozen    Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author   User                  @relation(fields: [authorId], references: [id])
   comments ResearchToolComment[]
@@ -885,12 +916,14 @@ model ResearchToolComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   researchTool ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -929,11 +962,13 @@ model ResearchGrant {
   isFrozen    Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author   User                   @relation(fields: [authorId], references: [id])
   comments ResearchGrantComment[]
@@ -966,12 +1001,14 @@ model ResearchGrantComment {
   editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   researchGrant ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
   author        User?                      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1014,11 +1051,13 @@ model Course {
   isFrozen    Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author   User            @relation(fields: [authorId], references: [id])
   comments CourseComment[]
@@ -1051,12 +1090,14 @@ model CourseComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   course   Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   author   User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1106,11 +1147,13 @@ model Journal {
   openAccess  OpenAccessStatus @default(UNKNOWN)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author   User             @relation(fields: [authorId], references: [id])
   comments JournalComment[]
@@ -1144,12 +1187,14 @@ model JournalComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   journal  Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1191,11 +1236,13 @@ model Result {
   isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1229,12 +1276,14 @@ model ResultComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
   author User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1275,12 +1324,14 @@ model ResearchSurvey {
   isFrozen    Boolean       @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int     @default(0)
-  totalComments  Int     @default(0)
-  totalResponses Int     @default(0)
-  trendingScore  Float   @default(0)
-  isDeleted      Boolean @default(false)
-  reportCount    Int     @default(0)
+  totalVotes     Int            @default(0)
+  totalComments  Int            @default(0)
+  totalResponses Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -1373,12 +1424,14 @@ model SurveyComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   author User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1447,11 +1500,13 @@ model ResearchEvent {
   isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1485,12 +1540,14 @@ model ResearchEventComment {
   editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
   author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1532,11 +1589,13 @@ model PhdAdmission {
   isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1570,12 +1629,14 @@ model PhdAdmissionComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
   author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1617,11 +1678,13 @@ model JobVacancy {
   isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1655,12 +1718,14 @@ model JobVacancyComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
   author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1710,12 +1775,14 @@ model SupervisorComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User?                   @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1756,11 +1823,13 @@ model Recommendation {
   isFrozen            Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount   Int     @default(0)
+  totalVotes    Int            @default(0)
+  totalComments Int            @default(0)
+  trendingScore Float          @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  reportCount   Int            @default(0)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User                    @relation(fields: [authorId], references: [id])
@@ -1799,12 +1868,14 @@ model RecommendationComment {
   editedAt         DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId     String?
-  totalVotes   Int     @default(0)
-  totalReplies Int     @default(0)
-  reportCount  Int     @default(0)
-  isDeleted    Boolean @default(false)
-  isFrozen     Boolean @default(false)
+  authorId      String?
+  totalVotes    Int            @default(0)
+  totalReplies  Int            @default(0)
+  reportCount   Int            @default(0)
+  isDeleted     Boolean        @default(false)
+  deletedByType DeletedByType?
+  deletedById   String?
+  isFrozen      Boolean        @default(false)
 
   recommendation Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   author         User?                       @relation(fields: [authorId], references: [id], onDelete: SetNull)

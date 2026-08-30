@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -111,14 +112,12 @@ export async function deleteResearchGrant(grantId: string) {
   if (!grant) {
     throw new Error("Research grant not found.");
   }
-  if (!(await isAuthorizedOrAdmin(grant.authorId, user.id))) {
-    throw new Error("Not authorized to delete this research grant.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, grant.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.researchGrant.update({
       where: { id: grantId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({
@@ -231,6 +230,7 @@ export const getResearchGrantById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            deletedByType: true,
             id: true,
             content: true,
             createdAt: true,

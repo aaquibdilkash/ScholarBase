@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
@@ -98,6 +99,7 @@ export const getContribution = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -273,14 +275,12 @@ export async function deleteContribution(contributionId: string) {
   });
 
   if (!contribution) throw new Error("Contribution not found.");
-  if (!(await isAuthorizedOrAdmin(contribution.authorId, user.id))) {
-    throw new Error("Not authorized to delete this contribution.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, contribution.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.contribution.update({
       where: { id: contributionId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -154,14 +155,12 @@ export async function deleteJournal(journalId: string) {
   if (!journal) {
     throw new Error("Journal not found.");
   }
-  if (!(await isAuthorizedOrAdmin(journal.authorId, user.id))) {
-    throw new Error("Not authorized to delete this journal.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, journal.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.journal.update({
       where: { id: journalId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({
@@ -293,6 +292,7 @@ export const getJournalById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            deletedByType: true,
             id: true,
             content: true,
             createdAt: true,

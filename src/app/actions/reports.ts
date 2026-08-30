@@ -430,7 +430,12 @@ export async function moderateContent(
 
           const updated = (await commentEntry.model.update({
             where: { id: contentId },
-            data: { isDeleted: true, isFrozen: true },
+            data: {
+              isDeleted: true,
+              isFrozen: true,
+              deletedByType: "ADMIN",
+              deletedById: user.id,
+            },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
           await tx.report.updateMany({
             where: { entityId: contentId, status: "PENDING" },
@@ -493,7 +498,12 @@ export async function moderateContent(
 
           const updated = (await commentEntry.model.update({
             where: { id: contentId },
-            data: { isDeleted: false, isFrozen: false },
+            data: {
+              isDeleted: false,
+              isFrozen: false,
+              deletedByType: null,
+              deletedById: null,
+            },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
           return { action, success: true, data: updated };
         }
@@ -595,7 +605,12 @@ export async function moderateContent(
 
         const updated = (await entry2.model.update({
           where: { id: contentId },
-          data: { isDeleted: true, isFrozen: true },
+          data: {
+            isDeleted: true,
+            isFrozen: true,
+            deletedByType: "ADMIN",
+            deletedById: user.id,
+          },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.report.updateMany({
           where: { entityId: contentId, status: "PENDING" },
@@ -635,7 +650,12 @@ export async function moderateContent(
 
         const updated = (await entry2.model.update({
           where: { id: contentId },
-          data: { isDeleted: false, isFrozen: false },
+          data: {
+            isDeleted: false,
+            isFrozen: false,
+            deletedByType: null,
+            deletedById: null,
+          },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         return { action, success: true, data: updated };
       }

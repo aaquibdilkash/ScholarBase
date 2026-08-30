@@ -3,6 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 
@@ -148,6 +149,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
           authorId: true,
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           author: {
             select: {
               id: true,
@@ -326,14 +328,12 @@ export async function deleteSocialPost(postId: string) {
   });
 
   if (!post) return;
-  if (!(await isAuthorizedOrAdmin(post.authorId, user.id))) {
-    throw new Error("Not authorized to delete this post.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, post.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.socialPost.update({
       where: { id: postId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

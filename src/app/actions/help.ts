@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
@@ -105,6 +106,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -232,14 +234,12 @@ export async function deleteHelpPost(helpPostId: string) {
   if (!post) {
     throw new Error("Help post not found.");
   }
-  if (!(await isAuthorizedOrAdmin(post.authorId, user.id))) {
-    throw new Error("Not authorized to delete this help post.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, post.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.helpPost.update({
       where: { id: helpPostId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

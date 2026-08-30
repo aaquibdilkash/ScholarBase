@@ -3,6 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
@@ -122,6 +123,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -300,14 +302,12 @@ export async function deleteSupervisor(supervisorId: string) {
   if (!supervisor) {
     throw new Error("Supervisor not found.");
   }
-  if (!(await isAuthorizedOrAdmin(supervisor.authorId, user.id))) {
-    throw new Error("Not authorized to delete this supervisor.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, supervisor.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.supervisor.update({
       where: { id: supervisorId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

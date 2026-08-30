@@ -3,6 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
@@ -51,6 +52,7 @@ export const getRecommendation = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            deletedByType: true,
             id: true,
             content: true,
             createdAt: true,
@@ -327,14 +329,12 @@ export async function deleteRecommendation(recommendationId: string) {
   if (!recommendation) {
     throw new Error("Recommendation not found.");
   }
-  if (!(await isAuthorizedOrAdmin(recommendation.authorId, user.id))) {
-    throw new Error("Not authorized to delete this recommendation.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, recommendation.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.recommendation.update({
       where: { id: recommendationId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     if (!recommendation.isAnonymous) {

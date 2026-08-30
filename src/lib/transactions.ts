@@ -4,7 +4,7 @@
 // methods directly on that union. We route through a permissive structural type.
 import { VoteType } from '@prisma/client'
 import prisma from './db'
-import { isUserAdmin } from '@/lib/auth'
+import { resolveCommentDeletePermission } from './deletion'
 import type { CommentEntityType } from '@/types/comments'
 
 // Permissive delegate shape. The config maps each module to a union of concrete
@@ -570,14 +570,34 @@ export async function deleteCommentTransaction(
   return prisma.$transaction(async (prisma) => {
     const comment = await commentModel.findUnique({
       where: { id: commentId },
-      select: { authorId: true, parentId: true, [parentFk]: true, totalVotes: true },
+      select: { authorId: true, parentId: true, isDeleted: true, [parentFk]: true, totalVotes: true },
     })
 
     if (!comment) throw new Error('Comment not found.')
-    const userIsAdmin = await isUserAdmin(userId)
-    if (comment.authorId !== userId && !userIsAdmin) {
-      throw new Error('Not authorized to delete this comment.')
+    if ((comment as any).isDeleted) {
+      throw new Error('Comment already deleted.')
     }
+
+    // Resolve the deletion actor through the ownership hierarchy
+    // (admin > author > post author > parent comment author).
+    const parentEntityId = (comment as any)[parentFk] as string
+    const rootPost = await parent.findUnique({
+      where: { id: parentEntityId },
+      select: { authorId: true },
+    })
+    const parentComment = comment.parentId
+      ? await commentModel.findUnique({
+          where: { id: (comment as any).parentId as string },
+          select: { authorId: true },
+        })
+      : null
+
+    const deletedByType = await resolveCommentDeletePermission(userId, {
+      commentAuthorId: (comment as any).authorId,
+      rootPostAuthorId: (rootPost as any)?.authorId ?? null,
+      parentCommentAuthorId: (parentComment as any)?.authorId ?? null,
+      isReply: (comment as any).parentId !== null,
+    })
 
     // RULE 4 (soft delete): every comment/reply is soft-deleted by toggling
     // isDeleted = true — the row, its content and its author are preserved so
@@ -586,11 +606,10 @@ export async function deleteCommentTransaction(
     // exactly as before (totalComments / totalReplies decrement).
     const shouldReverseRep = comment.authorId !== null && comment.totalVotes !== 0
 
-    const parentEntityId = (comment as any)[parentFk] as string
     const operations: any[] = [
       commentModel.update({
         where: { id: commentId },
-        data: { isDeleted: true },
+        data: { isDeleted: true, deletedByType, deletedById: userId },
       }),
       parent.update({
         where: { id: parentEntityId },
@@ -617,7 +636,7 @@ export async function deleteCommentTransaction(
 
     await prisma.$transaction(operations)
 
-    return { wasTombstoned: true, parentId: comment.parentId }
+    return { wasTombstoned: true, parentId: comment.parentId, deletedByType }
   })
 }
 

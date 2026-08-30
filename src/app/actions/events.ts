@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -94,6 +95,7 @@ export const getEvent = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          deletedByType: true,
           id: true,
           content: true,
           createdAt: true,
@@ -235,14 +237,12 @@ export async function deleteResearchEvent(eventId: string) {
   if (!event) {
     throw new Error("Event not found.");
   }
-  if (!(await isAuthorizedOrAdmin(event.authorId, user.id))) {
-    throw new Error("Not authorized to delete this event.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, event.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.researchEvent.update({
       where: { id: eventId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({

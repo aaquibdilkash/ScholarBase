@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { Prisma, PublicationType } from "@prisma/client";
 import prisma from "@/lib/db";
+import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -168,14 +169,12 @@ export async function deletePublication(publicationId: string) {
   if (!publication) {
     throw new Error("Publication not found.");
   }
-  if (!(await isAuthorizedOrAdmin(publication.authorId, user.id))) {
-    throw new Error("Not authorized to delete this publication.");
-  }
+  const deletedByType = await resolvePostDeletePermission(user.id, publication.authorId);
 
   await prisma.$transaction(async (tx) => {
     await tx.publication.update({
       where: { id: publicationId },
-      data: { isDeleted: true },
+      data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({
@@ -313,6 +312,7 @@ export const getPublicationById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            deletedByType: true,
             id: true,
             content: true,
             createdAt: true,
