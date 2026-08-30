@@ -60,26 +60,6 @@ const COMMENT_REPORT_MODULE: Record<CommentEntityType, ReportModule> = {
   survey: "SURVEY_COMMENT",
 };
 
-// Maps a CommentEntityType to the content-type key expected by appealContent.
-const COMMENT_CONTENT_TYPE: Record<CommentEntityType, string> = {
-  post: "socialComment",
-  article: "articleComment",
-  vacancy: "vacancyComment",
-  admission: "admissionComment",
-  event: "researchEventComment",
-  supervisor: "supervisorComment",
-  recommendation: "recommendationComment",
-  help: "helpComment",
-  journal: "journalComment",
-  researchTool: "researchToolComment",
-  researchGrant: "researchGrantComment",
-  course: "courseComment",
-  result: "resultComment",
-  contribution: "contributionComment",
-  publication: "publicationComment",
-  survey: "surveyComment",
-};
-
 // ============================================
 // SHARED HELPERS (used by CommentSection too)
 // ============================================
@@ -670,7 +650,6 @@ function CommentCard({
                         entityId={comment.id}
                         entityType="COMMENT"
                         module={COMMENT_REPORT_MODULE[module]}
-                        contentType={COMMENT_CONTENT_TYPE[module]}
                         ownerId={comment.author?.id ?? null}
                         currentUserId={currentUserId ?? null}
                         isFrozen={comment.isFrozen}

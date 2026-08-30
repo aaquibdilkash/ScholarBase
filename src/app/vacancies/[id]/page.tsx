@@ -117,7 +117,6 @@ const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
           entityId={vacancy.id}
           entityType="POST"
           module="JOB_VACANCY"
-          contentType="vacancy"
           ownerId={vacancy.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={vacancy.isFrozen}

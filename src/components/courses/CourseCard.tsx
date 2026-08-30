@@ -90,7 +90,7 @@ export function CourseCard({
       footerCommentsHref={`/learn/${course.id}`}
       footerCommentsCount={course.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={course.id} entityType="POST" module="COURSE" contentType="course" />
+        <ReportMenu entityId={course.id} entityType="POST" module="COURSE" />
       }
       noBodyLink={true}
       bodyBottomContent={

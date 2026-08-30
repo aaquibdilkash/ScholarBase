@@ -101,7 +101,6 @@ const EventDetailPage = async ({
           entityId={event.id}
           entityType="POST"
           module="RESEARCH_EVENT"
-          contentType="event"
           ownerId={event.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={event.isFrozen}

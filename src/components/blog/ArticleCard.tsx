@@ -75,7 +75,7 @@ export function ArticleCard({
       footerCommentsHref={`/blog/${article.slug}`}
       footerCommentsCount={article.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={article.id} entityType="POST" module="ARTICLE_PAGE" contentType="blog" />
+        <ReportMenu entityId={article.id} entityType="POST" module="ARTICLE_PAGE" />
       }
       createdDate={article.createdAt}
       editedDate={

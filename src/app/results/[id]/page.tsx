@@ -108,7 +108,6 @@ const ResultDetailPage = async ({
           entityId={result.id}
           entityType="POST"
           module="RESULT"
-          contentType="result"
           ownerId={result.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={result.isFrozen}

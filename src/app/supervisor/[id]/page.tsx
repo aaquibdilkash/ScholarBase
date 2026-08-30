@@ -100,7 +100,6 @@ export default async function SupervisorPage({
           entityId={supervisor.id}
           entityType="POST"
           module="SUPERVISOR"
-          contentType="supervisor"
           ownerId={supervisor.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={supervisor.isFrozen}

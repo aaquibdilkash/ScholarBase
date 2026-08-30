@@ -95,7 +95,6 @@ export default async function HelpPostPage({
           entityId={post.id}
           entityType="POST"
           module="HELP_POST"
-          contentType="help"
           ownerId={post.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={post.isFrozen}

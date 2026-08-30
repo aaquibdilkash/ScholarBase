@@ -13,8 +13,6 @@ interface ReportMenuProps {
   entityId: string;
   entityType: ReportEntityType;
   module: ReportModule;
-  /** The content-type key used by appealContent (e.g. "feed", "socialComment"). */
-  contentType: string;
   ownerId?: string | null;
   currentUserId?: string | null;
   isFrozen?: boolean;
@@ -26,7 +24,6 @@ export function ReportMenu({
   entityId,
   entityType,
   module,
-  contentType,
   ownerId,
   currentUserId,
   isFrozen = false,
@@ -147,7 +144,7 @@ export function ReportMenu({
         isOpen={isAppealModalOpen}
         onClose={() => setIsAppealModalOpen(false)}
         entityId={entityId}
-        contentType={contentType}
+        module={module}
       />
     </>
   );

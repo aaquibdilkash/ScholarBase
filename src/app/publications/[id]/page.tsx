@@ -115,7 +115,6 @@ const PublicationDetailPage = async ({
           entityId={p.id}
           entityType="POST"
           module="PUBLICATION"
-          contentType="publication"
           ownerId={p.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={p.isFrozen}

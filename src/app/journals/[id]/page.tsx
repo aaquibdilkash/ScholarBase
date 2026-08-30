@@ -100,7 +100,6 @@ const JournalDetailPage = async ({
           entityId={j.id}
           entityType="POST"
           module="JOURNAL"
-          contentType="journal"
           ownerId={j.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={j.isFrozen}

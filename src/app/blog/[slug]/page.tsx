@@ -10,7 +10,11 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticle(slug).catch(() => null);
   if (!article) return { title: "Article" };
@@ -38,13 +42,11 @@ export default async function ArticlePage({
 
   const userVote =
     (a.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
-        await deleteArticle(a.id);
+    await deleteArticle(a.id);
     return { redirect: "/blog" };
   }
 
@@ -69,7 +71,12 @@ export default async function ArticlePage({
         ) : null
       }
       authorId={a.authorId}
-      isFollowing={(a.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
+      isFollowing={
+        (a.author as { followers?: { followerId: string }[] })?.followers
+          ?.length
+          ? true
+          : false
+      }
       currentUserId={user?.id}
       createdDate={a.createdAt}
       editedDate={a.updatedAt > a.createdAt ? a.updatedAt : undefined}
@@ -85,27 +92,26 @@ export default async function ArticlePage({
       footerCommentsCount={a.totalComments}
       footerReportMenu={
         <ReportMenu
-  entityId={a.id}
-  entityType="POST"
-  module="ARTICLE_PAGE"
-  contentType="blog"
-  ownerId={a.author?.id ?? null}
+          entityId={a.id}
+          entityType="POST"
+          module="ARTICLE_PAGE"
+          ownerId={a.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={a.isFrozen}
           isDeleted={false}
           isAppealedByOwner={a.isAppealedByOwner}
-/>
+        />
       }
       discussion={
-             <CommentSection
-               locked={a.isFrozen ?? false}
-             comments={a.comments}
-             totalComments={a.totalComments}
-             targetId={a.id}
-             module="article"
-             currentUserId={user?.id ?? null}
-             postAuthorId={a.authorId}
-           />
+        <CommentSection
+          locked={a.isFrozen ?? false}
+          comments={a.comments}
+          totalComments={a.totalComments}
+          targetId={a.id}
+          module="article"
+          currentUserId={user?.id ?? null}
+          postAuthorId={a.authorId}
+        />
       }
     >
       <h1 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-slate-100 mb-2">

@@ -95,7 +95,6 @@ const ResearchToolDetailPage = async ({
           entityId={tool.id}
           entityType="POST"
           module="RESEARCH_TOOL"
-          contentType="researchTool"
           ownerId={tool.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={tool.isFrozen}

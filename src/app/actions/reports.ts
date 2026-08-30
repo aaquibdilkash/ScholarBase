@@ -318,11 +318,53 @@ function resolveDelegate(contentType: string) {
   };
 }
 
+// Maps a ReportModule (the single enum used across report + appeal UIs) to the
+// content-type key used by modelMap / commentModelMap. This is what lets
+// appealContent accept `module` directly instead of a parallel contentType.
+const MODULE_TO_CONTENT_TYPE: Record<ReportModule, string> = {
+  SOCIAL_FEED: "feed",
+  ARTICLE_PAGE: "blog",
+  PUBLICATION: "publication",
+  JOURNAL: "journal",
+  RESEARCH_TOOL: "researchTool",
+  RESEARCH_GRANT: "researchGrant",
+  COURSE: "course",
+  RESULT: "result",
+  CONTRIBUTION: "contribution",
+  HELP_POST: "help",
+  RESEARCH_EVENT: "event",
+  PHD_ADMISSION: "admission",
+  JOB_VACANCY: "vacancy",
+  SUPERVISOR: "supervisor",
+  RECOMMENDATION: "recommendation",
+  RESEARCH_SURVEY: "survey",
+  SCHOLAR_PROFILE: "SCHOLAR_PROFILE",
+  SOCIAL_COMMENT: "socialComment",
+  ARTICLE_COMMENT: "articleComment",
+  HELP_COMMENT: "helpComment",
+  CONTRIBUTION_COMMENT: "contributionComment",
+  PUBLICATION_COMMENT: "publicationComment",
+  RESEARCH_TOOL_COMMENT: "researchToolComment",
+  RESEARCH_GRANT_COMMENT: "researchGrantComment",
+  COURSE_COMMENT: "courseComment",
+  JOURNAL_COMMENT: "journalComment",
+  RESULT_COMMENT: "resultComment",
+  SURVEY_COMMENT: "surveyComment",
+  RESEARCH_EVENT_COMMENT: "researchEventComment",
+  PHD_ADMISSION_COMMENT: "admissionComment",
+  JOB_VACANCY_COMMENT: "vacancyComment",
+  SUPERVISOR_COMMENT: "supervisorComment",
+  RECOMMENDATION_COMMENT: "recommendationComment",
+};
+
 // ----------------------------------------------------------------------------
 // appealContent — owner-initiated appeal on their own frozen/deleted content.
 // ----------------------------------------------------------------------------
-export async function appealContent(contentType: string, contentId: string) {
+export async function appealContent(module: ReportModule, contentId: string) {
   const user = await requireCurrentUser("Log in to continue.");
+
+  const contentType = MODULE_TO_CONTENT_TYPE[module];
+  if (!contentType) throw new Error("Invalid content type");
 
   const resolved = resolveDelegate(contentType);
   if (!resolved) throw new Error("Invalid content type");

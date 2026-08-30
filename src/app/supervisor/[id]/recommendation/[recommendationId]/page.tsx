@@ -105,7 +105,6 @@ export default async function RecommendationDetailPage({
           entityId={recommendation.id}
           entityType="POST"
           module="RECOMMENDATION"
-          contentType="recommendation"
           ownerId={recommendation.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={recommendation.isFrozen}

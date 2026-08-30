@@ -102,7 +102,6 @@ export default async function SinglePostPage({
           entityId={p.id}
           entityType="POST"
           module="SOCIAL_FEED"
-          contentType="feed"
           ownerId={p.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={p.isFrozen}

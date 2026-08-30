@@ -101,7 +101,6 @@ const AdmissionDetailPage = async ({
           entityId={admission.id}
           entityType="POST"
           module="PHD_ADMISSION"
-          contentType="admission"
           ownerId={admission.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={admission.isFrozen}

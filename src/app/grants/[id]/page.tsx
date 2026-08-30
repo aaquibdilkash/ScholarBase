@@ -104,7 +104,6 @@ export default async function ResearchGrantDetailPage({
           entityId={grant.id}
           entityType="POST"
           module="RESEARCH_GRANT"
-          contentType="researchGrant"
           ownerId={grant.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={grant.isFrozen}

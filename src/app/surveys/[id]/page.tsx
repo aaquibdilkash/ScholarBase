@@ -124,7 +124,6 @@ const SurveyDetailPage = async ({
           entityId={survey.id}
           entityType="POST"
           module="RESEARCH_SURVEY"
-          contentType="survey"
           ownerId={survey.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={survey.isFrozen}

@@ -81,7 +81,7 @@ export function HelpPostCard({
       footerCommentsHref={`/help/${helpPost.id}`}
       footerCommentsCount={helpPost.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={helpPost.id} entityType="POST" module="HELP_POST" contentType="help" />
+        <ReportMenu entityId={helpPost.id} entityType="POST" module="HELP_POST" />
       }
     >
       <div className="mb-4">

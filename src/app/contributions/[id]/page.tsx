@@ -113,7 +113,6 @@ const ContributionDetailPage = async ({
           entityId={contribution.id}
           entityType="POST"
           module="CONTRIBUTION"
-          contentType="contribution"
           ownerId={contribution.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={contribution.isFrozen}

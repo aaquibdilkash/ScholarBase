@@ -4,13 +4,13 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import { HelpCircle, Send, X } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { appealContent } from "@/app/actions/reports";
+import type { ReportModule } from "@/types/reports";
 
 interface AppealModalProps {
   isOpen: boolean;
   onClose: () => void;
   entityId: string;
-  /* The content-type key expected by appealContent (e.g. "feed", "socialComment"). */
-  contentType: string;
+  module: ReportModule;
   /** Called after a successful appeal so the caller can hide the button locally. */
   onAppealed?: () => void;
 }
@@ -21,7 +21,7 @@ export function AppealModal({
   isOpen,
   onClose,
   entityId,
-  contentType,
+  module,
   onAppealed,
 }: AppealModalProps) {
   const [text, setText] = useState("");
@@ -53,7 +53,7 @@ export function AppealModal({
 
     startTransition(async () => {
       try {
-        const result = await appealContent(contentType, entityId);
+        const result = await appealContent(module, entityId);
         if (result.success) {
           toast({
             title: "Appeal Submitted",

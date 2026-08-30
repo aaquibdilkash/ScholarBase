@@ -112,7 +112,6 @@ export default async function CourseDetailPage({
           entityId={course.id}
           entityType="POST"
           module="COURSE"
-          contentType="course"
           ownerId={course.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={course.isFrozen}
