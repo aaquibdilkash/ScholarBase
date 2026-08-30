@@ -52,7 +52,7 @@ export async function getAdmissions(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -85,7 +85,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
@@ -96,7 +96,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -117,6 +117,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
+          mentions: true,
         },
       },
     },
@@ -293,7 +294,7 @@ export async function getLatestAdmissions(count: number, userId?: string) {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },

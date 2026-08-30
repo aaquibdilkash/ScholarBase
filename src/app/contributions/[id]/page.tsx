@@ -117,7 +117,7 @@ const ContributionDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={contribution.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={contribution.isAppealedByOwner}
+          hasActiveAppeal={contribution.hasActiveAppeal}
         />
       }
       discussion={

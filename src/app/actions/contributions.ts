@@ -55,7 +55,7 @@ export async function getContributions(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -90,7 +90,7 @@ export const getContribution = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
@@ -101,7 +101,7 @@ export const getContribution = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -118,6 +118,7 @@ export const getContribution = cache(async (id: string, userId?: string) => {
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
+          mentions: true,
         },
       },
     },

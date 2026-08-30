@@ -108,7 +108,7 @@ export default async function ResearchGrantDetailPage({
           currentUserId={user?.id ?? null}
           isFrozen={grant.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={grant.isAppealedByOwner}
+          hasActiveAppeal={grant.hasActiveAppeal}
         />
       }
       discussion={

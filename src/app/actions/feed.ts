@@ -90,7 +90,7 @@ const getFeed = async (
       // RULE 6: Use materialized counters
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       // RULE 6: Filtered select for user's vote
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
@@ -134,7 +134,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
       // RULE 6: Use materialized counters and filtered selects
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       // LAZY PAGINATION: ship only the first page of parent comments.
@@ -151,7 +151,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
           authorId: true,
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           author: {
             select: {

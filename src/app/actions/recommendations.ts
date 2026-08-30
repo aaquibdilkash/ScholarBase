@@ -29,7 +29,7 @@ export const getRecommendation = cache(
         editedAt: true,
         totalVotes: true,
         isFrozen: true,
-        isAppealedByOwner: true,
+        hasActiveAppeal: true,
         totalComments: true,
         author: {
           select: {
@@ -53,7 +53,7 @@ export const getRecommendation = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
-            isAppealedByOwner: true,
+            hasActiveAppeal: true,
             deletedByType: true,
             id: true,
             content: true,

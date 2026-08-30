@@ -41,7 +41,7 @@ export async function getSupervisors(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       // Zero-compute materialized aggregates (Rule 2): count + avg derive
@@ -77,7 +77,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       recommendations: {
@@ -112,7 +112,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
           },
           totalVotes: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           totalComments: true,
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
@@ -126,7 +126,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           id: true,
           content: true,

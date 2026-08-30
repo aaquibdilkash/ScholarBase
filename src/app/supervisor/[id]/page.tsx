@@ -104,7 +104,7 @@ export default async function SupervisorPage({
           currentUserId={user?.id ?? null}
           isFrozen={supervisor.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={supervisor.isAppealedByOwner}
+          hasActiveAppeal={supervisor.hasActiveAppeal}
         />
       }
       footerVoteButton={

@@ -561,7 +561,7 @@ export function AdminDashboard({
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            {item.isAppealedByOwner ? (
+                            {item.hasActiveAppeal ? (
                               <div className="flex flex-col gap-1">
                                 <span className="inline-flex w-fit items-center justify-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
                                   Yes
@@ -595,8 +595,8 @@ export function AdminDashboard({
                                   showFreeze={!item.isDeleted}
                                   isFrozen={item.isFrozen}
                                   isDeleted={item.isDeleted}
-                                  isAppealedByOwner={Boolean(
-                                    item.isAppealedByOwner,
+                                  hasActiveAppeal={Boolean(
+                                    item.hasActiveAppeal,
                                   )}
                                   disabled={isPending}
                                   entityLabel="User"
@@ -636,8 +636,8 @@ export function AdminDashboard({
                                       ? item.isDeleted || item.authorId == null
                                       : item.isDeleted
                                   }
-                                  isAppealedByOwner={Boolean(
-                                    item.isAppealedByOwner,
+                                  hasActiveAppeal={Boolean(
+                                    item.hasActiveAppeal,
                                   )}
                                   isTombstone={
                                     view === "comments" &&

@@ -59,7 +59,7 @@ export async function getArticles(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -95,7 +95,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
@@ -103,25 +103,28 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,
-        select: {
-          isDeleted: true,
-          isFrozen: true,
-          isAppealedByOwner: true,
-          deletedByType: true,
-          id: true,
-          content: true,
-          createdAt: true,
-          updatedAt: true,
-          editedAt: true,
-          author: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+          select: {
+            isDeleted: true,
+            isFrozen: true,
+            hasActiveAppeal: true,
+            deletedByType: true,
+            id: true,
+            content: true,
+            createdAt: true,
+            updatedAt: true,
+            editedAt: true,
+            parentId: true,
+            authorId: true,
+            author: {
+              select: { id: true, name: true, handle: true, avatarUrl: true },
+            },
+            totalVotes: true,
+            totalReplies: true,
+            votes: userId
+              ? { where: { userId }, select: { voteType: true } }
+              : false,
+            mentions: true,
           },
-          totalVotes: true,
-          totalReplies: true,
-          votes: userId
-            ? { where: { userId }, select: { voteType: true } }
-            : false,
-        },
       },
     },
   });
@@ -309,7 +312,7 @@ export async function getLatestArticles(count: number, userId?: string) {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },

@@ -48,7 +48,7 @@ interface AdminActionsDropdownProps {
   isTombstone?: boolean;
   /** Whether the owner has appealed against a freeze/delete — shows the
    *  "Dismiss Appeal" option so moderators can acknowledge it. */
-  isAppealedByOwner?: boolean;
+  hasActiveAppeal?: boolean;
 }
 
 export function AdminActionsDropdown({
@@ -62,7 +62,7 @@ export function AdminActionsDropdown({
   isFrozen = false,
   isDeleted = false,
   isTombstone = false,
-  isAppealedByOwner = false,
+  hasActiveAppeal = false,
 }: AdminActionsDropdownProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -92,9 +92,9 @@ export function AdminActionsDropdown({
             : action === "DELETE"
               ? { isDeleted: true, isFrozen: true }
               : action === "RECOVER"
-                ? { isDeleted: false, isFrozen: false, isAppealedByOwner: false }
+                ? { isDeleted: false, isFrozen: false, hasActiveAppeal: false }
                 : action === "DISMISS_APPEAL"
-                  ? { isAppealedByOwner: false }
+                  ? { hasActiveAppeal: false }
                   : { reportCount: 0 };
       // Snapshot every affected cache entry for rollback on failure.
       const snapshots = queryClient.getQueriesData<{
@@ -326,7 +326,7 @@ export function AdminActionsDropdown({
                       <span>Dismiss Reports</span>
                     </button>
                   )}
-                  {isAppealedByOwner && (
+                  {hasActiveAppeal && (
                     <button
                       type="button"
                       role="menuitem"

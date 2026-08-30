@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Flag, HelpCircle } from "lucide-react";
+import { Flag } from "lucide-react";
 import { ReportModal } from "@/components/cards/ReportModal";
-import { AppealModal } from "@/components/cards/AppealModal";
+import { AppealButton } from "@/components/appeals/AppealButton";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
 
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -17,7 +17,7 @@ interface ReportMenuProps {
   currentUserId?: string | null;
   isFrozen?: boolean;
   isDeleted?: boolean;
-  isAppealedByOwner?: boolean;
+  hasActiveAppeal?: boolean;
 }
 
 export function ReportMenu({
@@ -28,16 +28,15 @@ export function ReportMenu({
   currentUserId,
   isFrozen = false,
   isDeleted = false,
-  isAppealedByOwner = false,
+  hasActiveAppeal = false,
 }: ReportMenuProps) {
   const [open, setOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isAppealModalOpen, setIsAppealModalOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const canAppeal =
-    !isAppealedByOwner &&
+    !hasActiveAppeal &&
     (isFrozen || isDeleted) &&
     ownerId != null &&
     ownerId === currentUserId;
@@ -69,11 +68,6 @@ export function ReportMenu({
   const handleReportClick = () => {
     setOpen(false);
     setIsReportModalOpen(true);
-  };
-
-  const handleAppealClick = () => {
-    setOpen(false);
-    setIsAppealModalOpen(true);
   };
 
   return (
@@ -108,15 +102,14 @@ export function ReportMenu({
           >
             <div>
               {canAppeal && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={handleAppealClick}
-                  className="sb-menu-item flex items-center gap-2"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  <span>Appeal Removal</span>
-                </button>
+                <div role="menuitem" className="sb-menu-item flex items-center gap-2">
+                  <AppealButton
+                    entityId={entityId}
+                    module={module}
+                    entityType={entityType === "COMMENT" ? "COMMENT" : "POST"}
+                    hasActiveAppeal={hasActiveAppeal}
+                  />
+                </div>
               )}
               <button
                 type="button"
@@ -137,13 +130,6 @@ export function ReportMenu({
         onClose={() => setIsReportModalOpen(false)}
         entityId={entityId}
         entityType={entityType}
-        module={module}
-      />
-
-      <AppealModal
-        isOpen={isAppealModalOpen}
-        onClose={() => setIsAppealModalOpen(false)}
-        entityId={entityId}
         module={module}
       />
     </>

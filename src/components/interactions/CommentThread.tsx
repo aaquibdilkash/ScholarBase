@@ -654,7 +654,7 @@ function CommentCard({
                         currentUserId={currentUserId ?? null}
                         isFrozen={comment.isFrozen}
                         isDeleted={comment.isDeleted}
-                        isAppealedByOwner={comment.isAppealedByOwner}
+                        hasActiveAppeal={comment.hasActiveAppeal}
                       />
                       <CommentActionsDropdown
                         isOwner={isOwner}

@@ -58,7 +58,7 @@ export async function getHelpPosts(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -98,7 +98,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
@@ -108,7 +108,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -130,6 +130,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
+          mentions: true,
         },
         orderBy: { createdAt: "desc" },
       },

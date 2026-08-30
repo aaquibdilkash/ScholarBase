@@ -252,7 +252,7 @@ export async function getPublications(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -304,7 +304,7 @@ export const getPublicationById = cache(
         },
         totalVotes: true,
         isFrozen: true,
-        isAppealedByOwner: true,
+        hasActiveAppeal: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
@@ -317,7 +317,7 @@ export const getPublicationById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
-            isAppealedByOwner: true,
+            hasActiveAppeal: true,
             deletedByType: true,
             id: true,
             content: true,
@@ -339,6 +339,7 @@ export const getPublicationById = cache(
             votes: userId
               ? { where: { userId }, select: { voteType: true } }
               : false,
+            mentions: true,
           },
         },
       },

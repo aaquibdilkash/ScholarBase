@@ -116,7 +116,7 @@ export default async function CourseDetailPage({
           currentUserId={user?.id ?? null}
           isFrozen={course.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={course.isAppealedByOwner}
+          hasActiveAppeal={course.hasActiveAppeal}
         />
       }
       discussion={

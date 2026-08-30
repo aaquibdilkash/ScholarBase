@@ -105,7 +105,7 @@ const AdmissionDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={admission.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={admission.isAppealedByOwner}
+          hasActiveAppeal={admission.hasActiveAppeal}
         />
       }
       bodyBottomContent={

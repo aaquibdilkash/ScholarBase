@@ -128,7 +128,7 @@ model Article {
   content   String
   published Boolean   @default(false)
   isFrozen  Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
   authorId  String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -161,7 +161,7 @@ model Supervisor {
   updatedAt  DateTime  @updatedAt
   editedAt   DateTime?
   isFrozen   Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // Creator/owner of this supervisor profile
   authorId String
@@ -198,7 +198,7 @@ model SocialPost {
   updatedAt DateTime  @updatedAt
   editedAt  DateTime?
   isFrozen  Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -235,7 +235,7 @@ model ArticleComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   article  Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -278,7 +278,7 @@ model SocialComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   author     User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
   parent     SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
@@ -413,7 +413,7 @@ model HelpPost {
   editedAt  DateTime?
   authorId  String
   isFrozen  Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -465,7 +465,7 @@ model HelpPostComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
   author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -508,7 +508,7 @@ model Contribution {
   updatedAt       DateTime           @updatedAt
   editedAt        DateTime?
   isFrozen        Boolean            @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -560,7 +560,7 @@ model ContributionComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   contribution Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -604,7 +604,7 @@ model Publication {
   abstract            String?
   isUserAuthor        Boolean         @default(false)
   isFrozen            Boolean         @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
   authorId            String
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
@@ -658,7 +658,7 @@ model PublicationComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   author      User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -708,7 +708,7 @@ model User {
   reputation       Int       @default(0)
   isAdmin          Boolean   @default(false)
   isFrozen         Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   editedAt         DateTime?
@@ -922,7 +922,7 @@ model ResearchTool {
   updatedAt   DateTime  @updatedAt
   editedAt    DateTime?
   isFrozen    Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -972,7 +972,7 @@ model ResearchToolComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   researchTool ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1009,7 +1009,7 @@ model ResearchGrant {
   updatedAt   DateTime  @updatedAt
   editedAt    DateTime?
   isFrozen    Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1059,7 +1059,7 @@ model ResearchGrantComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   researchGrant ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
   author        User?                      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1100,7 +1100,7 @@ model Course {
   updatedAt   DateTime  @updatedAt
   editedAt    DateTime?
   isFrozen    Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1150,7 +1150,7 @@ model CourseComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   course   Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   author   User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1194,7 +1194,7 @@ model Journal {
   updatedAt      DateTime  @updatedAt
   editedAt       DateTime?
   isFrozen       Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   subjectArea String?
   frequency   String?
@@ -1249,7 +1249,7 @@ model JournalComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   journal  Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1289,7 +1289,7 @@ model Result {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1340,7 +1340,7 @@ model ResultComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
   author User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1379,7 +1379,7 @@ model ResearchSurvey {
   updatedAt   DateTime      @updatedAt
   editedAt    DateTime?
   isFrozen    Boolean       @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int            @default(0)
@@ -1490,7 +1490,7 @@ model SurveyComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   author User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1557,7 +1557,7 @@ model ResearchEvent {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1608,7 +1608,7 @@ model ResearchEventComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
   author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1648,7 +1648,7 @@ model PhdAdmission {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1699,7 +1699,7 @@ model PhdAdmissionComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
   author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1739,7 +1739,7 @@ model JobVacancy {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1790,7 +1790,7 @@ model JobVacancyComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
   author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1848,7 +1848,7 @@ model SupervisorComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User?                   @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1887,7 +1887,7 @@ model Recommendation {
   updatedAt           DateTime  @updatedAt
   editedAt            DateTime?
   isFrozen            Boolean   @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1943,7 +1943,7 @@ model RecommendationComment {
   deletedByType DeletedByType?
   deletedById   String?
   isFrozen      Boolean        @default(false)
-  isAppealedByOwner Boolean   @default(false)
+  hasActiveAppeal Boolean   @default(false)
 
   recommendation Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   author         User?                       @relation(fields: [authorId], references: [id], onDelete: SetNull)

@@ -105,7 +105,7 @@ const EventDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={event.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={event.isAppealedByOwner}
+          hasActiveAppeal={event.hasActiveAppeal}
         />
       }
       bodyBottomContent={

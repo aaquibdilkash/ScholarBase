@@ -104,7 +104,7 @@ const JournalDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={j.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={j.isAppealedByOwner}
+          hasActiveAppeal={j.hasActiveAppeal}
         />
       }
       discussion={

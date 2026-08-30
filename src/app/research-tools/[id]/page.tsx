@@ -99,7 +99,7 @@ const ResearchToolDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={tool.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={tool.isAppealedByOwner}
+          hasActiveAppeal={tool.hasActiveAppeal}
         />
       }
       discussion={

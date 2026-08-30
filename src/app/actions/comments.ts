@@ -37,7 +37,7 @@ function commentPageSelect(currentUserId: string | null) {
     isDeleted: true,
     isFrozen: true,
     deletedByType: true,
-    isAppealedByOwner: true,
+    hasActiveAppeal: true,
     // Materialized counters — no dynamic _count aggregation
     totalVotes: true,
     totalReplies: true,

@@ -229,7 +229,7 @@ export async function submitReport(
 }
 
 // ----------------------------------------------------------------------------
-// CONTENT MODEL MAPS (shared by appealContent + moderateContent)
+// CONTENT MODEL MAPS (used by moderateContent)
 // ----------------------------------------------------------------------------
 
 // Maps a content-type key to the Prisma delegate for the row. Comments and
@@ -300,114 +300,6 @@ const commentModelMap: Record<
   supervisorComment: { model: prisma.supervisorComment },
   recommendationComment: { model: prisma.recommendationComment },
 };
-
-// Resolves which delegate handles a given content-type key.
-function resolveDelegate(contentType: string) {
-  const isCommentType = Object.prototype.hasOwnProperty.call(
-    commentModelMap,
-    contentType,
-  );
-  const commentEntry = isCommentType ? commentModelMap[contentType] : undefined;
-  const entry = commentEntry ? undefined : modelMap[contentType];
-  if (!entry && !commentEntry) return null;
-  return {
-    isCommentType,
-    commentEntry,
-    postEntry: entry,
-    model: (commentEntry ?? entry)!.model,
-  };
-}
-
-// Maps a ReportModule (the single enum used across report + appeal UIs) to the
-// content-type key used by modelMap / commentModelMap. This is what lets
-// appealContent accept `module` directly instead of a parallel contentType.
-const MODULE_TO_CONTENT_TYPE: Record<ReportModule, string> = {
-  SOCIAL_FEED: "feed",
-  ARTICLE_PAGE: "blog",
-  PUBLICATION: "publication",
-  JOURNAL: "journal",
-  RESEARCH_TOOL: "researchTool",
-  RESEARCH_GRANT: "researchGrant",
-  COURSE: "course",
-  RESULT: "result",
-  CONTRIBUTION: "contribution",
-  HELP_POST: "help",
-  RESEARCH_EVENT: "event",
-  PHD_ADMISSION: "admission",
-  JOB_VACANCY: "vacancy",
-  SUPERVISOR: "supervisor",
-  RECOMMENDATION: "recommendation",
-  RESEARCH_SURVEY: "survey",
-  SCHOLAR_PROFILE: "SCHOLAR_PROFILE",
-  SOCIAL_COMMENT: "socialComment",
-  ARTICLE_COMMENT: "articleComment",
-  HELP_COMMENT: "helpComment",
-  CONTRIBUTION_COMMENT: "contributionComment",
-  PUBLICATION_COMMENT: "publicationComment",
-  RESEARCH_TOOL_COMMENT: "researchToolComment",
-  RESEARCH_GRANT_COMMENT: "researchGrantComment",
-  COURSE_COMMENT: "courseComment",
-  JOURNAL_COMMENT: "journalComment",
-  RESULT_COMMENT: "resultComment",
-  SURVEY_COMMENT: "surveyComment",
-  RESEARCH_EVENT_COMMENT: "researchEventComment",
-  PHD_ADMISSION_COMMENT: "admissionComment",
-  JOB_VACANCY_COMMENT: "vacancyComment",
-  SUPERVISOR_COMMENT: "supervisorComment",
-  RECOMMENDATION_COMMENT: "recommendationComment",
-};
-
-// ----------------------------------------------------------------------------
-// appealContent — owner-initiated appeal on their own frozen/deleted content.
-// ----------------------------------------------------------------------------
-export async function appealContent(module: ReportModule, contentId: string, reason: string) {
-  const user = await requireCurrentUser("Log in to continue.");
-
-  if (!reason.trim()) throw new Error("Please provide a reason for your appeal.");
-
-  const contentType = MODULE_TO_CONTENT_TYPE[module];
-  if (!contentType) throw new Error("Invalid content type");
-
-  const resolved = resolveDelegate(contentType);
-  if (!resolved) throw new Error("Invalid content type");
-
-  const fetched = (await resolved.model.findUnique({
-    where: { id: contentId },
-    select: { authorId: true, isFrozen: true, isDeleted: true },
-  })) as {
-    authorId: string | null;
-    isFrozen: boolean;
-    isDeleted: boolean;
-  } | null;
-
-  if (!fetched) throw new Error("Content not found");
-
-  // Only the owner may appeal; content must currently be frozen or deleted.
-  if (fetched.authorId !== user.id) {
-    throw new Error("Only the owner can appeal this content.");
-  }
-  if (!fetched.isFrozen && !fetched.isDeleted) {
-    throw new Error("Only frozen or deleted content can be appealed.");
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await resolved.model.update({
-      where: { id: contentId },
-      data: { isAppealedByOwner: true },
-    });
-    await tx.appeal.create({
-      data: {
-        entityId: contentId,
-        entityType: contentType,
-        module,
-        reason: reason.trim(),
-        ownerId: user.id,
-      },
-    });
-  });
-
-  return { success: true, data: { id: contentId, isAppealedByOwner: true } };
-}
 
 // -----------------------------------------------------------------------------
 // moderateContent — admin-facing server action dispatching to freeze, delete,
@@ -661,7 +553,7 @@ export async function moderateContent(
               isFrozen: false,
               deletedByType: null,
               deletedById: null,
-              isAppealedByOwner: false,
+              hasActiveAppeal: false,
             },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
           await tx.appeal.updateMany({
@@ -692,8 +584,8 @@ export async function moderateContent(
           // returns to a normal moderated state (admins can then re-decide).
           const updated = (await commentEntry.model.update({
             where: { id: contentId },
-            data: { isAppealedByOwner: false },
-          })) as { id: string; isAppealedByOwner: boolean };
+            data: { hasActiveAppeal: false },
+          })) as { id: string; hasActiveAppeal: boolean };
           await tx.appeal.updateMany({
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },
@@ -844,7 +736,7 @@ export async function moderateContent(
             isFrozen: false,
             deletedByType: null,
             deletedById: null,
-            isAppealedByOwner: false,
+            hasActiveAppeal: false,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.appeal.updateMany({
@@ -871,8 +763,8 @@ export async function moderateContent(
         // returns to a normal moderated state (admins can then re-decide).
         const updated = (await entry2.model.update({
           where: { id: contentId },
-          data: { isAppealedByOwner: false },
-        })) as { id: string; isAppealedByOwner: boolean };
+          data: { hasActiveAppeal: false },
+        })) as { id: string; hasActiveAppeal: boolean };
         await tx.appeal.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },

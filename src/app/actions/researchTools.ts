@@ -170,7 +170,7 @@ export async function getResearchTools(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -206,7 +206,7 @@ export const getResearchToolById = cache(
         },
         totalVotes: true,
         isFrozen: true,
-        isAppealedByOwner: true,
+        hasActiveAppeal: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -219,13 +219,15 @@ export const getResearchToolById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
-            isAppealedByOwner: true,
+            hasActiveAppeal: true,
             deletedByType: true,
             id: true,
             content: true,
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            parentId: true,
+            authorId: true,
             author: {
               select: { id: true, name: true, handle: true, avatarUrl: true },
             },
@@ -234,6 +236,7 @@ export const getResearchToolById = cache(
             votes: userId
               ? { where: { userId }, select: { userId: true, voteType: true } }
               : false,
+            mentions: true,
           },
         },
       },

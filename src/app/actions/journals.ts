@@ -237,7 +237,7 @@ export async function getJournals(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -289,7 +289,7 @@ export const getJournalById = cache(
         },
         totalVotes: true,
         isFrozen: true,
-        isAppealedByOwner: true,
+        hasActiveAppeal: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
@@ -302,7 +302,7 @@ export const getJournalById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
-            isAppealedByOwner: true,
+            hasActiveAppeal: true,
             deletedByType: true,
             id: true,
             content: true,
@@ -324,6 +324,7 @@ export const getJournalById = cache(
             votes: userId
               ? { where: { userId }, select: { voteType: true } }
               : false,
+            mentions: true,
           },
         },
       },

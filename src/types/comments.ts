@@ -47,7 +47,7 @@ export interface CommentWithAuthorAndVotes {
   /** Admin freeze flag (RULE 4) — true blocks further interaction. */
   isFrozen?: boolean;
   /** Whether the owner has appealed against a freeze/delete. */
-  isAppealedByOwner?: boolean;
+  hasActiveAppeal?: boolean;
   votes: { voteType: VoteType }[] | undefined;
   // Prisma stores mentions as a Json column, so the wire type is JsonValue
   // (array-shaped at runtime). Consumers defensively cast after Array.isArray.

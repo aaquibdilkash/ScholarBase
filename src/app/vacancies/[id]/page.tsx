@@ -121,7 +121,7 @@ const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
           currentUserId={user?.id ?? null}
           isFrozen={vacancy.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={vacancy.isAppealedByOwner}
+          hasActiveAppeal={vacancy.hasActiveAppeal}
         />
       }
       bodyBottomContent={

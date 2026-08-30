@@ -44,7 +44,7 @@ export async function getVacancies(
       editedAt: true,
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       authorId: true,
       author: {
@@ -84,7 +84,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       editedAt: true,
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       authorId: true,
       author: {
@@ -108,7 +108,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -171,7 +171,7 @@ export async function createJobVacancy(formData: FormData) {
         editedAt: true,
         totalVotes: true,
         isFrozen: true,
-        isAppealedByOwner: true,
+        hasActiveAppeal: true,
         totalComments: true,
         author: {
           select: { id: true, name: true, handle: true, avatarUrl: true },
@@ -247,7 +247,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       editedAt: true,
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       author: {
         select: { id: true, name: true, handle: true, avatarUrl: true },
@@ -316,7 +316,7 @@ export async function getLatestVacancies(count: number, userId?: string) {
       editedAt: true,
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       author: {
         select: {

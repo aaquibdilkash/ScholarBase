@@ -99,7 +99,7 @@ export default async function ArticlePage({
           currentUserId={user?.id ?? null}
           isFrozen={a.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={a.isAppealedByOwner}
+          hasActiveAppeal={a.hasActiveAppeal}
         />
       }
       discussion={

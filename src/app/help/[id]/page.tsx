@@ -99,7 +99,7 @@ export default async function HelpPostPage({
           currentUserId={user?.id ?? null}
           isFrozen={post.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={post.isAppealedByOwner}
+          hasActiveAppeal={post.hasActiveAppeal}
         />
       }
       discussion={

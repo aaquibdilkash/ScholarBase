@@ -119,7 +119,7 @@ const PublicationDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={p.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={p.isAppealedByOwner}
+          hasActiveAppeal={p.hasActiveAppeal}
         />
       }
       discussion={

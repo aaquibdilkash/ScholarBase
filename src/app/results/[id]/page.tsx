@@ -112,7 +112,7 @@ const ResultDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={result.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={result.isAppealedByOwner}
+          hasActiveAppeal={result.hasActiveAppeal}
         />
       }
       discussion={

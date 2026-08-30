@@ -185,7 +185,7 @@ export async function getResearchGrants(
       },
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -222,7 +222,7 @@ export const getResearchGrantById = cache(
         },
         totalVotes: true,
         isFrozen: true,
-        isAppealedByOwner: true,
+        hasActiveAppeal: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
@@ -235,13 +235,15 @@ export const getResearchGrantById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
-            isAppealedByOwner: true,
+            hasActiveAppeal: true,
             deletedByType: true,
             id: true,
             content: true,
             createdAt: true,
             updatedAt: true,
             editedAt: true,
+            parentId: true,
+            authorId: true,
             author: {
               select: {
                 id: true,
@@ -255,6 +257,7 @@ export const getResearchGrantById = cache(
             votes: userId
               ? { where: { userId }, select: { userId: true, voteType: true } }
               : false,
+            mentions: true,
           },
         },
       },

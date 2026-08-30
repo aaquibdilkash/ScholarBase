@@ -45,7 +45,7 @@ export async function getSurveys(
       isDeleted: true,
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       totalResponses: true,
       trendingScore: true,
@@ -85,7 +85,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       isDeleted: true,
       totalVotes: true,
       isFrozen: true,
-      isAppealedByOwner: true,
+      hasActiveAppeal: true,
       totalComments: true,
       totalResponses: true,
       trendingScore: true,
@@ -120,7 +120,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
-          isAppealedByOwner: true,
+          hasActiveAppeal: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -142,6 +142,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
+          mentions: true,
         },
         orderBy: { createdAt: "desc" },
       },
@@ -657,34 +658,45 @@ export async function submitSurveyResponse(
     return { success: true, data: updatedResponse };
   }
 
-  const newResponse = await prisma.surveyResponse.create({
-    data: {
-      surveyId,
-      // Always link the response to the authenticated user so they can
-      // retrieve and edit their own previous response later. Anonymity
-      // is preserved via the isAnonymous flag (used in results/export).
-      respondentId: user.id,
-      isAnonymous,
-      answers: {
-        create: answers.map((a) => ({
-          questionId: a.questionId,
-          value: a.value,
-        })),
-      },
-    },
-    include: { answers: true },
-  });
-
   const uniqueQuestionIds = [...new Set(answers.map((a) => a.questionId))];
-  await prisma.surveyQuestion.updateMany({
-    where: { id: { in: uniqueQuestionIds } },
-    data: { totalAnswers: { increment: 1 } },
-  });
 
-  // Award 1 reputation point for participating in a survey
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { reputation: { increment: 1 } },
+  const newResponse = await prisma.$transaction(async (tx) => {
+    const response = await tx.surveyResponse.create({
+      data: {
+        surveyId,
+        // Always link the response to the authenticated user so they can
+        // retrieve and edit their own previous response later. Anonymity
+        // is preserved via the isAnonymous flag (used in results/export).
+        respondentId: user.id,
+        isAnonymous,
+        answers: {
+          create: answers.map((a) => ({
+            questionId: a.questionId,
+            value: a.value,
+          })),
+        },
+      },
+      include: { answers: true },
+    });
+
+    // RULE 3: Atomic transaction — all counter updates together with create
+    await tx.researchSurvey.update({
+      where: { id: surveyId },
+      data: { totalResponses: { increment: 1 } },
+    });
+
+    await tx.surveyQuestion.updateMany({
+      where: { id: { in: uniqueQuestionIds } },
+      data: { totalAnswers: { increment: 1 } },
+    });
+
+    // Award 1 reputation point for participating in a survey
+    await tx.user.update({
+      where: { id: user.id },
+      data: { reputation: { increment: 1 } },
+    });
+
+    return response;
   });
 
   return { success: true, data: newResponse };

@@ -128,7 +128,7 @@ const SurveyDetailPage = async ({
           currentUserId={user?.id ?? null}
           isFrozen={survey.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={survey.isAppealedByOwner}
+          hasActiveAppeal={survey.hasActiveAppeal}
         />
       }
       discussion={

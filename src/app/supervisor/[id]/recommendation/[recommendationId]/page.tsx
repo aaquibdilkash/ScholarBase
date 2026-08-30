@@ -109,7 +109,7 @@ export default async function RecommendationDetailPage({
           currentUserId={user?.id ?? null}
           isFrozen={recommendation.isFrozen}
           isDeleted={false}
-          isAppealedByOwner={recommendation.isAppealedByOwner}
+          hasActiveAppeal={recommendation.hasActiveAppeal}
         />
       }
       discussion={
