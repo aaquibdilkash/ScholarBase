@@ -159,6 +159,24 @@ export async function createArticle(formData: FormData) {
         authorId: user.id,
         published: true,
       },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+            followers: {
+              where: { followerId: user.id },
+              select: { followerId: true },
+            },
+          },
+        },
+        votes: {
+          where: { userId: user.id },
+          select: { voteType: true },
+        },
+      },
     });
 
     await tx.userActivity.create({

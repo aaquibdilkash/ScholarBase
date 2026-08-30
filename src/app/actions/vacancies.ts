@@ -158,7 +158,7 @@ export async function createJobVacancy(formData: FormData) {
         applyLink,
         authorId: user.id,
       },
-      select: {
+      include: {
         id: true,
         title: true,
         institution: true,
@@ -174,7 +174,20 @@ export async function createJobVacancy(formData: FormData) {
         hasActiveAppeal: true,
         totalComments: true,
         author: {
-          select: { id: true, name: true, handle: true, avatarUrl: true },
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+            followers: {
+              where: { followerId: user.id },
+              select: { followerId: true },
+            },
+          },
+        },
+        votes: {
+          where: { userId: user.id },
+          select: { voteType: true },
         },
       },
     });

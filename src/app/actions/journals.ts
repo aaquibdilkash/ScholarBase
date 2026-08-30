@@ -59,6 +59,7 @@ export async function createJournal(formData: FormData) {
         openAccess: openAccess ? (openAccess as OpenAccessStatus) : undefined,
         authorId: user.id,
       },
+      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } },
     });
 
     await tx.userActivity.create({

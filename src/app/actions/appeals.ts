@@ -41,7 +41,12 @@ const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   RECOMMENDATION_COMMENT: "recommendationComment",
 };
 
-const POST_DELEGATES: Record<string, { model: { update: Function; findUnique: Function } }> = {
+type DelegateModel = {
+  update: (args: { where: { id: string }; data: Record<string, unknown> }) => Promise<unknown>;
+  findUnique: (args: { where: { id: string }; select: Record<string, unknown> }) => Promise<unknown>;
+};
+
+const POST_DELEGATES: Record<string, { model: DelegateModel }> = {
   feed: { model: prisma.socialPost },
   blog: { model: prisma.article },
   publication: { model: prisma.publication },
@@ -61,7 +66,7 @@ const POST_DELEGATES: Record<string, { model: { update: Function; findUnique: Fu
   SCHOLAR_PROFILE: { model: prisma.user },
 };
 
-const COMMENT_DELEGATES: Record<string, { model: { update: Function; findUnique: Function } }> = {
+const COMMENT_DELEGATES: Record<string, { model: DelegateModel }> = {
   socialComment: { model: prisma.socialComment },
   articleComment: { model: prisma.articleComment },
   helpComment: { model: prisma.helpPostComment },

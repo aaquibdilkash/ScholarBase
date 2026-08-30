@@ -149,9 +149,22 @@ export async function createRecommendation(
         // list updates render correctly (owner detection, header, etc.)
         include: {
           author: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+            select: {
+              id: true,
+              name: true,
+              handle: true,
+              avatarUrl: true,
+              followers: {
+                where: { followerId: user.id },
+                select: { followerId: true },
+              },
+            },
           },
           supervisor: { select: { id: true, name: true } },
+          votes: {
+            where: { userId: user.id },
+            select: { voteType: true },
+          },
         },
       });
 
