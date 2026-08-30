@@ -140,6 +140,8 @@ export type AdminContentItem = {
   reportCount?: number;
   /** For comment rows: the Prisma model key used to route moderation actions. */
   modelKey?: string;
+  /** Pending appeal reason from the owner — null when no active appeal. */
+  appealReason?: string | null;
   author?: {
     id: string;
     name: string | null;

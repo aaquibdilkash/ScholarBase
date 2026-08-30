@@ -395,11 +395,21 @@ export async function getAdminContent(
       countOf(commentConfig.model, where),
     ]);
 
+    // Fetch pending appeal reasons for these comments so admins can review
+    // why the owner is appealing (mirrors how reportCount is surfaced).
+    const appealReasons = await prisma.appeal.findMany({
+      where: { entityId: { in: rows.map((r) => r.id) }, status: "PENDING" },
+      select: { entityId: true, reason: true },
+      orderBy: { createdAt: "desc" },
+    });
+    const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.reason]));
+
     // Comments have no detail page; the table renders them as plain text.
     const items = rows.map((row) => ({
       ...row,
       modelKey: commentConfig.modelKey,
       detailHref: "",
+      appealReason: appealMap.get(row.id) ?? null,
     })) as AdminContentItem[];
 
     return { items, total, page, pageSize, totalPages: totalPages(total) };
@@ -487,10 +497,20 @@ export async function getAdminContent(
       countOf(config.model, where),
     ]);
 
+    // Fetch pending appeal reasons for these items so admins can review
+    // why the owner is appealing (mirrors how reportCount is surfaced).
+    const appealReasons = await prisma.appeal.findMany({
+      where: { entityId: { in: items.map((i) => i.id) }, status: "PENDING" },
+      select: { entityId: true, reason: true },
+      orderBy: { createdAt: "desc" },
+    });
+    const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.reason]));
+
     return {
       items: items.map((item) => ({
         ...item,
         detailHref: config.detailHref(item),
+        appealReason: appealMap.get(item.id) ?? null,
       })) as AdminContentItem[],
       total,
       page,

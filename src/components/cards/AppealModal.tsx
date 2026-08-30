@@ -53,7 +53,7 @@ export function AppealModal({
 
     startTransition(async () => {
       try {
-        const result = await appealContent(module, entityId);
+        const result = await appealContent(module, entityId, text);
         if (result.success) {
           toast({
             title: "Appeal Submitted",

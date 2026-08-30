@@ -360,8 +360,10 @@ const MODULE_TO_CONTENT_TYPE: Record<ReportModule, string> = {
 // ----------------------------------------------------------------------------
 // appealContent — owner-initiated appeal on their own frozen/deleted content.
 // ----------------------------------------------------------------------------
-export async function appealContent(module: ReportModule, contentId: string) {
+export async function appealContent(module: ReportModule, contentId: string, reason: string) {
   const user = await requireCurrentUser("Log in to continue.");
+
+  if (!reason.trim()) throw new Error("Please provide a reason for your appeal.");
 
   const contentType = MODULE_TO_CONTENT_TYPE[module];
   if (!contentType) throw new Error("Invalid content type");
@@ -388,12 +390,23 @@ export async function appealContent(module: ReportModule, contentId: string) {
     throw new Error("Only frozen or deleted content can be appealed.");
   }
 
-  const updated = (await resolved.model.update({
-    where: { id: contentId },
-    data: { isAppealedByOwner: true },
-  })) as { id: string; isAppealedByOwner: boolean };
+  await prisma.$transaction(async (tx) => {
+    await resolved.model.update({
+      where: { id: contentId },
+      data: { isAppealedByOwner: true },
+    });
+    await tx.appeal.create({
+      data: {
+        entityId: contentId,
+        entityType: contentType,
+        module,
+        reason: reason.trim(),
+        ownerId: user.id,
+      },
+    });
+  });
 
-  return { success: true, data: updated };
+  return { success: true, data: { id: contentId, isAppealedByOwner: true } };
 }
 
 // -----------------------------------------------------------------------------
@@ -651,6 +664,10 @@ export async function moderateContent(
               isAppealedByOwner: false,
             },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+          await tx.appeal.updateMany({
+            where: { entityId: contentId, status: "PENDING" },
+            data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
+          });
           return { action, success: true, data: updated };
         }
 
@@ -677,6 +694,10 @@ export async function moderateContent(
             where: { id: contentId },
             data: { isAppealedByOwner: false },
           })) as { id: string; isAppealedByOwner: boolean };
+          await tx.appeal.updateMany({
+            where: { entityId: contentId, status: "PENDING" },
+            data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },
+          });
           return { action, success: true, data: updated };
         }
 
@@ -826,6 +847,10 @@ export async function moderateContent(
             isAppealedByOwner: false,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+        await tx.appeal.updateMany({
+          where: { entityId: contentId, status: "PENDING" },
+          data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
+        });
         return { action, success: true, data: updated };
       }
 
@@ -848,6 +873,10 @@ export async function moderateContent(
           where: { id: contentId },
           data: { isAppealedByOwner: false },
         })) as { id: string; isAppealedByOwner: boolean };
+        await tx.appeal.updateMany({
+          where: { entityId: contentId, status: "PENDING" },
+          data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },
+        });
         return { action, success: true, data: updated };
       }
 

@@ -561,15 +561,25 @@ export function AdminDashboard({
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex min-w-[40px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                                item.isAppealedByOwner
-                                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-                                  : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                              }`}
-                            >
-                              {item.isAppealedByOwner ? "Yes" : "No"}
-                            </span>
+                            {item.isAppealedByOwner ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="inline-flex w-fit items-center justify-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                  Yes
+                                </span>
+                                {item.appealReason && (
+                                  <span
+                                    className="max-w-[200px] truncate text-xs text-slate-500 dark:text-slate-400"
+                                    title={item.appealReason}
+                                  >
+                                    {item.appealReason}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                No
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">

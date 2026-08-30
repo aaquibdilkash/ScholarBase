@@ -348,6 +348,37 @@ enum ReportReason {
   OTHER
 }
 
+enum AppealStatus {
+  PENDING
+  DISMISSED
+  ACTIONED
+}
+
+model Appeal {
+  id          String       @id @default(cuid())
+  entityId    String
+  // Coarse entity category ("feed", "blog", "socialComment", ...) — matches the
+  // contentType string used by resolveDelegate / MODULE_TO_CONTENT_TYPE.
+  entityType  String
+  // Where the appeal originated (same module values as Report).
+  module      String
+  reason      String
+  status      AppealStatus @default(PENDING)
+  ownerId     String
+  // Admin who reviewed the appeal — set on DISMISS / ACTIONED.
+  reviewedById String?
+  reviewedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  owner       User         @relation("AppealOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  reviewedBy  User?        @relation("AppealReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([entityId, status])
+  @@index([status])
+  @@index([ownerId, createdAt(sort: Desc)])
+}
+
 model Report {
   id         String       @id @default(cuid())
   entityId   String
@@ -793,6 +824,10 @@ model User {
   conversationsCreated     Conversation[]            @relation("ConversationCreator")
   conversationParticipants ConversationParticipant[]
   messagesSent             Message[]
+
+  // Appeals — owner-filed appeals on their frozen/deleted content
+  appeals          Appeal[] @relation("AppealOwner")
+  appealsReviewed  Appeal[] @relation("AppealReviewer")
 
   trendingScore Float @default(0)
 
