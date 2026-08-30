@@ -45,6 +45,7 @@ export async function getSurveys(
       isDeleted: true,
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       totalResponses: true,
       trendingScore: true,
@@ -84,6 +85,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       isDeleted: true,
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       totalResponses: true,
       trendingScore: true,
@@ -111,13 +113,14 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
           },
         },
       },
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -426,7 +429,10 @@ export async function deleteSurvey(surveyId: string) {
   if (!survey) {
     throw new Error("Survey not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, survey.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    survey.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.researchSurvey.update({
@@ -539,7 +545,6 @@ export async function submitSurveyResponse(
 
   const isAnonymous = formData.get("isAnonymous") === "true";
 
-
   const answersJson = readFormValue(formData, "answers");
   if (!answersJson) throw new Error("Answers are required");
 
@@ -552,7 +557,7 @@ export async function submitSurveyResponse(
   // 2. Format the values for Prisma JSONB
   const answers = rawAnswers.map((ans) => {
     let finalValue: any = ans.value;
-    
+
     // Try to parse stringified arrays (from checkboxes) into real JS arrays.
     // This allows Prisma to save them as native JSON arrays in PostgreSQL.
     try {
@@ -569,7 +574,6 @@ export async function submitSurveyResponse(
       value: finalValue,
     };
   });
-
 
   const activeQuestionCount = await prisma.surveyQuestion.count({
     where: {

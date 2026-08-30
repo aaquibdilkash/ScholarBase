@@ -92,4 +92,5 @@ export type ModerationAction =
   | "UNFREEZE"
   | "DELETE"
   | "RECOVER"
-  | "DISMISS_REPORTS";
+  | "DISMISS_REPORTS"
+  | "DISMISS_APPEAL";

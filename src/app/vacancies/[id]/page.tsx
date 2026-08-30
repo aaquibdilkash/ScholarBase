@@ -14,19 +14,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 
-const VacancyDetailPage = ({
-  params,
-}: {
-  params: { id: string };
-}) => {
+const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
   const { id } = params;
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useUser();
   const { toast } = useToast();
 
-  const { data: vacancy, isLoading, isError } = useQuery({
-    queryKey: ['vacancy', id],
+  const {
+    data: vacancy,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["vacancy", id],
     queryFn: () => getVacancyById(id),
   });
 
@@ -34,8 +34,8 @@ const VacancyDetailPage = ({
     mutationFn: deleteJobVacancy,
     onSuccess: () => {
       toast("Vacancy deleted successfully", "success");
-      queryClient.invalidateQueries({ queryKey: ['vacancies'] });
-      router.push('/vacancies');
+      queryClient.invalidateQueries({ queryKey: ["vacancies"] });
+      router.push("/vacancies");
     },
     onError: (error) => {
       toast(error.message, "error");
@@ -66,11 +66,9 @@ const VacancyDetailPage = ({
 
   const userVote =
     (vacancy.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-    function handleDelete() {
+  function handleDelete() {
     deleteVacancy(vacancy!.id);
     return { refresh: false };
   }
@@ -85,7 +83,12 @@ const VacancyDetailPage = ({
       authorHandle={vacancy.author?.handle || undefined}
       authorAvatarUrl={vacancy.author?.avatarUrl || undefined}
       authorId={vacancy.author?.id}
-      isFollowing={(vacancy.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
+      isFollowing={
+        (vacancy.author as { followers?: { followerId: string }[] })?.followers
+          ?.length
+          ? true
+          : false
+      }
       currentUserId={user?.id}
       createdDate={vacancy.createdAt}
       managementControls={
@@ -110,7 +113,17 @@ const VacancyDetailPage = ({
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}
       footerCommentsCount={vacancy.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={vacancy.id} entityType="POST" module="JOB_VACANCY" />
+        <ReportMenu
+          entityId={vacancy.id}
+          entityType="POST"
+          module="JOB_VACANCY"
+          contentType="vacancy"
+          ownerId={vacancy.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={vacancy.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={vacancy.isAppealedByOwner}
+        />
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
@@ -137,15 +150,15 @@ const VacancyDetailPage = ({
         </div>
       }
       discussion={
-              <CommentSection
-                locked={vacancy.isFrozen ?? false}
-              comments={vacancy.comments as CommentWithAuthorAndVotes[]}
-              totalComments={vacancy.totalComments}
-             targetId={vacancy.id}
-             module="vacancy"
-             currentUserId={user?.id || null}
-              postAuthorId={vacancy.author?.id}
-           />
+        <CommentSection
+          locked={vacancy.isFrozen ?? false}
+          comments={vacancy.comments as CommentWithAuthorAndVotes[]}
+          totalComments={vacancy.totalComments}
+          targetId={vacancy.id}
+          module="vacancy"
+          currentUserId={user?.id || null}
+          postAuthorId={vacancy.author?.id}
+        />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

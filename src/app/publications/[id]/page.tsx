@@ -23,7 +23,11 @@ const PUBLICATION_TYPE_LABELS: Record<string, string> = {
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const p = await getPublicationById(id).catch(() => null);
   if (!p) return { title: "Publication" };
@@ -33,7 +37,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     path: `/publications/${p.id}`,
     type: "article",
     author: p.author?.name || undefined,
-    keywords: p.keywords ? p.keywords.split(",").map((k) => k.trim()).filter(Boolean) : undefined,
+    keywords: p.keywords
+      ? p.keywords
+          .split(",")
+          .map((k) => k.trim())
+          .filter(Boolean)
+      : undefined,
     publishedTime: p.createdAt,
     modifiedTime: p.updatedAt,
     section: p.publicationType || "Publications",
@@ -58,13 +67,11 @@ const PublicationDetailPage = async ({
   const p = publication;
   const userVote =
     (p.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
-        await deletePublication(p.id);
+    await deletePublication(p.id);
     return { redirect: "/publications" };
   }
 
@@ -104,18 +111,28 @@ const PublicationDetailPage = async ({
       footerCommentsHref={`/publications/${p.id}#comments`}
       footerCommentsCount={p.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={p.id} entityType="POST" module="PUBLICATION" />
+        <ReportMenu
+          entityId={p.id}
+          entityType="POST"
+          module="PUBLICATION"
+          contentType="publication"
+          ownerId={p.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={p.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={p.isAppealedByOwner}
+        />
       }
       discussion={
-             <CommentSection
-               locked={p.isFrozen ?? false}
-             comments={p.comments}
-             totalComments={p.totalComments}
-             targetId={p.id}
-             module="publication"
-             currentUserId={user?.id ?? null}
-              postAuthorId={p.author?.id}
-           />
+        <CommentSection
+          locked={p.isFrozen ?? false}
+          comments={p.comments}
+          totalComments={p.totalComments}
+          targetId={p.id}
+          module="publication"
+          currentUserId={user?.id ?? null}
+          postAuthorId={p.author?.id}
+        />
       }
     >
       <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">

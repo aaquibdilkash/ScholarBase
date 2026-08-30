@@ -12,13 +12,20 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const journal = await getJournalById(id).catch(() => null);
   if (!journal) return { title: "Academic Journal" };
   return buildMetadata({
     title: journal.title,
-    description: (journal.about || `${journal.title}${journal.publisher ? ` by ${journal.publisher}` : ""}${journal.issn ? ` (ISSN ${journal.issn})` : ""}`).replace(/<[^>]*>/g, " "),
+    description: (
+      journal.about ||
+      `${journal.title}${journal.publisher ? ` by ${journal.publisher}` : ""}${journal.issn ? ` (ISSN ${journal.issn})` : ""}`
+    ).replace(/<[^>]*>/g, " "),
     path: `/journals/${journal.id}`,
     type: "article",
     publishedTime: journal.createdAt,
@@ -45,13 +52,11 @@ const JournalDetailPage = async ({
   const j = journal;
   const userVote =
     (j.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
-        await deleteJournal(j.id);
+    await deleteJournal(j.id);
     return { redirect: "/journals" };
   }
 
@@ -91,18 +96,28 @@ const JournalDetailPage = async ({
       footerCommentsHref={`/journals/${j.id}#comments`}
       footerCommentsCount={j.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={j.id} entityType="POST" module="JOURNAL" />
+        <ReportMenu
+          entityId={j.id}
+          entityType="POST"
+          module="JOURNAL"
+          contentType="journal"
+          ownerId={j.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={j.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={j.isAppealedByOwner}
+        />
       }
       discussion={
-             <CommentSection
-               locked={j.isFrozen ?? false}
-             comments={j.comments}
-             totalComments={j.totalComments}
-             targetId={j.id}
-             module="journal"
-             currentUserId={user?.id ?? null}
-              postAuthorId={j.author?.id}
-           />
+        <CommentSection
+          locked={j.isFrozen ?? false}
+          comments={j.comments}
+          totalComments={j.totalComments}
+          targetId={j.id}
+          module="journal"
+          currentUserId={user?.id ?? null}
+          postAuthorId={j.author?.id}
+        />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4">
@@ -140,7 +155,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.scopusQuartile && j.scopusQuartile !== "NONE" && (
+        {j.scopusQuartile && j.scopusQuartile !== "NONE" && (
           <div className="rounded-xl bg-emerald-50 p-3">
             <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
               Scopus Quartile
@@ -150,7 +165,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.abdcRanking && j.abdcRanking !== "NONE" && (
+        {j.abdcRanking && j.abdcRanking !== "NONE" && (
           <div className="rounded-xl bg-purple-50 p-3">
             <p className="text-xs text-purple-500 font-medium uppercase tracking-wider">
               ABDC Ranking
@@ -160,7 +175,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.wosIndex && j.wosIndex !== "NONE" && (
+        {j.wosIndex && j.wosIndex !== "NONE" && (
           <div className="rounded-xl bg-blue-50 p-3">
             <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
               Web of Science Index
@@ -170,7 +185,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.wosQuartile && j.wosQuartile !== "NONE" && (
+        {j.wosQuartile && j.wosQuartile !== "NONE" && (
           <div className="rounded-xl bg-sky-50 p-3">
             <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
               Web of Science Quartile
@@ -180,7 +195,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.sjrQuartile && j.sjrQuartile !== "NONE" && (
+        {j.sjrQuartile && j.sjrQuartile !== "NONE" && (
           <div className="rounded-xl bg-orange-50 p-3">
             <p className="text-xs text-orange-500 font-medium uppercase tracking-wider">
               SJR Quartile
@@ -190,7 +205,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.sjrScore != null && (
+        {j.sjrScore != null && (
           <div className="rounded-xl bg-orange-50 p-3">
             <p className="text-xs text-orange-500 font-medium uppercase tracking-wider">
               SJR Score
@@ -200,7 +215,7 @@ const JournalDetailPage = async ({
             </p>
           </div>
         )}
-         {j.citeScore != null && (
+        {j.citeScore != null && (
           <div className="rounded-xl bg-teal-50 p-3">
             <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
               CiteScore

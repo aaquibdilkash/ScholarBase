@@ -12,7 +12,11 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const post = await getHelpPost(id).catch(() => null);
   if (!post) return { title: "Help Post" };
@@ -42,14 +46,12 @@ export default async function HelpPostPage({
 
   const userVote =
     (post.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   // Define the delete action outside the JSX
   async function handleDelete() {
     "use server";
-        await deleteHelpPost(post!.id);
+    await deleteHelpPost(post!.id);
     return { redirect: "/help" };
   }
 
@@ -89,11 +91,21 @@ export default async function HelpPostPage({
       footerCommentsHref={`/help/${post.id}#comments`}
       footerCommentsCount={post.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={post.id} entityType="POST" module="HELP_POST" />
+        <ReportMenu
+          entityId={post.id}
+          entityType="POST"
+          module="HELP_POST"
+          contentType="help"
+          ownerId={post.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={post.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={post.isAppealedByOwner}
+        />
       }
       discussion={
-          <CommentSection
-            locked={post.isFrozen ?? false}
+        <CommentSection
+          locked={post.isFrozen ?? false}
           comments={post.comments}
           totalComments={post.totalComments}
           targetId={post.id}

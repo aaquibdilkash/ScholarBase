@@ -129,7 +129,8 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     reportCountField: "reportCount",
   },
   RESEARCH_GRANT_COMMENT: {
-    delegate: prisma.researchGrantComment as unknown as ModuleConfig["delegate"],
+    delegate:
+      prisma.researchGrantComment as unknown as ModuleConfig["delegate"],
     reportCountField: "reportCount",
   },
   COURSE_COMMENT: {
@@ -149,7 +150,8 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     reportCountField: "reportCount",
   },
   RESEARCH_EVENT_COMMENT: {
-    delegate: prisma.researchEventComment as unknown as ModuleConfig["delegate"],
+    delegate:
+      prisma.researchEventComment as unknown as ModuleConfig["delegate"],
     reportCountField: "reportCount",
   },
   PHD_ADMISSION_COMMENT: {
@@ -165,7 +167,8 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     reportCountField: "reportCount",
   },
   RECOMMENDATION_COMMENT: {
-    delegate: prisma.recommendationComment as unknown as ModuleConfig["delegate"],
+    delegate:
+      prisma.recommendationComment as unknown as ModuleConfig["delegate"],
     reportCountField: "reportCount",
   },
 };
@@ -225,6 +228,132 @@ export async function submitReport(
   return { success: true, data: report };
 }
 
+// ----------------------------------------------------------------------------
+// CONTENT MODEL MAPS (shared by appealContent + moderateContent)
+// ----------------------------------------------------------------------------
+
+// Maps a content-type key to the Prisma delegate for the row. Comments and
+// top-level content share the same shape so a single resolver suffices.
+const modelMap: Record<
+  string,
+  {
+    model: {
+      update: (args: {
+        where: { id: string };
+        data: Record<string, unknown>;
+      }) => Promise<unknown>;
+      findUnique: (args: {
+        where: { id: string };
+        select: object;
+      }) => Promise<unknown>;
+    };
+  }
+> = {
+  feed: { model: prisma.socialPost },
+  blog: { model: prisma.article },
+  publication: { model: prisma.publication },
+  journal: { model: prisma.journal },
+  researchTool: { model: prisma.researchTool },
+  admission: { model: prisma.phdAdmission },
+  event: { model: prisma.researchEvent },
+  vacancy: { model: prisma.jobVacancy },
+  help: { model: prisma.helpPost },
+  result: { model: prisma.result },
+  contribution: { model: prisma.contribution },
+  supervisor: { model: prisma.supervisor },
+  recommendation: { model: prisma.recommendation },
+  survey: { model: prisma.researchSurvey },
+  SCHOLAR_PROFILE: { model: prisma.user },
+};
+
+// Comment models (soft-deleted / frozen per RULE 4).
+const commentModelMap: Record<
+  string,
+  {
+    model: {
+      update: (args: {
+        where: { id: string };
+        data: Record<string, unknown>;
+      }) => Promise<unknown>;
+      findUnique: (args: {
+        where: { id: string };
+        select: object;
+      }) => Promise<unknown>;
+      delete: (args: { where: { id: string } }) => Promise<unknown>;
+    };
+  }
+> = {
+  socialComment: { model: prisma.socialComment },
+  articleComment: { model: prisma.articleComment },
+  helpComment: { model: prisma.helpPostComment },
+  contributionComment: { model: prisma.contributionComment },
+  publicationComment: { model: prisma.publicationComment },
+  researchToolComment: { model: prisma.researchToolComment },
+  researchGrantComment: { model: prisma.researchGrantComment },
+  courseComment: { model: prisma.courseComment },
+  journalComment: { model: prisma.journalComment },
+  resultComment: { model: prisma.resultComment },
+  surveyComment: { model: prisma.surveyComment },
+  researchEventComment: { model: prisma.researchEventComment },
+  admissionComment: { model: prisma.phdAdmissionComment },
+  vacancyComment: { model: prisma.jobVacancyComment },
+  supervisorComment: { model: prisma.supervisorComment },
+  recommendationComment: { model: prisma.recommendationComment },
+};
+
+// Resolves which delegate handles a given content-type key.
+function resolveDelegate(contentType: string) {
+  const isCommentType = Object.prototype.hasOwnProperty.call(
+    commentModelMap,
+    contentType,
+  );
+  const commentEntry = isCommentType ? commentModelMap[contentType] : undefined;
+  const entry = commentEntry ? undefined : modelMap[contentType];
+  if (!entry && !commentEntry) return null;
+  return {
+    isCommentType,
+    commentEntry,
+    postEntry: entry,
+    model: (commentEntry ?? entry)!.model,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// appealContent — owner-initiated appeal on their own frozen/deleted content.
+// ----------------------------------------------------------------------------
+export async function appealContent(contentType: string, contentId: string) {
+  const user = await requireCurrentUser("Log in to continue.");
+
+  const resolved = resolveDelegate(contentType);
+  if (!resolved) throw new Error("Invalid content type");
+
+  const fetched = (await resolved.model.findUnique({
+    where: { id: contentId },
+    select: { authorId: true, isFrozen: true, isDeleted: true },
+  })) as {
+    authorId: string | null;
+    isFrozen: boolean;
+    isDeleted: boolean;
+  } | null;
+
+  if (!fetched) throw new Error("Content not found");
+
+  // Only the owner may appeal; content must currently be frozen or deleted.
+  if (fetched.authorId !== user.id) {
+    throw new Error("Only the owner can appeal this content.");
+  }
+  if (!fetched.isFrozen && !fetched.isDeleted) {
+    throw new Error("Only frozen or deleted content can be appealed.");
+  }
+
+  const updated = (await resolved.model.update({
+    where: { id: contentId },
+    data: { isAppealedByOwner: true },
+  })) as { id: string; isAppealedByOwner: boolean };
+
+  return { success: true, data: updated };
+}
+
 // -----------------------------------------------------------------------------
 // moderateContent — admin-facing server action dispatching to freeze, delete,
 // or dismiss reports inside a single atomic transaction (RULE 3).
@@ -233,7 +362,19 @@ export async function submitReport(
 // totalComments counters when a soft-deleted top-level comment is recovered.
 const COMMENT_TOP_LEVEL: Record<
   string,
-  { model: { update: (args: { where: { id: string }; data: Record<string, unknown> }) => Promise<unknown>; findUnique: (args: { where: { id: string }; select: object }) => Promise<unknown> }; fk: string }
+  {
+    model: {
+      update: (args: {
+        where: { id: string };
+        data: Record<string, unknown>;
+      }) => Promise<unknown>;
+      findUnique: (args: {
+        where: { id: string };
+        select: object;
+      }) => Promise<unknown>;
+    };
+    fk: string;
+  }
 > = {
   socialComment: { model: prisma.socialPost, fk: "socialPostId" },
   articleComment: { model: prisma.article, fk: "articleId" },
@@ -250,13 +391,21 @@ const COMMENT_TOP_LEVEL: Record<
   admissionComment: { model: prisma.phdAdmission, fk: "phdAdmissionId" },
   vacancyComment: { model: prisma.jobVacancy, fk: "jobVacancyId" },
   supervisorComment: { model: prisma.supervisor, fk: "supervisorId" },
-  recommendationComment: { model: prisma.recommendation, fk: "recommendationId" },
+  recommendationComment: {
+    model: prisma.recommendation,
+    fk: "recommendationId",
+  },
 };
 
 // Resolves the top-level parent of a comment and reports whether that parent
 // is itself soft-deleted (so counters are only restored for visible content).
 async function resolveCommentParent(
-  commentModel: { findUnique: (args: { where: { id: string }; select: object }) => Promise<unknown> },
+  commentModel: {
+    findUnique: (args: {
+      where: { id: string };
+      select: object;
+    }) => Promise<unknown>;
+  },
   contentType: string,
   contentId: string,
 ) {
@@ -293,64 +442,10 @@ export async function moderateContent(
     throw new Error("Not authorized.");
   }
 
-  const modelMap: Record<
-    string,
-    {
-      model: {
-        update: (args: { where: { id: string }; data: Record<string, unknown> }) => Promise<unknown>;
-        findUnique: (args: { where: { id: string }; select: object }) => Promise<unknown>;
-      };
-    }
-  > = {
-    feed: { model: prisma.socialPost },
-    blog: { model: prisma.article },
-    publication: { model: prisma.publication },
-    journal: { model: prisma.journal },
-    researchTool: { model: prisma.researchTool },
-    admission: { model: prisma.phdAdmission },
-    event: { model: prisma.researchEvent },
-    vacancy: { model: prisma.jobVacancy },
-    help: { model: prisma.helpPost },
-    result: { model: prisma.result },
-    contribution: { model: prisma.contribution },
-    supervisor: { model: prisma.supervisor },
-    recommendation: { model: prisma.recommendation },
-    survey: { model: prisma.researchSurvey },
-    // User profiles are reported as SCHOLAR_PROFILE; User already carries
-    // isFrozen / isDeleted / reportCount so the generic branches below work.
-    SCHOLAR_PROFILE: { model: prisma.user },
-  };
-
-  // Comment models (tombstoned on delete per RULE 4, no isFrozen/isDeleted).
-  const commentModelMap: Record<
-    string,
-    {
-      model: {
-        update: (args: { where: { id: string }; data: Record<string, unknown> }) => Promise<unknown>;
-        findUnique: (args: { where: { id: string }; select: object }) => Promise<unknown>;
-        delete: (args: { where: { id: string } }) => Promise<unknown>;
-      };
-    }
-  > = {
-    socialComment: { model: prisma.socialComment },
-    articleComment: { model: prisma.articleComment },
-    helpComment: { model: prisma.helpPostComment },
-    contributionComment: { model: prisma.contributionComment },
-    publicationComment: { model: prisma.publicationComment },
-    researchToolComment: { model: prisma.researchToolComment },
-    researchGrantComment: { model: prisma.researchGrantComment },
-    courseComment: { model: prisma.courseComment },
-    journalComment: { model: prisma.journalComment },
-    resultComment: { model: prisma.resultComment },
-    surveyComment: { model: prisma.surveyComment },
-    researchEventComment: { model: prisma.researchEventComment },
-    admissionComment: { model: prisma.phdAdmissionComment },
-    vacancyComment: { model: prisma.jobVacancyComment },
-    supervisorComment: { model: prisma.supervisorComment },
-    recommendationComment: { model: prisma.recommendationComment },
-  };
-
-  const isCommentType = Object.prototype.hasOwnProperty.call(commentModelMap, contentType);
+  const isCommentType = Object.prototype.hasOwnProperty.call(
+    commentModelMap,
+    contentType,
+  );
   const commentEntry = isCommentType ? commentModelMap[contentType] : undefined;
   const entry = commentEntry ? undefined : modelMap[contentType];
   if (!entry && !commentEntry) throw new Error("Invalid content type");
@@ -418,7 +513,11 @@ export async function moderateContent(
                 data: { totalReplies: { decrement: 1 } },
               });
             } else {
-              const parent = await resolveCommentParent(commentEntry.model, contentType, contentId);
+              const parent = await resolveCommentParent(
+                commentEntry.model,
+                contentType,
+                contentId,
+              );
               if (parent && !parent.isDeleted) {
                 await parent.model.update({
                   where: { id: parent.id },
@@ -486,7 +585,11 @@ export async function moderateContent(
                 data: { totalReplies: { increment: 1 } },
               });
             } else {
-              const parent = await resolveCommentParent(commentEntry.model, contentType, contentId);
+              const parent = await resolveCommentParent(
+                commentEntry.model,
+                contentType,
+                contentId,
+              );
               if (parent && parent.isDeleted === false) {
                 await parent.model.update({
                   where: { id: parent.id },
@@ -503,6 +606,7 @@ export async function moderateContent(
               isFrozen: false,
               deletedByType: null,
               deletedById: null,
+              isAppealedByOwner: false,
             },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
           return { action, success: true, data: updated };
@@ -517,7 +621,21 @@ export async function moderateContent(
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "DISMISSED" },
           });
-          return { action, success: true, data: { id: contentId, reportCount: 0 } };
+          return {
+            action,
+            success: true,
+            data: { id: contentId, reportCount: 0 },
+          };
+        }
+
+        case "DISMISS_APPEAL": {
+          // Acknowledge the owner's appeal: clear the flag so the content
+          // returns to a normal moderated state (admins can then re-decide).
+          const updated = (await commentEntry.model.update({
+            where: { id: contentId },
+            data: { isAppealedByOwner: false },
+          })) as { id: string; isAppealedByOwner: boolean };
+          return { action, success: true, data: updated };
         }
 
         default:
@@ -585,7 +703,11 @@ export async function moderateContent(
             id: true,
             ...(countField ? { totalVotes: true, authorId: true } : {}),
           },
-        })) as { id: string; totalVotes?: number; authorId?: string | null } | null;
+        })) as {
+          id: string;
+          totalVotes?: number;
+          authorId?: string | null;
+        } | null;
         if (!full) throw new Error("Content not found");
 
         if (!entity.isDeleted) {
@@ -632,7 +754,11 @@ export async function moderateContent(
             id: true,
             ...(countField ? { totalVotes: true, authorId: true } : {}),
           },
-        })) as { id: string; totalVotes?: number; authorId?: string | null } | null;
+        })) as {
+          id: string;
+          totalVotes?: number;
+          authorId?: string | null;
+        } | null;
         if (!full) throw new Error("Content not found");
 
         if (entity.isDeleted && countField && full.authorId) {
@@ -655,6 +781,7 @@ export async function moderateContent(
             isFrozen: false,
             deletedByType: null,
             deletedById: null,
+            isAppealedByOwner: false,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         return { action, success: true, data: updated };
@@ -670,6 +797,16 @@ export async function moderateContent(
           data: { status: "DISMISSED" },
         });
         return { action, success: true, data: { id: contentId } };
+      }
+
+      case "DISMISS_APPEAL": {
+        // Acknowledge the owner's appeal: clear the flag so the content
+        // returns to a normal moderated state (admins can then re-decide).
+        const updated = (await entry2.model.update({
+          where: { id: contentId },
+          data: { isAppealedByOwner: false },
+        })) as { id: string; isAppealedByOwner: boolean };
+        return { action, success: true, data: updated };
       }
 
       default:

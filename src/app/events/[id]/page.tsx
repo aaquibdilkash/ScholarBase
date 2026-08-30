@@ -13,7 +13,11 @@ import { Calendar, Clock, MapPin } from "lucide-react";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const event = await getEvent(id).catch(() => null);
   if (!event) return { title: "Research Event" };
@@ -47,9 +51,7 @@ const EventDetailPage = async ({
 
   const userVote =
     (event.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (
     <DetailPageCardShell
@@ -95,7 +97,17 @@ const EventDetailPage = async ({
       footerCommentsHref={`/events/${event.id}#comments`}
       footerCommentsCount={event.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={event.id} entityType="POST" module="RESEARCH_EVENT" />
+        <ReportMenu
+          entityId={event.id}
+          entityType="POST"
+          module="RESEARCH_EVENT"
+          contentType="event"
+          ownerId={event.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={event.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={event.isAppealedByOwner}
+        />
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
@@ -122,15 +134,15 @@ const EventDetailPage = async ({
         </div>
       }
       discussion={
-             <CommentSection
-               locked={event.isFrozen ?? false}
-             comments={event.comments}
-             totalComments={event.totalComments}
-             targetId={event.id}
-             module="event"
-             currentUserId={user?.id || null}
-              postAuthorId={event.author?.id}
-           />
+        <CommentSection
+          locked={event.isFrozen ?? false}
+          comments={event.comments}
+          totalComments={event.totalComments}
+          targetId={event.id}
+          module="event"
+          currentUserId={user?.id || null}
+          postAuthorId={event.author?.id}
+        />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

@@ -58,6 +58,7 @@ export async function getHelpPosts(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -97,15 +98,17 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -234,7 +237,10 @@ export async function deleteHelpPost(helpPostId: string) {
   if (!post) {
     throw new Error("Help post not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, post.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    post.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.helpPost.update({

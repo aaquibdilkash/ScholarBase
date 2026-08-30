@@ -3,11 +3,20 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontal, Trash2, Snowflake, RefreshCw, Undo2 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Trash2,
+  Snowflake,
+  RefreshCw,
+  Undo2,
+} from "lucide-react";
 import { moderateContent } from "@/app/actions/reports";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
-import { patchAdminContentCache, adjustAdminStatsCache } from "@/lib/adminCache";
+import {
+  patchAdminContentCache,
+  adjustAdminStatsCache,
+} from "@/lib/adminCache";
 import type { AdminContentItem } from "@/types/admin";
 import type { ModerationAction } from "@/types/reports";
 
@@ -37,6 +46,9 @@ interface AdminActionsDropdownProps {
   /** Legacy tombstoned comment (authorId: null) — renders a muted trash
    *  icon instead of the dropdown; there are no moderation options left. */
   isTombstone?: boolean;
+  /** Whether the owner has appealed against a freeze/delete — shows the
+   *  "Dismiss Appeal" option so moderators can acknowledge it. */
+  isAppealedByOwner?: boolean;
 }
 
 export function AdminActionsDropdown({
@@ -50,14 +62,19 @@ export function AdminActionsDropdown({
   isFrozen = false,
   isDeleted = false,
   isTombstone = false,
+  isAppealedByOwner = false,
 }: AdminActionsDropdownProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(
+    null,
+  );
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<ModerationAction | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ModerationAction | null>(
+    null,
+  );
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -75,8 +92,10 @@ export function AdminActionsDropdown({
             : action === "DELETE"
               ? { isDeleted: true, isFrozen: true }
               : action === "RECOVER"
-                ? { isDeleted: false, isFrozen: false }
-                : { reportCount: 0 };
+                ? { isDeleted: false, isFrozen: false, isAppealedByOwner: false }
+                : action === "DISMISS_APPEAL"
+                  ? { isAppealedByOwner: false }
+                  : { reportCount: 0 };
       // Snapshot every affected cache entry for rollback on failure.
       const snapshots = queryClient.getQueriesData<{
         items: AdminContentItem[];
@@ -84,13 +103,17 @@ export function AdminActionsDropdown({
       patchAdminContentCache(queryClient, contentId, optimisticPatch);
       return { snapshots };
     },
-    onSuccess: (
-      result: {
-        action: ModerationAction;
-        success: boolean;
-        data: { id: string; isFrozen?: boolean; isDeleted?: boolean; reportCount?: number; removed?: boolean };
-      },
-    ) => {
+    onSuccess: (result: {
+      action: ModerationAction;
+      success: boolean;
+      data: {
+        id: string;
+        isFrozen?: boolean;
+        isDeleted?: boolean;
+        reportCount?: number;
+        removed?: boolean;
+      };
+    }) => {
       const noun = entityLabel.toLowerCase();
       const messages: Record<ModerationAction, string> = {
         FREEZE: `${entityLabel} frozen successfully`,
@@ -98,10 +121,12 @@ export function AdminActionsDropdown({
         DELETE: `${entityLabel} deleted successfully`,
         RECOVER: `${entityLabel} recovered successfully`,
         DISMISS_REPORTS: `Reports on this ${noun} dismissed successfully`,
+        DISMISS_APPEAL: `Appeal on this ${noun} acknowledged successfully`,
       };
       toast({
         title: "Success",
-        description: messages[result.action] ?? "Action completed successfully.",
+        description:
+          messages[result.action] ?? "Action completed successfully.",
       });
       // Sync with the server truth (no refetch). Comments are soft-deleted
       // now (RULE 4), so rows are always patched, never removed.
@@ -194,6 +219,11 @@ export function AdminActionsDropdown({
       message: `Are you sure you want to dismiss all reports on this ${entityLabel.toLowerCase()}? The report count will be reset.`,
       confirmLabel: "Dismiss Reports",
     },
+    DISMISS_APPEAL: {
+      title: "Confirm Dismiss Appeal",
+      message: `Are you sure you want to acknowledge the owner's appeal on this ${entityLabel.toLowerCase()}? The appeal notice will be cleared.`,
+      confirmLabel: "Acknowledge Appeal",
+    },
   };
 
   const handleAction = (action: ModerationAction) => {
@@ -223,104 +253,117 @@ export function AdminActionsDropdown({
         </span>
       ) : (
         <div className="relative">
-        <button
-          ref={btnRef}
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          disabled={disabled || isPending}
-          onClick={() => {
-            // Anchor the portal menu to the trigger's viewport position so it
-            // renders below the button yet can never be clipped by scroll
-            // containers (e.g. the table's overflow-x-auto wrapper).
-            const rect = btnRef.current?.getBoundingClientRect();
-            if (rect) {
-              setMenuPos({
-                top: rect.bottom + 6,
-                right: Math.max(8, window.innerWidth - rect.right),
-              });
-            }
-            setOpen((v) => !v);
-          }}
-          className={clsx(
-            "sb-menu-trigger inline-flex items-center gap-1.5",
-            isPending && "opacity-50",
-          )}
-          aria-label="Admin content actions"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-          {reportCount > 0 && (
-            <span
-              className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-bold text-red-700 dark:bg-red-900/30 dark:text-red-300"
-              aria-label={`${reportCount} reports`}
-            >
-              {reportCount}
-            </span>
-          )}
-        </button>
+          <button
+            ref={btnRef}
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={open}
+            disabled={disabled || isPending}
+            onClick={() => {
+              // Anchor the portal menu to the trigger's viewport position so it
+              // renders below the button yet can never be clipped by scroll
+              // containers (e.g. the table's overflow-x-auto wrapper).
+              const rect = btnRef.current?.getBoundingClientRect();
+              if (rect) {
+                setMenuPos({
+                  top: rect.bottom + 6,
+                  right: Math.max(8, window.innerWidth - rect.right),
+                });
+              }
+              setOpen((v) => !v);
+            }}
+            className={clsx(
+              "sb-menu-trigger inline-flex items-center gap-1.5",
+              isPending && "opacity-50",
+            )}
+            aria-label="Admin content actions"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+            {reportCount > 0 && (
+              <span
+                className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-bold text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                aria-label={`${reportCount} reports`}
+              >
+                {reportCount}
+              </span>
+            )}
+          </button>
 
-        {open &&
-          !isPending &&
-          menuPos &&
-          createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              className="sb-menu fixed z-[70] w-48"
-              style={{ top: menuPos.top, right: menuPos.right }}
-            >
-            <div>
-              {showFreeze && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleAction(isFrozen ? "UNFREEZE" : "FREEZE")}
-                  className="sb-menu-item flex items-center gap-2"
-                >
-                  <Snowflake className="h-4 w-4" />
-                  <span>
-                    {isFrozen ? "Unfreeze" : "Freeze"} {entityLabel}
-                  </span>
-                </button>
-              )}
-              {(reportCount > 0 || !isDeleted) && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleAction("DISMISS_REPORTS")}
-                  className="sb-menu-item flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Dismiss Reports</span>
-                </button>
-              )}
-              {isDeleted && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleAction("RECOVER")}
-                  className="sb-menu-item flex items-center gap-2"
-                >
-                  <Undo2 className="h-4 w-4" />
-                  <span>Recover {entityLabel}</span>
-                </button>
-              )}
-              {!isDeleted && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => handleAction("DELETE")}
-                  className="sb-menu-item flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete {entityLabel}</span>
-                </button>
-              )}
-            </div>
-            </div>,
-            document.body,
-          )}
-      </div>
+          {open &&
+            !isPending &&
+            menuPos &&
+            createPortal(
+              <div
+                ref={menuRef}
+                role="menu"
+                className="sb-menu fixed z-[70] w-48"
+                style={{ top: menuPos.top, right: menuPos.right }}
+              >
+                <div>
+                  {showFreeze && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() =>
+                        handleAction(isFrozen ? "UNFREEZE" : "FREEZE")
+                      }
+                      className="sb-menu-item flex items-center gap-2"
+                    >
+                      <Snowflake className="h-4 w-4" />
+                      <span>
+                        {isFrozen ? "Unfreeze" : "Freeze"} {entityLabel}
+                      </span>
+                    </button>
+                  )}
+                  {(reportCount > 0 || !isDeleted) && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleAction("DISMISS_REPORTS")}
+                      className="sb-menu-item flex items-center gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      <span>Dismiss Reports</span>
+                    </button>
+                  )}
+                  {isAppealedByOwner && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleAction("DISMISS_APPEAL")}
+                      className="sb-menu-item flex items-center gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      <span>Dismiss Appeal</span>
+                    </button>
+                  )}
+                  {isDeleted && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleAction("RECOVER")}
+                      className="sb-menu-item flex items-center gap-2"
+                    >
+                      <Undo2 className="h-4 w-4" />
+                      <span>Recover {entityLabel}</span>
+                    </button>
+                  )}
+                  {!isDeleted && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleAction("DELETE")}
+                      className="sb-menu-item flex items-center gap-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Delete {entityLabel}</span>
+                    </button>
+                  )}
+                </div>
+              </div>,
+              document.body,
+            )}
+        </div>
       )}
 
       <ConfirmationModal
@@ -332,7 +375,9 @@ export function AdminActionsDropdown({
         onConfirm={confirmAndExecute}
         title={confirmAction ? CONFIRM_META[confirmAction].title : ""}
         message={confirmAction ? CONFIRM_META[confirmAction].message : ""}
-        confirmLabel={confirmAction ? CONFIRM_META[confirmAction].confirmLabel : "Confirm"}
+        confirmLabel={
+          confirmAction ? CONFIRM_META[confirmAction].confirmLabel : "Confirm"
+        }
         confirmingLabel="Processing..."
         isConfirming={isPending}
       />

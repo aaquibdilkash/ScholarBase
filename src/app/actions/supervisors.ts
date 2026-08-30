@@ -41,6 +41,7 @@ export async function getSupervisors(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       // Zero-compute materialized aggregates (Rule 2): count + avg derive
@@ -76,6 +77,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       recommendations: {
@@ -110,19 +112,21 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
           },
           totalVotes: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           totalComments: true,
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
         },
       },
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -302,7 +306,10 @@ export async function deleteSupervisor(supervisorId: string) {
   if (!supervisor) {
     throw new Error("Supervisor not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, supervisor.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    supervisor.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.supervisor.update({

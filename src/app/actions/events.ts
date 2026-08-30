@@ -52,6 +52,7 @@ export async function getEvents(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -85,9 +86,10 @@ export const getEvent = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
@@ -95,6 +97,7 @@ export const getEvent = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -237,7 +240,10 @@ export async function deleteResearchEvent(eventId: string) {
   if (!event) {
     throw new Error("Event not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, event.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    event.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.researchEvent.update({
@@ -290,6 +296,7 @@ export async function getUpcomingEvents(count: number, userId?: string) {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },

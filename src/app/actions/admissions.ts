@@ -52,6 +52,7 @@ export async function getAdmissions(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -84,9 +85,10 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
@@ -94,6 +96,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -233,7 +236,10 @@ export async function deletePhdAdmission(admissionId: string) {
   if (!admission) {
     throw new Error("Admission not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, admission.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    admission.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.phdAdmission.update({
@@ -287,6 +293,7 @@ export async function getLatestAdmissions(count: number, userId?: string) {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },

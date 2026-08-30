@@ -8,7 +8,12 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import type { Quartile, AbdcTier, WosIndex, OpenAccessStatus } from "@prisma/client";
+import type {
+  Quartile,
+  AbdcTier,
+  WosIndex,
+  OpenAccessStatus,
+} from "@prisma/client";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createJournal(formData: FormData) {
@@ -155,7 +160,10 @@ export async function deleteJournal(journalId: string) {
   if (!journal) {
     throw new Error("Journal not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, journal.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    journal.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.journal.update({
@@ -229,6 +237,7 @@ export async function getJournals(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -280,11 +289,12 @@ export const getJournalById = cache(
         },
         totalVotes: true,
         isFrozen: true,
+        isAppealedByOwner: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
-                comments: {
+        comments: {
           where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
@@ -292,6 +302,7 @@ export const getJournalById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            isAppealedByOwner: true,
             deletedByType: true,
             id: true,
             content: true,

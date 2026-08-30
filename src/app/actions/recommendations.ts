@@ -29,6 +29,7 @@ export const getRecommendation = cache(
         editedAt: true,
         totalVotes: true,
         isFrozen: true,
+        isAppealedByOwner: true,
         totalComments: true,
         author: {
           select: {
@@ -44,7 +45,7 @@ export const getRecommendation = cache(
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
-                comments: {
+        comments: {
           where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
           orderBy: { createdAt: "desc" },
@@ -52,6 +53,7 @@ export const getRecommendation = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            isAppealedByOwner: true,
             deletedByType: true,
             id: true,
             content: true,
@@ -329,7 +331,10 @@ export async function deleteRecommendation(recommendationId: string) {
   if (!recommendation) {
     throw new Error("Recommendation not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, recommendation.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    recommendation.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.recommendation.update({

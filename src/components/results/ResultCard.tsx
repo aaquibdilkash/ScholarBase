@@ -90,7 +90,7 @@ export function ResultCard({
       footerCommentsHref={`/results/${result.id}`}
       footerCommentsCount={result.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={result.id} entityType="POST" module="RESULT" />
+        <ReportMenu entityId={result.id} entityType="POST" module="RESULT" contentType="result" />
       }
       noBodyLink={true}
       bodyBottomContent={

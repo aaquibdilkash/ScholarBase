@@ -169,7 +169,10 @@ export async function deletePublication(publicationId: string) {
   if (!publication) {
     throw new Error("Publication not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, publication.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    publication.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.publication.update({
@@ -249,6 +252,7 @@ export async function getPublications(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -300,11 +304,12 @@ export const getPublicationById = cache(
         },
         totalVotes: true,
         isFrozen: true,
+        isAppealedByOwner: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
-                comments: {
+        comments: {
           where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
@@ -312,6 +317,7 @@ export const getPublicationById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            isAppealedByOwner: true,
             deletedByType: true,
             id: true,
             content: true,

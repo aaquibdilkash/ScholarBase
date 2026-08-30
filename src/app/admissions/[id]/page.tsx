@@ -12,7 +12,11 @@ import { Clock } from "lucide-react";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const admission = await getAdmission(id).catch(() => null);
   if (!admission) return { title: "PhD Admission" };
@@ -45,13 +49,11 @@ const AdmissionDetailPage = async ({
 
   const userVote =
     (admission.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
-        await deletePhdAdmission(admission!.id);
+    await deletePhdAdmission(admission!.id);
     return { redirect: "/admissions" };
   }
 
@@ -76,7 +78,12 @@ const AdmissionDetailPage = async ({
         ) : null
       }
       authorId={admission.author?.id}
-      isFollowing={(admission.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
+      isFollowing={
+        (admission.author as { followers?: { followerId: string }[] })
+          ?.followers?.length
+          ? true
+          : false
+      }
       currentUserId={user?.id}
       createdDate={admission.createdAt}
       footerVoteButton={
@@ -90,7 +97,17 @@ const AdmissionDetailPage = async ({
       footerCommentsHref={`/admissions/${admission.id}#comments`}
       footerCommentsCount={admission.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={admission.id} entityType="POST" module="PHD_ADMISSION" />
+        <ReportMenu
+          entityId={admission.id}
+          entityType="POST"
+          module="PHD_ADMISSION"
+          contentType="admission"
+          ownerId={admission.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={admission.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={admission.isAppealedByOwner}
+        />
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
@@ -117,15 +134,15 @@ const AdmissionDetailPage = async ({
         </div>
       }
       discussion={
-            <CommentSection
-              locked={admission.isFrozen ?? false}
-            comments={admission.comments}
-            totalComments={admission.totalComments}
-            targetId={admission.id}
-            module="admission"
-            currentUserId={user?.id || null}
-            postAuthorId={admission.author?.id}
-          />
+        <CommentSection
+          locked={admission.isFrozen ?? false}
+          comments={admission.comments}
+          totalComments={admission.totalComments}
+          targetId={admission.id}
+          module="admission"
+          currentUserId={user?.id || null}
+          postAuthorId={admission.author?.id}
+        />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

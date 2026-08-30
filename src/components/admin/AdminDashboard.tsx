@@ -145,7 +145,14 @@ export function AdminDashboard({
     queryFn: () =>
       activeTab === "users"
         ? getAdminUsers(page, undefined, statusFilter)
-        : getAdminContent(activeTab, sortBy, page, undefined, view, statusFilter),
+        : getAdminContent(
+            activeTab,
+            sortBy,
+            page,
+            undefined,
+            view,
+            statusFilter,
+          ),
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000,
     // SSR-hydrated first page of the default Feed view — zero fetch on mount.
@@ -167,7 +174,11 @@ export function AdminDashboard({
     data.items,
     (
       state,
-      action: { id: string; patch?: Partial<AdminContentItem>; remove?: boolean },
+      action: {
+        id: string;
+        patch?: Partial<AdminContentItem>;
+        remove?: boolean;
+      },
     ) =>
       action.remove
         ? state.filter((it) => it.id !== action.id)
@@ -222,9 +233,7 @@ export function AdminDashboard({
     setUi({ statusFilter: next, page: 1 });
   };
 
-  const handleSortChange = (
-    next: "createdAt" | "reportCount",
-  ) => {
+  const handleSortChange = (next: "createdAt" | "reportCount") => {
     setUi({ sortBy: next, page: 1 });
   };
 
@@ -390,13 +399,20 @@ export function AdminDashboard({
                   <thead className="border-b border-slate-200 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-800/50">
                     <tr>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                        {activeTab === "users" ? "Name" : view === "comments" ? "Comment" : "Title"}
+                        {activeTab === "users"
+                          ? "Name"
+                          : view === "comments"
+                            ? "Comment"
+                            : "Title"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         {activeTab === "users" ? "Email" : "Author"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         Reports
+                      </th>
+                      <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                        Appealed
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         <label className="sr-only" htmlFor="status-filter">
@@ -407,8 +423,8 @@ export function AdminDashboard({
                           value={statusFilter}
                           onChange={(e) =>
                             handleStatusFilterChange(
-                              e.target
-                                .value as "all" | "active" | "frozen" | "deleted",
+                              e.target.value as
+                                "all" | "active" | "frozen" | "deleted",
                             )
                           }
                           className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
@@ -428,7 +444,7 @@ export function AdminDashboard({
                     {data.items.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="px-4 py-8 text-center text-slate-500 dark:text-slate-400"
                         >
                           No content found
@@ -440,96 +456,62 @@ export function AdminDashboard({
                       </tr>
                     ) : (
                       optimisticItems.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                      >
-                        <td className="px-4 py-3">
-                          {activeTab === "users" ? (
-                            <p className="font-medium text-slate-900 dark:text-slate-100">
-                              {item.name}
-                            </p>
-                          ) : item.detailHref ? (
-                            <Link
-                              href={item.detailHref}
-                              className="font-medium text-slate-900 transition hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300"
+                        <tr
+                          key={item.id}
+                          className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                        >
+                          <td className="px-4 py-3">
+                            {activeTab === "users" ? (
+                              <p className="font-medium text-slate-900 dark:text-slate-100">
+                                {item.name}
+                              </p>
+                            ) : item.detailHref ? (
+                              <Link
+                                href={item.detailHref}
+                                className="font-medium text-slate-900 transition hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300"
+                              >
+                                {item.title ||
+                                  item.content?.substring(0, 50) ||
+                                  "Untitled"}
+                              </Link>
+                            ) : (
+                              <p className="font-medium text-slate-900 dark:text-slate-100">
+                                {item.title ||
+                                  item.content?.substring(0, 50) ||
+                                  "Untitled"}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                            {activeTab === "users"
+                              ? item.email
+                              : item.author?.name ||
+                                item.author?.email ||
+                                "Unknown"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex min-w-[32px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                                (item.reportCount ?? 0) > 0
+                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                              }`}
                             >
-                              {item.title ||
-                                item.content?.substring(0, 50) ||
-                                "Untitled"}
-                            </Link>
-                          ) : (
-                            <p className="font-medium text-slate-900 dark:text-slate-100">
-                              {item.title ||
-                                item.content?.substring(0, 50) ||
-                                "Untitled"}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                          {activeTab === "users"
-                            ? item.email
-                            : item.author?.name ||
-                              item.author?.email ||
-                              "Unknown"}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex min-w-[32px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                              (item.reportCount ?? 0) > 0
-                                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            {item.reportCount ?? 0}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            {/* Comments are soft-deleted/frozen with the same
+                              {item.reportCount ?? 0}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {/* Comments are soft-deleted/frozen with the same
                                 isDeleted/isFrozen columns as other content
                                 (RULE 4). Legacy tombstones (authorId: null)
                                 surface as Deleted too. */}
-                            {view === "comments" ? (
-                              item.isDeleted || item.authorId == null ? (
-                                <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                  Deleted
-                                </span>
-                              ) : (
-                                <span
-                                  className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                    item.isFrozen
-                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                  }`}
-                                >
-                                  {item.isFrozen ? "Frozen" : "Active"}
-                                </span>
-                              )
-                            ) : (
-                              <>
-                                {item.isDeleted && (
+                              {view === "comments" ? (
+                                item.isDeleted || item.authorId == null ? (
                                   <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                     Deleted
                                   </span>
-                                )}
-                                {activeTab === "contributions" &&
-                                  !item.isDeleted && (
-                                    <span
-                                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                        item.status === "APPROVED"
-                                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                          : item.status === "REJECTED"
-                                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                                      }`}
-                                    >
-                                      {item.status}
-                                    </span>
-                                  )}
-                                {/* Active only when neither deleted nor frozen;
-                                    deleted rows show Deleted (+"Frozen" if both). */}
-                                {!item.isDeleted && (
+                                ) : (
                                   <span
                                     className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                                       item.isFrozen
@@ -539,76 +521,129 @@ export function AdminDashboard({
                                   >
                                     {item.isFrozen ? "Frozen" : "Active"}
                                   </span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            {activeTab === "users" ? (
-                              /* Same dropdown UI as other modules —
+                                )
+                              ) : (
+                                <>
+                                  {item.isDeleted && (
+                                    <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                      Deleted
+                                    </span>
+                                  )}
+                                  {activeTab === "contributions" &&
+                                    !item.isDeleted && (
+                                      <span
+                                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                          item.status === "APPROVED"
+                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                            : item.status === "REJECTED"
+                                              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                        }`}
+                                      >
+                                        {item.status}
+                                      </span>
+                                    )}
+                                  {/* Active only when neither deleted nor frozen;
+                                    deleted rows show Deleted (+"Frozen" if both). */}
+                                  {!item.isDeleted && (
+                                    <span
+                                      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                        item.isFrozen
+                                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                          : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                      }`}
+                                    >
+                                      {item.isFrozen ? "Frozen" : "Active"}
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex min-w-[40px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                                item.isAppealedByOwner
+                                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                                  : "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                              }`}
+                            >
+                              {item.isAppealedByOwner ? "Yes" : "No"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              {activeTab === "users" ? (
+                                /* Same dropdown UI as other modules —
                                  moderateContent dispatches SCHOLAR_PROFILE to
                                  the User model (generic isFrozen/isDeleted). */
-                              <AdminActionsDropdown
-                                contentType="SCHOLAR_PROFILE"
-                                contentId={item.id}
-                                sectionId="users"
-                                reportCount={item.reportCount ?? 0}
-                                showFreeze={!item.isDeleted}
-                                isFrozen={item.isFrozen}
-                                isDeleted={item.isDeleted}
-                                disabled={isPending}
-                                entityLabel="User"
-                              />
-                            ) : activeTab === "contributions" &&
-                              item.status === "PENDING" ? (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(item.id)}
-                                  className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition"
+                                <AdminActionsDropdown
+                                  contentType="SCHOLAR_PROFILE"
+                                  contentId={item.id}
+                                  sectionId="users"
+                                  reportCount={item.reportCount ?? 0}
+                                  showFreeze={!item.isDeleted}
+                                  isFrozen={item.isFrozen}
+                                  isDeleted={item.isDeleted}
+                                  isAppealedByOwner={Boolean(
+                                    item.isAppealedByOwner,
+                                  )}
                                   disabled={isPending}
-                                >
-                                  {isPending ? "..." : "Approve"}
-                                </button>
-                                <button
-                                  onClick={() => handleReject(item.id)}
-                                  className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
+                                  entityLabel="User"
+                                />
+                              ) : activeTab === "contributions" &&
+                                item.status === "PENDING" ? (
+                                <>
+                                  <button
+                                    onClick={() => handleApprove(item.id)}
+                                    className="px-3 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition"
+                                    disabled={isPending}
+                                  >
+                                    {isPending ? "..." : "Approve"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleReject(item.id)}
+                                    className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-semibold hover:bg-red-700 transition"
+                                    disabled={isPending}
+                                  >
+                                    {isPending ? "..." : "Reject"}
+                                  </button>
+                                </>
+                              ) : (
+                                <AdminActionsDropdown
+                                  contentType={
+                                    view === "comments"
+                                      ? item.modelKey || "socialComment"
+                                      : (SECTION_CONTENT_TYPES[activeTab] ??
+                                        activeTab)
+                                  }
+                                  contentId={item.id}
+                                  reportCount={item.reportCount ?? 0}
+                                  showFreeze={!item.isDeleted}
+                                  isFrozen={item.isFrozen}
+                                  isDeleted={
+                                    view === "comments"
+                                      ? item.isDeleted || item.authorId == null
+                                      : item.isDeleted
+                                  }
+                                  isAppealedByOwner={Boolean(
+                                    item.isAppealedByOwner,
+                                  )}
+                                  isTombstone={
+                                    view === "comments" &&
+                                    item.authorId == null &&
+                                    !item.isDeleted
+                                  }
+                                  entityLabel={
+                                    view === "comments" ? "Comment" : undefined
+                                  }
                                   disabled={isPending}
-                                >
-                                  {isPending ? "..." : "Reject"}
-                                </button>
-                              </>
-                            ) : (
-                              <AdminActionsDropdown
-                                contentType={
-                                  view === "comments"
-                                    ? item.modelKey || "socialComment"
-                                    : SECTION_CONTENT_TYPES[activeTab] ??
-                                      activeTab
-                                }
-                                contentId={item.id}
-                                reportCount={item.reportCount ?? 0}
-                                showFreeze={!item.isDeleted}
-                                isFrozen={item.isFrozen}
-                                isDeleted={
-                                  view === "comments"
-                                    ? item.isDeleted || item.authorId == null
-                                    : item.isDeleted
-                                }
-                                isTombstone={
-                                  view === "comments" &&
-                                  item.authorId == null &&
-                                  !item.isDeleted
-                                }
-                                entityLabel={view === "comments" ? "Comment" : undefined}
-                                disabled={isPending}
-                                sectionId={activeTab}
-                              />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                                  sectionId={activeTab}
+                                />
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       ))
                     )}
                   </tbody>
@@ -619,8 +654,8 @@ export function AdminDashboard({
             {data.totalPages > 1 && (
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 px-4 py-3 dark:border-slate-800">
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Showing {data.items.length} of {data.total} · Page{" "}
-                  {data.page} of {data.totalPages}
+                  Showing {data.items.length} of {data.total} · Page {data.page}{" "}
+                  of {data.totalPages}
                 </p>
                 <div className="flex items-center gap-2">
                   <button

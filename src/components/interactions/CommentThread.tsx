@@ -19,7 +19,10 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
-import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
+import type {
+  CommentWithAuthorAndVotes,
+  CommentEntityType,
+} from "@/types/comments";
 import type { ReportModule } from "@/types/reports";
 import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -55,6 +58,26 @@ const COMMENT_REPORT_MODULE: Record<CommentEntityType, ReportModule> = {
   contribution: "CONTRIBUTION_COMMENT",
   publication: "PUBLICATION_COMMENT",
   survey: "SURVEY_COMMENT",
+};
+
+// Maps a CommentEntityType to the content-type key expected by appealContent.
+const COMMENT_CONTENT_TYPE: Record<CommentEntityType, string> = {
+  post: "socialComment",
+  article: "articleComment",
+  vacancy: "vacancyComment",
+  admission: "admissionComment",
+  event: "researchEventComment",
+  supervisor: "supervisorComment",
+  recommendation: "recommendationComment",
+  help: "helpComment",
+  journal: "journalComment",
+  researchTool: "researchToolComment",
+  researchGrant: "researchGrantComment",
+  course: "courseComment",
+  result: "resultComment",
+  contribution: "contributionComment",
+  publication: "publicationComment",
+  survey: "surveyComment",
 };
 
 // ============================================
@@ -147,7 +170,9 @@ export function MentionComposer({
   return (
     <div className="relative">
       <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Add a comment</span>
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          Add a comment
+        </span>
         <InfoTooltip message={COMMENT_CONTENT_TIP} />
       </div>
       <textarea
@@ -278,14 +303,28 @@ function ReplyForm({
     e.preventDefault();
 
     const formData = new FormData();
-    formData.append('content', reply);
-    formData.append('mentions', JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))));
+    formData.append("content", reply);
+    formData.append(
+      "mentions",
+      JSON.stringify(
+        mentionedUsers.map((u) => ({ id: u.id, handle: u.handle })),
+      ),
+    );
 
     try {
-      const response = await createComment(formData, targetId, module, parentComment.id);
+      const response = await createComment(
+        formData,
+        targetId,
+        module,
+        parentComment.id,
+      );
 
       if (!response?.success || !response.data) {
-        toast({ title: "Error", description: "Failed to post reply. Please try again.", variant: "destructive"});
+        toast({
+          title: "Error",
+          description: "Failed to post reply. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
       toast({ title: "Success", description: "Reply posted successfully!" });
@@ -294,7 +333,11 @@ function ReplyForm({
       localStorage.removeItem(draftKey);
       onSuccess(response.data as CommentWithAuthorAndVotes);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to post reply. Please try again.", variant: "destructive"});
+      toast({
+        title: "Error",
+        description: "Failed to post reply. Please try again.",
+        variant: "destructive",
+      });
       console.error(error);
     }
   };
@@ -407,13 +450,22 @@ function CommentCard({
     e.preventDefault();
 
     const formData = new FormData();
-    formData.append('content', editedContent);
-    formData.append('mentions', JSON.stringify(editedMentions.map((m) => ({ id: m.id, handle: m.handle }))));
+    formData.append("content", editedContent);
+    formData.append(
+      "mentions",
+      JSON.stringify(
+        editedMentions.map((m) => ({ id: m.id, handle: m.handle })),
+      ),
+    );
 
     try {
       const response = await editComment(formData, comment.id, module);
       if (!response?.success || !response.data) {
-        toast({ title: "Error", description: "Failed to update comment. Please try again.", variant: "destructive"});
+        toast({
+          title: "Error",
+          description: "Failed to update comment. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -426,7 +478,11 @@ function CommentCard({
       toast({ title: "Success", description: "Comment updated!" });
       setEditingId(null);
     } catch {
-      toast({ title: "Error", description: "Failed to update comment. Please try again.", variant: "destructive"});
+      toast({
+        title: "Error",
+        description: "Failed to update comment. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -447,7 +503,10 @@ function CommentCard({
         throw new Error("Unknown error");
       }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Failed to delete comment. Please try again.";
+      const message =
+        e instanceof Error
+          ? e.message
+          : "Failed to delete comment. Please try again.";
       toast({ title: "Error", description: message, variant: "destructive" });
     }
   };
@@ -456,12 +515,20 @@ function CommentCard({
     return (
       <div className="group flex gap-1 md:gap-2">
         <div className="shrink-0 pt-1">
-          <div className={`overflow-hidden rounded-full border bg-slate-100 dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"}`}>
-            <div className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${isReply ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}`}>?</div>
+          <div
+            className={`overflow-hidden rounded-full border bg-slate-100 dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"}`}
+          >
+            <div
+              className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${isReply ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}`}
+            >
+              ?
+            </div>
           </div>
         </div>
         <div className="min-w-0 flex-1">
-          <div className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}>
+          <div
+            className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}
+          >
             <p className="italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
               {comment.isDeleted
                 ? getDeletedMessage(comment.deletedByType, isReply)
@@ -470,7 +537,8 @@ function CommentCard({
           </div>
           {!isReply && (
             <span className="ml-2 mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 md:text-xs">
-              {comment.totalReplies ?? 0} {(comment.totalReplies ?? 0) === 1 ? "Reply" : "Replies"}
+              {comment.totalReplies ?? 0}{" "}
+              {(comment.totalReplies ?? 0) === 1 ? "Reply" : "Replies"}
             </span>
           )}
         </div>
@@ -480,7 +548,10 @@ function CommentCard({
 
   return (
     <div className="group flex gap-1 md:gap-2">
-      <Link href={`/scholars/${comment.author?.id ?? '#'}`} className="shrink-0 pt-1">
+      <Link
+        href={`/scholars/${comment.author?.id ?? "#"}`}
+        className="shrink-0 pt-1"
+      >
         <div
           className={`overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-200 dark:border-slate-800 dark:bg-slate-900 ${
             isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"
@@ -519,7 +590,7 @@ function CommentCard({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <Link
-                  href={`/scholars/${comment.author?.id ?? '#'}`}
+                  href={`/scholars/${comment.author?.id ?? "#"}`}
                   className="truncate text-xs font-bold text-slate-900 hover:text-blue-600 hover:underline dark:text-slate-50 dark:hover:text-blue-300 md:text-sm"
                 >
                   {comment.author?.name || "Scholar"}
@@ -532,7 +603,7 @@ function CommentCard({
               </div>
               {comment.author?.handle ? (
                 <Link
-                  href={`/scholars/${comment.author?.id ?? '#'}`}
+                  href={`/scholars/${comment.author?.id ?? "#"}`}
                   className="mt-0.5 block truncate text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
                 >
                   @{comment.author?.handle}
@@ -581,7 +652,10 @@ function CommentCard({
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">
                 {wasEdited && (
-                  <span suppressHydrationWarning className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                  <span
+                    suppressHydrationWarning
+                    className="text-xs font-semibold text-slate-400 dark:text-slate-500"
+                  >
                     {`Edited ${formatTimeAgo(comment.editedAt)}`}
                   </span>
                 )}
@@ -596,6 +670,12 @@ function CommentCard({
                         entityId={comment.id}
                         entityType="COMMENT"
                         module={COMMENT_REPORT_MODULE[module]}
+                        contentType={COMMENT_CONTENT_TYPE[module]}
+                        ownerId={comment.author?.id ?? null}
+                        currentUserId={currentUserId ?? null}
+                        isFrozen={comment.isFrozen}
+                        isDeleted={comment.isDeleted}
+                        isAppealedByOwner={comment.isAppealedByOwner}
                       />
                       <CommentActionsDropdown
                         isOwner={isOwner}
@@ -625,7 +705,6 @@ function CommentCard({
           </button>
         )}
         {replyingToThis && null}
-
       </div>
     </div>
   );
@@ -682,7 +761,11 @@ export function CommentThread({
       setReplies((prev) => [...prev, ...(next ?? [])]);
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "Failed to load replies.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to load replies.",
+        variant: "destructive",
+      });
     } finally {
       setLoadingReplies(false);
     }
@@ -743,14 +826,14 @@ export function CommentThread({
         {activeReplyId === comment.id &&
           !!comment.authorId &&
           !comment.isDeleted && (
-          <ReplyForm
-            targetId={targetId}
-            module={module}
-            parentComment={comment}
-            onSuccess={handleReplyPosted}
-            toast={toast}
-          />
-        )}
+            <ReplyForm
+              targetId={targetId}
+              module={module}
+              parentComment={comment}
+              onSuccess={handleReplyPosted}
+              toast={toast}
+            />
+          )}
 
         {replies.length > 0 && (
           <div className="mt-2 space-y-2 border-l-2 border-slate-100 pl-2 dark:border-slate-800 md:mt-3 md:space-y-3 md:pl-4">

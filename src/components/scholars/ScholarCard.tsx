@@ -68,6 +68,7 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
                 entityId={scholar.id}
                 entityType="POST"
                 module="SCHOLAR_PROFILE"
+                contentType="SCHOLAR_PROFILE"
               />
             ) : null}
           </div>

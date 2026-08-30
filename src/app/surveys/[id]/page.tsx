@@ -27,7 +27,11 @@ const PRIVACY_LABELS: Record<string, string> = {
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const survey = await getSurvey(id).catch(() => null);
   if (!survey) return { title: "Research Survey" };
@@ -64,9 +68,7 @@ const SurveyDetailPage = async ({
 
   const userVote =
     (survey.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const isOwner = user?.id === survey.author?.id;
   const isOpen = survey.status === "OPEN";
@@ -118,11 +120,21 @@ const SurveyDetailPage = async ({
       footerCommentsHref={`/surveys/${survey.id}#comments`}
       footerCommentsCount={survey.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={survey.id} entityType="POST" module="RESEARCH_SURVEY" />
+        <ReportMenu
+          entityId={survey.id}
+          entityType="POST"
+          module="RESEARCH_SURVEY"
+          contentType="survey"
+          ownerId={survey.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={survey.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={survey.isAppealedByOwner}
+        />
       }
       discussion={
-          <CommentSection
-            locked={survey.isFrozen ?? false}
+        <CommentSection
+          locked={survey.isFrozen ?? false}
           comments={survey.comments}
           totalComments={survey.totalComments}
           targetId={survey.id}

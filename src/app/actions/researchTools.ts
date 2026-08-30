@@ -97,7 +97,10 @@ export async function deleteResearchTool(toolId: string) {
   if (!tool) {
     throw new Error("Research tool not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, tool.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    tool.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.researchTool.update({
@@ -167,6 +170,7 @@ export async function getResearchTools(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -202,11 +206,12 @@ export const getResearchToolById = cache(
         },
         totalVotes: true,
         isFrozen: true,
+        isAppealedByOwner: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }
           : false,
-                comments: {
+        comments: {
           where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
@@ -214,6 +219,7 @@ export const getResearchToolById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            isAppealedByOwner: true,
             deletedByType: true,
             id: true,
             content: true,

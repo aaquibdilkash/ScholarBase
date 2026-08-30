@@ -82,7 +82,7 @@ export function ResearchGrantCard({
       footerCommentsHref={`/grants/${grant.id}`}
       footerCommentsCount={grant.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={grant.id} entityType="POST" module="RESEARCH_GRANT" />
+        <ReportMenu entityId={grant.id} entityType="POST" module="RESEARCH_GRANT" contentType="researchGrant" />
       }
       noBodyLink={true}
       bodyBottomContent={

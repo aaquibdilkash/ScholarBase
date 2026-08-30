@@ -82,7 +82,7 @@ export function VacancyCard({
       footerCommentsHref={`/vacancies/${vacancy.id}`}
       footerCommentsCount={vacancy.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={vacancy.id} entityType="POST" module="JOB_VACANCY" />
+        <ReportMenu entityId={vacancy.id} entityType="POST" module="JOB_VACANCY" contentType="vacancy" />
       }
       noBodyLink={true}
       bodyBottomContent={

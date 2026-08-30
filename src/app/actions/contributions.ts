@@ -55,6 +55,7 @@ export async function getContributions(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -89,9 +90,10 @@ export const getContribution = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
@@ -99,6 +101,7 @@ export const getContribution = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -275,7 +278,10 @@ export async function deleteContribution(contributionId: string) {
   });
 
   if (!contribution) throw new Error("Contribution not found.");
-  const deletedByType = await resolvePostDeletePermission(user.id, contribution.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    contribution.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.contribution.update({

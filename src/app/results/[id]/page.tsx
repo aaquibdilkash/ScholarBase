@@ -12,7 +12,11 @@ import { RichContent } from "@/components/content/RichContent";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const result = await getResult(id).catch(() => null);
   if (!result) return { title: "Result" };
@@ -51,9 +55,7 @@ const ResultDetailPage = async ({
 
   const userVote =
     (result.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (
     <DetailPageCardShell
@@ -80,7 +82,12 @@ const ResultDetailPage = async ({
         ) : null
       }
       authorId={result.author?.id}
-      isFollowing={(result.author as { followers?: { followerId: string }[] })?.followers?.length ? true : false}
+      isFollowing={
+        (result.author as { followers?: { followerId: string }[] })?.followers
+          ?.length
+          ? true
+          : false
+      }
       currentUserId={user?.id}
       createdDate={result.createdAt}
       editedDate={
@@ -97,26 +104,36 @@ const ResultDetailPage = async ({
       footerCommentsHref={`/results/${result.id}#comments`}
       footerCommentsCount={result.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={result.id} entityType="POST" module="RESULT" />
+        <ReportMenu
+          entityId={result.id}
+          entityType="POST"
+          module="RESULT"
+          contentType="result"
+          ownerId={result.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={result.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={result.isAppealedByOwner}
+        />
       }
       discussion={
-             <CommentSection
-               locked={result.isFrozen ?? false}
-             comments={result.comments}
-             totalComments={result.totalComments}
-             targetId={result.id}
-             module="result"
-             currentUserId={user?.id || null}
-              postAuthorId={result.author?.id}
-           />
+        <CommentSection
+          locked={result.isFrozen ?? false}
+          comments={result.comments}
+          totalComments={result.totalComments}
+          targetId={result.id}
+          module="result"
+          currentUserId={user?.id || null}
+          postAuthorId={result.author?.id}
+        />
       }
     >
       <div className="mb-4 flex items-center gap-2">
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
           {TYPE_LABELS[result.type] || result.type}
         </span>
         {result.category && (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
             {result.category}
           </span>
         )}
@@ -132,7 +149,7 @@ const ResultDetailPage = async ({
       />
 
       {(result.conductingBody || result.session) && (
-         <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-[#020617] dark:border-slate-700 dark:text-slate-300">
+        <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-[#020617] dark:border-slate-700 dark:text-slate-300">
           {result.conductingBody && (
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5" />

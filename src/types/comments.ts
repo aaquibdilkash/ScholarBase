@@ -4,22 +4,22 @@ import type { VoteType } from "./votes";
 import type { Prisma } from "@prisma/client";
 
 export type CommentEntityType =
-  | 'article'
-  | 'post'
-  | 'vacancy'
-  | 'admission'
-  | 'event'
-  | 'supervisor'
-  | 'recommendation'
-  | 'help'
-  | 'journal'
-  | 'researchTool'
-  | 'researchGrant'
-  | 'course'
-  | 'result'
-  | 'contribution'
-  | 'publication'
-  | 'survey';
+  | "article"
+  | "post"
+  | "vacancy"
+  | "admission"
+  | "event"
+  | "supervisor"
+  | "recommendation"
+  | "help"
+  | "journal"
+  | "researchTool"
+  | "researchGrant"
+  | "course"
+  | "result"
+  | "contribution"
+  | "publication"
+  | "survey";
 
 export interface CommentAuthor {
   id: string;
@@ -43,13 +43,11 @@ export interface CommentWithAuthorAndVotes {
   isDeleted?: boolean;
   /** Who performed the soft delete (RULE 4 tracking). */
   deletedByType?:
-    | "AUTHOR"
-    | "PARENT_COMMENT_AUTHOR"
-    | "POST_AUTHOR"
-    | "ADMIN"
-    | null;
+    "AUTHOR" | "PARENT_COMMENT_AUTHOR" | "POST_AUTHOR" | "ADMIN" | null;
   /** Admin freeze flag (RULE 4) — true blocks further interaction. */
   isFrozen?: boolean;
+  /** Whether the owner has appealed against a freeze/delete. */
+  isAppealedByOwner?: boolean;
   votes: { voteType: VoteType }[] | undefined;
   // Prisma stores mentions as a Json column, so the wire type is JsonValue
   // (array-shaped at runtime). Consumers defensively cast after Array.isArray.
@@ -76,21 +74,21 @@ export interface CommentModel {
 export interface CommentVoteModel {
   findUnique: (args: {
     where: { commentId_userId: { commentId: string; userId: string } };
-  }) => Promise<{ id: string; voteType: 'UPVOTE' | 'DOWNVOTE' } | null>;
+  }) => Promise<{ id: string; voteType: "UPVOTE" | "DOWNVOTE" } | null>;
   delete: (args: { where: { id: string } }) => Promise<unknown>;
   update: (args: {
     where: { id: string };
-    data: { voteType: 'UPVOTE' | 'DOWNVOTE' };
+    data: { voteType: "UPVOTE" | "DOWNVOTE" };
   }) => Promise<unknown>;
   create: (args: {
     data: {
       commentId: string;
       userId: string;
-      voteType: 'UPVOTE' | 'DOWNVOTE';
+      voteType: "UPVOTE" | "DOWNVOTE";
     };
   }) => Promise<unknown>;
   count: (args: {
-    where: { commentId: string; voteType: 'UPVOTE' | 'DOWNVOTE' };
+    where: { commentId: string; voteType: "UPVOTE" | "DOWNVOTE" };
   }) => Promise<number>;
 }
 

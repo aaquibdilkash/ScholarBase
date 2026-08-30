@@ -12,7 +12,11 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const post = await getPost(id).catch(() => null);
   if (!post) return { title: "Scholar Post" };
@@ -45,13 +49,11 @@ export default async function SinglePostPage({
   const p = post;
   const userVote =
     (p.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
-        await deleteSocialPost(p.id);
+    await deleteSocialPost(p.id);
     return { redirect: "/feed" };
   }
 
@@ -96,11 +98,21 @@ export default async function SinglePostPage({
       footerCommentsHref={`/feed/${p.id}#comments`}
       footerCommentsCount={p.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={p.id} entityType="POST" module="SOCIAL_FEED" />
+        <ReportMenu
+          entityId={p.id}
+          entityType="POST"
+          module="SOCIAL_FEED"
+          contentType="feed"
+          ownerId={p.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={p.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={p.isAppealedByOwner}
+        />
       }
       discussion={
-          <CommentSection
-            locked={p.isFrozen ?? false}
+        <CommentSection
+          locked={p.isFrozen ?? false}
           comments={p.comments as CommentWithAuthorAndVotes[]}
           totalComments={p.totalComments}
           targetId={p.id}

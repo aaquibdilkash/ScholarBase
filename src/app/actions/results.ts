@@ -59,6 +59,7 @@ export async function getResults(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -95,9 +96,10 @@ export const getResult = cache(async (id: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
@@ -105,6 +107,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -236,7 +239,10 @@ export async function deleteResult(resultId: string) {
   if (!result) {
     throw new Error("Result not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, result.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    result.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.result.update({

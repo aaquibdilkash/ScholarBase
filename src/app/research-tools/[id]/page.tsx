@@ -11,7 +11,11 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const tool = await getResearchToolById(id).catch(() => null);
   if (!tool) return { title: "Research Tool" };
@@ -42,14 +46,12 @@ const ResearchToolDetailPage = async ({
 
   const userVote =
     (tool.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   // Define the delete action outside of the JSX
   async function handleDelete() {
     "use server";
-        await deleteResearchTool(tool!.id);
+    await deleteResearchTool(tool!.id);
     return { redirect: "/research-tools" };
   }
 
@@ -89,18 +91,28 @@ const ResearchToolDetailPage = async ({
       footerCommentsHref={`/research-tools/${tool.id}#comments`}
       footerCommentsCount={tool.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={tool.id} entityType="POST" module="RESEARCH_TOOL" />
+        <ReportMenu
+          entityId={tool.id}
+          entityType="POST"
+          module="RESEARCH_TOOL"
+          contentType="researchTool"
+          ownerId={tool.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={tool.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={tool.isAppealedByOwner}
+        />
       }
       discussion={
-             <CommentSection
-               locked={tool.isFrozen ?? false}
-             comments={tool.comments}
-             totalComments={tool.totalComments}
-             targetId={tool.id}
-             module="researchTool"
-             currentUserId={user?.id || null}
-              postAuthorId={tool.author?.id}
-           />
+        <CommentSection
+          locked={tool.isFrozen ?? false}
+          comments={tool.comments}
+          totalComments={tool.totalComments}
+          targetId={tool.id}
+          module="researchTool"
+          currentUserId={user?.id || null}
+          postAuthorId={tool.author?.id}
+        />
       }
     >
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">

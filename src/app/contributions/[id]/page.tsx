@@ -16,13 +16,19 @@ import { RejectionReason } from "@/components/contributions/RejectionReason";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const contribution = await getContribution(id).catch(() => null);
   if (!contribution) return { title: "Contribution" };
   return buildMetadata({
     title: contribution.title || "ScholarBase Contribution",
-    description: (contribution.message || "").replace(/<[^>]*>/g, " ") || "A community contribution supporting ScholarBase.",
+    description:
+      (contribution.message || "").replace(/<[^>]*>/g, " ") ||
+      "A community contribution supporting ScholarBase.",
     path: `/contributions/${contribution.id}`,
     type: "article",
     publishedTime: contribution.createdAt,
@@ -50,11 +56,9 @@ const ContributionDetailPage = async ({
 
   const userVote =
     (contribution.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-    const handleDelete = async () => {
+  const handleDelete = async () => {
     "use server";
     await deleteContribution(id);
     return { redirect: "/contributions" };
@@ -105,11 +109,21 @@ const ContributionDetailPage = async ({
       footerCommentsHref={`/contributions/${contribution.id}#comments`}
       footerCommentsCount={contribution.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={contribution.id} entityType="POST" module="CONTRIBUTION" />
+        <ReportMenu
+          entityId={contribution.id}
+          entityType="POST"
+          module="CONTRIBUTION"
+          contentType="contribution"
+          ownerId={contribution.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={contribution.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={contribution.isAppealedByOwner}
+        />
       }
       discussion={
-          <CommentSection
-            locked={contribution.isFrozen ?? false}
+        <CommentSection
+          locked={contribution.isFrozen ?? false}
           comments={contribution.comments}
           totalComments={contribution.totalComments}
           targetId={contribution.id}

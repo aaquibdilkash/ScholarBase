@@ -67,7 +67,7 @@ export function SocialPostCard({
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post.totalComments ?? 0}
       footerReportMenu={
-        <ReportMenu entityId={post.id} entityType="POST" module="SOCIAL_FEED" />
+        <ReportMenu entityId={post.id} entityType="POST" module="SOCIAL_FEED" contentType="feed" />
       }
     >
       <div className={`flex gap-4 ${post.imageUrl ? "items-start" : ""}`}>

@@ -71,9 +71,7 @@ export default async function SupervisorPage({
 
   const userVote =
     (supervisor.votes?.find((v) => v.userId === user?.id)?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+      "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const hasUserRecommendation = recMeta.hasUserRecommendation;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
@@ -98,7 +96,17 @@ export default async function SupervisorPage({
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={supervisor.id} entityType="POST" module="SUPERVISOR" />
+        <ReportMenu
+          entityId={supervisor.id}
+          entityType="POST"
+          module="SUPERVISOR"
+          contentType="supervisor"
+          ownerId={supervisor.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={supervisor.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={supervisor.isAppealedByOwner}
+        />
       }
       footerVoteButton={
         <VoteButton
@@ -120,8 +128,8 @@ export default async function SupervisorPage({
         ) : null
       }
       discussion={
-          <CommentSection
-            locked={supervisor.isFrozen ?? false}
+        <CommentSection
+          locked={supervisor.isFrozen ?? false}
           comments={supervisor.comments}
           totalComments={supervisor.totalComments}
           targetId={supervisor.id}

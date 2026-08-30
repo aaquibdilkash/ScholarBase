@@ -101,11 +101,21 @@ export default async function RecommendationDetailPage({
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}
       footerCommentsCount={recommendation.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={recommendation.id} entityType="POST" module="RECOMMENDATION" />
+        <ReportMenu
+          entityId={recommendation.id}
+          entityType="POST"
+          module="RECOMMENDATION"
+          contentType="recommendation"
+          ownerId={recommendation.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={recommendation.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={recommendation.isAppealedByOwner}
+        />
       }
       discussion={
-          <CommentSection
-            locked={recommendation.isFrozen ?? false}
+        <CommentSection
+          locked={recommendation.isFrozen ?? false}
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}
           totalComments={recommendation.totalComments}
           targetId={recommendation.id}

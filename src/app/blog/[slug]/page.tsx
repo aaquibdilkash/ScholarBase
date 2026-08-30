@@ -84,7 +84,17 @@ export default async function ArticlePage({
       footerCommentsHref={`/blog/${a.slug}#comments`}
       footerCommentsCount={a.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={a.id} entityType="POST" module="ARTICLE_PAGE" />
+        <ReportMenu
+  entityId={a.id}
+  entityType="POST"
+  module="ARTICLE_PAGE"
+  contentType="blog"
+  ownerId={a.author?.id ?? null}
+          currentUserId={user?.id ?? null}
+          isFrozen={a.isFrozen}
+          isDeleted={false}
+          isAppealedByOwner={a.isAppealedByOwner}
+/>
       }
       discussion={
              <CommentSection

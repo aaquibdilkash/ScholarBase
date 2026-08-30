@@ -59,6 +59,7 @@ export async function getArticles(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -94,9 +95,10 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
@@ -104,6 +106,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
         select: {
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           id: true,
           content: true,
@@ -254,7 +257,10 @@ export async function deleteArticle(articleId: string) {
   if (!article) {
     throw new Error("Article not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, article.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    article.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.article.update({
@@ -303,6 +309,7 @@ export async function getLatestArticles(count: number, userId?: string) {
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },

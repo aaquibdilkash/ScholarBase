@@ -112,7 +112,10 @@ export async function deleteResearchGrant(grantId: string) {
   if (!grant) {
     throw new Error("Research grant not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, grant.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    grant.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.researchGrant.update({
@@ -182,6 +185,7 @@ export async function getResearchGrants(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -218,11 +222,12 @@ export const getResearchGrantById = cache(
         },
         totalVotes: true,
         isFrozen: true,
+        isAppealedByOwner: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
-                comments: {
+        comments: {
           where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
@@ -230,6 +235,7 @@ export const getResearchGrantById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            isAppealedByOwner: true,
             deletedByType: true,
             id: true,
             content: true,

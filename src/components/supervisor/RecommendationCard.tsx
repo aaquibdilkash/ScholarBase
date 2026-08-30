@@ -137,6 +137,7 @@ export function RecommendationCard({
           entityId={recommendation.id}
           entityType="POST"
           module="RECOMMENDATION"
+          contentType="recommendation"
         />
       }
     >

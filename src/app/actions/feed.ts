@@ -90,6 +90,7 @@ const getFeed = async (
       // RULE 6: Use materialized counters
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       // RULE 6: Filtered select for user's vote
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
@@ -133,11 +134,12 @@ export const getPost = cache(async (id: string, userId?: string) => {
       // RULE 6: Use materialized counters and filtered selects
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       // LAZY PAGINATION: ship only the first page of parent comments.
       // Replies are fetched on demand by CommentThread via fetchReplies().
-            comments: {
+      comments: {
         where: { parentId: null, isDeleted: false },
         select: {
           id: true,
@@ -149,6 +151,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
           authorId: true,
           isDeleted: true,
           isFrozen: true,
+          isAppealedByOwner: true,
           deletedByType: true,
           author: {
             select: {
@@ -328,7 +331,10 @@ export async function deleteSocialPost(postId: string) {
   });
 
   if (!post) return;
-  const deletedByType = await resolvePostDeletePermission(user.id, post.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    post.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.socialPost.update({

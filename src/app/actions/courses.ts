@@ -124,7 +124,10 @@ export async function deleteCourse(courseId: string) {
   if (!course) {
     throw new Error("Course not found.");
   }
-  const deletedByType = await resolvePostDeletePermission(user.id, course.authorId);
+  const deletedByType = await resolvePostDeletePermission(
+    user.id,
+    course.authorId,
+  );
 
   await prisma.$transaction(async (tx) => {
     await tx.course.update({
@@ -196,6 +199,7 @@ export async function getCourses(
       },
       totalVotes: true,
       isFrozen: true,
+      isAppealedByOwner: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -236,11 +240,12 @@ export const getCourseById = cache(
         },
         totalVotes: true,
         isFrozen: true,
+        isAppealedByOwner: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }
           : false,
-                comments: {
+        comments: {
           where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
@@ -248,6 +253,7 @@ export const getCourseById = cache(
           select: {
             isDeleted: true,
             isFrozen: true,
+            isAppealedByOwner: true,
             deletedByType: true,
             id: true,
             content: true,

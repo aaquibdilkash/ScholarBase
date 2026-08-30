@@ -5,7 +5,10 @@ import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
 import { notifyMentionedUsers, notifyUserById } from "@/lib/notifications";
-import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
+import type {
+  CommentWithAuthorAndVotes,
+  CommentEntityType,
+} from "@/types/comments";
 import {
   COMMENT_TYPE_TO_MODULE,
   createCommentTransaction,
@@ -34,6 +37,7 @@ function commentPageSelect(currentUserId: string | null) {
     isDeleted: true,
     isFrozen: true,
     deletedByType: true,
+    isAppealedByOwner: true,
     // Materialized counters — no dynamic _count aggregation
     totalVotes: true,
     totalReplies: true,

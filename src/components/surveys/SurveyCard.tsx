@@ -94,7 +94,7 @@ export function SurveyCard({
       footerCommentsHref={`/surveys/${survey.id}`}
       footerCommentsCount={survey.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={survey.id} entityType="POST" module="RESEARCH_SURVEY" />
+        <ReportMenu entityId={survey.id} entityType="POST" module="RESEARCH_SURVEY" contentType="survey" />
       }
     >
       <Link href={`/surveys/${survey.id}`} className="block group">
