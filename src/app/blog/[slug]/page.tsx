@@ -50,6 +50,7 @@ export default async function ArticlePage({
 
   return (
     <DetailPageCardShell
+      isFrozen={a.isFrozen ?? false}
       backHref="/blog"
       backLabel="Back to Blogs"
       authorHref={`/scholars/${a.author?.id}`}
@@ -86,7 +87,8 @@ export default async function ArticlePage({
         <ReportMenu entityId={a.id} entityType="POST" module="ARTICLE_PAGE" />
       }
       discussion={
-           <CommentSection
+             <CommentSection
+               locked={a.isFrozen ?? false}
              comments={a.comments}
              totalComments={a.totalComments}
              targetId={a.id}

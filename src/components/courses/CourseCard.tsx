@@ -80,6 +80,7 @@ export function CourseCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={course.isFrozen === true}
           targetId={course.id}
           module="COURSE"
           initialTotalVotes={course.totalVotes ?? 0}

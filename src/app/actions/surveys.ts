@@ -43,6 +43,7 @@ export async function getSurveys(
       status: true,
       isDeleted: true,
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       totalResponses: true,
       trendingScore: true,
@@ -81,6 +82,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       status: true,
       isDeleted: true,
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       totalResponses: true,
       trendingScore: true,
@@ -108,11 +110,13 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
           },
         },
       },
-      comments: {
-        where: { parentId: null },
+            comments: {
+        where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {
+          isDeleted: true,
+          isFrozen: true,
           id: true,
           content: true,
           createdAt: true,

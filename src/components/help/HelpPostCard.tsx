@@ -71,6 +71,7 @@ export function HelpPostCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={helpPost.isFrozen === true}
           targetId={helpPost.id}
           module="HELP_POST"
           initialTotalVotes={helpPost.totalVotes}

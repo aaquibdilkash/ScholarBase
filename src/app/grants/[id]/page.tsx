@@ -43,6 +43,7 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
 
   return (
     <DetailPageCardShell
+      isFrozen={grant.isFrozen ?? false}
       backHref="/grants"
       backLabel="Back to Research Grants"
       authorHref={`/scholars/${grant.author?.id}`}
@@ -61,7 +62,7 @@ export default async function ResearchGrantDetailPage({ params }: { params: Prom
       footerReportMenu={
         <ReportMenu entityId={grant.id} entityType="POST" module="RESEARCH_GRANT" />
       }
-      discussion={<CommentSection comments={grant.comments} totalComments={grant.totalComments} targetId={grant.id} module="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author?.id} />}
+      discussion={<CommentSection locked={grant.isFrozen ?? false} comments={grant.comments} totalComments={grant.totalComments} targetId={grant.id} module="researchGrant" currentUserId={user?.id || null} postAuthorId={grant.author?.id} />}
     >
       <h1 className="mb-2 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{grant.title}</h1>
       {grant.amount && (

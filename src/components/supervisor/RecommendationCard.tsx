@@ -123,6 +123,7 @@ export function RecommendationCard({
       createdDate={recommendation.createdAt}
       footerVoteButton={
         <VoteButton
+          frozen={recommendation.isFrozen === true}
           targetId={recommendation.id}
           module="RECOMMENDATION"
           initialTotalVotes={recommendation.totalVotes ?? 0}

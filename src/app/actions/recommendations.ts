@@ -27,6 +27,7 @@ export const getRecommendation = cache(
         updatedAt: true,
         editedAt: true,
         totalVotes: true,
+        isFrozen: true,
         totalComments: true,
         author: {
           select: {
@@ -42,12 +43,14 @@ export const getRecommendation = cache(
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
-        comments: {
-          where: { parentId: null },
+                comments: {
+          where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
           orderBy: { createdAt: "desc" },
           take: COMMENT_PAGE_SIZE + 1,
           select: {
+            isDeleted: true,
+            isFrozen: true,
             id: true,
             content: true,
             createdAt: true,

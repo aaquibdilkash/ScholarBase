@@ -57,6 +57,7 @@ const ResultDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isFrozen={result.isFrozen ?? false}
       backHref="/results"
       backLabel="Back to Results"
       authorHref={`/scholars/${result.author?.id}`}
@@ -99,7 +100,8 @@ const ResultDetailPage = async ({
         <ReportMenu entityId={result.id} entityType="POST" module="RESULT" />
       }
       discussion={
-           <CommentSection
+             <CommentSection
+               locked={result.isFrozen ?? false}
              comments={result.comments}
              totalComments={result.totalComments}
              targetId={result.id}

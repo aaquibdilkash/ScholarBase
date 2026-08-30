@@ -62,6 +62,7 @@ const ContributionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isFrozen={contribution.isFrozen ?? false}
       backHref="/contributions"
       backLabel="Back to Contributions"
       authorHref={`/scholars/${contribution.author?.id}`}
@@ -107,7 +108,8 @@ const ContributionDetailPage = async ({
         <ReportMenu entityId={contribution.id} entityType="POST" module="CONTRIBUTION" />
       }
       discussion={
-        <CommentSection
+          <CommentSection
+            locked={contribution.isFrozen ?? false}
           comments={contribution.comments}
           totalComments={contribution.totalComments}
           targetId={contribution.id}

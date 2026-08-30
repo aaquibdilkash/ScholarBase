@@ -72,6 +72,7 @@ export function ResearchGrantCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={grant.isFrozen === true}
           targetId={grant.id}
           module="RESEARCH_GRANT"
           initialTotalVotes={grant.totalVotes ?? 0}

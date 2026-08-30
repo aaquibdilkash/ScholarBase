@@ -73,6 +73,7 @@ export function ContributionCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={contribution.isFrozen === true}
           targetId={contribution.id}
           module="CONTRIBUTION"
           initialTotalVotes={contribution.totalVotes ?? 0}

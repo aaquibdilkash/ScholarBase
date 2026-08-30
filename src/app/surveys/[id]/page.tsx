@@ -73,6 +73,7 @@ const SurveyDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isFrozen={survey.isFrozen ?? false}
       backHref="/surveys"
       backLabel="Back to Surveys"
       authorHref={`/scholars/${survey.author?.id}`}
@@ -120,7 +121,8 @@ const SurveyDetailPage = async ({
         <ReportMenu entityId={survey.id} entityType="POST" module="RESEARCH_SURVEY" />
       }
       discussion={
-        <CommentSection
+          <CommentSection
+            locked={survey.isFrozen ?? false}
           comments={survey.comments}
           totalComments={survey.totalComments}
           targetId={survey.id}

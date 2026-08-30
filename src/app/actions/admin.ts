@@ -154,12 +154,11 @@ export async function adminDeleteComment(
   const model = commentModelMap[commentType];
   if (!model) throw new Error("Invalid comment type");
 
+  // RULE 4: soft delete — toggle isDeleted (plus the companion freeze), never
+  // destroy the row, so the comment can be recovered from the admin panel.
   await model.update({
     where: { id: commentId },
-    data: {
-      content: "[This comment was deleted by an administrator]",
-      authorId: null,
-    },
+    data: { isDeleted: true, isFrozen: true },
   });
 
   return { success: true, data: { id: commentId } };
@@ -334,13 +333,15 @@ export async function getAdminContent(
   const countOf = (model: unknown, where?: Record<string, unknown>) =>
     (model as { count: (args?: { where?: Record<string, unknown> }) => Promise<number> }).count({ where });
 
-  // Status filter → Prisma where. Comments have no isFrozen/isDeleted
-  // columns; their "deleted" state is the tombstone (authorId: null).
+  // Status filter → Prisma where. Comments are soft-deleted/frozen with the
+  // same isDeleted / isFrozen columns as every other content type (RULE 4).
+  // Legacy tombstones (authorId: null) are surfaced as deleted as well.
   const buildStatusWhere = (): Record<string, unknown> | undefined => {
     if (view === "comments") {
-      if (statusFilter === "deleted") return { authorId: null };
-      if (statusFilter === "active") return { authorId: { not: null } };
-      return undefined; // "frozen" — comments have no frozen flag
+      if (statusFilter === "deleted") return { OR: [{ isDeleted: true }, { authorId: null }] };
+      if (statusFilter === "active") return { isDeleted: false, isFrozen: false, authorId: { not: null } };
+      if (statusFilter === "frozen") return { isFrozen: true, isDeleted: false };
+      return undefined;
     }
     if (statusFilter === "active") return { isDeleted: false, isFrozen: false };
     if (statusFilter === "frozen") return { isFrozen: true };
@@ -372,8 +373,7 @@ export async function getAdminContent(
     };
 
     const commentConfig = contentType ? sectionCommentModels[contentType] : undefined;
-    if (!commentConfig || statusFilter === "frozen") {
-      // Comments have no isFrozen column — a "frozen" filter yields nothing.
+    if (!commentConfig) {
       return { items: [], total: 0, page, pageSize, totalPages: 1 };
     }
 

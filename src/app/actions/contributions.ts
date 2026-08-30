@@ -53,6 +53,7 @@ export async function getContributions(
         },
       },
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -86,14 +87,17 @@ export const getContribution = cache(async (id: string, userId?: string) => {
         },
       },
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      comments: {
-        where: { parentId: null },
+            comments: {
+        where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,
         select: {
+          isDeleted: true,
+          isFrozen: true,
           id: true,
           content: true,
           createdAt: true,
@@ -265,7 +269,7 @@ export async function deleteContribution(contributionId: string) {
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
-    select: { authorId: true },
+    select: { authorId: true, totalVotes: true },
   });
 
   if (!contribution) throw new Error("Contribution not found.");
@@ -283,6 +287,15 @@ export async function deleteContribution(contributionId: string) {
       where: { id: contribution.authorId },
       data: { contributionCount: { decrement: 1 } },
     });
+
+    // Reverse the vote-derived reputation so RECOVER can re-grant it exactly
+    // (same invariant as every other content type's delete flow).
+    if (contribution.totalVotes !== 0) {
+      await tx.user.update({
+        where: { id: contribution.authorId },
+        data: { reputation: { decrement: contribution.totalVotes } },
+      });
+    }
   });
 
   // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.

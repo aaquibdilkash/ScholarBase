@@ -57,6 +57,7 @@ const AdmissionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isFrozen={admission.isFrozen ?? false}
       backHref="/admissions"
       backLabel="Back to PhD Admissions"
       authorHref={`/scholars/${admission.author?.id}`}
@@ -116,7 +117,8 @@ const AdmissionDetailPage = async ({
         </div>
       }
       discussion={
-          <CommentSection
+            <CommentSection
+              locked={admission.isFrozen ?? false}
             comments={admission.comments}
             totalComments={admission.totalComments}
             targetId={admission.id}

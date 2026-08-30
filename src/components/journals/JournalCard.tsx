@@ -73,6 +73,7 @@ export function JournalCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={journal.isFrozen === true}
           targetId={journal.id}
           module="JOURNAL"
           initialTotalVotes={journal.totalVotes ?? 0}

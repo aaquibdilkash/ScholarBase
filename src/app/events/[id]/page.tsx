@@ -53,6 +53,7 @@ const EventDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isFrozen={event.isFrozen ?? false}
       backHref="/events"
       backLabel="Back to Events"
       authorHref={`/scholars/${event.author?.id}`}
@@ -121,7 +122,8 @@ const EventDetailPage = async ({
         </div>
       }
       discussion={
-           <CommentSection
+             <CommentSection
+               locked={event.isFrozen ?? false}
              comments={event.comments}
              totalComments={event.totalComments}
              targetId={event.id}

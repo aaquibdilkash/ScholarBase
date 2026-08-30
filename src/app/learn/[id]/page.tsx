@@ -52,6 +52,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
 
   return (
     <DetailPageCardShell
+      isFrozen={course.isFrozen ?? false}
       backHref="/learn"
       backLabel="Back to Courses"
       authorHref={`/scholars/${course.author?.id}`}
@@ -70,7 +71,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       footerReportMenu={
         <ReportMenu entityId={course.id} entityType="POST" module="COURSE" />
       }
-      discussion={<CommentSection comments={course.comments} totalComments={course.totalComments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author?.id} />}
+      discussion={<CommentSection locked={course.isFrozen ?? false} comments={course.comments} totalComments={course.totalComments} targetId={course.id} module="course" currentUserId={user?.id || null} postAuthorId={course.author?.id} />}
     >
       <h1 className="mb-3 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">{course.title}</h1>
       {details.length > 0 && (

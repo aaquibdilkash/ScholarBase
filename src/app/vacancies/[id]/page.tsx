@@ -77,6 +77,7 @@ const VacancyDetailPage = ({
 
   return (
     <DetailPageCardShell
+      isFrozen={vacancy.isFrozen ?? false}
       backHref="/vacancies"
       backLabel="Back to Academic Vacancies"
       authorHref={`/scholars/${vacancy.author?.id}`}
@@ -136,7 +137,8 @@ const VacancyDetailPage = ({
         </div>
       }
       discussion={
-           <CommentSection
+              <CommentSection
+                locked={vacancy.isFrozen ?? false}
               comments={vacancy.comments as CommentWithAuthorAndVotes[]}
               totalComments={vacancy.totalComments}
              targetId={vacancy.id}

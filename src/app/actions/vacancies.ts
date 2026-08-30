@@ -42,6 +42,7 @@ export async function getVacancies(
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       authorId: true,
       author: {
@@ -80,6 +81,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       authorId: true,
       author: {
@@ -96,11 +98,13 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
             : false,
         },
       },
-      comments: {
-        where: { parentId: null },
+            comments: {
+        where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {
+          isDeleted: true,
+          isFrozen: true,
           id: true,
           content: true,
           createdAt: true,
@@ -161,6 +165,7 @@ export async function createJobVacancy(formData: FormData) {
         updatedAt: true,
         editedAt: true,
         totalVotes: true,
+        isFrozen: true,
         totalComments: true,
         author: {
           select: { id: true, name: true, handle: true, avatarUrl: true },
@@ -235,6 +240,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       author: {
         select: { id: true, name: true, handle: true, avatarUrl: true },
@@ -301,6 +307,7 @@ export async function getLatestVacancies(count: number, userId?: string) {
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       author: {
         select: {

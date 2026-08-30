@@ -84,6 +84,7 @@ export function SurveyCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={survey.isFrozen === true}
           targetId={survey.id}
           module="RESEARCH_SURVEY"
           initialTotalVotes={survey.totalVotes}

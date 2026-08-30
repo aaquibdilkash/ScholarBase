@@ -34,8 +34,8 @@ interface AdminActionsDropdownProps {
   /** Already soft-deleted rows cannot be deleted again or dismissed —
    *  hides the Delete and Dismiss Reports options. */
   isDeleted?: boolean;
-  /** Tombstoned comment (authorId: null) — renders a muted trash icon
-   *  instead of the dropdown; there are no moderation options left. */
+  /** Legacy tombstoned comment (authorId: null) — renders a muted trash
+   *  icon instead of the dropdown; there are no moderation options left. */
   isTombstone?: boolean;
 }
 
@@ -103,21 +103,17 @@ export function AdminActionsDropdown({
         title: "Success",
         description: messages[result.action] ?? "Action completed successfully.",
       });
-      if (result.data.removed) {
-        // Hard-deleted row (comment without replies) — drop it from cache.
-        patchAdminContentCache(queryClient, contentId, { removed: true });
-      } else {
-        // Sync with the server truth (no refetch).
-        patchAdminContentCache(queryClient, contentId, {
-          isFrozen: result.data.isFrozen,
-          isDeleted: result.data.isDeleted,
-          reportCount: result.data.reportCount,
-        });
-        if (result.action === "DELETE") {
-          adjustAdminStatsCache(queryClient, sectionId, -1);
-        } else if (result.action === "RECOVER") {
-          adjustAdminStatsCache(queryClient, sectionId, 1);
-        }
+      // Sync with the server truth (no refetch). Comments are soft-deleted
+      // now (RULE 4), so rows are always patched, never removed.
+      patchAdminContentCache(queryClient, contentId, {
+        isFrozen: result.data.isFrozen,
+        isDeleted: result.data.isDeleted,
+        reportCount: result.data.reportCount,
+      });
+      if (result.action === "DELETE") {
+        adjustAdminStatsCache(queryClient, sectionId, -1);
+      } else if (result.action === "RECOVER") {
+        adjustAdminStatsCache(queryClient, sectionId, 1);
       }
     },
     onError: (error: Error, _action, context) => {

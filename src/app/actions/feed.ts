@@ -88,6 +88,7 @@ const getFeed = async (
       },
       // RULE 6: Use materialized counters
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       // RULE 6: Filtered select for user's vote
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
@@ -130,12 +131,13 @@ export const getPost = cache(async (id: string, userId?: string) => {
       },
       // RULE 6: Use materialized counters and filtered selects
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       // LAZY PAGINATION: ship only the first page of parent comments.
       // Replies are fetched on demand by CommentThread via fetchReplies().
-      comments: {
-        where: { parentId: null },
+            comments: {
+        where: { parentId: null, isDeleted: false },
         select: {
           id: true,
           content: true,
@@ -144,6 +146,8 @@ export const getPost = cache(async (id: string, userId?: string) => {
           editedAt: true,
           parentId: true,
           authorId: true,
+          isDeleted: true,
+          isFrozen: true,
           author: {
             select: {
               id: true,

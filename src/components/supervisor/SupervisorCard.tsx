@@ -73,6 +73,7 @@ export function SupervisorCard({
       createdDate={supervisor.createdAt}
       footerVoteButton={
         <VoteButton
+          frozen={supervisor.isFrozen === true}
           targetId={supervisor.id}
           module="SUPERVISOR"
           initialTotalVotes={supervisor.totalVotes ?? 0}

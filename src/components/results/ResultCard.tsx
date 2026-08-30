@@ -80,6 +80,7 @@ export function ResultCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={result.isFrozen === true}
           targetId={result.id}
           module="RESULT"
           initialTotalVotes={result.totalVotes ?? 0}

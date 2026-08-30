@@ -57,6 +57,7 @@ export default async function SinglePostPage({
 
   return (
     <DetailPageCardShell
+      isFrozen={p.isFrozen ?? false}
       backHref="/feed"
       backLabel="Back to Feed"
       authorHref={`/scholars/${p.author?.id}`}
@@ -98,7 +99,8 @@ export default async function SinglePostPage({
         <ReportMenu entityId={p.id} entityType="POST" module="SOCIAL_FEED" />
       }
       discussion={
-        <CommentSection
+          <CommentSection
+            locked={p.isFrozen ?? false}
           comments={p.comments as CommentWithAuthorAndVotes[]}
           totalComments={p.totalComments}
           targetId={p.id}

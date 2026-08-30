@@ -57,6 +57,7 @@ export function SocialPostCard({
       editedDate={post.editedAt && post.editedAt > post.createdAt ? post.editedAt : undefined}
       footerVoteButton={
         <VoteButton
+          frozen={post.isFrozen === true}
           targetId={post.id}
           module="SOCIAL_POST"
           initialTotalVotes={post.totalVotes ?? 0}

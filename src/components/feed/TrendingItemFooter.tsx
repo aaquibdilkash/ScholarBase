@@ -14,6 +14,7 @@ type FooterItem = {
     | "contribution";
   totalVotes: number;
   totalComments: number;
+  isFrozen?: boolean;
 };
 
 export function TrendingItemFooter({ item }: { item: FooterItem }) {
@@ -37,6 +38,7 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
   return (
     <div className="flex items-center gap-6">
       <VoteButton
+        frozen={item.isFrozen === true}
         targetId={item.id}
         module={
           type === "vacancy"

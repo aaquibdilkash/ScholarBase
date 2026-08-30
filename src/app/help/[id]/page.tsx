@@ -55,6 +55,7 @@ export default async function HelpPostPage({
 
   return (
     <DetailPageCardShell
+      isFrozen={post.isFrozen ?? false}
       backHref="/help"
       backLabel="Back to Help & Support"
       authorHref={`/scholars/${post.author?.id}`}
@@ -91,7 +92,8 @@ export default async function HelpPostPage({
         <ReportMenu entityId={post.id} entityType="POST" module="HELP_POST" />
       }
       discussion={
-        <CommentSection
+          <CommentSection
+            locked={post.isFrozen ?? false}
           comments={post.comments}
           totalComments={post.totalComments}
           targetId={post.id}

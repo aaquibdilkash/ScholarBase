@@ -486,16 +486,24 @@ export function AdminDashboard({
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {/* Comments have no isDeleted/isFrozen columns —
-                                only show the tombstone tag for them. */}
+                            {/* Comments are soft-deleted/frozen with the same
+                                isDeleted/isFrozen columns as other content
+                                (RULE 4). Legacy tombstones (authorId: null)
+                                surface as Deleted too. */}
                             {view === "comments" ? (
-                              item.authorId == null ? (
+                              item.isDeleted || item.authorId == null ? (
                                 <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                   Deleted
                                 </span>
                               ) : (
-                                <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-300">
-                                  Active
+                                <span
+                                  className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                    item.isFrozen
+                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                  }`}
+                                >
+                                  {item.isFrozen ? "Frozen" : "Active"}
                                 </span>
                               )
                             ) : (
@@ -581,17 +589,19 @@ export function AdminDashboard({
                                 }
                                 contentId={item.id}
                                 reportCount={item.reportCount ?? 0}
-                                showFreeze={
-                                  view !== "comments" && !item.isDeleted
-                                }
+                                showFreeze={!item.isDeleted}
                                 isFrozen={item.isFrozen}
                                 isDeleted={
-                                  view !== "comments" && item.isDeleted
+                                  view === "comments"
+                                    ? item.isDeleted || item.authorId == null
+                                    : item.isDeleted
                                 }
                                 isTombstone={
                                   view === "comments" &&
-                                  item.authorId == null
+                                  item.authorId == null &&
+                                  !item.isDeleted
                                 }
+                                entityLabel={view === "comments" ? "Comment" : undefined}
                                 disabled={isPending}
                                 sectionId={activeTab}
                               />

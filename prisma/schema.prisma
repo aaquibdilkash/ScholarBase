@@ -114,24 +114,24 @@ enum DigestPreference {
 }
 
 model Article {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
-  slug      String   @unique
+  slug      String    @unique
   excerpt   String?
   content   String
-  published Boolean  @default(false)
-  isFrozen  Boolean  @default(false)
+  published Boolean   @default(false)
+  isFrozen  Boolean   @default(false)
   authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author   User             @relation(fields: [authorId], references: [id])
   comments ArticleComment[]
@@ -142,28 +142,28 @@ model Article {
 }
 
 model Supervisor {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
   university String
   department String
   about      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen   Boolean  @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  editedAt   DateTime?
+  isFrozen   Boolean   @default(false)
 
   // Creator/owner of this supervisor profile
   authorId String
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int     @default(0)
-  totalComments Int     @default(0)
+  totalVotes          Int     @default(0)
+  totalComments       Int     @default(0)
   // Materialized recommendation aggregates (avg = ratingSum / recommendationCount)
-  recommendationCount Int @default(0)
-  ratingSum           Int @default(0)
-  trendingScore Float   @default(0)
-  isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  recommendationCount Int     @default(0)
+  ratingSum           Int     @default(0)
+  trendingScore       Float   @default(0)
+  isDeleted           Boolean @default(false)
+  reportCount         Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -176,22 +176,22 @@ model Supervisor {
 }
 
 model SocialPost {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   imageUrl  String?
   imageUrls String[]
   authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen  Boolean  @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
+  isFrozen  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   comments SocialComment[]
   votes    SocialVote[]
@@ -202,20 +202,21 @@ model SocialPost {
 }
 
 model ArticleComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   articleId String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   article  Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -241,19 +242,21 @@ model ArticleVote {
 }
 
 model SocialComment {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   content      String
   socialPostId String
   parentId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  editedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   author     User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
   parent     SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
@@ -334,9 +337,9 @@ model Report {
   reason     ReportReason
   details    String?
   reporterId String
-  status     ReportStatus  @default(PENDING)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
@@ -347,23 +350,23 @@ model Report {
 }
 
 model HelpPost {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
   subject   String
   category  String
   message   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
   authorId  String
-  isFrozen  Boolean  @default(false)
+  isFrozen  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -389,19 +392,21 @@ model HelpPostVote {
 }
 
 model HelpPostComment {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   content    String
   helpPostId String
   parentId   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  editedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  editedAt   DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
   author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -442,7 +447,7 @@ model Contribution {
   authorId        String
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
-  editedAt DateTime?
+  editedAt        DateTime?
   isFrozen        Boolean            @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -450,7 +455,7 @@ model Contribution {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -476,19 +481,21 @@ model ContributionVote {
 }
 
 model ContributionComment {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   content        String
   contributionId String
   parentId       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  editedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   contribution Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -535,14 +542,14 @@ model Publication {
   authorId            String
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
-  editedAt DateTime?
+  editedAt            DateTime?
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes    PublicationVote[]
@@ -566,19 +573,21 @@ model PublicationVote {
 }
 
 model PublicationComment {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   content       String
   publicationId String
   parentId      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  editedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  editedAt      DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   author      User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -616,45 +625,45 @@ model User {
   helpPostComments     HelpPostComment[]
   helpPostCommentVotes HelpPostCommentVote[]
 
-  email            String   @unique
+  email            String    @unique
   name             String?
   avatarUrl        String?
-  handle           String?  @unique
+  handle           String?   @unique
   bio              String?
   githubUrl        String?
   orcidUrl         String?
   linkedinUrl      String?
   googleScholarUrl String?
-  reputation       Int      @default(0)
-  isAdmin          Boolean  @default(false)
-  isFrozen         Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  editedAt DateTime?
+  reputation       Int       @default(0)
+  isAdmin          Boolean   @default(false)
+  isFrozen         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  editedAt         DateTime?
 
   // ZERO-COMPUTE COUNTERS & LOG
-  followersCount       Int    @default(0)
-  followingCount       Int    @default(0)
-  isDeleted            Boolean @default(false)
-  reportCount          Int     @default(0)
-  activities           UserActivity[]
+  followersCount Int            @default(0)
+  followingCount Int            @default(0)
+  isDeleted      Boolean        @default(false)
+  reportCount    Int            @default(0)
+  activities     UserActivity[]
 
-  articleCount         Int @default(0)
-  socialPostCount      Int @default(0)
-  jobVacancyCount      Int @default(0)
-  phdAdmissionCount    Int @default(0)
-  researchEventCount   Int @default(0)
-  helpPostCount        Int @default(0)
-  journalCount         Int @default(0)
-  researchToolCount    Int @default(0)
-  recommendationCount  Int @default(0)
-  supervisorCount      Int @default(0)
-  resultCount          Int @default(0)
-  contributionCount    Int @default(0)
-  publicationCount     Int @default(0)
-  surveyCount          Int @default(0)
-  researchGrantCount   Int @default(0)
-  courseCount          Int @default(0)
+  articleCount        Int @default(0)
+  socialPostCount     Int @default(0)
+  jobVacancyCount     Int @default(0)
+  phdAdmissionCount   Int @default(0)
+  researchEventCount  Int @default(0)
+  helpPostCount       Int @default(0)
+  journalCount        Int @default(0)
+  researchToolCount   Int @default(0)
+  recommendationCount Int @default(0)
+  supervisorCount     Int @default(0)
+  resultCount         Int @default(0)
+  contributionCount   Int @default(0)
+  publicationCount    Int @default(0)
+  surveyCount         Int @default(0)
+  researchGrantCount  Int @default(0)
+  courseCount         Int @default(0)
 
   articles            Article[]
   articleComments     ArticleComment[]
@@ -722,7 +731,7 @@ model User {
   resultComments     ResultComment[]
   resultCommentVotes ResultCommentVote[]
 
-   // Digest email frequency control (Notification Digest system)
+  // Digest email frequency control (Notification Digest system)
   digestPreference DigestPreference @default(DAILY)
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
@@ -744,7 +753,7 @@ model User {
   conversationParticipants ConversationParticipant[]
   messagesSent             Message[]
 
-  trendingScore Float   @default(0)
+  trendingScore Float @default(0)
 
   // INDEX: The scholar directory (getScholars / getTrendingScholars) orders by
   // reputation and createdAt. The User table previously had NO non-unique
@@ -766,8 +775,8 @@ model Notification {
   // Tracks whether this notification has been included in a digest email
   isEmailed   Boolean   @default(false)
   createdAt   DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
   recipient   User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   actor       User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
 
@@ -784,8 +793,8 @@ model Conversation {
   createdById   String
   lastMessageAt DateTime                  @default(now())
   createdAt     DateTime                  @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt DateTime?
+  updatedAt     DateTime                  @updatedAt
+  editedAt      DateTime?
   createdBy     User                      @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: Cascade)
   participants  ConversationParticipant[]
   messages      Message[]
@@ -798,8 +807,8 @@ model ConversationParticipant {
   conversationId String
   userId         String
   joinedAt       DateTime     @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt DateTime?
+  updatedAt      DateTime     @updatedAt
+  editedAt       DateTime?
   lastReadAt     DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -814,9 +823,9 @@ model Message {
   senderId       String
   body           String
   createdAt      DateTime     @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt DateTime?
-  isDeleted Boolean?
+  updatedAt      DateTime     @updatedAt
+  editedAt       DateTime?
+  isDeleted      Boolean?
   readAt         DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -827,23 +836,23 @@ model Message {
 }
 
 model ResearchTool {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   website     String
   use         String
   description String
   authorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen    Boolean  @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
+  isFrozen    Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author   User                  @relation(fields: [authorId], references: [id])
   comments ResearchToolComment[]
@@ -867,19 +876,21 @@ model ResearchToolVote {
 }
 
 model ResearchToolComment {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   content        String
   researchToolId String
   parentId       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  editedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   researchTool ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
   author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -905,24 +916,24 @@ model ResearchToolCommentVote {
 }
 
 model ResearchGrant {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   amount      String?
   description String
   applyLink   String?
   infoLink    String?
   authorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen    Boolean  @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
+  isFrozen    Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author   User                   @relation(fields: [authorId], references: [id])
   comments ResearchGrantComment[]
@@ -946,19 +957,21 @@ model ResearchGrantVote {
 }
 
 model ResearchGrantComment {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   content         String
   researchGrantId String
   parentId        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  editedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   researchGrant ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
   author        User?                      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -984,7 +997,7 @@ model ResearchGrantCommentVote {
 }
 
 model Course {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   provider    String?
   instructor  String?
@@ -995,17 +1008,17 @@ model Course {
   link        String
   description String
   authorId    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen    Boolean  @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
+  isFrozen    Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author   User            @relation(fields: [authorId], references: [id])
   comments CourseComment[]
@@ -1029,19 +1042,21 @@ model CourseVote {
 }
 
 model CourseComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   courseId  String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   course   Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   author   User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1067,35 +1082,35 @@ model CourseCommentVote {
 }
 
 model Journal {
-  id           String   @id @default(cuid())
-  title        String
-  issn         String?
-  impactFactor Float?
-  scopusQuartile Quartile   @default(NONE)
-  abdcRanking   AbdcTier    @default(NONE)
-  wosIndex       WosIndex    @default(NONE)
-  wosQuartile    Quartile    @default(NONE)
-  sjrQuartile    Quartile    @default(NONE)
+  id             String    @id @default(cuid())
+  title          String
+  issn           String?
+  impactFactor   Float?
+  scopusQuartile Quartile  @default(NONE)
+  abdcRanking    AbdcTier  @default(NONE)
+  wosIndex       WosIndex  @default(NONE)
+  wosQuartile    Quartile  @default(NONE)
+  sjrQuartile    Quartile  @default(NONE)
   sjrScore       Float?
   citeScore      Float?
-  publisher    String?
-  website      String?
-  authorId     String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen     Boolean  @default(false)
+  publisher      String?
+  website        String?
+  authorId       String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
+  isFrozen       Boolean   @default(false)
 
-  subjectArea  String?
-  frequency    String?
-  openAccess   OpenAccessStatus @default(UNKNOWN)
+  subjectArea String?
+  frequency   String?
+  openAccess  OpenAccessStatus @default(UNKNOWN)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author   User             @relation(fields: [authorId], references: [id])
   comments JournalComment[]
@@ -1120,19 +1135,21 @@ model JournalVote {
 }
 
 model JournalComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   journalId String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   journal  Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
   author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1158,7 +1175,7 @@ model JournalCommentVote {
 }
 
 model Result {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   title            String
   description      String
   type             String // ADMISSION | VACANCY | EVENT | EXAM | OTHER
@@ -1167,18 +1184,18 @@ model Result {
   session          String? // e.g. "June 2024", "December 2024"
   notificationLink String?
   resultLink       String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  editedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean  @default(false)
+  isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1203,19 +1220,21 @@ model ResultVote {
 }
 
 model ResultComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   resultId  String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
   author User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1252,7 +1271,7 @@ model ResearchSurvey {
   authorId    String
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
-  editedAt DateTime?
+  editedAt    DateTime?
   isFrozen    Boolean       @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -1275,50 +1294,50 @@ model ResearchSurvey {
 }
 
 model SurveyQuestion {
-  id         String             @id @default(cuid())
+  id         String                 @id @default(cuid())
   surveyId   String
   type       SurveyQuestionType
   title      String
-  required   Boolean            @default(false)
+  required   Boolean                @default(false)
   order      Int
   minValue   Int?
   maxValue   Int?
   archivedAt DateTime?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  editedAt DateTime?
-  survey  ResearchSurvey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  options SurveyQuestionOption[]
-  answers SurveyAnswer[]
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+  editedAt   DateTime?
+  survey     ResearchSurvey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  options    SurveyQuestionOption[]
+  answers    SurveyAnswer[]
 
   // ZERO-COMPUTE FIELDS
   totalAnswers Int @default(0)
 }
 
 model SurveyQuestionOption {
-  id         String    @id @default(cuid())
+  id         String         @id @default(cuid())
   questionId String
   value      String
   label      String
   order      Int
   archivedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt DateTime?
-  question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  editedAt   DateTime?
+  question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model SurveyResponse {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   surveyId     String
   respondentId String?
-  isAnonymous  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt DateTime?
-  survey     ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  respondent User?          @relation(fields: [respondentId], references: [id])
-  answers    SurveyAnswer[]
+  isAnonymous  Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  editedAt     DateTime?
+  survey       ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  respondent   User?          @relation(fields: [respondentId], references: [id])
+  answers      SurveyAnswer[]
 }
 
 model SurveyAnswer {
@@ -1345,19 +1364,21 @@ model SurveyVote {
 }
 
 model SurveyComment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   content   String
   surveyId  String
   parentId  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  editedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   author User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1421,7 +1442,7 @@ model ResearchEvent {
   applyLink        String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  editedAt DateTime?
+  editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
 
@@ -1430,7 +1451,7 @@ model ResearchEvent {
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1455,19 +1476,21 @@ model ResearchEventVote {
 }
 
 model ResearchEventComment {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   content         String
   researchEventId String
   parentId        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  editedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
   author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1495,25 +1518,25 @@ model ResearchEventCommentVote {
 }
 
 model PhdAdmission {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   university       String
   department       String
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  editedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean  @default(false)
+  isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1538,19 +1561,21 @@ model PhdAdmissionVote {
 }
 
 model PhdAdmissionComment {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   content        String
   phdAdmissionId String
   parentId       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  editedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
   author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1578,25 +1603,25 @@ model PhdAdmissionCommentVote {
 }
 
 model JobVacancy {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   title            String
   institution      String
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  editedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean  @default(false)
+  isFrozen         Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   author User @relation(fields: [authorId], references: [id])
 
@@ -1621,19 +1646,21 @@ model JobVacancyVote {
 }
 
 model JobVacancyComment {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   content      String
   jobVacancyId String
   parentId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  editedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
   author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1674,19 +1701,21 @@ model SupervisorVote {
 }
 
 model SupervisorComment {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   content      String
   supervisorId String
   parentId     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  editedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User?                   @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1712,33 +1741,33 @@ model SupervisorCommentVote {
 }
 
 model Recommendation {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   rating              Int
   feedback            String
   turnaroundTimeDays  Int
   responsivenessScore Int
   guidanceScore       Int
-  isAnonymous         Boolean  @default(false)
+  isAnonymous         Boolean   @default(false)
   supervisorId        String
   authorId            String
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  editedAt DateTime?
-  isFrozen            Boolean  @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  editedAt            DateTime?
+  isFrozen            Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int     @default(0)
   totalComments Int     @default(0)
   trendingScore Float   @default(0)
   isDeleted     Boolean @default(false)
-  reportCount  Int     @default(0)
+  reportCount   Int     @default(0)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User                    @relation(fields: [authorId], references: [id])
   votes      RecommendationVote[]
   comments   RecommendationComment[]
 
-    // NOTE: uniqueness of one ACTIVE recommendation per (author, supervisor) is
+  // NOTE: uniqueness of one ACTIVE recommendation per (author, supervisor) is
   // enforced by a PARTIAL unique index in SQL:
   //   CREATE UNIQUE INDEX ... ON "Recommendation"("authorId","supervisorId") WHERE "isDeleted" = false;
   // A full @@unique here would count soft-deleted tombstones and crash
@@ -1761,19 +1790,21 @@ model RecommendationVote {
 }
 
 model RecommendationComment {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   content          String
   recommendationId String
   parentId         String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  editedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  editedAt         DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId     String?
   totalVotes   Int     @default(0)
   totalReplies Int     @default(0)
   reportCount  Int     @default(0)
+  isDeleted    Boolean @default(false)
+  isFrozen     Boolean @default(false)
 
   recommendation Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   author         User?                       @relation(fields: [authorId], references: [id], onDelete: SetNull)

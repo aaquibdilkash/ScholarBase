@@ -70,6 +70,7 @@ export function ResearchToolCard({
       editedDate={tool.editedAt && tool.editedAt > tool.createdAt ? tool.editedAt : undefined}
       footerVoteButton={
         <VoteButton
+          frozen={tool.isFrozen === true}
           targetId={tool.id}
           module="RESEARCH_TOOL"
           initialTotalVotes={tool.totalVotes ?? 0}

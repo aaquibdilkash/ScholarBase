@@ -72,6 +72,7 @@ export function VacancyCard({
       createdDate={vacancy.createdAt}
       footerVoteButton={
         <VoteButton
+          frozen={vacancy.isFrozen === true}
           targetId={vacancy.id}
           module="JOB_VACANCY"
           initialTotalVotes={vacancy.totalVotes ?? 0}

@@ -344,6 +344,8 @@ interface CommentCardProps {
   editingId: string | null;
   setEditingId: (id: string | null) => void;
   toast: ToastFn;
+  /** Whole discussion locked (frozen parent post) — disables replying. */
+  locked?: boolean;
 }
 
 function CommentCard({
@@ -361,6 +363,7 @@ function CommentCard({
   editingId,
   setEditingId,
   toast,
+  locked = false,
 }: CommentCardProps) {
   const isOwner = !!currentUserId && comment.author?.id === currentUserId;
   const wasEdited =
@@ -368,7 +371,12 @@ function CommentCard({
     new Date(comment.editedAt).getTime() -
       new Date(comment.createdAt).getTime() >
       1000;
-  const isTombstone = !comment.authorId || !comment.author;
+  // RULE 4: soft-deleted comments (isDeleted) and legacy tombstones
+  // (authorId: null) both render the muted "[deleted]" placeholder card.
+  const isTombstone = comment.isDeleted || !comment.authorId || !comment.author;
+  // Frozen comments stay visible but read-only: no voting, reporting,
+  // editing or replying until an admin unfreezes them.
+  const isFrozen = comment.isFrozen === true;
 
   const [editedContent, setEditedContent] = useState(comment.content);
   const [editedMentions, setEditedMentions] = useState<MentionUser[]>(
@@ -406,7 +414,8 @@ function CommentCard({
     try {
       const response = await deleteComment(comment.id, module);
       if (response?.success) {
-        // RULE 4: tombstone keeps the row alive; hard delete removes it locally.
+        // RULE 4: soft delete keeps the row alive (isDeleted = true);
+        // the card stays in place as a "[deleted]" placeholder.
         if (response.data.wasTombstoned) {
           onTombstoned();
         } else {
@@ -433,7 +442,11 @@ function CommentCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}>
-            <p className="italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">{comment.content}</p>
+            <p className="italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
+              {comment.isDeleted
+                ? "[This comment was deleted by the author]"
+                : comment.content}
+            </p>
           </div>
           {!isReply && (
             <span className="ml-2 mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 md:text-xs">
@@ -553,29 +566,37 @@ function CommentCard({
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-2 md:gap-3">
-                  <ReportMenu
-                    entityId={comment.id}
-                    entityType="COMMENT"
-                    module={COMMENT_REPORT_MODULE[module]}
-                  />
-                  <CommentActionsDropdown
-                    isOwner={isOwner}
-                    onEdit={() => setEditingId(comment.id)}
-                    onDelete={handleDeleteComment}
-                  />
-                  <CommentVoteButton
-                    commentId={comment.id}
-                    type={module}
-                    initialTotalVotes={comment.totalVotes}
-                    initialUserVote={comment.votes?.[0]?.voteType ?? null}
-                  />
+                  {isFrozen ? (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 md:text-xs">
+                      ❄ Frozen by moderators
+                    </span>
+                  ) : (
+                    <>
+                      <ReportMenu
+                        entityId={comment.id}
+                        entityType="COMMENT"
+                        module={COMMENT_REPORT_MODULE[module]}
+                      />
+                      <CommentActionsDropdown
+                        isOwner={isOwner}
+                        onEdit={() => setEditingId(comment.id)}
+                        onDelete={handleDeleteComment}
+                      />
+                      <CommentVoteButton
+                        commentId={comment.id}
+                        type={module}
+                        initialTotalVotes={comment.totalVotes}
+                        initialUserVote={comment.votes?.[0]?.voteType ?? null}
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             </>
           )}
         </div>
 
-        {!isReply && (
+        {!isReply && !isFrozen && !locked && (
           <button
             onClick={onToggleReplyForm}
             className="ml-2 mt-2 text-[11px] font-bold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
@@ -601,6 +622,7 @@ export function CommentThread({
   targetId,
   currentUserId,
   postAuthorId,
+  locked = false,
   onCountDelta,
   onRemoved,
 }: {
@@ -609,6 +631,7 @@ export function CommentThread({
   targetId: string;
   currentUserId: string | null;
   postAuthorId?: string | null;
+  locked?: boolean;
   onCountDelta: (delta: number) => void;
   onRemoved: () => void;
 }) {
@@ -662,6 +685,7 @@ export function CommentThread({
         currentUserId={currentUserId}
         postAuthorId={postAuthorId}
         replyingToThis={activeReplyId === comment.id}
+        locked={locked}
         onToggleReplyForm={() =>
           setActiveReplyId(activeReplyId === comment.id ? null : comment.id)
         }
@@ -669,9 +693,8 @@ export function CommentThread({
         onTombstoned={() =>
           setComment((c) => ({
             ...c,
-            content: "[This comment was deleted by author]",
-            authorId: null,
-            author: null,
+            // RULE 4: soft delete — toggle isDeleted, keep the row intact.
+            isDeleted: true,
           }))
         }
         onHardDeleted={() => onRemoved()}
@@ -697,7 +720,9 @@ export function CommentThread({
           </button>
         )}
 
-        {activeReplyId === comment.id && !!comment.authorId && (
+        {activeReplyId === comment.id &&
+          !!comment.authorId &&
+          !comment.isDeleted && (
           <ReplyForm
             targetId={targetId}
             module={module}
@@ -719,6 +744,7 @@ export function CommentThread({
                 currentUserId={currentUserId}
                 postAuthorId={postAuthorId}
                 replyingToThis={false}
+                locked={locked}
                 onToggleReplyForm={() => {}}
                 onEdited={(next) =>
                   setReplies((prev) =>
@@ -728,14 +754,7 @@ export function CommentThread({
                 onTombstoned={() =>
                   setReplies((prev) =>
                     prev.map((r) =>
-                      r.id === reply.id
-                        ? {
-                            ...r,
-                            content: "[This comment was deleted by author]",
-                            authorId: null,
-                            author: null,
-                          }
-                        : r,
+                      r.id === reply.id ? { ...r, isDeleted: true } : r,
                     ),
                   )
                 }

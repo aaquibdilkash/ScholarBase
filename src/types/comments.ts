@@ -39,6 +39,10 @@ export interface CommentWithAuthorAndVotes {
   totalVotes: number;
   totalReplies?: number;
   author: CommentAuthor | null;
+  /** Soft-delete flag (RULE 4) — true renders the "[deleted]" placeholder. */
+  isDeleted?: boolean;
+  /** Admin freeze flag (RULE 4) — true blocks further interaction. */
+  isFrozen?: boolean;
   votes: { voteType: VoteType }[] | undefined;
   // Prisma stores mentions as a Json column, so the wire type is JsonValue
   // (array-shaped at runtime). Consumers defensively cast after Array.isArray.

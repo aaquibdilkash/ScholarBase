@@ -296,12 +296,13 @@ export async function handleVoteTransaction(
     const [entity, existingVote] = await Promise.all([
       parent.findUnique({
         where: { id: entityId },
-        select: { [config.titleField]: true, totalVotes: true, authorId: true },
+        select: { [config.titleField]: true, totalVotes: true, authorId: true, isFrozen: true },
       }),
       vote.findUnique({ where: voteWhere, select: { voteType: true } }),
     ])
 
     if (!entity) throw new Error("The content you're trying to vote on does not exist.")
+    if (entity.isFrozen) throw new Error('This content is frozen by moderators and cannot be voted on.')
 
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
@@ -400,12 +401,20 @@ export async function handleCommentVoteTransaction(
     const [comment, existingVote] = await Promise.all([
       commentModel.findUnique({
         where: { id: commentId },
-        select: { totalVotes: true, [config.commentFk]: true, content: true, authorId: true },
+        select: { totalVotes: true, [config.commentFk]: true, content: true, authorId: true, isFrozen: true },
       }),
       commentVote.findUnique({ where: voteWhere, select: { voteType: true } }),
     ])
 
     if (!comment) throw new Error("Comment not found.")
+    if (comment.isFrozen) throw new Error("This comment is frozen by moderators and cannot be voted on.")
+
+    // Votes on a comment are also blocked when its parent content is frozen.
+    const parentEntity = await (config.parent as unknown as AnyDelegate).findUnique({
+      where: { id: (comment as any)[config.commentFk] },
+      select: { isFrozen: true },
+    })
+    if (parentEntity?.isFrozen) throw new Error("This discussion is frozen by moderators and cannot be voted on.")
 
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
@@ -487,9 +496,10 @@ export async function createCommentTransaction(
   return prisma.$transaction(async (prisma) => {
     const parentEntity = await parent.findUnique({
       where: { id: entityId },
-      select: { [titleField]: true },
+      select: { [titleField]: true, isFrozen: true },
     })
     if (!parentEntity) throw new Error('Parent entity not found.')
+    if ((parentEntity as any).isFrozen) throw new Error('This content is frozen by moderators and cannot be commented on.')
     const entityTitle = (parentEntity as any)[titleField] as string
 
     const createdComment = await commentModel.create({
@@ -504,6 +514,13 @@ export async function createCommentTransaction(
     ]
 
     if (parentId) {
+      const parentComment = await commentModel.findUnique({
+        where: { id: parentId },
+        select: { isFrozen: true, isDeleted: true },
+      })
+      if (!parentComment || parentComment.isDeleted) throw new Error('The comment you are replying to no longer exists.')
+      if (parentComment.isFrozen) throw new Error('This comment is frozen by moderators and cannot be replied to.')
+
       operations.push(
         commentModel.update({
           where: { id: parentId },
@@ -553,7 +570,7 @@ export async function deleteCommentTransaction(
   return prisma.$transaction(async (prisma) => {
     const comment = await commentModel.findUnique({
       where: { id: commentId },
-      select: { authorId: true, totalReplies: true, parentId: true, [parentFk]: true, updatedAt: true, totalVotes: true },
+      select: { authorId: true, parentId: true, [parentFk]: true, totalVotes: true },
     })
 
     if (!comment) throw new Error('Comment not found.')
@@ -562,103 +579,45 @@ export async function deleteCommentTransaction(
       throw new Error('Not authorized to delete this comment.')
     }
 
+    // RULE 4 (soft delete): every comment/reply is soft-deleted by toggling
+    // isDeleted = true — the row, its content and its author are preserved so
+    // admins can recover it later. Reputation gained from its votes is
+    // reversed, and materialized counters are kept in sync. Counts work
+    // exactly as before (totalComments / totalReplies decrement).
     const shouldReverseRep = comment.authorId !== null && comment.totalVotes !== 0
 
-    if (comment.totalReplies > 0 || (userIsAdmin && comment.authorId !== userId)) {
-      await commentModel.update({
+    const parentEntityId = (comment as any)[parentFk] as string
+    const operations: any[] = [
+      commentModel.update({
         where: { id: commentId },
-        data: {
-          content: userIsAdmin
-            ? '[This comment was deleted by an administrator]'
-            : '[This comment was deleted by author]',
-          authorId: null,
-          updatedAt: comment.updatedAt,
-        },
-      })
-
-      if (shouldReverseRep) {
-        await prisma.user.update({
-          where: { id: comment.authorId },
-          data: { reputation: { decrement: comment.totalVotes } },
-        })
-      }
-
-      const parentEntityId = (comment as any)[parentFk] as string
-      await parent.update({
+        data: { isDeleted: true },
+      }),
+      parent.update({
         where: { id: parentEntityId },
         data: { totalComments: { decrement: 1 } },
-      })
-
-      return { wasTombstoned: true, parentId: comment.parentId }
-    } else {
-      await commentModel.delete({ where: { id: commentId } })
-
-      const parentEntityId = (comment as any)[parentFk] as string
-      const operations: any[] = [
-        parent.update({
-          where: { id: parentEntityId },
-          data: { totalComments: { decrement: 1 } },
-        }),
-      ]
-      if (comment.parentId) {
-        operations.push(
-          commentModel.update({
-            where: { id: comment.parentId },
-            data: { totalReplies: { decrement: 1 } },
-          }),
-        )
-      }
-
-      if (shouldReverseRep) {
-        operations.push(
-          prisma.user.update({
-            where: { id: comment.authorId },
-            data: { reputation: { decrement: comment.totalVotes } },
-          }),
-        )
-      }
-
-      await prisma.$transaction(operations)
-
-      if (comment.parentId) {
-        const parentComment = await commentModel.findUnique({
+      }),
+    ]
+    if (comment.parentId) {
+      operations.push(
+        commentModel.update({
           where: { id: comment.parentId },
-          select: { authorId: true, totalReplies: true, [parentFk]: true },
-        })
-        if (parentComment && !parentComment.authorId && parentComment.totalReplies === 0) {
-          const parentEntityId2 = (parentComment as any)[parentFk] as string
-          const cleanupOps: any[] = [
-            commentModel.delete({ where: { id: comment.parentId } }),
-          ]
-          if (parentEntityId2) {
-            const parentEntity = await parent.findUnique({
-              where: { id: parentEntityId2 },
-              select: { totalComments: true },
-            })
-            if (parentEntity && parentEntity.totalComments > 0) {
-              cleanupOps.push(
-                parent.update({
-                  where: { id: parentEntityId2 },
-                  data: { totalComments: { decrement: 1 } },
-                }),
-              )
-            }
-          }
-          const parentParentId = (parentComment as any).parentId
-          if (parentParentId) {
-            cleanupOps.push(
-              commentModel.update({
-                where: { id: parentParentId },
-                data: { totalReplies: { decrement: 1 } },
-              }),
-            )
-          }
-          await prisma.$transaction(cleanupOps)
-        }
-      }
-
-      return { wasTombstoned: false, parentId: comment.parentId }
+          data: { totalReplies: { decrement: 1 } },
+        }),
+      )
     }
+
+    if (shouldReverseRep) {
+      operations.push(
+        prisma.user.update({
+          where: { id: comment.authorId },
+          data: { reputation: { decrement: comment.totalVotes } },
+        }),
+      )
+    }
+
+    await prisma.$transaction(operations)
+
+    return { wasTombstoned: true, parentId: comment.parentId }
   })
 }
 

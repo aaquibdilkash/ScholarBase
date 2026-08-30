@@ -69,6 +69,7 @@ export function AdmissionCard({
       createdDate={admission.createdAt}
       footerVoteButton={
         <VoteButton
+          frozen={admission.isFrozen === true}
           targetId={admission.id}
           module="PHD_ADMISSION"
           initialTotalVotes={admission.totalVotes ?? 0}

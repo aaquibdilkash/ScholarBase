@@ -50,6 +50,7 @@ export async function getAdmissions(
         },
       },
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },
@@ -81,14 +82,17 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
         },
       },
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      comments: {
-        where: { parentId: null },
+            comments: {
+        where: { parentId: null, isDeleted: false },
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,
         select: {
+          isDeleted: true,
+          isFrozen: true,
           id: true,
           content: true,
           createdAt: true,
@@ -282,6 +286,7 @@ export async function getLatestAdmissions(count: number, userId?: string) {
         },
       },
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
     },

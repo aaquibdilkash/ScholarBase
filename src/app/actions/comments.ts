@@ -30,6 +30,9 @@ function commentPageSelect(currentUserId: string | null) {
     editedAt: true,
     parentId: true,
     authorId: true,
+    // Soft-delete flags (RULE 4) — tombstoned comments render a placeholder
+    isDeleted: true,
+    isFrozen: true,
     // Materialized counters — no dynamic _count aggregation
     totalVotes: true,
     totalReplies: true,
@@ -57,7 +60,7 @@ export async function fetchParentComments(
   const commentModel = config.comment as any;
 
   return (await commentModel.findMany({
-    where: { parentId: null, [config.commentFk]: postId },
+    where: { parentId: null, isDeleted: false, [config.commentFk]: postId },
     select: commentPageSelect(currentUserId),
     // Must match the seed order (createdAt desc) used by every detail-page
     // loader so offset pagination continues from where the first page ended.
@@ -80,7 +83,7 @@ export async function fetchReplies(
   const commentModel = config.comment as any;
 
   return (await commentModel.findMany({
-    where: { parentId },
+    where: { parentId, isDeleted: false },
     select: commentPageSelect(currentUserId),
     orderBy: { createdAt: "asc" },
     skip,

@@ -196,6 +196,7 @@ export async function getCourses(
         },
       },
       totalVotes: true,
+      isFrozen: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
@@ -235,16 +236,19 @@ export const getCourseById = cache(
           },
         },
         totalVotes: true,
+        isFrozen: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }
           : false,
-        comments: {
-          where: { parentId: null },
+                comments: {
+          where: { parentId: null, isDeleted: false },
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
           take: COMMENT_PAGE_SIZE + 1,
           select: {
+            isDeleted: true,
+            isFrozen: true,
             id: true,
             content: true,
             createdAt: true,

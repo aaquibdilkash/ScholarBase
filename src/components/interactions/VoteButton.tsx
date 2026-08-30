@@ -49,11 +49,14 @@ export function VoteButton({
   module,
   initialTotalVotes,
   initialUserVote,
+  frozen = false,
 }: {
   targetId: string;
   module: keyof typeof VOTE_CONFIG;
   initialTotalVotes: number;
   initialUserVote: VoteType | null;
+  /** Content frozen by moderators — voting is disabled (server also rejects). */
+  frozen?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [nonOptimisticState, setNonOptimisticState] = useState<VoteState>({
@@ -73,6 +76,15 @@ export function VoteButton({
   const handleVote = (voteType: VoteType) => {
     if (!user) {
       openAuthModal();
+      return;
+    }
+
+    if (frozen) {
+      toast({
+        title: "Frozen by moderators",
+        description: "Voting is disabled while this content is under moderation.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -111,7 +123,7 @@ export function VoteButton({
   return (
     <div className="flex items-center gap-1">
       <button
-        disabled={isPending}
+        disabled={isPending || frozen}
         onClick={() => handleVote("UPVOTE")}
         className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-green-300 hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "UPVOTE"
@@ -142,7 +154,7 @@ export function VoteButton({
       </span>
 
       <button
-        disabled={isPending}
+        disabled={isPending || frozen}
         onClick={() => handleVote("DOWNVOTE")}
         className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-red-300 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "DOWNVOTE"

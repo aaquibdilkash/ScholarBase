@@ -55,6 +55,7 @@ const ResearchToolDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isFrozen={tool.isFrozen ?? false}
       backHref="/research-tools"
       backLabel="Back to Research Tools"
       authorHref={`/scholars/${tool.author?.id}`}
@@ -91,7 +92,8 @@ const ResearchToolDetailPage = async ({
         <ReportMenu entityId={tool.id} entityType="POST" module="RESEARCH_TOOL" />
       }
       discussion={
-           <CommentSection
+             <CommentSection
+               locked={tool.isFrozen ?? false}
              comments={tool.comments}
              totalComments={tool.totalComments}
              targetId={tool.id}

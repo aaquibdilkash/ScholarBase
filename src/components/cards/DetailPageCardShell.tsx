@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, type ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
 import CommentCountDisplay from "@/components/interactions/CommentCountDisplay";
@@ -39,6 +39,10 @@ export type DetailPageCardShellProps = {
   // Dedicated report menu in the footer (far-right edge)
   footerReportMenu?: ReactNode;
 
+  // Moderation: frozen posts render a banner and hide vote + report
+  // interactions (read-only), matching frozen comments in CommentThread.
+  isFrozen?: boolean;
+
   discussion?: ReactNode;
 
   className?: string;
@@ -69,6 +73,7 @@ export default function DetailPageCardShell({
   footerCommentsHref,
   footerCommentsCount,
   footerReportMenu,
+  isFrozen,
   discussion,
   className,
   bodyClassName,
@@ -94,6 +99,14 @@ export default function DetailPageCardShell({
       </Link>
 
       <div className={clsx(bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8")}>
+        {/* Moderation banner — frozen content is visible but read-only */}
+        {isFrozen && (
+          <div className="mb-5 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+            <span aria-hidden>❄</span>
+            This post has been frozen by moderators. Voting, reporting and
+            commenting are disabled.
+          </div>
+        )}
         {/* Common header */}
         <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
@@ -185,7 +198,14 @@ export default function DetailPageCardShell({
         {/* Common footer — votes/comments left, Share + Report far right */}
         <div className="border-t border-slate-200 pt-2 mt-2 flex items-center justify-between gap-6">
           <div className="flex items-center gap-6">
-            {footerVoteButton}
+            {/* Frozen: keep the vote button visible but disabled (VoteButton
+                supports the `frozen` prop, injected here for detail pages). */}
+            {isFrozen && footerVoteButton && isValidElement(footerVoteButton)
+              ? cloneElement(
+                  footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
+                  { frozen: true },
+                )
+              : footerVoteButton}
 
             <CommentCountDisplay
               href={footerCommentsHref}
@@ -195,7 +215,7 @@ export default function DetailPageCardShell({
 
           <div className="flex items-center gap-2">
             <ShareButton label="Share" />
-            {footerReportMenu}
+            {!isFrozen && footerReportMenu}
           </div>
         </div>
       </div>

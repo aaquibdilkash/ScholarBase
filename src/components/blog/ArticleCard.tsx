@@ -65,6 +65,7 @@ export function ArticleCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={article.isFrozen === true}
           targetId={article.id}
           module="ARTICLE"
           initialTotalVotes={article.totalVotes}

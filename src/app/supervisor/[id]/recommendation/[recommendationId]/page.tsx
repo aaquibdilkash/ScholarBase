@@ -62,6 +62,7 @@ export default async function RecommendationDetailPage({
 
   return (
     <DetailPageCardShell
+      isFrozen={recommendation.isFrozen ?? false}
       backHref={`/supervisor/${recommendation.supervisor.id}`}
       backLabel="Back to Supervisor Profile"
       authorHref={
@@ -103,7 +104,8 @@ export default async function RecommendationDetailPage({
         <ReportMenu entityId={recommendation.id} entityType="POST" module="RECOMMENDATION" />
       }
       discussion={
-        <CommentSection
+          <CommentSection
+            locked={recommendation.isFrozen ?? false}
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}
           totalComments={recommendation.totalComments}
           targetId={recommendation.id}

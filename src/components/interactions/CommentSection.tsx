@@ -27,6 +27,8 @@ interface CommentSectionProps {
    * accurate via +/- deltas as comments and replies are added or deleted.
    */
   totalComments?: number;
+  /** Read-only mode (frozen post): hides the composer and reply buttons. */
+  locked?: boolean;
 }
 
 export function CommentSection({
@@ -36,6 +38,7 @@ export function CommentSection({
   currentUserId,
   postAuthorId,
   totalComments,
+  locked = false,
 }: CommentSectionProps) {
   // Parent slice ONLY. Replies live inside each CommentThread's local state.
   // Dedupe by id so offset pagination (which can overlap when a new comment is
@@ -219,26 +222,33 @@ export function CommentSection({
         Discussion
       </h2>
       <div className="space-y-4 md:space-y-6">
-        <form
-          onSubmit={handleFormSubmit}
-          className="flex flex-col gap-3 sm:flex-row"
-        >
-          <div className="flex-1 flex flex-col gap-2">
-            <MentionComposer
-              name="content"
-              value={content}
-              onChange={handleContentChange}
-              placeholder="Share your thoughts on this...type @ to mention a scholar"
-              mentionedUsers={mentionedUsers}
-              onMentionedUsersChange={setMentionedUsers}
-            />
-            <div className="flex justify-end">
-              <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base">
-                Post Comment
-              </SubmitBtnWithAuth>
+        {locked ? (
+          <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+            <span aria-hidden>❄</span>
+            Commenting is disabled while this post is under moderation.
+          </p>
+        ) : (
+          <form
+            onSubmit={handleFormSubmit}
+            className="flex flex-col gap-3 sm:flex-row"
+          >
+            <div className="flex-1 flex flex-col gap-2">
+              <MentionComposer
+                name="content"
+                value={content}
+                onChange={handleContentChange}
+                placeholder="Share your thoughts on this...type @ to mention a scholar"
+                mentionedUsers={mentionedUsers}
+                onMentionedUsersChange={setMentionedUsers}
+              />
+              <div className="flex justify-end">
+                <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base">
+                  Post Comment
+                </SubmitBtnWithAuth>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        )}
 
         <div className="space-y-4 md:space-y-6">
           {parents.map((comment) => (
@@ -249,6 +259,7 @@ export function CommentSection({
               targetId={targetId}
               currentUserId={currentUserId}
               postAuthorId={postAuthorId}
+              locked={locked}
               onCountDelta={handleCountDelta}
               onRemoved={() =>
                 setParents((prev) => prev.filter((c) => c.id !== comment.id))

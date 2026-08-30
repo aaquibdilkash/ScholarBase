@@ -86,6 +86,7 @@ export function PublicationCard({
       }
       footerVoteButton={
         <VoteButton
+          frozen={publication.isFrozen === true}
           targetId={publication.id}
           module="PUBLICATION"
           initialTotalVotes={publication.totalVotes ?? 0}

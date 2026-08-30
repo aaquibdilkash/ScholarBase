@@ -80,6 +80,7 @@ export function EventCard({
       createdDate={event.createdAt}
       footerVoteButton={
         <VoteButton
+          frozen={event.isFrozen === true}
           targetId={event.id}
           module="RESEARCH_EVENT"
           initialTotalVotes={event.totalVotes ?? 0}

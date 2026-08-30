@@ -84,6 +84,7 @@ export default async function SupervisorPage({
 
   return (
     <DetailPageCardShell
+      isFrozen={supervisor.isFrozen ?? false}
       backHref="/supervisor"
       backLabel="Back to Search"
       authorId={supervisor.authorId}
@@ -119,7 +120,8 @@ export default async function SupervisorPage({
         ) : null
       }
       discussion={
-        <CommentSection
+          <CommentSection
+            locked={supervisor.isFrozen ?? false}
           comments={supervisor.comments}
           totalComments={supervisor.totalComments}
           targetId={supervisor.id}

@@ -58,13 +58,13 @@ export interface DeleteMapValue {
 export interface CommentModel {
   update: (args: {
     where: { id: string }
-    data: { content: string; authorId: null }
+    data: { isDeleted?: boolean; isFrozen?: boolean }
   }) => Promise<unknown>
 }
 
 /**
- * Union of all comment models. Comments are authored-optional (tombstoning
- * sets authorId to null), so the included author is `User | null`.
+ * Union of all comment models. Comments are soft-deleted (isDeleted toggle,
+ * RULE 4) so the included author is `User | null` to cover legacy tombstones.
  */
 export type CommentItem =
   | SocialComment
