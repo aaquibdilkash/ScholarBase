@@ -10,6 +10,7 @@ import {
   getAdminContent,
   getAdminUsers,
   getAdminStats,
+  getAdminAppeals,
   updateContributionStatus,
 } from "@/app/actions/admin";
 import { AdminActionsDropdown } from "@/components/admin/AdminActionsDropdown";
@@ -17,6 +18,7 @@ import { patchAdminContentCache } from "@/lib/adminCache";
 import type { AdminContentItem, AdminPage } from "@/types/admin";
 
 const ADMIN_SECTIONS = [
+  { id: "appeals", title: "Appeals", href: "#" },
   { id: "feed", title: "Feed", href: "/feed" },
   { id: "blog", title: "Blog", href: "/blog" },
   { id: "publications", title: "Publications", href: "/publications" },
@@ -127,6 +129,15 @@ export function AdminDashboard({
     gcTime: 30 * 60 * 1000,
     initialData: initialStats,
   });
+  // --- Appeals list: cached, paginated, newest-first ---
+  const appealsQuery = useQuery({
+    queryKey: ["admin-appeals"],
+    queryFn: () => getAdminAppeals(),
+    staleTime: Infinity,
+    gcTime: 5 * 60 * 1000,
+    enabled: activeTab === "appeals",
+  });
+  const appealsData = appealsQuery.data;
   const stats = statsQuery.data;
 
   // --- Content list: one cached query per (module, view, page, sort, filter).
@@ -268,22 +279,6 @@ export function AdminDashboard({
     <>
       {stats && (
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Total Users
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.totalUsers}
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Total Content
-            </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {stats.totalContent}
-            </p>
-          </div>
           {ADMIN_SECTIONS.map((section) => (
             <button
               key={section.id}
@@ -298,7 +293,9 @@ export function AdminDashboard({
                 {section.title}
               </p>
               <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {sectionCount(section.id)}
+                {section.id === "appeals"
+                  ? appealsData?.total ?? 0
+                  : sectionCount(section.id)}
               </p>
             </button>
           ))}
@@ -401,18 +398,24 @@ export function AdminDashboard({
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         {activeTab === "users"
                           ? "Name"
-                          : view === "comments"
-                            ? "Comment"
-                            : "Title"}
+                          : activeTab === "appeals"
+                            ? "Entity"
+                            : view === "comments"
+                              ? "Comment"
+                              : "Title"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                        {activeTab === "users" ? "Email" : "Author"}
+                        {activeTab === "users"
+                          ? "Email"
+                          : activeTab === "appeals"
+                            ? "Owner"
+                            : "Author"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                        Reports
+                        {activeTab === "appeals" ? "Status" : "Reports"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                        Appealed
+                        {activeTab === "appeals" ? "Reason" : "Appealed"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         <label className="sr-only" htmlFor="status-filter">
@@ -490,62 +493,68 @@ export function AdminDashboard({
                                 "Unknown"}
                           </td>
                           <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex min-w-[32px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                                (item.reportCount ?? 0) > 0
-                                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                              }`}
-                            >
-                              {item.reportCount ?? 0}
-                            </span>
+                            {activeTab === "appeals" ? (
+                              <span
+                                className={`inline-flex min-w-[32px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                                  item.status === "APPROVED"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                    : item.status === "REJECTED"
+                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                }`}
+                              >
+                                {item.status}
+                              </span>
+                            ) : (
+                              <span
+                                className={`inline-flex min-w-[32px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                                  (item.reportCount ?? 0) > 0
+                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                }`}
+                              >
+                                {item.reportCount ?? 0}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {/* Comments are soft-deleted/frozen with the same
-                                isDeleted/isFrozen columns as other content
-                                (RULE 4). Legacy tombstones (authorId: null)
-                                surface as Deleted too. */}
-                              {view === "comments" ? (
-                                item.isDeleted || item.authorId == null ? (
-                                  <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                    Deleted
-                                  </span>
-                                ) : (
-                                  <span
-                                    className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                      item.isFrozen
-                                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                    }`}
-                                  >
-                                    {item.isFrozen ? "Frozen" : "Active"}
-                                  </span>
-                                )
-                              ) : (
-                                <>
-                                  {item.isDeleted && (
+                            {activeTab === "appeals" ? (
+                              <span className="max-w-[200px] truncate text-sm text-slate-600 dark:text-slate-400" title={item.appealReason ?? undefined}>
+                                {item.appealReason || "—"}
+                              </span>
+                            ) : item.hasActiveAppeal ? (
+                              <span className="inline-flex w-fit items-center justify-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                Yes
+                              </span>
+                            ) : (
+                              <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                No
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {activeTab === "appeals" ? (
+                              /* Appeals view: the moderation state of the
+                                 appealed entity, stored on the appeal row. */
+                              <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                {item.entityStatus === "FROZEN"
+                                  ? "Frozen"
+                                  : item.entityStatus === "DELETED"
+                                    ? "Deleted"
+                                    : "Active"}
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {/* Comments are soft-deleted/frozen with the same
+                                  isDeleted/isFrozen columns as other content
+                                  (RULE 4). Legacy tombstones (authorId: null)
+                                  surface as Deleted too. */}
+                                {view === "comments" ? (
+                                  item.isDeleted || item.authorId == null ? (
                                     <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                       Deleted
                                     </span>
-                                  )}
-                                  {activeTab === "contributions" &&
-                                    !item.isDeleted && (
-                                      <span
-                                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                          item.status === "APPROVED"
-                                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                            : item.status === "REJECTED"
-                                              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                                              : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                                        }`}
-                                      >
-                                        {item.status}
-                                      </span>
-                                    )}
-                                  {/* Active only when neither deleted nor frozen;
-                                    deleted rows show Deleted (+"Frozen" if both). */}
-                                  {!item.isDeleted && (
+                                  ) : (
                                     <span
                                       className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                                         item.isFrozen
@@ -555,30 +564,44 @@ export function AdminDashboard({
                                     >
                                       {item.isFrozen ? "Frozen" : "Active"}
                                     </span>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {item.hasActiveAppeal ? (
-                              <div className="flex flex-col gap-1">
-                                <span className="inline-flex w-fit items-center justify-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                                  Yes
-                                </span>
-                                {item.appealReason && (
-                                  <span
-                                    className="max-w-[200px] truncate text-xs text-slate-500 dark:text-slate-400"
-                                    title={item.appealReason}
-                                  >
-                                    {item.appealReason}
-                                  </span>
+                                  )
+                                ) : (
+                                  <>
+                                    {item.isDeleted && (
+                                      <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                        Deleted
+                                      </span>
+                                    )}
+                                    {activeTab === "contributions" &&
+                                      !item.isDeleted && (
+                                        <span
+                                          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                            item.status === "APPROVED"
+                                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                              : item.status === "REJECTED"
+                                                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                                          }`}
+                                        >
+                                          {item.status}
+                                        </span>
+                                      )}
+                                    {/* Active only when neither deleted nor frozen;
+                                      deleted rows show Deleted (+"Frozen" if both). */}
+                                    {!item.isDeleted && (
+                                      <span
+                                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                          item.isFrozen
+                                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                        }`}
+                                      >
+                                        {item.isFrozen ? "Frozen" : "Active"}
+                                      </span>
+                                    )}
+                                  </>
                                 )}
                               </div>
-                            ) : (
-                              <span className="inline-flex min-w-[40px] items-center justify-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-400 dark:bg-slate-800 dark:text-slate-500">
-                                No
-                              </span>
                             )}
                           </td>
                           <td className="px-4 py-3">

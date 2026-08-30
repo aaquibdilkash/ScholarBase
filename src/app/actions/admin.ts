@@ -8,6 +8,7 @@ import {
   AdminCommentModel,
   AdminContentItem,
   AdminPage,
+  AdminAppealItem,
   CommentModel,
   ContentMap,
   DeleteMapValue,
@@ -164,7 +165,10 @@ export async function adminDeleteComment(
   return { success: true, data: { id: commentId } };
 }
 
-// Get admin dashboard stats (counts per content type + users)
+// Get admin dashboard stats (counts per content type + users).
+// Uses pg_class row estimates for users (RULE 2 — zero-compute reads)
+// because User is the only table that grows unbounded; content tables
+// stay small enough that exact counts are cheap.
 export async function getAdminStats() {
   const user = await requireCurrentUser("Log in to access admin.");
 
@@ -172,8 +176,13 @@ export async function getAdminStats() {
     throw new Error("Not authorized.");
   }
 
+  // Fast user count via pg_class (avoids full table scan on User).
+  const pgResult = await prisma.$queryRaw<
+    [{ estimate: bigint }]  >`SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = 'User'`;
+  const userEstimate = Number(pgResult[0]?.estimate ?? 0);
+
   const sections = {
-    users: await prisma.user.count(),
+    users: userEstimate,
     feed: await prisma.socialPost.count(),
     blog: await prisma.article.count(),
     publications: await prisma.publication.count(),
@@ -194,9 +203,61 @@ export async function getAdminStats() {
     Object.values(sections).reduce((a, b) => a + b, 0) - sections.users;
 
   return {
-    totalUsers: sections.users,
+    totalUsers: userEstimate,
     totalContent,
     sections,
+  };
+}
+
+// Get appeals for the admin Appeals section — paginated, newest first.
+export async function getAdminAppeals(
+  page = 1,
+  pageSize: number = ADMIN_PAGE_SIZE,
+): Promise<AdminPage<AdminAppealItem>> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const skip = (page - 1) * pageSize;
+
+  const [rows, total] = await Promise.all([
+    prisma.appeal.findMany({
+      orderBy: { createdAt: "desc" },
+      take: pageSize,
+      skip,
+      include: {
+        owner: { select: { id: true, name: true, email: true } },
+        reviewedBy: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.appeal.count(),
+  ]);
+
+  const items = rows.map((row) => ({
+    ...row,
+    id: row.id,
+    entityId: row.entityId,
+    entityType: row.entityType,
+    module: row.module,
+    status: row.status,
+    reason: row.reason,
+    ownerId: row.ownerId,
+    owner: row.owner,
+    reviewedBy: row.reviewedBy,
+    reviewedById: row.reviewedById,
+    reviewedAt: row.reviewedAt,
+    createdAt: row.createdAt,
+    hasActiveAppeal: row.status === "PENDING",
+  }));
+
+  return {
+    items: items as unknown as AdminAppealItem[],
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
 }
 

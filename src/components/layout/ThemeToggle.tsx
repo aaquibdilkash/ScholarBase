@@ -18,18 +18,19 @@ export default function ThemeToggle({ collapsed }: { collapsed: boolean }) {
   const [theme, setTheme] = useState<ThemeMode>("dark");
 
   useEffect(() => {
-    // 2. Component is now safely mounted on the client
     setMounted(true);
     
-    // 3. Read storage, defaulting to dark if no preference exists
     const storedTheme = (window.localStorage.getItem("sb-theme") as ThemeMode) || "dark";
     setTheme(storedTheme);
+    applyTheme(storedTheme);
+    document.cookie = `sb-theme=${storedTheme};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
   }, []);
 
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
     window.localStorage.setItem("sb-theme", nextTheme);
+    document.cookie = `sb-theme=${nextTheme};path=/;max-age=${365 * 24 * 60 * 60};SameSite=Lax`;
     applyTheme(nextTheme);
   };
 

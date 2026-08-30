@@ -134,16 +134,12 @@ export default async function RootLayout({
 
   const cookieStore = await cookies();
   const isSidebarCollapsed = cookieStore.get("sb-main-sidebar-collapsed")?.value === "true";
+  const themeCookie = cookieStore.get("sb-theme")?.value;
+  const isDark = themeCookie !== "light";
 
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang="en" className={isDark ? "dark" : ""} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{
-            __html: `!function(){try{var t=localStorage.getItem("sb-theme"),e=t==="dark"||!t;document.documentElement.classList.toggle("dark",e),document.documentElement.style.colorScheme=e?"dark":"light"}catch(e){}}();`
-          }}
-        />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />

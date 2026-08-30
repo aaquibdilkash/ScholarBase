@@ -42,6 +42,7 @@ export async function getContributions(
       updatedAt: true,
       editedAt: true,
       authorId: true,
+      status: true,
       author: {
         select: {
           id: true,

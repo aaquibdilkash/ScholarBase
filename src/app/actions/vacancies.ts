@@ -158,7 +158,7 @@ export async function createJobVacancy(formData: FormData) {
         applyLink,
         authorId: user.id,
       },
-      include: {
+      select: {
         id: true,
         title: true,
         institution: true,

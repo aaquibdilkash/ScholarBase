@@ -150,6 +150,23 @@ export type AdminContentItem = {
   [key: string]: unknown;
 }
 
+/** Appeal row shown in the admin Appeals section. */
+export type AdminAppealItem = {
+  id: string;
+  entityId: string;
+  entityType: string;
+  module: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reason: string | null;
+  ownerId: string;
+  owner: { id: string; name: string | null; email: string | null } | null;
+  reviewedBy: { id: string; name: string | null } | null;
+  reviewedById: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+  hasActiveAppeal: boolean;
+};
+
 export interface ContentModel {
   findMany: (args: {
     include: { author: true }

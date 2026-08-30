@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Share2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { inviteScholar } from "@/app/actions/scholars";
 import { useToast } from "@/components/ui/Toast";
@@ -53,6 +53,9 @@ export function InviteScholarForm() {
   const { user } = useUser();
   const lastShownRef = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
 
   const homepageUrl =
     typeof window === "undefined"
@@ -74,6 +77,9 @@ export function InviteScholarForm() {
       toast(state.message, state.success ? "success" : "error");
       if (state.success) {
         formRef.current?.reset();
+        setName("");
+        setEmail("");
+        setMessage("");
       }
     }
   }, [state, toast]);
@@ -87,43 +93,66 @@ export function InviteScholarForm() {
   };
 
   return (
-    <form ref={formRef} action={handleFormAction} className="space-y-5 sb-card p-6 md:p-8">
+    <form
+      ref={formRef}
+      action={handleFormAction}
+      className="space-y-5 sb-card p-6 md:p-8"
+    >
       {state.message && !state.success && (
         <div className="p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-500/30 rounded-md">
-          <p className="text-sm text-red-700 dark:text-red-300">{state.message}</p>
+          <p className="text-sm text-red-700 dark:text-red-300">
+            {state.message}
+          </p>
         </div>
       )}
-       <div>
-         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="name">Name<InfoTooltip message={INVITE_NAME_TIP} /></label>
-        <input 
-          id="name" 
-          name="name" 
-          className="sb-input" 
+      <div>
+        <label
+          className="sb-label inline-flex items-center gap-1.5"
+          htmlFor="name"
+        >
+          Name
+          <InfoTooltip message={INVITE_NAME_TIP} />
+        </label>
+        <input
+          id="name"
+          name="name"
+          className="sb-input"
           placeholder="Scholar name"
           maxLength={MAX_INVITE_NAME}
-          required 
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {MAX_INVITE_NAME} characters max
+          {name.length}/{MAX_INVITE_NAME} characters
         </div>
       </div>
-       <div>
-         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="email">Email<InfoTooltip message={INVITE_EMAIL_TIP} /></label>
-        <input 
-          id="email" 
-          name="email" 
-          type="email" 
-          className="sb-input" 
-          placeholder="scholar@university.edu" 
+      <div>
+        <label
+          className="sb-label inline-flex items-center gap-1.5"
+          htmlFor="email"
+        >
+          Email
+          <InfoTooltip message={INVITE_EMAIL_TIP} />
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          className="sb-input"
+          placeholder="scholar@university.edu"
           required
           maxLength={MAX_INVITE_EMAIL}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {MAX_INVITE_EMAIL} characters max
+          {email.length}/{MAX_INVITE_EMAIL} characters
         </div>
         <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900/70">
           <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-            Invites are sent by email. If you do not have their email, share the homepage link with them.
+            Invites are sent by email. If you do not have their email, share the
+            homepage link with them.
           </p>
           <button
             type="button"
@@ -136,18 +165,27 @@ export function InviteScholarForm() {
           </button>
         </div>
       </div>
-       <div>
-         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="message">Message<InfoTooltip message={INVITE_MESSAGE_TIP} /></label>
-        <textarea 
-          id="message" 
-          name="message" 
-          className="sb-textarea min-h-40" 
+      <div>
+        <label
+          className="sb-label inline-flex items-center gap-1.5"
+          htmlFor="message"
+        >
+          Message
+          <InfoTooltip message={INVITE_MESSAGE_TIP} />
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          className="sb-textarea min-h-40"
           placeholder="Tell them why they should join ScholarBase."
           maxLength={MAX_INVITE_MESSAGE}
           required
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {String(MAX_INVITE_MESSAGE).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")} characters max
+          {message.length.toLocaleString("en-US")}/
+          {MAX_INVITE_MESSAGE.toLocaleString("en-US")} characters
         </div>
       </div>
       <SubmitButton />
