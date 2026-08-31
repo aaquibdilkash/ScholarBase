@@ -213,10 +213,10 @@ export async function createSurvey(formData: FormData) {
       },
     });
 
-    await tx.user.update({
-      where: { id: user.id },
-      data: { surveyCount: { increment: 1 } },
-    });
+     await tx.user.update({
+       where: { id: user.id },
+       data: { surveyCount: { increment: 1 }, reputation: { increment: 1 } },
+     });
 
     return newSurvey;
   });
@@ -441,12 +441,12 @@ export async function deleteSurvey(surveyId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    await tx.user.update({
-      where: { id: survey.authorId },
-      data: { surveyCount: { decrement: 1 } },
-    });
+     await tx.user.update({
+       where: { id: survey.authorId },
+       data: { surveyCount: { decrement: 1 }, reputation: { decrement: 1 } },
+     });
 
-    if (survey.totalVotes !== 0) {
+     if (survey.totalVotes !== 0) {
       await tx.user.update({
         where: { id: survey.authorId },
         data: { reputation: { decrement: survey.totalVotes } },
@@ -690,11 +690,11 @@ export async function submitSurveyResponse(
       data: { totalAnswers: { increment: 1 } },
     });
 
-    // Award 1 reputation point for participating in a survey
-    await tx.user.update({
-      where: { id: user.id },
-      data: { reputation: { increment: 1 } },
-    });
+     // Award 1 reputation point for participating in a survey
+     await tx.user.update({
+       where: { id: user.id },
+       data: { reputation: { increment: 1 }, surveyParticipationCount: { increment: 1 } },
+     });
 
     return response;
   });

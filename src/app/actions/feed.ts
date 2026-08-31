@@ -217,7 +217,7 @@ export async function createSocialPost(formData: FormData) {
 
     await tx.user.update({
       where: { id: authUser.id },
-      data: { socialPostCount: { increment: 1 } },
+      data: { socialPostCount: { increment: 1 }, reputation: { increment: 1 } },
     });
 
     return newPost;
@@ -342,12 +342,12 @@ export async function deleteSocialPost(postId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    await tx.user.update({
-      where: { id: post.authorId },
-      data: { socialPostCount: { decrement: 1 } },
-    });
+     await tx.user.update({
+       where: { id: post.authorId },
+       data: { socialPostCount: { decrement: 1 }, reputation: { decrement: 1 } },
+     });
 
-    if (post.totalVotes !== 0) {
+     if (post.totalVotes !== 0) {
       await tx.user.update({
         where: { id: post.authorId },
         data: { reputation: { decrement: post.totalVotes } },

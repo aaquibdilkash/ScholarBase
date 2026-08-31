@@ -52,7 +52,7 @@ export async function createCourse(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { courseCount: { increment: 1 } },
+      data: { courseCount: { increment: 1 }, reputation: { increment: 1 } },
     });
 
     return newCourse;
@@ -136,12 +136,12 @@ export async function deleteCourse(courseId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    await tx.user.update({
-      where: { id: course.authorId },
-      data: { courseCount: { decrement: 1 } },
-    });
+     await tx.user.update({
+       where: { id: course.authorId },
+       data: { courseCount: { decrement: 1 }, reputation: { decrement: 1 } },
+     });
 
-    if (course.totalVotes !== 0) {
+     if (course.totalVotes !== 0) {
       await tx.user.update({
         where: { id: course.authorId },
         data: { reputation: { decrement: course.totalVotes } },

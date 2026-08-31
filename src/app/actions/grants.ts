@@ -60,7 +60,7 @@ export async function createResearchGrant(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { researchGrantCount: { increment: 1 } },
+      data: { researchGrantCount: { increment: 1 }, reputation: { increment: 1 } },
     });
 
     return newGrant;
@@ -138,12 +138,12 @@ export async function deleteResearchGrant(grantId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    await tx.user.update({
-      where: { id: grant.authorId },
-      data: { researchGrantCount: { decrement: 1 } },
-    });
+     await tx.user.update({
+       where: { id: grant.authorId },
+       data: { researchGrantCount: { decrement: 1 }, reputation: { decrement: 1 } },
+     });
 
-    if (grant.totalVotes !== 0) {
+     if (grant.totalVotes !== 0) {
       await tx.user.update({
         where: { id: grant.authorId },
         data: { reputation: { decrement: grant.totalVotes } },

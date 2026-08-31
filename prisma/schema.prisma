@@ -733,7 +733,8 @@ model User {
   resultCount         Int @default(0)
   contributionCount   Int @default(0)
   publicationCount    Int @default(0)
-  surveyCount         Int @default(0)
+   surveyCount         Int @default(0)
+  surveyParticipationCount Int @default(0)
   researchGrantCount  Int @default(0)
   courseCount         Int @default(0)
 

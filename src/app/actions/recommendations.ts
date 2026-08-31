@@ -179,12 +179,13 @@ export async function createRecommendation(
         },
       });
 
-      if (!isAnonymous) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: { recommendationCount: { increment: 1 } },
-        });
-      }
+       await tx.user.update({
+         where: { id: user.id },
+         data: {
+           ...(isAnonymous ? {} : { recommendationCount: { increment: 1 } }),
+           reputation: { increment: 1 },
+         },
+       });
 
       // Materialized supervisor aggregates (Rule 2/3)
       await tx.supervisor.update({
@@ -355,12 +356,13 @@ export async function deleteRecommendation(recommendationId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    if (!recommendation.isAnonymous) {
-      await tx.user.update({
-        where: { id: recommendation.authorId },
-        data: { recommendationCount: { decrement: 1 } },
-      });
-    }
+     await tx.user.update({
+       where: { id: recommendation.authorId },
+       data: {
+         ...(recommendation.isAnonymous ? {} : { recommendationCount: { decrement: 1 } }),
+         reputation: { decrement: 1 },
+       },
+     });
 
     // Materialized supervisor aggregates (Rule 2/3)
     await tx.supervisor.update({

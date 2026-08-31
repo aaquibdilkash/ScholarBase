@@ -77,8 +77,9 @@ export async function getProfileSections(
       resultCount: true,
       contributionCount: true,
       publicationCount: true,
-      surveyCount: true,
-      researchGrantCount: true,
+       surveyCount: true,
+       surveyParticipationCount: true,
+       researchGrantCount: true,
       courseCount: true,
     },
   });
@@ -260,8 +261,9 @@ export async function getProfileSections(
       results: userCounters?.resultCount ?? 0,
       contributionPosts: userCounters?.contributionCount ?? 0,
       publications: userCounters?.publicationCount ?? 0,
-      surveys: userCounters?.surveyCount ?? 0,
-      researchGrants: userCounters?.researchGrantCount ?? 0,
+       surveys: userCounters?.surveyCount ?? 0,
+       surveyParticipation: userCounters?.surveyParticipationCount ?? 0,
+       researchGrants: userCounters?.researchGrantCount ?? 0,
       courses: userCounters?.courseCount ?? 0,
     },
   };

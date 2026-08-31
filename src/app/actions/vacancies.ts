@@ -194,7 +194,7 @@ export async function createJobVacancy(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { jobVacancyCount: { increment: 1 } },
+      data: { jobVacancyCount: { increment: 1 }, reputation: { increment: 1 } },
     });
 
     return newVacancy;
@@ -291,12 +291,12 @@ export async function deleteJobVacancy(vacancyId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    await tx.user.update({
-      where: { id: vacancy.authorId },
-      data: { jobVacancyCount: { decrement: 1 } },
-    });
+     await tx.user.update({
+       where: { id: vacancy.authorId },
+       data: { jobVacancyCount: { decrement: 1 }, reputation: { decrement: 1 } },
+     });
 
-    if (vacancy.totalVotes !== 0) {
+     if (vacancy.totalVotes !== 0) {
       await tx.user.update({
         where: { id: vacancy.authorId },
         data: { reputation: { decrement: vacancy.totalVotes } },

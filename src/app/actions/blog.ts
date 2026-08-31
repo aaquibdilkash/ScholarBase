@@ -191,7 +191,7 @@ export async function createArticle(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { articleCount: { increment: 1 } },
+      data: { articleCount: { increment: 1 }, reputation: { increment: 1 } },
     });
 
     return newArticle;
@@ -289,12 +289,12 @@ export async function deleteArticle(articleId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-    await tx.user.update({
-      where: { id: article.authorId },
-      data: { articleCount: { decrement: 1 } },
-    });
+     await tx.user.update({
+       where: { id: article.authorId },
+       data: { articleCount: { decrement: 1 }, reputation: { decrement: 1 } },
+     });
 
-    if (article.totalVotes !== 0) {
+     if (article.totalVotes !== 0) {
       await tx.user.update({
         where: { id: article.authorId },
         data: { reputation: { decrement: article.totalVotes } },

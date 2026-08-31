@@ -657,15 +657,17 @@ export async function moderateContent(
           select: {
             id: true,
             ...(countField ? { totalVotes: true, authorId: true } : {}),
+            ...(contentType === "recommendation" ? { isAnonymous: true } : {}),
           },
         })) as {
           id: string;
           totalVotes?: number;
           authorId?: string | null;
+          isAnonymous?: boolean;
         } | null;
         if (!full) throw new Error("Content not found");
 
-        if (!entity.isDeleted) {
+         if (!entity.isDeleted) {
           if (countField && full.authorId) {
             if ((full.totalVotes ?? 0) !== 0) {
               await tx.user.update({
@@ -673,9 +675,16 @@ export async function moderateContent(
                 data: { reputation: { decrement: full.totalVotes ?? 0 } },
               });
             }
+            // Creation-bonus reversal: always applied regardless of anonymity.
+            // (recommendationCount decrement is still conditional on !isAnonymous.)
+            const isAnonymousRec =
+              contentType === "recommendation" && !!full.isAnonymous;
             await tx.user.update({
               where: { id: full.authorId },
-              data: { [countField]: { decrement: 1 } },
+              data: {
+                ...(isAnonymousRec ? {} : { [countField]: { decrement: 1 } }),
+                reputation: { decrement: 1 },
+              },
             });
           }
         }
@@ -708,26 +717,35 @@ export async function moderateContent(
           select: {
             id: true,
             ...(countField ? { totalVotes: true, authorId: true } : {}),
+            ...(contentType === "recommendation" ? { isAnonymous: true } : {}),
           },
         })) as {
           id: string;
           totalVotes?: number;
           authorId?: string | null;
+          isAnonymous?: boolean;
         } | null;
         if (!full) throw new Error("Content not found");
 
-        if (entity.isDeleted && countField && full.authorId) {
-          if ((full.totalVotes ?? 0) !== 0) {
-            await tx.user.update({
-              where: { id: full.authorId },
-              data: { reputation: { increment: full.totalVotes ?? 0 } },
-            });
-          }
-          await tx.user.update({
-            where: { id: full.authorId },
-            data: { [countField]: { increment: 1 } },
-          });
-        }
+         if (entity.isDeleted && countField && full.authorId) {
+           if ((full.totalVotes ?? 0) !== 0) {
+             await tx.user.update({
+               where: { id: full.authorId },
+               data: { reputation: { increment: full.totalVotes ?? 0 } },
+             });
+           }
+           // Creation-bonus grant-back: always applied regardless of anonymity.
+           // (recommendationCount increment is still conditional on !isAnonymous.)
+           const isAnonymousRec =
+             contentType === "recommendation" && !!full.isAnonymous;
+           await tx.user.update({
+             where: { id: full.authorId },
+             data: {
+               ...(isAnonymousRec ? {} : { [countField]: { increment: 1 } }),
+               reputation: { increment: 1 },
+             },
+           });
+         }
 
         const updated = (await entry2.model.update({
           where: { id: contentId },
