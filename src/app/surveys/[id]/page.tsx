@@ -8,15 +8,13 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import {
   deleteSurvey,
   getSurvey,
-  closeSurvey,
-  reopenSurvey,
-  toggleShareData,
   getSurveyResponse,
 } from "@/app/actions/surveys";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SurveyResponseForm } from "@/components/surveys/SurveyResponseForm";
+import { SurveyOwnerControls } from "@/components/surveys/SurveyOwnerControls";
 
 const PRIVACY_LABELS: Record<string, string> = {
   ANONYMOUS: "Anonymous",
@@ -193,60 +191,11 @@ const SurveyDetailPage = async ({
 
       {/* Owner actions */}
       {isOwner && (
-        <div className="flex gap-2 sm:gap-3 mb-6 sm:mb-8 flex-wrap">
-          {isOpen ? (
-            <form
-              action={async () => {
-                "use server";
-                await closeSurvey(survey.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 transition"
-              >
-                Close Survey
-              </button>
-            </form>
-          ) : (
-            <form
-              action={async () => {
-                "use server";
-                await reopenSurvey(survey.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-100 transition"
-              >
-                Reopen Survey
-              </button>
-            </form>
-          )}
-
-          {survey.shareData || !isOpen ? (
-            <Link
-              href={`/surveys/${survey.id}/results`}
-              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition"
-            >
-              View Results
-            </Link>
-          ) : (
-            <form
-              action={async () => {
-                "use server";
-                await toggleShareData(survey.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition"
-              >
-                Enable Data Sharing & View Results
-              </button>
-            </form>
-          )}
-        </div>
+        <SurveyOwnerControls
+          surveyId={survey.id}
+          initialStatus={survey.status as "OPEN" | "CLOSED"}
+          initialShareData={Boolean(survey.shareData)}
+        />
       )}
 
       {/* Survey Response Form */}

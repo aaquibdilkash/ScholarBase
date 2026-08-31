@@ -16,15 +16,18 @@ export async function getVacancies(
   limit = 10,
   cursor?: string,
 ) {
-  const where = q
-    ? {
-        OR: [
-          { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { institution: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        ],
-      }
-    : {};
+  const where = {
+    isDeleted: false,
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { institution: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+          ],
+        }
+      : {}),
+  };
 
   return prisma.jobVacancy.findMany({
     where,
@@ -70,7 +73,7 @@ export async function getVacancies(
 
 export const getVacancyById = cache(async (id: string, userId?: string) => {
   return prisma.jobVacancy.findUnique({
-    where: { id: id },
+    where: { id: id, isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -310,6 +313,7 @@ export async function deleteJobVacancy(vacancyId: string) {
 export async function getLatestVacancies(count: number, userId?: string) {
   return prisma.jobVacancy.findMany({
     where: {
+      isDeleted: false,
       deadline: {
         gte: new Date(),
       },

@@ -17,14 +17,17 @@ export async function getSurveys(
   limit = 10,
   cursor?: string,
 ) {
-  const where = q
-    ? {
-        OR: [
-          { title: { contains: q, mode: "insensitive" as const } },
-          { description: { contains: q, mode: "insensitive" as const } },
-        ],
-      }
-    : {};
+  const where = {
+    isDeleted: false,
+    ...(q
+      ? {
+          OR: [
+            { title: { contains: q, mode: "insensitive" as const } },
+            { description: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
 
   return prisma.researchSurvey.findMany({
     where,
@@ -70,7 +73,7 @@ export async function getSurveys(
 
 export const getSurvey = cache(async (id: string, userId?: string) => {
   return prisma.researchSurvey.findUnique({
-    where: { id },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       title: true,
