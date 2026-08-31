@@ -7,7 +7,7 @@ import {
   updateProfile,
   isHandleAvailable as checkHandle,
 } from "@/app/actions/profile";
-import { generateAvatarSignature } from "@/app/actions/cloudinary";
+import { uploadImage } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { Editor } from "@/components/ui/Editor";
@@ -79,6 +79,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || "");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const [bio, setBio] = useState(user.bio || "");
@@ -124,34 +125,18 @@ export default function EditProfileForm({ user }: { user: UserData }) {
     setUploadError("");
 
     try {
-      const { timestamp, signature, apiKey, cloudName, folder } =
-        await generateAvatarSignature();
+      const fd = new FormData();
+      fd.append("file", file);
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", apiKey);
-      formData.append("timestamp", String(timestamp));
-      formData.append("signature", signature);
-      formData.append("folder", folder);
-
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: formData },
-      );
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || "Upload failed");
-      }
-
-      const data = await res.json();
-      setAvatarUrl(data.secure_url);
+      const data = await uploadImage(fd, "avatar");
+      setAvatarUrl(data.url);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to upload avatar.";
       setUploadError(message);
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -296,6 +281,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           <label className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
             <span>{uploading ? "Uploading..." : "Choose Image"}</span>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"

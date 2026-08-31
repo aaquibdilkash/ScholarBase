@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
 import type { SocialPostWithAuthor } from "@/types/cards";
-import { generateCloudinarySignature } from "@/app/actions/cloudinary";
+import { uploadImage } from "@/app/actions/cloudinary";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
@@ -26,6 +26,7 @@ export default function EditPostPage({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState<string>("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
@@ -71,28 +72,18 @@ export default function EditPostPage({
 
     setUploading(true);
     try {
-      const { timestamp, signature, apiKey, cloudName, folder } =
-        await generateCloudinarySignature();
-
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("api_key", apiKey);
-      fd.append("timestamp", String(timestamp));
-      fd.append("signature", signature);
-      fd.append("folder", folder);
 
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: fd },
-      );
-
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      setImageUrl(data.secure_url);
-    } catch {
-      toast("Failed to upload image.", "error");
+      const data = await uploadImage(fd, "post");
+      setImageUrl(data.url);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload image.";
+      toast(message, "error");
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -196,7 +187,10 @@ export default function EditPostPage({
                 {/* Always-visible remove button (works on touch/mobile) */}
                 <button
                   type="button"
-                  onClick={() => setImageUrl("")}
+                  onClick={() => {
+                    setImageUrl("");
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
                   aria-label="Remove image"
                   className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-sm hover:bg-red-600"
                 >
@@ -205,7 +199,10 @@ export default function EditPostPage({
                 {/* Hover overlay: Remove image. The image is only deleted from
                     Cloudinary server-side after a successful save. */}
                 <div
-                  onClick={() => setImageUrl("")}
+                  onClick={() => {
+                    setImageUrl("");
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                  }}
                   className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-lg bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
                 >
                   <span className="text-xs font-semibold text-white">
@@ -222,6 +219,7 @@ export default function EditPostPage({
             <ImageIcon className="h-5 w-5" />
             {uploading ? "Uploading..." : "Add Image"}
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"

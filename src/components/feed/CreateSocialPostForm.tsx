@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
 import {
-  generateCloudinarySignature,
+  uploadImage,
   deleteFromCloudinary,
 } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
@@ -21,6 +21,7 @@ import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
 export function CreateSocialPostForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState<string>("");
@@ -129,24 +130,11 @@ export function CreateSocialPostForm() {
 
     setUploading(true);
     try {
-      const { timestamp, signature, apiKey, cloudName, folder } =
-        await generateCloudinarySignature();
-
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("api_key", apiKey);
-      fd.append("timestamp", String(timestamp));
-      fd.append("signature", signature);
-      fd.append("folder", folder);
 
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        { method: "POST", body: fd },
-      );
-
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      const newUrl = data.secure_url;
+      const data = await uploadImage(fd, "post");
+      const newUrl = data.url;
 
       // Replacing an existing image: the previous one is no longer referenced
       // anywhere, so delete it from Cloudinary to avoid orphaned assets.
@@ -155,10 +143,13 @@ export function CreateSocialPostForm() {
       }
 
       setImageUrl(newUrl);
-    } catch {
-      toast("Failed to upload image.", "error");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to upload image.";
+      toast(message, "error");
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -170,9 +161,8 @@ export function CreateSocialPostForm() {
     await deleteFromCloudinary(imageUrl);
 
     setImageUrl("");
-    // Clear it from the localStorage draft too (the persist effect's guard
-    // prevents it from clearing on its own).
     updateDraftField("imageUrl", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -225,6 +215,7 @@ export function CreateSocialPostForm() {
             <ImageIcon className="h-5 w-5" aria-hidden="true" />
             {uploading ? "Uploading..." : "Add Image"}
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -18,6 +19,7 @@ export function SocialPostCard({
   currentUserId?: string;
 }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -70,6 +72,7 @@ export function SocialPostCard({
       footerReportMenu={
         <ReportMenu entityId={post.id} entityType="POST" module="SOCIAL_FEED" />
       }
+      noBodyLink={false}
     >
       <div className={`flex gap-4 ${post.imageUrl ? "items-start" : ""}`}>
         <p
@@ -77,21 +80,31 @@ export function SocialPostCard({
             post.imageUrl ? "w-1/2 min-w-0" : "w-full"
           }`}
         >
-          {renderMentionContent(post.content ?? "", post.mentions)}
+          {renderMentionContent(
+            post.content ?? "",
+            post.mentions,
+            { renderAsLink: false, onMentionClick: (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.nativeEvent?.stopImmediatePropagation();
+              const mentionId = (e.currentTarget as HTMLElement).dataset?.mentionId;
+              if (mentionId) router.push(`/scholars/${mentionId}`);
+            }},
+          )}
         </p>
-        {post.imageUrl && (
-          <div className="mb-4 w-1/2 self-start overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:opacity-90 dark:bg-slate-900">
-            <Image
-              src={post.imageUrl}
-              alt=""
-              width={800}
-              height={400}
-              unoptimized
-              className="block h-auto w-full object-contain"
-            />
-          </div>
-        )}
-      </div>
+          {post.imageUrl && (
+            <div className="mb-4 w-1/2 self-start overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:opacity-90 dark:bg-slate-900">
+              <Image
+                src={post.imageUrl}
+                alt=""
+                width={800}
+                height={400}
+                unoptimized
+                className="block h-auto w-full object-contain"
+              />
+            </div>
+          )}
+        </div>
     </ListPageCardShell>
   );
 }

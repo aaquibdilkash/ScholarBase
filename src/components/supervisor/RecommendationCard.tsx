@@ -26,10 +26,6 @@ export function RecommendationCard({
   const router = useRouter();
 
   const openSupervisorPage = () => router.push(`/supervisor/${supervisor.id}`);
-  const openRecommendationPage = () =>
-    router.push(
-      `/supervisor/${supervisor.id}/recommendation/${recommendation.id}`,
-    );
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (recommendation.votes || []).find(
@@ -108,7 +104,7 @@ export function RecommendationCard({
           : recommendation.author?.avatarUrl || undefined
       }
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
-      noBodyLink
+      noBodyLink={false}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
@@ -140,40 +136,37 @@ export function RecommendationCard({
         />
       }
     >
-      <div
-        role="link"
-        tabIndex={0}
-        onClick={() => openRecommendationPage()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") openRecommendationPage();
-        }}
-        className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-lg"
-      >
+      <div className="space-y-3 mb-4">
         <p className="text-sm font-semibold text-slate-700 mb-2">
           {recommendation.isAnonymous
             ? "Anonymous recommendation for "
             : "Recommendation for "}
-          <span
-            role="link"
-            tabIndex={0}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openSupervisorPage();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
+          {!recommendation.isAnonymous && supervisor.id && (
+            <span
+              role="link"
+              tabIndex={0}
+              onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                e.nativeEvent?.stopImmediatePropagation();
                 openSupervisorPage();
-              }
-            }}
-            className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
-          >
-            {supervisor.name}
-          </span>
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  openSupervisorPage();
+                }
+              }}
+              className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+            >
+              {supervisor.name}
+            </span>
+          )}
+          {recommendation.isAnonymous && supervisor.name}
         </p>
-        <div className="space-y-3 mb-4">
+      </div>
+      <div className="space-y-3 mb-4">
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-1">
               Overall Mentorship Rating
@@ -216,7 +209,6 @@ export function RecommendationCard({
             className="text-sm leading-relaxed text-slate-600 line-clamp-4"
           />
         </div>
-      </div>
     </ListPageCardShell>
   );
 }

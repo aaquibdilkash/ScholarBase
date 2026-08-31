@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,7 +9,7 @@ import {
   updateContribution,
 } from "@/app/actions/contributions";
 import {
-  generateCloudinarySignature,
+  uploadImage,
   deleteFromCloudinary,
 } from "@/app/actions/cloudinary";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -89,6 +89,7 @@ export default function ContributionForm({
   const [screenshotUrl, setScreenshotUrl] = useState(
     initialValues?.screenshotUrl ?? "",
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Restore screenshotUrl from draft once hydration completes
   useEffect(() => {
@@ -168,34 +169,11 @@ export default function ContributionForm({
     setUploadError("");
 
     try {
-      // 2. Fetch cryptographically signed authorization parameters
-      const { timestamp, signature, apiKey, cloudName, folder } =
-        await generateCloudinarySignature();
+      const fd = new FormData();
+      fd.append("file", file);
 
-      // 3. Assemble signed payload
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", apiKey);
-      formData.append("timestamp", String(timestamp));
-      formData.append("signature", signature);
-      formData.append("folder", folder);
-
-      // 4. Direct browser-to-edge upload
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error?.message || "Upload failed");
-      }
-
-      const data = await res.json();
-      const newUrl = data.secure_url;
+      const data = await uploadImage(fd, "post");
+      const newUrl = data.url;
 
       // Replacing an existing screenshot: delete the old one to avoid
       // orphaned Cloudinary assets (only in create mode; edit mode deletes
@@ -211,6 +189,7 @@ export default function ContributionForm({
       );
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -227,9 +206,8 @@ export default function ContributionForm({
 
     setScreenshotUrl("");
     setUploadError("");
-    // Clear it from the localStorage draft too (the persist effect's guard
-    // prevents it from clearing on its own).
     updateDraftField("screenshotUrl", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   return (
@@ -352,6 +330,7 @@ export default function ContributionForm({
               <label className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
                 <span>{uploading ? "Uploading..." : "Choose Image"}</span>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   className="hidden"

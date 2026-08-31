@@ -154,11 +154,12 @@ export function MentionComposer({
   );
 }
 
-export function renderMentionContent(content: string, mentions: unknown) {
+export function renderMentionContent(content: string, mentions: unknown, options?: { onMentionClick?: (e: React.MouseEvent) => void; renderAsLink?: boolean }) {
   const typedMentions = Array.isArray(mentions)
     ? (mentions as MentionUser[])
     : null;
   const parts = content.split(/(@[a-z0-9_]+)/gi);
+  const renderAsLink = options?.renderAsLink ?? true;
 
   if (!typedMentions || typedMentions.length === 0) {
     return parts.map((part, index) => <span key={index}>{part}</span>);
@@ -173,10 +174,31 @@ export function renderMentionContent(content: string, mentions: unknown) {
       const handle = part.substring(1);
       const mentionId = mentionMap.get(handle);
       if (mentionId) {
+        if (!renderAsLink) {
+          return (
+            <span
+              key={index}
+              role="link"
+              tabIndex={0}
+              data-mention-id={mentionId}
+              onClick={options?.onMentionClick}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && options?.onMentionClick) {
+                  e.preventDefault();
+                  options.onMentionClick(e as unknown as React.MouseEvent);
+                }
+              }}
+              className="cursor-pointer font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              {part}
+            </span>
+          );
+        }
         return (
           <Link
             key={index}
             href={`/scholars/${mentionId}`}
+            onClick={options?.onMentionClick}
             className="font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
           >
             {part}
