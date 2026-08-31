@@ -37,6 +37,8 @@ function typeLabel(type: string) {
       return "Follow";
     case "mention":
       return "Mention";
+    case "post-mention":
+      return "Post Mention";
     case "message-received":
       return "New message";
     case "contribution-approved":

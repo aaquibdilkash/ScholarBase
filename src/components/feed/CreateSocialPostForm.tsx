@@ -12,20 +12,21 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { MentionComposer, type MentionUser } from "@/components/interactions/MentionComposer";
 import type { SocialPostWithAuthor } from "@/types/cards";
 
-import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
+import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
 export function CreateSocialPostForm() {
-  const MAX_CHARS = MAX_SOCIAL_POST_CONTENT;
   const formRef = useRef<HTMLFormElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
 
   const [draftFields, updateDraftField, resetDraft, isRestored] = useFormDraft(
     "draft_social_post",
@@ -50,12 +51,43 @@ export function CreateSocialPostForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl, isRestored, draftFields.imageUrl]);
 
+  // Save mentions to draft separately (useFormDraft only handles content and imageUrl)
+  const draftMentionsKey = "draft_social_post_mentions";
+  useEffect(() => {
+    if (!isRestored) return;
+    try {
+      const saved = localStorage.getItem(draftMentionsKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setMentionedUsers(parsed);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, [isRestored]);
+
+  // Persist mentions to draft
+  useEffect(() => {
+    if (!isRestored) return;
+    try {
+      localStorage.setItem(draftMentionsKey, JSON.stringify(mentionedUsers));
+    } catch {
+      // ignore storage errors
+    }
+  }, [mentionedUsers, isRestored]);
+
   const handleSubmit = async (formData: FormData) => {
     if (uploading) {
       toast("Please wait for images to finish uploading.", "error");
       return;
     }
     if (imageUrl) formData.append("imageUrl", imageUrl);
+    formData.append(
+      "mentions",
+      JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))),
+    );
     setSubmitting(true);
     try {
       const response = await createSocialPost(formData);
@@ -69,6 +101,8 @@ export function CreateSocialPostForm() {
       );
       resetDraft();
       setImageUrl("");
+      setMentionedUsers([]);
+      localStorage.removeItem(draftMentionsKey);
       formRef.current?.reset();
       toast("Post published successfully!", "success");
     } catch (error) {
@@ -144,30 +178,18 @@ export function CreateSocialPostForm() {
   return (
     <div className="sb-surface-strong mb-10 p-6 md:p-7">
       <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
-        <div className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300">
-          Post Content
-          <InfoTooltip message={FEED_CONTENT_TIP} />
-        </div>
-        <textarea
+        <MentionComposer
           name="content"
-          placeholder="What are you researching today?"
-          className="w-full resize-none border-none bg-transparent p-2 text-lg text-slate-800 outline-none placeholder:text-slate-400 focus:ring-0"
-          rows={3}
-          required
-          maxLength={MAX_CHARS}
           value={draftFields.content}
-          onChange={(e) => updateDraftField("content", e.target.value)}
-          onInput={(e) => {
-            const target = e.target as HTMLTextAreaElement;
-            if (target.value.length > MAX_CHARS) {
-              target.value = target.value.slice(0, MAX_CHARS);
-              updateDraftField("content", target.value);
-            }
-          }}
+          onChange={(val) => updateDraftField("content", val)}
+          placeholder="What are you researching today? Type @ to mention a scholar"
+          mentionedUsers={mentionedUsers}
+          onMentionedUsersChange={setMentionedUsers}
+          label="Post Content"
+          tooltip={FEED_CONTENT_TIP}
+          maxLength={MAX_SOCIAL_POST_CONTENT}
+          showPreview={true}
         />
-        <div className="text-xs text-slate-500 dark:text-slate-400">
-          {draftFields.content.length}/{MAX_CHARS} characters
-        </div>
 
         {imageUrl && (
           <div className="relative group w-fit">

@@ -15,6 +15,7 @@ import { ContributionCard } from "@/components/contributions/ContributionCard";
 import { ResultCard } from "@/components/results/ResultCard";
 import { PublicationCard } from "@/components/publications/PublicationCard";
 import { SurveyCard } from "@/components/surveys/SurveyCard";
+import type { SocialPostWithAuthor } from "@/types/cards";
 
 export function TrendingList({
   items,
@@ -87,7 +88,14 @@ export function TrendingList({
             return (
               <SocialPostCard
                 key={item.id}
-                post={item}
+                post={
+                  {
+                    ...item,
+                    mentions: Array.isArray(item.mentions)
+                      ? (item.mentions as SocialPostWithAuthor["mentions"])
+                      : null,
+                  } as SocialPostWithAuthor
+                }
                 currentUserId={currentUserId}
               />
             );

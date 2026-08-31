@@ -54,7 +54,11 @@ export function getNotificationLink(notification: Notification) {
   switch (notification.type) {
     case "follow":
       return `/scholars/${notification.actorId}`;
+    case "post-mention":
+      // Post mention: link directly to the post (not comments)
+      return targetLinks[targetType]?.(notification.targetId) ?? null;
     case "mention":
+      // Comment mention: link to the entity page scrolled to comments
       return targetLinks[targetType]?.(notification.targetId)?.concat("#comments") ?? null;
     case "message-received":
       return `/messages/${notification.targetId}`;

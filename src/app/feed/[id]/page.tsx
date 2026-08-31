@@ -4,6 +4,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
+import { PostContent } from "@/components/feed/PostContent";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
@@ -121,9 +122,7 @@ export default async function SinglePostPage({
         />
       }
     >
-      <p className="text-base break-words sm:text-lg whitespace-pre-wrap leading-relaxed text-slate-800">
-        {p.content}
-      </p>
+      <PostContent content={p.content} mentions={p.mentions} />
 
       {p.imageUrl && (
         <div className="mt-4 sm:mt-6">

@@ -13,13 +13,16 @@ import {
   createCommentTransaction,
   deleteCommentTransaction,
 } from "@/lib/transactions";
-import { VoteType } from "@prisma/client";
+import { VoteType, DeletedByType } from "@prisma/client";
 
 import {
   notifyFollowersOfActivity,
   notifyMentionedUsers,
 } from "@/lib/notifications";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
+import type { SocialPostWithAuthor } from "@/types/cards";
+import type { MentionUser } from "@/components/interactions/CommentThread";
+
 // Reusable include for the materialized-counter post shape used by the
 // client query cache (author + votes relationship; scalars like
 // totalVotes/totalComments are returned automatically by `include`).
@@ -36,6 +39,43 @@ const socialPostInclude = {
     select: { userId: true, voteType: true },
   },
 } as const;
+
+// Helper to cast a Prisma SocialPost result to SocialPostWithAuthor.
+// Prisma returns mentions as JsonValue; we cast it to MentionUser[] | null.
+function castPost(post: {
+  id: string;
+  content: string;
+  imageUrl: string | null;
+  imageUrls: string[];
+  authorId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  editedAt: Date | null;
+  isFrozen: boolean;
+  hasActiveAppeal: boolean;
+  totalVotes: number;
+  totalComments: number;
+  trendingScore: number;
+  isDeleted: boolean;
+  deletedByType: DeletedByType | null;
+  deletedById: string | null;
+  reportCount: number;
+  mentions?: unknown;
+  author: {
+    id: string;
+    name: string | null;
+    handle: string | null;
+    avatarUrl: string | null;
+  };
+  votes: { userId: string; voteType: VoteType }[] | false;
+}): SocialPostWithAuthor {
+  return {
+    ...post,
+    mentions: Array.isArray(post.mentions)
+      ? (post.mentions as MentionUser[])
+      : null,
+  };
+}
 
 const getFeed = async (
   userId?: string,
@@ -76,6 +116,7 @@ const getFeed = async (
       updatedAt: true,
       editedAt: true,
       authorId: true,
+      mentions: true,
       author: {
         select: {
           id: true,
@@ -120,6 +161,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
       updatedAt: true,
       editedAt: true,
       authorId: true,
+      mentions: true,
       author: {
         select: {
           id: true,
@@ -188,6 +230,17 @@ export async function createSocialPost(formData: FormData) {
 
   const imageUrl = formData.get("imageUrl") as string | null;
 
+  // Parse mentions from FormData
+  const mentionsRaw = readFormValue(formData, "mentions");
+  let mentions: { id: string; handle: string | null }[] | undefined;
+  if (mentionsRaw) {
+    try {
+      mentions = JSON.parse(mentionsRaw);
+    } catch {
+      /* ignore invalid JSON */
+    }
+  }
+
   if (!content) {
     throw new Error("Content cannot be empty.");
   }
@@ -201,6 +254,7 @@ export async function createSocialPost(formData: FormData) {
         content,
         imageUrl: imageUrl || undefined,
         authorId: authUser.id,
+        mentions: mentions ?? undefined,
       },
       include: socialPostInclude,
     });
@@ -223,6 +277,10 @@ export async function createSocialPost(formData: FormData) {
     return newPost;
   });
 
+  const validMentions = mentions?.filter((m): m is { id: string; handle: string } =>
+    Boolean(m.handle),
+  ) ?? [];
+
   await Promise.all([
     await notifyFollowersOfActivity({
       actorId: authUser.id,
@@ -235,15 +293,16 @@ export async function createSocialPost(formData: FormData) {
     await notifyMentionedUsers({
       actorId: authUser.id,
       content,
-      type: "mention",
+      type: "post-mention",
       targetType: "post",
       targetId: post.id,
-      titleFactory: (handle) => `@${handle} was mentioned in a post`,
+      titleFactory: (handle) => `@${handle} mentioned you in a post`,
       bodyFactory: () => content.slice(0, 120),
+      mentions: validMentions.length > 0 ? validMentions : undefined,
     }),
   ]);
 
-  return { success: true, data: post };
+  return { success: true, data: castPost(post) };
 }
 
 export async function updateSocialPost(formData: FormData, postId: string) {
@@ -253,6 +312,17 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   if (!content) return { success: false, message: "Content cannot be empty." };
 
   const imageUrl = formData.get("imageUrl") as string | null;
+
+  // Parse mentions from FormData
+  const mentionsRaw = readFormValue(formData, "mentions");
+  let mentions: { id: string; handle: string | null }[] | undefined;
+  if (mentionsRaw) {
+    try {
+      mentions = JSON.parse(mentionsRaw);
+    } catch {
+      /* ignore invalid JSON */
+    }
+  }
 
   const post = await prisma.socialPost.findUnique({
     where: { id: postId },
@@ -273,7 +343,7 @@ export async function updateSocialPost(formData: FormData, postId: string) {
 
   const updatedPost = await prisma.socialPost.update({
     where: { id: postId },
-    data: { content, imageUrl: newImage || undefined, editedAt: new Date() },
+    data: { content, imageUrl: newImage || undefined, editedAt: new Date(), mentions: mentions ?? undefined },
     include: {
       ...socialPostInclude,
       author: {
@@ -293,7 +363,7 @@ export async function updateSocialPost(formData: FormData, postId: string) {
     await deleteFromCloudinary(oldImage);
   }
 
-  return { success: true, data: updatedPost };
+  return { success: true, data: castPost(updatedPost) };
 }
 
 export async function getPostEditData(id: string) {
@@ -305,6 +375,7 @@ export async function getPostEditData(id: string) {
       content: true,
       imageUrl: true,
       authorId: true,
+      mentions: true,
     },
   });
 
@@ -319,6 +390,7 @@ export async function getPostEditData(id: string) {
   return {
     content: post.content,
     imageUrl: post.imageUrl,
+    mentions: post.mentions,
   };
 }
 

@@ -29,6 +29,7 @@ import { PublicationCard } from "@/components/publications/PublicationCard";
 import { SurveyCard } from "@/components/surveys/SurveyCard";
 import { ActivityItem } from "@/types/activity";
 import { ProfileData } from "@/types/profile";
+import type { SocialPostWithAuthor } from "@/types/cards";
 import {
   SectionData,
   SectionKey,
@@ -108,7 +109,18 @@ const SECTIONS: SectionWithCount[] = [
     emptyMessage: "No feed posts yet.",
     renderItems: (items: SocialPostType[], currentUserId) =>
       items.map((p) => (
-        <SocialPostCard key={p.id} post={p} currentUserId={currentUserId} />
+        <SocialPostCard
+          key={p.id}
+          post={
+            {
+              ...p,
+              mentions: Array.isArray(p.mentions)
+                ? (p.mentions as SocialPostWithAuthor["mentions"])
+                : null,
+            } as SocialPostWithAuthor
+          }
+          currentUserId={currentUserId}
+        />
       )),
   },
   {

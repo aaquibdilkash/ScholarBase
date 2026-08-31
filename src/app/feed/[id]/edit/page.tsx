@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { MentionComposer, type MentionUser } from "@/components/interactions/MentionComposer";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
@@ -27,6 +28,7 @@ export default function EditPostPage({
   const formRef = useRef<HTMLFormElement>(null);
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState<string>("");
+  const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +42,10 @@ export default function EditPostPage({
         const data = await getPostEditData(id);
         setContent(data.content || "");
         setImageUrl(data.imageUrl || "");
+        // Restore mentions from JSON data
+        if (data.mentions && Array.isArray(data.mentions)) {
+          setMentionedUsers(data.mentions as MentionUser[]);
+        }
       } catch (error) {
         toast((error as Error).message || "Failed to load post.", "error");
         router.push("/feed");
@@ -109,6 +115,10 @@ export default function EditPostPage({
       const formData = new FormData();
       formData.append("content", content);
       if (imageUrl) formData.append("imageUrl", imageUrl);
+      formData.append(
+        "mentions",
+        JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))),
+      );
 
       const result = await updateSocialPost(formData, postId);
       if (result.success && result.data) {
@@ -156,25 +166,18 @@ export default function EditPostPage({
         onSubmit={handleSubmit}
         className="sb-surface-strong p-6 md:p-8 flex flex-col gap-4"
       >
-        <div>
-          <label className="sb-label mb-2 block inline-flex items-center gap-1.5">
-            Post Content
-            <InfoTooltip message={FEED_CONTENT_TIP} />
-          </label>
-          <textarea
-            name="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={6}
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 resize-y"
-            placeholder="What's on your mind?"
-            maxLength={MAX_SOCIAL_POST_CONTENT}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {content.length}/{MAX_SOCIAL_POST_CONTENT} characters
-          </div>
-        </div>
+        <MentionComposer
+          name="content"
+          value={content}
+          onChange={setContent}
+          placeholder="What's on your mind? Type @ to mention a scholar"
+          mentionedUsers={mentionedUsers}
+          onMentionedUsersChange={setMentionedUsers}
+          label="Post Content"
+          tooltip={FEED_CONTENT_TIP}
+          maxLength={MAX_SOCIAL_POST_CONTENT}
+          showPreview={true}
+        />
 
         {/* Image */}
         {imageUrl && (

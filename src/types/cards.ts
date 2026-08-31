@@ -22,6 +22,7 @@ import type {
     Recommendation,
 } from "@prisma/client";
 import type { VoteType } from "./votes";
+import type { MentionUser } from "@/components/interactions/CommentThread";
 
 export type UserVote = { voteType: VoteType }[] | undefined | false;
 
@@ -39,6 +40,20 @@ export interface AuthorWithFollowers {
     createdAt?: Date;
     followers?: { followerId: string }[];
 }
+
+// Prisma stores mentions as JSON. When fetching from DB, mentions is JsonValue;
+// after parsing/casting it becomes MentionUser[]. This type represents the
+// client-side shape where mentions has been properly typed.
+export type SocialPostWithAuthor = Omit<Partial<SocialPost>, "mentions"> & {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    mentions?: MentionUser[] | null;
+    author: AuthorWithFollowers;
+    totalVotes: number;
+    totalComments: number;
+    votes: UserVote;
+};
 
 export type ArticleWithAuthor = Partial<Article> & {
     id: string;
@@ -194,16 +209,6 @@ export type SurveyWithAuthor = Partial<ResearchSurvey> & {
     totalVotes: number;
     totalComments: number;
     totalResponses: number;
-    votes: UserVote;
-};
-
-export type SocialPostWithAuthor = Partial<SocialPost> & {
-    id: string;
-    createdAt: Date;
-    updatedAt: Date;
-    author: AuthorWithFollowers;
-    totalVotes: number;
-    totalComments: number;
     votes: UserVote;
 };
 

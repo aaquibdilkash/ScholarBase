@@ -7,6 +7,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteSocialPost } from "@/app/actions/feed";
+import { renderMentionContent } from "@/components/interactions/MentionComposer";
 import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
 
 export function SocialPostCard({
@@ -76,7 +77,7 @@ export function SocialPostCard({
             post.imageUrl ? "w-1/2 min-w-0" : "w-full"
           }`}
         >
-          {post.content}
+          {renderMentionContent(post.content ?? "", post.mentions)}
         </p>
         {post.imageUrl && (
           <div className="mb-4 w-1/2 self-start overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:opacity-90 dark:bg-slate-900">

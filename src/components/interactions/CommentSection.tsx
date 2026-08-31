@@ -6,13 +6,15 @@ import {
   createComment,
   fetchParentComments,
 } from "@/app/actions/comments";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_COMMENT_BODY } from "@/lib/constants";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "./AuthModal";
 import { emitCommentCount } from "@/lib/comment-count-store";
 import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comments";
-import { CommentThread, MentionComposer, type MentionUser } from "./CommentThread";
+import { CommentThread, type MentionUser } from "./CommentThread";
+import { MentionComposer } from "./MentionComposer";
+import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
 
 interface CommentSectionProps {
   /** First page of parent comments (parentId === null), length <= 5. */
@@ -240,6 +242,9 @@ export function CommentSection({
                 placeholder="Share your thoughts on this...type @ to mention a scholar"
                 mentionedUsers={mentionedUsers}
                 onMentionedUsersChange={setMentionedUsers}
+                label="Add a comment"
+                tooltip={COMMENT_CONTENT_TIP}
+                maxLength={MAX_COMMENT_BODY}
               />
               <div className="flex justify-end">
                 <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base">

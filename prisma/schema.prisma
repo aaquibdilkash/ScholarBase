@@ -209,6 +209,8 @@ model SocialPost {
   deletedById   String?
   reportCount   Int            @default(0)
 
+  mentions Json?
+
   comments SocialComment[]
   votes    SocialVote[]
   author   User            @relation(fields: [authorId], references: [id])

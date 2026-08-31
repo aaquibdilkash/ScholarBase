@@ -88,6 +88,8 @@ export async function notifyMentionedUsers(params: NotifyMentionedUsersParams): 
         targetId: params.targetId,
         title: params.type === "mention"
           ? `${actorName} tagged you in ${moduleName} discussion`
+          : params.type === "post-mention"
+          ? `${actorName} mentioned you in a post`
           : params.titleFactory(user.handle),
         body: params.bodyFactory(user.handle),
       },

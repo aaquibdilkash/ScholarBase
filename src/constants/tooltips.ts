@@ -196,7 +196,7 @@ export const PROFILE_GOOGLE_SCHOLAR_TIP = "Link to your Google Scholar citation 
 // -----------------------------------------------------------------------------
 // FEED / SOCIAL POSTS MODULE
 // -----------------------------------------------------------------------------
-export const FEED_CONTENT_TIP = "Share your thoughts, questions, or research updates.";
+export const FEED_CONTENT_TIP = "Share your thoughts, questions, or research updates. Type @ to mention a scholar";
 export const FEED_IMAGE_TIP = "Attach an image to your post (optional).";
 
 // -----------------------------------------------------------------------------
