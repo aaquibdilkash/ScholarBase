@@ -15,6 +15,7 @@ import {
   deleteCommentTransaction,
   ENTITY_CONFIG,
 } from "@/lib/transactions";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 // ============================================
 // LAZY PAGINATION (Zero-Compute Reads)
@@ -132,6 +133,17 @@ export async function createComment(
     "Log in to join the academic discussion.",
   );
 
+  const createRateLimit = await checkRateLimit({
+    namespace: `comment:create:${type}`,
+    key: user.id,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!createRateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
   const content = readFormValue(formData, "content");
   if (!content) return { success: false, error: "Content cannot be empty." };
 
@@ -209,6 +221,18 @@ export async function editComment(
   type: CommentEntityType,
 ) {
   const user = await requireCurrentUser("Log in to edit this comment.");
+
+  const editRateLimit = await checkRateLimit({
+    namespace: `comment:edit:${type}`,
+    key: user.id,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!editRateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
   const content = readFormValue(formData, "content");
   if (!content) return { success: false, error: "Content cannot be empty." };
 
@@ -243,6 +267,17 @@ export async function deleteComment(
   const { id: userId } = await requireCurrentUser(
     "You must be logged in to delete comments.",
   );
+
+  const deleteRateLimit = await checkRateLimit({
+    namespace: `comment:delete:${type}`,
+    key: userId,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!deleteRateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
 
   const moduleKey = COMMENT_TYPE_TO_MODULE[type];
   if (!moduleKey) {

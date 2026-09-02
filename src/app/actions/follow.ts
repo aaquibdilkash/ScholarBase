@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { handleFollowTransaction } from "@/lib/transactions";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 export async function toggleFollow(
   followingId: string,
@@ -20,6 +21,17 @@ export async function toggleFollow(
       isFollowing: false,
       error: "Invalid user to follow",
     };
+  }
+
+  const rateLimit = await checkRateLimit({
+    namespace: "follow:toggle",
+    key: authUser.id,
+    limit: 30,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, isFollowing: false, error: RATE_LIMIT_ERROR };
   }
 
   try {
@@ -74,9 +86,9 @@ export async function getFollowers(
           avatarUrl: true,
           followers: currentUserId
             ? {
-                where: { followerId: currentUserId },
-                select: { followerId: true },
-              }
+              where: { followerId: currentUserId },
+              select: { followerId: true },
+            }
             : false,
         },
       },
@@ -115,9 +127,9 @@ export async function getFollowersWithCursor(
           avatarUrl: true,
           followers: currentUserId
             ? {
-                where: { followerId: currentUserId },
-                select: { followerId: true },
-              }
+              where: { followerId: currentUserId },
+              select: { followerId: true },
+            }
             : false,
         },
       },
@@ -162,9 +174,9 @@ export async function getFollowing(
           avatarUrl: true,
           followers: currentUserId
             ? {
-                where: { followerId: currentUserId },
-                select: { followerId: true },
-              }
+              where: { followerId: currentUserId },
+              select: { followerId: true },
+            }
             : false,
         },
       },
@@ -203,9 +215,9 @@ export async function getFollowingWithCursor(
           avatarUrl: true,
           followers: currentUserId
             ? {
-                where: { followerId: currentUserId },
-                select: { followerId: true },
-              }
+              where: { followerId: currentUserId },
+              select: { followerId: true },
+            }
             : false,
         },
       },

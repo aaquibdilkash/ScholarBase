@@ -1,16 +1,6 @@
 import { z } from 'zod'
-import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
 import { getCurrentUser } from '@/lib/auth'
-
-// Initialize outside the function to reuse the connection
-const redis = Redis.fromEnv()
-
-const ratelimit = new Ratelimit({
-  redis,
-  // Adjusted to 10 requests per 10 seconds (better UX for UI interactions)
-  limiter: Ratelimit.slidingWindow(10, '10 s'), 
-})
+import { checkRateLimit, RATE_LIMIT_ERROR } from '@/lib/rate-limit'
 
 export function safeAction<T, R>(
   actionName: string, // 🔥 1. Required action name for isolated limiting
@@ -23,16 +13,19 @@ export function safeAction<T, R>(
       return { error: 'Unauthorized' }
     }
 
-    // 🔥 2. Rate limit exclusively by Action + UserID
-    const key = `ratelimit:${actionName}:${user.id}`
+    const rateLimit = await checkRateLimit({
+      namespace: `action:${actionName}`,
+      key: user.id,
+      limit: 10,
+      window: '10 s',
+    })
 
-    const { success } = await ratelimit.limit(key)
-    if (!success) {
-      return { error: 'Too many requests. Please slow down.' }
+    if (!rateLimit.allowed) {
+      return { error: RATE_LIMIT_ERROR }
     }
 
     let rawData: Record<string, unknown> = {}
-    
+
     if (arg instanceof FormData) {
       // 🔥 3. Robust FormData parsing that supports arrays
       for (const [key, value] of arg.entries()) {

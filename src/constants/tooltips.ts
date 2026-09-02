@@ -115,6 +115,11 @@ export const RECOMMENDATION_FEEDBACK_TIP = "Detailed feedback about your experie
 export const RECOMMENDATION_ANONYMOUS_TIP = "Post this recommendation without revealing your identity.";
 
 // -----------------------------------------------------------------------------
+// MODERATION / SAFETY MODULE
+// -----------------------------------------------------------------------------
+export const REJECTION_REASON_TIP = "Provide a clear reason for rejection. This will be visible to the content author.";
+
+// -----------------------------------------------------------------------------
 // RESULTS MODULE
 // -----------------------------------------------------------------------------
 export const RESULT_TITLE_TIP = "A descriptive title for the result announcement.";

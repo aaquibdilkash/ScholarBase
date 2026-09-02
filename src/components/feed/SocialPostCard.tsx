@@ -22,8 +22,9 @@ export function SocialPostCard({
   const router = useRouter();
   const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author?.followers?.length ?? 0) > 0;
-  const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    Array.isArray(post.votes) ? post.votes[0]?.voteType ?? null : null;
+  const userVote: "UPVOTE" | "DOWNVOTE" | null = Array.isArray(post.votes)
+    ? (post.votes[0]?.voteType ?? null)
+    : null;
 
   return (
     <ListPageCardShell
@@ -44,11 +45,12 @@ export function SocialPostCard({
             deleteLabel="Delete"
             onDelete={async () => {
               const response = await deleteSocialPost(post.id);
-              if (response?.success) {
+              if (response?.success && response.data) {
+                const deletedPost = response.data;
                 queryClient.setQueriesData<PostWithDetails[]>(
                   { queryKey: ["feed"] },
                   (oldData = []) =>
-                    oldData.filter((item) => item.id !== response.data.id),
+                    oldData.filter((item) => item.id !== deletedPost.id),
                 );
               }
               return { refresh: false };
@@ -57,7 +59,11 @@ export function SocialPostCard({
         )
       }
       createdDate={post.createdAt}
-      editedDate={post.editedAt && post.editedAt > post.createdAt ? post.editedAt : undefined}
+      editedDate={
+        post.editedAt && post.editedAt > post.createdAt
+          ? post.editedAt
+          : undefined
+      }
       footerVoteButton={
         <VoteButton
           frozen={post.isFrozen === true}
@@ -80,31 +86,31 @@ export function SocialPostCard({
             post.imageUrl ? "w-1/2 min-w-0" : "w-full"
           }`}
         >
-          {renderMentionContent(
-            post.content ?? "",
-            post.mentions,
-            { renderAsLink: false, onMentionClick: (e) => {
+          {renderMentionContent(post.content ?? "", post.mentions, {
+            renderAsLink: false,
+            onMentionClick: (e) => {
               e.preventDefault();
               e.stopPropagation();
               e.nativeEvent?.stopImmediatePropagation();
-              const mentionId = (e.currentTarget as HTMLElement).dataset?.mentionId;
+              const mentionId = (e.currentTarget as HTMLElement).dataset
+                ?.mentionId;
               if (mentionId) router.push(`/scholars/${mentionId}`);
-            }},
-          )}
+            },
+          })}
         </p>
-          {post.imageUrl && (
-            <div className="mb-4 w-1/2 self-start overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:opacity-90 dark:bg-slate-900">
-              <Image
-                src={post.imageUrl}
-                alt=""
-                width={800}
-                height={400}
-                unoptimized
-                className="block h-auto w-full object-contain"
-              />
-            </div>
-          )}
-        </div>
+        {post.imageUrl && (
+          <div className="mb-4 w-1/2 self-start overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:opacity-90 dark:bg-slate-900">
+            <Image
+              src={post.imageUrl}
+              alt=""
+              width={800}
+              height={400}
+              unoptimized
+              className="block h-auto w-full object-contain"
+            />
+          </div>
+        )}
+      </div>
     </ListPageCardShell>
   );
 }

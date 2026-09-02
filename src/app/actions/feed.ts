@@ -6,6 +6,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 import {
@@ -220,6 +221,17 @@ export const getPost = cache(async (id: string, userId?: string) => {
 export async function createSocialPost(formData: FormData) {
   const authUser = await requireCurrentUser("You must be logged in to post.");
 
+  const rateLimit = await checkRateLimit({
+    namespace: "post:create",
+    key: authUser.id,
+    limit: 10,
+    window: "10 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
   const [content, user] = await Promise.all([
     readFormValue(formData, "content"),
     prisma.user.findUnique({
@@ -307,6 +319,17 @@ export async function createSocialPost(formData: FormData) {
 
 export async function updateSocialPost(formData: FormData, postId: string) {
   const user = await requireCurrentUser("Log in to edit this post.");
+
+  const rateLimit = await checkRateLimit({
+    namespace: "post:edit",
+    key: user.id,
+    limit: 20,
+    window: "10 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: RATE_LIMIT_ERROR };
+  }
 
   const content = readFormValue(formData, "content");
   if (!content) return { success: false, message: "Content cannot be empty." };
@@ -397,6 +420,17 @@ export async function getPostEditData(id: string) {
 export async function deleteSocialPost(postId: string) {
   const user = await requireCurrentUser("Log in to delete this post.");
 
+  const rateLimit = await checkRateLimit({
+    namespace: "post:delete",
+    key: user.id,
+    limit: 20,
+    window: "10 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
   const post = await prisma.socialPost.findUnique({
     where: { id: postId },
     select: { authorId: true, totalVotes: true },
@@ -414,12 +448,12 @@ export async function deleteSocialPost(postId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-     await tx.user.update({
-       where: { id: post.authorId },
-       data: { socialPostCount: { decrement: 1 }, reputation: { decrement: 1 } },
-     });
+    await tx.user.update({
+      where: { id: post.authorId },
+      data: { socialPostCount: { decrement: 1 }, reputation: { decrement: 1 } },
+    });
 
-     if (post.totalVotes !== 0) {
+    if (post.totalVotes !== 0) {
       await tx.user.update({
         where: { id: post.authorId },
         data: { reputation: { decrement: post.totalVotes } },
@@ -432,6 +466,16 @@ export async function deleteSocialPost(postId: string) {
 
 export async function voteOnSocialPost(postId: string, voteType: VoteType) {
   const user = await requireCurrentUser("You must be logged in to vote.");
+  const rateLimit = await checkRateLimit({
+    namespace: "post-vote",
+    key: user.id,
+    limit: 120,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
   await handleVoteTransaction("SOCIAL_POST", postId, user.id, voteType);
 }
 
@@ -441,6 +485,16 @@ export async function createSocialPostComment(
   parentId?: string,
 ) {
   const user = await requireCurrentUser("You must be logged in to comment.");
+  const rateLimit = await checkRateLimit({
+    namespace: "post-comment",
+    key: user.id,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
   await createCommentTransaction(
     "SOCIAL_POST",
     postId,
@@ -454,6 +508,16 @@ export async function deleteSocialPostComment(commentId: string) {
   const user = await requireCurrentUser(
     "You must be logged in to delete comments.",
   );
+  const rateLimit = await checkRateLimit({
+    namespace: "post-comment:delete",
+    key: user.id,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
   const { parentId } = await deleteCommentTransaction(
     "SOCIAL_POST",
     commentId,

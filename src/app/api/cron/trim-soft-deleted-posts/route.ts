@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { verifyCronSecret } from '@/lib/cron'
 
 // We strictly target parent content tables. 
 // We do NOT include 'Comment' or 'Reply' in this list.
@@ -11,6 +12,10 @@ const CONTENT_TABLES = [
 ]
 
 export async function GET() {
+    if (!(await verifyCronSecret())) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     try {
         let totalDeleted = 0;
 

@@ -9,6 +9,7 @@ import type {
   ReportReason,
   ModerationAction,
 } from "@/types/reports";
+import { MAX_REPORT_DETAILS } from "@/lib/constants";
 
 // -----------------------------------------------------------------------------
 // MODULE MODEL MAP
@@ -201,6 +202,11 @@ export async function submitReport(
     throw new Error("Content not found");
   }
 
+  const normalizedDetails = details?.trim() || null;
+  if (normalizedDetails && normalizedDetails.length > MAX_REPORT_DETAILS) {
+    throw new Error(`Report details are too long (max ${MAX_REPORT_DETAILS} characters).`);
+  }
+
   const report = await prisma.$transaction(async (tx) => {
     // 1. Create the report record.
     const newReport = await tx.report.create({
@@ -209,7 +215,7 @@ export async function submitReport(
         entityType,
         module: mod,
         reason,
-        details: details ?? null,
+        details: normalizedDetails,
         reporterId: user.id,
       },
     });
@@ -667,7 +673,7 @@ export async function moderateContent(
         } | null;
         if (!full) throw new Error("Content not found");
 
-         if (!entity.isDeleted) {
+        if (!entity.isDeleted) {
           if (countField && full.authorId) {
             if ((full.totalVotes ?? 0) !== 0) {
               await tx.user.update({
@@ -727,25 +733,25 @@ export async function moderateContent(
         } | null;
         if (!full) throw new Error("Content not found");
 
-         if (entity.isDeleted && countField && full.authorId) {
-           if ((full.totalVotes ?? 0) !== 0) {
-             await tx.user.update({
-               where: { id: full.authorId },
-               data: { reputation: { increment: full.totalVotes ?? 0 } },
-             });
-           }
-           // Creation-bonus grant-back: always applied regardless of anonymity.
-           // (recommendationCount increment is still conditional on !isAnonymous.)
-           const isAnonymousRec =
-             contentType === "recommendation" && !!full.isAnonymous;
-           await tx.user.update({
-             where: { id: full.authorId },
-             data: {
-               ...(isAnonymousRec ? {} : { [countField]: { increment: 1 } }),
-               reputation: { increment: 1 },
-             },
-           });
-         }
+        if (entity.isDeleted && countField && full.authorId) {
+          if ((full.totalVotes ?? 0) !== 0) {
+            await tx.user.update({
+              where: { id: full.authorId },
+              data: { reputation: { increment: full.totalVotes ?? 0 } },
+            });
+          }
+          // Creation-bonus grant-back: always applied regardless of anonymity.
+          // (recommendationCount increment is still conditional on !isAnonymous.)
+          const isAnonymousRec =
+            contentType === "recommendation" && !!full.isAnonymous;
+          await tx.user.update({
+            where: { id: full.authorId },
+            data: {
+              ...(isAnonymousRec ? {} : { [countField]: { increment: 1 } }),
+              reputation: { increment: 1 },
+            },
+          });
+        }
 
         const updated = (await entry2.model.update({
           where: { id: contentId },

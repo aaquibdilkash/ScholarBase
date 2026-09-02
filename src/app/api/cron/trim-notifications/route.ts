@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { verifyCronSecret } from '@/lib/cron'
 
 export async function GET() {
+  if (!(await verifyCronSecret())) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     // We partition by "recipientId" to match your Prisma schema perfectly
     const deletedCount = await prisma.$executeRawUnsafe(`
@@ -16,14 +21,14 @@ export async function GET() {
       );
     `)
 
-    return NextResponse.json({ 
-      success: true, 
-      message: `Trimmed old notifications. Deleted ${deletedCount} rows.` 
+    return NextResponse.json({
+      success: true,
+      message: `Trimmed old notifications. Deleted ${deletedCount} rows.`
     })
   } catch (error) {
     console.error('Error trimming notifications:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to trim notifications.' }, 
+      { success: false, error: 'Failed to trim notifications.' },
       { status: 500 }
     )
   }

@@ -4,19 +4,50 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import { Flag, X } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { submitReport } from "@/app/actions/reports";
-import type { ReportEntityType, ReportModule, ReportReason } from "@/types/reports";
+import type {
+  ReportEntityType,
+  ReportModule,
+  ReportReason,
+} from "@/types/reports";
+import { MAX_REPORT_DETAILS } from "@/lib/constants";
 
-const REPORT_REASONS: { value: ReportReason; label: string; description: string }[] = [
-  { value: "SPAM", label: "Spam or Unsolicited", description: "Advertisements, promotional content, or spam" },
-  { value: "HARASSMENT", label: "Harassment or Bullying", description: "Targeted abuse, threats, or harassment" },
-  { value: "PLAGIARISM", label: "Plagiarism", description: "Copied content without attribution" },
-  { value: "MISINFORMATION", label: "Misinformation", description: "False or misleading information" },
-  { value: "OFF_TOPIC", label: "Off-Topic", description: "Content that doesn't belong here" },
-  { value: "COPYRIGHT", label: "Copyright Violation", description: "Unauthorized use of copyrighted material" },
+const REPORT_REASONS: {
+  value: ReportReason;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "SPAM",
+    label: "Spam or Unsolicited",
+    description: "Advertisements, promotional content, or spam",
+  },
+  {
+    value: "HARASSMENT",
+    label: "Harassment or Bullying",
+    description: "Targeted abuse, threats, or harassment",
+  },
+  {
+    value: "PLAGIARISM",
+    label: "Plagiarism",
+    description: "Copied content without attribution",
+  },
+  {
+    value: "MISINFORMATION",
+    label: "Misinformation",
+    description: "False or misleading information",
+  },
+  {
+    value: "OFF_TOPIC",
+    label: "Off-Topic",
+    description: "Content that doesn't belong here",
+  },
+  {
+    value: "COPYRIGHT",
+    label: "Copyright Violation",
+    description: "Unauthorized use of copyrighted material",
+  },
   { value: "OTHER", label: "Other", description: "Something else" },
 ];
-
-const MAX_DETAILS_LENGTH = 500;
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -26,7 +57,13 @@ interface ReportModalProps {
   module: ReportModule;
 }
 
-export function ReportModal({ isOpen, onClose, entityId, entityType, module }: ReportModalProps) {
+export function ReportModal({
+  isOpen,
+  onClose,
+  entityId,
+  entityType,
+  module,
+}: ReportModalProps) {
   const [selectedReason, setSelectedReason] = useState<ReportReason>("SPAM");
   const [details, setDetails] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -111,7 +148,9 @@ export function ReportModal({ isOpen, onClose, entityId, entityType, module }: R
             <Flag className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Report Content</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+              Report Content
+            </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Help us moderate content by reporting inappropriate material.
             </p>
@@ -159,15 +198,17 @@ export function ReportModal({ isOpen, onClose, entityId, entityType, module }: R
           <textarea
             id="report-details"
             value={details}
-            onChange={(e) => setDetails(e.target.value.slice(0, MAX_DETAILS_LENGTH))}
+            onChange={(e) =>
+              setDetails(e.target.value.slice(0, MAX_REPORT_DETAILS))
+            }
             placeholder="Provide any additional context that will help moderators..."
             rows={3}
-            maxLength={MAX_DETAILS_LENGTH}
+            maxLength={MAX_REPORT_DETAILS}
             disabled={isPending}
             className="mt-2 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:placeholder-slate-500"
           />
           <div className="mt-1 text-right text-xs text-slate-400 dark:text-slate-500">
-            {details.length}/{MAX_DETAILS_LENGTH}
+            {details.length}/{MAX_REPORT_DETAILS}
           </div>
         </div>
 

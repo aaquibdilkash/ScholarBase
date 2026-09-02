@@ -1,7 +1,15 @@
 "use server";
 
+import { headers } from "next/headers";
 import { Resend } from "resend";
 import { z } from "zod";
+import {
+  checkRateLimit,
+  getRequestFingerprint,
+  hashRateLimitKey,
+  RATE_LIMIT_ERROR,
+} from "@/lib/rate-limit";
+import type { ContactFormState } from "@/types/contact";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -12,12 +20,36 @@ const contactSchema = z.object({
   message: z.string().min(1, { message: "Message is required" }),
 });
 
-import type { ContactFormState } from "@/types/contact";
-
 export async function sendContactMessage(
   prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
+  const contactEmail = formData.get("email");
+  if (typeof contactEmail === "string" && contactEmail.trim().length > 0) {
+    const headersList = await headers();
+    const [emailRateLimit, ipRateLimit] = await Promise.all([
+      checkRateLimit({
+        namespace: "contact:email",
+        key: hashRateLimitKey(contactEmail.trim().toLowerCase()),
+        limit: 3,
+        window: "1 h",
+      }),
+      checkRateLimit({
+        namespace: "contact:ip",
+        key: getRequestFingerprint(headersList),
+        limit: 10,
+        window: "1 h",
+      }),
+    ])
+
+    if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+      return {
+        success: false,
+        message: RATE_LIMIT_ERROR,
+      }
+    }
+  }
+
   const validatedFields = contactSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -33,12 +65,13 @@ export async function sendContactMessage(
   }
 
   const { name, email, subject, message } = validatedFields.data;
+  const replyToEmail = email;
 
   try {
     await resend.emails.send({
       from: "ScholarBase Contact <contact@scholarbase.app>",
       to: ["connect@scholarbase.app"],
-      replyTo: email,
+      replyTo: replyToEmail,
       subject: `Contact Form: ${subject}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">

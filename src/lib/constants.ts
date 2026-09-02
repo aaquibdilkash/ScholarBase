@@ -85,6 +85,8 @@ export const MAX_SURVEY_ANSWER_SHORT = 64;
 export const MAX_SURVEY_ANSWER_LONG = 512;
 
 export const MAX_REJECTION_REASON = 64;
+export const MAX_REPORT_DETAILS = 256;
+export const MAX_APPEAL_REASON = 256;
 
 export const MAX_RECOMMENDATION_FEEDBACK = 512;
 

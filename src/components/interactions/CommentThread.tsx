@@ -312,10 +312,11 @@ function CommentCard({
   const handleDeleteComment = async () => {
     try {
       const response = await deleteComment(comment.id, module);
-      if (response?.success) {
+      if (response?.success && response.data) {
+        const deletedComment = response.data;
         // RULE 4: soft delete keeps the row alive (isDeleted = true);
         // the card stays in place as a "[deleted]" placeholder.
-        if (response.data.wasTombstoned) {
+        if (deletedComment.wasTombstoned) {
           onTombstoned();
         } else {
           onHardDeleted();

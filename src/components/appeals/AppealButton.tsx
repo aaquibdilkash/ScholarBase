@@ -5,15 +5,26 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, Loader2 } from "lucide-react";
 import { submitAppeal } from "@/app/actions/appeals";
 import { useToast } from "@/components/ui/Toast";
+import { MAX_APPEAL_REASON } from "@/lib/constants";
 
 const APPEAL_REASONS = [
-  { value: "MISTAKEN_MODERATION", label: "Mistaken Moderation", description: "I believe my content was moderated in error" },
-  { value: "CONTEXT_MISSING", label: "Context Missing", description: "The moderation did not consider important context" },
-  { value: "POLICY_CLARIFICATION", label: "Policy Clarification", description: "I believe my content does not violate the policy" },
+  {
+    value: "MISTAKEN_MODERATION",
+    label: "Mistaken Moderation",
+    description: "I believe my content was moderated in error",
+  },
+  {
+    value: "CONTEXT_MISSING",
+    label: "Context Missing",
+    description: "The moderation did not consider important context",
+  },
+  {
+    value: "POLICY_CLARIFICATION",
+    label: "Policy Clarification",
+    description: "I believe my content does not violate the policy",
+  },
   { value: "OTHER", label: "Other", description: "Something else" },
 ] as const;
-
-const MAX_REASON_LENGTH = 256;
 
 interface AppealButtonProps {
   entityId: string;
@@ -31,7 +42,9 @@ export function AppealButton({
   path,
 }: AppealButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedReason, setSelectedReason] = useState<string>(APPEAL_REASONS[0].value);
+  const [selectedReason, setSelectedReason] = useState<string>(
+    APPEAL_REASONS[0].value,
+  );
   const [details, setDetails] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -40,16 +53,24 @@ export function AppealButton({
     mutationFn: () =>
       submitAppeal({ entityId, module, entityType, reason: details, path }),
     onMutate: () => {
-      queryClient.setQueriesData({ queryKey: ["appeal", entityId] }, { hasActiveAppeal: true });
+      queryClient.setQueriesData(
+        { queryKey: ["appeal", entityId] },
+        { hasActiveAppeal: true },
+      );
     },
     onSuccess: () => {
-      toast({ title: "Appeal Submitted", description: "Your appeal has been sent to moderators. They will review it shortly." });
+      toast({
+        title: "Appeal Submitted",
+        description:
+          "Your appeal has been sent to moderators. They will review it shortly.",
+      });
       setIsModalOpen(false);
       setDetails("");
       setSelectedReason(APPEAL_REASONS[0].value);
     },
     onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Failed to submit appeal.";
+      const message =
+        err instanceof Error ? err.message : "Failed to submit appeal.";
       toast({ title: "Error", description: message, variant: "destructive" });
     },
   });
@@ -83,25 +104,31 @@ export function AppealButton({
       {isModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget && !mutation.isPending) setIsModalOpen(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !mutation.isPending)
+              setIsModalOpen(false);
+          }}
         >
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Appeal Moderation</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Appeal Moderation
+              </h3>
               <button
                 type="button"
                 onClick={() => !mutation.isPending && setIsModalOpen(false)}
                 disabled={mutation.isPending}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
               >
-                <span className="sr-only">Close</span>
-                ×
+                <span className="sr-only">Close</span>×
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <fieldset className="flex flex-col gap-2">
-                <legend className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Reason for appeal</legend>
+                <legend className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Reason for appeal
+                </legend>
                 {APPEAL_REASONS.map((r) => (
                   <label
                     key={r.value}
@@ -120,27 +147,36 @@ export function AppealButton({
                       className="mt-0.5 accent-amber-600"
                     />
                     <span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">{r.label}</span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">{r.description}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        {r.label}
+                      </span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        {r.description}
+                      </span>
                     </span>
                   </label>
                 ))}
               </fieldset>
 
               <div className="flex flex-col gap-1">
-                <label htmlFor="appeal-details" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label
+                  htmlFor="appeal-details"
+                  className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                >
                   Additional details
                 </label>
                 <textarea
                   id="appeal-details"
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
-                  maxLength={MAX_REASON_LENGTH}
+                  maxLength={MAX_APPEAL_REASON}
                   rows={3}
                   placeholder="Explain why you believe this moderation action should be reviewed..."
                   className="resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
-                <span className="text-right text-xs text-slate-400">{details.length}/{MAX_REASON_LENGTH}</span>
+                <span className="text-right text-xs text-slate-400">
+                  {details.length}/{MAX_APPEAL_REASON}
+                </span>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -157,7 +193,9 @@ export function AppealButton({
                   disabled={mutation.isPending || details.trim().length === 0}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {mutation.isPending && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
                   Submit Appeal
                 </button>
               </div>
@@ -168,4 +206,3 @@ export function AppealButton({
     </>
   );
 }
-

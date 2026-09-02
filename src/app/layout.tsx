@@ -113,18 +113,25 @@ export default async function RootLayout({
 
   let isAdmin = false;
   let unreadMessages = 0;
+  let unreadNotifications = 0;
   let avatarUrl: string | null = null;
+
   if (user) {
     await ensureUserProfile(user);
-    const [dbUser, messageCount] = await Promise.all([
+    const [dbUser, messageCount, notificationCount] = await Promise.all([
       prisma.user.findUnique({
         where: { id: user.id },
         select: { isAdmin: true, avatarUrl: true },
       }),
       getUnreadMessageCount(user.id),
+      prisma.notification.count({
+        where: { recipientId: user.id, readAt: null },
+      }),
     ]);
+
     isAdmin = dbUser?.isAdmin ?? false;
     unreadMessages = messageCount;
+    unreadNotifications = notificationCount;
     avatarUrl = dbUser?.avatarUrl ?? null;
   }
 
@@ -133,14 +140,19 @@ export default async function RootLayout({
     : null;
 
   const cookieStore = await cookies();
-  const isSidebarCollapsed = cookieStore.get("sb-main-sidebar-collapsed")?.value === "true";
+  const isSidebarCollapsed =
+    cookieStore.get("sb-main-sidebar-collapsed")?.value === "true";
   const themeCookie = cookieStore.get("sb-theme")?.value;
   const isDark = themeCookie !== "light";
 
   return (
-    <html lang="en" className={isDark ? "dark" : ""} data-scroll-behavior="smooth" suppressHydrationWarning>
-      <head>
-      </head>
+    <html
+      lang="en"
+      className={isDark ? "dark" : ""}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
+      <head />
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders>
@@ -148,7 +160,7 @@ export default async function RootLayout({
             <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
             <div className="flex min-w-0 flex-1 flex-col">
-              <Navbar />
+              <Navbar user={user} unreadCount={unreadNotifications} />
 
               <main className="sb-shell flex-1 grow py-8 md:py-10">
                 {children}

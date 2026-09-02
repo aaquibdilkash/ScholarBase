@@ -1,8 +1,20 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getBaseUrl } from "@/lib/url";
+import type { Duration } from "@upstash/ratelimit";
+import {
+  checkRateLimit,
+  getRequestFingerprint,
+  hashRateLimitKey,
+  RATE_LIMIT_ERROR,
+} from "@/lib/rate-limit";
+import {
+  MAX_AUTH_EMAIL,
+  MAX_AUTH_PASSWORD,
+} from "@/lib/constants";
 
 type AuthResult =
   | { success: true; redirect?: string; message?: string; url?: string }
@@ -25,12 +37,72 @@ function mapAuthError(message: string): string {
   return message;
 }
 
+async function limitByEmailAndIp(
+  namespace: string,
+  email: string,
+  emailLimit: number,
+  ipLimit: number,
+  window: Duration,
+): Promise<AuthResult | null> {
+  const headersList = await headers();
+  const requestKey = getRequestFingerprint(headersList);
+  const emailKey = hashRateLimitKey(email.trim().toLowerCase());
+
+  const [emailRateLimit, ipRateLimit] = await Promise.all([
+    checkRateLimit({
+      namespace: `${namespace}:email`,
+      key: emailKey,
+      limit: emailLimit,
+      window,
+    }),
+    checkRateLimit({
+      namespace: `${namespace}:ip`,
+      key: requestKey,
+      limit: ipLimit,
+      window,
+    }),
+  ]);
+
+  if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
+  return null;
+}
+
+function normalizeAuthEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function readAuthField(formData: FormData, key: string): string {
+  const value = formData.get(key)
+  return typeof value === 'string' ? value : ''
+}
+
 export async function login(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const email = normalizeAuthEmail(readAuthField(formData, "email"));
+  const password = readAuthField(formData, "password");
   const callbackUrl = (formData.get("callbackUrl") as string) || "/";
+
+  if (email.length === 0 || email.length > MAX_AUTH_EMAIL) {
+    return { success: false, error: "Please enter a valid email address." };
+  }
+  if (password.length > MAX_AUTH_PASSWORD) {
+    return { success: false, error: "Password is too long." };
+  }
+
+  const rateLimitResult = await limitByEmailAndIp(
+    "auth:login",
+    email,
+    5,
+    25,
+    "1 m",
+  );
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -45,14 +117,32 @@ export async function signup(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const email = normalizeAuthEmail(readAuthField(formData, "email"));
+  const password = readAuthField(formData, "password");
   if (!email || !password) {
     return { success: false, error: "Email and password are required." };
   }
 
+  if (email.length > MAX_AUTH_EMAIL) {
+    return { success: false, error: "Please enter a valid email address." };
+  }
+
+  const rateLimitResult = await limitByEmailAndIp(
+    "auth:signup",
+    email,
+    3,
+    10,
+    "1 h",
+  );
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
   if (password.length < 6) {
     return { success: false, error: "Password must be at least 6 characters." };
+  }
+  if (password.length > MAX_AUTH_PASSWORD) {
+    return { success: false, error: "Password is too long." };
   }
 
   const { error } = await supabase.auth.signUp({
@@ -105,10 +195,25 @@ export async function forgotPassword(
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
 
-  const email = formData.get("email") as string;
+  const email = normalizeAuthEmail(readAuthField(formData, "email"));
 
   if (!email) {
     return { success: false, error: "Please enter your email address" };
+  }
+
+  if (email.length > MAX_AUTH_EMAIL) {
+    return { success: false, error: "Please enter a valid email address." };
+  }
+
+  const rateLimitResult = await limitByEmailAndIp(
+    "auth:forgot-password",
+    email,
+    3,
+    10,
+    "1 h",
+  );
+  if (rateLimitResult) {
+    return rateLimitResult;
   }
 
   const redirectTo = `${baseUrl}/auth/callback?next=/auth/update-password`;

@@ -5,6 +5,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyUserById } from "@/lib/notifications";
 import type { SubmitResult } from "@/types/form";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 const directConversationSelect = {
   id: true,
@@ -49,21 +50,30 @@ export async function getInbox(userId: string) {
     select: directConversationSelect,
   });
 
-  return Promise.all(
-    conversations.map(async (conversation) => {
-      const participant = conversation.participants.find(
-        (p) => p.user.id === userId,
-      );
-      const unreadCount = await prisma.message.count({
-        where: {
-          conversationId: conversation.id,
-          senderId: { not: userId },
-          createdAt: { gt: participant?.lastReadAt ?? new Date(0) },
-        },
-      });
-      return { ...conversation, unreadCount };
-    }),
+  const unreadCounts = conversations.length > 0
+    ? await prisma.$queryRaw<{ conversationId: string; unreadCount: bigint }[]>`
+        WITH participant_reads AS (
+          SELECT "conversationId", COALESCE("lastReadAt", ${new Date(0)}) AS "lastReadAt"
+          FROM "ConversationParticipant"
+          WHERE "userId" = ${userId}
+        )
+        SELECT m."conversationId" AS "conversationId", COUNT(*)::int AS "unreadCount"
+        FROM "Message" m
+        INNER JOIN participant_reads pr ON pr."conversationId" = m."conversationId"
+        WHERE m."senderId" != ${userId}
+          AND m."createdAt" > pr."lastReadAt"
+        GROUP BY m."conversationId"
+      `
+    : [];
+
+  const unreadCountMap = new Map(
+    unreadCounts.map((row) => [row.conversationId, Number(row.unreadCount)]),
   );
+
+  return conversations.map((conversation) => ({
+    ...conversation,
+    unreadCount: unreadCountMap.get(conversation.id) ?? 0,
+  }));
 }
 
 export async function getUnreadMessageCount(userId: string) {
@@ -194,6 +204,18 @@ export async function startConversation(
   const supabaseUser = await requireCurrentUser(
     "Please log in to send a message.",
   );
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:start",
+    key: supabaseUser.id,
+    limit: 15,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
   const recipientId = readFormValue(formData, "recipientId");
   const body = readFormValue(formData, "body");
 
@@ -294,6 +316,18 @@ export async function sendMessage(
   const supabaseUser = await requireCurrentUser(
     "Please log in to message a scholar.",
   );
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:send",
+    key: supabaseUser.id,
+    limit: 60,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
   const body = readFormValue(formData, "body");
 
   if (!body) return { success: false, error: "Message body is required." };
@@ -391,12 +425,34 @@ export async function isUserBlocked(
 
 export async function blockUser(blockedId: string) {
   const user = await requireCurrentUser("Please log in to block a scholar.");
+  const rateLimit = await checkRateLimit({
+    namespace: "message:block",
+    key: user.id,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    throw new Error(RATE_LIMIT_ERROR);
+  }
+
   if (user.id === blockedId) throw new Error("You cannot block yourself.");
   await prisma.block.create({ data: { blockerId: user.id, blockedId } });
 }
 
 export async function unblockUser(blockedId: string) {
   const user = await requireCurrentUser("Please log in to unblock a scholar.");
+  const rateLimit = await checkRateLimit({
+    namespace: "message:unblock",
+    key: user.id,
+    limit: 20,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    throw new Error(RATE_LIMIT_ERROR);
+  }
+
   await prisma.block.delete({
     where: { blockerId_blockedId: { blockerId: user.id, blockedId } },
   });
@@ -414,6 +470,17 @@ export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
 export async function markConversationAsRead(conversationId: string) {
   const supabaseUser = await requireCurrentUser();
   if (!supabaseUser) return;
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:read",
+    key: supabaseUser.id,
+    limit: 120,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return;
+  }
 
   await prisma.conversationParticipant
     .update({

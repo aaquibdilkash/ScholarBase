@@ -1,27 +1,20 @@
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
 import { BrandMark } from "@/components/BrandMark";
 import { SBIcon } from "@/components/SBIcon";
 import MobileSidebarToggle from "@/components/layout/MobileSidebarToggle";
 import UserActionsDropdown from "./UserActionsDropdown";
-import prisma from "@/lib/db";
 import NavLoginButton from "./NavLoginButton";
 import SignOutButton from "@/components/auth/SignOutButton";
 import NotificationBadge from "./NotificationBadge";
+import type { User } from "@supabase/supabase-js";
 
-export default async function Navbar() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let unreadCount = 0;
-  if (user) {
-    unreadCount = await prisma.notification.count({
-      where: { recipientId: user.id, readAt: null },
-    });
-  }
-
+export default function Navbar({
+  user,
+  unreadCount = 0,
+}: {
+  user: User | null;
+  unreadCount?: number;
+}) {
   return (
     <nav className="sticky top-0 z-10 border-b border-white/70 bg-white/70 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90">
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
@@ -31,7 +24,7 @@ export default async function Navbar() {
             <div className="text-base font-semibold tracking-tight">
               <BrandMark />
             </div>
-            
+
             <div className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
               Research Community Platform
             </div>

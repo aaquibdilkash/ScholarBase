@@ -8,6 +8,7 @@ import {
 import { requireCurrentUser } from "@/lib/auth";
 import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 export async function voteOnContent(
   entityId: string,
@@ -18,6 +19,17 @@ export async function voteOnContent(
 
   if (!entityId || !newVoteType || !module) {
     throw new Error("Missing required parameters for voting.");
+  }
+
+  const rateLimit = await checkRateLimit({
+    namespace: `vote:${module}`,
+    key: user.id,
+    limit: 120,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
   }
 
   try {
@@ -41,6 +53,17 @@ export async function toggleCommentVote(
   voteType: VoteType,
 ) {
   const user = await requireCurrentUser("You must be logged in to vote.");
+
+  const rateLimit = await checkRateLimit({
+    namespace: `comment-vote:${type}`,
+    key: user.id,
+    limit: 120,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
 
   try {
     const { totalVotes, userVote } = await handleCommentVoteTransaction(

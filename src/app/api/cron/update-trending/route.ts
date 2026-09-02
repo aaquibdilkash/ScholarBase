@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
+import { verifyCronSecret } from '@/lib/cron'
 
 const GRAVITY = 1.8
 
@@ -22,6 +23,10 @@ const TRENDING_MODELS = [
 ]
 
 export async function GET() {
+  if (!(await verifyCronSecret())) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
     const errors: string[] = []
@@ -76,7 +81,7 @@ export async function GET() {
     // Return a partial success if some failed, full success if none failed
     if (errors.length > 0) {
       return NextResponse.json(
-        { success: true, message: 'Completed with errors on some tables.', failedTables: errors }, 
+        { success: true, message: 'Completed with errors on some tables.', failedTables: errors },
         { status: 207 }
       )
     }

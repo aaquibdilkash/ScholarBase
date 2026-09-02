@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { AppealStatus } from "@prisma/client";
+import { MAX_APPEAL_REASON } from "@/lib/constants";
 
 const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   SOCIAL_FEED: "feed",
@@ -112,7 +113,7 @@ export async function submitAppeal({
 
   const trimmed = reason.trim();
   if (trimmed.length === 0) throw new Error("Appeal reason is required.");
-  if (trimmed.length > 1000) throw new Error("Appeal reason is too long (max 1000 characters).");
+  if (trimmed.length > MAX_APPEAL_REASON) throw new Error(`Appeal reason is too long (max ${MAX_APPEAL_REASON} characters).`);
 
   const fetched = (await resolved.model.findUnique({
     where: { id: entityId },
