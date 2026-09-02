@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -25,28 +25,11 @@ export function ResearchGrantCard({
   const userVote =
     ((grant.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteResearchGrant,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete grant.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["grants"] },
-        (oldData: ResearchGrantWithAuthor[] = []) =>
-          oldData.filter((g) => g.id !== response.data.deletedId),
-      );
-      toast("Grant deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${grant.author?.id}`}
       authorName={grant.author?.name || "Scholar"}
-      authorId={grant.author?.id}
+      authorId={grant.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={grant.author?.handle || undefined}
@@ -56,9 +39,25 @@ export function ResearchGrantCard({
         isOwner && (
           <OwnerActionsDropdown
             editHref={`/grants/${grant.id}/edit`}
-            onDelete={() => {
-              deleteMutation.mutate(grant.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteResearchGrant(grant.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete grant.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["grants"] },
+                  (oldData: ResearchGrantWithAuthor[] = []) =>
+                    oldData.filter((g) => g.id !== response.data.deletedId),
+                );
+                toast("Grant deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
             isOwner={true}
             editLabel="Edit Grant"

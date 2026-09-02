@@ -1,5 +1,5 @@
 "use client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -18,28 +18,10 @@ export function SupervisorCard({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-        const isOwner = currentUserId === supervisor.authorId;
-  // Zero-compute: count + average derive from materialized scalars.
+  const isOwner = currentUserId === supervisor.authorId;
   const recommendationCount = supervisor.recommendationCount ?? 0;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteSupervisor,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete supervisor.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["supervisors"] },
-        (oldData: SupervisorWithAuthor[] = []) =>
-          oldData.filter((s) => s.id !== response.data.deletedId),
-      );
-      toast("Supervisor deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
-      const avgRating =
+  const avgRating =
     recommendationCount > 0 ? (supervisor.ratingSum ?? 0) / recommendationCount : 0;
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -50,7 +32,7 @@ export function SupervisorCard({
     <ListPageCardShell
       authorHref={`/scholars/${supervisor.author?.id}`}
       authorName={supervisor.author?.name || "Supervisor"}
-      authorId={supervisor.author?.id}
+      authorId={supervisor.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={supervisor.author?.handle || undefined}
@@ -63,20 +45,39 @@ export function SupervisorCard({
             isOwner={true}
             editLabel="Edit Supervisor"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteMutation.mutate(supervisor.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteSupervisor(supervisor.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete supervisor.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["supervisors"] },
+                  (oldData: SupervisorWithAuthor[] = []) =>
+                    oldData.filter((s) => s.id !== response.data.deletedId),
+                );
+                toast("Supervisor deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
           />
         )
       }
       createdDate={supervisor.createdAt}
+      editedDate={
+        supervisor.editedAt && supervisor.editedAt > supervisor.createdAt ? supervisor.editedAt : undefined
+      }
       footerVoteButton={
         <VoteButton
           frozen={supervisor.isFrozen === true}
           targetId={supervisor.id}
           module="SUPERVISOR"
-          initialTotalVotes={supervisor.totalVotes ?? 0}
+          initialTotalVotes={supervisor.totalVotes}
           initialUserVote={userVote}
         />
       }

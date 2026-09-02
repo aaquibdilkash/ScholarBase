@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
@@ -32,6 +33,7 @@ export default function OwnerActionsDropdown({
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -66,16 +68,18 @@ export default function OwnerActionsDropdown({
       startDeleteTransition(async () => {
         const result = await onDelete();
         const res = (result ?? undefined) as
-          | { redirect?: string; refresh?: boolean }
+          | { redirect?: string; refresh?: boolean; invalidateQueries?: unknown[][] }
           | undefined;
-        // Close the confirm modal now that the deletion has settled.
         setIsModalOpen(false);
         if (res?.redirect) {
+          if (res.invalidateQueries) {
+            res.invalidateQueries.forEach((key) =>
+              queryClient.invalidateQueries({ queryKey: key }),
+            );
+          }
           router.push(res.redirect);
           toast("Item deleted successfully.", "success");
         } else if (res?.refresh === false) {
-          // Handler performed its own client-side cache mutation/navigation
-          // (and its own toast). No global refresh required.
           return;
         } else {
           router.refresh();

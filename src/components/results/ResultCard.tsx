@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -33,28 +33,11 @@ export function ResultCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (result.votes || [])[0]?.voteType ?? null;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteResult,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete result.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["results"] },
-        (oldData: ResultWithAuthor[] = []) =>
-          oldData.filter((r) => r.id !== response.data.deletedId),
-      );
-      toast("Result deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${result.author?.id}`}
       authorName={result.author?.name || "Scholar"}
-      authorId={result.author?.id}
+      authorId={result.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={result.author?.handle || undefined}
@@ -65,9 +48,25 @@ export function ResultCard({
           <OwnerActionsDropdown
             editHref={`/results/${result.id}/edit`}
             isOwner={true}
-            onDelete={() => {
-              deleteMutation.mutate(result.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteResult(result.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete result.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["results"] },
+                  (oldData: ResultWithAuthor[] = []) =>
+                    oldData.filter((r) => r.id !== response.data.deletedId),
+                );
+                toast("Result deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
             editLabel="Edit Result"
             deleteLabel="Delete"
@@ -83,7 +82,7 @@ export function ResultCard({
           frozen={result.isFrozen === true}
           targetId={result.id}
           module="RESULT"
-          initialTotalVotes={result.totalVotes ?? 0}
+          initialTotalVotes={result.totalVotes}
           initialUserVote={userVote}
         />
       }

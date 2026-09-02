@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -22,33 +22,13 @@ export function HelpPostCard({
   const isOwner = currentUserId === helpPost.authorId;
   const isFollowing = (helpPost.author?.followers?.length ?? 0) > 0;
   
-  // The 'votes' prop is now a filtered select returning an array with 0 or 1 elements.
   const initialUserVote = helpPost.votes && helpPost.votes.length > 0 ? helpPost.votes[0].voteType : null;
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteHelpPost,
-    onSuccess: (response) => {
-       if (!response.success || !response.data) {
-         toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
-         return;
-       }
-      queryClient.setQueryData<HelpPostWithAuthor[]>(
-        ["helpPosts", { q: "" }],
-        (oldData = []) =>
-          oldData.filter((p) => p.id !== response.data?.deletedId),
-      );
-      toast({ title: "Success", description: "Post deleted successfully." });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
 
   return (
     <ListPageCardShell
       authorHref={`/scholars/${helpPost.author?.id}`}
       authorName={helpPost.author?.name || "Scholar"}
-      authorId={helpPost.author?.id}
+      authorId={helpPost.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={helpPost.author?.handle || undefined}
@@ -61,7 +41,26 @@ export function HelpPostCard({
             isOwner={true}
             editLabel="Edit Help Post"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(helpPost.id); return { refresh: false }; }}
+            onDelete={async () => {
+              try {
+                const response = await deleteHelpPost(helpPost.id);
+                if (!response?.success || !response.data) {
+                  toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
+                  return { refresh: false };
+                }
+                queryClient.setQueryData<HelpPostWithAuthor[]>(
+                  ["helpPosts", { q: "" }],
+                  (oldData = []) =>
+                    oldData.filter((p) => p.id !== response.data?.deletedId),
+                );
+                toast({ title: "Success", description: "Post deleted successfully." });
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast({ title: "Error", description: message, variant: "destructive" });
+                return { refresh: false };
+              }
+            }}
           />
         )
       }

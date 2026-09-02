@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -36,28 +36,11 @@ export function SurveyCard({
   const isFollowing = (survey.author?.followers?.length ?? 0) > 0;
   const userVote = (survey.votes || [])[0]?.voteType ?? null;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteSurvey,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete survey.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["surveys"] },
-        (oldData: SurveyWithAuthor[] = []) =>
-          oldData.filter((s) => s.id !== response.data.deletedId),
-      );
-      toast("Survey deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${survey.author?.id}`}
       authorName={survey.author?.name || "Scholar"}
-      authorId={survey.author?.id}
+      authorId={survey.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={survey.author?.handle || undefined}
@@ -69,9 +52,25 @@ export function SurveyCard({
           <OwnerActionsDropdown
             editHref={`/surveys/${survey.id}/edit`}
             isOwner={true}
-            onDelete={() => {
-              deleteMutation.mutate(survey.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteSurvey(survey.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete survey.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["surveys"] },
+                  (oldData: SurveyWithAuthor[] = []) =>
+                    oldData.filter((s) => s.id !== response.data.deletedId),
+                );
+                toast("Survey deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
             editLabel="Edit Survey"
             deleteLabel="Delete"

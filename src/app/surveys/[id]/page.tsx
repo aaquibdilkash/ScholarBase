@@ -87,7 +87,7 @@ const SurveyDetailPage = async ({
             onDelete={async () => {
               "use server";
               await deleteSurvey(survey.id);
-              return { redirect: "/surveys" };
+              return { redirect: "/surveys", invalidateQueries: [["surveys"]] };
             }}
             isOwner={true}
             editLabel="Edit Survey"

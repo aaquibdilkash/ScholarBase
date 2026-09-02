@@ -61,7 +61,7 @@ const ContributionDetailPage = async ({
   const handleDelete = async () => {
     "use server";
     await deleteContribution(id);
-    return { redirect: "/contributions" };
+    return { redirect: "/contributions", invalidateQueries: [["contributions"]] };
   };
 
   return (

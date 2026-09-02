@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -36,28 +36,11 @@ export function EventCard({
     (event.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(event.deadline);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteResearchEvent,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete event.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["events"] },
-        (oldData: EventWithAuthor[] = []) =>
-          oldData.filter((e) => e.id !== response.data.deletedId),
-      );
-      toast("Event deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${event.author?.id}`}
       authorName={event.author?.name || "Scholar"}
-      authorId={event.author?.id}
+      authorId={event.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={event.author?.handle || undefined}
@@ -68,9 +51,25 @@ export function EventCard({
           <OwnerActionsDropdown
             editHref={`/events/${event.id}/edit`}
             isOwner={true}
-            onDelete={() => {
-              deleteMutation.mutate(event.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteResearchEvent(event.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete event.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["events"] },
+                  (oldData: EventWithAuthor[] = []) =>
+                    oldData.filter((e) => e.id !== response.data.deletedId),
+                );
+                toast("Event deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
             editLabel="Edit Event"
             deleteLabel="Delete"
@@ -78,12 +77,15 @@ export function EventCard({
         )
       }
       createdDate={event.createdAt}
+      editedDate={
+        event.editedAt && event.editedAt > event.createdAt ? event.editedAt : undefined
+      }
       footerVoteButton={
         <VoteButton
           frozen={event.isFrozen === true}
           targetId={event.id}
           module="RESEARCH_EVENT"
-          initialTotalVotes={event.totalVotes ?? 0}
+          initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
         />
       }
@@ -151,7 +153,11 @@ export function EventCard({
               <span>
                 Deadline:{" "}
                 <span className="font-medium">
-                  {formatDate(event.deadline)}
+                  {new Date(event.deadline).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
                 </span>
               </span>
             </div>

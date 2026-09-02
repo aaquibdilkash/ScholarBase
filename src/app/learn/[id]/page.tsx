@@ -67,7 +67,7 @@ export default async function CourseDetailPage({
   async function handleDelete() {
     "use server";
     await deleteCourse(course!.id);
-    return { redirect: "/learn" };
+    return { redirect: "/learn", invalidateQueries: [["courses"]] };
   }
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -33,28 +33,11 @@ export function CourseCard({
     course.duration,
   ].filter(Boolean);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteCourse,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete course.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["courses"] },
-        (oldData: CourseWithAuthor[] = []) =>
-          oldData.filter((c) => c.id !== response.data.deletedId),
-      );
-      toast("Course deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${course.author?.id}`}
       authorName={course.author?.name || "Scholar"}
-      authorId={course.author?.id}
+      authorId={course.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={course.author?.handle || undefined}
@@ -64,9 +47,25 @@ export function CourseCard({
         isOwner && (
           <OwnerActionsDropdown
             editHref={`/learn/${course.id}/edit`}
-            onDelete={() => {
-              deleteMutation.mutate(course.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteCourse(course.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete course.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["courses"] },
+                  (oldData: CourseWithAuthor[] = []) =>
+                    oldData.filter((c) => c.id !== response.data.deletedId),
+                );
+                toast("Course deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
             isOwner={true}
             editLabel="Edit Course"
@@ -83,7 +82,7 @@ export function CourseCard({
           frozen={course.isFrozen === true}
           targetId={course.id}
           module="COURSE"
-          initialTotalVotes={course.totalVotes ?? 0}
+          initialTotalVotes={course.totalVotes}
           initialUserVote={userVote}
         />
       }

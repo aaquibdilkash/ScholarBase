@@ -52,7 +52,7 @@ export default async function HelpPostPage({
   async function handleDelete() {
     "use server";
     await deleteHelpPost(post!.id);
-    return { redirect: "/help" };
+    return { redirect: "/help", invalidateQueries: [["helpPosts"]] };
   }
 
   return (

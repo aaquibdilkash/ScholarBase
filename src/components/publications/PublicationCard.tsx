@@ -6,7 +6,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
 import type { PublicationWithAuthor } from "@/types/cards";
@@ -37,28 +37,11 @@ export function PublicationCard({
     (publication.votes || [])[0]?.voteType ??
     null;
 
-  const deleteMutation = useMutation({
-    mutationFn: deletePublication,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete publication.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["publications"] },
-        (oldData: PublicationWithAuthor[] = []) =>
-          oldData.filter((p) => p.id !== response.data.deletedId),
-      );
-      toast("Publication deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${publication.author?.id}`}
       authorName={publication.author?.name || "Scholar"}
-      authorId={publication.author?.id}
+      authorId={publication.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={publication.author?.handle || undefined}
@@ -71,25 +54,39 @@ export function PublicationCard({
             isOwner={true}
             editLabel="Edit Publication"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteMutation.mutate(publication.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deletePublication(publication.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete publication.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["publications"] },
+                  (oldData: PublicationWithAuthor[] = []) =>
+                    oldData.filter((p) => p.id !== response.data.deletedId),
+                );
+                toast("Publication deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
           />
         )
       }
       createdDate={publication.createdAt}
       editedDate={
-        publication.editedAt && publication.editedAt > publication.createdAt
-          ? publication.editedAt
-          : undefined
+        publication.editedAt && publication.editedAt > publication.createdAt ? publication.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
           frozen={publication.isFrozen === true}
           targetId={publication.id}
           module="PUBLICATION"
-          initialTotalVotes={publication.totalVotes ?? 0}
+          initialTotalVotes={publication.totalVotes}
           initialUserVote={userVote}
         />
       }
@@ -149,29 +146,27 @@ export function PublicationCard({
             </span>
           )}
           {publication.domain && (
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
               {publication.domain}
             </span>
           )}
           {publication.isUserAuthor && (
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               Co-author
             </span>
           )}
         </div>
 
-        {publication.keywords && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {publication.keywords.split(",").map((kw, i) => (
-              <span
-                key={i}
-                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-              >
-                {kw.trim()}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-slate-500">
+          {publication.keywords?.split(",").map((kw, i) => (
+            <span
+              key={i}
+              className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+            >
+              {kw.trim()}
+            </span>
+          ))}
+        </div>
       </Link>
     </ListPageCardShell>
   );

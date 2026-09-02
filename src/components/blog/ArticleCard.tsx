@@ -5,7 +5,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
 import type { ArticleWithAuthor } from "@/types/cards";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 
 export function ArticleCard({
@@ -20,27 +20,7 @@ export function ArticleCard({
   const isOwner = currentUserId === article.authorId;
   const isFollowing = (article.author?.followers?.length ?? 0) > 0;
 
-  // The 'votes' prop is now a filtered select returning an array with 0 or 1 elements.
   const initialUserVote = article.votes && article.votes.length > 0 ? article.votes[0].voteType : null;
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteArticle,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast({ title: "Error", description: "Failed to delete article.", variant: "destructive" });
-        return;
-      }
-      queryClient.setQueryData<ArticleWithAuthor[]>(
-        ["articles", { q: "" }],
-        (oldData = []) =>
-          oldData.filter((p) => p.id !== response.data?.deletedId),
-      );
-      toast({ title: "Success", description: "Article deleted successfully." });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
 
   return (
     <ListPageCardShell
@@ -59,7 +39,26 @@ export function ArticleCard({
             isOwner={true}
             editLabel="Edit Article"
             deleteLabel="Delete"
-            onDelete={() => { deleteMutation.mutate(article.id); return { refresh: false }; }}
+            onDelete={async () => {
+              try {
+                const response = await deleteArticle(article.id);
+                if (!response?.success || !response.data) {
+                  toast({ title: "Error", description: "Failed to delete article.", variant: "destructive" });
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData<ArticleWithAuthor[]>(
+                  { queryKey: ["articles", { q: "" }] },
+                  (oldData = []) =>
+                    oldData.filter((p) => p.id !== response.data?.deletedId),
+                );
+                toast({ title: "Success", description: "Article deleted successfully." });
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast({ title: "Error", description: message, variant: "destructive" });
+                return { refresh: false };
+              }
+            }}
           />
         )
       }

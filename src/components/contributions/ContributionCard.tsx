@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -24,28 +24,12 @@ export function ContributionCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (contribution.votes || [])[0]?.voteType ??
     null;
-  const deleteMutation = useMutation({
-    mutationFn: deleteContribution,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete contribution.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["contributions"] },
-        (oldData: ContributionWithAuthor[] = []) =>
-          oldData.filter((c) => c.id !== response.data.deletedId),
-      );
-      toast("Contribution deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
 
   return (
     <ListPageCardShell
       authorHref={`/scholars/${contribution.author?.id}`}
       authorName={contribution.author?.name || "Scholar"}
-      authorId={contribution.author?.id}
+      authorId={contribution.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={contribution.author?.handle || undefined}
@@ -58,9 +42,25 @@ export function ContributionCard({
             isOwner={true}
             editLabel="Edit Contribution"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteMutation.mutate(contribution.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteContribution(contribution.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete contribution.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["contributions"] },
+                  (oldData: ContributionWithAuthor[] = []) =>
+                    oldData.filter((c) => c.id !== response.data.deletedId),
+                );
+                toast("Contribution deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
           />
         )

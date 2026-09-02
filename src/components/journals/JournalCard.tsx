@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import Link from "next/link";
@@ -25,28 +25,11 @@ export function JournalCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (journal.votes || [])[0]?.voteType ?? null;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteJournal,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete journal.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["journals"] },
-        (oldData: JournalWithAuthor[] = []) =>
-          oldData.filter((j) => j.id !== response.data.deletedId),
-      );
-      toast("Journal deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${journal.author?.id}`}
       authorName={journal.author?.name || "Scholar"}
-      authorId={journal.author?.id}
+      authorId={journal.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={journal.author?.handle || undefined}
@@ -60,9 +43,25 @@ export function JournalCard({
             isOwner={true}
             editLabel="Edit Journal"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteMutation.mutate(journal.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteJournal(journal.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete journal.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["journals"] },
+                  (oldData: JournalWithAuthor[] = []) =>
+                    oldData.filter((j) => j.id !== response.data.deletedId),
+                );
+                toast("Journal deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
           />
         )
@@ -76,7 +75,7 @@ export function JournalCard({
           frozen={journal.isFrozen === true}
           targetId={journal.id}
           module="JOURNAL"
-          initialTotalVotes={journal.totalVotes ?? 0}
+          initialTotalVotes={journal.totalVotes}
           initialUserVote={userVote}
         />
       }
@@ -104,7 +103,7 @@ export function JournalCard({
       }
     >
       <Link href={`/journals/${journal.id}`} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
           {journal.title}
         </h2>
 
@@ -125,42 +124,42 @@ export function JournalCard({
             </span>
           )}
           {journal.impactFactor && (
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               IF: {journal.impactFactor}
             </span>
           )}
           {journal.scopusQuartile && journal.scopusQuartile !== "NONE" && (
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
               Scopus: {journal.scopusQuartile}
             </span>
           )}
           {journal.abdcRanking && journal.abdcRanking !== "NONE" && (
-            <span className="rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-700 dark:bg-purple-500/10 dark:text-purple-300">
+            <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 dark:bg-purple-500/10 dark:text-purple-300">
               ABDC: {journal.abdcRanking.replace("_STAR", "*")}
             </span>
           )}
           {journal.wosIndex && journal.wosIndex !== "NONE" && (
-            <span className="rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
               WoS: {journal.wosIndex}
             </span>
           )}
           {journal.wosQuartile && journal.wosQuartile !== "NONE" && (
-            <span className="rounded-full bg-sky-50 px-2.5 py-1 font-medium text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+            <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
               WoS Q: {journal.wosQuartile}
             </span>
           )}
           {journal.sjrQuartile && journal.sjrQuartile !== "NONE" && (
-            <span className="rounded-full bg-orange-50 px-2.5 py-1 font-medium text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+            <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700">
               SJR Q: {journal.sjrQuartile}
             </span>
           )}
           {journal.sjrScore != null && (
-            <span className="rounded-full bg-orange-50 px-2.5 py-1 font-medium text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+            <span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700">
               SJR: {journal.sjrScore}
             </span>
           )}
           {journal.citeScore != null && (
-            <span className="rounded-full bg-teal-50 px-2.5 py-1 font-medium text-teal-700 dark:bg-teal-500/10 dark:text-teal-300">
+            <span className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700">
               CiteScore: {journal.citeScore}
             </span>
           )}

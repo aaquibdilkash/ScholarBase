@@ -51,7 +51,7 @@ export default async function RecommendationDetailPage({
   async function handleDelete() {
     "use server";
     await deleteRecommendation(recommendation!.id);
-    return { redirect: `/supervisor/${id}` };
+    return { redirect: `/supervisor/${id}`, invalidateQueries: [["recommendations", id]] };
   }
 
   // Filtered select in getRecommendation returns at most one row (the

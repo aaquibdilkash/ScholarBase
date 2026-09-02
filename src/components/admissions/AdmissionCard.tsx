@@ -11,6 +11,7 @@ import { getTimeLeft } from "@/utils/time-ago";
 import { Clock } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/Toast";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -28,6 +29,7 @@ export function AdmissionCard({
   currentUserId?: string;
 }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const isOwner = currentUserId === admission.authorId;
   const isFollowing = (admission.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
@@ -58,6 +60,7 @@ export function AdmissionCard({
                     return oldData?.filter((post) => post.id !== admission.id);
                   },
                 );
+                toast("Admission deleted successfully.", "success");
               }
               return { refresh: false };
             }}

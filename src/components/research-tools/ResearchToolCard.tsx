@@ -1,14 +1,14 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
-import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deleteResearchTool } from "@/app/actions/researchTools";
 import { useToast } from "@/components/ui/Toast";
+import { VoteButton } from "@/components/interactions/VoteButton";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 
 export function ResearchToolCard({
@@ -25,28 +25,11 @@ export function ResearchToolCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     ((tool.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteResearchTool,
-    onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        toast("Failed to delete tool.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["researchTools"] },
-        (oldData: ResearchToolWithAuthor[] = []) =>
-          oldData.filter((t) => t.id !== response.data.deletedId),
-      );
-      toast("Tool deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${tool.author?.id}`}
       authorName={tool.author?.name || "Scholar"}
-      authorId={tool.author?.id}
+      authorId={tool.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={tool.author?.handle || undefined}
@@ -59,9 +42,25 @@ export function ResearchToolCard({
             isOwner={true}
             editLabel="Edit Tool"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteMutation.mutate(tool.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteResearchTool(tool.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete tool.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["researchTools"] },
+                  (oldData: ResearchToolWithAuthor[] = []) =>
+                    oldData.filter((t) => t.id !== response.data.deletedId),
+                );
+                toast("Tool deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
           />
         )
@@ -73,7 +72,7 @@ export function ResearchToolCard({
           frozen={tool.isFrozen === true}
           targetId={tool.id}
           module="RESEARCH_TOOL"
-          initialTotalVotes={tool.totalVotes ?? 0}
+          initialTotalVotes={tool.totalVotes}
           initialUserVote={userVote}
         />
       }

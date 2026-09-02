@@ -52,7 +52,7 @@ const ResearchToolDetailPage = async ({
   async function handleDelete() {
     "use server";
     await deleteResearchTool(tool!.id);
-    return { redirect: "/research-tools" };
+    return { redirect: "/research-tools", invalidateQueries: [["researchTools"]] };
   }
 
   return (

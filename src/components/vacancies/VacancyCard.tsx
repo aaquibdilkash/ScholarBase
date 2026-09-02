@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -28,28 +28,11 @@ export function VacancyCard({
     ((vacancy.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
   const urgency = getTimeLeft(vacancy.deadline);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteJobVacancy,
-    onSuccess: (response) => {
-      if (!response || !response.success || !response.data) {
-        toast("Failed to delete vacancy.", "error");
-        return;
-      }
-      queryClient.setQueriesData(
-        { queryKey: ["vacancies"] },
-        (oldData: VacancyWithAuthor[] = []) =>
-          oldData.filter((v) => v.id !== response.data.deletedId),
-      );
-      toast("Vacancy deleted successfully.", "success");
-    },
-    onError: (error) => toast(error.message, "error"),
-  });
-
   return (
     <ListPageCardShell
       authorHref={`/scholars/${vacancy.author?.id}`}
       authorName={vacancy.author?.name || "Scholar"}
-      authorId={vacancy.author?.id}
+      authorId={vacancy.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={vacancy.author?.handle || undefined}
@@ -62,14 +45,33 @@ export function VacancyCard({
             isOwner={true}
             editLabel="Edit Vacancy"
             deleteLabel="Delete"
-            onDelete={() => {
-              deleteMutation.mutate(vacancy.id);
-              return { refresh: false };
+            onDelete={async () => {
+              try {
+                const response = await deleteJobVacancy(vacancy.id);
+                if (!response?.success || !response.data) {
+                  toast("Failed to delete vacancy.", "error");
+                  return { refresh: false };
+                }
+                queryClient.setQueriesData(
+                  { queryKey: ["vacancies"] },
+                  (oldData: VacancyWithAuthor[] = []) =>
+                    oldData.filter((v) => v.id !== response.data.deletedId),
+                );
+                toast("Vacancy deleted successfully.", "success");
+                return { refresh: false };
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "Unknown error";
+                toast(message, "error");
+                return { refresh: false };
+              }
             }}
           />
         )
       }
       createdDate={vacancy.createdAt}
+      editedDate={
+        vacancy.editedAt && vacancy.editedAt > vacancy.createdAt ? vacancy.editedAt : undefined
+      }
       footerVoteButton={
         <VoteButton
           frozen={vacancy.isFrozen === true}
@@ -130,7 +132,7 @@ export function VacancyCard({
         </p>
 
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-600">
-          <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth="2" />
+          <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
           <span>
             Last Date:{" "}
             <span className="font-medium">
