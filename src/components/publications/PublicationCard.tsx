@@ -122,7 +122,7 @@ export function PublicationCard({
           </span>
         </div>
 
-        <p className="text-sm text-slate-500 mb-2">
+        <p className="break-words text-sm text-slate-500 mb-2">
           <span className="font-medium text-slate-700">Authors:</span>{" "}
           {publication.authors}
         </p>

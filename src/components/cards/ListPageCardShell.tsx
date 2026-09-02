@@ -148,7 +148,7 @@ export default function ListPageCardShell({
       {/* Clickable middle body */}
       <TruncatedCardBody
         detailPageHref={detailPageHref}
-        className={clsx("block group", bodyClassName)}
+        className={clsx("block min-w-0 group", bodyClassName)}
         noBodyLink={noBodyLink}
       >
         {children}

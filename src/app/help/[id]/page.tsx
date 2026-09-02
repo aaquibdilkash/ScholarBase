@@ -122,7 +122,7 @@ export default async function HelpPostPage({
         {post.category}
       </p>
 
-      <p className="mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+      <p className="break-words mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
         <span className="font-semibold text-slate-800 dark:text-slate-100">
           Subject:
         </span>{" "}

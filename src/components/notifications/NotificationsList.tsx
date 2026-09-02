@@ -74,14 +74,14 @@ function NotificationCard({
       </div>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-semibold text-slate-950 dark:text-slate-100">
+          <p className="break-words font-semibold text-slate-950 dark:text-slate-100">
             {notification.title}
           </p>
           <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
             {typeLabel(notification.type)}
           </span>
         </div>
-        <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+        <p className="mt-1 break-words whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-400">
           {notification.body}
         </p>
         <p
@@ -107,11 +107,11 @@ function NotificationCard({
       }`}
     >
       {link ? (
-        <Link href={link} className="flex-1">
+        <Link href={link} className="flex-1 min-w-0">
           {content}
         </Link>
       ) : (
-        <div className="flex-1">{content}</div>
+        <div className="flex-1 min-w-0">{content}</div>
       )}
       {markReadButton}
     </div>

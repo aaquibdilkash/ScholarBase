@@ -143,9 +143,9 @@ export function ResultCard({
         {(result.conductingBody || result.session) && (
           <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
             {result.conductingBody && (
-              <span>Conducting Body: {result.conductingBody}</span>
+              <span className="break-words">Conducting Body: {result.conductingBody}</span>
             )}
-            {result.session && <span>Session: {result.session}</span>}
+            {result.session && <span className="break-words">Session: {result.session}</span>}
           </div>
         )}
       </Link>

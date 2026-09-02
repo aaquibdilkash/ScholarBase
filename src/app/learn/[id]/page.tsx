@@ -144,7 +144,7 @@ export default async function CourseDetailPage({
               <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 {label}
               </dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-800 dark:text-slate-100">
+              <dd className="mt-1 break-words text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {value}
               </dd>
             </div>

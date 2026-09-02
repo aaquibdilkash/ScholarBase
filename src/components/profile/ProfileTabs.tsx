@@ -664,17 +664,17 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
             {href && item.entityTitle ? (
               <Link
                 href={href}
-                className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
+                className="break-words font-semibold text-blue-600 hover:underline dark:text-blue-400"
               >
                 &ldquo;{item.entityTitle}&rdquo;
               </Link>
             ) : item.entityTitle ? (
-              <span className="font-semibold text-slate-700">
+              <span className="break-words font-semibold text-slate-700">
                 &ldquo;{item.entityTitle}&rdquo;
               </span>
             ) : null}
           </p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">
             {formatTimeAgo(new Date(item.createdAt))}
           </p>
         </div>

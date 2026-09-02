@@ -234,7 +234,7 @@ export function CommentSection({
             onSubmit={handleFormSubmit}
             className="flex flex-col gap-3 sm:flex-row"
           >
-            <div className="flex-1 flex flex-col gap-2">
+              <div className="flex-1 min-w-0 flex flex-col gap-2">
               <MentionComposer
                 name="content"
                 value={content}

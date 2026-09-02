@@ -49,9 +49,9 @@ export default function ListPageShell({
             {title}
           </h1>
           {description ? (
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 sm:text-base">
-              {description}
-            </p>
+          <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-400 sm:text-base">
+            {description}
+          </p>
           ) : null}
         </div>
 

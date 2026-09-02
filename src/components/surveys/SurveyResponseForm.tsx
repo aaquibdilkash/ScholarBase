@@ -248,7 +248,7 @@ export function SurveyResponseForm({
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   required={q.required}
                 />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <span className="break-words text-sm font-medium text-slate-700 dark:text-slate-300">
                   {opt.label}
                 </span>
               </label>
@@ -281,7 +281,7 @@ export function SurveyResponseForm({
                     }
                     className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <span className="break-words text-sm font-medium text-slate-700 dark:text-slate-300">
                     {opt.label}
                   </span>
                 </label>
@@ -375,7 +375,7 @@ export function SurveyResponseForm({
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                   required={q.required}
                 />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <span className="break-words text-sm font-medium text-slate-700 dark:text-slate-300">
                   {opt.label}
                 </span>
               </label>
@@ -528,7 +528,7 @@ export function SurveyResponseForm({
               {idx + 1}
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              <h3 className="break-words text-sm font-semibold text-slate-800 dark:text-slate-200">
                 {q.title}
                 {q.required && <span className="ml-1 text-red-500">*</span>}
               </h3>

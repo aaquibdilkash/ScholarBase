@@ -227,7 +227,7 @@ export function ArticleComposer({
         </div>
 
         <div className="space-y-5 p-6">
-          <p className="text-sm leading-relaxed text-slate-600">
+          <p className="break-words text-sm leading-relaxed text-slate-600">
             {draftFields.excerpt || "Your short description will appear here."}
           </p>
 

@@ -108,7 +108,7 @@ export function CourseCard({
           {course.title}
         </h2>
         {details.length > 0 && (
-          <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+          <p className="break-words mb-3 text-sm text-slate-600 dark:text-slate-300">
             {details.join(" • ")}
           </p>
         )}

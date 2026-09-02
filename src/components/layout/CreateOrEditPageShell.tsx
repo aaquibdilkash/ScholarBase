@@ -48,7 +48,7 @@ export default function CreateOrEditPageShell({
           {title}
         </h1>
         {description ? (
-          <p className="mt-2 text-slate-600 dark:text-slate-400">
+          <p className="mt-2 break-words text-slate-600 dark:text-slate-400">
             {description}
           </p>
         ) : null}

@@ -64,14 +64,14 @@ export function RichContent({ content, className = "" }: RichContentProps) {
 
     return (
       <div
-        className={className}
+        className={`sb-rich-content break-words overflow-wrap-anywhere ${className}`}
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
     );
   }
 
   return (
-    <div className={className}>
+    <div className={`sb-rich-content break-words overflow-wrap-anywhere ${className}`}>
       <ReactMarkdown>{content}</ReactMarkdown>
     </div>
   );

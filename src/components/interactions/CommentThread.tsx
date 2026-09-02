@@ -353,7 +353,7 @@ function CommentCard({
           <div
             className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}
           >
-            <p className="italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
+            <p className="break-words italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
               {comment.isDeleted
                 ? getDeletedMessage(comment.deletedByType, isReply)
                 : comment.content}

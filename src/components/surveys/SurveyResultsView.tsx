@@ -299,7 +299,7 @@ export function SurveyResultsView({
                       stats.answers.map((answer: string, i: number) => (
                         <div
                           key={i}
-                          className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                          className="break-words rounded-lg bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300"
                         >
                           {answer}
                         </div>

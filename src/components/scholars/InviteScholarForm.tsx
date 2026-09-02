@@ -1,8 +1,8 @@
 "use client";
 
 import { Loader2, Share2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useEffect, useRef, useState, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { inviteScholar } from "@/app/actions/scholars";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "@/components/interactions/AuthModal";
@@ -14,6 +14,7 @@ import {
 } from "@/lib/constants";
 import type { InviteFormState } from "@/types/invite";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { UrlGuardedTextarea } from "@/components/ui/UrlGuardedTextarea";
 import {
   INVITE_NAME_TIP,
   INVITE_EMAIL_TIP,
@@ -47,7 +48,7 @@ function SubmitButton() {
 }
 
 export function InviteScholarForm() {
-  const [state, formAction] = useFormState(inviteScholar, initialState);
+  const [state, formAction] = useActionState(inviteScholar, initialState);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const { user } = useUser();
@@ -173,7 +174,7 @@ export function InviteScholarForm() {
           Message
           <InfoTooltip message={INVITE_MESSAGE_TIP} />
         </label>
-        <textarea
+        <UrlGuardedTextarea
           id="message"
           name="message"
           className="sb-textarea min-h-40"
@@ -181,7 +182,7 @@ export function InviteScholarForm() {
           maxLength={MAX_INVITE_MESSAGE}
           required
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onValueChange={setMessage}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {message.length.toLocaleString("en-US")}/

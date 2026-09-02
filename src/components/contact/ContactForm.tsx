@@ -1,9 +1,9 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useActionState } from "react";
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
@@ -52,7 +52,7 @@ function SubmitButton() {
 }
 
 export function ContactForm() {
-  const [state, formAction] = useFormState(sendContactMessage, initialState);
+  const [state, formAction] = useActionState(sendContactMessage, initialState);
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const { user } = useUser();

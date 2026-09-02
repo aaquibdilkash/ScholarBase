@@ -495,3 +495,18 @@ html[data-theme="dark"] {
     background-color: rgba(15, 23, 42, 0.55);
   }
 }
+
+/* ============================================================
+   Global text-overflow prevention for user-generated content
+   ============================================================ */
+.sb-rich-content,
+.sb-rich-content * {
+  overflow-wrap: anywhere;
+  word-wrap: break-word;
+}
+
+.sb-rich-content a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}

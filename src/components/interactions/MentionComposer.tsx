@@ -70,7 +70,7 @@ export function MentionComposer({
   };
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       {label && (
         <div className="flex items-center gap-1.5 mb-1">
           <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -86,7 +86,7 @@ export function MentionComposer({
         required={required}
         rows={rows}
         maxLength={maxLength}
-        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-600 md:p-4 md:text-base dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100"
+        className="w-full break-words resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-600 md:p-4 md:text-base dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
           if (!suggestions.length) return;
@@ -146,7 +146,7 @@ export function MentionComposer({
         </div>
       )}
       {showPreview && (
-        <div className="mt-2 rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
+        <div className="mt-2 break-words overflow-wrap-anywhere rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
           {renderMentionContent(value || placeholder, mentionedUsers)}
         </div>
       )}

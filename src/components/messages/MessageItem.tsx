@@ -48,7 +48,7 @@ export const MessageItem = React.memo(
               : "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
           } ${message.status === "sending" ? "opacity-70" : ""}`}
         >
-          <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+          <p className="text-sm break-words whitespace-pre-wrap">{message.body}</p>
           <div className="mt-1 flex items-center justify-end gap-1.5">
             <p
               suppressHydrationWarning
