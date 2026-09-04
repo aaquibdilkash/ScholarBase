@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Loader2 } from "lucide-react";
 import { AUTH_NEW_PASSWORD_TIP, AUTH_CONFIRM_PASSWORD_TIP } from "@/constants/tooltips";
 import { MAX_AUTH_PASSWORD } from "@/lib/constants";
 
@@ -58,50 +60,40 @@ export function UpdatePasswordForm() {
     }
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-       <div>
-         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="password">
-           New Password
-           <InfoTooltip message={AUTH_NEW_PASSWORD_TIP} />
-         </label>
-        <input
-          className="sb-input"
-          id="password"
-          name="password"
-          type="password"
-          placeholder="••••••••"
-          required
-          minLength={6}
-          maxLength={MAX_AUTH_PASSWORD}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {password.length}/{MAX_AUTH_PASSWORD} characters
-        </div>
-      </div>
-       <div>
-         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="confirmPassword">
-           Confirm Password
-           <InfoTooltip message={AUTH_CONFIRM_PASSWORD_TIP} />
-         </label>
-        <input
-          className="sb-input"
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="••••••••"
-          required
-          minLength={6}
-          maxLength={MAX_AUTH_PASSWORD}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-        />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {confirmPassword.length}/{MAX_AUTH_PASSWORD} characters
-        </div>
-      </div>
+   return (
+     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5" htmlFor="password">
+            New Password
+            <InfoTooltip message={AUTH_NEW_PASSWORD_TIP} />
+          </label>
+         <PasswordInput
+           id="password"
+           name="password"
+           placeholder="••••••••"
+           required
+           minLength={6}
+           maxLength={MAX_AUTH_PASSWORD}
+           value={password}
+           onChange={(e) => setPassword(e.target.value)}
+         />
+       </div>
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5" htmlFor="confirmPassword">
+            Confirm Password
+            <InfoTooltip message={AUTH_CONFIRM_PASSWORD_TIP} />
+          </label>
+         <PasswordInput
+           id="confirmPassword"
+           name="confirmPassword"
+           placeholder="••••••••"
+           required
+           minLength={6}
+           maxLength={MAX_AUTH_PASSWORD}
+           value={confirmPassword}
+           onChange={(e) => setConfirmPassword(e.target.value)}
+         />
+       </div>
 
       {error && (
         <div
@@ -120,9 +112,14 @@ export function UpdatePasswordForm() {
         className="sb-button-primary w-full mt-2"
         disabled={submitting}
       >
-        {submitting
-          ? "Updating..."
-            : "Update Password"}
+        {submitting ? (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 className="animate-spin h-4 w-4" />
+            Updating...
+          </span>
+        ) : (
+          "Update Password"
+        )}
       </button>
     </form>
   );

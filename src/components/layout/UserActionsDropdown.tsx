@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
@@ -141,7 +141,14 @@ export default function UserActionsDropdown({
                 disabled={signingOut}
                 className="sb-menu-item w-full text-left disabled:opacity-50 gap-2 px-4"
               >
-                {signingOut ? "Signing out..." : "Sign Out"}
+                {signingOut ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    Signing out...
+                  </span>
+                ) : (
+                  "Sign Out"
+                )}
               </button>
             </li>
           </ul>

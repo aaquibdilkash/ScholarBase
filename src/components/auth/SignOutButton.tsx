@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
+import { Loader2 } from "lucide-react";
 
 type SignOutButtonProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -48,7 +49,14 @@ export default function SignOutButton({
         disabled={disabled || isSigningOut}
         onClick={() => setIsModalOpen(true)}
       >
-        {isSigningOut ? "Signing out..." : children}
+        {isSigningOut ? (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 className="animate-spin h-4 w-4" />
+            Signing out...
+          </span>
+        ) : (
+          children
+        )}
       </button>
       <ConfirmationModal
         isOpen={isModalOpen}

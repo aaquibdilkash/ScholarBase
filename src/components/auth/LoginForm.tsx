@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { login, signup, signInWithGoogle } from "@/app/actions/auth";
+import { login, signup, signInWithGoogle, checkUserExists } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { useToast } from "@/components/ui/Toast";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { PasswordInput } from "@/components/ui/PasswordInput";
+import { Loader2 } from "lucide-react";
 import { AUTH_EMAIL_TIP, AUTH_PASSWORD_TIP } from "@/constants/tooltips";
 import { MAX_AUTH_EMAIL, MAX_AUTH_PASSWORD } from "@/lib/constants";
 
@@ -45,25 +47,34 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           }}
         >
           <button className="sb-button-soft w-full gap-2" disabled={pendingAction !== null}>
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Continue with Google
+            {pendingAction === "signin" ? (
+              <>
+                <Loader2 className="animate-spin h-5 w-5" />
+                Signing in...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                  />
+                </svg>
+                Continue with Google
+              </>
+            )}
           </button>
         </form>
 
@@ -85,6 +96,16 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             const submitter = event.nativeEvent.submitter as HTMLButtonElement | null;
             const action = submitter?.value === "register" ? "register" : "signin";
             setPendingAction(action);
+
+            if (action === "register") {
+              const exists = await checkUserExists(email);
+              if (exists) {
+                toast("Scholar already registered. Please sign in instead.", "error");
+                setPendingAction(null);
+                return;
+              }
+            }
+
             const result = await (action === "register" ? signup : login)(new FormData(event.currentTarget));
             if (!result.success) {
               toast(result.error, "error");
@@ -120,25 +141,20 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
           </div>
 
            <div>
-             <label className="sb-label inline-flex items-center gap-1.5" htmlFor="password">
-               Password
-               <InfoTooltip message={AUTH_PASSWORD_TIP} />
-             </label>
-            <input
-              className="sb-input"
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              required
-              maxLength={MAX_AUTH_PASSWORD}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {password.length}/{MAX_AUTH_PASSWORD} characters
-            </div>
-          </div>
+              <label className="sb-label inline-flex items-center gap-1.5" htmlFor="password">
+                Password
+                <InfoTooltip message={AUTH_PASSWORD_TIP} />
+              </label>
+             <PasswordInput
+               id="password"
+               name="password"
+               placeholder="••••••••"
+               required
+               maxLength={MAX_AUTH_PASSWORD}
+               value={password}
+               onChange={(e) => setPassword(e.target.value)}
+             />
+           </div>
 
           <div className="flex gap-4 mt-2">
             <button
@@ -147,7 +163,14 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
               className="sb-button-primary w-full"
               disabled={pendingAction !== null}
             >
-              {pendingAction === "signin" ? "Signing in..." : "Sign In"}
+              {pendingAction === "signin" ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign In"
+              )}
             </button>
             <button
               type="submit"
@@ -155,7 +178,14 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
               className="sb-button-primary w-full"
               disabled={pendingAction !== null}
             >
-              {pendingAction === "register" ? "Registering..." : "Register"}
+              {pendingAction === "register" ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  Registering...
+                </span>
+              ) : (
+                "Register"
+              )}
             </button>
           </div>
         </form>

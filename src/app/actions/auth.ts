@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { getBaseUrl } from "@/lib/url";
+import prisma from "@/lib/db";
 import type { Duration } from "@upstash/ratelimit";
 import {
   checkRateLimit,
@@ -72,6 +73,15 @@ async function limitByEmailAndIp(
 
 function normalizeAuthEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+export async function checkUserExists(email: string): Promise<boolean> {
+  const normalizedEmail = normalizeAuthEmail(email);
+  const user = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: { id: true },
+  });
+  return !!user;
 }
 
 function readAuthField(formData: FormData, key: string): string {
@@ -214,6 +224,11 @@ export async function forgotPassword(
   );
   if (rateLimitResult) {
     return rateLimitResult;
+  }
+
+  const userExists = await checkUserExists(email);
+  if (!userExists) {
+    return { success: false, error: "No account found with this email." };
   }
 
   const redirectTo = `${baseUrl}/auth/callback?next=/auth/update-password`;

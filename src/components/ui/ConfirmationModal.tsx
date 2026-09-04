@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./button";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -54,7 +55,14 @@ export function ConfirmationModal({
               Cancel
             </Button>
             <Button onClick={onConfirm} variant={confirmVariant} disabled={isConfirming}>
-              {isConfirming ? confirmingLabel : confirmLabel}
+              {isConfirming ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="animate-spin h-4 w-4" />
+                  {confirmingLabel}
+                </span>
+              ) : (
+                confirmLabel
+              )}
             </Button>
           </div>
         </div>
