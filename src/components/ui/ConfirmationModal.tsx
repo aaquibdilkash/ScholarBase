@@ -40,7 +40,7 @@ export function ConfirmationModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[900] flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-[900] flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

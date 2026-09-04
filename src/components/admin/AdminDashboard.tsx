@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useOptimistic } from "react";
+import { useState, useEffect, useTransition, useOptimistic } from "react";
 import Link from "next/link";
 import { Flag, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,8 @@ import {
 } from "@/app/actions/admin";
 import { AdminActionsDropdown } from "@/components/admin/AdminActionsDropdown";
 import { patchAdminContentCache } from "@/lib/adminCache";
+import { getEntityDisplayTitle } from "@/lib/entityTitle";
+import { useAdminNav } from "@/hooks/useAdminNav";
 import type { AdminContentItem, AdminPage } from "@/types/admin";
 
 const ADMIN_SECTIONS = [
@@ -100,7 +102,15 @@ export function AdminDashboard({
   initialData,
 }: AdminDashboardProps) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("feed");
+  // Navigation persisted in localStorage ("sb_admin_nav") — refreshing /admin
+  // restores the last active section instead of resetting to "Feed"
+  // (hydration-safe: first render matches SSR defaults, then syncs).
+  const {
+    activeSection: activeTab,
+    setActiveSection: setActiveTab,
+    setActiveSubTab: persistSubTab,
+    setStatusFilter: persistStatusFilter,
+  } = useAdminNav();
   const [sectionStates, setSectionStates] = useState<
     Record<string, SectionUiState>
   >({});
@@ -114,6 +124,13 @@ export function AdminDashboard({
 
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
   const { view, page, sortBy, statusFilter } = ui;
+
+  // Keep the persisted nav state in sync with the active section's view and
+  // status filter, so a refresh reopens the exact same table configuration.
+  useEffect(() => {
+    persistSubTab(view);
+    persistStatusFilter(statusFilter);
+  }, [view, statusFilter, persistSubTab, persistStatusFilter]);
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionStates((prev) => ({
@@ -197,6 +214,18 @@ export function AdminDashboard({
             it.id === action.id ? { ...it, ...action.patch } : it,
           ),
   );
+
+  // Appeals tab renders the dedicated appeals query — NOT the content list.
+  // The content map has no "appeals" key, so getAdminContent returns an
+  // empty page ("No content found. Try a different status filter.") even
+  // when PENDING appeals exist. Status filter: "active" → PENDING only.
+  const appealsItems = (appealsData?.items ?? []).filter(
+    (a) => statusFilter !== "active" || a.status === "PENDING",
+  );
+  const tableItems: AdminContentItem[] =
+    activeTab === "appeals"
+      ? (appealsItems as unknown as AdminContentItem[])
+      : optimisticItems;
 
   // --- Contribution approve/reject: optimistic status flip + cache patch ---
   const contributionMutation = useMutation({
@@ -444,7 +473,7 @@ export function AdminDashboard({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {data.items.length === 0 ? (
+                    {tableItems.length === 0 ? (
                       <tr>
                         <td
                           colSpan={6}
@@ -458,7 +487,7 @@ export function AdminDashboard({
                         </td>
                       </tr>
                     ) : (
-                      optimisticItems.map((item) => (
+                      tableItems.map((item) => (
                         <tr
                           key={item.id}
                           className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
@@ -473,15 +502,11 @@ export function AdminDashboard({
                                 href={item.detailHref}
                                 className="font-medium text-slate-900 transition hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300"
                               >
-                                {item.title ||
-                                  item.content?.substring(0, 50) ||
-                                  "Untitled"}
+                                {getEntityDisplayTitle(item)}
                               </Link>
                             ) : (
                               <p className="font-medium text-slate-900 dark:text-slate-100">
-                                {item.title ||
-                                  item.content?.substring(0, 50) ||
-                                  "Untitled"}
+                                {getEntityDisplayTitle(item)}
                               </p>
                             )}
                           </td>
@@ -496,9 +521,9 @@ export function AdminDashboard({
                             {activeTab === "appeals" ? (
                               <span
                                 className={`inline-flex min-w-[32px] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
-                                  item.status === "APPROVED"
+                                  item.status === "ACTIONED"
                                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                    : item.status === "REJECTED"
+                                    : item.status === "DISMISSED"
                                       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
                                       : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
                                 }`}
@@ -519,7 +544,15 @@ export function AdminDashboard({
                           </td>
                           <td className="px-4 py-3">
                             {activeTab === "appeals" ? (
-                              <span className="max-w-[200px] truncate text-sm text-slate-600 dark:text-slate-400" title={item.appealReason ?? undefined}>
+                              <span
+                                className="max-w-[240px] truncate text-sm text-slate-600 dark:text-slate-400"
+                                title={item.appealReason ?? undefined}
+                              >
+                                {/* Structured category + free-text details
+                                    from the appeal modal (AppealButton). */}
+                                {typeof item.category === "string"
+                                  ? `${item.category.replaceAll("_", " ")}: `
+                                  : ""}
                                 {item.appealReason || "—"}
                               </span>
                             ) : item.hasActiveAppeal ? (
@@ -547,10 +580,9 @@ export function AdminDashboard({
                               <div className="flex flex-wrap items-center gap-1.5">
                                 {/* Comments are soft-deleted/frozen with the same
                                   isDeleted/isFrozen columns as other content
-                                  (RULE 4). Legacy tombstones (authorId: null)
-                                  surface as Deleted too. */}
+                                  (RULE 4); authorId is always preserved. */}
                                 {view === "comments" ? (
-                                  item.isDeleted || item.authorId == null ? (
+                                  item.isDeleted ? (
                                     <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                       Deleted
                                     </span>
@@ -654,19 +686,10 @@ export function AdminDashboard({
                                   reportCount={item.reportCount ?? 0}
                                   showFreeze={!item.isDeleted}
                                   isFrozen={item.isFrozen}
-                                  isDeleted={
-                                    view === "comments"
-                                      ? item.isDeleted || item.authorId == null
-                                      : item.isDeleted
-                                  }
+                                  isDeleted={item.isDeleted}
                                   hasActiveAppeal={Boolean(
                                     item.hasActiveAppeal,
                                   )}
-                                  isTombstone={
-                                    view === "comments" &&
-                                    item.authorId == null &&
-                                    !item.isDeleted
-                                  }
                                   entityLabel={
                                     view === "comments" ? "Comment" : undefined
                                   }

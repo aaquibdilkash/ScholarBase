@@ -235,22 +235,84 @@ export async function getAdminAppeals(
     prisma.appeal.count(),
   ]);
 
-  const items = rows.map((row) => ({
-    ...row,
-    id: row.id,
-    entityId: row.entityId,
-    entityType: row.entityType,
-    module: row.module,
-    status: row.status,
-    reason: row.reason,
-    ownerId: row.ownerId,
-    owner: row.owner,
-    reviewedBy: row.reviewedBy,
-    reviewedById: row.reviewedById,
-    reviewedAt: row.reviewedAt,
-    createdAt: row.createdAt,
-    hasActiveAppeal: row.status === "PENDING",
-  }));
+  // Join the appealed parent entity via the same delegate maps used by
+  // moderateContent — keyed by the appeal's contentType string — so the
+  // Appeals table can show the entity's live moderation state (entityStatus)
+  // and the author's current (possibly remediated) content.
+  const appealEntityDelegates: Record<string, { findUnique: (args: { where: { id: string }; select: Record<string, boolean> }) => Promise<unknown> }> = {
+    feed: prisma.socialPost,
+    blog: prisma.article,
+    publication: prisma.publication,
+    journal: prisma.journal,
+    researchTool: prisma.researchTool,
+    researchGrant: prisma.researchGrant,
+    course: prisma.course,
+    result: prisma.result,
+    contribution: prisma.contribution,
+    help: prisma.helpPost,
+    event: prisma.researchEvent,
+    admission: prisma.phdAdmission,
+    vacancy: prisma.jobVacancy,
+    supervisor: prisma.supervisor,
+    recommendation: prisma.recommendation,
+    survey: prisma.researchSurvey,
+    SCHOLAR_PROFILE: prisma.user,
+    socialComment: prisma.socialComment,
+    articleComment: prisma.articleComment,
+    helpComment: prisma.helpPostComment,
+    contributionComment: prisma.contributionComment,
+    publicationComment: prisma.publicationComment,
+    researchToolComment: prisma.researchToolComment,
+    researchGrantComment: prisma.researchGrantComment,
+    courseComment: prisma.courseComment,
+    journalComment: prisma.journalComment,
+    resultComment: prisma.resultComment,
+    surveyComment: prisma.surveyComment,
+    researchEventComment: prisma.researchEventComment,
+    admissionComment: prisma.phdAdmissionComment,
+    vacancyComment: prisma.jobVacancyComment,
+    supervisorComment: prisma.supervisorComment,
+    recommendationComment: prisma.recommendationComment,
+  };
+
+  const items = await Promise.all(
+    rows.map(async (row) => {
+      const delegate = appealEntityDelegates[row.entityType];
+      const entity = delegate
+        ? ((await delegate.findUnique({
+            where: { id: row.entityId },
+            select: { isFrozen: true, isDeleted: true },
+          })) as { isFrozen: boolean; isDeleted: boolean } | null)
+        : null;
+
+      const entityStatus = entity?.isDeleted
+        ? "DELETED"
+        : entity?.isFrozen
+          ? "FROZEN"
+          : "ACTIVE";
+
+      return {
+        ...row,
+        id: row.id,
+        entityId: row.entityId,
+        entityType: row.entityType,
+        module: row.module,
+        status: row.status,
+        category: row.category,
+        details: row.details,
+        ownerId: row.ownerId,
+        owner: row.owner,
+        reviewedBy: row.reviewedBy,
+        reviewedById: row.reviewedById,
+        reviewedAt: row.reviewedAt,
+        createdAt: row.createdAt,
+        hasActiveAppeal: row.status === "PENDING",
+        // Alias the content tables use to surface the pending appeal text.
+        appealReason: row.details,
+        entityStatus,
+      };
+    }),
+  );
 
   return {
     items: items as unknown as AdminAppealItem[],
@@ -396,11 +458,13 @@ export async function getAdminContent(
 
   // Status filter → Prisma where. Comments are soft-deleted/frozen with the
   // same isDeleted / isFrozen columns as every other content type (RULE 4).
-  // Legacy tombstones (authorId: null) are surfaced as deleted as well.
+  // authorId is non-nullable on every comment model — soft deletion only
+  // flips isDeleted/deletedByType, so the author link (and thus appeals,
+  // reputation rollbacks and audit trails) is always preserved.
   const buildStatusWhere = (): Record<string, unknown> | undefined => {
     if (view === "comments") {
-      if (statusFilter === "deleted") return { OR: [{ isDeleted: true }, { authorId: null }] };
-      if (statusFilter === "active") return { isDeleted: false, isFrozen: false, authorId: { not: null } };
+      if (statusFilter === "deleted") return { isDeleted: true };
+      if (statusFilter === "active") return { isDeleted: false, isFrozen: false };
       if (statusFilter === "frozen") return { isFrozen: true, isDeleted: false };
       return undefined;
     }
@@ -460,10 +524,10 @@ export async function getAdminContent(
     // why the owner is appealing (mirrors how reportCount is surfaced).
     const appealReasons = await prisma.appeal.findMany({
       where: { entityId: { in: rows.map((r) => r.id) }, status: "PENDING" },
-      select: { entityId: true, reason: true },
+      select: { entityId: true, details: true },
       orderBy: { createdAt: "desc" },
     });
-    const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.reason]));
+    const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.details]));
 
     // Comments have no detail page; the table renders them as plain text.
     const items = rows.map((row) => ({
@@ -562,10 +626,10 @@ export async function getAdminContent(
     // why the owner is appealing (mirrors how reportCount is surfaced).
     const appealReasons = await prisma.appeal.findMany({
       where: { entityId: { in: items.map((i) => i.id) }, status: "PENDING" },
-      select: { entityId: true, reason: true },
+      select: { entityId: true, details: true },
       orderBy: { createdAt: "desc" },
     });
-    const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.reason]));
+    const appealMap = new Map(appealReasons.map((a) => [a.entityId, a.details]));
 
     return {
       items: items.map((item) => ({

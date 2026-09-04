@@ -43,9 +43,6 @@ interface AdminActionsDropdownProps {
   /** Already soft-deleted rows cannot be deleted again or dismissed —
    *  hides the Delete and Dismiss Reports options. */
   isDeleted?: boolean;
-  /** Legacy tombstoned comment (authorId: null) — renders a muted trash
-   *  icon instead of the dropdown; there are no moderation options left. */
-  isTombstone?: boolean;
   /** Whether the owner has appealed against a freeze/delete — shows the
    *  "Dismiss Appeal" option so moderators can acknowledge it. */
   hasActiveAppeal?: boolean;
@@ -61,7 +58,6 @@ export function AdminActionsDropdown({
   entityLabel = "Content",
   isFrozen = false,
   isDeleted = false,
-  isTombstone = false,
   hasActiveAppeal = false,
 }: AdminActionsDropdownProps) {
   const queryClient = useQueryClient();
@@ -241,18 +237,7 @@ export function AdminActionsDropdown({
 
   return (
     <>
-      {/* Tombstoned comments (authorId: null) — show a muted trash icon
-          instead of the actions dropdown; there is nothing left to moderate. */}
-      {isTombstone ? (
-        <span
-          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 dark:text-slate-600"
-          title="This comment was deleted"
-          aria-label="Deleted comment"
-        >
-          <Trash2 className="h-4 w-4" />
-        </span>
-      ) : (
-        <div className="relative">
+      <div className="relative">
           <button
             ref={btnRef}
             type="button"
@@ -273,20 +258,14 @@ export function AdminActionsDropdown({
               setOpen((v) => !v);
             }}
             className={clsx(
-              "sb-menu-trigger inline-flex items-center gap-1.5",
+              "sb-menu-trigger inline-flex items-center justify-center",
               isPending && "opacity-50",
             )}
             aria-label="Admin content actions"
           >
+            {/* Trigger must contain ONLY the kebab icon — report counts are
+                displayed exclusively in the "Reports" column badge. */}
             <MoreHorizontal className="h-4 w-4" />
-            {reportCount > 0 && (
-              <span
-                className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-bold text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                aria-label={`${reportCount} reports`}
-              >
-                {reportCount}
-              </span>
-            )}
           </button>
 
           {open &&
@@ -363,8 +342,7 @@ export function AdminActionsDropdown({
               </div>,
               document.body,
             )}
-        </div>
-      )}
+      </div>
 
       <ConfirmationModal
         isOpen={isConfirmOpen}

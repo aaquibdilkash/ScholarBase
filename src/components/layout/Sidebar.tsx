@@ -198,8 +198,9 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       />
 
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/70 bg-white/95 py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950/95 dark:shadow-black/20 
-        md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:bg-white/70 md:py-6 md:backdrop-blur-xl md:shadow-none md:dark:bg-slate-950/80 
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
+
+        md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:py-6 md:backdrop-blur-xl md:shadow-sm 
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"} w-72 px-6 
         md:translate-x-0 ${desktopCollapsed ? "md:w-24 md:px-3" : "md:w-72 md:px-6"}`}
       >
@@ -216,7 +217,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
           <button
             type="button"
             onClick={toggleDesktop}
-            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-white/80 text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
+            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-white/80 text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
             ${desktopCollapsed ? "md:h-12 md:w-12 md:mx-auto md:p-0" : "md:h-11 md:w-11 md:p-0"}`}
             aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -244,10 +245,10 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   className={`flex items-center overflow-hidden rounded-2xl font-semibold transition-all duration-300 ease-in-out
                     w-full px-4 py-3 justify-start gap-3
                     ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:gap-0" : ""}
-                    ${isActive ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300" : "text-slate-600 hover:bg-white/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"}
+                    ${isActive ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300" : "text-slate-950 hover:bg-white/80 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"}
                   `}
                 >
-                  <div className={`shrink-0 transition-colors ${isActive ? "text-blue-600 dark:text-blue-300" : "text-slate-400 dark:text-slate-500"}`}>
+                  <div className={`shrink-0 transition-colors ${isActive ? "text-blue-600 dark:text-blue-300" : "text-slate-800 dark:text-slate-500"}`}>
                     <span className="relative inline-flex">
                       {item.icon}
                       {badge > 0 ? (
@@ -279,15 +280,15 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
             aria-label="Scroll navigation down"
             className={`mb-2 flex w-full items-center justify-center rounded-xl py-1 transition-colors ${
               canScrollDown
-                ? "cursor-pointer text-slate-400 hover:bg-white/60 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-900/60 dark:hover:text-slate-300"
-                : "cursor-default text-slate-200 dark:text-slate-700"
+                ? "cursor-pointer text-slate-800 hover:bg-white/60 hover:text-slate-950 dark:text-slate-500 dark:hover:bg-slate-900/60 dark:hover:text-slate-300"
+                : "cursor-default text-slate-300 dark:text-slate-700"
             }`}
           >
             <ChevronDown className="h-4 w-4" aria-hidden="true" />
           </button>
         ) : null}
 
-        <div className="mt-auto overflow-hidden">
+        <div className="mt-auto">
           <div className="mb-3 flex justify-center">
             <ThemeToggle collapsed={desktopCollapsed} />
           </div>
@@ -321,7 +322,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                     <span className="block truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
                       {user.email || "Open profile"}
                     </span>
-                    <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                    <span className="block truncate text-xs text-slate-800 dark:text-slate-400">
                       Open your scholar profile
                     </span>
                   </span>
@@ -355,7 +356,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                 href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
                 className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:bg-black dark:hover:bg-black
                   w-full rounded-2xl px-4 py-3
-                  ${desktopCollapsed ? "md:h-12 md:w-12 md:rounded-2xl md:p-0 md:mx-auto md:justify-center md:bg-white md:border md:border-slate-200 md:text-slate-600 md:dark:border-slate-800 md:dark:bg-slate-900 md:dark:text-slate-300" : ""}
+                  ${desktopCollapsed ? "md:h-12 md:w-12 md:rounded-2xl md:p-0 md:mx-auto md:justify-center md:bg-white md:border md:border-slate-200 md:text-slate-950 md:dark:border-slate-800 md:dark:bg-slate-900 md:dark:text-slate-300" : ""}
                 `}
                 onClick={() => { if (!isDesktop) setMobileOpen(false); }}
               >

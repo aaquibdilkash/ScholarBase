@@ -229,7 +229,7 @@ model ArticleComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -240,7 +240,7 @@ model ArticleComment {
   hasActiveAppeal Boolean   @default(false)
 
   article  Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent   ArticleComment?      @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  ArticleComment[]     @relation("ArticleReplies")
   votes    ArticleCommentVote[]
@@ -272,7 +272,7 @@ model SocialComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -282,7 +282,7 @@ model SocialComment {
   isFrozen      Boolean        @default(false)
   hasActiveAppeal Boolean   @default(false)
 
-  author     User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author     User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent     SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies    SocialComment[]     @relation("SocialReplies")
   socialPost SocialPost          @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
@@ -356,6 +356,13 @@ enum AppealStatus {
   ACTIONED
 }
 
+enum AppealReason {
+  MISTAKEN_MODERATION
+  CONTEXT_MISSING
+  POLICY_CLARIFICATION
+  OTHER
+}
+
 model Appeal {
   id          String       @id @default(cuid())
   entityId    String
@@ -364,7 +371,12 @@ model Appeal {
   entityType  String
   // Where the appeal originated (same module values as Report).
   module      String
-  reason      String
+  // Structured appeal category selected by the author — mirrors the
+  // APPEAL_CATEGORIES list in src/lib/constants.ts (symmetric with
+  // Report.category: ReportReason).
+  category    AppealReason @default(OTHER)
+  // Optional free-text elaboration (symmetric with Report.details).
+  details     String?      @db.Text
   status      AppealStatus @default(PENDING)
   ownerId     String
   // Admin who reviewed the appeal — set on DISMISS / ACTIONED.
@@ -389,8 +401,12 @@ model Report {
   entityType String
   // Where the report originated (SOCIAL_FEED, SUPERVISOR, SOCIAL_COMMENT, ...).
   module     String
-  reason     ReportReason
-  details    String?
+  // Structured report category picked by the reporter — named `category`
+  // for symmetry with Appeal.category (both are "enum pick + free text").
+  category   ReportReason @default(SPAM)
+  // Optional free-text elaboration. NOTE: @db.Text is a no-op on PostgreSQL
+  // (String already maps to native TEXT) — kept for cross-DB clarity.
+  details    String?      @db.Text
   reporterId String
   status     ReportStatus @default(PENDING)
   createdAt  DateTime     @default(now())
@@ -398,6 +414,9 @@ model Report {
 
   reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
+  // One report per user per entity — prevents reportCount inflation from
+  // repeat submissions by the same reporter.
+  @@unique([reporterId, entityId])
   @@index([entityId, status])
   @@index([status])
   @@index([module, status])
@@ -459,7 +478,7 @@ model HelpPostComment {
   editedAt   DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -470,7 +489,7 @@ model HelpPostComment {
   hasActiveAppeal Boolean   @default(false)
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
-  author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  HelpPostComment?  @relation("HelpPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies HelpPostComment[] @relation("HelpPostReplies")
@@ -554,7 +573,7 @@ model ContributionComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -565,7 +584,7 @@ model ContributionComment {
   hasActiveAppeal Boolean   @default(false)
 
   contribution Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
-  author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent       ContributionComment?      @relation("ContributionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      ContributionComment[]     @relation("ContributionReplies")
   votes        ContributionCommentVote[]
@@ -652,7 +671,7 @@ model PublicationComment {
   editedAt      DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -663,7 +682,7 @@ model PublicationComment {
   hasActiveAppeal Boolean   @default(false)
 
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  author      User?                    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author      User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent      PublicationComment?      @relation("PublicationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies     PublicationComment[]     @relation("PublicationReplies")
   votes       PublicationCommentVote[]
@@ -967,7 +986,7 @@ model ResearchToolComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -978,7 +997,7 @@ model ResearchToolComment {
   hasActiveAppeal Boolean   @default(false)
 
   researchTool ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
-  author       User?                     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent       ResearchToolComment?      @relation("ResearchToolReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      ResearchToolComment[]     @relation("ResearchToolReplies")
   votes        ResearchToolCommentVote[]
@@ -1054,7 +1073,7 @@ model ResearchGrantComment {
   editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1065,7 +1084,7 @@ model ResearchGrantComment {
   hasActiveAppeal Boolean   @default(false)
 
   researchGrant ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
-  author        User?                      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author        User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent        ResearchGrantComment?      @relation("ResearchGrantReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies       ResearchGrantComment[]     @relation("ResearchGrantReplies")
   votes         ResearchGrantCommentVote[]
@@ -1145,7 +1164,7 @@ model CourseComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1156,7 +1175,7 @@ model CourseComment {
   hasActiveAppeal Boolean   @default(false)
 
   course   Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  author   User?               @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent   CourseComment?      @relation("CourseReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  CourseComment[]     @relation("CourseReplies")
   votes    CourseCommentVote[]
@@ -1244,7 +1263,7 @@ model JournalComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1255,7 +1274,7 @@ model JournalComment {
   hasActiveAppeal Boolean   @default(false)
 
   journal  Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  author   User?                @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent   JournalComment?      @relation("JournalReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  JournalComment[]     @relation("JournalReplies")
   votes    JournalCommentVote[]
@@ -1335,7 +1354,7 @@ model ResultComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1346,7 +1365,7 @@ model ResultComment {
   hasActiveAppeal Boolean   @default(false)
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  author User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  ResultComment?  @relation("ResultReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResultComment[] @relation("ResultReplies")
@@ -1485,7 +1504,7 @@ model SurveyComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1496,7 +1515,7 @@ model SurveyComment {
   hasActiveAppeal Boolean   @default(false)
 
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  author User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  SurveyComment?  @relation("SurveyReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies SurveyComment[] @relation("SurveyReplies")
@@ -1603,7 +1622,7 @@ model ResearchEventComment {
   editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1614,7 +1633,7 @@ model ResearchEventComment {
   hasActiveAppeal Boolean   @default(false)
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author        User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  ResearchEventComment?  @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResearchEventComment[] @relation("ResearchEventReplies")
@@ -1694,7 +1713,7 @@ model PhdAdmissionComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1705,7 +1724,7 @@ model PhdAdmissionComment {
   hasActiveAppeal Boolean   @default(false)
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  PhdAdmissionComment?  @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
@@ -1785,7 +1804,7 @@ model JobVacancyComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1796,7 +1815,7 @@ model JobVacancyComment {
   hasActiveAppeal Boolean   @default(false)
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  author     User?      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  JobVacancyComment?  @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies JobVacancyComment[] @relation("JobVacancyReplies")
@@ -1843,7 +1862,7 @@ model SupervisorComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1854,7 +1873,7 @@ model SupervisorComment {
   hasActiveAppeal Boolean   @default(false)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author     User?                   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author     User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent     SupervisorComment?      @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies    SupervisorComment[]     @relation("SupervisorReplies")
   votes      SupervisorCommentVote[]
@@ -1938,7 +1957,7 @@ model RecommendationComment {
   editedAt         DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String?
+  authorId      String
   totalVotes    Int            @default(0)
   totalReplies  Int            @default(0)
   reportCount   Int            @default(0)
@@ -1949,7 +1968,7 @@ model RecommendationComment {
   hasActiveAppeal Boolean   @default(false)
 
   recommendation Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-  author         User?                       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author         User                       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent         RecommendationComment?      @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies        RecommendationComment[]     @relation("RecommendationReplies")
   votes          RecommendationCommentVote[]

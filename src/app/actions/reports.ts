@@ -10,6 +10,7 @@ import type {
   ModerationAction,
 } from "@/types/reports";
 import { MAX_REPORT_DETAILS } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 
 // -----------------------------------------------------------------------------
 // MODULE MODEL MAP
@@ -207,29 +208,45 @@ export async function submitReport(
     throw new Error(`Report details are too long (max ${MAX_REPORT_DETAILS} characters).`);
   }
 
-  const report = await prisma.$transaction(async (tx) => {
-    // 1. Create the report record.
-    const newReport = await tx.report.create({
-      data: {
-        entityId,
-        entityType,
-        module: mod,
-        reason,
-        details: normalizedDetails,
-        reporterId: user.id,
-      },
-    });
+  let report;
+  try {
+    report = await prisma.$transaction(async (tx) => {
+      // 1. Create the report record.
+      const newReport = await tx.report.create({
+        data: {
+          entityId,
+          entityType,
+          module: mod,
+          category: reason,
+          details: normalizedDetails,
+          reporterId: user.id,
+        },
+      });
 
-    // 2. Atomically increment the materialized reportCount on the target.
-    await config.delegate.update({
-      where: { id: entityId },
-      data: {
-        [config.reportCountField]: { increment: 1 },
-      },
-    });
+      // 2. Atomically increment the materialized reportCount on the target.
+      await config.delegate.update({
+        where: { id: entityId },
+        data: {
+          [config.reportCountField]: { increment: 1 },
+        },
+      });
 
-    return newReport;
-  });
+      return newReport;
+    });
+  } catch (err) {
+    // @@unique([reporterId, entityId]) — the user already reported this
+    // entity. Return a friendly message instead of an uncaught 500.
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return {
+        success: false,
+        message: "You have already reported this item.",
+      };
+    }
+    throw err;
+  }
 
   return { success: true, data: report };
 }
@@ -635,20 +652,74 @@ export async function moderateContent(
 
     switch (action) {
       case "FREEZE": {
+        // Fetch the author so we can notify them (RULE 5: moderation actions
+        // always inform the owner they can edit + appeal). SCHOLAR_PROFILE
+        // resolves to the User model, which has no authorId column.
+        const target =
+          contentType === "SCHOLAR_PROFILE"
+            ? null
+            : ((await entry2.model.findUnique({
+                where: { id: contentId },
+                select: { authorId: true },
+              })) as { authorId?: string | null } | null);
         const updated = (await entry2.model.update({
           where: { id: contentId },
           data: { isFrozen: true },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+        if (target?.authorId) {
+          await tx.notification.create({
+            data: {
+              recipientId: target.authorId,
+              actorId: user.id,
+              type: "CONTENT_FROZEN",
+              targetType: "MODERATION",
+              targetId: contentId,
+              title: "Your content has been frozen by moderators",
+              body: "Your post was frozen due to reports. You can edit your content to resolve the issue and submit an appeal.",
+            },
+          });
+        }
         // Return the updated row fields so the client can surgically patch
         // its React Query cache (RULE 1) instead of refetching.
         return { action, success: true, data: updated };
       }
 
       case "UNFREEZE": {
+        const unfreezeTarget =
+          contentType === "SCHOLAR_PROFILE"
+            ? null
+            : ((await entry2.model.findUnique({
+                where: { id: contentId },
+                select: { authorId: true },
+              })) as { authorId?: string | null } | null);
         const updated = (await entry2.model.update({
           where: { id: contentId },
           data: { isFrozen: false },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+        // Only notify "appeal approved" when an appeal was actually pending
+        // (spec: UNFREEZE *after appeal*). A manual unfreeze with no appeal
+        // must not tell the author their (non-existent) appeal was approved.
+        const pendingAppeal = await tx.appeal.findFirst({
+          where: { entityId: contentId, status: "PENDING" },
+          select: { id: true },
+        });
+        if (unfreezeTarget?.authorId && pendingAppeal) {
+          await tx.notification.create({
+            data: {
+              recipientId: unfreezeTarget.authorId,
+              actorId: user.id,
+              type: "APPEAL_APPROVED",
+              targetType: "MODERATION",
+              targetId: contentId,
+              title: "Your appeal was approved",
+              body: "Your content has been reviewed and restored to the active feed.",
+            },
+          });
+        }
+        await tx.appeal.updateMany({
+          where: { entityId: contentId, status: "PENDING" },
+          data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
+        });
         return { action, success: true, data: updated };
       }
 
@@ -785,10 +856,30 @@ export async function moderateContent(
       case "DISMISS_APPEAL": {
         // Acknowledge the owner's appeal: clear the flag so the content
         // returns to a normal moderated state (admins can then re-decide).
+        const appealTarget =
+          contentType === "SCHOLAR_PROFILE"
+            ? null
+            : ((await entry2.model.findUnique({
+                where: { id: contentId },
+                select: { authorId: true },
+              })) as { authorId?: string | null } | null);
         const updated = (await entry2.model.update({
           where: { id: contentId },
           data: { hasActiveAppeal: false },
         })) as { id: string; hasActiveAppeal: boolean };
+        if (appealTarget?.authorId) {
+          await tx.notification.create({
+            data: {
+              recipientId: appealTarget.authorId,
+              actorId: user.id,
+              type: "APPEAL_REJECTED",
+              targetType: "MODERATION",
+              targetId: contentId,
+              title: "Your appeal was reviewed",
+              body: "Moderators reviewed your appeal and decided to keep the content frozen.",
+            },
+          });
+        }
         await tx.appeal.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },

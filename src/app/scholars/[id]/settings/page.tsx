@@ -76,7 +76,7 @@ export default async function ScholarSettingsPage({
             </div>
             <Link
               href="/auth/update-password"
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-blue-400/60 dark:hover:text-blue-200"
+              className="sb-button-primary gap-2"
             >
               <Lock className="h-4 w-4" aria-hidden="true" />
               Update Password

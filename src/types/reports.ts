@@ -76,7 +76,8 @@ export interface Report {
   entityId: string;
   entityType: ReportEntityType;
   module: ReportModule;
-  reason: ReportReason;
+  /** Structured report category (named for symmetry with Appeal.category). */
+  category: ReportReason;
   details: string | null;
   reporterId: string;
   status: ReportStatus;

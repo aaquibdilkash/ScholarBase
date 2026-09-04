@@ -1,10 +1,14 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { AppealStatus } from "@prisma/client";
-import { MAX_APPEAL_REASON } from "@/lib/constants";
+import {
+  MAX_APPEAL_REASON,
+  APPEAL_CATEGORIES,
+  type AppealCategory,
+} from "@/lib/constants";
 
 const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   SOCIAL_FEED: "feed",
@@ -94,16 +98,28 @@ export async function submitAppeal({
   entityId,
   module,
   entityType,
-  reason,
+  reasonCategory,
+  details,
   path,
 }: {
   entityId: string;
   module: string;
   entityType: "POST" | "COMMENT";
-  reason: string;
+  /** Structured category from APPEAL_CATEGORIES (MISTAKEN_MODERATION, ...). */
+  reasonCategory?: string;
+  /** Free-text details explaining the appeal. */
+  details: string;
   path?: string;
 }) {
-  const currentUser = await requireCurrentUser("Log in to appeal.");
+  const currentUser = await requireActiveUser("Log in to appeal.");
+
+  // Validate the structured category against the shared APPEAL_CATEGORIES
+  // list (mirrors the AppealReason enum) — unknown values fall back to OTHER.
+  const category: AppealCategory = APPEAL_CATEGORIES.some(
+    (c) => c.value === reasonCategory?.trim(),
+  )
+    ? (reasonCategory!.trim() as AppealCategory)
+    : "OTHER";
 
   const contentType = MODULE_TO_CONTENT_TYPE[module];
   if (!contentType) throw new Error("Invalid content type.");
@@ -111,7 +127,7 @@ export async function submitAppeal({
   const resolved = resolveModel(contentType);
   if (!resolved) throw new Error("Invalid content type.");
 
-  const trimmed = reason.trim();
+  const trimmed = details.trim();
   if (trimmed.length === 0) throw new Error("Appeal reason is required.");
   if (trimmed.length > MAX_APPEAL_REASON) throw new Error(`Appeal reason is too long (max ${MAX_APPEAL_REASON} characters).`);
 
@@ -149,7 +165,8 @@ export async function submitAppeal({
         entityId,
         entityType,
         module,
-        reason: trimmed,
+        category,
+        details: trimmed,
         status: AppealStatus.PENDING,
         ownerId: currentUser.id,
       },

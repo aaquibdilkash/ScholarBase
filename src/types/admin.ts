@@ -64,7 +64,7 @@ export interface CommentModel {
 
 /**
  * Union of all comment models. Comments are soft-deleted (isDeleted toggle,
- * RULE 4) so the included author is `User | null` to cover legacy tombstones.
+ * RULE 4) with a REQUIRED authorId — the author relation is always intact.
  */
 export type CommentItem =
   | SocialComment
@@ -99,7 +99,7 @@ export type ContentItem =
   | (Contribution & { author: User })
   | (Supervisor & { author: User })
   | (ResearchSurvey & { author: User })
-  | (CommentItem & { author: User | null })
+  | (CommentItem & { author: User })
 
 /**
  * Loosely-typed delegate for the comment tables used by the admin
@@ -156,8 +156,11 @@ export type AdminAppealItem = {
   entityId: string;
   entityType: string;
   module: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
-  reason: string | null;
+  status: "PENDING" | "ACTIONED" | "DISMISSED";
+  /** Structured appeal category (AppealReason enum). */
+  category?: string;
+  /** Free-text details (backfilled from the legacy `reason` column). */
+  details: string | null;
   ownerId: string;
   owner: { id: string; name: string | null; email: string | null } | null;
   reviewedBy: { id: string; name: string | null } | null;
@@ -165,6 +168,10 @@ export type AdminAppealItem = {
   reviewedAt: Date | null;
   createdAt: Date;
   hasActiveAppeal: boolean;
+  /** Pending appeal reason (mirrors content rows) — null when reviewed. */
+  appealReason?: string | null;
+  /** Live moderation state of the appealed entity. */
+  entityStatus?: "ACTIVE" | "FROZEN" | "DELETED";
 };
 
 export interface ContentModel {

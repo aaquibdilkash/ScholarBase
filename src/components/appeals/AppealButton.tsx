@@ -5,26 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, Loader2 } from "lucide-react";
 import { submitAppeal } from "@/app/actions/appeals";
 import { useToast } from "@/components/ui/Toast";
-import { MAX_APPEAL_REASON } from "@/lib/constants";
-
-const APPEAL_REASONS = [
-  {
-    value: "MISTAKEN_MODERATION",
-    label: "Mistaken Moderation",
-    description: "I believe my content was moderated in error",
-  },
-  {
-    value: "CONTEXT_MISSING",
-    label: "Context Missing",
-    description: "The moderation did not consider important context",
-  },
-  {
-    value: "POLICY_CLARIFICATION",
-    label: "Policy Clarification",
-    description: "I believe my content does not violate the policy",
-  },
-  { value: "OTHER", label: "Other", description: "Something else" },
-] as const;
+import { MAX_APPEAL_REASON, APPEAL_CATEGORIES } from "@/lib/constants";
 
 interface AppealButtonProps {
   entityId: string;
@@ -43,7 +24,7 @@ export function AppealButton({
 }: AppealButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<string>(
-    APPEAL_REASONS[0].value,
+    APPEAL_CATEGORIES[0].value,
   );
   const [details, setDetails] = useState("");
   const { toast } = useToast();
@@ -51,7 +32,14 @@ export function AppealButton({
 
   const mutation = useMutation({
     mutationFn: () =>
-      submitAppeal({ entityId, module, entityType, reason: details, path }),
+      submitAppeal({
+        entityId,
+        module,
+        entityType,
+        reasonCategory: selectedReason,
+        details,
+        path,
+      }),
     onMutate: () => {
       queryClient.setQueriesData(
         { queryKey: ["appeal", entityId] },
@@ -66,7 +54,7 @@ export function AppealButton({
       });
       setIsModalOpen(false);
       setDetails("");
-      setSelectedReason(APPEAL_REASONS[0].value);
+      setSelectedReason(APPEAL_CATEGORIES[0].value);
     },
     onError: (err: unknown) => {
       const message =
@@ -129,7 +117,7 @@ export function AppealButton({
                 <legend className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Reason for appeal
                 </legend>
-                {APPEAL_REASONS.map((r) => (
+                {APPEAL_CATEGORIES.map((r) => (
                   <label
                     key={r.value}
                     className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm transition ${

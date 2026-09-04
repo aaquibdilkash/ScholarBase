@@ -38,7 +38,7 @@ export default function NotificationBadge({
   return (
     <Link
       href="/notifications"
-      className="sb-button-soft relative p-2 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800 dark:hover:bg-slate-800 dark:hover:text-white"
+      className="sb-button-primary relative p-2"
       aria-label="Notifications"
     >
       <Bell className="h-6 w-6" />

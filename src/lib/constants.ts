@@ -88,6 +88,30 @@ export const MAX_REJECTION_REASON = 64;
 export const MAX_REPORT_DETAILS = 256;
 export const MAX_APPEAL_REASON = 256;
 
+// Structured appeal categories — single source of truth shared by the
+// AppealButton UI and the `AppealReason` Prisma enum (schema.prisma).
+// Keep the values in sync with the enum.
+export const APPEAL_CATEGORIES = [
+  {
+    value: "MISTAKEN_MODERATION",
+    label: "Mistaken Moderation",
+    description: "I believe my content was moderated in error",
+  },
+  {
+    value: "CONTEXT_MISSING",
+    label: "Context Missing",
+    description: "The moderation did not consider important context",
+  },
+  {
+    value: "POLICY_CLARIFICATION",
+    label: "Policy Clarification",
+    description: "I believe my content does not violate the policy",
+  },
+  { value: "OTHER", label: "Other", description: "Something else" },
+] as const;
+
+export type AppealCategory = (typeof APPEAL_CATEGORIES)[number]["value"];
+
 export const MAX_RECOMMENDATION_FEEDBACK = 512;
 
 export const MAX_ADMISSION_UNIVERSITY = 64;

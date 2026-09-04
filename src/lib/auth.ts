@@ -23,6 +23,29 @@ export async function requireCurrentUser(message = 'Please log in to continue.')
     return user
 }
 
+/**
+ * Same as requireCurrentUser, but additionally rejects accounts that have
+ * been frozen by moderation (`user.isFrozen === true`). Use this in all
+ * mutation entry points (creating posts, comments, surveys, tools, reports,
+ * appeals, ...) so frozen users cannot create new content anywhere.
+ */
+export async function requireActiveUser(message = 'Please log in to continue.'): Promise<SupabaseUser> {
+    const user = await requireCurrentUser(message)
+
+    const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { isFrozen: true },
+    })
+
+    if (dbUser?.isFrozen) {
+        throw new Error(
+            'ACCOUNT_FROZEN: Your account is restricted from posting or commenting.',
+        )
+    }
+
+    return user
+}
+
 export const isUserAdmin = cache(async (userId: string): Promise<boolean> => {
     const dbUser = await prisma.user.findUnique({
         where: { id: userId },

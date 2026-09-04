@@ -85,7 +85,7 @@ export default function CareersPage() {
           <section className="mb-12 sm:mb-16 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 md:p-10 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center gap-3 mb-4">
               <Heart className="h-6 w-6 text-rose-600 dark:text-rose-400" />
-              <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-slate-100">
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
                 Let&apos;s Be Honest With You
               </h2>
             </div>

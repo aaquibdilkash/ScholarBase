@@ -67,7 +67,7 @@ export default function ThemeToggle({ collapsed }: { collapsed: boolean }) {
             <span className="block">Dark mode</span>
             <span className="block text-xs font-medium text-slate-500 dark:text-slate-300 min-h-[16px]">
               {/* Hydration safe text: non-breaking space until mounted */}
-              {!mounted ? "\u00A0" : (theme === "dark" ? "Enabled" : "Off")}
+              {!mounted ? "\u00A0" : (theme === "dark" ? "Enabled" : "Disabled")}
             </span>
           </span>
         )}
