@@ -125,27 +125,27 @@ const JournalDetailPage = async ({
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
         {j.publisher && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-cyan-50 dark:bg-black">
+            <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
               Publisher
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-cyan-800 mt-1">
               {j.publisher}
             </p>
           </div>
         )}
         {j.issn && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-rose-50 dark:bg-black">
+            <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               ISSN
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-rose-800 mt-1">
               {j.issn}
             </p>
           </div>
         )}
         {j.impactFactor && (
-          <div className="rounded-xl bg-amber-50 p-3">
+          <div className="metric-card bg-amber-50 dark:bg-black">
             <p className="text-xs text-amber-500 font-medium uppercase tracking-wider">
               Impact Factor
             </p>
@@ -155,7 +155,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.scopusQuartile && j.scopusQuartile !== "NONE" && (
-          <div className="rounded-xl bg-emerald-50 p-3">
+          <div className="metric-card bg-emerald-50 dark:bg-black">
             <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
               Scopus Quartile
             </p>
@@ -165,7 +165,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.abdcRanking && j.abdcRanking !== "NONE" && (
-          <div className="rounded-xl bg-purple-50 p-3">
+          <div className="metric-card bg-purple-50 dark:bg-black">
             <p className="text-xs text-purple-500 font-medium uppercase tracking-wider">
               ABDC Ranking
             </p>
@@ -175,7 +175,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.wosIndex && j.wosIndex !== "NONE" && (
-          <div className="rounded-xl bg-blue-50 p-3">
+          <div className="metric-card bg-blue-50 dark:bg-black">
             <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
               Web of Science Index
             </p>
@@ -185,7 +185,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.wosQuartile && j.wosQuartile !== "NONE" && (
-          <div className="rounded-xl bg-sky-50 p-3">
+          <div className="metric-card bg-sky-50 dark:bg-black">
             <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
               Web of Science Quartile
             </p>
@@ -195,7 +195,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.sjrQuartile && j.sjrQuartile !== "NONE" && (
-          <div className="rounded-xl bg-orange-50 p-3">
+          <div className="metric-card bg-orange-50 dark:bg-black">
             <p className="text-xs text-orange-500 font-medium uppercase tracking-wider">
               SJR Quartile
             </p>
@@ -205,7 +205,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.sjrScore != null && (
-          <div className="rounded-xl bg-orange-50 p-3">
+          <div className="metric-card bg-orange-50 dark:bg-black">
             <p className="text-xs text-orange-500 font-medium uppercase tracking-wider">
               SJR Score
             </p>
@@ -215,7 +215,7 @@ const JournalDetailPage = async ({
           </div>
         )}
         {j.citeScore != null && (
-          <div className="rounded-xl bg-teal-50 p-3">
+          <div className="metric-card bg-teal-50 dark:bg-black">
             <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
               CiteScore
             </p>

@@ -186,7 +186,11 @@ function ReplyForm({
         />
       </div>
       <div className="flex justify-end">
-        <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-3 py-1.5 text-xs font-bold md:w-auto md:px-5 md:py-2.5 md:text-sm" disabled={submitting} loadingText="Posting...">
+        <SubmitBtnWithAuth
+          className="sb-button-primary w-full justify-center px-3 py-1.5 text-xs font-bold md:w-auto md:px-5 md:py-2.5 md:text-sm"
+          disabled={submitting}
+          loadingText="Posting..."
+        >
           Send
         </SubmitBtnWithAuth>
       </div>
@@ -634,20 +638,6 @@ export function CommentThread({
 
       {/* 🔥 WRAPPER ADDED HERE: Indents everything past the parent avatar */}
       <div className="ml-10 md:ml-12">
-        {hasMoreReplies && (
-          <button
-            onClick={loadMoreReplies}
-            disabled={loadingReplies}
-            className="ml-2 mt-2 block text-[11px] font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:opacity-50 dark:text-blue-300 dark:hover:text-blue-200 md:text-xs"
-          >
-            {loadingReplies
-              ? "Loading..."
-              : replies.length === 0
-                ? "Load Replies"
-                : "Load More Replies"}
-          </button>
-        )}
-
         {activeReplyId === comment.id &&
           !!comment.authorId &&
           !comment.isDeleted && (
@@ -696,6 +686,20 @@ export function CommentThread({
               />
             ))}
           </div>
+        )}
+
+        {hasMoreReplies && (
+          <button
+            onClick={loadMoreReplies}
+            disabled={loadingReplies}
+            className="ml-2 mt-2 block text-[11px] font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:opacity-50 dark:text-blue-300 dark:hover:text-blue-200 md:text-xs"
+          >
+            {loadingReplies
+              ? "Loading..."
+              : replies.length === 0
+                ? "Load Replies"
+                : "Load More Replies"}
+          </button>
         )}
       </div>
     </div>

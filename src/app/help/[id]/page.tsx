@@ -118,9 +118,9 @@ export default async function HelpPostPage({
         {post.title}
       </h1>
 
-      <p className="text-sm sm:text-base font-semibold text-blue-700 mb-3 sm:mb-6">
+      <span className="inline-flex shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-500/10 dark:text-blue-300 mb-3 sm:mb-6">
         {post.category}
-      </p>
+      </span>
 
       <p className="break-words mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
         <span className="font-semibold text-slate-800 dark:text-slate-100">

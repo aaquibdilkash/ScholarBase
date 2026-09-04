@@ -97,6 +97,7 @@ export type EventWithAuthor = Partial<ResearchEvent> & {
     title: string;
     date: Date;
     location: string;
+    deadline: Date | null;
     author: AuthorWithFollowers;
     totalVotes: number;
     totalComments: number;

@@ -87,9 +87,9 @@ export function HelpPostCard({
         <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
           {helpPost.title}
         </h2>
-        <p className="text-sm font-semibold text-blue-700">
+        <span className="inline-flex shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-500/10 dark:text-blue-300">
           {helpPost.category}
-        </p>
+        </span>
         {helpPost.subject && (
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             <span className="font-semibold text-slate-800 dark:text-slate-100">

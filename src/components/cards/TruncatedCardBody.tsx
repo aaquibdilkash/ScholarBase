@@ -32,7 +32,7 @@ export function TruncatedCardBody({
   }, [children]);
 
   const content = (
-    <div ref={bodyRef} className={isExpanded ? "overflow-visible" : "max-h-30 min-w-0 overflow-hidden"}>
+    <div ref={bodyRef} className={isExpanded ? "overflow-visible" : "max-h-35 min-w-0 overflow-hidden"}>
       {children}
     </div>
   );

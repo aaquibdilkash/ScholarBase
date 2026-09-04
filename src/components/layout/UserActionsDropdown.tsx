@@ -108,6 +108,16 @@ export default function UserActionsDropdown({
             <li>
               <Link
                 role="menuitem"
+                href={`/scholars/${user.id}`}
+                className="sb-menu-item flex items-center px-4"
+                onClick={() => setOpen(false)}
+              >
+                Profile
+              </Link>
+            </li>
+            <li>
+              <Link
+                role="menuitem"
                 href="/notifications"
                 className="sb-menu-item flex items-center gap-2 px-4"
                 onClick={() => setOpen(false)}
@@ -121,16 +131,6 @@ export default function UserActionsDropdown({
               </Link>
             </li>
             <li>
-              <Link
-                role="menuitem"
-                href={`/scholars/${user.id}`}
-                className="sb-menu-item flex items-center px-4"
-                onClick={() => setOpen(false)}
-              >
-                Profile
-              </Link>
-            </li>
-            <li>
               <button
                 type="button"
                 role="menuitem"
@@ -139,7 +139,7 @@ export default function UserActionsDropdown({
                   setIsModalOpen(true);
                 }}
                 disabled={signingOut}
-                className="sb-menu-item w-full text-left disabled:opacity-50"
+                className="sb-menu-item w-full text-left disabled:opacity-50 gap-2 px-4"
               >
                 {signingOut ? "Signing out..." : "Sign Out"}
               </button>

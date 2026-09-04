@@ -150,37 +150,37 @@ const PublicationDetailPage = async ({
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
         {p.journalOrConference && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-indigo-50 dark:bg-black">
+            <p className="text-xs text-indigo-500 font-medium uppercase tracking-wider">
               Journal / Conference
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-indigo-800 mt-1">
               {p.journalOrConference}
             </p>
           </div>
         )}
         {p.publisher && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-cyan-50 dark:bg-black">
+            <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
               Publisher
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-cyan-800 mt-1">
               {p.publisher}
             </p>
           </div>
         )}
         {p.year && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-rose-50 dark:bg-black">
+            <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Year
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-rose-800 mt-1">
               {p.year}
             </p>
           </div>
         )}
         {p.domain && (
-          <div className="rounded-xl bg-emerald-50 p-3">
+          <div className="metric-card bg-emerald-50 dark:bg-black">
             <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
               Domain
             </p>
@@ -190,41 +190,41 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.volume && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-blue-50 dark:bg-black">
+            <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
               Volume
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-blue-800 mt-1">
               {p.volume}
             </p>
           </div>
         )}
         {p.issue && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-sky-50 dark:bg-black">
+            <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
               Issue
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-sky-800 mt-1">
               {p.issue}
             </p>
           </div>
         )}
         {p.pages && (
-          <div className="rounded-xl bg-slate-50 p-3">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-teal-50 dark:bg-black">
+            <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
               Pages
             </p>
-            <p className="text-sm font-semibold text-slate-800 mt-1">
+            <p className="text-sm font-semibold text-teal-800 mt-1">
               {p.pages}
             </p>
           </div>
         )}
         {p.isUserAuthor && (
-          <div className="rounded-xl bg-amber-50 p-3">
-            <p className="text-xs text-amber-500 font-medium uppercase tracking-wider">
+          <div className="metric-card bg-amber-50 dark:bg-black">
+            <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Author Status
             </p>
-            <p className="text-sm font-semibold text-amber-800 mt-1">
+            <p className="text-sm font-semibold text-rose-800 mt-1">
               Co-author
             </p>
           </div>
