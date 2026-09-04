@@ -5,13 +5,13 @@ import { cache } from "react";
 import { Prisma, PublicationType } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createPublication(formData: FormData) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Please log in to submit a publication.",
   );
 
@@ -107,7 +107,7 @@ export async function updatePublication(
   formData: FormData,
   publicationId: string,
 ) {
-  const user = await requireCurrentUser("Log in to edit this publication.");
+  const user = await requireActiveUser("Log in to edit this publication.");
 
   const title = readFormValue(formData, "title");
   const authors = readFormValue(formData, "authors");
@@ -171,7 +171,7 @@ export async function updatePublication(
 }
 
 export async function deletePublication(publicationId: string) {
-  const user = await requireCurrentUser("Log in to delete this publication.");
+  const user = await requireActiveUser("Log in to delete this publication.");
 
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },

@@ -2,15 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   MoreHorizontal,
   Trash2,
   Snowflake,
   RefreshCw,
   Undo2,
+  FileText,
 } from "lucide-react";
 import { moderateContent } from "@/app/actions/reports";
+import { getReportsForEntity } from "@/app/actions/admin";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
@@ -71,8 +73,17 @@ export function AdminActionsDropdown({
   const [confirmAction, setConfirmAction] = useState<ModerationAction | null>(
     null,
   );
+  // Reports inspection drawer — opens when "View Reports" is clicked (QA #11).
+  const [inspectOpen, setInspectOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const { data: reports = [] } = useQuery({
+    queryKey: ["reports-for-entity", contentId],
+    queryFn: () => getReportsForEntity(contentId),
+    staleTime: 30_000,
+    enabled: inspectOpen,
+  });
 
   const mutation = useMutation({
     mutationFn: (action: ModerationAction) =>
@@ -338,6 +349,22 @@ export function AdminActionsDropdown({
                       <span>Delete {entityLabel}</span>
                     </button>
                   )}
+                  {(reportCount > 0 || reports.length > 0) && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => setInspectOpen(true)}
+                      className="sb-menu-item flex items-center gap-2"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>View Reports</span>
+                      {reportCount > 0 && (
+                        <span className="ml-auto rounded-full bg-muted px-1.5 py-0.5 text-xs">
+                          {reportCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>,
               document.body,
@@ -356,9 +383,64 @@ export function AdminActionsDropdown({
         confirmLabel={
           confirmAction ? CONFIRM_META[confirmAction].confirmLabel : "Confirm"
         }
-        confirmingLabel="Processing..."
+                confirmingLabel="Processing..."
         isConfirming={isPending}
       />
+
+      {/* Reports inspection drawer (QA #11) */}
+      {inspectOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[80] flex items-end justify-end">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setInspectOpen(false)}
+            />
+            <div className="relative z-[81] h-[500px] w-96 overflow-y-auto bg-popover shadow-lg">
+              <div className="sticky top-0 flex items-center justify-between border-b p-4">
+                <h3 className="font-semibold">Reports on {entityLabel}</h3>
+                <button
+                  onClick={() => setInspectOpen(false)}
+                  className="text-sm underline"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                {reports.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No pending reports.
+                  </p>
+                ) : (
+                  reports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="space-y-1 border-l-2 pl-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium uppercase">
+                          {report.category}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(report.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-sm">
+                        {report.reporter?.name ?? report.reporter?.email ??
+                          "Anonymous"}
+                      </p>
+                      {report.details && (
+                        <p className="text-sm text-muted-foreground">
+                          {report.details}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
@@ -132,7 +132,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
 });
 
 export async function createResult(formData: FormData) {
-  const user = await requireCurrentUser("Please log in to submit details.");
+  const user = await requireActiveUser("Please log in to submit details.");
 
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
@@ -189,7 +189,7 @@ export async function createResult(formData: FormData) {
 }
 
 export async function updateResult(formData: FormData, resultId: string) {
-  const user = await requireCurrentUser("Log in to edit this result.");
+  const user = await requireActiveUser("Log in to edit this result.");
 
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
@@ -231,7 +231,7 @@ export async function updateResult(formData: FormData, resultId: string) {
 }
 
 export async function deleteResult(resultId: string) {
-  const user = await requireCurrentUser("Log in to delete this result.");
+  const user = await requireActiveUser("Log in to delete this result.");
 
   const result = await prisma.result.findUnique({
     where: { id: resultId },

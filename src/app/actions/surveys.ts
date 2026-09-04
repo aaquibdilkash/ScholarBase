@@ -6,7 +6,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION } from "@/lib/constants";
@@ -168,7 +168,7 @@ export async function getSurveyResponse(surveyId: string, userId: string) {
 }
 
 export async function createSurvey(formData: FormData) {
-  const user = await requireCurrentUser("Please log in to create a survey.");
+  const user = await requireActiveUser("Please log in to create a survey.");
 
   const title = readFormValue(formData, "title");
   const description = readOptionalFormValue(formData, "description");
@@ -249,7 +249,7 @@ export async function createSurvey(formData: FormData) {
 }
 
 export async function updateSurvey(formData: FormData, surveyId: string) {
-  const user = await requireCurrentUser("Log in to edit this survey.");
+  const user = await requireActiveUser("Log in to edit this survey.");
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -447,7 +447,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 }
 
 export async function deleteSurvey(surveyId: string) {
-  const user = await requireCurrentUser("Log in to delete this survey.");
+  const user = await requireActiveUser("Log in to delete this survey.");
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -484,7 +484,7 @@ export async function deleteSurvey(surveyId: string) {
 }
 
 export async function closeSurvey(surveyId: string) {
-  const user = await requireCurrentUser("Log in to close this survey.");
+  const user = await requireActiveUser("Log in to close this survey.");
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -509,7 +509,7 @@ export async function closeSurvey(surveyId: string) {
 }
 
 export async function reopenSurvey(surveyId: string) {
-  const user = await requireCurrentUser("Log in to reopen this survey.");
+  const user = await requireActiveUser("Log in to reopen this survey.");
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -534,7 +534,7 @@ export async function reopenSurvey(surveyId: string) {
 }
 
 export async function toggleShareData(surveyId: string) {
-  const user = await requireCurrentUser("Log in to manage this survey.");
+  const user = await requireActiveUser("Log in to manage this survey.");
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -565,7 +565,7 @@ export async function submitSurveyResponse(
 ) {
   let user;
   try {
-    user = await requireCurrentUser("Log in to submit a survey response.");
+    user = await requireActiveUser("Log in to submit a survey response.");
   } catch {
     return { error: "UNAUTHORIZED" };
   }

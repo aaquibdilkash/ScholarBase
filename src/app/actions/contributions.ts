@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -149,7 +149,7 @@ export async function getContributionForEdit(id: string, userId: string) {
 }
 
 export async function createContribution(formData: FormData) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Please log in to submit a contribution.",
   );
 
@@ -225,7 +225,7 @@ export async function updateContribution(
   contributionId: string,
   formData: FormData,
 ) {
-  const user = await requireCurrentUser("Log in to edit this contribution.");
+  const user = await requireActiveUser("Log in to edit this contribution.");
 
   const existingContribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
@@ -284,7 +284,7 @@ export async function updateContribution(
 }
 
 export async function deleteContribution(contributionId: string) {
-  const user = await requireCurrentUser("Log in to delete this contribution.");
+  const user = await requireActiveUser("Log in to delete this contribution.");
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },

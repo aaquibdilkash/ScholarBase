@@ -1,7 +1,7 @@
 "use server";
 
 import { v2 as cloudinary } from "cloudinary";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 import {
   POST_MAX_WIDTH,
   POST_MAX_HEIGHT,
@@ -34,7 +34,7 @@ export async function uploadImage(
   formData: FormData,
   kind: UploadKind,
 ): Promise<UploadResult> {
-  await requireCurrentUser();
+  await requireActiveUser();
 
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("No file provided");

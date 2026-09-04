@@ -5,13 +5,13 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createResearchGrant(formData: FormData) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Please log in to share a research grant.",
   );
 
@@ -79,7 +79,7 @@ export async function createResearchGrant(formData: FormData) {
 }
 
 export async function updateResearchGrant(formData: FormData, grantId: string) {
-  const user = await requireCurrentUser("Log in to edit this research grant.");
+  const user = await requireActiveUser("Log in to edit this research grant.");
 
   const title = readFormValue(formData, "title");
   const amount = readFormValue(formData, "amount");
@@ -115,7 +115,7 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
 }
 
 export async function deleteResearchGrant(grantId: string) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Log in to delete this research grant.",
   );
 

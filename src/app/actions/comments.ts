@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
 import { notifyMentionedUsers, notifyUserById } from "@/lib/notifications";
@@ -129,7 +129,7 @@ export async function createComment(
   type: CommentEntityType,
   parentId?: string,
 ) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Log in to join the academic discussion.",
   );
 
@@ -220,7 +220,7 @@ export async function editComment(
   commentId: string,
   type: CommentEntityType,
 ) {
-  const user = await requireCurrentUser("Log in to edit this comment.");
+  const user = await requireActiveUser("Log in to edit this comment.");
 
   const editRateLimit = await checkRateLimit({
     namespace: `comment:edit:${type}`,
@@ -264,7 +264,7 @@ export async function deleteComment(
   commentId: string,
   type: CommentEntityType,
 ) {
-  const { id: userId } = await requireCurrentUser(
+  const { id: userId } = await requireActiveUser(
     "You must be logged in to delete comments.",
   );
 

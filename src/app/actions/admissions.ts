@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
@@ -125,7 +125,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
 });
 
 export async function createPhdAdmission(formData: FormData) {
-  const user = await requireCurrentUser("Please log in to submit details.");
+  const user = await requireActiveUser("Please log in to submit details.");
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
@@ -186,7 +186,7 @@ export async function updatePhdAdmission(
   formData: FormData,
   admissionId: string,
 ) {
-  const user = await requireCurrentUser("Log in to edit this admission.");
+  const user = await requireActiveUser("Log in to edit this admission.");
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
@@ -228,7 +228,7 @@ export async function updatePhdAdmission(
 }
 
 export async function deletePhdAdmission(admissionId: string) {
-  const user = await requireCurrentUser("Log in to delete this admission.");
+  const user = await requireActiveUser("Log in to delete this admission.");
 
   const admission = await prisma.phdAdmission.findUnique({
     where: { id: admissionId },

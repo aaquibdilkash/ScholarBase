@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
@@ -137,7 +137,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
 });
 
 export async function createJobVacancy(formData: FormData) {
-  const user = await requireCurrentUser("Please log in to submit details.");
+  const user = await requireActiveUser("Please log in to submit details.");
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
@@ -217,7 +217,7 @@ export async function createJobVacancy(formData: FormData) {
 }
 
 export async function updateJobVacancy(formData: FormData, vacancyId: string) {
-  const user = await requireCurrentUser("Log in to edit this vacancy.");
+  const user = await requireActiveUser("Log in to edit this vacancy.");
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
@@ -276,7 +276,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
 }
 
 export async function deleteJobVacancy(vacancyId: string) {
-  const user = await requireCurrentUser("Log in to delete this vacancy.");
+  const user = await requireActiveUser("Log in to delete this vacancy.");
 
   const vacancy = await prisma.jobVacancy.findUnique({
     where: { id: vacancyId },

@@ -2,7 +2,7 @@
 
 import { cache } from "react";
 import prisma from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 import type {
   ReportEntityType,
   ReportModule,
@@ -186,7 +186,7 @@ export async function submitReport(
   reason: ReportReason,
   details?: string | null,
 ) {
-  const user = await requireCurrentUser("Log in to continue.");
+  const user = await requireActiveUser("Log in to continue.");
 
   const config = MODULE_MODEL_MAP[mod];
   if (!config) {
@@ -405,7 +405,7 @@ export async function moderateContent(
   contentType: string,
   contentId: string,
 ) {
-  const user = await requireCurrentUser("Log in to continue.");
+  const user = await requireActiveUser("Log in to continue.");
 
   const { isUserAdmin } = await import("@/lib/auth");
   if (!(await isUserAdmin(user.id))) {

@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import type {
@@ -17,7 +17,7 @@ import type {
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createJournal(formData: FormData) {
-  const user = await requireCurrentUser("Please log in to submit details.");
+  const user = await requireActiveUser("Please log in to submit details.");
 
   const title = readFormValue(formData, "title");
   const issn = readOptionalFormValue(formData, "issn");
@@ -93,7 +93,7 @@ export async function createJournal(formData: FormData) {
 }
 
 export async function updateJournal(formData: FormData, journalId: string) {
-  const user = await requireCurrentUser("Log in to edit this journal.");
+  const user = await requireActiveUser("Log in to edit this journal.");
 
   const title = readFormValue(formData, "title");
   const issn = readOptionalFormValue(formData, "issn");
@@ -151,7 +151,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
 }
 
 export async function deleteJournal(journalId: string) {
-  const user = await requireCurrentUser("Log in to delete this journal.");
+  const user = await requireActiveUser("Log in to delete this journal.");
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },

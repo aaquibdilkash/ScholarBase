@@ -322,9 +322,7 @@ export function AdminDashboard({
                 {section.title}
               </p>
               <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">
-                {section.id === "appeals"
-                  ? appealsData?.total ?? 0
-                  : sectionCount(section.id)}
+                {sectionCount(section.id)}
               </p>
             </button>
           ))}

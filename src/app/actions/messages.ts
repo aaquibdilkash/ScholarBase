@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyUserById } from "@/lib/notifications";
 import type { SubmitResult } from "@/types/form";
@@ -201,7 +201,7 @@ export async function getMessageDetails(messageId: string) {
 export async function startConversation(
   formData: FormData,
 ): Promise<SubmitResult> {
-  const supabaseUser = await requireCurrentUser(
+  const supabaseUser = await requireActiveUser(
     "Please log in to send a message.",
   );
 
@@ -313,7 +313,7 @@ export async function sendMessage(
   conversationId: string,
   formData: FormData,
 ): Promise<SubmitResult | CreatedMessage> {
-  const supabaseUser = await requireCurrentUser(
+  const supabaseUser = await requireActiveUser(
     "Please log in to message a scholar.",
   );
 
@@ -441,7 +441,7 @@ export async function blockUser(blockedId: string) {
 }
 
 export async function unblockUser(blockedId: string) {
-  const user = await requireCurrentUser("Please log in to unblock a scholar.");
+  const user = await requireActiveUser("Please log in to unblock a scholar.");
   const rateLimit = await checkRateLimit({
     namespace: "message:unblock",
     key: user.id,
@@ -468,7 +468,7 @@ export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
 
 // ⚡ NEW: Automatically mark conversation as read when opened
 export async function markConversationAsRead(conversationId: string) {
-  const supabaseUser = await requireCurrentUser();
+  const supabaseUser = await requireActiveUser();
   if (!supabaseUser) return;
 
   const rateLimit = await checkRateLimit({

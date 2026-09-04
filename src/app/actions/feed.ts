@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
@@ -219,7 +219,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
 });
 
 export async function createSocialPost(formData: FormData) {
-  const authUser = await requireCurrentUser("You must be logged in to post.");
+  const authUser = await requireActiveUser("You must be logged in to post.");
 
   const rateLimit = await checkRateLimit({
     namespace: "post:create",
@@ -318,7 +318,7 @@ export async function createSocialPost(formData: FormData) {
 }
 
 export async function updateSocialPost(formData: FormData, postId: string) {
-  const user = await requireCurrentUser("Log in to edit this post.");
+  const user = await requireActiveUser("Log in to edit this post.");
 
   const rateLimit = await checkRateLimit({
     namespace: "post:edit",
@@ -418,7 +418,7 @@ export async function getPostEditData(id: string) {
 }
 
 export async function deleteSocialPost(postId: string) {
-  const user = await requireCurrentUser("Log in to delete this post.");
+  const user = await requireActiveUser("Log in to delete this post.");
 
   const rateLimit = await checkRateLimit({
     namespace: "post:delete",
@@ -465,7 +465,7 @@ export async function deleteSocialPost(postId: string) {
 }
 
 export async function voteOnSocialPost(postId: string, voteType: VoteType) {
-  const user = await requireCurrentUser("You must be logged in to vote.");
+  const user = await requireActiveUser("You must be logged in to vote.");
   const rateLimit = await checkRateLimit({
     namespace: "post-vote",
     key: user.id,
@@ -484,7 +484,7 @@ export async function createSocialPostComment(
   content: string,
   parentId?: string,
 ) {
-  const user = await requireCurrentUser("You must be logged in to comment.");
+  const user = await requireActiveUser("You must be logged in to comment.");
   const rateLimit = await checkRateLimit({
     namespace: "post-comment",
     key: user.id,
@@ -505,7 +505,7 @@ export async function createSocialPostComment(
 }
 
 export async function deleteSocialPostComment(commentId: string) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "You must be logged in to delete comments.",
   );
   const rateLimit = await checkRateLimit({

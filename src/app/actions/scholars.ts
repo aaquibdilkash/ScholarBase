@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/url";
 import { sendScholarInviteEmail } from "@/lib/email";
 import { Prisma } from "@prisma/client";
@@ -87,7 +87,7 @@ export async function inviteScholar(
   prevState: InviteFormState,
   formData: FormData,
 ): Promise<InviteFormState> {
-  const user = await requireCurrentUser("Please log in to invite a scholar.");
+  const user = await requireActiveUser("Please log in to invite a scholar.");
 
   const validatedFields = inviteSchema.safeParse({
     name: formData.get("name"),

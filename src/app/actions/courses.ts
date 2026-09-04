@@ -5,13 +5,13 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
 export async function createCourse(formData: FormData) {
-  const user = await requireCurrentUser("Please log in to share a course.");
+  const user = await requireActiveUser("Please log in to share a course.");
 
   const title = readFormValue(formData, "title");
   const provider = readFormValue(formData, "provider");
@@ -71,7 +71,7 @@ export async function createCourse(formData: FormData) {
 }
 
 export async function updateCourse(formData: FormData, courseId: string) {
-  const user = await requireCurrentUser("Log in to edit this course.");
+  const user = await requireActiveUser("Log in to edit this course.");
 
   const title = readFormValue(formData, "title");
   const provider = readFormValue(formData, "provider");
@@ -115,7 +115,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
 }
 
 export async function deleteCourse(courseId: string) {
-  const user = await requireCurrentUser("Log in to delete this course.");
+  const user = await requireActiveUser("Log in to delete this course.");
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },

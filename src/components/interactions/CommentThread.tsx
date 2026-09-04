@@ -490,22 +490,26 @@ function CommentCard({
                   </span>
                 )}
                 <div className="ml-auto flex items-center gap-2 md:gap-3">
-                  {isFrozen ? (
+                  {isFrozen && (
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 md:text-xs">
                       ❄ Frozen by moderators
                     </span>
-                  ) : (
+                  )}
+                  {/* Rendered for frozen comments too — the owner appeals
+                      THROUGH this menu (AppealButton), so hiding it on
+                      frozen comments would make appeals unreachable. */}
+                  <ReportMenu
+                    entityId={comment.id}
+                    entityType="COMMENT"
+                    module={COMMENT_REPORT_MODULE[module]}
+                    ownerId={comment.author?.id ?? null}
+                    currentUserId={currentUserId ?? null}
+                    isFrozen={comment.isFrozen}
+                    isDeleted={comment.isDeleted}
+                    hasActiveAppeal={comment.hasActiveAppeal}
+                  />
+                  {!isFrozen && (
                     <>
-                      <ReportMenu
-                        entityId={comment.id}
-                        entityType="COMMENT"
-                        module={COMMENT_REPORT_MODULE[module]}
-                        ownerId={comment.author?.id ?? null}
-                        currentUserId={currentUserId ?? null}
-                        isFrozen={comment.isFrozen}
-                        isDeleted={comment.isDeleted}
-                        hasActiveAppeal={comment.hasActiveAppeal}
-                      />
                       <CommentActionsDropdown
                         isOwner={isOwner}
                         onEdit={() => setEditingId(comment.id)}

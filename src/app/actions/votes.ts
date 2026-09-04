@@ -5,7 +5,7 @@ import {
   handleCommentVoteTransaction,
   ModuleKey,
 } from "@/lib/transactions";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
 import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
@@ -15,7 +15,7 @@ export async function voteOnContent(
   newVoteType: VoteType,
   module: ModuleKey,
 ) {
-  const user = await requireCurrentUser("You must be logged in to vote.");
+  const user = await requireActiveUser("You must be logged in to vote.");
 
   if (!entityId || !newVoteType || !module) {
     throw new Error("Missing required parameters for voting.");
@@ -52,7 +52,7 @@ export async function toggleCommentVote(
   type: CommentEntityType,
   voteType: VoteType,
 ) {
-  const user = await requireCurrentUser("You must be logged in to vote.");
+  const user = await requireActiveUser("You must be logged in to vote.");
 
   const rateLimit = await checkRateLimit({
     namespace: `comment-vote:${type}`,

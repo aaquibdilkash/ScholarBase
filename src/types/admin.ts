@@ -174,6 +174,24 @@ export type AdminAppealItem = {
   entityStatus?: "ACTIVE" | "FROZEN" | "DELETED";
 };
 
+/** A single Report row joined with the reporter's profile, surfaced in the
+ *  admin inspection drawer so moderators see WHO reported what and WHY. */
+export type ReportWithReporter = {
+  id: string;
+  entityId: string;
+  entityType: string;
+  module: string;
+  category: string;
+  details: string | null;
+  status: "PENDING" | "DISMISSED" | "RESOLVED";
+  createdAt: Date;
+  reporter: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
+};
+
 export interface ContentModel {
   findMany: (args: {
     include: { author: true }

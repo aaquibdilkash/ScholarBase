@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
@@ -139,7 +139,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
 });
 
 export async function createHelpPost(formData: FormData) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "You must be logged in to create a post.",
   );
   const title = formData.get("title") as string;
@@ -212,7 +212,7 @@ export async function createHelpPost(formData: FormData) {
 }
 
 export async function updateHelpPost(formData: FormData, helpPostId: string) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "You must be logged in to update a post.",
   );
 
@@ -246,7 +246,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 }
 
 export async function deleteHelpPost(helpPostId: string) {
-  const user = await requireCurrentUser("Log in to delete this help post.");
+  const user = await requireActiveUser("Log in to delete this help post.");
 
   const post = await prisma.helpPost.findUnique({
     where: { id: helpPostId },

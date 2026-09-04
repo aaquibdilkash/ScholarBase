@@ -5,7 +5,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
-import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 
@@ -87,7 +87,7 @@ export async function createRecommendation(
   formData: FormData,
   supervisorId: string,
 ) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Log in to share your recommendation and help other scholars!",
   );
 
@@ -219,7 +219,7 @@ export async function updateRecommendation(
   formData: FormData,
   recommendationId: string,
 ) {
-  const user = await requireCurrentUser("Log in to edit this recommendation.");
+  const user = await requireActiveUser("Log in to edit this recommendation.");
 
   const feedback = readFormValue(formData, "feedback");
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
@@ -327,7 +327,7 @@ export async function updateRecommendation(
 }
 
 export async function deleteRecommendation(recommendationId: string) {
-  const user = await requireCurrentUser(
+  const user = await requireActiveUser(
     "Log in to delete this recommendation.",
   );
 

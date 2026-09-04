@@ -3,7 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 
@@ -366,7 +366,7 @@ export async function getProfileActivity(profileId: string, take = 10) {
 }
 
 export async function updateProfile(formData: FormData) {
-  const supabaseUser = await requireCurrentUser(
+  const supabaseUser = await requireActiveUser(
     "You must be logged in to update your profile.",
   );
 
@@ -426,7 +426,7 @@ export async function updateProfile(formData: FormData) {
 }
 
 export async function isHandleAvailable(handle: string) {
-  const supabaseUser = await requireCurrentUser(
+  const supabaseUser = await requireActiveUser(
     "You must be logged in to check handle availability.",
   );
   const normalizedHandle = normalizeHandle(handle);

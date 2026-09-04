@@ -13,6 +13,7 @@ import {
   ContentMap,
   DeleteMapValue,
   FreezableContentModel,
+  ReportWithReporter,
 } from "@/types/admin";
 import { ADMIN_PAGE_SIZE } from "@/lib/constants";
 
@@ -183,6 +184,7 @@ export async function getAdminStats() {
 
   const sections = {
     users: userEstimate,
+    appeals: await prisma.appeal.count(),
     feed: await prisma.socialPost.count(),
     blog: await prisma.article.count(),
     publications: await prisma.publication.count(),
@@ -644,5 +646,27 @@ export async function getAdminContent(
     };
   }
 
-  return { items: [], total: 0, page, pageSize, totalPages: 1 };
+    return { items: [], total: 0, page, pageSize, totalPages: 1 };
+}
+
+/**
+ * Fetch all PENDING reports against a single entity so moderators can
+ * inspect who reported, which category/reason, and the reporter's notes.
+ * (QA #11 — report metadata was previously invisible to admins.)
+ */
+export async function getReportsForEntity(
+  entityId: string,
+): Promise<ReportWithReporter[]> {
+  const user = await requireCurrentUser("Log in to access admin.");
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  return prisma.report.findMany({
+    where: { entityId, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      reporter: { select: { id: true, name: true, email: true } },
+    },
+    }) as unknown as Promise<ReportWithReporter[]>;
 }
