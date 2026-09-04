@@ -3,7 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 
@@ -27,9 +27,9 @@ export const getProfile = cache(
         followingCount: true, // Use materialized counter
         followers: currentUserId
           ? {
-              where: { followerId: currentUserId },
-              select: { followerId: true },
-            }
+            where: { followerId: currentUserId },
+            select: { followerId: true },
+          }
           : false,
       },
     });
@@ -77,9 +77,9 @@ export async function getProfileSections(
       resultCount: true,
       contributionCount: true,
       publicationCount: true,
-       surveyCount: true,
-       surveyParticipationCount: true,
-       researchGrantCount: true,
+      surveyCount: true,
+      surveyParticipationCount: true,
+      researchGrantCount: true,
       courseCount: true,
     },
   });
@@ -95,18 +95,18 @@ export async function getProfileSections(
       bio: true,
       followers: currentUserId
         ? {
-            where: { followerId: currentUserId },
-            select: { followerId: true },
-          }
+          where: { followerId: currentUserId },
+          select: { followerId: true },
+        }
         : false,
     },
   };
 
   const votesSelect = currentUserId
     ? {
-        where: { userId: currentUserId },
-        select: { userId: true, voteType: true },
-      }
+      where: { userId: currentUserId },
+      select: { userId: true, voteType: true },
+    }
     : false;
 
   const [
@@ -261,9 +261,9 @@ export async function getProfileSections(
       results: userCounters?.resultCount ?? 0,
       contributionPosts: userCounters?.contributionCount ?? 0,
       publications: userCounters?.publicationCount ?? 0,
-       surveys: userCounters?.surveyCount ?? 0,
-       surveyParticipation: userCounters?.surveyParticipationCount ?? 0,
-       researchGrants: userCounters?.researchGrantCount ?? 0,
+      surveys: userCounters?.surveyCount ?? 0,
+      surveyParticipation: userCounters?.surveyParticipationCount ?? 0,
+      researchGrants: userCounters?.researchGrantCount ?? 0,
       courses: userCounters?.courseCount ?? 0,
     },
   };
@@ -310,17 +310,17 @@ export async function getProfileSection(
         bio: true,
         followers: currentUserId
           ? {
-              where: { followerId: currentUserId },
-              select: { followerId: true },
-            }
+            where: { followerId: currentUserId },
+            select: { followerId: true },
+          }
           : false,
       },
     },
     votes: currentUserId
       ? {
-          where: { userId: currentUserId },
-          select: { userId: true, voteType: true },
-        }
+        where: { userId: currentUserId },
+        select: { userId: true, voteType: true },
+      }
       : false,
     ...(model === "recommendation"
       ? { supervisor: { select: { id: true, name: true } } }

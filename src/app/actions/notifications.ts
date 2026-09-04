@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 
 const notificationInclude = {
   actor: true,

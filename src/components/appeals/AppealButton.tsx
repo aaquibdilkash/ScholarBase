@@ -5,6 +5,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { HelpCircle, Loader2 } from "lucide-react";
 import { submitAppeal } from "@/app/actions/appeals";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useUser } from "@/hooks/useUser";
 import { MAX_APPEAL_REASON, APPEAL_CATEGORIES } from "@/lib/constants";
 
 interface AppealButtonProps {
@@ -28,6 +30,8 @@ export function AppealButton({
   );
   const [details, setDetails] = useState("");
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -75,6 +79,10 @@ export function AppealButton({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (details.trim().length === 0 || mutation.isPending) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     mutation.mutate();
   };
 

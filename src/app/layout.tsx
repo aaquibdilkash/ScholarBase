@@ -112,6 +112,7 @@ export default async function RootLayout({
   const user = await getCurrentUser();
 
   let isAdmin = false;
+  let isFrozen = false;
   let unreadMessages = 0;
   let unreadNotifications = 0;
   let avatarUrl: string | null = null;
@@ -121,7 +122,7 @@ export default async function RootLayout({
     const [dbUser, messageCount, notificationCount] = await Promise.all([
       prisma.user.findUnique({
         where: { id: user.id },
-        select: { isAdmin: true, avatarUrl: true },
+        select: { isAdmin: true, avatarUrl: true, isFrozen: true },
       }),
       getUnreadMessageCount(user.id),
       prisma.notification.count({
@@ -130,6 +131,7 @@ export default async function RootLayout({
     ]);
 
     isAdmin = dbUser?.isAdmin ?? false;
+    isFrozen = dbUser?.isFrozen ?? false;
     unreadMessages = messageCount;
     unreadNotifications = notificationCount;
     avatarUrl = dbUser?.avatarUrl ?? null;
@@ -160,6 +162,18 @@ export default async function RootLayout({
             <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
             <div className="flex min-w-0 flex-1 flex-col">
+              {isFrozen && (
+                <div
+                  role="alert"
+                  className="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+                >
+                  <span aria-hidden>❄</span>
+                  Your account is frozen. You can still browse, but posting,
+                  commenting, voting, reporting and other interactions are
+                  disabled until a moderator reviews your account.
+                </div>
+              )}
+
               <Navbar user={user} unreadCount={unreadNotifications} />
 
               <main className="sb-shell flex-1 grow py-8 md:py-10">

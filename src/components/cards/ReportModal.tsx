@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Flag, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useUser } from "@/hooks/useUser";
 import { submitReport } from "@/app/actions/reports";
 import type {
   ReportEntityType,
@@ -68,6 +70,8 @@ export function ReportModal({
   const [details, setDetails] = useState("");
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
+  const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
 
   const handleClose = () => {
     if (isPending) return;
@@ -79,6 +83,10 @@ export function ReportModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isPending) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
     setIsPending(true);
     submitReport(entityId, entityType, module, selectedReason, details)

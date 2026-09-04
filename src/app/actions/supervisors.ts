@@ -235,7 +235,7 @@ export async function getSupervisorRecommendationMeta(
 }
 
 export async function createSupervisor(formData: FormData) {
-  const user = await requireCurrentUser("Log in to add a supervisor entry.");
+  const user = await requireActiveUser("Log in to add a supervisor entry.");
 
   const name = readFormValue(formData, "name");
   const university = readFormValue(formData, "university");

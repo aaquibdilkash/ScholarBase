@@ -5,7 +5,7 @@ import {
   handleCommentVoteTransaction,
   ModuleKey,
 } from "@/lib/transactions";
-import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
+import { requireActiveUser } from "@/lib/auth";
 import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";

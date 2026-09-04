@@ -218,10 +218,14 @@ export function AdminDashboard({
   // Appeals tab renders the dedicated appeals query — NOT the content list.
   // The content map has no "appeals" key, so getAdminContent returns an
   // empty page ("No content found. Try a different status filter.") even
-  // when PENDING appeals exist. Status filter: "active" → PENDING only.
-  const appealsItems = (appealsData?.items ?? []).filter(
-    (a) => statusFilter !== "active" || a.status === "PENDING",
-  );
+  // when PENDING appeals exist. The status filter maps onto appeal lifecycle
+  // statuses: "active" → PENDING, "frozen" → ACTIONED, "deleted" → DISMISSED.
+  const appealsItems = (appealsData?.items ?? []).filter((a) => {
+    if (statusFilter === "active") return a.status === "PENDING";
+    if (statusFilter === "frozen") return a.status === "ACTIONED";
+    if (statusFilter === "deleted") return a.status === "DISMISSED";
+    return true; // "all"
+  });
   const tableItems: AdminContentItem[] =
     activeTab === "appeals"
       ? (appealsItems as unknown as AdminContentItem[])
@@ -459,10 +463,21 @@ export function AdminDashboard({
                           }
                           className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                         >
-                          <option value="all">Status: All</option>
-                          <option value="active">Status: Active</option>
-                          <option value="frozen">Status: Frozen</option>
-                          <option value="deleted">Status: Deleted</option>
+                          {activeTab === "appeals" ? (
+                            <>
+                              <option value="all">Status: All</option>
+                              <option value="active">Status: Pending</option>
+                              <option value="frozen">Status: Actioned</option>
+                              <option value="deleted">Status: Dismissed</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="all">Status: All</option>
+                              <option value="active">Status: Active</option>
+                              <option value="frozen">Status: Frozen</option>
+                              <option value="deleted">Status: Deleted</option>
+                            </>
+                          )}
                         </select>
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">

@@ -136,12 +136,20 @@ export function AdminActionsDropdown({
           messages[result.action] ?? "Action completed successfully.",
       });
       // Sync with the server truth (no refetch). Comments are soft-deleted
-      // now (RULE 4), so rows are always patched, never removed.
-      patchAdminContentCache(queryClient, contentId, {
-        isFrozen: result.data.isFrozen,
-        isDeleted: result.data.isDeleted,
-        reportCount: result.data.reportCount,
-      });
+      // now (RULE 4), so rows are always patched, never removed. Only include
+      // fields the server actually returned — DISMISS_REPORTS returns just
+      // { id } and the count was already zeroed optimistically above, so we
+      // must not overwrite cache values with `undefined`.
+      const syncPatch: Partial<AdminContentItem> = {};
+      if (result.data.isFrozen !== undefined)
+        syncPatch.isFrozen = result.data.isFrozen;
+      if (result.data.isDeleted !== undefined)
+        syncPatch.isDeleted = result.data.isDeleted;
+      if (result.data.reportCount !== undefined)
+        syncPatch.reportCount = result.data.reportCount;
+      if (Object.keys(syncPatch).length > 0) {
+        patchAdminContentCache(queryClient, contentId, syncPatch);
+      }
       if (result.action === "DELETE") {
         adjustAdminStatsCache(queryClient, sectionId, -1);
       } else if (result.action === "RECOVER") {
