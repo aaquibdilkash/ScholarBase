@@ -9,7 +9,8 @@ import type { SurveyQuestionInput } from "@/types/survey";
 import { requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION } from "@/lib/constants";
+import { stripHtmlTags } from "@/lib/html";
 
 export async function getSurveys(
   q?: string,
@@ -179,6 +180,17 @@ export async function createSurvey(formData: FormData) {
   if (!title) throw new Error("Title is required");
   if (!questionsJson) throw new Error("Questions are required");
 
+  // Rich-text description: validate the plain-text length only and store the
+  // full HTML payload (never slice HTML).
+  if (
+    description &&
+    stripHtmlTags(description).length > MAX_SURVEY_DESCRIPTION
+  ) {
+    throw new Error(
+      `Survey description is over the limit of ${MAX_SURVEY_DESCRIPTION} characters.`,
+    );
+  }
+
   const questions = JSON.parse(questionsJson) as SurveyQuestionInput[];
 
   const survey = await prisma.$transaction(async (tx) => {
@@ -257,6 +269,17 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
   const questionsJson = readFormValue(formData, "questions");
 
   if (!title) throw new Error("Title is required");
+
+  // Rich-text description: validate the plain-text length only and store the
+  // full HTML payload (never slice HTML).
+  if (
+    description &&
+    stripHtmlTags(description).length > MAX_SURVEY_DESCRIPTION
+  ) {
+    throw new Error(
+      `Survey description is over the limit of ${MAX_SURVEY_DESCRIPTION} characters.`,
+    );
+  }
 
   const questions = questionsJson
     ? (JSON.parse(questionsJson) as SurveyQuestionInput[])

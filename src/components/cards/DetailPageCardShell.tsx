@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { cloneElement, isValidElement, type ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
@@ -114,13 +115,7 @@ export default function DetailPageCardShell({
               <Link href={authorHref} className="shrink-0">
                 <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
                   {authorAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={authorAvatarUrl}
-                      alt={authorName}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <UserAvatar src={authorAvatarUrl} name={authorName} />
                   ) : (
                     <span className="font-semibold text-slate-400 text-lg">
                       {authorName?.charAt(0).toUpperCase() || "?"}

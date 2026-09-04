@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getFollowersWithCursor, getFollowingWithCursor, toggleFollow } from "@/app/actions/follow";
 import { useToast } from "@/components/ui/Toast";
 
@@ -182,14 +182,7 @@ export function UserListModal({
                 >
                   <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden">
                     {u.avatarUrl ? (
-                      <Image
-                        src={u.avatarUrl}
-                        alt=""
-                        width={40}
-                        height={40}
-                        unoptimized
-                        className="w-full h-full object-cover"
-                      />
+                      <UserAvatar src={u.avatarUrl} name={u.name} />
                     ) : (
                       <span className="text-sm font-bold text-slate-400">
                         {u.name?.charAt(0).toUpperCase() || "?"}

@@ -1,4 +1,5 @@
 import { MessageCircle } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton"; // client component
@@ -90,13 +91,7 @@ export default function ListPageCardShell({
             <Link href={authorHref} className="shrink-0">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border-slate-700 dark:bg-slate-800">
                 {authorAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={authorAvatarUrl}
-                    alt={authorName}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
+                  <UserAvatar src={authorAvatarUrl} name={authorName} />
                 ) : (
                   <span className="font-semibold text-slate-400 text-lg">
                     {authorName?.charAt(0).toUpperCase() || "?"}

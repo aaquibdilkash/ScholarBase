@@ -11,7 +11,8 @@ import {
   notifyFollowersOfActivity,
   notifyMentionedUsers,
 } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
+import { stripHtmlTags } from "@/lib/html";
 
 export async function getArticles(
   q?: string,
@@ -141,6 +142,15 @@ export async function createArticle(formData: FormData) {
     throw new Error("Title and content are required.");
   }
 
+  // Validate the plain-text length (never the raw HTML) and store the full,
+  // un-truncated HTML payload.
+  const plainTextLength = stripHtmlTags(content).length;
+  if (plainTextLength > MAX_ARTICLE_CONTENT) {
+    throw new Error(
+      `Article content is over the limit of ${MAX_ARTICLE_CONTENT} characters.`,
+    );
+  }
+
   const baseSlug = slugify(title) || "article";
   let slug = baseSlug;
   let suffix = 1;
@@ -229,6 +239,15 @@ export async function updateArticle(formData: FormData, articleId: string) {
 
   if (!title || !content) {
     throw new Error("Title and content are required.");
+  }
+
+  // Validate the plain-text length (never the raw HTML) and store the full,
+  // un-truncated HTML payload.
+  const plainTextLength = stripHtmlTags(content).length;
+  if (plainTextLength > MAX_ARTICLE_CONTENT) {
+    throw new Error(
+      `Article content is over the limit of ${MAX_ARTICLE_CONTENT} characters.`,
+    );
   }
 
   const article = await prisma.article.findUnique({

@@ -7,7 +7,7 @@ import { getNotifications } from "@/app/actions/notifications";
 import { getNotificationLink } from "@/lib/notification-links";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 import {
   MarkReadButton,
@@ -60,13 +60,10 @@ function NotificationCard({
     <div className="flex items-start gap-4">
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-slate-800 dark:text-slate-200">
         {notification.actor.avatarUrl ? (
-          <Image
+          <UserAvatar
             src={notification.actor.avatarUrl}
-            alt={notification.actor.name || "Actor"}
-            width={48}
-            height={48}
-            unoptimized
-            className="h-full w-full rounded-full object-cover"
+            name={notification.actor.name}
+            imageClassName="rounded-full"
           />
         ) : (
           notification.actor.name?.charAt(0).toUpperCase() || "@"

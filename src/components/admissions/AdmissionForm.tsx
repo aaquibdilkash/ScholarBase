@@ -66,7 +66,7 @@ export default function AdmissionForm({
     initial,
   );
 
-  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+  const { submitting, submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
     successMessage:
       mode === "edit"
@@ -220,7 +220,11 @@ export default function AdmissionForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent">
+        <SubmitBtnWithAuth
+          className="sb-button-accent"
+          disabled={submitting}
+          loadingText={mode === "edit" ? "Saving..." : "Posting..."}
+        >
           {mode === "edit" ? "Save Changes" : "Post Notification"}
         </SubmitBtnWithAuth>
       </div>

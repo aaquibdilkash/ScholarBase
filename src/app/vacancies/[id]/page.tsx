@@ -1,77 +1,56 @@
-"use client";
-
-import { Clock } from "lucide-react";
-import { notFound, useRouter } from "next/navigation";
+import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
-import type { CommentWithAuthorAndVotes } from "@/types/comments";
+import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+
 import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
+import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
-import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useUser } from "@/hooks/useUser";
-import { useToast } from "@/components/ui/Toast";
+import { Clock } from "lucide-react";
 
-const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
-  const { id } = params;
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const { user } = useUser();
-  const { toast } = useToast();
+import { buildMetadata } from "@/lib/seo";
+import type { Metadata } from "next";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const vacancy = await getVacancyById(id).catch(() => null);
+  if (!vacancy) return { title: "Academic Vacancy" };
+  return buildMetadata({
+    title: `${vacancy.title} at ${vacancy.institution}`,
+    description: `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${new Date(vacancy.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    path: `/vacancies/${vacancy.id}`,
+    type: "article",
+    publishedTime: vacancy.createdAt,
+    section: "Academic Vacancies",
+  });
+}
+
+const VacancyDetailPage = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
+  const supabase = await createClient();
   const {
-    data: vacancy,
-    isLoading,
-    isError,
-  } = useQuery({
-    queryKey: ["vacancy", id],
-    queryFn: () => getVacancyById(id),
-  });
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { mutate: deleteVacancy } = useMutation({
-    mutationFn: deleteJobVacancy,
-    onSuccess: () => {
-      toast("Vacancy deleted successfully", "success");
-      queryClient.invalidateQueries({ queryKey: ["vacancies"] });
-      router.push("/vacancies");
-    },
-    onError: (error) => {
-      toast(error.message, "error");
-    },
-  });
+  const vacancy = await getVacancyById(id, user?.id);
 
-  if (isLoading) {
-    return (
-      <div className="p-4 sm:p-6 md:p-8">
-        <div className="w-full max-w-4xl mx-auto">
-          <div className="sb-surface-strong rounded-lg p-6 animate-pulse">
-            <div className="h-8 bg-slate-200 rounded w-3/4 mb-4"></div>
-            <div className="h-6 bg-slate-200 rounded w-1/2 mb-6"></div>
-            <div className="space-y-3">
-              <div className="h-4 bg-slate-200 rounded"></div>
-              <div className="h-4 bg-slate-200 rounded"></div>
-              <div className="h-4 bg-slate-200 rounded w-5/6"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isError || !vacancy) {
+  if (!vacancy) {
     notFound();
   }
 
   const userVote =
     (vacancy.votes?.find((v) => v.userId === user?.id)?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
-
-  function handleDelete() {
-    deleteVacancy(vacancy!.id);
-    return { refresh: false };
-  }
 
   return (
     <DetailPageCardShell
@@ -82,6 +61,24 @@ const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
       authorName={vacancy.author?.name || "Scholar"}
       authorHandle={vacancy.author?.handle || undefined}
       authorAvatarUrl={vacancy.author?.avatarUrl || undefined}
+      managementControls={
+        user?.id === vacancy.author?.id ? (
+          <OwnerActionsDropdown
+            editHref={`/vacancies/${vacancy.id}/edit`}
+            onDelete={async () => {
+              "use server";
+              await deleteJobVacancy(vacancy.id);
+              return {
+                redirect: "/vacancies",
+                invalidateQueries: [["vacancies"]],
+              };
+            }}
+            isOwner={true}
+            editLabel="Edit Vacancy"
+            deleteLabel="Delete"
+          />
+        ) : null
+      }
       authorId={vacancy.author?.id}
       isFollowing={
         (vacancy.author as { followers?: { followerId: string }[] })?.followers
@@ -91,17 +88,7 @@ const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
       }
       currentUserId={user?.id}
       createdDate={vacancy.createdAt}
-      managementControls={
-        user?.id === vacancy.author?.id ? (
-          <OwnerActionsDropdown
-            editHref={`/vacancies/${vacancy.id}/edit`}
-            onDelete={handleDelete}
-            isOwner={true}
-            editLabel="Edit Vacancy"
-            deleteLabel="Delete"
-          />
-        ) : null
-      }
+      editedDate={vacancy.editedAt ?? undefined}
       footerVoteButton={
         <VoteButton
           targetId={vacancy.id}
@@ -151,7 +138,7 @@ const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
       discussion={
         <CommentSection
           locked={vacancy.isFrozen ?? false}
-          comments={vacancy.comments as CommentWithAuthorAndVotes[]}
+          comments={vacancy.comments}
           totalComments={vacancy.totalComments}
           targetId={vacancy.id}
           module="vacancy"
@@ -163,7 +150,7 @@ const VacancyDetailPage = ({ params }: { params: { id: string } }) => {
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {vacancy.title}
       </h1>
-      <p className="text-sm sm:text-base font-medium text-slate-600 mb-3 sm:mb-4">
+      <p className="text-sm sm:text-base font-medium text-blue-700 mb-3 sm:mb-4">
         {vacancy.institution}
       </p>
 

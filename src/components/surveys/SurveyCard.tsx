@@ -114,7 +114,7 @@ export function SurveyCard({
           </span>
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+        <h2 className="mb-2 break-words break-all text-lg font-semibold leading-tight text-slate-950">
           {survey.title}
         </h2>
 

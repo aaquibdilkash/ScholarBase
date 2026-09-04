@@ -104,7 +104,7 @@ export default function JournalForm({
   );
   const queryClient = useQueryClient();
 
-  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+  const { submitting, submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
     successMessage:
       mode === "create"
@@ -438,7 +438,11 @@ export default function JournalForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent">
+        <SubmitBtnWithAuth
+          className="sb-button-accent"
+          disabled={submitting}
+          loadingText={mode === "edit" ? "Saving..." : "Adding..."}
+        >
           {mode === "edit" ? "Save Changes" : "Add Journal"}
         </SubmitBtnWithAuth>
       </div>

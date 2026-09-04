@@ -16,11 +16,11 @@ export function SubmitBtn({
   disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
-  const isDisabled = pending || disabled;
+  const isLoading = pending || disabled;
 
   return (
-    <button type="submit" disabled={isDisabled} className={className}>
-      {pending ? (
+    <button type="submit" disabled={isLoading} className={className}>
+      {isLoading ? (
         <span className="inline-flex items-center gap-2">
           <Loader2 className="animate-spin h-4 w-4" />
           {loadingText || "Saving..."}

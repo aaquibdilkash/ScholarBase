@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useContext, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { formatTimeAgo } from "@/utils/time-ago";
@@ -295,7 +295,12 @@ function ConversationSidebar({ user }: { user: User | null }) {
                       <div className={`flex items-center ${isSidebarOpen ? "gap-3" : ""}`}>
                         <div className="relative h-10 w-10 shrink-0">
                           {otherParticipant?.avatarUrl ? (
-                            <Image src={otherParticipant.avatarUrl} alt={otherParticipant.name || "Scholar"} width={40} height={40} unoptimized className="h-full w-full rounded-full object-cover" />
+                            <UserAvatar
+                              src={otherParticipant.avatarUrl}
+                              name={otherParticipant?.name}
+                              imageClassName="rounded-full"
+                              fallbackClassName="rounded-full bg-slate-200 text-sm font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+                            />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400">
                               {otherParticipant?.name?.charAt(0).toUpperCase() || otherParticipant?.handle?.charAt(0).toUpperCase() || "@"}

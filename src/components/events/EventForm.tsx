@@ -66,7 +66,7 @@ export default function EventForm({
   );
   const queryClient = useQueryClient();
 
-  const { submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
+  const { submitting, submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
     successMessage:
       mode === "create"
@@ -236,7 +236,11 @@ export default function EventForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent">
+        <SubmitBtnWithAuth
+          className="sb-button-accent"
+          disabled={submitting}
+          loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
+        >
           {mode === "edit" ? "Save Changes" : "Publish Event"}
         </SubmitBtnWithAuth>
       </div>

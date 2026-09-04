@@ -61,6 +61,7 @@ export function CommentSection({
 
   const [content, setContent] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const draftKey = `draft_comment_${module}_${targetId}`;
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
@@ -185,6 +186,7 @@ export function CommentSection({
       return;
     }
 
+    setSubmitting(true);
     const formData = new FormData();
     formData.append('content', content);
     formData.append('mentions', JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))));
@@ -212,6 +214,8 @@ export function CommentSection({
     } catch (error) {
       toast({ title: "Error", description: "Failed to post comment. Please try again.", variant: "destructive"});
       console.error(error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -247,7 +251,7 @@ export function CommentSection({
                 maxLength={MAX_COMMENT_BODY}
               />
               <div className="flex justify-end">
-                <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base">
+                <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-4 py-2 text-sm font-bold md:w-auto md:px-6 md:py-2.5 md:text-base" disabled={submitting} loadingText="Posting...">
                   Post Comment
                 </SubmitBtnWithAuth>
               </div>

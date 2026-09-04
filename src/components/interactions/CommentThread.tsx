@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { formatTimeAgo } from "@/utils/time-ago";
 import {
   createComment,
@@ -84,6 +84,7 @@ function ReplyForm({
   const draftKey = `draft_reply_${module}_${targetId}_${parentComment.id}`;
   const [reply, setReply] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -121,6 +122,7 @@ function ReplyForm({
 
   const handleReplySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSubmitting(true);
 
     const formData = new FormData();
     formData.append("content", reply);
@@ -159,6 +161,8 @@ function ReplyForm({
         variant: "destructive",
       });
       console.error(error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -182,7 +186,7 @@ function ReplyForm({
         />
       </div>
       <div className="flex justify-end">
-        <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-3 py-1.5 text-xs font-bold md:w-auto md:px-5 md:py-2.5 md:text-sm">
+        <SubmitBtnWithAuth className="sb-button-primary w-full justify-center px-3 py-1.5 text-xs font-bold md:w-auto md:px-5 md:py-2.5 md:text-sm" disabled={submitting} loadingText="Posting...">
           Send
         </SubmitBtnWithAuth>
       </div>
@@ -382,13 +386,9 @@ function CommentCard({
           }`}
         >
           {comment.author?.avatarUrl ? (
-            <Image
+            <UserAvatar
               src={comment.author.avatarUrl}
-              alt="User"
-              width={isReply ? 40 : 44}
-              height={isReply ? 40 : 44}
-              unoptimized
-              className="h-full w-full object-cover"
+              name={comment.author?.name}
             />
           ) : (
             <div

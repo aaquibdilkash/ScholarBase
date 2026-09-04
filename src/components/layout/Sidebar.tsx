@@ -25,7 +25,7 @@ import {
   Users,
   BookMarked,
 } from "lucide-react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -304,11 +304,12 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white transition-colors dark:bg-white dark:text-slate-950">
-                    {user?.avatarUrl ? (
-                      <Image width={44} height={44} src={user.avatarUrl} alt={user.email || "Scholar"} className="rounded-full object-cover" />
-                    ) : (
-                      user?.email?.charAt(0).toUpperCase() || "@"
-                    )}
+                    <UserAvatar
+                      src={user?.avatarUrl}
+                      email={user?.email}
+                      imageClassName="rounded-full"
+                      fallbackClassName="text-sm font-semibold"
+                    />
                   </span>
                   
                   <span

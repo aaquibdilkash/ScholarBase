@@ -176,6 +176,7 @@ export async function createJobVacancy(formData: FormData) {
         isFrozen: true,
         hasActiveAppeal: true,
         totalComments: true,
+        authorId: true,
         author: {
           select: {
             id: true,

@@ -181,7 +181,7 @@ export function SurveyResultsView({
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center justify-between dark:bg-slate-900 dark:border-slate-700">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800 mb-2 dark:text-white">
+          <h2 className="mb-2 break-words break-all text-lg font-semibold text-slate-800 dark:text-white">
             {survey.title}
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-300">
@@ -211,11 +211,11 @@ export function SurveyResultsView({
               onClick={() => setActiveQuestion(isExpanded ? null : q.id)}
               className="flex w-full items-center justify-between p-6 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition"
             >
-              <div>
+              <div className="min-w-0">
                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                   Q{idx + 1} • {q.type.replace(/_/g, " ").toLowerCase()}
                 </span>
-                <h3 className="text-sm font-semibold text-slate-800 mt-1 dark:text-white">
+                <h3 className="break-words break-all whitespace-pre-wrap text-sm font-semibold text-slate-800 mt-1 dark:text-white">
                   {q.title}
                   {q.archivedAt ? " (archived)" : ""}
                 </h3>
@@ -241,9 +241,9 @@ export function SurveyResultsView({
                           ? ((count / stats.total) * 100).toFixed(0)
                           : "0";
                       return (
-                        <div key={option} className="space-y-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                        <div key={option} className="min-w-0 space-y-1">
+                          <div className="flex items-center justify-between gap-3 text-sm">
+                            <span className="break-words break-all font-medium text-slate-700 dark:text-slate-300">
                               {option}
                             </span>
                             <span className="text-slate-500 dark:text-slate-400">

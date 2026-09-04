@@ -10,7 +10,7 @@ import { useState } from "react";
 
 export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
   const [email, setEmail] = useState("");
-  const { submit } = useFormSubmit(undefined, {
+  const { submitting, submit } = useFormSubmit(undefined, {
     successMessage: "Password reset link sent! Check your email.",
     errorMessage: "Failed to send password reset link.",
     resetOnSuccess: true,
@@ -46,7 +46,7 @@ export function ForgotPasswordForm({ callbackUrl }: { callbackUrl: string }) {
           {email.length}/{MAX_AUTH_EMAIL} characters
         </div>
       </div>
-      <SubmitBtn className="sb-button-primary w-full" loadingText="Sending...">
+      <SubmitBtn className="sb-button-primary w-full" loadingText="Sending..." disabled={submitting}>
         Send Recovery Link
       </SubmitBtn>
     </form>

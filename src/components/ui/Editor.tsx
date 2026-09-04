@@ -34,11 +34,11 @@ const Editor = ({
     extensions: [StarterKit],
     content: value,
     onUpdate: ({ editor }) => {
-      let newContent = editor.getHTML();
-      if (maxLength && newContent.length > maxLength) {
-        newContent = newContent.slice(0, maxLength);
-      }
-      onChange(newContent);
+      // RULE (rich text): never slice the HTML string — slicing cuts through
+      // tags/entities and corrupts the DOM (the phantom "&" bug). Save the
+      // full HTML; the limit is communicated via the counter below and
+      // validated on the server against the plain-text length.
+      onChange(editor.getHTML());
     },
     editorProps: {
       attributes: {
@@ -59,6 +59,7 @@ const Editor = ({
   }, [editor, value]);
 
   const charCount = editor ? editor.getText().length : 0;
+  const isOverLimit = Boolean(maxLength) && charCount > (maxLength ?? 0);
 
   if (!editor) {
     return null;
@@ -156,9 +157,18 @@ const Editor = ({
       </div>
       <EditorContent editor={editor} />
       {showCharCount && (
-        <div className="px-2 py-1 text-xs text-slate-500 dark:text-slate-400">
+        // Single, clean plain-text counter (maxLength counts visible text,
+        // never the raw HTML payload).
+        <div
+          className={`px-2 py-1 text-xs ${
+            isOverLimit
+              ? "text-red-600 dark:text-red-400"
+              : "text-muted-foreground"
+          }`}
+        >
           {charCount.toLocaleString("en-US")}
           {maxLength ? `/${maxLength}` : ""} characters
+          {isOverLimit ? " — over the limit" : ""}
         </div>
       )}
     </div>

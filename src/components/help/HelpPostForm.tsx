@@ -192,6 +192,7 @@ export default function HelpPostForm({
           <FormCancelButton />
           <SubmitBtnWithAuth
             disabled={isPending}
+            loadingText={mode === "edit" ? "Saving..." : "Posting..."}
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"
             }
@@ -201,8 +202,8 @@ export default function HelpPostForm({
                 ? "Saving..."
                 : "Posting..."
               : mode === "edit"
-                ? "Save"
-                : "Post"}
+              ? "Save"
+              : "Post"}
           </SubmitBtnWithAuth>
         </div>
       </div>

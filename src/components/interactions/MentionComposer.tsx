@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 import { getScholars } from "@/app/actions/scholars";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -121,14 +121,7 @@ export function MentionComposer({
             >
               <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 text-xs font-semibold text-white dark:bg-slate-800">
                 {user.avatarUrl ? (
-                  <Image
-                    src={user.avatarUrl}
-                    alt=""
-                    width={36}
-                    height={36}
-                    unoptimized
-                    className="h-full w-full object-cover"
-                  />
+                  <UserAvatar src={user.avatarUrl} name={user.name} />
                 ) : (
                   user.name?.charAt(0).toUpperCase() || "@"
                 )}

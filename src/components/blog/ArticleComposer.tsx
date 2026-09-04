@@ -198,7 +198,7 @@ export function ArticleComposer({
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
           <FormCancelButton />
-          <SubmitBtnWithAuth disabled={isPending} className="sb-button-accent">
+          <SubmitBtnWithAuth disabled={isPending} loadingText={mode === "edit" ? "Saving..." : "Publishing..."} className="sb-button-accent">
             {isPending
               ? mode === "edit"
                 ? "Saving..."

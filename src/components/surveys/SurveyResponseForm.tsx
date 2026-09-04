@@ -190,13 +190,21 @@ export function SurveyResponseForm({
   const renderQuestion = (q: Question) => {
     switch (q.type) {
       case "SHORT_TEXT":
+        // Auto-resizing single-line answer: grows as the user types and
+        // scrolls vertically past max-h so long answers can always be
+        // reviewed before submitting (no horizontal clipping).
         return (
-          <div>
-            <input
-              type="text"
+          <div className="min-w-0">
+            <textarea
+              rows={1}
               value={answers[q.id] || ""}
-              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-              className="sb-input"
+              onChange={(e) => {
+                handleAnswerChange(q.id, e.target.value);
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              className="sb-textarea max-h-32 min-w-0 w-full resize-none overflow-x-auto overflow-y-auto whitespace-pre-wrap break-words break-all"
               placeholder="Your answer..."
               required={q.required}
               maxLength={MAX_SURVEY_ANSWER_SHORT}
@@ -396,12 +404,17 @@ export function SurveyResponseForm({
 
       default:
         return (
-          <div>
-            <input
-              type="text"
+          <div className="min-w-0">
+            <textarea
+              rows={1}
               value={answers[q.id] || ""}
-              onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-              className="sb-input"
+              onChange={(e) => {
+                handleAnswerChange(q.id, e.target.value);
+                const el = e.target;
+                el.style.height = "auto";
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              className="sb-textarea max-h-32 min-w-0 w-full resize-none overflow-x-auto overflow-y-auto whitespace-pre-wrap break-words break-all"
               placeholder="Your answer..."
               maxLength={MAX_SURVEY_ANSWER_SHORT}
             />
@@ -527,8 +540,8 @@ export function SurveyResponseForm({
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
               {idx + 1}
             </span>
-            <div>
-              <h3 className="break-words text-sm font-semibold text-slate-800 dark:text-slate-200">
+            <div className="min-w-0">
+              <h3 className="break-words break-all whitespace-pre-wrap min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-200">
                 {q.title}
                 {q.required && <span className="ml-1 text-red-500">*</span>}
               </h3>

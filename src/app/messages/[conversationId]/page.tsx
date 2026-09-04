@@ -8,7 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { notFound } from "next/navigation";
 import {
   getConversation,
@@ -316,13 +316,10 @@ export default function ConversationPage({
           >
             <div className="h-10 w-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800">
               {otherParticipant?.avatarUrl ? (
-                <Image
+                <UserAvatar
                   src={otherParticipant.avatarUrl}
-                  alt={otherParticipant.name || "Scholar"}
-                  width={40}
-                  height={40}
-                  unoptimized
-                  className="h-full w-full rounded-full object-cover"
+                  name={otherParticipant?.name}
+                  imageClassName="rounded-full"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-500">

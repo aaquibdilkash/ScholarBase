@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import Image from "next/image";
+import { useState, useEffect, useCallback, useRef } from "react";import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   updateProfile,
@@ -77,8 +76,9 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const [isHandleValid, setIsHandleValid] = useState(true);
   const [isCheckingHandle, setIsCheckingHandle] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || "");
-  const [uploading, setUploading] = useState(false);
+   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -143,6 +143,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setSubmitting(true);
 
     try {
       const formData = new FormData(e.currentTarget);
@@ -160,6 +161,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       const msg = e instanceof Error ? e.message : "Failed to update profile.";
       setError(msg);
       toast(msg, "error");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -379,7 +382,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       </div>
 
       <div className="flex justify-end pt-4">
-        <SubmitBtnWithAuth className="sb-button-accent">
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting} loadingText="Saving...">
           Save Profile
         </SubmitBtnWithAuth>
       </div>

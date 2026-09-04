@@ -3,7 +3,7 @@ import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
 import { Star } from "lucide-react";
@@ -48,13 +48,10 @@ export default async function ScholarProfile({
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
             {profile.avatarUrl ? (
-              <Image
+              <UserAvatar
                 src={profile.avatarUrl}
-                alt={profile.name || "User"}
-                width={96}
-                height={96}
-                unoptimized
-                className="h-full w-full object-cover"
+                name={profile.name}
+                fallbackClassName="text-3xl font-bold text-slate-400 dark:text-slate-500"
               />
             ) : (
               <span className="text-3xl font-bold text-slate-400 dark:text-slate-500">

@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { Check, CheckCheck, Clock } from "lucide-react";
 import type { SentMessage } from "./MessageInputForm";
@@ -27,13 +27,10 @@ export const MessageItem = React.memo(
           className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${isMine ? "hidden" : ""}`}
         >
           {message.sender.avatarUrl ? (
-            <Image
+            <UserAvatar
               src={message.sender.avatarUrl}
-              alt={message.sender.name || "Scholar"}
-              width={32}
-              height={32}
-              unoptimized
-              className="h-full w-full rounded-full object-cover"
+              name={message.sender.name}
+              imageClassName="rounded-full"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
