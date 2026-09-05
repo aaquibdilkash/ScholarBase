@@ -6,6 +6,7 @@ import prisma from "@/lib/db";
 import { requireActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
+import { MAX_PROFILE_BIO } from "@/lib/constants";
 
 export const getProfile = cache(
   async (profileId: string, currentUserId?: string) => {
@@ -386,6 +387,7 @@ export async function updateProfile(formData: FormData) {
   const newHandle = readOptionalFormValue(formData, "handle");
   const newName = readOptionalFormValue(formData, "name");
   const newBio = readOptionalFormValue(formData, "bio");
+  assertRichTextWithinLimit(newBio ?? "", MAX_PROFILE_BIO, "Bio");
   const newAvatarUrl = readOptionalFormValue(formData, "avatarUrl");
   const newGithubUrl = readOptionalFormValue(formData, "githubUrl");
   const newOrcidUrl = readOptionalFormValue(formData, "orcidUrl");

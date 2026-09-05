@@ -7,10 +7,9 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION } from "@/lib/constants";
-import { stripHtmlTags } from "@/lib/html";
 
 export async function getSurveys(
   q?: string,
@@ -182,14 +181,7 @@ export async function createSurvey(formData: FormData) {
 
   // Rich-text description: validate the plain-text length only and store the
   // full HTML payload (never slice HTML).
-  if (
-    description &&
-    stripHtmlTags(description).length > MAX_SURVEY_DESCRIPTION
-  ) {
-    throw new Error(
-      `Survey description is over the limit of ${MAX_SURVEY_DESCRIPTION} characters.`,
-    );
-  }
+  assertRichTextWithinLimit(description ?? "", MAX_SURVEY_DESCRIPTION, "Survey description");
 
   const questions = JSON.parse(questionsJson) as SurveyQuestionInput[];
 
@@ -272,14 +264,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
   // Rich-text description: validate the plain-text length only and store the
   // full HTML payload (never slice HTML).
-  if (
-    description &&
-    stripHtmlTags(description).length > MAX_SURVEY_DESCRIPTION
-  ) {
-    throw new Error(
-      `Survey description is over the limit of ${MAX_SURVEY_DESCRIPTION} characters.`,
-    );
-  }
+  assertRichTextWithinLimit(description ?? "", MAX_SURVEY_DESCRIPTION, "Survey description");
 
   const questions = questionsJson
     ? (JSON.parse(questionsJson) as SurveyQuestionInput[])
