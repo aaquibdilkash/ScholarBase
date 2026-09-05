@@ -154,3 +154,42 @@ export const COMMENT_PAGE_SIZE = 5;
 
 // Rows per page in the admin panel tables (feeds, comments, users).
 export const ADMIN_PAGE_SIZE = 10;
+
+// Map ReportModule values to the contentType keys expected by moderateContent
+// and the admin content fetchers. Shared between client and server code so
+// it lives in a plain module (not a "use server" file).
+export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
+  SOCIAL_FEED: "feed",
+  ARTICLE_PAGE: "blog",
+  PUBLICATION: "publication",
+  JOURNAL: "journal",
+  RESEARCH_TOOL: "researchTool",
+  RESEARCH_GRANT: "researchGrant",
+  COURSE: "course",
+  RESULT: "result",
+  CONTRIBUTION: "contribution",
+  HELP_POST: "help",
+  RESEARCH_EVENT: "event",
+  PHD_ADMISSION: "admission",
+  JOB_VACANCY: "vacancy",
+  SUPERVISOR: "supervisor",
+  RECOMMENDATION: "recommendation",
+  RESEARCH_SURVEY: "survey",
+  SCHOLAR_PROFILE: "SCHOLAR_PROFILE",
+  SOCIAL_COMMENT: "socialComment",
+  ARTICLE_COMMENT: "articleComment",
+  HELP_COMMENT: "helpComment",
+  CONTRIBUTION_COMMENT: "contributionComment",
+  PUBLICATION_COMMENT: "publicationComment",
+  RESEARCH_TOOL_COMMENT: "researchToolComment",
+  RESEARCH_GRANT_COMMENT: "researchGrantComment",
+  COURSE_COMMENT: "courseComment",
+  JOURNAL_COMMENT: "journalComment",
+  RESULT_COMMENT: "resultComment",
+  SURVEY_COMMENT: "surveyComment",
+  RESEARCH_EVENT_COMMENT: "researchEventComment",
+  PHD_ADMISSION_COMMENT: "admissionComment",
+  JOB_VACANCY_COMMENT: "vacancyComment",
+  SUPERVISOR_COMMENT: "supervisorComment",
+  RECOMMENDATION_COMMENT: "recommendationComment",
+};

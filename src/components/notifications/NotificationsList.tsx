@@ -45,6 +45,21 @@ function typeLabel(type: string) {
       return "Contribution approved";
     case "contribution-rejected":
       return "Contribution rejected";
+    case "CONTENT_FROZEN":
+    case "USER_FROZEN":
+      return "Frozen";
+    case "CONTENT_UNFROZEN":
+    case "USER_UNFROZEN":
+      return "Unfrozen";
+    case "CONTENT_DELETED":
+    case "USER_DELETED":
+      return "Deleted";
+    case "CONTENT_RECOVERED":
+    case "USER_RECOVERED":
+      return "Recovered";
+    case "APPEAL_REJECTED":
+    case "APPEAL_APPROVED":
+      return "Appeal";
     default:
       return "Update";
   }

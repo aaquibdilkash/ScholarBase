@@ -15,7 +15,7 @@ import {
   FreezableContentModel,
   ReportWithReporter,
 } from "@/types/admin";
-import { ADMIN_PAGE_SIZE } from "@/lib/constants";
+import { ADMIN_PAGE_SIZE, MODULE_TO_CONTENT_TYPE } from "@/lib/constants";
 
 // Freeze/unfreeze content
 export async function toggleContentFreeze(
@@ -215,6 +215,7 @@ export async function getAdminStats() {
 export async function getAdminAppeals(
   page = 1,
   pageSize: number = ADMIN_PAGE_SIZE,
+  entityType?: string,
 ): Promise<AdminPage<AdminAppealItem>> {
   const user = await requireCurrentUser("Log in to access admin.");
 
@@ -224,8 +225,14 @@ export async function getAdminAppeals(
 
   const skip = (page - 1) * pageSize;
 
+  const where: Record<string, unknown> = {};
+  if (entityType) {
+    where.entityType = entityType;
+  }
+
   const [rows, total] = await Promise.all([
     prisma.appeal.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       take: pageSize,
       skip,
@@ -234,7 +241,7 @@ export async function getAdminAppeals(
         reviewedBy: { select: { id: true, name: true } },
       },
     }),
-    prisma.appeal.count(),
+    prisma.appeal.count({ where }),
   ]);
 
   // Join the appealed parent entity via the same delegate maps used by
@@ -299,6 +306,7 @@ export async function getAdminAppeals(
         entityId: row.entityId,
         entityType: row.entityType,
         module: row.module,
+        contentType: MODULE_TO_CONTENT_TYPE[row.module],
         status: row.status,
         category: row.category,
         details: row.details,
@@ -615,6 +623,7 @@ export async function getAdminContent(
       config.model.findMany({
         include: {
           author: true,
+          ...(contentType === "recommendations" ? { supervisor: true } : {}),
         },
         where,
         orderBy,

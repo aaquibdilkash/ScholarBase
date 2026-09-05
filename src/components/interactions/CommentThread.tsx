@@ -29,6 +29,7 @@ import type {
 import type { ReportModule } from "@/types/reports";
 import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
 import { MAX_COMMENT_BODY } from "@/lib/constants";
+import { useIsFrozen } from "./FrozenUserProvider";
 
 export { type MentionUser, renderMentionContent as renderCommentContent };
 export type { MentionUser as MentionUserType };
@@ -142,9 +143,15 @@ function ReplyForm({
       );
 
       if (!response?.success || !response.data) {
+        const reason =
+          response && "message" in response
+            ? (response as { message?: string }).message
+            : response && "error" in response
+              ? (response as { error?: string }).error
+              : "";
         toast({
           title: "Error",
-          description: "Failed to post reply. Please try again.",
+          description: reason || "Failed to post reply. Please try again.",
           variant: "destructive",
         });
         return;
@@ -240,6 +247,8 @@ interface CommentCardProps {
   toast: ToastFn;
   /** Whole discussion locked (frozen parent post) — disables replying. */
   locked?: boolean;
+  /** Current user's account is frozen — disables replying. */
+  userFrozen?: boolean;
 }
 
 function CommentCard({
@@ -258,6 +267,7 @@ function CommentCard({
   setEditingId,
   toast,
   locked = false,
+  userFrozen = false,
 }: CommentCardProps) {
   const isOwner = !!currentUserId && comment.author?.id === currentUserId;
   const wasEdited =
@@ -529,7 +539,7 @@ function CommentCard({
           )}
         </div>
 
-        {!isReply && !isFrozen && !locked && (
+        {!isReply && !isFrozen && !locked && !userFrozen && (
           <button
             onClick={onToggleReplyForm}
             className="ml-2 mt-2 text-[11px] font-bold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
@@ -568,6 +578,7 @@ export function CommentThread({
   onRemoved: () => void;
 }) {
   const { toast } = useToast();
+  const userFrozen = useIsFrozen();
   const [comment, setComment] = useState(initialComment);
   // Local reply slice — starts empty unless the server preloaded a page.
   const [replies, setReplies] = useState<CommentWithAuthorAndVotes[]>(
@@ -622,6 +633,7 @@ export function CommentThread({
         postAuthorId={postAuthorId}
         replyingToThis={activeReplyId === comment.id}
         locked={locked}
+        userFrozen={userFrozen}
         onToggleReplyForm={() =>
           setActiveReplyId(activeReplyId === comment.id ? null : comment.id)
         }
@@ -644,7 +656,8 @@ export function CommentThread({
       <div className="ml-10 md:ml-12">
         {activeReplyId === comment.id &&
           !!comment.authorId &&
-          !comment.isDeleted && (
+          !comment.isDeleted &&
+          !userFrozen && (
             <ReplyForm
               targetId={targetId}
               module={module}

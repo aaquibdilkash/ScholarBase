@@ -5,8 +5,15 @@ import { useState, type ReactNode, useEffect } from "react";
 import { FollowProvider } from "./FollowProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthModalProvider } from "./AuthModal";
+import { FrozenUserProvider } from "./FrozenUserProvider";
 
-export function AppProviders({ children }: { children: ReactNode }) {
+export function AppProviders({
+  children,
+  isFrozen = false,
+}: {
+  children: ReactNode;
+  isFrozen?: boolean;
+}) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -42,7 +49,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <FollowProvider>
-          <AuthModalProvider>{children}</AuthModalProvider>
+          <AuthModalProvider>
+            <FrozenUserProvider isFrozen={isFrozen}>
+              {children}
+            </FrozenUserProvider>
+          </AuthModalProvider>
         </FollowProvider>
       </ToastProvider>
     </QueryClientProvider>

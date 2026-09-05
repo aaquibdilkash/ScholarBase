@@ -396,6 +396,238 @@ async function resolveCommentParent(
 }
 
 // -----------------------------------------------------------------------------
+// MODERATION NOTIFICATIONS
+// -----------------------------------------------------------------------------
+// Every admin moderation action (FREEZE / UNFREEZE / DELETE / RECOVER) must
+// notify the affected owner and offer a clickable link back to the exact
+// resource — the content page, the post/article a comment lives on, or the
+// user's profile. `targetType` is the key consumed by `getNotificationLink`
+// in src/lib/notification-links.ts, NOT the generic "MODERATION" stub that
+// produced dead (unlinkable) notifications.
+const CONTENT_TARGET_TYPE: Record<string, string> = {
+  // Top-level content
+  feed: "post",
+  blog: "article",
+  publication: "publication",
+  journal: "journal",
+  researchTool: "researchTool",
+  researchGrant: "researchGrant",
+  course: "course",
+  admission: "admission",
+  event: "event",
+  vacancy: "vacancy",
+  help: "help",
+  result: "result",
+  contribution: "contribution",
+  supervisor: "supervisor",
+  recommendation: "recommendation",
+  survey: "survey",
+  SCHOLAR_PROFILE: "profile",
+  // Nested comments -> resource they belong to
+  socialComment: "post",
+  articleComment: "article",
+  helpComment: "help",
+  contributionComment: "contribution",
+  publicationComment: "publication",
+  researchToolComment: "researchTool",
+  researchGrantComment: "researchGrant",
+  courseComment: "course",
+  journalComment: "journal",
+  resultComment: "result",
+  surveyComment: "survey",
+  researchEventComment: "event",
+  admissionComment: "admission",
+  vacancyComment: "vacancy",
+  supervisorComment: "supervisor",
+  recommendationComment: "recommendation",
+};
+
+type ModerationTarget = {
+  recipientId: string | null;
+  targetType: string;
+  targetId: string;
+  isComment: boolean;
+  isProfile: boolean;
+};
+
+async function resolveModerationTarget(opts: {
+  contentType: string;
+  contentId: string;
+  commentModel?: {
+    findUnique: (args: {
+      where: { id: string };
+      select: object;
+    }) => Promise<unknown>;
+  };
+  model?: {
+    findUnique: (args: {
+      where: { id: string };
+      select: object;
+    }) => Promise<unknown>;
+  };
+}): Promise<ModerationTarget> {
+  const { contentType, contentId, commentModel, model } = opts;
+  const isProfile = contentType === "SCHOLAR_PROFILE";
+  const isComment = Boolean(commentModel);
+
+  // A profile IS the user — notify them and link to their /scholars page.
+  if (isProfile) {
+    return {
+      recipientId: contentId,
+      targetType: "profile",
+      targetId: contentId,
+      isComment: false,
+      isProfile: true,
+    };
+  }
+
+  const targetType = CONTENT_TARGET_TYPE[contentType] || "MODERATION";
+
+  // Comments link to the top-level page they live on (the post/article/etc.),
+  // and the recipient is the comment author.
+  if (commentModel) {
+    const comment = (await commentModel.findUnique({
+      where: { id: contentId },
+      select: { authorId: true },
+    })) as { authorId?: string | null } | null;
+
+    let targetId = contentId;
+    const parent = await resolveCommentParent(commentModel, contentType, contentId);
+    if (parent) {
+      targetId = parent.id;
+      // Recommendation comments link to
+      // `/supervisor/:supervisorId/recommendation/:id`, so append the parent's
+      // supervisorId.
+      if (contentType === "recommendationComment") {
+        const cfg = COMMENT_TOP_LEVEL[contentType];
+        const rec = (await cfg.model.findUnique({
+          where: { id: parent.id },
+          select: { supervisorId: true },
+        })) as { supervisorId?: string | null } | null;
+        if (rec?.supervisorId) targetId = `${rec.supervisorId}/${parent.id}`;
+      }
+    }
+    return {
+      recipientId: comment?.authorId ?? null,
+      targetType,
+      targetId,
+      isComment,
+      isProfile: false,
+    };
+  }
+
+  // Top-level content: recipient is the author; target is the content page.
+  let recipientId: string | null = null;
+  let targetId = contentId;
+  if (model) {
+    const result = (await model.findUnique({
+      where: { id: contentId },
+      select: {
+        authorId: true,
+        ...(contentType === "recommendation" ? { supervisorId: true } : {}),
+      },
+    })) as { authorId?: string | null; supervisorId?: string | null } | null;
+    recipientId = result?.authorId ?? null;
+    if (contentType === "recommendation" && result?.supervisorId) {
+      targetId = `${result.supervisorId}/${contentId}`;
+    }
+  }
+  return { recipientId, targetType, targetId, isComment: false, isProfile: false };
+}
+
+function buildModerationNotice(
+  action: ModerationAction,
+  isComment: boolean,
+  isProfile: boolean,
+) {
+  const subject = isComment ? "comment" : isProfile ? "profile" : "content";
+  switch (action) {
+    case "FREEZE":
+      return {
+        type: isProfile ? "USER_FROZEN" : "CONTENT_FROZEN",
+        title: isProfile
+          ? "Your account has been frozen"
+          : "Your content has been frozen",
+        body: isProfile
+          ? "An administrator froze your account because of reports. While frozen you cannot create new content, but you can appeal this decision."
+          : `An administrator froze your ${subject} because of reports. You can appeal this decision if you believe it was a mistake.`,
+      };
+    case "UNFREEZE":
+      return {
+        type: isProfile ? "USER_UNFROZEN" : "CONTENT_UNFROZEN",
+        title: isProfile
+          ? "Your account has been unfrozen"
+          : "Your content has been unfrozen",
+        body: isProfile
+          ? "An administrator unfroze your account. You can create and engage with content again."
+          : `An administrator unfroze your ${subject}. It is visible to the community again.`,
+      };
+    case "DELETE":
+      return {
+        type: isProfile ? "USER_DELETED" : "CONTENT_DELETED",
+        title: isProfile
+          ? "Your profile has been deleted"
+          : "Your content has been deleted",
+        body: isProfile
+          ? "An administrator deleted your profile because it violated community guidelines. You can appeal this decision."
+          : `An administrator deleted your ${subject}. You can appeal this decision.`,
+      };
+    case "RECOVER":
+      return {
+        type: isProfile ? "USER_RECOVERED" : "CONTENT_RECOVERED",
+        title: isProfile
+          ? "Your profile has been recovered"
+          : "Your content has been recovered",
+        body: isProfile
+          ? "An administrator recovered your profile after reviewing it. You can use your account normally again."
+          : `An administrator recovered your ${subject} after reviewing it. It is visible to the community again.`,
+      };
+    default:
+      return {
+        type: "MODERATION",
+        title: "Moderation update",
+        body: "Your content was updated by moderators.",
+      };
+  }
+}
+
+type ModerationTx = {
+  notification: {
+    create: (args: {
+      data: {
+        recipientId: string;
+        actorId: string;
+        type: string;
+        targetType: string;
+        targetId: string;
+        title: string;
+        body: string;
+      };
+    }) => Promise<unknown>;
+  };
+};
+
+async function notifyModerationTarget(
+  tx: ModerationTx,
+  target: ModerationTarget,
+  actorId: string,
+  notice: { type: string; title: string; body: string },
+) {
+  if (!target.recipientId || target.recipientId === actorId) return;
+  await tx.notification.create({
+    data: {
+      recipientId: target.recipientId,
+      actorId,
+      type: notice.type,
+      targetType: target.targetType,
+      targetId: target.targetId,
+      title: notice.title,
+      body: notice.body,
+    },
+  });
+}
+
+// -----------------------------------------------------------------------------
 // moderateContent — admin-facing server action dispatching to freeze, delete,
 // or dismiss reports inside a single atomic transaction (RULE 3).
 // -----------------------------------------------------------------------------
@@ -412,15 +644,16 @@ export async function moderateContent(
     throw new Error("Not authorized.");
   }
 
-  const isCommentType = Object.prototype.hasOwnProperty.call(
-    commentModelMap,
-    contentType,
-  );
-  const commentEntry = isCommentType ? commentModelMap[contentType] : undefined;
-  const entry = commentEntry ? undefined : modelMap[contentType];
-  if (!entry && !commentEntry) throw new Error("Invalid content type");
+  try {
+    const isCommentType = Object.prototype.hasOwnProperty.call(
+      commentModelMap,
+      contentType,
+    );
+    const commentEntry = isCommentType ? commentModelMap[contentType] : undefined;
+    const entry = commentEntry ? undefined : modelMap[contentType];
+    if (!entry && !commentEntry) throw new Error("Invalid content type");
 
-  const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
     if (commentEntry) {
       // --- Comment moderation (soft delete, RULE 4) ---
       // Comments now carry isDeleted / isFrozen columns, so they support the
@@ -438,6 +671,19 @@ export async function moderateContent(
             where: { id: contentId },
             data: { isFrozen: true },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+          // Notify the comment author and link to the post it belongs to.
+          const frozenCommentTarget = await resolveModerationTarget({
+            contentType,
+            contentId,
+            commentModel: commentEntry.model,
+          });
+          const frozenCommentNotice = buildModerationNotice(action, true, false);
+          await notifyModerationTarget(
+            tx as unknown as ModerationTx,
+            frozenCommentTarget,
+            user.id,
+            frozenCommentNotice,
+          );
           return { action, success: true, data: updated };
         }
 
@@ -446,6 +692,19 @@ export async function moderateContent(
             where: { id: contentId },
             data: { isFrozen: false },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+          // Notify the comment author and link to the post it belongs to.
+          const unfrozenCommentTarget = await resolveModerationTarget({
+            contentType,
+            contentId,
+            commentModel: commentEntry.model,
+          });
+          const unfrozenCommentNotice = buildModerationNotice(action, true, false);
+          await notifyModerationTarget(
+            tx as unknown as ModerationTx,
+            unfrozenCommentTarget,
+            user.id,
+            unfrozenCommentNotice,
+          );
           return { action, success: true, data: updated };
         }
 
@@ -510,6 +769,19 @@ export async function moderateContent(
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "DISMISSED" },
           });
+          // Notify the comment author and link to the post it belongs to.
+          const deletedCommentTarget = await resolveModerationTarget({
+            contentType,
+            contentId,
+            commentModel: commentEntry.model,
+          });
+          const deletedCommentNotice = buildModerationNotice(action, true, false);
+          await notifyModerationTarget(
+            tx as unknown as ModerationTx,
+            deletedCommentTarget,
+            user.id,
+            deletedCommentNotice,
+          );
           return { action, success: true, data: updated };
         }
 
@@ -583,6 +855,19 @@ export async function moderateContent(
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
           });
+          // Notify the comment author and link to the post it belongs to.
+          const recoveredCommentTarget = await resolveModerationTarget({
+            contentType,
+            contentId,
+            commentModel: commentEntry.model,
+          });
+          const recoveredCommentNotice = buildModerationNotice(action, true, false);
+          await notifyModerationTarget(
+            tx as unknown as ModerationTx,
+            recoveredCommentTarget,
+            user.id,
+            recoveredCommentNotice,
+          );
           return { action, success: true, data: updated };
         }
 
@@ -613,6 +898,23 @@ export async function moderateContent(
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },
           });
+          // Notify the comment author that their appeal was declined and link
+          // to the post the comment belongs to.
+          const appealCommentTarget = await resolveModerationTarget({
+            contentType,
+            contentId,
+            commentModel: commentEntry.model,
+          });
+          await notifyModerationTarget(
+            tx as unknown as ModerationTx,
+            appealCommentTarget,
+            user.id,
+            {
+              type: "APPEAL_REJECTED",
+              title: "Your appeal was reviewed",
+              body: "Moderators reviewed your appeal and decided to keep the content frozen.",
+            },
+          );
           return { action, success: true, data: updated };
         }
 
@@ -652,70 +954,50 @@ export async function moderateContent(
 
     switch (action) {
       case "FREEZE": {
-        // Fetch the author so we can notify them (RULE 5: moderation actions
-        // always inform the owner they can edit + appeal). SCHOLAR_PROFILE
-        // resolves to the User model, which has no authorId column.
-        const target =
-          contentType === "SCHOLAR_PROFILE"
-            ? null
-            : ((await entry2.model.findUnique({
-                where: { id: contentId },
-                select: { authorId: true },
-              })) as { authorId?: string | null } | null);
+        // Freeze the content and notify the owner. SCHOLAR_PROFILE resolves
+        // to the User model (the owner = the user themselves), so the target
+        // resolver handles recipient + the /scholars link for us.
         const updated = (await entry2.model.update({
           where: { id: contentId },
           data: { isFrozen: true },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
-        if (target?.authorId) {
-          await tx.notification.create({
-            data: {
-              recipientId: target.authorId,
-              actorId: user.id,
-              type: "CONTENT_FROZEN",
-              targetType: "MODERATION",
-              targetId: contentId,
-              title: "Your content has been frozen by moderators",
-              body: "Your post was frozen due to reports. You can edit your content to resolve the issue and submit an appeal.",
-            },
-          });
-        }
+        const frozenTarget = await resolveModerationTarget({
+          contentType,
+          contentId,
+          model: entry2.model,
+        });
+        const frozenNotice = buildModerationNotice(action, false, frozenTarget.isProfile);
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          frozenTarget,
+          user.id,
+          frozenNotice,
+        );
         // Return the updated row fields so the client can surgically patch
         // its React Query cache (RULE 1) instead of refetching.
         return { action, success: true, data: updated };
       }
 
       case "UNFREEZE": {
-        const unfreezeTarget =
-          contentType === "SCHOLAR_PROFILE"
-            ? null
-            : ((await entry2.model.findUnique({
-                where: { id: contentId },
-                select: { authorId: true },
-              })) as { authorId?: string | null } | null);
         const updated = (await entry2.model.update({
           where: { id: contentId },
           data: { isFrozen: false },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
-        // Only notify "appeal approved" when an appeal was actually pending
-        // (spec: UNFREEZE *after appeal*). A manual unfreeze with no appeal
-        // must not tell the author their (non-existent) appeal was approved.
-        const pendingAppeal = await tx.appeal.findFirst({
-          where: { entityId: contentId, status: "PENDING" },
-          select: { id: true },
+        // Always notify the owner when an admin unfreezes content (whether
+        // manually or after an appeal) so they know it is active again and can
+        // click through to the resource.
+        const unfrozenTarget = await resolveModerationTarget({
+          contentType,
+          contentId,
+          model: entry2.model,
         });
-        if (unfreezeTarget?.authorId && pendingAppeal) {
-          await tx.notification.create({
-            data: {
-              recipientId: unfreezeTarget.authorId,
-              actorId: user.id,
-              type: "APPEAL_APPROVED",
-              targetType: "MODERATION",
-              targetId: contentId,
-              title: "Your appeal was approved",
-              body: "Your content has been reviewed and restored to the active feed.",
-            },
-          });
-        }
+        const unfrozenNotice = buildModerationNotice(action, false, unfrozenTarget.isProfile);
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          unfrozenTarget,
+          user.id,
+          unfrozenNotice,
+        );
         await tx.appeal.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
@@ -771,14 +1053,29 @@ export async function moderateContent(
           data: {
             isDeleted: true,
             isFrozen: true,
-            deletedByType: "ADMIN",
-            deletedById: user.id,
+            ...(contentType !== "SCHOLAR_PROFILE"
+              ? { deletedByType: "ADMIN", deletedById: user.id }
+              : {}),
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.report.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "DISMISSED" },
         });
+        // Notify the owner and link to the deleted resource (the content page
+        // or the user's profile) so they know it was removed and can appeal.
+        const deletedTarget = await resolveModerationTarget({
+          contentType,
+          contentId,
+          model: entry2.model,
+        });
+        const deletedNotice = buildModerationNotice(action, false, deletedTarget.isProfile);
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          deletedTarget,
+          user.id,
+          deletedNotice,
+        );
         return { action, success: true, data: updated };
       }
 
@@ -829,15 +1126,30 @@ export async function moderateContent(
           data: {
             isDeleted: false,
             isFrozen: false,
-            deletedByType: null,
-            deletedById: null,
             hasActiveAppeal: false,
+            ...(contentType !== "SCHOLAR_PROFILE"
+              ? { deletedByType: null, deletedById: null }
+              : {}),
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.appeal.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
         });
+        // Notify the owner and link to the recovered resource so they know it
+        // is live again.
+        const recoveredTarget = await resolveModerationTarget({
+          contentType,
+          contentId,
+          model: entry2.model,
+        });
+        const recoveredNotice = buildModerationNotice(action, false, recoveredTarget.isProfile);
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          recoveredTarget,
+          user.id,
+          recoveredNotice,
+        );
         return { action, success: true, data: updated };
       }
 
@@ -856,30 +1168,27 @@ export async function moderateContent(
       case "DISMISS_APPEAL": {
         // Acknowledge the owner's appeal: clear the flag so the content
         // returns to a normal moderated state (admins can then re-decide).
-        const appealTarget =
-          contentType === "SCHOLAR_PROFILE"
-            ? null
-            : ((await entry2.model.findUnique({
-                where: { id: contentId },
-                select: { authorId: true },
-              })) as { authorId?: string | null } | null);
         const updated = (await entry2.model.update({
           where: { id: contentId },
           data: { hasActiveAppeal: false },
         })) as { id: string; hasActiveAppeal: boolean };
-        if (appealTarget?.authorId) {
-          await tx.notification.create({
-            data: {
-              recipientId: appealTarget.authorId,
-              actorId: user.id,
-              type: "APPEAL_REJECTED",
-              targetType: "MODERATION",
-              targetId: contentId,
-              title: "Your appeal was reviewed",
-              body: "Moderators reviewed your appeal and decided to keep the content frozen.",
-            },
-          });
-        }
+        // Notify the owner that their appeal was declined and link back to
+        // the resource (content page or profile).
+        const appealRejectedTarget = await resolveModerationTarget({
+          contentType,
+          contentId,
+          model: entry2.model,
+        });
+        await notifyModerationTarget(
+          tx as unknown as ModerationTx,
+          appealRejectedTarget,
+          user.id,
+          {
+            type: "APPEAL_REJECTED",
+            title: "Your appeal was reviewed",
+            body: "Moderators reviewed your appeal and decided to keep the content frozen.",
+          },
+        );
         await tx.appeal.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "DISMISSED", reviewedById: user.id, reviewedAt: new Date() },
@@ -893,6 +1202,11 @@ export async function moderateContent(
   });
 
   return result;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Moderation action failed.";
+    throw new Error(`Failed to ${action.toLowerCase()} content: ${message}`);
+  }
 }
 
 // -----------------------------------------------------------------------------

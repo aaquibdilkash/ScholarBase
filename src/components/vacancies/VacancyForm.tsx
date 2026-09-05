@@ -16,6 +16,7 @@ import {
   MAX_VACANCY_APPLY_LINK,
   MAX_VACANCY_DESCRIPTION,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { VacancyWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -110,8 +111,14 @@ export default function VacancyForm({
     },
   });
 
+  const isDescriptionOverLimit =
+    getRichTextLength(draftFields.description) > MAX_VACANCY_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && vacancyId) {
@@ -248,7 +255,7 @@ return (
         <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
-          disabled={isPending}
+          disabled={isPending || isFormOverLimit}
           loadingText={mode === "edit" ? "Saving..." : "Posting..."}
         >
           {mode === "edit" ? "Save Changes" : "Post Vacancy"}

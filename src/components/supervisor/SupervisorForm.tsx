@@ -24,6 +24,7 @@ import {
   MAX_SUPERVISOR_DEPARTMENT,
   MAX_SUPERVISOR_ABOUT,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 
 export type SupervisorFormValues = {
   name: string;
@@ -83,8 +84,14 @@ export default function SupervisorForm({
     },
   );
 
+  const isAboutOverLimit =
+    getRichTextLength(draftFields.about ?? "") > MAX_SUPERVISOR_ABOUT;
+  const isFormOverLimit = isAboutOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -173,7 +180,7 @@ export default function SupervisorForm({
 
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
           {mode === "edit" ? "Save Changes" : "Add Supervisor"}
         </SubmitBtnWithAuth>
       </div>

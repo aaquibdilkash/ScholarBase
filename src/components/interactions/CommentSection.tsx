@@ -15,6 +15,7 @@ import type { CommentWithAuthorAndVotes, CommentEntityType } from "@/types/comme
 import { CommentThread, type MentionUser } from "./CommentThread";
 import { MentionComposer } from "./MentionComposer";
 import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
+import { useIsFrozen } from "./FrozenUserProvider";
 
 interface CommentSectionProps {
   /** First page of parent comments (parentId === null), length <= 5. */
@@ -66,6 +67,8 @@ export function CommentSection({
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const queryClient = useQueryClient();
+  // Frozen accounts cannot post or reply — proactively block the composer.
+  const isUserFrozen = useIsFrozen();
 
   // Track how many comments are visible so the header badge stays accurate
   // without ever recounting the DB. Seed with the materialized totalComments
@@ -181,6 +184,15 @@ export function CommentSection({
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isUserFrozen) {
+      toast({
+        title: "Error",
+        description:
+          "Your account is frozen. You are restricted from posting or commenting.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!currentUserId) {
       openAuthModal();
       return;
@@ -195,7 +207,19 @@ export function CommentSection({
       const response = await createComment(formData, targetId, module);
 
       if (!response?.success || !response.data) {
-        toast({ title: "Error", description: "Failed to post comment. Please try again.", variant: "destructive"});
+        // Backend may have rejected the comment (e.g. frozen account or rate
+        // limit) — surface the exact reason instead of a generic fallback.
+        const reason =
+          response && "message" in response
+            ? (response as { message?: string }).message
+            : response && "error" in response
+              ? (response as { error?: string }).error
+              : "";
+        toast({
+          title: "Error",
+          description: reason || "Failed to post comment. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -232,6 +256,15 @@ export function CommentSection({
           <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
             <span aria-hidden>❄</span>
             Commenting is disabled while this post is under moderation.
+          </p>
+        ) : isUserFrozen ? (
+          <p
+            role="alert"
+            className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400"
+          >
+            <span aria-hidden>❄</span>
+            Your account is frozen. You are restricted from posting or
+            commenting.
           </p>
         ) : (
           <form

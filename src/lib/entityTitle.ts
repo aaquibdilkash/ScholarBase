@@ -17,10 +17,26 @@ export function getEntityDisplayTitle(item: Record<string, unknown>): string {
 
   if (candidate && candidate.trim().length > 0) return candidate;
 
+  const university = item.university as string | null | undefined;
+  const department = item.department as string | null | undefined;
+  const universityDepartment = university || department;
+  if (universityDepartment && universityDepartment.trim().length > 0) {
+    const parts = [university, department].filter(
+      (p): p is string => typeof p === "string" && p.trim().length > 0,
+    );
+    return parts.join(" — ");
+  }
+
   const content = item.content as string | null | undefined;
   if (content && content.trim().length > 0) {
     const trimmed = content.trim().slice(0, 40);
     return content.trim().length > 40 ? `${trimmed}...` : trimmed;
+  }
+
+  const supervisor = item.supervisor as { name?: string } | null | undefined;
+  const supervisorName = supervisor?.name;
+  if (supervisorName && supervisorName.trim().length > 0) {
+    return supervisorName.trim();
   }
 
   // Appeal rows carry no entity title — show the appeal text instead.

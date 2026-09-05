@@ -18,12 +18,16 @@ import type { SocialPostWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
+import { useIsFrozen } from "@/components/interactions/FrozenUserProvider";
 
 export function CreateSocialPostForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  // Frozen accounts are blocked from posting — proactively hide the composer
+  // instead of letting the user hit a rejected server action.
+  const isFrozen = useIsFrozen();
   const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -80,6 +84,10 @@ export function CreateSocialPostForm() {
   }, [mentionedUsers, isRestored]);
 
   const handleSubmit = async (formData: FormData) => {
+    if (isFrozen) {
+      toast("Your account is frozen. You are restricted from posting or commenting.", "error");
+      return;
+    }
     if (uploading) {
       toast("Please wait for images to finish uploading.", "error");
       return;
@@ -93,7 +101,15 @@ export function CreateSocialPostForm() {
     try {
       const response = await createSocialPost(formData);
       if (!response?.success || !response.data) {
-        toast("Failed to create post.", "error");
+        // Backend may have rejected the action (e.g. frozen account or rate
+        // limit) — surface the exact reason instead of a generic fallback.
+        const reason =
+          response && "message" in response
+            ? (response as { message?: string }).message
+            : response && "error" in response
+              ? (response as { error?: string }).error
+              : "";
+        toast(reason || "Failed to create post.", "error");
         return;
       }
       queryClient.setQueriesData<SocialPostWithAuthor[]>(
@@ -167,6 +183,16 @@ export function CreateSocialPostForm() {
 
   return (
     <div className="sb-surface-strong mb-10 p-6 md:p-7">
+      {isFrozen ? (
+        <p
+          role="alert"
+          className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400"
+        >
+          <span aria-hidden>❄</span>
+          Your account is frozen. You are restricted from posting or
+          commenting.
+        </p>
+      ) : (
       <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
         <MentionComposer
           name="content"
@@ -233,6 +259,7 @@ export function CreateSocialPostForm() {
           </SubmitBtnWithAuth>
         </div>
       </form>
+      )}
     </div>
   );
 }

@@ -26,7 +26,13 @@ export function TrendingList({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      {items.map((item) => {
+      {items.length === 0 ? (
+        <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
+          <p className="font-medium text-slate-500">
+            No trending items right now.
+          </p>
+        </div>
+      ) : items.map((item) => {
         switch (item.type) {
           case "vacancy":
             return (

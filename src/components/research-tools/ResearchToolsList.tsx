@@ -60,6 +60,7 @@ export function ResearchToolsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No research tools posted yet."
       />
     </div>
   );

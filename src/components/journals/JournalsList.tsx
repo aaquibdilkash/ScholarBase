@@ -60,6 +60,7 @@ export function JournalsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No journals posted yet."
       />
     </div>
   );

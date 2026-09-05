@@ -82,6 +82,7 @@ export function SupervisorsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No supervisor profiles created yet."
       />
     </div>
   );

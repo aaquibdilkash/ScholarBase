@@ -147,6 +147,20 @@ export type AdminContentItem = {
     name: string | null;
     email: string | null;
   } | null;
+  /** Appeals-specific: the underlying content entity ID (not the appeal row ID). */
+  entityId?: string;
+  /** Appeals-specific: POST or COMMENT. */
+  entityType?: string;
+  /** Appeals-specific: ReportModule value stored on the appeal row. */
+  module?: string;
+  /** Appeals-specific: resolved contentType key for moderateContent. */
+  contentType?: string;
+  /** Appeals-specific: the owner who submitted the appeal. */
+  owner?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
   [key: string]: unknown;
 }
 
@@ -156,6 +170,8 @@ export type AdminAppealItem = {
   entityId: string;
   entityType: string;
   module: string;
+  /** Resolved contentType key for moderateContent (e.g. feed, socialComment). */
+  contentType?: string;
   status: "PENDING" | "ACTIONED" | "DISMISSED";
   /** Structured appeal category (AppealReason enum). */
   category?: string;

@@ -11,10 +11,21 @@ import { useCallback, useEffect, useState } from "react";
  * then a mount effect reads localStorage and syncs state — never mutating
  * URL query strings.
  */
+export type EntityStatusFilter = "all" | "active" | "frozen" | "deleted";
+export type AdminStatusFilter =
+  | "all"
+  | "pending"
+  | "actioned"
+  | "dismissed";
+
 export interface AdminNavState {
   activeSection: string; // "feed" | "appeals" | "blog" | ...
   activeSubTab: "posts" | "comments";
   statusFilter: string;
+  /** Appeals-only: filters by the moderation state of the appealed entity
+   *  (Active / Frozen / Deleted). Independent from `statusFilter` which
+   *  filters the appeal's own admin lifecycle (Pending/Actioned/Dismissed). */
+  entityStatusFilter: EntityStatusFilter;
 }
 
 const STORAGE_KEY = "sb_admin_nav";
@@ -23,7 +34,12 @@ const DEFAULT_NAV: AdminNavState = {
   activeSection: "feed",
   activeSubTab: "posts",
   statusFilter: "all",
+  entityStatusFilter: "all",
 };
+
+function isEntityStatusFilter(v: unknown): v is EntityStatusFilter {
+  return v === "all" || v === "active" || v === "frozen" || v === "deleted";
+}
 
 function isSubTab(v: unknown): v is AdminNavState["activeSubTab"] {
   return v === "posts" || v === "comments";
@@ -47,6 +63,9 @@ function readStoredNav(): Partial<AdminNavState> {
         typeof parsed.statusFilter === "string"
           ? parsed.statusFilter
           : undefined,
+      entityStatusFilter: isEntityStatusFilter(parsed.entityStatusFilter)
+        ? parsed.entityStatusFilter
+        : undefined,
     };
   } catch {
     return {};
@@ -90,11 +109,19 @@ export function useAdminNav() {
     setNav((prev) => ({ ...prev, statusFilter }));
   }, []);
 
+  const setEntityStatusFilter = useCallback(
+    (entityStatusFilter: EntityStatusFilter) => {
+      setNav((prev) => ({ ...prev, entityStatusFilter }));
+    },
+    [],
+  );
+
   return {
     ...nav,
     isHydrated,
     setActiveSection,
     setActiveSubTab,
     setStatusFilter,
+    setEntityStatusFilter,
   };
 }

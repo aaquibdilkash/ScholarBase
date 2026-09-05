@@ -23,6 +23,9 @@ const targetLinks: Record<string, (targetId: string) => string | null> = {
   publication: (targetId) => `/publications/${targetId}`,
   survey: (targetId) => `/surveys/${targetId}`,
   supervisor: (targetId) => `/supervisor/${targetId}`,
+  // Scholar (user) profile — used by admin moderation notifications so a
+  // frozen/deleted/recovered user lands on their own profile page.
+  profile: (targetId) => `/scholars/${targetId}`,
 };
 
 const moduleLabels: Record<string, string> = {

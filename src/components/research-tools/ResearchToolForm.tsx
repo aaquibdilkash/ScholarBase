@@ -19,6 +19,7 @@ import {
   MAX_RESEARCH_TOOL_DESCRIPTION,
   MAX_RESEARCH_TOOL_USE,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -86,8 +87,14 @@ export default function ResearchToolForm({
     },
   );
 
+  const isDescriptionOverLimit =
+    getRichTextLength(draftFields.description) > MAX_RESEARCH_TOOL_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -181,7 +188,7 @@ export default function ResearchToolForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
           {mode === "edit" ? "Save Changes" : "Add Research Tool"}
         </SubmitBtnWithAuth>
       </div>

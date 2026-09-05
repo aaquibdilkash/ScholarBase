@@ -60,6 +60,7 @@ export function CoursesList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No courses found."
       />
     </div>
   );

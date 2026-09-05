@@ -54,6 +54,7 @@ export function AdmissionsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No PhD admissions posted yet."
       />
     </div>
   );

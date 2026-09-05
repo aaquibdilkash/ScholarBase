@@ -14,10 +14,18 @@ import {
   updateContributionStatus,
 } from "@/app/actions/admin";
 import { AdminActionsDropdown } from "@/components/admin/AdminActionsDropdown";
-import { patchAdminContentCache } from "@/lib/adminCache";
+import {
+  patchAdminContentCache,
+  patchAdminAppealsCache,
+} from "@/lib/adminCache";
 import { getEntityDisplayTitle } from "@/lib/entityTitle";
 import { useAdminNav } from "@/hooks/useAdminNav";
-import type { AdminContentItem, AdminPage } from "@/types/admin";
+import type {
+  AdminAppealItem,
+  AdminContentItem,
+  AdminPage,
+} from "@/types/admin";
+import type { ModerationAction } from "@/types/reports";
 
 const ADMIN_SECTIONS = [
   { id: "appeals", title: "Appeals", href: "#" },
@@ -80,6 +88,10 @@ type SectionUiState = {
   page: number;
   sortBy: "createdAt" | "reportCount";
   statusFilter: "all" | "active" | "frozen" | "deleted";
+  /** Appeals-only: independent filter on the appealed entity's moderation
+   *  state (Active / Frozen / Deleted). Falls back to "all" on non-appeal
+   *  sections. */
+  entityStatusFilter: "all" | "active" | "frozen" | "deleted";
 };
 
 const DEFAULT_SECTION_STATE: SectionUiState = {
@@ -87,6 +99,7 @@ const DEFAULT_SECTION_STATE: SectionUiState = {
   page: 1,
   sortBy: "createdAt",
   statusFilter: "all",
+  entityStatusFilter: "all",
 };
 
 const EMPTY_PAGE: AdminPage<AdminContentItem> = {
@@ -110,6 +123,8 @@ export function AdminDashboard({
     setActiveSection: setActiveTab,
     setActiveSubTab: persistSubTab,
     setStatusFilter: persistStatusFilter,
+    entityStatusFilter: persistedEntityStatusFilter,
+    setEntityStatusFilter: persistEntityStatusFilter,
   } = useAdminNav();
   const [sectionStates, setSectionStates] = useState<
     Record<string, SectionUiState>
@@ -123,20 +138,41 @@ export function AdminDashboard({
   const { toast } = useToast();
 
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
-  const { view, page, sortBy, statusFilter } = ui;
+  const { view, page, sortBy, statusFilter, entityStatusFilter } = ui;
 
   // Keep the persisted nav state in sync with the active section's view and
   // status filter, so a refresh reopens the exact same table configuration.
   useEffect(() => {
     persistSubTab(view);
     persistStatusFilter(statusFilter);
-  }, [view, statusFilter, persistSubTab, persistStatusFilter]);
+    if (activeTab === "appeals") persistEntityStatusFilter(entityStatusFilter);
+  }, [
+    view,
+    statusFilter,
+    entityStatusFilter,
+    activeTab,
+    persistSubTab,
+    persistStatusFilter,
+    persistEntityStatusFilter,
+  ]);
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionStates((prev) => ({
       ...prev,
       [activeTab]: { ...(prev[activeTab] ?? DEFAULT_SECTION_STATE), ...patch },
     }));
+
+  // Seed the appeals section's entityStatusFilter from the persisted global
+  // nav state on first visit (matches the rest of the per-section hydration).
+  useEffect(() => {
+    if (
+      activeTab === "appeals" &&
+      !sectionStates.appeals &&
+      persistedEntityStatusFilter
+    ) {
+      setUi({ entityStatusFilter: persistedEntityStatusFilter });
+    }
+  }, [activeTab, sectionStates.appeals, persistedEntityStatusFilter]);
 
   // --- Stats: cached, never refetched on actions (patched optimistically) ---
   const statsQuery = useQuery({
@@ -146,10 +182,19 @@ export function AdminDashboard({
     gcTime: 30 * 60 * 1000,
     initialData: initialStats,
   });
-  // --- Appeals list: cached, paginated, newest-first ---
+  // --- Appeals list: cached, paginated, newest-first. The cache is keyed by
+  // the full filter combination (entityType + admin status + entity status)
+  // so swapping filters hits a warm cache when revisited, and the
+  // `patchAdminAppealsCache` helper can surgically update the matching row
+  // without a refetch after a moderation action (RULE 1).
   const appealsQuery = useQuery({
-    queryKey: ["admin-appeals"],
-    queryFn: () => getAdminAppeals(),
+    queryKey: ["admin-appeals", view, statusFilter, entityStatusFilter],
+    queryFn: () =>
+      getAdminAppeals(
+        undefined,
+        undefined,
+        view === "posts" ? "POST" : "COMMENT",
+      ),
     staleTime: Infinity,
     gcTime: 5 * 60 * 1000,
     enabled: activeTab === "appeals",
@@ -215,20 +260,49 @@ export function AdminDashboard({
           ),
   );
 
-  // Appeals tab renders the dedicated appeals query — NOT the content list.
-  // The content map has no "appeals" key, so getAdminContent returns an
-  // empty page ("No content found. Try a different status filter.") even
-  // when PENDING appeals exist. The status filter maps onto appeal lifecycle
-  // statuses: "active" → PENDING, "frozen" → ACTIONED, "deleted" → DISMISSED.
-  const appealsItems = (appealsData?.items ?? []).filter((a) => {
+  // Appeals tab: optimistic layer for the *moderation state* of the appealed
+  // entity (entityStatus: Active/Frozen/Deleted). React Query handles the
+  // long-term sync; useOptimistic makes the cell flip instantly the moment
+  // the admin clicks Freeze/Unfreeze/Delete/Recover — same pattern as
+  // `optimisticItems` above for the content tables.
+  const [optimisticAppeals, applyOptimisticAppeal] = useOptimistic<
+    AdminAppealItem[],
+    { entityId: string; patch: Partial<AdminAppealItem> }
+  >(appealsData?.items ?? [], (state, action) =>
+    state.map((it) =>
+      it.entityId === action.entityId ? { ...it, ...action.patch } : it,
+    ),
+  );
+
+// Appeals tab renders the dedicated appeals query — NOT the content list.
+// Two independent status filters are layered on top of the cached rows:
+//   1. statusFilter (admin status): maps onto the appeal lifecycle
+//      PENDING / ACTIONED / DISMISSED (same as before).
+//   2. entityStatusFilter (entity moderation state): independent filter on
+//      the appealed entity's live state — Active / Frozen / Deleted. This
+//      lets admins pivot "show me PENDING appeals against Frozen content"
+//      without any extra DB query (client-side filter on cached data).
+  const appealsItems = optimisticAppeals.filter((a) => {
     if (statusFilter === "active") return a.status === "PENDING";
     if (statusFilter === "frozen") return a.status === "ACTIONED";
     if (statusFilter === "deleted") return a.status === "DISMISSED";
     return true; // "all"
+  }).filter((a) => {
+    if (entityStatusFilter === "active")
+      return a.entityStatus === "ACTIVE";
+    if (entityStatusFilter === "frozen")
+      return a.entityStatus === "FROZEN";
+    if (entityStatusFilter === "deleted")
+      return a.entityStatus === "DELETED";
+    return true; // "all"
   });
   const tableItems: AdminContentItem[] =
     activeTab === "appeals"
-      ? (appealsItems as unknown as AdminContentItem[])
+      ? appealsItems.map((a) => ({
+          ...a,
+          isFrozen: a.entityStatus === "FROZEN",
+          isDeleted: a.entityStatus === "DELETED",
+        })) as unknown as AdminContentItem[]
       : optimisticItems;
 
   // --- Contribution approve/reject: optimistic status flip + cache patch ---
@@ -258,6 +332,36 @@ export function AdminDashboard({
     },
   });
 
+  // Appeals tab callback: fired by AdminActionsDropdown after every successful
+  // moderation action against an appealed entity. Mirrors the new entityState
+  // (Active/Frozen/Deleted) onto the appeal row optimistically AND patches
+  // the React Query cache so a section switch keeps the change (RULE 1).
+  const handleAppealMutated = (
+    entityId: string,
+    info: {
+      action: ModerationAction;
+      isFrozen?: boolean;
+      isDeleted?: boolean;
+    },
+  ) => {
+    const { isFrozen, isDeleted } = info;
+    const nextStatus =
+      isDeleted === true
+        ? "DELETED"
+        : isFrozen === true
+          ? "FROZEN"
+          : "ACTIVE";
+    startTransition(() =>
+      applyOptimisticAppeal({
+        entityId,
+        patch: { entityStatus: nextStatus },
+      }),
+    );
+    patchAdminAppealsCache(queryClient, entityId, {
+      entityStatus: nextStatus,
+    });
+  };
+
   const handleTabClick = (sectionId: string) => {
     setActiveTab(sectionId); // list state (view/page/filters) is per-section
   };
@@ -275,6 +379,12 @@ export function AdminDashboard({
     next: "all" | "active" | "frozen" | "deleted",
   ) => {
     setUi({ statusFilter: next, page: 1 });
+  };
+
+  const handleEntityStatusFilterChange = (
+    next: "all" | "active" | "frozen" | "deleted",
+  ) => {
+    setUi({ entityStatusFilter: next, page: 1 });
   };
 
   const handleSortChange = (next: "createdAt" | "reportCount") => {
@@ -368,7 +478,7 @@ export function AdminDashboard({
           <div
             className={`rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
           >
-            <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                 {ADMIN_SECTIONS.find((s) => s.id === activeTab)?.title}{" "}
                 Management
@@ -379,6 +489,10 @@ export function AdminDashboard({
                 )}
               </h3>
 
+              {/* Tab switcher + filters + sort live in the toolbar above
+                  the table — keeping the table itself to pure data so the
+                  <th>/<td> column order always matches 1:1 (see the
+                  appeals columns below). */}
               <div className="flex flex-wrap items-center gap-2">
                 {activeTab !== "users" && (
                   <div className="inline-flex rounded-lg border border-slate-300 bg-slate-100 p-0.5 dark:border-slate-700 dark:bg-slate-800">
@@ -397,6 +511,87 @@ export function AdminDashboard({
                       </button>
                     ))}
                   </div>
+                )}
+                {activeTab === "appeals" && (
+                  <>
+                    {/* Appeal lifecycle filter — pending/actioned/dismissed.
+                        Drives the "Admin Status" column on the appeals tab. */}
+                    <label className="sr-only" htmlFor="admin-status-filter">
+                      Filter by admin status
+                    </label>
+                    <select
+                      id="admin-status-filter"
+                      value={statusFilter}
+                      onChange={(e) =>
+                        handleStatusFilterChange(
+                          e.target.value as
+                            | "all"
+                            | "active"
+                            | "frozen"
+                            | "deleted",
+                        )
+                      }
+                      className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      <option value="all">Admin: All</option>
+                      <option value="active">Admin: Pending</option>
+                      <option value="frozen">Admin: Actioned</option>
+                      <option value="deleted">Admin: Dismissed</option>
+                    </select>
+                    {/* Entity moderation state filter — active/frozen/deleted.
+                        Drives the "Entity Status" column on the appeals tab. */}
+                    <label className="sr-only" htmlFor="entity-status-filter">
+                      Filter by entity status
+                    </label>
+                    <select
+                      id="entity-status-filter"
+                      value={entityStatusFilter}
+                      onChange={(e) =>
+                        handleEntityStatusFilterChange(
+                          e.target.value as
+                            | "all"
+                            | "active"
+                            | "frozen"
+                            | "deleted",
+                        )
+                      }
+                      className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    >
+                      <option value="all">Entity: All</option>
+                      <option value="active">Entity: Active</option>
+                      <option value="frozen">Entity: Frozen</option>
+                      <option value="deleted">Entity: Deleted</option>
+                    </select>
+                  </>
+                )}
+                {activeTab !== "users" && activeTab !== "appeals" && (
+                  /* Generic status filter for the non-appeals content tables —
+                     drives the same `<th>` that shows Active/Frozen/Deleted
+                     badges. */
+                  <label className="sr-only" htmlFor="status-filter">
+                    Filter by status
+                  </label>
+                )}
+                {activeTab !== "users" && activeTab !== "appeals" && (
+                  <select
+                    id="status-filter"
+                    value={statusFilter}
+                    onChange={(e) =>
+                      handleStatusFilterChange(
+                        e.target.value as
+                          | "all"
+                          | "active"
+                          | "frozen"
+                          | "deleted",
+                      )
+                    }
+                    className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                  >
+                    <option value="all">Status: All</option>
+                    <option value="active">Status: Active</option>
+                    <option value="frozen">Status: Frozen</option>
+                    <option value="deleted">Status: Deleted</option>
+                  </select>
                 )}
                 {activeTab !== "users" && (
                   <button
@@ -442,44 +637,17 @@ export function AdminDashboard({
                             ? "Owner"
                             : "Author"}
                       </th>
-                      <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                        {activeTab === "appeals" ? "Status" : "Reports"}
+<th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                        {activeTab === "appeals" ? "Admin Status" : "Reports"}
                       </th>
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         {activeTab === "appeals" ? "Reason" : "Appealed"}
                       </th>
-                      <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                        <label className="sr-only" htmlFor="status-filter">
-                          Filter by status
-                        </label>
-                        <select
-                          id="status-filter"
-                          value={statusFilter}
-                          onChange={(e) =>
-                            handleStatusFilterChange(
-                              e.target.value as
-                                "all" | "active" | "frozen" | "deleted",
-                            )
-                          }
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                        >
-                          {activeTab === "appeals" ? (
-                            <>
-                              <option value="all">Status: All</option>
-                              <option value="active">Status: Pending</option>
-                              <option value="frozen">Status: Actioned</option>
-                              <option value="deleted">Status: Dismissed</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="all">Status: All</option>
-                              <option value="active">Status: Active</option>
-                              <option value="frozen">Status: Frozen</option>
-                              <option value="deleted">Status: Deleted</option>
-                            </>
-                          )}
-                        </select>
-                      </th>
+                      {activeTab === "appeals" && (
+                        <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
+                          Entity Status
+                        </th>
+                      )}
                       <th className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
                         Actions
                       </th>
@@ -489,14 +657,21 @@ export function AdminDashboard({
                     {tableItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={activeTab === "appeals" ? 6 : 5}
                           className="px-4 py-8 text-center text-slate-500 dark:text-slate-400"
                         >
                           No content found
                           {statusFilter !== "all" && (
-                            <> with status &quot;{statusFilter}&quot;</>
+                            <> with admin status &quot;{statusFilter}&quot;</>
                           )}
-                          . Try a different status filter.
+                          {activeTab === "appeals" &&
+                            entityStatusFilter !== "all" && (
+                              <>
+                                {statusFilter !== "all" ? " / " : " with "}
+                                entity status &quot;{entityStatusFilter}&quot;
+                              </>
+                            )}
+                          . Try a different filter.
                         </td>
                       </tr>
                     ) : (
@@ -526,9 +701,13 @@ export function AdminDashboard({
                           <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                             {activeTab === "users"
                               ? item.email
-                              : item.author?.name ||
-                                item.author?.email ||
-                                "Unknown"}
+                              : activeTab === "appeals"
+                                ? item.owner?.name ||
+                                  item.owner?.email ||
+                                  "Unknown"
+                                : item.author?.name ||
+                                  item.author?.email ||
+                                  "Unknown"}
                           </td>
                           <td className="px-4 py-3">
                             {activeTab === "appeals" ? (
@@ -579,17 +758,12 @@ export function AdminDashboard({
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            {activeTab === "appeals" ? (
-                              /* Appeals view: the moderation state of the
-                                 appealed entity, stored on the appeal row. */
-                              <span className="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                {item.entityStatus === "FROZEN"
-                                  ? "Frozen"
-                                  : item.entityStatus === "DELETED"
-                                    ? "Deleted"
-                                    : "Active"}
-                              </span>
-                            ) : (
+                            {/* Non-appeals tabs render the Active/Frozen/
+                                Deleted badges under the "Appealed" cell.
+                                Appeals tabs skip this entirely — the
+                                dedicated Entity Status column below
+                                carries the equivalent info. */}
+                            {activeTab !== "appeals" && (
                               <div className="flex flex-wrap items-center gap-1.5">
                                 {/* Comments are soft-deleted/frozen with the same
                                   isDeleted/isFrozen columns as other content
@@ -649,6 +823,31 @@ export function AdminDashboard({
                               </div>
                             )}
                           </td>
+                          {activeTab === "appeals" && (
+                            <td className="px-4 py-3">
+                              {/* Mirrors the Entity Status filter column —
+                                  shows the appealed entity's live moderation
+                                  state. Flip is optimistic (see
+                                  applyOptimisticAppeal in handleAppealMutated)
+                                  — no DB round-trip on Freeze/Unfreeze/Delete/
+                                  Recover. */}
+                              <span
+                                className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                  item.entityStatus === "DELETED"
+                                    ? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                    : item.entityStatus === "FROZEN"
+                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                                      : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                }`}
+                              >
+                                {item.entityStatus === "FROZEN"
+                                  ? "Frozen"
+                                  : item.entityStatus === "DELETED"
+                                    ? "Deleted"
+                                    : "Active"}
+                              </span>
+                            </td>
+                          )}
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               {activeTab === "users" ? (
@@ -690,12 +889,18 @@ export function AdminDashboard({
                               ) : (
                                 <AdminActionsDropdown
                                   contentType={
-                                    view === "comments"
-                                      ? item.modelKey || "socialComment"
-                                      : (SECTION_CONTENT_TYPES[activeTab] ??
-                                        activeTab)
+                                    activeTab === "appeals"
+                                      ? item.contentType || "feed"
+                                      : view === "comments"
+                                        ? item.modelKey || "socialComment"
+                                        : (SECTION_CONTENT_TYPES[activeTab] ??
+                                          activeTab)
                                   }
-                                  contentId={item.id}
+                                  contentId={
+                                    activeTab === "appeals"
+                                      ? item.entityId || item.id
+                                      : item.id
+                                  }
                                   reportCount={item.reportCount ?? 0}
                                   showFreeze={!item.isDeleted}
                                   isFrozen={item.isFrozen}
@@ -704,10 +909,25 @@ export function AdminDashboard({
                                     item.hasActiveAppeal,
                                   )}
                                   entityLabel={
-                                    view === "comments" ? "Comment" : undefined
+                                    activeTab === "appeals"
+                                      ? item.entityType === "COMMENT"
+                                        ? "Comment"
+                                        : "Content"
+                                      : view === "comments"
+                                        ? "Comment"
+                                        : undefined
                                   }
                                   disabled={isPending}
                                   sectionId={activeTab}
+                                  onMutated={
+                                    activeTab === "appeals"
+                                      ? (info) =>
+                                          handleAppealMutated(
+                                            item.entityId || item.id,
+                                            info,
+                                          )
+                                      : undefined
+                                  }
                                 />
                               )}
                             </div>

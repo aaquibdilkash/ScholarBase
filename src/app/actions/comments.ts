@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
 import { notifyMentionedUsers, notifyUserById } from "@/lib/notifications";
@@ -129,9 +129,11 @@ export async function createComment(
   type: CommentEntityType,
   parentId?: string,
 ) {
-  const user = await requireActiveUser(
-    "Log in to join the academic discussion.",
-  );
+  const auth = await getActiveUser("Log in to join the academic discussion.");
+  if (auth.frozen) {
+    return { success: false, message: auth.message };
+  }
+  const user = auth.user;
 
   const createRateLimit = await checkRateLimit({
     namespace: `comment:create:${type}`,

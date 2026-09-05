@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
@@ -219,7 +219,11 @@ export const getPost = cache(async (id: string, userId?: string) => {
 });
 
 export async function createSocialPost(formData: FormData) {
-  const authUser = await requireActiveUser("You must be logged in to post.");
+  const auth = await getActiveUser("You must be logged in to post.");
+  if (auth.frozen) {
+    return { success: false, message: auth.message };
+  }
+  const authUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "post:create",

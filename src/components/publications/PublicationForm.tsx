@@ -28,6 +28,7 @@ import {
   MAX_PUBLICATION_ISSUE,
   MAX_PUBLICATION_PAGES,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { PublicationWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -142,8 +143,14 @@ export default function PublicationForm({
     },
   );
 
+  const isAbstractOverLimit =
+    getRichTextLength(draftFields.abstract ?? "") > MAX_PUBLICATION_ABSTRACT;
+  const isFormOverLimit = isAbstractOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -479,7 +486,7 @@ export default function PublicationForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
           {mode === "edit" ? "Save Changes" : "Add Publication"}
         </SubmitBtnWithAuth>
       </div>

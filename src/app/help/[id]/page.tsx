@@ -114,13 +114,14 @@ export default async function HelpPostPage({
         />
       }
     >
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+          {post.category}
+        </span>
+      </div>
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-1.5 sm:mb-2">
         {post.title}
       </h1>
-
-      <span className="inline-flex shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-500/10 dark:text-blue-300 mb-3 sm:mb-6">
-        {post.category}
-      </span>
 
       <p className="break-words mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
         <span className="font-semibold text-slate-800 dark:text-slate-100">

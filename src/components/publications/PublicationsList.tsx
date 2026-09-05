@@ -60,6 +60,7 @@ export function PublicationsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No publications added yet."
       />
     </div>
   );

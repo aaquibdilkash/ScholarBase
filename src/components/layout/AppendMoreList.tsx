@@ -13,6 +13,7 @@ export function AppendMoreList<T>({
   params,
   chunkSize = 10,
   className,
+  emptyMessage,
 }: {
   initialItems: T[];
   resource: string;
@@ -20,6 +21,7 @@ export function AppendMoreList<T>({
   params?: LoadMoreParams;
   chunkSize?: number;
   className?: string;
+  emptyMessage?: string;
 }) {
   const [items, setItems] = useState<T[]>(initialItems);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -54,9 +56,17 @@ export function AppendMoreList<T>({
 
   return (
     <div className={className}>
-      {items.map((item) => renderItem(item))}
-      <LoadMoreSentinel onVisible={loadMore} disabled={!hasMore || loading} />
-      {loading ? <div className="py-4 text-center text-sm text-slate-500">Loading more...</div> : null}
+      {items.length === 0 && emptyMessage ? (
+        <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
+          <p className="font-medium text-slate-500">{emptyMessage}</p>
+        </div>
+      ) : (
+        <>
+          {items.map((item) => renderItem(item))}
+          <LoadMoreSentinel onVisible={loadMore} disabled={!hasMore || loading} />
+          {loading ? <div className="py-4 text-center text-sm text-slate-500">Loading more...</div> : null}
+        </>
+      )}
     </div>
   );
 }

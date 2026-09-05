@@ -27,7 +27,7 @@ async function createUniqueHandle(seed: string, userId: string) {
         if (!existing) return handle
     }
 
-    return `scholar_${randomUUID().slice(0, 8).toLowerCase()}`
+    return `scholar_${randomUUID().slice(0, 4).toLowerCase()}`
 }
 
 export async function ensureUserProfile(user: SupabaseUser) {

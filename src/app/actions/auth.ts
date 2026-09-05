@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getBaseUrl } from "@/lib/url";
 import prisma from "@/lib/db";
 import type { Duration } from "@upstash/ratelimit";
@@ -36,6 +37,20 @@ function mapAuthError(message: string): string {
     return "Too many attempts. Please wait a moment and try again.";
   }
   return message;
+}
+
+/**
+ * Ensures redirect URLs are strictly internal relative paths
+ * to prevent Open Redirect vulnerabilities.
+ */
+function sanitizeRedirectUrl(url?: string | null): string {
+  if (!url || typeof url !== "string") return "/";
+  const trimmed = url.trim();
+  // Must start with a single slash and not double slashes (protocol-relative)
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) {
+    return "/";
+  }
+  return trimmed;
 }
 
 async function limitByEmailAndIp(
@@ -85,8 +100,8 @@ export async function checkUserExists(email: string): Promise<boolean> {
 }
 
 function readAuthField(formData: FormData, key: string): string {
-  const value = formData.get(key)
-  return typeof value === 'string' ? value : ''
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
 }
 
 export async function login(formData: FormData): Promise<AuthResult> {
@@ -94,10 +109,13 @@ export async function login(formData: FormData): Promise<AuthResult> {
 
   const email = normalizeAuthEmail(readAuthField(formData, "email"));
   const password = readAuthField(formData, "password");
-  const callbackUrl = (formData.get("callbackUrl") as string) || "/";
+  const callbackUrl = sanitizeRedirectUrl(formData.get("callbackUrl") as string);
 
   if (email.length === 0 || email.length > MAX_AUTH_EMAIL) {
     return { success: false, error: "Please enter a valid email address." };
+  }
+  if (!password) {
+    return { success: false, error: "Please enter your password." };
   }
   if (password.length > MAX_AUTH_PASSWORD) {
     return { success: false, error: "Password is too long." };
@@ -180,12 +198,13 @@ export async function signInWithGoogle(
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
 
-  const target = callbackUrl || "/";
+  // Sanitized to prevent open redirects and standardized to use 'next'
+  const target = sanitizeRedirectUrl(callbackUrl);
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${baseUrl}/auth/callback?callbackUrl=${encodeURIComponent(target)}`,
+      redirectTo: `${baseUrl}/auth/callback?next=${encodeURIComponent(target)}`,
       queryParams: {
         prompt: "select_account",
       },
@@ -208,7 +227,7 @@ export async function forgotPassword(
   const email = normalizeAuthEmail(readAuthField(formData, "email"));
 
   if (!email) {
-    return { success: false, error: "Please enter your email address" };
+    return { success: false, error: "Please enter your email address." };
   }
 
   if (email.length > MAX_AUTH_EMAIL) {
@@ -248,5 +267,6 @@ export async function signOut() {
   const supabase = await createClient();
 
   await supabase.auth.signOut();
+  revalidatePath("/", "layout");
   redirect("/login");
 }

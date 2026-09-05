@@ -10,6 +10,8 @@ import {
   RefreshCw,
   Undo2,
   FileText,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { moderateContent } from "@/app/actions/reports";
 import { getReportsForEntity } from "@/app/actions/admin";
@@ -48,6 +50,16 @@ interface AdminActionsDropdownProps {
   /** Whether the owner has appealed against a freeze/delete — shows the
    *  "Dismiss Appeal" option so moderators can acknowledge it. */
   hasActiveAppeal?: boolean;
+  /** Hook fired after every successful moderation action with the resolved
+   *  server patch. Used by the Appeals tab to mirror the entity's new
+   *  state (Active/Frozen/Deleted) onto the cached appeal row without
+   *  refetching. */
+  onMutated?: (patch: {
+    action: ModerationAction;
+    isFrozen?: boolean;
+    isDeleted?: boolean;
+    reportCount?: number;
+  }) => void;
 }
 
 export function AdminActionsDropdown({
@@ -61,6 +73,7 @@ export function AdminActionsDropdown({
   isFrozen = false,
   isDeleted = false,
   hasActiveAppeal = false,
+  onMutated,
 }: AdminActionsDropdownProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -78,7 +91,7 @@ export function AdminActionsDropdown({
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: reports = [] } = useQuery({
+  const { data: reports = [], isLoading } = useQuery({
     queryKey: ["reports-for-entity", contentId],
     queryFn: () => getReportsForEntity(contentId),
     staleTime: 30_000,
@@ -155,6 +168,13 @@ export function AdminActionsDropdown({
       } else if (result.action === "RECOVER") {
         adjustAdminStatsCache(queryClient, sectionId, 1);
       }
+      // Notify the parent (used by the Appeals tab to sync entityStatus).
+      onMutated?.({
+        action: result.action,
+        isFrozen: result.data.isFrozen,
+        isDeleted: result.data.isDeleted,
+        reportCount: result.data.reportCount,
+      });
     },
     onError: (error: Error, _action, context) => {
       // Roll back the optimistic patches.
@@ -398,46 +418,71 @@ export function AdminActionsDropdown({
       {/* Reports inspection drawer (QA #11) */}
       {inspectOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[80] flex items-end justify-end">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
             <div
-              className="absolute inset-0 bg-black/40"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
               onClick={() => setInspectOpen(false)}
             />
-            <div className="relative z-[81] h-[500px] w-96 overflow-y-auto bg-popover shadow-lg">
-              <div className="sticky top-0 flex items-center justify-between border-b p-4">
-                <h3 className="font-semibold">Reports on {entityLabel}</h3>
+            <div className="relative z-[81] max-h-[500px] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      Reports on {entityLabel}
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      {reports.length} {reports.length === 1 ? "report" : "reports"}
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={() => setInspectOpen(false)}
-                  className="text-sm underline"
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
                 >
-                  Close
+                  <span className="sr-only">Close</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
-              <div className="p-4 space-y-4">
-                {reports.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No pending reports.
-                  </p>
+              <div className="p-6 space-y-4">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      Loading reports...
+                    </p>
+                  </div>
+                ) : reports.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
+                      <FileText className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      No pending reports.
+                    </p>
+                  </div>
                 ) : (
                   reports.map((report) => (
                     <div
                       key={report.id}
-                      className="space-y-1 border-l-2 pl-3"
+                      className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50"
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium uppercase">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
                           {report.category}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           {new Date(report.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm">
+                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                         {report.reporter?.name ?? report.reporter?.email ??
                           "Anonymous"}
                       </p>
                       {report.details && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                           {report.details}
                         </p>
                       )}

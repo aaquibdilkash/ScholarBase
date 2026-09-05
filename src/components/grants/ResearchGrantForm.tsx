@@ -27,6 +27,7 @@ import {
   MAX_RESEARCH_GRANT_APPLY_LINK,
   MAX_RESEARCH_GRANT_INFO_LINK,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 
 export type ResearchGrantFormValues = {
   title: string;
@@ -88,8 +89,14 @@ export default function ResearchGrantForm({
     },
   );
 
+  const isDescriptionOverLimit =
+    getRichTextLength(draftFields.description) > MAX_RESEARCH_GRANT_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -202,7 +209,7 @@ export default function ResearchGrantForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
           {mode === "edit" ? "Save Changes" : "Add Research Grant"}
         </SubmitBtnWithAuth>
       </div>

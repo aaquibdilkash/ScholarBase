@@ -17,6 +17,7 @@ import {
   MAX_EVENT_APPLY_LINK,
   MAX_EVENT_DESCRIPTION,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { EventWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -90,8 +91,14 @@ export default function EventForm({
     },
   });
 
+  const isDescriptionOverLimit =
+    getRichTextLength(draftFields.description) > MAX_EVENT_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -238,7 +245,7 @@ export default function EventForm({
         <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
-          disabled={submitting}
+          disabled={submitting || isFormOverLimit}
           loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
         >
           {mode === "edit" ? "Save Changes" : "Publish Event"}

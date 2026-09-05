@@ -16,6 +16,7 @@ import {
   MAX_ARTICLE_EXCERPT,
   MAX_ARTICLE_CONTENT,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { Article } from "@prisma/client";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -118,8 +119,14 @@ export function ArticleComposer({
     [draftFields.content],
   );
 
+  const isContentOverLimit =
+    getRichTextLength(draftFields.content) > MAX_ARTICLE_CONTENT;
+  const isFormOverLimit = isContentOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && articleId) {
@@ -198,7 +205,7 @@ export function ArticleComposer({
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
           <FormCancelButton />
-          <SubmitBtnWithAuth disabled={isPending} loadingText={mode === "edit" ? "Saving..." : "Publishing..."} className="sb-button-accent">
+          <SubmitBtnWithAuth disabled={isPending || isFormOverLimit} loadingText={mode === "edit" ? "Saving..." : "Publishing..."} className="sb-button-accent">
             {isPending
               ? mode === "edit"
                 ? "Saving..."

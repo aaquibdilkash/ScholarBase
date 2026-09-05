@@ -24,6 +24,7 @@ import {
   MAX_CONTRIBUTION_UPI_ID,
   MAX_CONTRIBUTION_MESSAGE,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   CONTRIBUTION_TITLE_TIP,
@@ -109,8 +110,16 @@ export default function ContributionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screenshotUrl, isRestored, draftFields.screenshotUrl]);
 
+  const isMessageOverLimit =
+    getRichTextLength(draftFields.message) > MAX_CONTRIBUTION_MESSAGE;
+  const isFormOverLimit = isMessageOverLimit;
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) {
+      toast(`Message exceeds the ${MAX_CONTRIBUTION_MESSAGE}-character limit.`, "error");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     setSubmitting(true);
 
@@ -416,7 +425,7 @@ export default function ContributionForm({
         <SubmitBtnWithAuth
           className="sb-button-accent"
           loadingText="Submitting..."
-          disabled={submitting}
+          disabled={submitting || isFormOverLimit}
         >
           {mode === "edit" ? "Save Changes" : "Submit Contribution"}
         </SubmitBtnWithAuth>

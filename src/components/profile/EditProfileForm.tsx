@@ -17,6 +17,7 @@ import {
   MAX_PROFILE_BIO,
   MAX_PROFILE_URL,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   PROFILE_NAME_TIP,
@@ -140,8 +141,15 @@ export default function EditProfileForm({ user }: { user: UserData }) {
     }
   }
 
+  const isBioOverLimit = getRichTextLength(bio) > MAX_PROFILE_BIO;
+  const isFormOverLimit = isBioOverLimit;
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) {
+      setError(`Bio exceeds the ${MAX_PROFILE_BIO}-character limit.`);
+      return;
+    }
     setError(null);
     setSubmitting(true);
 
@@ -382,7 +390,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       </div>
 
       <div className="flex justify-end pt-4">
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting} loadingText="Saving...">
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit} loadingText="Saving...">
           Save Profile
         </SubmitBtnWithAuth>
       </div>

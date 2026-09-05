@@ -171,7 +171,7 @@ export default async function HomePage() {
             <p className="sb-subtitle mt-5 sm:mt-6 max-w-2xl">
               Post your research, find honest PhD supervisors, track admissions
               and conferences, and surface what the community actually finds
-              useful — all without ads, paywalls, or another inbox to babysit.
+              useful, all without ads, paywalls, or another inbox to babysit.
             </p>
 
             <div className="mt-7 sm:mt-8 flex flex-col gap-3 sm:flex-row">
@@ -194,14 +194,7 @@ export default async function HomePage() {
 
           {/* Top Right: Live Pulse Cards */}
           <div className="sb-surface-soft border-t p-6 sm:p-8 md:p-10 lg:border-l lg:border-t-0 dark:border-slate-800 dark:bg-slate-900/60">
-            {/* <div className="mb-5 sm:mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">
-                What&apos;s happening on ScholarBase
-              </p>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                A live pulse of the community, updated as scholars post, vote, and contribute.
-              </p>
-            </div> */}
+            
             <div className="grid gap-4">
               <StatCard
                 icon={<ClipboardList className="h-5 w-5" />}
@@ -251,7 +244,7 @@ export default async function HomePage() {
               <p>
                 No investors. No ads. No &ldquo;premium research tier.&rdquo; Just an
                 open-source codebase, a stubborn belief in free knowledge, and
-                a community that — against all odds — keeps voting for the
+                a community that, against all odds, keeps voting for the
                 useful stuff.
               </p>
               <p>
@@ -299,17 +292,17 @@ export default async function HomePage() {
             Our story
           </span>
           <h2 className="mt-5 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
-            Built by scholars, for scholars — because opportunity shouldn&apos;t depend on the right group chat.
+            Built by scholars, for scholars; because opportunity shouldn&apos;t depend on being in the right group chat.
           </h2>
           <div className="mt-6 space-y-4 text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-400">
             <p>
-              Every researcher knows the struggle. PhD admissions, journal calls, conference deadlines, research vacancies — scattered across dozens of websites, mailing lists, and screenshots that get lost in the noise.
+              Every researcher knows the struggle. PhD admissions, journal calls, conference deadlines, research vacancies scattered across dozens of websites, mailing lists, and screenshots that get lost in the noise.
             </p>
             <p>
-              So we built one open place where the academic community itself shares, discovers, and discusses what matters — and where the best contributions rise through community votes, not advertising budgets.
+              So we built one open place where the academic community itself shares, discovers, and discusses what matters and where the best contributions rise through community votes, not advertising budgets.
             </p>
             <p>
-              We&apos;re <strong className="text-slate-900 dark:text-slate-200">fully open source</strong>, with no company, no investors, and no revenue engine. ScholarBase answers only to its users — and every feature ships because the community asked for it.
+              We&apos;re <strong className="text-slate-900 dark:text-slate-200">fully open source</strong>, with no company, no investors, and no revenue engine. ScholarBase answers only to its users and every feature ships because the community asked for it.
             </p>
           </div>
           <div className="mt-7">
@@ -388,7 +381,7 @@ export default async function HomePage() {
               Join the team
             </span>
             <h2 className="mt-5 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
-              We can&apos;t pay you yet — but we can teach you what your first job probably won&apos;t.
+              We can&apos;t pay you — yet. But we can teach you what your first job probably won&apos;t.
             </h2>
             <p className="mt-4 text-slate-600 dark:text-slate-400 leading-relaxed">
               ScholarBase is fully open-source with no revenue behind it — by design. So instead of a paycheck, we offer hands-on mentorship on a live platform used by scholars around the world. Your campaigns, curated listings, and bug reports are public, credited to you, and interview-ready.

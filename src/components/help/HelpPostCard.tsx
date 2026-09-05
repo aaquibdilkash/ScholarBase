@@ -83,14 +83,15 @@ export function HelpPostCard({
         <ReportMenu entityId={helpPost.id} entityType="POST" module="HELP_POST" />
       }
     >
-      <div className="mb-4">
-        <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
-          {helpPost.title}
-        </h2>
-        <span className="inline-flex shrink-0 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800 dark:bg-blue-500/10 dark:text-blue-300">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
           {helpPost.category}
         </span>
-        {helpPost.subject && (
+      </div>
+      <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+        {helpPost.title}
+      </h2>
+      {helpPost.subject && (
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               Subject:
@@ -98,7 +99,6 @@ export function HelpPostCard({
             {helpPost.subject}
           </p>
         )}
-      </div>
 
       <RichContent
         content={helpPost.message}

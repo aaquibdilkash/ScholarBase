@@ -17,6 +17,7 @@ import { useToast } from "@/components/ui/Toast";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 import { MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   RECOMMENDATION_RATING_TIP,
@@ -88,8 +89,14 @@ export default function RecommendationForm({
     },
   );
 
+  const isFeedbackOverLimit =
+    getRichTextLength(draftFields.feedback) > MAX_RECOMMENDATION_FEEDBACK;
+  const isFormOverLimit = isFeedbackOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && recommendationId) {
@@ -239,7 +246,7 @@ export default function RecommendationForm({
       </label>
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-primary" disabled={submitting}>
+        <SubmitBtnWithAuth className="sb-button-primary" disabled={submitting || isFormOverLimit}>
           {mode === "edit" ? "Save Changes" : "Submit Recommendation"}
         </SubmitBtnWithAuth>
       </div>

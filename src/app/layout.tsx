@@ -13,6 +13,11 @@ import { AppProviders } from "@/components/interactions/AppProviders";
 import { getUnreadMessageCount } from "@/app/actions/messages";
 import { cookies } from "next/headers";
 
+// In app/layout.tsx or your root SEO metadata config
+const isDev =
+  process.env.NEXT_PUBLIC_SITE_URL?.includes("dev.scholarbase.app") ||
+  process.env.VERCEL_ENV !== "production";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://scholarbase.app"),
   title: {
@@ -59,17 +64,6 @@ export const metadata: Metadata = {
       "Connect with peers, publish research, find supervisors and opportunities.",
     images: ["/og-image.png"],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-image-preview": "large",
-      "max-video-preview": -1,
-      "max-snippet": -1,
-    },
-  },
   alternates: {
     canonical: "https://scholarbase.app",
   },
@@ -92,6 +86,22 @@ export const metadata: Metadata = {
       url: "/logo.png",
     },
   ],
+  robots: isDev
+    ? {
+        index: false,
+        follow: false,
+      }
+    : {
+        index: true,
+        follow: true,
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large",
+          "max-video-preview": -1,
+          "max-snippet": -1,
+        },
+      },
 };
 
 export const viewport: Viewport = {
@@ -157,7 +167,7 @@ export default async function RootLayout({
       <head />
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
-        <AppProviders>
+        <AppProviders isFrozen={isFrozen}>
           <div className="flex min-h-screen">
             <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 

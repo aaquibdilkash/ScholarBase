@@ -60,6 +60,7 @@ export function ResultsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No results posted yet."
       />
     </div>
   );

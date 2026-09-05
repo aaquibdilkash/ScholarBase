@@ -21,6 +21,7 @@ import {
   MAX_COURSE_URL,
   MAX_COURSE_DESCRIPTION,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { CourseWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -101,8 +102,14 @@ export default function CourseForm({
     },
   );
 
+  const isDescriptionOverLimit =
+    getRichTextLength(draftFields.description) > MAX_COURSE_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
     await submit(() =>
       mode === "edit" && courseId
@@ -283,7 +290,7 @@ export default function CourseForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
           {mode === "edit" ? "Save Changes" : "Add Course"}
         </SubmitBtnWithAuth>
       </div>

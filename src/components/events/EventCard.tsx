@@ -164,10 +164,10 @@ export function EventCard({
           )}
         </div>
 
-        <RichContent
+        {/* <RichContent
           content={event.description}
           className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-        />
+        /> */}
       </Link>
     </ListPageCardShell>
   );

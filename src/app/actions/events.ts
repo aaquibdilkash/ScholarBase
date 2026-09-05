@@ -6,9 +6,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 
 export async function getEvents(
   q?: string,
@@ -133,6 +133,7 @@ export async function createResearchEvent(formData: FormData) {
   const date = new Date(readFormValue(formData, "date"));
   const location = readFormValue(formData, "location");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_EVENT_DESCRIPTION, "Description");
   const deadlineInput = readOptionalFormValue(formData, "deadline");
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
@@ -211,6 +212,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   const date = new Date(readFormValue(formData, "date"));
   const location = readFormValue(formData, "location");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_EVENT_DESCRIPTION, "Description");
   const deadlineInput = readOptionalFormValue(formData, "deadline");
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");

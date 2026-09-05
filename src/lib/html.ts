@@ -23,3 +23,15 @@ export function stripHtmlTags(html: string): string {
     // Remove any leftover entity fragments (prevents the phantom "&" bug)
     .replace(/&[a-zA-Z]+;|&#\d+;/g, "");
 }
+
+export function getRichTextLength(html: string): number {
+  return stripHtmlTags(html ?? "").length;
+}
+
+export function isRichTextOverLimit(
+  html: string,
+  maxLength: number,
+): boolean {
+  if (!maxLength || maxLength <= 0) return false;
+  return getRichTextLength(html) > maxLength;
+}

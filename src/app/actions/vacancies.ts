@@ -6,9 +6,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
+import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION } from "@/lib/constants";
 
 export async function getVacancies(
   q?: string,
@@ -143,6 +143,7 @@ export async function createJobVacancy(formData: FormData) {
   const institution = readFormValue(formData, "institution");
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
 
@@ -223,6 +224,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
   const institution = readFormValue(formData, "institution");
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
 

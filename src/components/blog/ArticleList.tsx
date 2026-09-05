@@ -54,6 +54,7 @@ export function ArticleList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No blog posts published yet."
       />
     </div>
   );

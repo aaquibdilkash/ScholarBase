@@ -2,28 +2,45 @@ import { headers } from "next/headers";
 
 /**
  * Returns the base URL for server-side requests.
- * It prioritizes the configured canonical site URL so auth emails and
- * verification links stay on the approved domain.
+ * Prioritizes canonical environment variables, falling back to
+ * request headers, Vercel system preview URLs, and localhost.
  */
-export async function getBaseUrl() {
-    const explicitSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-    if (explicitSiteUrl) {
-        return explicitSiteUrl.replace(/\/+$/, '')
-    }
+export async function getBaseUrl(): Promise<string> {
+  // 1. Explicit canonical URL (set in .env, Vercel Production, or branch-specific dev)
+  const explicitSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicitSiteUrl) {
+    const formatted = explicitSiteUrl.replace(/\/+$/, "");
+    return formatted.startsWith("http") ? formatted : `https://${formatted}`;
+  }
 
+  // 2. Request context inspection (wrapped in try/catch for static builds/background jobs)
+  try {
     const headersList = await headers();
-    const hostHeader = headersList.get('host');
+    const host = headersList.get("x-forwarded-host") || headersList.get("host");
 
-    if (hostHeader) {
-        const protocol = hostHeader.startsWith('localhost') ? 'http' : 'https';
-        return `${protocol}://${hostHeader}`;
+    if (host) {
+      const proto =
+        headersList.get("x-forwarded-proto") ||
+        (host.startsWith("localhost") || host.startsWith("127.0.0.1")
+          ? "http"
+          : "https");
+      return `${proto}://${host}`;
     }
+  } catch {
+    // headers() throws if invoked outside of an active HTTP request (e.g., static page generation)
+  }
 
-    const vercelHost = process.env.NEXT_PUBLIC_VERCEL_URL || process.env.VERCEL_URL;
-    if (vercelHost) {
-        const protocol = vercelHost.startsWith('localhost') ? 'http' : 'https';
-        return `${protocol}://${vercelHost}`
-    }
+  // 3. Vercel Preview deployment fallbacks
+  const vercelUrl =
+    process.env.NEXT_PUBLIC_VERCEL_URL ||
+    process.env.VERCEL_BRANCH_URL ||
+    process.env.VERCEL_URL;
 
-    return 'http://localhost:3000'
+  if (vercelUrl) {
+    const cleaned = vercelUrl.replace(/\/+$/, "");
+    return cleaned.startsWith("http") ? cleaned : `https://${cleaned}`;
+  }
+
+  // 4. Default local development fallback
+  return "http://localhost:3000";
 }

@@ -60,6 +60,7 @@ export function VacanciesList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No job vacancies posted yet."
       />
     </div>
   );

@@ -1,5 +1,9 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { AdminContentItem, AdminPage } from "@/types/admin";
+import type {
+  AdminAppealItem,
+  AdminContentItem,
+  AdminPage,
+} from "@/types/admin";
 
 /**
  * RULE 1 helper: surgically patch every cached admin content list that
@@ -26,6 +30,32 @@ export function patchAdminContentCache(
         ...old,
         items: old.items.map((it) =>
           it.id === id ? { ...it, ...patch } : it,
+        ),
+      };
+    },
+  );
+}
+
+/**
+ * RULE 1 helper: surgically patch every cached admin appeals list. Used
+ * after a moderation action (FREEZE/UNFREEZE/DELETE/RECOVER) so the
+ * Appeals tab reflects the appealed entity's new state without refetch.
+ * Lookup is by `entityId` because the appeals cache stores the underlying
+ * entity id, not the appeal row id (which is internal to the appeals tab).
+ */
+export function patchAdminAppealsCache(
+  queryClient: QueryClient,
+  entityId: string,
+  patch: Partial<AdminAppealItem>,
+) {
+  queryClient.setQueriesData<AdminPage<AdminAppealItem>>(
+    { queryKey: ["admin-appeals"] },
+    (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        items: old.items.map((it) =>
+          it.entityId === entityId ? { ...it, ...patch } : it,
         ),
       };
     },

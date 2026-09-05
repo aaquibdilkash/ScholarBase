@@ -5,8 +5,8 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
+import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
 
 export async function getSupervisors(
   q?: string,
@@ -241,6 +241,7 @@ export async function createSupervisor(formData: FormData) {
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
   const about = readFormValue(formData, "about");
+  assertRichTextWithinLimit(about, MAX_SUPERVISOR_ABOUT, "About");
 
   const supervisor = await prisma.$transaction(async (tx) => {
     const newSupervisor = await tx.supervisor.create({
@@ -292,6 +293,7 @@ export async function updateSupervisor(
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
   const about = readFormValue(formData, "about");
+  assertRichTextWithinLimit(about, MAX_SUPERVISOR_ABOUT, "About");
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },

@@ -50,6 +50,7 @@ export function ScholarsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No scholars found."
       />
     </div>
   );

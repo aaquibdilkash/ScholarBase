@@ -22,6 +22,7 @@ import {
   MAX_JOURNAL_SUBJECT_AREA,
   MAX_JOURNAL_FREQUENCY,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import {
   QUARTILE_OPTIONS,
   WOS_INDEX_OPTIONS,
@@ -123,8 +124,14 @@ export default function JournalForm({
     },
   });
 
+  const isAboutOverLimit =
+    getRichTextLength(draftFields.about ?? "") > MAX_JOURNAL_DESCRIPTION;
+  const isFormOverLimit = isAboutOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -440,7 +447,7 @@ export default function JournalForm({
         <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
-          disabled={submitting}
+          disabled={submitting || isFormOverLimit}
           loadingText={mode === "edit" ? "Saving..." : "Adding..."}
         >
           {mode === "edit" ? "Save Changes" : "Add Journal"}

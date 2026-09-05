@@ -6,8 +6,8 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
+import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -92,6 +92,7 @@ export async function createRecommendation(
   );
 
   const feedback = readFormValue(formData, "feedback");
+  assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
 
   const turnaroundTimeDays = Number.parseInt(
@@ -222,6 +223,7 @@ export async function updateRecommendation(
   const user = await requireActiveUser("Log in to edit this recommendation.");
 
   const feedback = readFormValue(formData, "feedback");
+  assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
 
   const turnaroundTimeDays = Number.parseInt(

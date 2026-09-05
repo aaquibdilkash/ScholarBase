@@ -60,6 +60,7 @@ export function SurveysList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
+        emptyMessage="No research surveys created yet."
       />
     </div>
   );

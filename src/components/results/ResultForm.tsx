@@ -19,6 +19,7 @@ import {
   MAX_RESULT_NOTIFICATION_LINK,
   MAX_RESULT_RESULT_LINK,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { ResultWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -106,8 +107,14 @@ export default function ResultForm({
     },
   );
 
+  const isDescriptionOverLimit =
+    getRichTextLength(draftFields.description) > MAX_RESULT_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     await submit(() => {
@@ -280,7 +287,7 @@ export default function ResultForm({
         <SubmitBtnWithAuth
           className="sb-button-accent"
           loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
-          disabled={submitting}
+          disabled={submitting || isFormOverLimit}
         >
           {mode === "edit" ? "Save Changes" : "Publish Result"}
         </SubmitBtnWithAuth>

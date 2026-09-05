@@ -18,6 +18,7 @@ import {
   MAX_SURVEY_TITLE,
   MAX_SURVEY_DESCRIPTION,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   SURVEY_TITLE_TIP,
@@ -118,8 +119,14 @@ export default function SurveyForm({
     updateDraft("questions", newQuestions);
   };
 
+  const isDescriptionOverLimit =
+    getRichTextLength(description ?? "") > MAX_SURVEY_DESCRIPTION;
+  const isFormOverLimit = isDescriptionOverLimit;
+
   async function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData();
     formData.set("title", title);
     formData.set("description", description ?? "");
@@ -297,7 +304,7 @@ export default function SurveyForm({
         <FormCancelButton />
         <SubmitBtnWithAuth
           loadingText={mode === "create" ? "Creating..." : "Saving..."}
-          disabled={submitting}
+          disabled={submitting || isFormOverLimit}
         >
           {mode === "create" ? "Create Survey" : "Save Changes"}
         </SubmitBtnWithAuth>

@@ -14,6 +14,7 @@ import {
   MAX_HELP_POST_SUBJECT,
   MAX_HELP_POST_MESSAGE,
 } from "@/lib/constants";
+import { getRichTextLength } from "@/lib/html";
 import type { HelpPostWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
@@ -99,8 +100,14 @@ export default function HelpPostForm({
     },
   });
 
+  const isMessageOverLimit =
+    getRichTextLength(draftFields.message) > MAX_HELP_POST_MESSAGE;
+  const isFormOverLimit = isMessageOverLimit;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isFormOverLimit) return;
+
     const formData = new FormData(e.currentTarget);
 
     if (mode === "edit" && helpPostId) {
@@ -191,7 +198,7 @@ export default function HelpPostForm({
         <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
           <FormCancelButton />
           <SubmitBtnWithAuth
-            disabled={isPending}
+            disabled={isPending || isFormOverLimit}
             loadingText={mode === "edit" ? "Saving..." : "Posting..."}
             className={
               mode === "edit" ? "sb-button-accent" : "sb-button-primary"

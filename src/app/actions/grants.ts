@@ -6,9 +6,12 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
+import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import {
+  COMMENT_PAGE_SIZE,
+  MAX_RESEARCH_GRANT_DESCRIPTION,
+} from "@/lib/constants";
 
 export async function createResearchGrant(formData: FormData) {
   const user = await requireActiveUser(
@@ -18,6 +21,7 @@ export async function createResearchGrant(formData: FormData) {
   const title = readFormValue(formData, "title");
   const amount = readFormValue(formData, "amount");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
   const infoLink = readFormValue(formData, "infoLink");
 
@@ -84,6 +88,7 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
   const title = readFormValue(formData, "title");
   const amount = readFormValue(formData, "amount");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
   const infoLink = readFormValue(formData, "infoLink");
 
