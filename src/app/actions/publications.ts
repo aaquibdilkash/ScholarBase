@@ -6,9 +6,9 @@ import { Prisma, PublicationType } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
 
 export async function createPublication(formData: FormData) {
   const user = await requireActiveUser(
@@ -36,6 +36,7 @@ export async function createPublication(formData: FormData) {
   const keywords = readOptionalFormValue(formData, "keywords");
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
+  assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
   const isUserAuthor = readOptionalFormValue(formData, "isUserAuthor") === "on";
 
   const publication = await prisma.$transaction(async (tx) => {
@@ -130,6 +131,7 @@ export async function updatePublication(
   const keywords = readOptionalFormValue(formData, "keywords");
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
+  assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
   const isUserAuthor = readOptionalFormValue(formData, "isUserAuthor") === "on";
 
   const publication = await prisma.publication.findUnique({

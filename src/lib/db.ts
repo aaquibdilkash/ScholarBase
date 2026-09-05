@@ -12,7 +12,7 @@ const getPool = () => {
     globalForPrisma.pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
       // 1. Cap connections per serverless lambda (1 in prod serverless, up to 5 in local dev)
-      max: process.env.NODE_ENV === "production" ? 1 : 5,
+      max: process.env.NODE_ENV === "production" ? 1 : 1,
       // 2. Terminate idle clients quickly so Supavisor doesn't drop frozen sockets
       idleTimeoutMillis: 20000,
       // 3. Fail fast instead of hanging forever if database compute is overloaded

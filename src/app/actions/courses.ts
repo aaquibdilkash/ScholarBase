@@ -6,9 +6,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
+import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 
 export async function createCourse(formData: FormData) {
   const user = await requireActiveUser("Please log in to share a course.");
@@ -22,6 +22,7 @@ export async function createCourse(formData: FormData) {
   const duration = readFormValue(formData, "duration");
   const link = readFormValue(formData, "link");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
   const course = await prisma.$transaction(async (tx) => {
     const newCourse = await tx.course.create({
@@ -82,6 +83,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const duration = readFormValue(formData, "duration");
   const link = readFormValue(formData, "link");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },

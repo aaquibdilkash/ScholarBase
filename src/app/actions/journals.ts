@@ -6,7 +6,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import type {
   Quartile,
@@ -14,7 +14,7 @@ import type {
   WosIndex,
   OpenAccessStatus,
 } from "@prisma/client";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_JOURNAL_DESCRIPTION } from "@/lib/constants";
 
 export async function createJournal(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
@@ -32,6 +32,7 @@ export async function createJournal(formData: FormData) {
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
   const about = readOptionalFormValue(formData, "about");
+  assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
   const frequency = readOptionalFormValue(formData, "frequency");
   const openAccess = readOptionalFormValue(formData, "openAccess");
@@ -108,6 +109,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
   const about = readOptionalFormValue(formData, "about");
+  assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
   const frequency = readOptionalFormValue(formData, "frequency");
   const openAccess = readOptionalFormValue(formData, "openAccess");

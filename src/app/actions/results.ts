@@ -6,9 +6,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_RESULT_DESCRIPTION } from "@/lib/constants";
 
 export async function getResults(
   q?: string,
@@ -136,6 +136,7 @@ export async function createResult(formData: FormData) {
 
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_RESULT_DESCRIPTION, "Description");
   const type = readFormValue(formData, "type");
   const category = readOptionalFormValue(formData, "category");
   const conductingBody = readOptionalFormValue(formData, "conductingBody");
@@ -193,6 +194,7 @@ export async function updateResult(formData: FormData, resultId: string) {
 
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_RESULT_DESCRIPTION, "Description");
   const type = readFormValue(formData, "type");
   const category = readOptionalFormValue(formData, "category");
   const conductingBody = readOptionalFormValue(formData, "conductingBody");

@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { requireActiveUser } from "@/lib/auth";
-import { normalizeHandle, readOptionalFormValue } from "@/lib/form";
+import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 
 export const getProfile = cache(

@@ -6,10 +6,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 
 export async function getContributions(
   q?: string,
@@ -155,6 +155,7 @@ export async function createContribution(formData: FormData) {
 
   const title = readFormValue(formData, "title");
   const message = readFormValue(formData, "message");
+  assertRichTextWithinLimit(message, MAX_CONTRIBUTION_MESSAGE, "Message");
   const amountStr = readOptionalFormValue(formData, "amount");
   const upiId = readOptionalFormValue(formData, "upiId");
   const paymentMethod = readOptionalFormValue(formData, "paymentMethod");
@@ -238,6 +239,7 @@ export async function updateContribution(
 
   const title = readFormValue(formData, "title");
   const message = readFormValue(formData, "message");
+  assertRichTextWithinLimit(message, MAX_CONTRIBUTION_MESSAGE, "Message");
 
   // If approved, only allow editing title and message
   if (existingContribution.status === "APPROVED") {

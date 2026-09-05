@@ -31,8 +31,16 @@ export async function resolveCommentDeletePermission(
     parentCommentAuthorId: string | null;
     isReply: boolean;
   },
+  // RULE 1 / single-connection pool: when caller already resolved the caller's
+  // admin status OUTSIDE an interactive transaction (on the global client),
+  // pass it here so this helper does NOT re-query `isUserAdmin` (which would
+  // check out a SECOND pooled connection mid-transaction and deadlock under
+  // `max: 1`). Omit it to fall back to the internal global query (backward
+  // compatible for any external caller).
+  isAdminOverride?: boolean,
 ): Promise<DeletedByType> {
-  if (await isUserAdmin(userId)) return DeletedByType.ADMIN;
+  const isAdmin = isAdminOverride ?? (await isUserAdmin(userId));
+  if (isAdmin) return DeletedByType.ADMIN;
   if (opts.commentAuthorId !== null && userId === opts.commentAuthorId) {
     return DeletedByType.AUTHOR;
   }

@@ -7,7 +7,8 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { stripHtmlTags } from "@/lib/html";
+import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
 
 export async function getHelpPosts(
   q?: string,
@@ -150,6 +151,11 @@ export async function createHelpPost(formData: FormData) {
   if (!title || !subject || !category || !message) {
     throw new Error("Please fill in all fields.");
   }
+  if (stripHtmlTags(message).length > MAX_HELP_POST_MESSAGE) {
+    throw new Error(
+      `Message exceeds the ${MAX_HELP_POST_MESSAGE}-character limit.`,
+    );
+  }
 
   const post = await prisma.$transaction(async (tx) => {
     const newPost = await tx.helpPost.create({
@@ -223,6 +229,11 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 
   if (!title || !subject || !category || !message) {
     throw new Error("Please fill in all fields.");
+  }
+  if (stripHtmlTags(message).length > MAX_HELP_POST_MESSAGE) {
+    throw new Error(
+      `Message exceeds the ${MAX_HELP_POST_MESSAGE}-character limit.`,
+    );
   }
 
   const post = await prisma.helpPost.findUnique({

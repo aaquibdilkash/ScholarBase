@@ -5,11 +5,10 @@
 import { VoteType } from '@prisma/client'
 import prisma from './db'
 import { resolveCommentDeletePermission } from './deletion'
+import { isUserAdmin } from './auth'
 import type { CommentEntityType } from '@/types/comments'
 
-// Permissive delegate shape. The config maps each module to a union of concrete
-// Prisma delegates; calling methods directly on that union is not allowed in
-// Prisma 7's strict client types, so we cast through this structural type.
+// Permissive delegate shape.
 type AnyDelegate = {
   findUnique: (args: any) => Promise<any>
   findFirst: (args: any) => Promise<any>
@@ -21,165 +20,240 @@ type AnyDelegate = {
   updateMany: (args: any) => Promise<any>
 }
 
+// Transaction options to avoid serverless latency timeouts
+export const TRANSACTION_OPTIONS = {
+  maxWait: 5000,
+  timeout: 15000,
+}
+
 // ============================================
 // UNIFIED ENTITY CONFIG
 // ============================================
-// Maps uppercase module type keys to their Prisma delegates, foreign-key field
-// names, and the field used as the entity "title" for activity logging.
-// Both top-level content and nested comments are covered here so that all
-// transaction paths share a single source of truth.
-
 export const ENTITY_CONFIG = {
   SOCIAL_POST: {
-    parent: prisma.socialPost,
-    vote: prisma.socialVote,
-    comment: prisma.socialComment,
-    commentVote: prisma.socialCommentVote,
+    model: 'socialPost' as const,
+    voteModel: 'socialVote' as const,
+    commentModel: 'socialComment' as const,
+    commentVoteModel: 'socialCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'content',
     parentFk: 'socialPostId',
     commentFk: 'socialPostId',
   },
   ARTICLE: {
-    parent: prisma.article,
-    vote: prisma.articleVote,
-    comment: prisma.articleComment,
-    commentVote: prisma.articleCommentVote,
+    model: 'article' as const,
+    voteModel: 'articleVote' as const,
+    commentModel: 'articleComment' as const,
+    commentVoteModel: 'articleCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'articleId',
     commentFk: 'articleId',
   },
   HELP_POST: {
-    parent: prisma.helpPost,
-    vote: prisma.helpPostVote,
-    comment: prisma.helpPostComment,
-    commentVote: prisma.helpPostCommentVote,
+    model: 'helpPost' as const,
+    voteModel: 'helpPostVote' as const,
+    commentModel: 'helpPostComment' as const,
+    commentVoteModel: 'helpPostCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'helpPostId',
     commentFk: 'helpPostId',
   },
   CONTRIBUTION: {
-    parent: prisma.contribution,
-    vote: prisma.contributionVote,
-    comment: prisma.contributionComment,
-    commentVote: prisma.contributionCommentVote,
+    model: 'contribution' as const,
+    voteModel: 'contributionVote' as const,
+    commentModel: 'contributionComment' as const,
+    commentVoteModel: 'contributionCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'contributionId',
     commentFk: 'contributionId',
   },
   PUBLICATION: {
-    parent: prisma.publication,
-    vote: prisma.publicationVote,
-    comment: prisma.publicationComment,
-    commentVote: prisma.publicationCommentVote,
+    model: 'publication' as const,
+    voteModel: 'publicationVote' as const,
+    commentModel: 'publicationComment' as const,
+    commentVoteModel: 'publicationCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'publicationId',
     commentFk: 'publicationId',
   },
   RESEARCH_TOOL: {
-    parent: prisma.researchTool,
-    vote: prisma.researchToolVote,
-    comment: prisma.researchToolComment,
-    commentVote: prisma.researchToolCommentVote,
+    model: 'researchTool' as const,
+    voteModel: 'researchToolVote' as const,
+    commentModel: 'researchToolComment' as const,
+    commentVoteModel: 'researchToolCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'name',
     parentFk: 'researchToolId',
     commentFk: 'researchToolId',
   },
   RESEARCH_GRANT: {
-    parent: prisma.researchGrant,
-    vote: prisma.researchGrantVote,
-    comment: prisma.researchGrantComment,
-    commentVote: prisma.researchGrantCommentVote,
+    model: 'researchGrant' as const,
+    voteModel: 'researchGrantVote' as const,
+    commentModel: 'researchGrantComment' as const,
+    commentVoteModel: 'researchGrantCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'researchGrantId',
     commentFk: 'researchGrantId',
   },
   COURSE: {
-    parent: prisma.course,
-    vote: prisma.courseVote,
-    comment: prisma.courseComment,
-    commentVote: prisma.courseCommentVote,
+    model: 'course' as const,
+    voteModel: 'courseVote' as const,
+    commentModel: 'courseComment' as const,
+    commentVoteModel: 'courseCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'courseId',
     commentFk: 'courseId',
   },
   JOURNAL: {
-    parent: prisma.journal,
-    vote: prisma.journalVote,
-    comment: prisma.journalComment,
-    commentVote: prisma.journalCommentVote,
+    model: 'journal' as const,
+    voteModel: 'journalVote' as const,
+    commentModel: 'journalComment' as const,
+    commentVoteModel: 'journalCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'journalId',
     commentFk: 'journalId',
   },
   RESULT: {
-    parent: prisma.result,
-    vote: prisma.resultVote,
-    comment: prisma.resultComment,
-    commentVote: prisma.resultCommentVote,
+    model: 'result' as const,
+    voteModel: 'resultVote' as const,
+    commentModel: 'resultComment' as const,
+    commentVoteModel: 'resultCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'resultId',
     commentFk: 'resultId',
   },
   RESEARCH_SURVEY: {
-    parent: prisma.researchSurvey,
-    vote: prisma.surveyVote,
-    comment: prisma.surveyComment,
-    commentVote: prisma.surveyCommentVote,
+    model: 'researchSurvey' as const,
+    voteModel: 'surveyVote' as const,
+    commentModel: 'surveyComment' as const,
+    commentVoteModel: 'surveyCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'surveyId',
     commentFk: 'surveyId',
   },
   RESEARCH_EVENT: {
-    parent: prisma.researchEvent,
-    vote: prisma.researchEventVote,
-    comment: prisma.researchEventComment,
-    commentVote: prisma.researchEventCommentVote,
+    model: 'researchEvent' as const,
+    voteModel: 'researchEventVote' as const,
+    commentModel: 'researchEventComment' as const,
+    commentVoteModel: 'researchEventCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'researchEventId',
     commentFk: 'researchEventId',
   },
   PHD_ADMISSION: {
-    parent: prisma.phdAdmission,
-    vote: prisma.phdAdmissionVote,
-    comment: prisma.phdAdmissionComment,
-    commentVote: prisma.phdAdmissionCommentVote,
+    model: 'phdAdmission' as const,
+    voteModel: 'phdAdmissionVote' as const,
+    commentModel: 'phdAdmissionComment' as const,
+    commentVoteModel: 'phdAdmissionCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'university',
     parentFk: 'phdAdmissionId',
     commentFk: 'phdAdmissionId',
   },
   JOB_VACANCY: {
-    parent: prisma.jobVacancy,
-    vote: prisma.jobVacancyVote,
-    comment: prisma.jobVacancyComment,
-    commentVote: prisma.jobVacancyCommentVote,
+    model: 'jobVacancy' as const,
+    voteModel: 'jobVacancyVote' as const,
+    commentModel: 'jobVacancyComment' as const,
+    commentVoteModel: 'jobVacancyCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'title',
     parentFk: 'jobVacancyId',
     commentFk: 'jobVacancyId',
   },
   SUPERVISOR: {
-    parent: prisma.supervisor,
-    vote: prisma.supervisorVote,
-    comment: prisma.supervisorComment,
-    commentVote: prisma.supervisorCommentVote,
+    model: 'supervisor' as const,
+    voteModel: 'supervisorVote' as const,
+    commentModel: 'supervisorComment' as const,
+    commentVoteModel: 'supervisorCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'name',
     parentFk: 'supervisorId',
     commentFk: 'supervisorId',
   },
   RECOMMENDATION: {
-    parent: prisma.recommendation,
-    vote: prisma.recommendationVote,
-    comment: prisma.recommendationComment,
-    commentVote: prisma.recommendationCommentVote,
+    model: 'recommendation' as const,
+    voteModel: 'recommendationVote' as const,
+    commentModel: 'recommendationComment' as const,
+    commentVoteModel: 'recommendationCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
     titleField: 'feedback',
     parentFk: 'recommendationId',
     commentFk: 'recommendationId',
   },
 } as const
 
-// Backwards-compatible alias used by VoteButton / CommentSection / CLI components
 export const VOTE_CONFIG = ENTITY_CONFIG
-
 export type ModuleKey = keyof typeof ENTITY_CONFIG
+
+// Helper to resolve delegates dynamically on any client (PrismaClient or TransactionClient)
+export function getDelegates(moduleKey: ModuleKey, client: any) {
+  const config = ENTITY_CONFIG[moduleKey]
+  return {
+    parent: client[config.model] as AnyDelegate,
+    vote: client[config.voteModel] as AnyDelegate,
+    comment: client[config.commentModel] as AnyDelegate,
+    commentVote: client[config.commentVoteModel] as AnyDelegate,
+    config,
+  }
+}
 
 const MODULE_VOTE_TARGET_TYPE: Record<ModuleKey, string> = {
   SOCIAL_POST: 'post',
@@ -231,36 +305,36 @@ type VoteResult = { totalVotes: number; userVote: VoteType | null }
 // FOLLOW TRANSACTION
 // ============================================
 export async function handleFollowTransaction(followerId: string, followingId: string) {
-  return prisma.$transaction(async (prisma) => {
-    const existingFollow = await prisma.follows.findUnique({
+  return prisma.$transaction(async (tx) => {
+    const existingFollow = await tx.follows.findUnique({
       where: { followerId_followingId: { followerId, followingId } },
     })
 
     if (existingFollow) {
-      await prisma.follows.delete({
+      await tx.follows.delete({
         where: { followerId_followingId: { followerId, followingId } },
       })
-      await prisma.user.update({
+      await tx.user.update({
         where: { id: followerId },
         data: { followingCount: { decrement: 1 } },
       })
-      await prisma.user.update({
+      await tx.user.update({
         where: { id: followingId },
         data: { followersCount: { decrement: 1 } },
       })
       return { wasFollowing: true }
     }
 
-    await prisma.follows.create({ data: { followerId, followingId } })
-    await prisma.user.update({
+    await tx.follows.create({ data: { followerId, followingId } })
+    await tx.user.update({
       where: { id: followerId },
       data: { followingCount: { increment: 1 } },
     })
-    await prisma.user.update({
+    await tx.user.update({
       where: { id: followingId },
       data: { followersCount: { increment: 1 } },
     })
-    await prisma.userActivity.create({
+    await tx.userActivity.create({
       data: {
         userId: followerId,
         action: 'FOLLOWED',
@@ -270,7 +344,7 @@ export async function handleFollowTransaction(followerId: string, followingId: s
       },
     })
     return { wasFollowing: false }
-  })
+  }, TRANSACTION_OPTIONS)
 }
 
 // ============================================
@@ -282,17 +356,18 @@ export async function handleVoteTransaction(
   userId: string,
   newVote: VoteType,
 ): Promise<VoteResult> {
-  const config = ENTITY_CONFIG[module as ModuleKey]
+  const moduleKey = module as ModuleKey
+  const config = ENTITY_CONFIG[moduleKey]
   if (!config) throw new Error(`Invalid module for voting: ${module}`)
-
-  const parent = config.parent as unknown as AnyDelegate
-  const vote = config.vote as unknown as AnyDelegate
 
   const voteWhere = {
     [`${config.parentFk}_userId`]: { [config.parentFk]: entityId, userId },
   }
 
-  return prisma.$transaction(async (prisma) => {
+  return prisma.$transaction(async (tx) => {
+    // Dynamically bind delegates to the transaction context (tx)
+    const { parent, vote } = getDelegates(moduleKey, tx)
+
     const [entity, existingVote] = await Promise.all([
       parent.findUnique({
         where: { id: entityId },
@@ -306,7 +381,7 @@ export async function handleVoteTransaction(
 
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
-    const entityTitle = entity[config.titleField] as string || 'Untitled'
+    const entityTitle = (entity[config.titleField] as string) || 'Untitled'
     let totalVotes = entity.totalVotes
 
     if (currentVote === newVote) {
@@ -327,22 +402,22 @@ export async function handleVoteTransaction(
     })
 
     if (voteValue !== 0 && entity.authorId) {
-      await prisma.user.update({
+      await tx.user.update({
         where: { id: entity.authorId },
         data: { reputation: { increment: voteValue } },
       })
     }
 
-    await prisma.userActivity.create({
+    await tx.userActivity.create({
       data: { userId, action: 'VOTED', moduleType: module, entityId, entityTitle },
     })
 
     if (newVote === 'UPVOTE' && voteValue > 0 && entity.authorId && entity.authorId !== userId) {
-      const targetType = MODULE_VOTE_TARGET_TYPE[module as ModuleKey]
+      const targetType = MODULE_VOTE_TARGET_TYPE[moduleKey]
       if (targetType) {
         let targetId = entityId
         if (module === 'RECOMMENDATION') {
-          const rec = await (prisma.recommendation as unknown as AnyDelegate).findUnique({
+          const rec = await (tx.recommendation as unknown as AnyDelegate).findUnique({
             where: { id: entityId },
             select: { supervisorId: true },
           })
@@ -351,15 +426,15 @@ export async function handleVoteTransaction(
           }
         }
 
-        const actor = await prisma.user.findUnique({
+        const actor = await tx.user.findUnique({
           where: { id: userId },
           select: { name: true, handle: true, email: true },
         })
         const actorName =
           actor?.name || actor?.handle || actor?.email?.split('@')[0] || 'Someone'
-        const moduleName = MODULE_DISPLAY_NAME[module as ModuleKey] || 'content'
+        const moduleName = MODULE_DISPLAY_NAME[moduleKey] || 'content'
 
-        await prisma.notification.create({
+        await tx.notification.create({
           data: {
             recipientId: entity.authorId,
             actorId: userId,
@@ -374,7 +449,7 @@ export async function handleVoteTransaction(
     }
 
     return { totalVotes, userVote: newVote === currentVote ? null : newVote }
-  })
+  }, TRANSACTION_OPTIONS)
 }
 
 // ============================================
@@ -390,14 +465,14 @@ export async function handleCommentVoteTransaction(
   if (!moduleKey) throw new Error(`Invalid module for comment voting: ${commentType}`)
 
   const config = ENTITY_CONFIG[moduleKey]
-  const commentModel = config.comment as unknown as AnyDelegate
-  const commentVote = config.commentVote as unknown as AnyDelegate
-
   const voteWhere = {
     commentId_userId: { commentId, userId },
   }
 
-  return prisma.$transaction(async (prisma) => {
+  return prisma.$transaction(async (tx) => {
+    // Dynamically bind delegates to the transaction context (tx)
+    const { parent, comment: commentModel, commentVote } = getDelegates(moduleKey, tx)
+
     const [comment, existingVote] = await Promise.all([
       commentModel.findUnique({
         where: { id: commentId },
@@ -410,7 +485,7 @@ export async function handleCommentVoteTransaction(
     if (comment.isFrozen) throw new Error("This comment is frozen by moderators and cannot be voted on.")
 
     // Votes on a comment are also blocked when its parent content is frozen.
-    const parentEntity = await (config.parent as unknown as AnyDelegate).findUnique({
+    const parentEntity = await parent.findUnique({
       where: { id: (comment as any)[config.commentFk] },
       select: { isFrozen: true },
     })
@@ -418,7 +493,7 @@ export async function handleCommentVoteTransaction(
 
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
-    const entityTitle = (comment as any).content as string || 'Untitled'
+    const entityTitle = ((comment as any).content as string) || 'Untitled'
     let totalVotes = comment.totalVotes
 
     if (currentVote === newVote) {
@@ -439,13 +514,13 @@ export async function handleCommentVoteTransaction(
     })
 
     if (voteValue !== 0 && comment.authorId) {
-      await prisma.user.update({
+      await tx.user.update({
         where: { id: comment.authorId },
         data: { reputation: { increment: voteValue } },
       })
     }
 
-    await prisma.userActivity.create({
+    await tx.userActivity.create({
       data: {
         userId,
         action: 'VOTED',
@@ -456,33 +531,12 @@ export async function handleCommentVoteTransaction(
     })
 
     return { totalVotes, userVote: newVote === currentVote ? null : newVote }
-  })
+  }, TRANSACTION_OPTIONS)
 }
 
 // ============================================
 // COMMENT TRANSACTIONS
 // ============================================
-type CommentModels = {
-  parent: AnyDelegate
-  parentFk: string
-  commentModel: AnyDelegate
-  titleField: string
-  moduleKey: ModuleKey
-}
-
-function getCommentModels(moduleName: ModuleKey): CommentModels {
-  const config = ENTITY_CONFIG[moduleName]
-  if (!config) throw new Error(`Invalid module for comments: ${moduleName}`)
-
-  return {
-    parent: config.parent,
-    parentFk: config.parentFk,
-    commentModel: config.comment,
-    titleField: config.titleField,
-    moduleKey: moduleName,
-  }
-}
-
 export async function createCommentTransaction(
   moduleName: ModuleKey,
   entityId: string,
@@ -491,27 +545,28 @@ export async function createCommentTransaction(
   parentId?: string,
   mentions?: { id: string; handle: string | null }[],
 ) {
-  const { commentModel, parent, parentFk, titleField } = getCommentModels(moduleName)
+  const config = ENTITY_CONFIG[moduleName]
+  if (!config) throw new Error(`Invalid module for comments: ${moduleName}`)
 
-  return prisma.$transaction(async (prisma) => {
+  return prisma.$transaction(async (tx) => {
+    const { parent, comment: commentModel } = getDelegates(moduleName, tx)
+
     const parentEntity = await parent.findUnique({
       where: { id: entityId },
-      select: { [titleField]: true, isFrozen: true },
+      select: { [config.titleField]: true, isFrozen: true },
     })
     if (!parentEntity) throw new Error('Parent entity not found.')
     if ((parentEntity as any).isFrozen) throw new Error('This content is frozen by moderators and cannot be commented on.')
-    const entityTitle = (parentEntity as any)[titleField] as string
+    const entityTitle = (parentEntity as any)[config.titleField] as string
 
     const createdComment = await commentModel.create({
-      data: { content, authorId, [parentFk]: entityId, parentId, mentions: mentions ?? undefined },
+      data: { content, authorId, [config.parentFk]: entityId, parentId, mentions: mentions ?? undefined },
     })
 
-    const operations: any[] = [
-      parent.update({
-        where: { id: entityId },
-        data: { totalComments: { increment: 1 } },
-      }),
-    ]
+    await parent.update({
+      where: { id: entityId },
+      data: { totalComments: { increment: 1 } },
+    })
 
     if (parentId) {
       const parentComment = await commentModel.findUnique({
@@ -521,16 +576,13 @@ export async function createCommentTransaction(
       if (!parentComment || parentComment.isDeleted) throw new Error('The comment you are replying to no longer exists.')
       if (parentComment.isFrozen) throw new Error('This comment is frozen by moderators and cannot be replied to.')
 
-      operations.push(
-        commentModel.update({
-          where: { id: parentId },
-          data: { totalReplies: { increment: 1 } },
-        }),
-      )
+      await commentModel.update({
+        where: { id: parentId },
+        data: { totalReplies: { increment: 1 } },
+      })
     }
-    await prisma.$transaction(operations)
 
-    await prisma.userActivity.create({
+    await tx.userActivity.create({
       data: {
         userId: authorId,
         action: parentId ? 'REPLIED' : 'COMMENTED',
@@ -538,9 +590,9 @@ export async function createCommentTransaction(
         entityId,
         entityTitle,
       },
-     })
+    })
 
-    const author = await prisma.user.findUnique({
+    const author = await tx.user.findUnique({
       where: { id: authorId },
       select: { id: true, name: true, handle: true, avatarUrl: true },
     })
@@ -550,14 +602,14 @@ export async function createCommentTransaction(
       content,
       authorId,
       parentId,
-      [parentFk]: entityId,
+      [config.parentFk]: entityId,
       createdAt: (createdComment as any).createdAt,
       totalVotes: 0,
       totalReplies: 0,
       mentions: mentions ?? null,
       author: author ?? null,
     }
-  })
+  }, TRANSACTION_OPTIONS)
 }
 
 export async function deleteCommentTransaction(
@@ -565,12 +617,21 @@ export async function deleteCommentTransaction(
   commentId: string,
   userId: string,
 ) {
-  const { commentModel, parent, parentFk } = getCommentModels(moduleName)
+  const config = ENTITY_CONFIG[moduleName]
+  if (!config) throw new Error(`Invalid module for comments: ${moduleName}`)
 
-  return prisma.$transaction(async (prisma) => {
+  // RULE 1 / single-connection pool: resolve the caller's admin status HERE on
+  // the global client, BEFORE the interactive transaction opens, so the in-tx
+  // permission check can reuse it instead of checking out a SECOND pooled
+  // connection mid-transaction (would deadlock under `max: 1` -> Prisma P2028).
+  const isAdmin = await isUserAdmin(userId)
+
+  return prisma.$transaction(async (tx) => {
+    const { parent, comment: commentModel } = getDelegates(moduleName, tx)
+
     const comment = await commentModel.findUnique({
       where: { id: commentId },
-      select: { authorId: true, parentId: true, isDeleted: true, [parentFk]: true, totalVotes: true },
+      select: { authorId: true, parentId: true, isDeleted: true, [config.parentFk]: true, totalVotes: true },
     })
 
     if (!comment) throw new Error('Comment not found.')
@@ -578,9 +639,7 @@ export async function deleteCommentTransaction(
       throw new Error('Comment already deleted.')
     }
 
-    // Resolve the deletion actor through the ownership hierarchy
-    // (admin > author > post author > parent comment author).
-    const parentEntityId = (comment as any)[parentFk] as string
+    const parentEntityId = (comment as any)[config.parentFk] as string
     const rootPost = await parent.findUnique({
       where: { id: parentEntityId },
       select: { authorId: true },
@@ -597,53 +656,41 @@ export async function deleteCommentTransaction(
       rootPostAuthorId: (rootPost as any)?.authorId ?? null,
       parentCommentAuthorId: (parentComment as any)?.authorId ?? null,
       isReply: (comment as any).parentId !== null,
-    })
+    }, isAdmin)
 
-    // RULE 4 (soft delete): every comment/reply is soft-deleted by toggling
-    // isDeleted = true — the row, its content and its author are preserved so
-    // admins can recover it later. Reputation gained from its votes is
-    // reversed, and materialized counters are kept in sync. Counts work
-    // exactly as before (totalComments / totalReplies decrement).
     const shouldReverseRep = comment.authorId !== null && comment.totalVotes !== 0
 
-    const operations: any[] = [
-      commentModel.update({
-        where: { id: commentId },
-        data: { isDeleted: true, deletedByType, deletedById: userId },
-      }),
-      parent.update({
-        where: { id: parentEntityId },
-        data: { totalComments: { decrement: 1 } },
-      }),
-    ]
+    await commentModel.update({
+      where: { id: commentId },
+      data: { isDeleted: true, deletedByType, deletedById: userId },
+    })
+
+    await parent.update({
+      where: { id: parentEntityId },
+      data: { totalComments: { decrement: 1 } },
+    })
+
     if (comment.parentId) {
-      operations.push(
-        commentModel.update({
-          where: { id: comment.parentId },
-          data: { totalReplies: { decrement: 1 } },
-        }),
-      )
+      await commentModel.update({
+        where: { id: comment.parentId },
+        data: { totalReplies: { decrement: 1 } },
+      })
     }
 
     if (shouldReverseRep) {
-      operations.push(
-        prisma.user.update({
-          where: { id: comment.authorId },
-          data: { reputation: { decrement: comment.totalVotes } },
-        }),
-      )
+      await tx.user.update({
+        where: { id: comment.authorId },
+        data: { reputation: { decrement: comment.totalVotes } },
+      })
     }
 
-    await prisma.$transaction(operations)
-
     return { wasTombstoned: true, parentId: comment.parentId, deletedByType }
-  })
+  }, TRANSACTION_OPTIONS)
 }
 
 // ============================================
 // COMMENT TYPE MAPPING
 // ============================================
-// Maps lowercase CommentEntityType to uppercase ModuleKey
 export const COMMENT_TYPE_TO_MODULE: Record<string, ModuleKey> = {
   post: 'SOCIAL_POST',
   article: 'ARTICLE',

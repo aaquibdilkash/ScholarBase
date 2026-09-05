@@ -6,9 +6,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
+import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_RESEARCH_TOOL_DESCRIPTION } from "@/lib/constants";
 
 export async function createResearchTool(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
@@ -17,6 +17,7 @@ export async function createResearchTool(formData: FormData) {
   const website = readFormValue(formData, "website");
   const use = readFormValue(formData, "use");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_RESEARCH_TOOL_DESCRIPTION, "Description");
 
   const tool = await prisma.$transaction(async (tx) => {
     const newTool = await tx.researchTool.create({
@@ -83,6 +84,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
   const website = readFormValue(formData, "website");
   const use = readFormValue(formData, "use");
   const description = readFormValue(formData, "description");
+  assertRichTextWithinLimit(description, MAX_RESEARCH_TOOL_DESCRIPTION, "Description");
 
   const tool = await prisma.researchTool.findUnique({
     where: { id: toolId },

@@ -16,48 +16,66 @@ type DelegateModel = {
   findUnique: (args: { where: { id: string }; select: Record<string, unknown> }) => Promise<unknown>;
 };
 
-const POST_DELEGATES: Record<string, { model: DelegateModel }> = {
-  feed: { model: prisma.socialPost },
-  blog: { model: prisma.article },
-  publication: { model: prisma.publication },
-  journal: { model: prisma.journal },
-  researchTool: { model: prisma.researchTool },
-  researchGrant: { model: prisma.researchGrant },
-  course: { model: prisma.course },
-  result: { model: prisma.result },
-  contribution: { model: prisma.contribution },
-  help: { model: prisma.helpPost },
-  event: { model: prisma.researchEvent },
-  admission: { model: prisma.phdAdmission },
-  vacancy: { model: prisma.jobVacancy },
-  supervisor: { model: prisma.supervisor },
-  recommendation: { model: prisma.recommendation },
-  survey: { model: prisma.researchSurvey },
-  SCHOLAR_PROFILE: { model: prisma.user },
+// RULE 1: Never bind delegates to the global client and reuse them inside an
+// interactive transaction. Doing so checks out a SECOND connection from the pool
+// mid-transaction, exhausting it and causing deadlocks (Prisma P2028). Instead we
+// store model-name strings and resolve the delegate dynamically against whatever
+// client is active: `prisma` outside a transaction, or the transaction client
+// `tx` inside one.
+const POST_DELEGATES: Record<string, string> = {
+  feed: "socialPost",
+  blog: "article",
+  publication: "publication",
+  journal: "journal",
+  researchTool: "researchTool",
+  researchGrant: "researchGrant",
+  course: "course",
+  result: "result",
+  contribution: "contribution",
+  help: "helpPost",
+  event: "researchEvent",
+  admission: "phdAdmission",
+  vacancy: "jobVacancy",
+  supervisor: "supervisor",
+  recommendation: "recommendation",
+  survey: "researchSurvey",
+  SCHOLAR_PROFILE: "user",
 };
 
-const COMMENT_DELEGATES: Record<string, { model: DelegateModel }> = {
-  socialComment: { model: prisma.socialComment },
-  articleComment: { model: prisma.articleComment },
-  helpComment: { model: prisma.helpPostComment },
-  contributionComment: { model: prisma.contributionComment },
-  publicationComment: { model: prisma.publicationComment },
-  researchToolComment: { model: prisma.researchToolComment },
-  researchGrantComment: { model: prisma.researchGrantComment },
-  courseComment: { model: prisma.courseComment },
-  journalComment: { model: prisma.journalComment },
-  resultComment: { model: prisma.resultComment },
-  surveyComment: { model: prisma.surveyComment },
-  researchEventComment: { model: prisma.researchEventComment },
-  admissionComment: { model: prisma.phdAdmissionComment },
-  vacancyComment: { model: prisma.jobVacancyComment },
-  supervisorComment: { model: prisma.supervisorComment },
-  recommendationComment: { model: prisma.recommendationComment },
+const COMMENT_DELEGATES: Record<string, string> = {
+  socialComment: "socialComment",
+  articleComment: "articleComment",
+  helpComment: "helpPostComment",
+  contributionComment: "contributionComment",
+  publicationComment: "publicationComment",
+  researchToolComment: "researchToolComment",
+  researchGrantComment: "researchGrantComment",
+  courseComment: "courseComment",
+  journalComment: "journalComment",
+  resultComment: "resultComment",
+  surveyComment: "surveyComment",
+  researchEventComment: "researchEventComment",
+  admissionComment: "phdAdmissionComment",
+  vacancyComment: "jobVacancyComment",
+  supervisorComment: "supervisorComment",
+  recommendationComment: "recommendationComment",
 };
 
 function resolveModel(contentType: string) {
   return POST_DELEGATES[contentType] ?? COMMENT_DELEGATES[contentType] ?? null;
 }
+
+// Resolve the delegate dynamically against the active client (`prisma` outside a
+// transaction, `tx` inside one). Returns null for unknown content types.
+function getModelDelegate(
+  client: unknown,
+  contentType: string
+): DelegateModel | null {
+  const model = resolveModel(contentType);
+  if (!model) return null;
+  return (client as Record<string, DelegateModel>)[model];
+}
+
 
 export async function submitAppeal({
   entityId,
@@ -89,14 +107,14 @@ export async function submitAppeal({
   const contentType = MODULE_TO_CONTENT_TYPE[module];
   if (!contentType) throw new Error("Invalid content type.");
 
-  const resolved = resolveModel(contentType);
-  if (!resolved) throw new Error("Invalid content type.");
+  const delegate = getModelDelegate(prisma, contentType);
+  if (!delegate) throw new Error("Invalid content type.");
 
   const trimmed = details.trim();
   if (trimmed.length === 0) throw new Error("Appeal reason is required.");
   if (trimmed.length > MAX_APPEAL_REASON) throw new Error(`Appeal reason is too long (max ${MAX_APPEAL_REASON} characters).`);
 
-  const fetched = (await resolved.model.findUnique({
+  const fetched = (await delegate.findUnique({
     where: { id: entityId },
     select: { authorId: true, isFrozen: true, isDeleted: true, hasActiveAppeal: true },
   })) as {
@@ -137,7 +155,7 @@ export async function submitAppeal({
       },
     });
 
-    await resolved.model.update({
+    await getModelDelegate(tx, contentType)!.update({
       where: { id: entityId },
       data: { hasActiveAppeal: true },
     });
