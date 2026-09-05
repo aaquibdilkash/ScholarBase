@@ -150,7 +150,7 @@ const PublicationDetailPage = async ({
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
         {p.journalOrConference && (
-          <div className="metric-card bg-indigo-50 dark:bg-black">
+          <div className="metric-card bg-indigo-50">
             <p className="text-xs text-indigo-500 font-medium uppercase tracking-wider">
               Journal / Conference
             </p>
@@ -160,7 +160,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.publisher && (
-          <div className="metric-card bg-cyan-50 dark:bg-black">
+          <div className="metric-card bg-cyan-50">
             <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
               Publisher
             </p>
@@ -170,7 +170,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.year && (
-          <div className="metric-card bg-rose-50 dark:bg-black">
+          <div className="metric-card bg-rose-50">
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Year
             </p>
@@ -180,7 +180,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.domain && (
-          <div className="metric-card bg-emerald-50 dark:bg-black">
+          <div className="metric-card bg-emerald-50">
             <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
               Domain
             </p>
@@ -190,7 +190,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.volume && (
-          <div className="metric-card bg-blue-50 dark:bg-black">
+          <div className="metric-card bg-blue-50">
             <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
               Volume
             </p>
@@ -200,7 +200,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.issue && (
-          <div className="metric-card bg-sky-50 dark:bg-black">
+          <div className="metric-card bg-sky-50">
             <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
               Issue
             </p>
@@ -210,7 +210,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.pages && (
-          <div className="metric-card bg-teal-50 dark:bg-black">
+          <div className="metric-card bg-teal-50">
             <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
               Pages
             </p>
@@ -220,7 +220,7 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.isUserAuthor && (
-          <div className="metric-card bg-amber-50 dark:bg-black">
+          <div className="metric-card bg-amber-50">
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Author Status
             </p>

@@ -82,7 +82,7 @@ export default function CareersPage() {
           </div>
 
           {/* The Honest Pitch */}
-          <section className="mb-12 sm:mb-16 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 md:p-10 dark:border-slate-800 dark:bg-slate-900">
+          <section className="mb-12 sm:mb-16 sb-overlay rounded-2xl border p-6 sm:p-8 md:p-10">
             <div className="flex items-center gap-3 mb-4">
               <Heart className="h-6 w-6 text-rose-600 dark:text-rose-400" />
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">
@@ -116,7 +116,7 @@ export default function CareersPage() {
             </p>
 
             {/* Growth Track */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 mb-6 dark:border-slate-800 dark:bg-slate-900">
+            <div className="sb-card-flush rounded-2xl border p-6 sm:p-8 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
                   <Megaphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -140,7 +140,7 @@ export default function CareersPage() {
             </div>
 
             {/* QA Track */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 mb-6 dark:border-slate-800 dark:bg-slate-900">
+            <div className="sb-card-flush rounded-2xl border p-6 sm:p-8 mb-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                   <Bug className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -164,7 +164,7 @@ export default function CareersPage() {
             </div>
 
             {/* Research & Curation Track */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 dark:border-slate-800 dark:bg-slate-900">
+            <div className="sb-card-flush rounded-2xl border p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
                   <SearchCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -195,7 +195,7 @@ export default function CareersPage() {
             </h2>
             <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
               {whatYouGet.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+                <div key={title} className="sb-card-flush rounded-xl border p-5 sm:p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
                       <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -235,7 +235,7 @@ export default function CareersPage() {
           </section>
 
           {/* How to Apply */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 md:p-10 dark:border-slate-800 dark:bg-slate-900 text-center">
+          <section className="sb-overlay rounded-2xl border p-6 sm:p-8 md:p-10 text-center">
             <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
               Ready to Grow With Us?
             </h2>

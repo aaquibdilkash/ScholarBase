@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { GraduationCap, MessageSquare, Reply, ThumbsUp } from "lucide-react";
+import { GraduationCap, Loader2, MessageSquare, Reply, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
+import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 import {
   getProfileSections,
   getProfileActivity,
@@ -293,6 +294,20 @@ export default function ProfileTabs({
   const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>({});
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [activityLoadingMore, setActivityLoadingMore] = useState(false);
+  const [activityHasMore, setActivityHasMore] = useState(false);
+
+  const activityRef = useRef<ActivityItem[] | null>(null);
+  const activityLoadingMoreRef = useRef(false);
+  const activityHasMoreRef = useRef(false);
+
+  useEffect(() => {
+    activityRef.current = activity;
+  }, [activity]);
+
+  useEffect(() => {
+    activityHasMoreRef.current = activityHasMore;
+  }, [activityHasMore]);
 
   const loadContent = useCallback(async () => {
     if (sections || isLoading) return;
@@ -312,15 +327,43 @@ export default function ProfileTabs({
     if (activity || activityLoading) return;
     setActivityLoading(true);
     try {
-      const data = await getProfileActivity(profileId, 30);
+      const data = await getProfileActivity(profileId, 10);
       setActivity(data);
+      const hasMore = data.length === 10;
+      activityHasMoreRef.current = hasMore;
+      setActivityHasMore(hasMore);
     } catch (err) {
       console.error("Failed to load profile activity:", err);
       setActivity([]);
+      activityHasMoreRef.current = false;
+      setActivityHasMore(false);
     } finally {
       setActivityLoading(false);
     }
   }, [profileId, activity, activityLoading]);
+
+  const loadMoreActivity = useCallback(async () => {
+    if (activityLoadingMoreRef.current || !activityHasMoreRef.current) return;
+    activityLoadingMoreRef.current = true;
+    setActivityLoadingMore(true);
+    try {
+      const currentActivity = activityRef.current;
+      const lastItem =
+        currentActivity && currentActivity.length > 0
+          ? currentActivity[currentActivity.length - 1]
+          : undefined;
+      const newItems = await getProfileActivity(profileId, 10, lastItem?.id);
+      const hasMore = newItems.length === 10;
+      activityHasMoreRef.current = hasMore;
+      setActivityHasMore(hasMore);
+      setActivity((prev) => [...(prev ?? []), ...newItems]);
+    } catch (err) {
+      console.error("Failed to load more activity:", err);
+    } finally {
+      activityLoadingMoreRef.current = false;
+      setActivityLoadingMore(false);
+    }
+  }, [profileId]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -513,7 +556,7 @@ export default function ProfileTabs({
         <div className="space-y-10">
           {isLoading && !sections && (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
             </div>
           )}
 
@@ -566,7 +609,7 @@ export default function ProfileTabs({
         <div className="space-y-4">
           {activityLoading && (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
             </div>
           )}
           {activity && activity.length > 0
@@ -583,6 +626,20 @@ export default function ProfileTabs({
                   </p>
                 </div>
               )}
+
+          {activity && activity.length > 0 && (
+            <LoadMoreSentinel
+              disabled={!activityHasMore || activityLoadingMore}
+              onVisible={loadMoreActivity}
+            />
+          )}
+
+          {activityLoadingMore && (
+            <div className="flex items-center justify-center py-4 text-sm text-slate-500">
+              <Loader2 className="mr-2 h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+              Loading more...
+            </div>
+          )}
         </div>
       )}
     </div>

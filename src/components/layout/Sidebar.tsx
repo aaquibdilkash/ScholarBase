@@ -217,7 +217,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
           <button
             type="button"
             onClick={toggleDesktop}
-            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-white/80 text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
+            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
             ${desktopCollapsed ? "md:h-12 md:w-12 md:mx-auto md:p-0" : "md:h-11 md:w-11 md:p-0"}`}
             aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
@@ -245,7 +245,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   className={`flex items-center overflow-hidden rounded-2xl font-semibold transition-all duration-300 ease-in-out
                     w-full px-4 py-3 justify-start gap-3
                     ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:gap-0" : ""}
-                    ${isActive ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300" : "text-slate-950 hover:bg-white/80 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"}
+                    ${isActive ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300" : "text-slate-950 hover:bg-[var(--surface)] hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"}
                   `}
                 >
                   <div className={`shrink-0 transition-colors ${isActive ? "text-blue-600 dark:text-blue-300" : "text-slate-800 dark:text-slate-500"}`}>
@@ -280,7 +280,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
             aria-label="Scroll navigation down"
             className={`mb-2 flex w-full items-center justify-center rounded-xl py-1 transition-colors ${
               canScrollDown
-                ? "cursor-pointer text-slate-800 hover:bg-white/60 hover:text-slate-950 dark:text-slate-500 dark:hover:bg-slate-900/60 dark:hover:text-slate-300"
+                 ? "cursor-pointer text-slate-800 hover:bg-[var(--surface-soft)] hover:text-slate-950 dark:text-slate-500 dark:hover:bg-slate-900/60 dark:hover:text-slate-300"
                 : "cursor-default text-slate-300 dark:text-slate-700"
             }`}
           >
@@ -299,7 +299,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                 <Link
                   href={profileHref}
                   className={`group flex items-center overflow-hidden rounded-2xl transition-all duration-300 ease-in-out
-                    w-full border border-slate-200/70 bg-white px-4 py-3 gap-3 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800
+                    w-full border border-slate-200/70 bg-[var(--input-bg)] px-4 py-3 gap-3 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800
                     ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:border-transparent md:bg-transparent md:gap-0" : ""}
                   `}
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
@@ -356,7 +356,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                 href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
                 className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:bg-black dark:hover:bg-black
                   w-full rounded-2xl px-4 py-3
-                  ${desktopCollapsed ? "md:h-12 md:w-12 md:rounded-2xl md:p-0 md:mx-auto md:justify-center md:bg-white md:border md:border-slate-200 md:text-slate-950 md:dark:border-slate-800 md:dark:bg-slate-900 md:dark:text-slate-300" : ""}
+                  ${desktopCollapsed ? "md:h-12 md:w-12 md:rounded-2xl md:p-0 md:mx-auto md:justify-center md:bg-[var(--surface-strong)] md:border md:border-[var(--card-border)] md:text-slate-950 md:dark:border-slate-800 md:dark:bg-slate-900 md:dark:text-slate-300" : ""}
                 `}
                 onClick={() => { if (!isDesktop) setMobileOpen(false); }}
               >

@@ -39,7 +39,7 @@ export default function ThemeToggle({ collapsed }: { collapsed: boolean }) {
       type="button"
       onClick={toggleTheme}
       disabled={!mounted} // Prevent clicking before it's ready
-      className={`flex items-center rounded-2xl border border-slate-200/70 bg-white/80 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-white hover:text-slate-950 dark:border-slate-700 dark:bg-[#020617] dark:text-slate-100 dark:shadow-black/20 dark:hover:border-slate-600 dark:hover:bg-black dark:hover:text-white ${
+      className={`flex items-center rounded-2xl border sb-soft text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-700 dark:bg-[#020617] dark:text-slate-100 dark:shadow-black/20 dark:hover:border-slate-600 dark:hover:bg-black dark:hover:text-white ${
         collapsed ? "justify-center p-3 h-12 w-12" : "justify-between px-4 py-3 w-full"
       }`}
       aria-label={

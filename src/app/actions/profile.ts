@@ -347,13 +347,18 @@ export async function getProfileSection(
 // and voted on. Returns a flat, unified list for rendering.
 // ─────────────────────────────────────────────────────────────
 
-export async function getProfileActivity(profileId: string, take = 10) {
+export async function getProfileActivity(
+  profileId: string,
+  take = 10,
+  cursor?: string,
+) {
   if (!profileId) return [];
 
   return prisma.userActivity.findMany({
     where: { userId: profileId },
     take,
     orderBy: { createdAt: "desc" },
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     select: {
       id: true,
       action: true,

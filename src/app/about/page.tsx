@@ -83,7 +83,7 @@ export default function AboutPage() {
             </h2>
             <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
               {features.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 dark:border-slate-800 dark:bg-slate-900">
+                <div key={title} className="sb-card-flush rounded-xl border p-5 sm:p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
                       <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -97,7 +97,7 @@ export default function AboutPage() {
           </section>
 
           {/* Our Values */}
-          <section className="mb-12 sm:mb-16 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 md:p-10 dark:border-slate-800 dark:bg-slate-900">
+          <section className="sb-overlay mb-12 sm:mb-16 rounded-2xl border p-6 sm:p-8 md:p-10">
             <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
               What We Believe
             </h2>
@@ -143,7 +143,7 @@ export default function AboutPage() {
                 Explore ScholarBase
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/contact" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+              <Link href="/contact" className="inline-flex items-center gap-2 rounded-xl border sb-soft px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-[var(--surface-strong)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 Get in Touch
               </Link>
             </div>

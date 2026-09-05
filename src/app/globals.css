@@ -3,12 +3,18 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4f0e8;
-  --foreground: #15202b;
-  --muted: #5f6b75;
-  --surface: rgba(255, 255, 255, 0.78);
-  --surface-strong: rgba(255, 255, 255, 0.92);
-  --border: rgba(21, 32, 43, 0.08);
+  --background: #e1e6ee;
+  --background-deep: #c9d1de;
+  --foreground: #1c2330;
+  --muted: #5b6577;
+  --surface: rgba(255, 255, 255, 0.7);
+  --surface-strong: rgba(255, 255, 255, 0.86);
+  --surface-soft: rgba(255, 255, 255, 0.45);
+  --border: rgba(56, 89, 122, 0.16);
+  --border-strong: rgba(56, 89, 122, 0.28);
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --card-border: rgba(56, 89, 122, 0.18);
+  --input-bg: rgba(255, 255, 255, 0.88);
 }
 
 html.dark,
@@ -37,15 +43,15 @@ html[data-theme="dark"] {
     background:
       radial-gradient(
         circle at top left,
-        rgba(255, 255, 255, 0.92),
-        transparent 35%
+        rgba(255, 255, 255, 0.9),
+        transparent 42%
       ),
       radial-gradient(
         circle at top right,
-        rgba(59, 130, 246, 0.1),
-        transparent 28%
+        rgba(56, 89, 122, 0.1),
+        transparent 34%
       ),
-      linear-gradient(180deg, #f7f9fc 0%, #f0f4f8 34%, #e8edf5 100%);
+      linear-gradient(180deg, #f3f5f8 0%, #e1e6ee 50%, #c9d1de 100%);
     color: var(--foreground);
     font-family: var(--font-sans);
     min-height: 100vh;
@@ -141,11 +147,20 @@ html[data-theme="dark"] {
   }
 
   .sb-surface {
-    @apply rounded-2xl sm:rounded-[28px] border border-white/70 bg-white/75 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
+    @apply rounded-2xl sm:rounded-[28px] border shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
+    background-color: var(--surface);
+    border-color: var(--border);
   }
 
   .sb-surface-strong {
-    @apply rounded-2xl sm:rounded-[28px] border border-slate-200/70 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)];
+    @apply rounded-2xl sm:rounded-[28px] border shadow-[0_18px_60px_rgba(15,23,42,0.08)];
+    background-color: var(--surface-strong);
+    border-color: var(--border-strong);
+  }
+
+  .sb-surface-soft {
+    background-color: var(--surface-soft);
+    border-color: var(--border);
   }
 
   .sb-heading {
@@ -157,11 +172,17 @@ html[data-theme="dark"] {
   }
 
   .sb-card {
-    @apply rounded-2xl sm:rounded-3xl border border-slate-200/70 bg-white/90 p-4 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300 sm:p-6;
+    @apply rounded-2xl sm:rounded-3xl border p-4 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300 sm:p-6;
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
   }
 
   .sb-card-hover {
-    @apply hover:-translate-y-1 hover:border-blue-100 hover:shadow-[0_14px_40px_rgba(15,23,42,0.08)];
+    @apply hover:-translate-y-1 hover:shadow-[0_14px_40px_rgba(15,23,42,0.08)];
+    border-color: var(--card-border);
+  }
+  .sb-card-hover:hover {
+    border-color: var(--border-strong);
   }
 
   .sb-label {
@@ -169,15 +190,21 @@ html[data-theme="dark"] {
   }
 
   .sb-input {
-    @apply w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    @apply w-full rounded-xl border px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
   }
 
   .sb-textarea {
-    @apply w-full rounded-xl border border-slate-200/80 bg-white px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    @apply w-full rounded-xl border px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
   }
 
   .sb-select {
-    @apply w-full appearance-none rounded-xl border border-slate-300 bg-white px-3 py-2.5 pr-11 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    @apply w-full appearance-none rounded-xl border px-3 py-2.5 pr-11 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
     background-position: right 0.875rem center;
     background-repeat: no-repeat;
@@ -185,14 +212,20 @@ html[data-theme="dark"] {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(15, 23, 42, 0.05);
   }
 
-  .sb-select:hover { @apply border-slate-400; }
-  .sb-select option { @apply bg-white text-slate-900; }
+  .sb-select:hover { border-color: var(--border-strong); }
+  .sb-select option { background-color: var(--input-bg); color: #0f172a; }
 
   .sb-menu-trigger {
-    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50;
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg border text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50;
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
   }
 
-  .sb-menu { @apply overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-[0_14px_32px_rgba(15,23,42,0.14)]; }
+  .sb-menu {
+    @apply overflow-hidden rounded-xl border p-1 shadow-[0_14px_32px_rgba(15,23,42,0.14)];
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
+  }
   .sb-menu-item { @apply block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 focus:bg-slate-100 focus:outline-none; }
 
   .sb-button-primary {
@@ -204,21 +237,24 @@ html[data-theme="dark"] {
   }
 
   .sb-button-soft {
-    @apply inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed sm:px-5 sm:py-3 sm:text-sm;
+    @apply inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed sm:px-5 sm:py-3 sm:text-sm;
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
   }
+  .sb-button-soft:hover { border-color: var(--border-strong); }
 
   .sb-navbar-bg {
     background:
-      radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.92), transparent 35%),
-      radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.1), transparent 28%),
-      linear-gradient(0deg, #f7f9fc 0%, #f0f4f8 34%, #e8edf5 100%);
+      radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.9), transparent 42%),
+      radial-gradient(circle at bottom right, rgba(56, 89, 122, 0.1), transparent 34%),
+      linear-gradient(0deg, #f3f5f8 0%, #e1e6ee 50%, #c9d1de 100%);
   }
 
   .sb-sidebar-bg {
     background:
-      radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.92), transparent 35%),
-      radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.1), transparent 28%),
-      linear-gradient(0deg, #f7f9fc 0%, #f0f4f8 34%, #e8edf5 100%);
+      radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.9), transparent 42%),
+      radial-gradient(circle at bottom right, rgba(56, 89, 122, 0.1), transparent 34%),
+      linear-gradient(90deg, #f3f5f8 0%, #e1e6ee 50%, #c9d1de 100%);
   }
 
   html.dark .sb-navbar-bg,
@@ -231,13 +267,57 @@ html[data-theme="dark"] {
       linear-gradient(0deg, #0b0d10 0%, #0f1318 42%, #050607 100%);
   }
 
-  .metric-card {
-    @apply rounded-xl p-3;
+  /* Centralized light-theme surface helpers — driven entirely by CSS variables
+     so changing the palette here updates every card across the app. */
+  .sb-footer-bg {
+    background-color: var(--surface);
+    border-color: var(--border);
+    backdrop-filter: blur(20px);
   }
 
-  html.dark .metric-card,
-  html[data-theme="dark"] .metric-card {
-    background-color: #020617;
+  .sb-card-flush {
+    background-color: var(--card-bg);
+    border-color: var(--card-border);
+  }
+
+  .sb-soft {
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
+  }
+
+  .sb-overlay {
+    background-color: var(--surface-strong);
+    border-color: var(--border-strong);
+    backdrop-filter: blur(16px);
+  }
+
+  /* Auto-rewrite common white patterns in light mode so any leftover hardcoded
+     bg-white/bg-white/XX usage across the codebase inherits the cream palette.
+     Dark mode keeps its own rules below. */
+  :where([class*="bg-white"]) {
+    background-color: var(--card-bg);
+  }
+
+  .bg-white { background-color: var(--card-bg) !important; }
+  .bg-white\/55 { background-color: var(--surface-soft) !important; }
+  .bg-white\/60 { background-color: var(--surface-soft) !important; }
+  .bg-white\/65 { background-color: var(--surface-soft) !important; }
+  .bg-white\/70 { background-color: var(--surface) !important; }
+  .bg-white\/75 { background-color: var(--surface) !important; }
+  .bg-white\/80 { background-color: var(--surface) !important; }
+  .bg-white\/90 { background-color: var(--card-bg) !important; }
+
+  /* Border tokens — same source of truth */
+  .border-white\/60 { border-color: var(--border) !important; }
+  .border-white\/70 { border-color: var(--border) !important; }
+  .border-slate-200 { border-color: var(--card-border) !important; }
+  .border-slate-200\/60 { border-color: var(--card-border) !important; }
+  .border-slate-200\/70 { border-color: var(--card-border) !important; }
+  .border-slate-200\/80 { border-color: var(--card-border) !important; }
+  .border-slate-300 { border-color: var(--border-strong) !important; }
+
+  .metric-card {
+    @apply rounded-xl border border-transparent p-3;
   }
 
   html.dark .sb-surface,
@@ -256,6 +336,57 @@ html[data-theme="dark"] {
     background: rgba(15, 23, 42, 0.76);
     color: var(--foreground);
   }
+
+  /* Dark theme: new surface helpers + cancel the light-mode auto-rewrite of
+     any leftover bg-white usage so dark mode keeps its own slate palette. */
+  html.dark .sb-footer-bg,
+  html.dark .sb-card-flush,
+  html.dark .sb-soft,
+  html.dark .sb-overlay,
+  html[data-theme="dark"] .sb-footer-bg,
+  html[data-theme="dark"] .sb-card-flush,
+  html[data-theme="dark"] .sb-soft,
+  html[data-theme="dark"] .sb-overlay {
+    background: rgba(15, 23, 42, 0.76);
+    border-color: rgba(148, 163, 184, 0.14);
+  }
+
+  html.dark :where([class*="bg-white"]),
+  html[data-theme="dark"] :where([class*="bg-white"]) {
+    background-color: rgba(15, 23, 42, 0.76);
+  }
+
+  html.dark .bg-white,
+  html[data-theme="dark"] .bg-white { background-color: #0f172a !important; }
+  html.dark .bg-white\/55,
+  html[data-theme="dark"] .bg-white\/55 { background-color: rgba(15, 23, 42, 0.55) !important; }
+  html.dark .bg-white\/60,
+  html[data-theme="dark"] .bg-white\/60 { background-color: rgba(15, 23, 42, 0.6) !important; }
+  html.dark .bg-white\/65,
+  html[data-theme="dark"] .bg-white\/65 { background-color: rgba(15, 23, 42, 0.65) !important; }
+  html.dark .bg-white\/70,
+  html[data-theme="dark"] .bg-white\/70 { background-color: rgba(15, 23, 42, 0.7) !important; }
+  html.dark .bg-white\/75,
+  html[data-theme="dark"] .bg-white\/75 { background-color: rgba(15, 23, 42, 0.75) !important; }
+  html.dark .bg-white\/80,
+  html[data-theme="dark"] .bg-white\/80 { background-color: rgba(15, 23, 42, 0.8) !important; }
+  html.dark .bg-white\/90,
+  html[data-theme="dark"] .bg-white\/90 { background-color: rgba(15, 23, 42, 0.85) !important; }
+
+  html.dark .border-white\/60,
+  html.dark .border-white\/70,
+  html[data-theme="dark"] .border-white\/60,
+  html[data-theme="dark"] .border-white\/70 { border-color: rgba(148, 163, 184, 0.14) !important; }
+  html.dark .border-slate-200,
+  html.dark .border-slate-200\/60,
+  html.dark .border-slate-200\/70,
+  html.dark .border-slate-200\/80,
+  html.dark .border-slate-300,
+  html[data-theme="dark"] .border-slate-200,
+  html[data-theme="dark"] .border-slate-200\/60,
+  html[data-theme="dark"] .border-slate-200\/70,
+  html[data-theme="dark"] .border-slate-200\/80,
+  html[data-theme="dark"] .border-slate-300 { border-color: rgba(148, 163, 184, 0.14) !important; }
 
   html.dark .sb-select,
   html[data-theme="dark"] .sb-select {
@@ -526,6 +657,26 @@ html[data-theme="dark"] {
 
   html.dark .bg-slate-50 {
     background-color: rgba(15, 23, 42, 0.55);
+  }
+
+  html.dark .metric-card,
+  html[data-theme="dark"] .metric-card {
+    border-color: rgba(148, 163, 184, 0.42);
+    background: #020617;
+    color: #f8fafc;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 0 rgba(0, 0, 0, 0.24), 0 16px 28px rgba(0, 0, 0, 0.5);
+  }
+
+  html.dark .metric-card p,
+  html[data-theme="dark"] .metric-card p {
+    color: #f8fafc;
+  }
+
+  html.dark .metric-card:hover,
+  html[data-theme="dark"] .metric-card:hover {
+    background: #334155;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 8px 0 rgba(0, 0, 0, 0.3), 0 18px 32px rgba(0, 0, 0, 0.66);
   }
 }
 
