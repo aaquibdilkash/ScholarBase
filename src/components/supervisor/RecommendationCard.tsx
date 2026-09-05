@@ -128,11 +128,21 @@ export function RecommendationCard({
       }
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       footerCommentsCount={recommendation.totalComments}
-      footerReportMenu={
+            footerReportMenu={
         <ReportMenu
           entityId={recommendation.id}
           entityType="POST"
           module="RECOMMENDATION"
+          ownerId={
+            recommendation.isAnonymous
+              ? null
+              : recommendation.author?.id ??
+                recommendation.authorId ??
+                null
+          }
+          currentUserId={currentUserId ?? null}
+          isFrozen={recommendation.isFrozen ?? false}
+          hasActiveAppeal={recommendation.hasActiveAppeal ?? false}
         />
       }
     >

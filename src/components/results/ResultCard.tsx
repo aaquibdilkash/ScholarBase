@@ -89,7 +89,15 @@ export function ResultCard({
       footerCommentsHref={`/results/${result.id}`}
       footerCommentsCount={result.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={result.id} entityType="POST" module="RESULT" />
+        <ReportMenu
+          entityId={result.id}
+          entityType="POST"
+          module="RESULT"
+          ownerId={result.author?.id ?? result.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={result.isFrozen ?? false}
+          hasActiveAppeal={result.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

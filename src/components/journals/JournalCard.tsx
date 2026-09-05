@@ -82,7 +82,15 @@ export function JournalCard({
       footerCommentsHref={`/journals/${journal.id}`}
       footerCommentsCount={journal.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={journal.id} entityType="POST" module="JOURNAL" />
+        <ReportMenu
+          entityId={journal.id}
+          entityType="POST"
+          module="JOURNAL"
+          ownerId={journal.author?.id ?? journal.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={journal.isFrozen ?? false}
+          hasActiveAppeal={journal.hasActiveAppeal ?? false}
+        />
       }
       bodyBottomContent={
         <>

@@ -80,7 +80,15 @@ export function HelpPostCard({
       footerCommentsHref={`/help/${helpPost.id}`}
       footerCommentsCount={helpPost.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={helpPost.id} entityType="POST" module="HELP_POST" />
+        <ReportMenu
+          entityId={helpPost.id}
+          entityType="POST"
+          module="HELP_POST"
+          ownerId={helpPost.author?.id ?? helpPost.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={helpPost.isFrozen ?? false}
+          hasActiveAppeal={helpPost.hasActiveAppeal ?? false}
+        />
       }
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">

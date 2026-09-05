@@ -84,7 +84,15 @@ export function VacancyCard({
       footerCommentsHref={`/vacancies/${vacancy.id}`}
       footerCommentsCount={vacancy.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={vacancy.id} entityType="POST" module="JOB_VACANCY" />
+        <ReportMenu
+          entityId={vacancy.id}
+          entityType="POST"
+          module="JOB_VACANCY"
+          ownerId={vacancy.author?.id ?? vacancy.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={vacancy.isFrozen ?? false}
+          hasActiveAppeal={vacancy.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

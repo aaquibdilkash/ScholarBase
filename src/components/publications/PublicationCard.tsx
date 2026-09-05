@@ -93,7 +93,15 @@ export function PublicationCard({
       footerCommentsHref={`/publications/${publication.id}`}
       footerCommentsCount={publication.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={publication.id} entityType="POST" module="PUBLICATION" />
+        <ReportMenu
+          entityId={publication.id}
+          entityType="POST"
+          module="PUBLICATION"
+          ownerId={publication.author?.id ?? publication.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={publication.isFrozen ?? false}
+          hasActiveAppeal={publication.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

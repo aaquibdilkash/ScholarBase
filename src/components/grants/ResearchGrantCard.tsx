@@ -81,7 +81,15 @@ export function ResearchGrantCard({
       footerCommentsHref={`/grants/${grant.id}`}
       footerCommentsCount={grant.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={grant.id} entityType="POST" module="RESEARCH_GRANT" />
+        <ReportMenu
+          entityId={grant.id}
+          entityType="POST"
+          module="RESEARCH_GRANT"
+          ownerId={grant.author?.id ?? grant.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={grant.isFrozen ?? false}
+          hasActiveAppeal={grant.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

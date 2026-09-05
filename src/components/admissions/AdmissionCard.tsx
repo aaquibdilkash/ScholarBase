@@ -82,7 +82,15 @@ export function AdmissionCard({
       footerCommentsHref={`/admissions/${admission.id}`}
       footerCommentsCount={admission.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={admission.id} entityType="POST" module="PHD_ADMISSION" />
+        <ReportMenu
+          entityId={admission.id}
+          entityType="POST"
+          module="PHD_ADMISSION"
+          ownerId={admission.author?.id ?? admission.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={admission.isFrozen ?? false}
+          hasActiveAppeal={admission.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

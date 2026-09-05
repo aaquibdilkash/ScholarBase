@@ -84,7 +84,15 @@ export function SupervisorCard({
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={supervisor.id} entityType="POST" module="SUPERVISOR" />
+        <ReportMenu
+          entityId={supervisor.id}
+          entityType="POST"
+          module="SUPERVISOR"
+          ownerId={supervisor.author?.id ?? supervisor.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={supervisor.isFrozen ?? false}
+          hasActiveAppeal={supervisor.hasActiveAppeal ?? false}
+        />
       }
     >
       <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">

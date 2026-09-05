@@ -79,7 +79,15 @@ export function ResearchToolCard({
       footerCommentsHref={`/research-tools/${tool.id}`}
       footerCommentsCount={tool.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={tool.id} entityType="POST" module="RESEARCH_TOOL" />
+        <ReportMenu
+          entityId={tool.id}
+          entityType="POST"
+          module="RESEARCH_TOOL"
+          ownerId={tool.author?.id ?? tool.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={tool.isFrozen ?? false}
+          hasActiveAppeal={tool.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

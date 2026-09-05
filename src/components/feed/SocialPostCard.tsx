@@ -79,7 +79,15 @@ export function SocialPostCard({
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post.totalComments ?? 0}
       footerReportMenu={
-        <ReportMenu entityId={post.id} entityType="POST" module="SOCIAL_FEED" />
+        <ReportMenu
+          entityId={post.id}
+          entityType="POST"
+          module="SOCIAL_FEED"
+          ownerId={post.author?.id ?? post.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={post.isFrozen ?? false}
+          hasActiveAppeal={post.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={false}
     >

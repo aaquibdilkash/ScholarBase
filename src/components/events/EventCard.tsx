@@ -92,7 +92,15 @@ export function EventCard({
       footerCommentsHref={`/events/${event.id}`}
       footerCommentsCount={event.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={event.id} entityType="POST" module="RESEARCH_EVENT" />
+        <ReportMenu
+          entityId={event.id}
+          entityType="POST"
+          module="RESEARCH_EVENT"
+          ownerId={event.author?.id ?? event.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={event.isFrozen ?? false}
+          hasActiveAppeal={event.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

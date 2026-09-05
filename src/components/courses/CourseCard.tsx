@@ -89,7 +89,15 @@ export function CourseCard({
       footerCommentsHref={`/learn/${course.id}`}
       footerCommentsCount={course.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={course.id} entityType="POST" module="COURSE" />
+        <ReportMenu
+          entityId={course.id}
+          entityType="POST"
+          module="COURSE"
+          ownerId={course.author?.id ?? course.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={course.isFrozen ?? false}
+          hasActiveAppeal={course.hasActiveAppeal ?? false}
+        />
       }
       noBodyLink={true}
       bodyBottomContent={

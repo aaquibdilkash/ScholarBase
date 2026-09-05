@@ -83,7 +83,15 @@ export function ContributionCard({
       footerCommentsHref={`/contributions/${contribution.id}`}
       footerCommentsCount={contribution.totalComments}
       footerReportMenu={
-        <ReportMenu entityId={contribution.id} entityType="POST" module="CONTRIBUTION" />
+        <ReportMenu
+          entityId={contribution.id}
+          entityType="POST"
+          module="CONTRIBUTION"
+          ownerId={contribution.author?.id ?? contribution.authorId ?? null}
+          currentUserId={currentUserId ?? null}
+          isFrozen={contribution.isFrozen ?? false}
+          hasActiveAppeal={contribution.hasActiveAppeal ?? false}
+        />
       }
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
