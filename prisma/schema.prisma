@@ -143,7 +143,7 @@ model Article {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author   User             @relation(fields: [authorId], references: [id])
+  author   User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments ArticleComment[]
   votes    ArticleVote[]
 
@@ -213,7 +213,7 @@ model SocialPost {
 
   comments SocialComment[]
   votes    SocialVote[]
-  author   User            @relation(fields: [authorId], references: [id])
+  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
@@ -256,10 +256,9 @@ model ArticleVote {
   voteType  VoteType
   createdAt DateTime @default(now())
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([articleId, userId])
-  @@index([articleId, voteType])
 }
 
 model SocialComment {
@@ -299,10 +298,9 @@ model ArticleCommentVote {
   voteType  VoteType
   createdAt DateTime       @default(now())
   comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id])
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model SocialCommentVote {
@@ -312,10 +310,9 @@ model SocialCommentVote {
   voteType  VoteType
   createdAt DateTime      @default(now())
   comment   SocialComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model SocialVote {
@@ -325,10 +322,9 @@ model SocialVote {
   voteType     VoteType
   createdAt    DateTime   @default(now())
   socialPost   SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([socialPostId, userId])
-  @@index([socialPostId, voteType])
 }
 
 // ============================================
@@ -462,10 +458,9 @@ model HelpPostVote {
   createdAt  DateTime @default(now())
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([helpPostId, userId])
-  @@index([helpPostId, voteType])
 }
 
 model HelpPostComment {
@@ -507,10 +502,9 @@ model HelpPostCommentVote {
   voteType  VoteType
   createdAt DateTime        @default(now())
   comment   HelpPostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User            @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Contribution {
@@ -557,10 +551,9 @@ model ContributionVote {
   createdAt      DateTime @default(now())
 
   contribution Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([contributionId, userId])
-  @@index([contributionId, voteType])
 }
 
 model ContributionComment {
@@ -600,10 +593,9 @@ model ContributionCommentVote {
   voteType  VoteType
   createdAt DateTime            @default(now())
   comment   ContributionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id])
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Publication {
@@ -655,10 +647,9 @@ model PublicationVote {
   voteType      VoteType
   createdAt     DateTime    @default(now())
   publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  user          User        @relation(fields: [userId], references: [id])
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([publicationId, userId])
-  @@index([publicationId, voteType])
 }
 
 model PublicationComment {
@@ -698,10 +689,9 @@ model PublicationCommentVote {
   voteType  VoteType
   createdAt DateTime           @default(now())
   comment   PublicationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User               @relation(fields: [userId], references: [id])
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model User {
@@ -857,6 +847,7 @@ model User {
   // reputation and createdAt. The User table previously had NO non-unique
   // indexes on these columns, so every listing triggered a full-table filesort.
   @@index([trendingScore(sort: Desc)])
+  @@index([reputation(sort: Desc)])
   @@index([createdAt(sort: Desc)])
 }
 
@@ -955,7 +946,7 @@ model ResearchTool {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author   User                  @relation(fields: [authorId], references: [id])
+  author   User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments ResearchToolComment[]
   votes    ResearchToolVote[]
 
@@ -970,10 +961,9 @@ model ResearchToolVote {
   voteType       VoteType
   createdAt      DateTime     @default(now())
   researchTool   ResearchTool @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([researchToolId, userId])
-  @@index([researchToolId, voteType])
 }
 
 model ResearchToolComment {
@@ -1013,10 +1003,9 @@ model ResearchToolCommentVote {
   voteType  VoteType
   createdAt DateTime            @default(now())
   comment   ResearchToolComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id])
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model ResearchGrant {
@@ -1042,7 +1031,7 @@ model ResearchGrant {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author   User                   @relation(fields: [authorId], references: [id])
+  author   User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments ResearchGrantComment[]
   votes    ResearchGrantVote[]
 
@@ -1057,10 +1046,9 @@ model ResearchGrantVote {
   voteType        VoteType
   createdAt       DateTime      @default(now())
   researchGrant   ResearchGrant @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
-  user            User          @relation(fields: [userId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([researchGrantId, userId])
-  @@index([researchGrantId, voteType])
 }
 
 model ResearchGrantComment {
@@ -1100,10 +1088,9 @@ model ResearchGrantCommentVote {
   voteType  VoteType
   createdAt DateTime             @default(now())
   comment   ResearchGrantComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                 @relation(fields: [userId], references: [id])
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Course {
@@ -1133,7 +1120,7 @@ model Course {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author   User            @relation(fields: [authorId], references: [id])
+  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments CourseComment[]
   votes    CourseVote[]
 
@@ -1148,10 +1135,9 @@ model CourseVote {
   voteType  VoteType
   createdAt DateTime @default(now())
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, userId])
-  @@index([courseId, voteType])
 }
 
 model CourseComment {
@@ -1191,10 +1177,9 @@ model CourseCommentVote {
   voteType  VoteType
   createdAt DateTime      @default(now())
   comment   CourseComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Journal {
@@ -1231,7 +1216,7 @@ model Journal {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author   User             @relation(fields: [authorId], references: [id])
+  author   User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments JournalComment[]
   votes    JournalVote[]
   about    String?
@@ -1247,10 +1232,9 @@ model JournalVote {
   voteType  VoteType
   createdAt DateTime @default(now())
   journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([journalId, userId])
-  @@index([journalId, voteType])
 }
 
 model JournalComment {
@@ -1290,10 +1274,9 @@ model JournalCommentVote {
   voteType  VoteType
   createdAt DateTime       @default(now())
   comment   JournalComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id])
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Result {
@@ -1322,7 +1305,7 @@ model Result {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author User @relation(fields: [authorId], references: [id])
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes    ResultVote[]
   comments ResultComment[]
@@ -1338,10 +1321,9 @@ model ResultVote {
   voteType  VoteType
   createdAt DateTime @default(now())
   result    Result   @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([resultId, userId])
-  @@index([resultId, voteType])
 }
 
 model ResultComment {
@@ -1383,10 +1365,9 @@ model ResultCommentVote {
   voteType  VoteType
   createdAt DateTime      @default(now())
   comment   ResultComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model ResearchSurvey {
@@ -1443,6 +1424,8 @@ model SurveyQuestion {
 
   // ZERO-COMPUTE FIELDS
   totalAnswers Int @default(0)
+
+  @@index([surveyId, order(sort: Asc)])
 }
 
 model SurveyQuestionOption {
@@ -1456,6 +1439,8 @@ model SurveyQuestionOption {
   updatedAt  DateTime       @updatedAt
   editedAt   DateTime?
   question   SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, order(sort: Asc)])
 }
 
 model SurveyResponse {
@@ -1467,8 +1452,12 @@ model SurveyResponse {
   updatedAt    DateTime       @updatedAt
   editedAt     DateTime?
   survey       ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  respondent   User?          @relation(fields: [respondentId], references: [id])
+  respondent   User?          @relation(fields: [respondentId], references: [id], onDelete: Cascade)
   answers      SurveyAnswer[]
+
+  // INDEX: hasUserResponded + submitSurveyResponse duplicate guard
+  @@index([surveyId, respondentId])
+  @@index([surveyId, createdAt(sort: Desc)])
 }
 
 model SurveyAnswer {
@@ -1479,6 +1468,9 @@ model SurveyAnswer {
 
   response SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
   question SurveyQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([responseId])
+  @@index([questionId])
 }
 
 model SurveyVote {
@@ -1488,10 +1480,9 @@ model SurveyVote {
   voteType  VoteType
   createdAt DateTime       @default(now())
   survey    ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  user      User           @relation(fields: [userId], references: [id])
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([surveyId, userId])
-  @@index([surveyId, voteType])
 }
 
 model SurveyComment {
@@ -1533,10 +1524,9 @@ model SurveyCommentVote {
   voteType  VoteType
   createdAt DateTime      @default(now())
   comment   SurveyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id])
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Follows {
@@ -1544,8 +1534,8 @@ model Follows {
   followingId String
   createdAt   DateTime @default(now())
 
-  follower  User @relation("following", fields: [followerId], references: [id])
-  following User @relation("followers", fields: [followingId], references: [id])
+  follower  User @relation("following", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("followers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
   @@index([followerId, createdAt(sort: Desc)])
@@ -1590,7 +1580,7 @@ model ResearchEvent {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author User @relation(fields: [authorId], references: [id])
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes    ResearchEventVote[]
   comments ResearchEventComment[]
@@ -1606,10 +1596,9 @@ model ResearchEventVote {
   voteType        VoteType
   createdAt       DateTime      @default(now())
   researchEvent   ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  user            User          @relation(fields: [userId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([researchEventId, userId])
-  @@index([researchEventId, voteType])
 }
 
 model ResearchEventComment {
@@ -1651,10 +1640,9 @@ model ResearchEventCommentVote {
   voteType  VoteType
   createdAt DateTime             @default(now())
   comment   ResearchEventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                 @relation(fields: [userId], references: [id])
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model PhdAdmission {
@@ -1681,7 +1669,7 @@ model PhdAdmission {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author User @relation(fields: [authorId], references: [id])
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes    PhdAdmissionVote[]
   comments PhdAdmissionComment[]
@@ -1697,10 +1685,9 @@ model PhdAdmissionVote {
   voteType       VoteType
   createdAt      DateTime     @default(now())
   phdAdmission   PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([phdAdmissionId, userId])
-  @@index([phdAdmissionId, voteType])
 }
 
 model PhdAdmissionComment {
@@ -1742,10 +1729,9 @@ model PhdAdmissionCommentVote {
   voteType  VoteType
   createdAt DateTime            @default(now())
   comment   PhdAdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id])
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model JobVacancy {
@@ -1772,7 +1758,7 @@ model JobVacancy {
   deletedById   String?
   reportCount   Int            @default(0)
 
-  author User @relation(fields: [authorId], references: [id])
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes    JobVacancyVote[]
   comments JobVacancyComment[]
@@ -1788,10 +1774,9 @@ model JobVacancyVote {
   voteType     VoteType
   createdAt    DateTime   @default(now())
   jobVacancy   JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([jobVacancyId, userId])
-  @@index([jobVacancyId, voteType])
 }
 
 model JobVacancyComment {
@@ -1833,10 +1818,9 @@ model JobVacancyCommentVote {
   voteType  VoteType
   createdAt DateTime          @default(now())
   comment   JobVacancyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User              @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model SupervisorVote {
@@ -1846,10 +1830,9 @@ model SupervisorVote {
   voteType     VoteType
   createdAt    DateTime   @default(now())
   supervisor   Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id])
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([supervisorId, userId])
-  @@index([supervisorId, voteType])
 }
 
 model SupervisorComment {
@@ -1889,10 +1872,9 @@ model SupervisorCommentVote {
   voteType  VoteType
   createdAt DateTime          @default(now())
   comment   SupervisorComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User              @relation(fields: [userId], references: [id])
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }
 
 model Recommendation {
@@ -1921,7 +1903,7 @@ model Recommendation {
   reportCount   Int            @default(0)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author     User                    @relation(fields: [authorId], references: [id])
+  author     User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes      RecommendationVote[]
   comments   RecommendationComment[]
 
@@ -1930,6 +1912,10 @@ model Recommendation {
   //   CREATE UNIQUE INDEX ... ON "Recommendation"("authorId","supervisorId") WHERE "isDeleted" = false;
   // A full @@unique here would count soft-deleted tombstones and crash
   // re-submission after a delete.
+  @@index([supervisorId, isDeleted, createdAt(sort: Desc)])
+  // INDEX: duplicate-recommendation guard (recommendations.ts findFirst on
+  // supervisorId + authorId + isDeleted). isDeleted is a cheap residual filter.
+  @@index([supervisorId, authorId])
   @@index([createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
@@ -1941,10 +1927,9 @@ model RecommendationVote {
   voteType         VoteType
   createdAt        DateTime       @default(now())
   recommendation   Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id])
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([recommendationId, userId])
-  @@index([recommendationId, voteType])
 }
 
 model RecommendationComment {
@@ -1984,8 +1969,7 @@ model RecommendationCommentVote {
   voteType  VoteType
   createdAt DateTime              @default(now())
   comment   RecommendationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                  @relation(fields: [userId], references: [id])
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
-  @@index([commentId, voteType])
 }

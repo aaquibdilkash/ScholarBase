@@ -1,1 +1,0 @@
--- Changes applied directly to Supabase via prisma db push
