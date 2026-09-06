@@ -284,14 +284,52 @@ export async function getAdminAppeals(
     recommendationComment: prisma.recommendationComment,
   };
 
+  // Comment appeals have no page of their own — link to the parent post.
+  // Maps a comment contentType -> { FK on the comment row, parent contentType }.
+  const COMMENT_PARENT: Record<string, { fk: string; parentCt: string }> = {
+    socialComment: { fk: "socialPostId", parentCt: "feed" },
+    articleComment: { fk: "articleId", parentCt: "blog" },
+    helpComment: { fk: "helpPostId", parentCt: "help" },
+    contributionComment: { fk: "contributionId", parentCt: "contribution" },
+    publicationComment: { fk: "publicationId", parentCt: "publication" },
+    researchToolComment: { fk: "researchToolId", parentCt: "researchTool" },
+    researchGrantComment: { fk: "researchGrantId", parentCt: "researchGrant" },
+    courseComment: { fk: "courseId", parentCt: "course" },
+    journalComment: { fk: "journalId", parentCt: "journal" },
+    resultComment: { fk: "resultId", parentCt: "result" },
+    surveyComment: { fk: "surveyId", parentCt: "survey" },
+    researchEventComment: { fk: "researchEventId", parentCt: "event" },
+    admissionComment: { fk: "phdAdmissionId", parentCt: "admission" },
+    vacancyComment: { fk: "jobVacancyId", parentCt: "vacancy" },
+    supervisorComment: { fk: "supervisorId", parentCt: "supervisor" },
+    recommendationComment: { fk: "recommendationId", parentCt: "recommendation" },
+  };
+
   const items = await Promise.all(
     rows.map(async (row) => {
-      const delegate = appealEntityDelegates[row.entityType];
+      // Resolve the contentType key. Appeals created via the card flow store the
+      // ReportModule (e.g. ARTICLE_PAGE); tolerate legacy rows that already store
+      // the contentType (e.g. blog) by falling back to the raw module value.
+      const contentType = MODULE_TO_CONTENT_TYPE[row.module] ?? row.module;
+      const delegate = appealEntityDelegates[contentType];
+      // Pull the path-identifying field for the link together with the
+      // moderation flags in a single point lookup (no extra round-trips).
+      const select: Record<string, boolean> = {
+        isFrozen: true,
+        isDeleted: true,
+      };
+      if (contentType === "blog") select.slug = true;
+      if (contentType === "recommendation") select.supervisorId = true;
       const entity = delegate
         ? ((await delegate.findUnique({
             where: { id: row.entityId },
-            select: { isFrozen: true, isDeleted: true },
-          })) as { isFrozen: boolean; isDeleted: boolean } | null)
+            select,
+          })) as {
+            isFrozen: boolean;
+            isDeleted: boolean;
+            slug?: string;
+            supervisorId?: string;
+          } | null)
         : null;
 
       const entityStatus = entity?.isDeleted
@@ -300,13 +338,81 @@ export async function getAdminAppeals(
           ? "FROZEN"
           : "ACTIVE";
 
+      // Resolve the detail-page link target. For post appeals the target is the
+      // entity itself; for comment appeals it is the parent post (comments
+      // have no page of their own). `linkCt`/`linkId` describe the target, and
+      // `linkEntity` carries the extra fields (slug, supervisorId) needed to
+      // build pretty URLs for blog/recommendation.
+      let linkCt = contentType;
+      let linkId = row.entityId;
+      let linkEntity: { slug?: string; supervisorId?: string } | undefined =
+        entity ?? undefined;
+
+      const commentParent = COMMENT_PARENT[contentType];
+      if (commentParent && delegate) {
+        // Comment appeal -> follow the FK up to the parent post, then resolve
+        // that parent's slug/supervisorId (if any) for a canonical URL.
+        const commentRow = (await delegate.findUnique({
+          where: { id: row.entityId },
+          select: { [commentParent.fk]: true },
+        })) as Record<string, string | null> | null;
+        const parentId = commentRow?.[commentParent.fk];
+        if (parentId) {
+          linkCt = commentParent.parentCt;
+          linkId = parentId;
+          const parentDelegate = appealEntityDelegates[commentParent.parentCt];
+          const parentSelect: Record<string, boolean> = {};
+          if (commentParent.parentCt === "blog") parentSelect.slug = true;
+          if (commentParent.parentCt === "recommendation")
+            parentSelect.supervisorId = true;
+          linkEntity =
+            parentDelegate && Object.keys(parentSelect).length > 0
+              ? ((await parentDelegate.findUnique({
+                  where: { id: parentId },
+                  select: parentSelect,
+                })) as { slug?: string; supervisorId?: string } | null) ??
+                undefined
+              : undefined;
+        }
+      }
+
+      // Build the detail href from the resolved link target.
+      let detailHref = "";
+      if (linkCt === "feed") detailHref = `/feed/${linkId}`;
+      else if (linkCt === "blog")
+        detailHref = `/blog/${linkEntity?.slug ?? linkId}`;
+      else if (linkCt === "publication")
+        detailHref = `/publications/${linkId}`;
+      else if (linkCt === "journal") detailHref = `/journals/${linkId}`;
+      else if (linkCt === "researchTool")
+        detailHref = `/research-tools/${linkId}`;
+      else if (linkCt === "researchGrant")
+        detailHref = `/grants/${linkId}`;
+      else if (linkCt === "course") detailHref = `/learn/${linkId}`;
+      else if (linkCt === "event") detailHref = `/events/${linkId}`;
+      else if (linkCt === "vacancy") detailHref = `/vacancies/${linkId}`;
+      else if (linkCt === "admission")
+        detailHref = `/admissions/${linkId}`;
+      else if (linkCt === "help") detailHref = `/help/${linkId}`;
+      else if (linkCt === "result") detailHref = `/results/${linkId}`;
+      else if (linkCt === "contribution")
+        detailHref = `/contributions/${linkId}`;
+      else if (linkCt === "supervisor")
+        detailHref = `/supervisor/${linkId}`;
+      else if (linkCt === "recommendation")
+        detailHref = `/supervisor/${linkEntity?.supervisorId ?? ""}/recommendation/${linkId}`;
+      else if (linkCt === "survey") detailHref = `/surveys/${linkId}`;
+      else if (linkCt === "SCHOLAR_PROFILE")
+        detailHref = `/scholars/${linkId}`;
+
       return {
         ...row,
         id: row.id,
         entityId: row.entityId,
         entityType: row.entityType,
         module: row.module,
-        contentType: MODULE_TO_CONTENT_TYPE[row.module],
+        contentType,
+        detailHref,
         status: row.status,
         category: row.category,
         details: row.details,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, useOptimistic } from "react";
+import { useState, useTransition, useOptimistic } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { RejectionModal } from "@/components/ui/RejectionModal";
@@ -16,6 +16,11 @@ import {
   patchAdminAppealsCache,
 } from "@/lib/adminCache";
 import { useAdminNav } from "@/hooks/useAdminNav";
+import {
+  useAdminSectionState,
+  DEFAULT_SECTION_STATE,
+  type SectionUiState,
+} from "@/hooks/useAdminSectionState";
 import { ADMIN_SECTIONS } from "@/lib/adminConfig";
 import type { ContentView } from "@/lib/adminConfig";
 import { AdminStatsCards } from "@/components/admin/AdminStatsCards";
@@ -50,24 +55,8 @@ type AdminDashboardProps = {
 // Per-section UI state — switching modules never resets another module's
 // view/page/sort/filter, and each module's list stays in the React Query
 // cache so returning to it renders instantly with zero DB queries.
-type SectionUiState = {
-  view: ContentView;
-  page: number;
-  sortBy: "createdAt" | "reportCount";
-  statusFilter: "all" | "active" | "frozen" | "deleted";
-  /** Appeals-only: independent filter on the appealed entity's moderation
-   *  state (Active / Frozen / Deleted). Falls back to "all" on non-appeal
-   *  sections. */
-  entityStatusFilter: "all" | "active" | "frozen" | "deleted";
-};
-
-const DEFAULT_SECTION_STATE: SectionUiState = {
-  view: "posts",
-  page: 1,
-  sortBy: "createdAt",
-  statusFilter: "all",
-  entityStatusFilter: "all",
-};
+// The state shape lives in useAdminSectionState (persisted to localStorage
+// so a refresh restores it).
 
 const EMPTY_PAGE: AdminPage<AdminContentItem> = {
   items: [],
@@ -85,17 +74,12 @@ export function AdminDashboard({
   // Navigation persisted in localStorage ("sb_admin_nav") — refreshing /admin
   // restores the last active section instead of resetting to "Feed"
   // (hydration-safe: first render matches SSR defaults, then syncs).
-  const {
-    activeSection: activeTab,
-    setActiveSection: setActiveTab,
-    setActiveSubTab: persistSubTab,
-    setStatusFilter: persistStatusFilter,
-    entityStatusFilter: persistedEntityStatusFilter,
-    setEntityStatusFilter: persistEntityStatusFilter,
-  } = useAdminNav();
-  const [sectionStates, setSectionStates] = useState<
-    Record<string, SectionUiState>
-  >({});
+  const { activeSection: activeTab, setActiveSection: setActiveTab } =
+    useAdminNav();
+  // Per-section UI state persisted in localStorage ("sb_admin_sections") —
+  // a refresh reopens every section with its exact view/page/sort/filters,
+  // not just the active one (hydration-safe, same pattern as the nav hook).
+  const { sectionStates, setSectionState } = useAdminSectionState();
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
   const [itemToReject, setItemToReject] = useState<{
     contentId: string;
@@ -107,39 +91,8 @@ export function AdminDashboard({
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
   const { view, page, sortBy, statusFilter, entityStatusFilter } = ui;
 
-  // Keep the persisted nav state in sync with the active section's view and
-  // status filter, so a refresh reopens the exact same table configuration.
-  useEffect(() => {
-    persistSubTab(view);
-    persistStatusFilter(statusFilter);
-    if (activeTab === "appeals") persistEntityStatusFilter(entityStatusFilter);
-  }, [
-    view,
-    statusFilter,
-    entityStatusFilter,
-    activeTab,
-    persistSubTab,
-    persistStatusFilter,
-    persistEntityStatusFilter,
-  ]);
-
   const setUi = (patch: Partial<SectionUiState>) =>
-    setSectionStates((prev) => ({
-      ...prev,
-      [activeTab]: { ...(prev[activeTab] ?? DEFAULT_SECTION_STATE), ...patch },
-    }));
-
-  // Seed the appeals section's entityStatusFilter from the persisted global
-  // nav state on first visit (matches the rest of the per-section hydration).
-  useEffect(() => {
-    if (
-      activeTab === "appeals" &&
-      !sectionStates.appeals &&
-      persistedEntityStatusFilter
-    ) {
-      setUi({ entityStatusFilter: persistedEntityStatusFilter });
-    }
-  }, [activeTab, sectionStates.appeals, persistedEntityStatusFilter]);
+    setSectionState(activeTab, patch);
 
 // --- Stats: cached, never refetched on actions (patched optimistically) ---
   const statsQuery = useQuery({

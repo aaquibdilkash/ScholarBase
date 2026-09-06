@@ -8,6 +8,15 @@ export async function proxy(request: NextRequest) {
     },
   });
 
+  // 1. Detect whether the incoming request is hitting a staging or preview domain
+  const host =
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    request.nextUrl.host;
+
+  const isStagingOrPreview =
+    host.startsWith("dev.") || host.endsWith(".vercel.app");
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,10 +53,7 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Define paths that strictly require authentication
-  const isProtectedPath =
-    pathname.startsWith("/admin")
-    // pathname.startsWith("/messages") ||
-    // (pathname.startsWith("/supervisor/") && pathname.endsWith("/recommend"));
+  const isProtectedPath = pathname.startsWith("/admin");
 
   if (!user && isProtectedPath) {
     const url = request.nextUrl.clone();
@@ -61,7 +67,17 @@ export async function proxy(request: NextRequest) {
       redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
     });
 
+    // Apply SEO shield to redirects if on staging/preview
+    if (isStagingOrPreview) {
+      redirectResponse.headers.set("X-Robots-Tag", "noindex, nofollow");
+    }
+
     return redirectResponse;
+  }
+
+  // 2. SEO SHIELD: Tell Googlebot and all web crawlers never to index staging/preview URLs
+  if (isStagingOrPreview) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 
   return response;

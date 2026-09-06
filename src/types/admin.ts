@@ -172,6 +172,8 @@ export type AdminAppealItem = {
   module: string;
   /** Resolved contentType key for moderateContent (e.g. feed, socialComment). */
   contentType?: string;
+  /** Link to the appealed entity's detail page (empty for comments). */
+  detailHref?: string;
   status: "PENDING" | "ACTIONED" | "DISMISSED";
   /** Structured appeal category (AppealReason enum). */
   category?: string;

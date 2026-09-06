@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Scholar Feed - Community Research Updates",
+  title: "Research Feed - Community Research Updates",
   description: "Short research updates, news, and conversations from the academic community on ScholarBase.",
   path: "/feed",
   section: "Community",
@@ -44,7 +44,7 @@ export default async function FeedPage({
 
   return (
     <ListPageShell
-      title="Scholar Feed"
+      title="Research Feed"
       description="Short research updates from the community."
       tab={tab}
       enableTrending={true}

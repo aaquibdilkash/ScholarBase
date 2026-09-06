@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AdminActionsDropdown } from "@/components/admin/AdminActionsDropdown";
 import { getEntityDisplayTitle } from "@/lib/entityTitle";
+import { getModuleLabel } from "@/lib/notification-links";
 import { ContentView, SECTION_CONTENT_TYPES } from "@/lib/adminConfig";
 import type { AdminColumn } from "@/components/admin/AdminTable";
 import type { AdminContentItem } from "@/types/admin";
@@ -282,6 +283,12 @@ export function buildAppealsColumns(
 ): AdminColumn<AdminContentItem>[] {
   return [
     { key: "entity", header: "Entity", render: renderTitle },
+    {
+      key: "module",
+      header: "Module",
+      cellClassName: "text-slate-600 dark:text-slate-400",
+      render: (item) => getModuleLabel(item.contentType || ""),
+    },
     {
       key: "owner",
       header: "Owner",
