@@ -102,7 +102,7 @@ export default function UserActionsDropdown({
         <div
           ref={menuRef}
           role="menu"
-          className="sb-menu absolute right-0 z-[100] mt-2 w-56"
+          className="sb-menu sb-menu-navbar absolute right-0 z-[100] mt-2 w-56"
         >
           <ul className="m-0 list-none p-0">
             <li>

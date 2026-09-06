@@ -43,6 +43,7 @@ export function NewMessageForm({
     initialRecipient,
   );
   const [isSearching, setIsSearching] = useState(false);
+  const [body, setBody] = useState("");
 
   useEffect(() => {
     if (search.length > 2) {
@@ -171,9 +172,11 @@ export function NewMessageForm({
           placeholder="Introduce yourself and explain the collaboration idea."
           required
           maxLength={MAX_MESSAGE_BODY}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {MAX_MESSAGE_BODY} characters max
+          {body.length}/{MAX_MESSAGE_BODY} characters
         </div>
       </div>
       <button type="submit" className="sb-button-primary" disabled={submitting}>

@@ -214,7 +214,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
       setIsSidebarOpen(false);
     }
   };
-  const handleNewMessageClick = () => { if (user) closeSidebarIfMobile(); };
+  const handleNewMessageClick = () => closeSidebarIfMobile();
 
   const filteredInbox = inbox.filter((conversation) => {
     const otherParticipant = conversation.participants.find(p => p.user.id !== user?.id)?.user;

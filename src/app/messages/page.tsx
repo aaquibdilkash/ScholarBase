@@ -1,6 +1,6 @@
 "use client";
 import { useContext } from "react";
-import { Menu } from "lucide-react";
+import { Plus } from "lucide-react";
 import { MessagesLayoutContext } from "./messages-context";
 
 export default function MessagesPage() {
@@ -17,9 +17,9 @@ export default function MessagesPage() {
           type="button"
           onClick={() => setIsSidebarOpen(true)} // Renamed
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
-          aria-label="Toggle conversation sidebar"
+          aria-label="Open conversations"
         >
-          <Menu className="h-6 w-6" />
+          <Plus className="h-6 w-6" />
         </button>
       </div>
       <div className="text-center">
