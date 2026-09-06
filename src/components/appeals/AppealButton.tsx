@@ -98,13 +98,16 @@ export function AppealButton({
       </button>
 
       {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !mutation.isPending)
-              setIsModalOpen(false);
-          }}
-        >
+        // Scrollable overlay: same pattern as ReportModal so the appeal
+        // form is never clipped / unreachable on zoomed or short viewports.
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div
+            className="flex min-h-full items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !mutation.isPending)
+                setIsModalOpen(false);
+            }}
+          >
           <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -196,6 +199,7 @@ export function AppealButton({
                 </button>
               </div>
             </form>
+          </div>
           </div>
         </div>
       )}

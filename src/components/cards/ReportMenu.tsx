@@ -18,6 +18,10 @@ interface ReportMenuProps {
   isFrozen?: boolean;
   isDeleted?: boolean;
   hasActiveAppeal?: boolean;
+  /** Menu opening direction. Defaults to "up" (card footer rows). Use "down" when near the top of the viewport. */
+  direction?: "up" | "down";
+  /** Label for the report menu item (e.g. "Report User" for scholar profiles). */
+  reportLabel?: string;
 }
 
 export function ReportMenu({
@@ -29,20 +33,25 @@ export function ReportMenu({
   isFrozen = false,
   isDeleted = false,
   hasActiveAppeal = false,
+  direction = "up",
+  reportLabel = "Report Content",
 }: ReportMenuProps) {
   const [open, setOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  // Owners can never report their own profile/content — they only get the
+  // Appeal option (when the profile is frozen/deleted by moderation). If the
+  // dropdown would end up empty (owner, nothing to appeal), hide the flag
+  // icon entirely instead of rendering a dead button.
+  const isOwner = ownerId != null && ownerId === currentUserId;
+
   const canAppeal =
     !hasActiveAppeal &&
     (isFrozen || isDeleted) &&
-    ownerId != null &&
-    ownerId === currentUserId;
+    isOwner;
 
-  // Click / Escape outside to close dropdown — same pattern as
-  // OwnerActionsDropdown / CommentActionsDropdown (no extra deps).
   useEffect(() => {
     if (!open) return;
 
@@ -57,13 +66,19 @@ export function ReportMenu({
       if (e.key === "Escape") setOpen(false);
     };
 
+    const onScroll = () => setOpen(false);
+
     document.addEventListener("mousedown", onDocMouseDown);
     document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       document.removeEventListener("mousedown", onDocMouseDown);
       document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("scroll", onScroll);
     };
   }, [open]);
+
+  if (isOwner && !canAppeal) return null;
 
   const handleReportClick = () => {
     setOpen(false);
@@ -95,10 +110,14 @@ export function ReportMenu({
           <div
             ref={menuRef}
             role="menu"
-            // Drop-UP: ReportMenu only ever sits in footer action rows, where
-            // space below is bounded by the card edge / viewport — opening
-            // upward guarantees the menu is never clipped.
-            className="sb-menu absolute bottom-full right-0 z-50 mb-2 w-44"
+            // Drop-UP by default: ReportMenu usually sits in footer action
+            // rows, where space below is bounded by the card edge / viewport
+            // — opening upward guarantees the menu is never clipped.
+            // Pass direction="down" when placed near the top of the viewport.
+            className={clsx(
+              "sb-menu absolute right-0 z-50 w-44",
+              direction === "up" ? "bottom-full mb-2" : "top-full mt-2",
+            )}
           >
             <div>
               {canAppeal && (
@@ -111,15 +130,17 @@ export function ReportMenu({
                   />
                 </div>
               )}
-              <button
-                type="button"
-                role="menuitem"
-                onClick={handleReportClick}
-                className="sb-menu-item flex items-center gap-2"
-              >
-                <Flag className="h-4 w-4" />
-                <span>Report Content</span>
-              </button>
+              {!isOwner && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleReportClick}
+                  className="sb-menu-item flex items-center gap-2"
+                >
+                  <Flag className="h-4 w-4" />
+                  <span>{reportLabel}</span>
+                </button>
+              )}
             </div>
           </div>
         )}

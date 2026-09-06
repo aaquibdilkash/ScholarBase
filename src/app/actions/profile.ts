@@ -26,6 +26,9 @@ export const getProfile = cache(
         reputation: true,
         followersCount: true, // Use materialized counter
         followingCount: true, // Use materialized counter
+        isFrozen: true,
+        isDeleted: true,
+        hasActiveAppeal: true,
         followers: currentUserId
           ? {
             where: { followerId: currentUserId },

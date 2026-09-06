@@ -14,8 +14,7 @@ import {
 type Answer = {
   id: string;
   questionId: string;
-  // Allow Prisma's JSON arrays to pass through without type errors
-  value: any; 
+  value: unknown;
 };
 
 type Response = {

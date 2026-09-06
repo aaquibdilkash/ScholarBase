@@ -6,6 +6,7 @@ import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { Star } from "lucide-react";
 import { FollowerCount } from "./FollowerCount";
 import type { Metadata } from "next";
@@ -83,7 +84,19 @@ export default async function ScholarProfile({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <ReportMenu
+            entityId={profile.id}
+            entityType="POST"
+            module="SCHOLAR_PROFILE"
+            direction="down"
+            ownerId={profile.id}
+            currentUserId={currentUser?.id}
+            isFrozen={profile.isFrozen}
+            isDeleted={profile.isDeleted}
+            hasActiveAppeal={profile.hasActiveAppeal}
+            reportLabel="Report User"
+          />
           <ShareButton label="Share profile" href={`/scholars/${profile.id}`} />
           {isOwnProfile ? (
             <Link
@@ -98,7 +111,11 @@ export default async function ScholarProfile({
                 recipientId={profile.id}
                 recipientName={profile.name}
               />
-              <FollowButton targetId={profile.id} isFollowing={isFollowing} />
+              <FollowButton
+                targetId={profile.id}
+                isFollowing={isFollowing}
+                currentUserId={currentUser?.id}
+              />
             </>
           )}
         </div>

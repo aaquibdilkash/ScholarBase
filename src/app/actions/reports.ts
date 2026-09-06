@@ -32,12 +32,23 @@ interface ModuleConfig {
       select: Record<string, boolean>;
     }) => Promise<unknown>;
   };
-  // Prisma model-name string. `delegate` is bound to the global client (safe
-  // for pre/post-transaction reads). Inside a transaction we resolve
-  // `(tx as any)[config.model]` so in-transaction writes run on the single
-  // pooled connection (RULE 1 — no second global-client checkout -> deadlock).
   model: string;
   reportCountField: string;
+}
+
+interface ModelDelegate {
+  update: (
+    args: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    },
+  ) => Promise<unknown>;
+  findUnique: (
+    args: {
+      where: { id: string };
+      select: Record<string, unknown>;
+    },
+  ) => Promise<unknown>;
 }
 
 const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
@@ -260,7 +271,17 @@ export async function submitReport(
       // RULE 1: resolve the delegate against the transaction client `tx` so
       // this write runs on the single pooled connection (a global-prisma
       // delegate here would check out a SECOND connection mid-tx -> deadlock).
-      await (tx as any)[config.model].update({
+      await (tx as unknown as Record<
+        string,
+        {
+          update: (
+            args: {
+              where: { id: string };
+              data: Record<string, unknown>;
+            },
+          ) => Promise<unknown>;
+        }
+      >)[config.model].update({
         where: { id: entityId },
         data: {
           [config.reportCountField]: { increment: 1 },
@@ -359,26 +380,27 @@ const COMMENT_TOP_LEVEL: Record<string, { model: string; fk: string }> = {
 // Resolves the top-level parent of a comment and reports whether that parent
 // is itself soft-deleted (so counters are only restored for visible content).
 async function resolveCommentParent(
-  client: any,
+  client: Prisma.TransactionClient,
   commentModel: string,
   contentType: string,
   contentId: string,
 ) {
+  const tx = client as Prisma.TransactionClient & Record<string, ModelDelegate>;
   const cfg = COMMENT_TOP_LEVEL[contentType];
   if (!cfg) return null;
-  const model = client[commentModel];
+  const model = tx[commentModel];
   const comment = (await model.findUnique({
     where: { id: contentId },
     select: { [cfg.fk]: true },
   })) as Record<string, string | null> | null;
   const parentId = comment?.[cfg.fk];
   if (!parentId) return null;
-  const parent = (await client[cfg.model].findUnique({
+  const parent = (await tx[cfg.model].findUnique({
     where: { id: parentId },
     select: { id: true, isDeleted: true },
   })) as { id: string; isDeleted: boolean } | null;
   if (!parent) return null;
-  return { model: client[cfg.model], id: parent.id, isDeleted: parent.isDeleted };
+  return { model: tx[cfg.model], id: parent.id, isDeleted: parent.isDeleted };
 }
 
 // -----------------------------------------------------------------------------
@@ -437,7 +459,7 @@ type ModerationTarget = {
 };
 
 async function resolveModerationTarget(
-  client: any,
+  client: Prisma.TransactionClient,
   opts: {
     contentType: string;
     contentId: string;
@@ -445,6 +467,7 @@ async function resolveModerationTarget(
     model?: string;
   },
 ): Promise<ModerationTarget> {
+  const tx = client as Prisma.TransactionClient & Record<string, ModelDelegate>;
   const { contentType, contentId, commentModel, model } = opts;
   const isProfile = contentType === "SCHOLAR_PROFILE";
   const isComment = Boolean(commentModel);
@@ -465,7 +488,7 @@ async function resolveModerationTarget(
   // Comments link to the top-level page they live on (the post/article/etc.),
   // and the recipient is the comment author.
   if (commentModel) {
-    const commentModelDelegate = client[commentModel];
+    const commentModelDelegate = tx[commentModel];
     const comment = (await commentModelDelegate.findUnique({
       where: { id: contentId },
       select: { authorId: true },
@@ -480,12 +503,9 @@ async function resolveModerationTarget(
     );
     if (parent) {
       targetId = parent.id;
-      // Recommendation comments link to
-      // `/supervisor/:supervisorId/recommendation/:id`, so append the parent's
-      // supervisorId.
       if (contentType === "recommendationComment") {
         const cfg = COMMENT_TOP_LEVEL[contentType];
-        const rec = (await client[cfg.model].findUnique({
+        const rec = (await tx[cfg.model].findUnique({
           where: { id: parent.id },
           select: { supervisorId: true },
         })) as { supervisorId?: string | null } | null;
@@ -505,7 +525,7 @@ async function resolveModerationTarget(
   let recipientId: string | null = null;
   let targetId = contentId;
   if (model) {
-    const modelDelegate = client[model];
+    const modelDelegate = tx[model];
     const result = (await modelDelegate.findUnique({
       where: { id: contentId },
       select: {
@@ -640,26 +660,27 @@ export async function moderateContent(
     if (!entry && !commentEntry) throw new Error("Invalid content type");
 
     const result = await prisma.$transaction(async (tx) => {
-      // RULE 1: bind content-model delegates to the transaction client `tx`.
-      // `txCommentEntry.model` / `entry.model` are STRING model-names; resolve
-      // them against `tx` so every in-transaction query runs on the single
-      // pooled connection (never a global-prisma second checkout -> deadlock).
-      // txCommentEntry / txEntry hold STRING model-names (consumed by
-      // resolveCommentParent / resolveModerationTarget). txCommentDelegate /
-      // txEntryDelegate are the tx-bound delegates used for direct method calls.
+      const getDelegate = (modelName: string): ModelDelegate => {
+        const delegate = (tx as unknown as Record<string, ModelDelegate>)[
+          modelName
+        ];
+        if (!delegate) throw new Error(`Invalid model delegate: ${modelName}`);
+        return delegate;
+      };
+
       const txCommentEntry = commentEntry ? { model: commentEntry.model } : undefined;
       const txEntry = entry ? { model: entry.model } : undefined;
       const txCommentDelegate = txCommentEntry
-        ? (tx as any)[txCommentEntry.model]
+        ? getDelegate(txCommentEntry.model)
         : undefined;
-      const txEntryDelegate = txEntry ? (tx as any)[txEntry.model] : undefined;
+      const txEntryDelegate = txEntry ? getDelegate(txEntry.model) : undefined;
 
-    if (commentEntry) {
+      if (commentEntry) {
       // --- Comment moderation (soft delete, RULE 4) ---
       // Comments now carry isDeleted / isFrozen columns, so they support the
       // same FREEZE / UNFREEZE / DELETE / RECOVER / DISMISS_REPORTS matrix as
       // every other content type. Rows are never destroyed.
-      const entity = (await txCommentDelegate.findUnique({
+      const entity = (await txCommentDelegate!.findUnique({
         where: { id: contentId },
         select: { id: true, isDeleted: true, isFrozen: true },
       })) as { id: string; isDeleted: boolean; isFrozen: boolean } | null;
@@ -667,7 +688,7 @@ export async function moderateContent(
 
       switch (action) {
         case "FREEZE": {
-          const updated = (await txCommentDelegate.update({
+          const updated = (await txCommentDelegate!.update({
             where: { id: contentId },
             data: { isFrozen: true },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
@@ -675,7 +696,7 @@ export async function moderateContent(
           const frozenCommentTarget = await resolveModerationTarget(tx, {
             contentType,
             contentId,
-            commentModel: txCommentEntry!.model,
+            commentModel: commentEntry.model,
           });
           const frozenCommentNotice = buildModerationNotice(action, true, false);
           await notifyModerationTarget(
@@ -688,7 +709,7 @@ export async function moderateContent(
         }
 
         case "UNFREEZE": {
-          const updated = (await txCommentDelegate.update({
+          const updated = (await txCommentDelegate!.update({
             where: { id: contentId },
             data: { isFrozen: false },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
@@ -696,7 +717,7 @@ export async function moderateContent(
           const unfrozenCommentTarget = await resolveModerationTarget(tx, {
             contentType,
             contentId,
-            commentModel: txCommentEntry!.model,
+            commentModel: commentEntry.model,
           });
           const unfrozenCommentNotice = buildModerationNotice(action, true, false);
           await notifyModerationTarget(
@@ -713,7 +734,7 @@ export async function moderateContent(
           // first-time delete, reverse the author's vote-derived reputation
           // and decrement the parent counters — mirroring the user-initiated
           // delete flow in deleteCommentTransaction.
-          const full = (await txCommentDelegate.findUnique({
+          const full = (await txCommentDelegate!.findUnique({
             where: { id: contentId },
             select: {
               id: true,
@@ -737,14 +758,14 @@ export async function moderateContent(
               });
             }
             if (full.parentId) {
-              await txCommentDelegate.update({
+              await txCommentDelegate!.update({
                 where: { id: full.parentId },
                 data: { totalReplies: { decrement: 1 } },
               });
             } else {
               const parent = await resolveCommentParent(
                 tx,
-                txCommentEntry!.model,
+                commentEntry.model,
                 contentType,
                 contentId,
               );
@@ -757,7 +778,7 @@ export async function moderateContent(
             }
           }
 
-          const updated = (await txCommentDelegate.update({
+          const updated = (await txCommentDelegate!.update({
             where: { id: contentId },
             data: {
               isDeleted: true,
@@ -774,7 +795,7 @@ export async function moderateContent(
           const deletedCommentTarget = await resolveModerationTarget(tx, {
             contentType,
             contentId,
-            commentModel: txCommentEntry!.model,
+            commentModel: commentEntry.model,
           });
           const deletedCommentNotice = buildModerationNotice(action, true, false);
           await notifyModerationTarget(
@@ -792,7 +813,7 @@ export async function moderateContent(
           // exactly as it was before deletion. Reputation gained from its
           // votes is re-granted, and parent counters are restored (skipping
           // parents that are themselves soft-deleted).
-          const full = (await txCommentDelegate.findUnique({
+          const full = (await txCommentDelegate!.findUnique({
             where: { id: contentId },
             select: {
               id: true,
@@ -823,14 +844,14 @@ export async function moderateContent(
             // totalReplies on their parent comment; top-level comments
             // restore totalComments on their parent post/article.
             if (full.parentId) {
-              await txCommentDelegate.update({
+              await txCommentDelegate!.update({
                 where: { id: full.parentId },
                 data: { totalReplies: { increment: 1 } },
               });
             } else {
               const parent = await resolveCommentParent(
                 tx,
-                txCommentEntry!.model,
+                commentEntry.model,
                 contentType,
                 contentId,
               );
@@ -843,7 +864,7 @@ export async function moderateContent(
             }
           }
 
-          const updated = (await txCommentDelegate.update({
+          const updated = (await txCommentDelegate!.update({
             where: { id: contentId },
             data: {
               isDeleted: false,
@@ -861,7 +882,7 @@ export async function moderateContent(
           const recoveredCommentTarget = await resolveModerationTarget(tx, {
             contentType,
             contentId,
-            commentModel: txCommentEntry!.model,
+            commentModel: commentEntry.model,
           });
           const recoveredCommentNotice = buildModerationNotice(action, true, false);
           await notifyModerationTarget(
@@ -874,7 +895,7 @@ export async function moderateContent(
         }
 
         case "DISMISS_REPORTS": {
-          await txCommentDelegate.update({
+          await txCommentDelegate!.update({
             where: { id: contentId },
             data: { reportCount: 0 },
           });
@@ -892,7 +913,7 @@ export async function moderateContent(
         case "DISMISS_APPEAL": {
           // Acknowledge the owner's appeal: clear the flag so the content
           // returns to a normal moderated state (admins can then re-decide).
-          const updated = (await txCommentDelegate.update({
+          const updated = (await txCommentDelegate!.update({
             where: { id: contentId },
             data: { hasActiveAppeal: false },
           })) as { id: string; hasActiveAppeal: boolean };
@@ -905,7 +926,7 @@ export async function moderateContent(
           const appealCommentTarget = await resolveModerationTarget(tx, {
             contentType,
             contentId,
-            commentModel: txCommentEntry!.model,
+            commentModel: commentEntry.model,
           });
           await notifyModerationTarget(
             tx as unknown as ModerationTx,
@@ -925,7 +946,9 @@ export async function moderateContent(
       }
     }
 
-    const entity = (await txEntryDelegate.findUnique({
+    if (!entry) throw new Error("Invalid entry");
+
+    const entity = (await txEntryDelegate!.findUnique({
       where: { id: contentId },
       select: { id: true, isFrozen: true, isDeleted: true },
     })) as { id: string; isFrozen: boolean; isDeleted: boolean } | null;
@@ -958,14 +981,14 @@ export async function moderateContent(
         // Freeze the content and notify the owner. SCHOLAR_PROFILE resolves
         // to the User model (the owner = the user themselves), so the target
         // resolver handles recipient + the /scholars link for us.
-        const updated = (await txEntryDelegate.update({
+        const updated = (await txEntryDelegate!.update({
           where: { id: contentId },
           data: { isFrozen: true },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         const frozenTarget = await resolveModerationTarget(tx, {
           contentType,
           contentId,
-          model: txEntry!.model,
+          model: entry.model,
         });
         const frozenNotice = buildModerationNotice(action, false, frozenTarget.isProfile);
         await notifyModerationTarget(
@@ -980,7 +1003,7 @@ export async function moderateContent(
       }
 
       case "UNFREEZE": {
-        const updated = (await txEntryDelegate.update({
+        const updated = (await txEntryDelegate!.update({
           where: { id: contentId },
           data: { isFrozen: false },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
@@ -990,7 +1013,7 @@ export async function moderateContent(
         const unfrozenTarget = await resolveModerationTarget(tx, {
           contentType,
           contentId,
-          model: txEntry!.model,
+          model: entry.model,
         });
         const unfrozenNotice = buildModerationNotice(action, false, unfrozenTarget.isProfile);
         await notifyModerationTarget(
@@ -1012,7 +1035,7 @@ export async function moderateContent(
         // and decrement their materialized content count — mirroring the
         // user-initiated delete flows.
         const countField = AUTHOR_COUNT_FIELD[contentType];
-        const full = (await txEntryDelegate.findUnique({
+        const full = (await txEntryDelegate!.findUnique({
           where: { id: contentId },
           select: {
             id: true,
@@ -1049,7 +1072,7 @@ export async function moderateContent(
           }
         }
 
-        const updated = (await txEntryDelegate.update({
+        const updated = (await txEntryDelegate!.update({
           where: { id: contentId },
           data: {
             isDeleted: true,
@@ -1068,7 +1091,7 @@ export async function moderateContent(
         const deletedTarget = await resolveModerationTarget(tx, {
           contentType,
           contentId,
-          model: txEntry!.model,
+          model: entry.model,
         });
         const deletedNotice = buildModerationNotice(action, false, deletedTarget.isProfile);
         await notifyModerationTarget(
@@ -1087,7 +1110,7 @@ export async function moderateContent(
         // was reversed at delete time is re-granted, and the author's
         // materialized content count is restored.
         const countField = AUTHOR_COUNT_FIELD[contentType];
-        const full = (await txEntryDelegate.findUnique({
+        const full = (await txEntryDelegate!.findUnique({
           where: { id: contentId },
           select: {
             id: true,
@@ -1122,7 +1145,7 @@ export async function moderateContent(
           });
         }
 
-        const updated = (await txEntryDelegate.update({
+        const updated = (await txEntryDelegate!.update({
           where: { id: contentId },
           data: {
             isDeleted: false,
@@ -1142,7 +1165,7 @@ export async function moderateContent(
         const recoveredTarget = await resolveModerationTarget(tx, {
           contentType,
           contentId,
-          model: txEntry!.model,
+          model: entry.model,
         });
         const recoveredNotice = buildModerationNotice(action, false, recoveredTarget.isProfile);
         await notifyModerationTarget(
@@ -1155,7 +1178,7 @@ export async function moderateContent(
       }
 
       case "DISMISS_REPORTS": {
-        await txEntryDelegate.update({
+        await txEntryDelegate!.update({
           where: { id: contentId },
           data: { reportCount: 0 },
         });
@@ -1169,7 +1192,7 @@ export async function moderateContent(
       case "DISMISS_APPEAL": {
         // Acknowledge the owner's appeal: clear the flag so the content
         // returns to a normal moderated state (admins can then re-decide).
-        const updated = (await txEntryDelegate.update({
+        const updated = (await txEntryDelegate!.update({
           where: { id: contentId },
           data: { hasActiveAppeal: false },
         })) as { id: string; hasActiveAppeal: boolean };
@@ -1178,7 +1201,7 @@ export async function moderateContent(
         const appealRejectedTarget = await resolveModerationTarget(tx, {
           contentType,
           contentId,
-          model: txEntry!.model,
+          model: entry.model,
         });
         await notifyModerationTarget(
           tx as unknown as ModerationTx,

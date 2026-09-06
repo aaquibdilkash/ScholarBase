@@ -7,7 +7,6 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 import { useToast } from "@/components/ui/Toast";
-import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Calendar, Clock, MapPin } from "lucide-react";

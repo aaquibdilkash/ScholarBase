@@ -5,7 +5,7 @@ import * as XLSX from "xlsx";
 import { ChevronDown, Download } from "lucide-react";
 import type { QuestionResult, SurveyResults, IndividualResponse } from "@/types/survey";
 
-function mapValueToLabel(q: QuestionResult, value: any): string {
+function mapValueToLabel(q: QuestionResult, value: unknown): string {
   // If Prisma already returned an array, handle it directly
   if (Array.isArray(value)) {
     return value
@@ -164,7 +164,8 @@ export function SurveyResultsView({
     if (q.type === "LIKERT_SCALE") {
       const counts: Record<string, number> = {};
       answers.forEach((a) => {
-        counts[a] = (counts[a] || 0) + 1;
+        const key = String(a);
+        counts[key] = (counts[key] || 0) + 1;
       });
       const orderedCounts: Record<string, number> = {};
       q.options.forEach((opt) => {
@@ -296,14 +297,17 @@ export function SurveyResultsView({
                 {"answers" in stats && stats.answers && (
                   <div className="space-y-2">
                     {stats.answers.length > 0 ? (
-                      stats.answers.map((answer: string, i: number) => (
-                        <div
-                          key={i}
-                          className="break-words rounded-lg bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300"
-                        >
-                          {answer}
-                        </div>
-                      ))
+                      stats.answers.map((answer, i: number) => {
+                        const text = typeof answer === "string" ? answer : String(answer);
+                        return (
+                          <div
+                            key={i}
+                            className="break-words rounded-lg bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-700 dark:text-slate-300"
+                          >
+                            {text}
+                          </div>
+                        );
+                      })
                     ) : (
                       <p className="text-sm text-slate-400 italic">
                         No text responses yet.

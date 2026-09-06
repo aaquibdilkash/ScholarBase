@@ -121,12 +121,16 @@ export function ReportModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-      onClick={(e) => {
-        if (e.target === e.currentTarget && !isPending) handleClose();
-      }}
-    >
+    // Scrollable overlay: when the dialog is taller than the viewport
+    // (small screens / zoomed in), the overlay scrolls instead of clipping
+    // the top/bottom (and the submit button) out of reach.
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div
+        className="flex min-h-full items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+        onClick={(e) => {
+          if (e.target === e.currentTarget && !isPending) handleClose();
+        }}
+      >
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
@@ -220,6 +224,7 @@ export function ReportModal({
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   );

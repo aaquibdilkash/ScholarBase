@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { SurveyQuestionType } from "@prisma/client";
+import { Prisma, SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
@@ -568,7 +568,7 @@ export async function submitSurveyResponse(
 
   // 2. Format the values for Prisma JSONB
   const answers = rawAnswers.map((ans) => {
-    let finalValue: any = ans.value;
+    let finalValue: Prisma.InputJsonValue = ans.value;
 
     // Try to parse stringified arrays (from checkboxes) into real JS arrays.
     // This allows Prisma to save them as native JSON arrays in PostgreSQL.
@@ -577,7 +577,7 @@ export async function submitSurveyResponse(
       if (typeof parsed === "object" && parsed !== null) {
         finalValue = parsed;
       }
-    } catch (e) {
+    } catch {
       // It's a normal text string (Short text, radio, etc.), leave it alone
     }
 
@@ -634,7 +634,7 @@ export async function submitSurveyResponse(
         isAnonymous,
         answers: {
           create: answers.map((a) => ({
-            questionId: a.questionId,
+            question: { connect: { id: a.questionId } },
             value: a.value,
           })),
         },
@@ -682,7 +682,7 @@ export async function submitSurveyResponse(
         isAnonymous,
         answers: {
           create: answers.map((a) => ({
-            questionId: a.questionId,
+            question: { connect: { id: a.questionId } },
             value: a.value,
           })),
         },
