@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode, useEffect } from "react";
 import { FollowProvider } from "./FollowProvider";
+import { PresenceProvider } from "./PresenceProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthModalProvider } from "./AuthModal";
 import { FrozenUserProvider } from "./FrozenUserProvider";
@@ -51,7 +52,7 @@ export function AppProviders({
         <FollowProvider>
           <AuthModalProvider>
             <FrozenUserProvider isFrozen={isFrozen}>
-              {children}
+              <PresenceProvider>{children}</PresenceProvider>
             </FrozenUserProvider>
           </AuthModalProvider>
         </FollowProvider>

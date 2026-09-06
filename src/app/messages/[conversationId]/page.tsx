@@ -19,14 +19,18 @@ import {
 import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { supabase } from "@/utils/supabase/client";
-import { Menu, MoreVertical, Ban, UserCheck } from "lucide-react";
+import { usePresence } from "@/components/interactions/PresenceProvider";
+import { Menu, MoreVertical, Ban, UserCheck, Loader2, Flag } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
+import { useToast } from "@/components/ui/Toast";
+import { ReportModal } from "@/components/cards/ReportModal";
 import type { User } from "@supabase/supabase-js";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import type { SentMessage } from "@/components/messages/MessageInputForm";
 
-type PresencePayload = {
+type TypingPayload = {
+  userId?: string;
   isTyping?: boolean;
-  lastReadAt?: string;
 };
 
 type Participant = {
@@ -42,6 +46,8 @@ type Conversation = {
   id: string;
   participants: Participant[];
   messages: SentMessage[];
+  blockedByMe?: boolean;
+  blockedMe?: boolean;
 };
 
 export default function ConversationPage({
@@ -57,15 +63,20 @@ export default function ConversationPage({
   const { setIsSidebarOpen } = context;
   const [user, setUser] = useState<User | null>(null);
   const [conversation, setConversation] = useState<Conversation | null>(null);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockState, setBlockState] = useState({
+    blockedByMe: false,
+    blockedMe: false,
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const { toast } = useToast();
 
   const [isTyping, setIsTyping] = useState(false);
-  const [isOnline, setIsOnline] = useState(false);
   const lastTypedAt = useRef<number>(0);
   const roomRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [otherParticipantLastReadAt, setOtherParticipantLastReadAt] =
     useState<Date>(new Date(0));
@@ -73,6 +84,19 @@ export default function ConversationPage({
   const appendMessageRef = useRef<((msg: SentMessage) => void) | null>(null);
   const handleAppendMessage = useCallback((fn: (msg: SentMessage) => void) => {
     appendMessageRef.current = fn;
+  }, []);
+
+  // ⚡ ISSUE 4: MessageList registers a handler that receives failed sends so
+  // they can be merged into the visible thread with a Retry affordance.
+  const addFailedMessageRef = useRef<((msg: SentMessage) => void) | null>(null);
+  const handleRegisterAddFailed = useCallback(
+    (fn: (msg: SentMessage) => void) => {
+      addFailedMessageRef.current = fn;
+    },
+    [],
+  );
+  const handleMessageFailed = useCallback((message: SentMessage) => {
+    addFailedMessageRef.current?.(message);
   }, []);
 
   const userId = user?.id;
@@ -85,14 +109,6 @@ export default function ConversationPage({
       if (!hasMarkedReadRef.current || force) {
         hasMarkedReadRef.current = true;
         markConversationAsRead(conversationId);
-      }
-      if (roomRef.current) {
-        roomRef.current
-          .track({
-            isTyping: false,
-            lastReadAt: new Date().toISOString(),
-          })
-          .catch(() => {});
       }
     },
     [userId, conversationId],
@@ -130,6 +146,12 @@ export default function ConversationPage({
           const conv = await getConversation(conversationId, user.id);
           if (!conv) notFound();
           setConversation(conv as unknown as Conversation);
+          // ⚡ ISSUE 5: Hydrate block state so the composer is disabled and the
+          // correct notice banner renders on load.
+          setBlockState({
+            blockedByMe: Boolean((conv as Conversation).blockedByMe),
+            blockedMe: Boolean((conv as Conversation).blockedMe),
+          });
 
           await markConversationAsRead(conversationId);
 
@@ -166,54 +188,92 @@ export default function ConversationPage({
   );
   const otherParticipant = otherParticipantData?.user;
 
+  // ⚡ Online status comes from the centralized global presence channel.
+  const { onlineUserIds } = usePresence();
+  const isOtherOnline = otherParticipant
+    ? onlineUserIds.has(otherParticipant.id)
+    : false;
+
+  // Stable ref for the other participant so the realtime effect below does not
+  // re-subscribe every time the conversation object is set.
+  const otherUserIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    otherUserIdRef.current = otherParticipant?.id ?? null;
+  }, [otherParticipant?.id]);
+
   useEffect(() => {
     if (!isTyping) return;
     const timer = setTimeout(() => setIsTyping(false), 3000);
     return () => clearTimeout(timer);
   }, [isTyping]);
 
-  // Stable Presence & Read Sync Channel
+  // ⚡ ISSUE 3: Scoped realtime channel for this conversation.
+  //  - Typing: broadcast events (debounced, self-filtered, auto-clear).
+  //  - Read receipts: Postgres Changes on ConversationParticipant — reliable
+  //    and independent of presence heartbeats.
+  //  - Online status: global `presence:global` channel (PresenceProvider).
+  // Full teardown on conversation switch prevents stale-channel leaks.
   useEffect(() => {
     if (!userId || !conversationId) return;
 
-    const room = supabase.channel(`presence-${conversationId}`, {
-      config: { presence: { key: userId } },
+    const channel = supabase.channel(`conversation:${conversationId}`, {
+      config: { broadcast: { self: false } },
     });
+    roomRef.current = channel;
 
-    roomRef.current = room;
-
-    room
-      .on("presence", { event: "sync" }, () => {
-        const state = room.presenceState();
-        const otherUserId = otherParticipant?.id;
-
-        if (otherUserId && state[otherUserId]) {
-          setIsOnline(true);
-          const presencePayload = state[otherUserId][0] as PresencePayload;
-          setIsTyping(presencePayload?.isTyping || false);
-
-          if (presencePayload?.lastReadAt) {
-            setOtherParticipantLastReadAt(new Date(presencePayload.lastReadAt));
+    channel
+      .on(
+        "broadcast",
+        { event: "typing" },
+        ({ payload }: { payload: TypingPayload }) => {
+          if (!payload || payload.userId === userId) return;
+          if (payload.isTyping) {
+            setIsTyping(true);
+            if (typingClearTimerRef.current)
+              clearTimeout(typingClearTimerRef.current);
+            typingClearTimerRef.current = setTimeout(
+              () => setIsTyping(false),
+              3000,
+            );
+          } else {
+            setIsTyping(false);
           }
-        } else {
-          setIsOnline(false);
-          setIsTyping(false);
-        }
-      })
-      .subscribe(async (status: string) => {
-        if (status === "SUBSCRIBED") {
-          await room.track({
-            isTyping: false,
-            lastReadAt: new Date().toISOString(),
-          });
-        }
-      });
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "ConversationParticipant",
+        },
+        (
+          payload: RealtimePostgresChangesPayload<{
+            conversationId: string;
+            userId: string;
+            lastReadAt: string | null;
+          }>,
+        ) => {
+          const row = payload.new as {
+            conversationId: string;
+            userId: string;
+            lastReadAt: string | null;
+          };
+          if (row.conversationId !== conversationId) return;
+          if (
+            row.userId === otherUserIdRef.current &&
+            row.userId !== userId &&
+            row.lastReadAt
+          ) {
+            setOtherParticipantLastReadAt(new Date(row.lastReadAt));
+          }
+        },
+      )
+      .subscribe();
 
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        room.untrack();
-        setIsOnline(false);
-      } else {
+      if (!document.hidden) {
+        // Resynchronize read state when the tab wakes up.
         triggerMarkReadRef.current();
       }
     };
@@ -222,34 +282,38 @@ export default function ConversationPage({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
-      supabase.removeChannel(room);
+      if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+      supabase.removeChannel(channel);
       roomRef.current = null;
     };
-  }, [userId, conversationId, otherParticipant?.id]);
+  }, [userId, conversationId]);
 
   const broadcastTyping = useCallback(() => {
     if (!userId || !roomRef.current) return;
     const now = Date.now();
-    if (now - lastTypedAt.current >= 1200) {
+    // ⚡ Debounce: emit TYPING_START at most once every 2 seconds.
+    if (now - lastTypedAt.current >= 2000) {
       lastTypedAt.current = now;
-
       roomRef.current
-        .track({
-          isTyping: true,
-          lastReadAt: new Date().toISOString(),
+        .send({
+          type: "broadcast",
+          event: "typing",
+          payload: { userId, isTyping: true } satisfies TypingPayload,
         })
         .catch(() => {});
     }
 
+    // ⚡ Automatically emit TYPING_STOP after 3 seconds of inactivity.
     if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
     typingStopTimerRef.current = setTimeout(() => {
       roomRef.current
-        ?.track({
-          isTyping: false,
-          lastReadAt: new Date().toISOString(),
+        ?.send({
+          type: "broadcast",
+          event: "typing",
+          payload: { userId, isTyping: false } satisfies TypingPayload,
         })
         .catch(() => {});
-    }, 1800);
+    }, 3000);
   }, [userId]);
 
   // Stable callback to avoid re-subscribing realtime channel
@@ -274,8 +338,9 @@ export default function ConversationPage({
 
   if (!user || !conversation) {
     return (
-      <div className="flex flex-col h-full items-center justify-center text-slate-500">
-        Loading conversation...
+      <div className="flex flex-col h-full items-center justify-center gap-3 text-slate-500">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <p className="text-sm font-semibold">Loading conversation...</p>
       </div>
     );
   }
@@ -283,21 +348,33 @@ export default function ConversationPage({
   const handleToggleBlock = async () => {
     if (!otherParticipant || isBlocking) return;
     setIsBlocking(true);
-    setMenuOpen(false);
+    // ⚡ Keep the dropdown open while the spinner is visible — close it only
+    // once the block/unblock action settles.
+    // setMenuOpen(false);  <-- intentionally removed
     try {
-      if (isBlocked) {
+      if (blockState.blockedByMe) {
         await unblockUser(otherParticipant.id);
-        setIsBlocked(false);
+        setBlockState((s) => ({ ...s, blockedByMe: false }));
+        toast(`${otherParticipant.name || "Scholar"} unblocked. You can message them again.`, "default");
       } else {
         await blockUser(otherParticipant.id);
-        setIsBlocked(true);
+        setBlockState((s) => ({ ...s, blockedByMe: true }));
+        toast(`${otherParticipant.name || "Scholar"} blocked. They can no longer message you.`, "default");
       }
     } catch (err) {
       console.error("Failed to update block status:", err);
+      toast(
+        err instanceof Error ? err.message : "Failed to update block status.",
+        "error",
+      );
     } finally {
       setIsBlocking(false);
+      setMenuOpen(false);
     }
   };
+
+  // ⚡ ISSUE 5: A block in either direction disables the composer.
+  const isChatDisabled = blockState.blockedByMe || blockState.blockedMe;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -336,7 +413,7 @@ export default function ConversationPage({
                   <span className="text-blue-500 font-medium italic">
                     typing...
                   </span>
-                ) : isOnline ? (
+                ) : isOtherOnline ? (
                   <span className="text-green-500 font-medium">Online</span>
                 ) : otherParticipant?.handle ? (
                   `@${otherParticipant.handle}`
@@ -361,16 +438,28 @@ export default function ConversationPage({
                 disabled={isBlocking}
                 className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-500/10"
               >
-                {isBlocked ? (
+                {isBlocking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : blockState.blockedByMe ? (
                   <UserCheck className="h-4 w-4" />
                 ) : (
                   <Ban className="h-4 w-4" />
                 )}
                 {isBlocking
                   ? "Processing..."
-                  : isBlocked
+                  : blockState.blockedByMe
                     ? "Unblock scholar"
                     : "Block scholar"}
+              </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  setIsReportOpen(true);
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <Flag className="h-4 w-4" />
+                Report User
               </button>
             </div>
           )}
@@ -384,16 +473,62 @@ export default function ConversationPage({
           user={user}
           otherParticipantLastReadAt={otherParticipantLastReadAt}
           registerAppend={handleAppendMessage}
+          registerAddFailed={handleRegisterAddFailed}
           onMessageReceived={onMessageReceived}
         />
       </div>
 
+      {isChatDisabled && (
+        <div
+          role="alert"
+          className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-t border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+        >
+          {blockState.blockedMe ? (
+            <span>You cannot send messages to this scholar.</span>
+          ) : (
+            <>
+              <span>You have blocked this scholar.</span>
+              <button
+                type="button"
+                onClick={handleToggleBlock}
+                disabled={isBlocking}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:opacity-50 dark:border-amber-700 dark:bg-slate-900 dark:text-amber-300 dark:hover:bg-slate-800"
+              >
+                {isBlocking ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <UserCheck className="h-3.5 w-3.5" />
+                    Unblock scholar
+                  </>
+                )}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <MessageInputForm
         conversationId={conversation.id}
         onMessageSent={handleMessageSent}
+        onMessageFailed={handleMessageFailed}
         currentUser={user}
         onTyping={broadcastTyping}
+        isDisabled={isChatDisabled}
       />
+
+      {otherParticipant && (
+        <ReportModal
+          isOpen={isReportOpen}
+          onClose={() => setIsReportOpen(false)}
+          entityId={otherParticipant.id}
+          entityType="POST"
+          module="SCHOLAR_PROFILE"
+        />
+      )}
     </div>
   );
 }

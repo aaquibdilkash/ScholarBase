@@ -8,6 +8,11 @@ import type { User } from "@supabase/supabase-js";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { MESSAGE_BODY_TIP } from "@/constants/tooltips";
+import {
+  upsertPendingMessage,
+  removePendingMessage,
+  updatePendingMessageStatus,
+} from "@/utils/message-outbox";
 
 const MAX_TEXTAREA_HEIGHT = 160;
 
@@ -18,19 +23,27 @@ export type SentMessage = {
   senderId: string;
   conversationId: string;
   status?: "sending" | "failed" | "sent";
+  editedAt?: Date | string | null;
+  isDeleted?: boolean | null;
   sender: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; };
 };
 
 export function MessageInputForm({
   conversationId,
   onMessageSent,
+  onMessageFailed,
   currentUser,
   onTyping,
+  isDisabled = false,
 }: {
   conversationId: string;
   onMessageSent?: (message: SentMessage) => void;
+  /** Called when a send fails so the failed bubble can be shown with Retry. */
+  onMessageFailed?: (message: SentMessage) => void;
   currentUser: User;
   onTyping?: () => void;
+  /** ⚡ ISSUE 5: Disables the composer when a block relationship exists. */
+  isDisabled?: boolean;
 }) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -58,7 +71,7 @@ export function MessageInputForm({
   // ⚡ INSTANT CLIENT-SIDE ONSUBMIT (Zero Latency)
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isSubmitting || !draft.trim()) return;
+    if (isSubmitting || isDisabled || !draft.trim()) return;
 
     const bodyText = draft;
     setIsSubmitting(true);
@@ -81,8 +94,24 @@ export function MessageInputForm({
     };
 
     if (onMessageSent) onMessageSent(optimisticMessage);
-    
-    // 2. Clear input immediately
+
+    // 2. ⚡ ISSUE 4: Persist to the offline outbox BEFORE attempting the send.
+    // If the user refreshes (even mid-flight/offline), the message is
+    // rehydrated by MessageList and retried automatically.
+    const pendingMessage = {
+      id: tempId,
+      conversationId,
+      senderId: currentUser.id,
+      body: bodyText,
+      status: "PENDING" as const,
+      createdAt: new Date().toISOString(),
+      senderName: optimisticMessage.sender.name,
+      senderHandle: optimisticMessage.sender.handle,
+      senderAvatarUrl: optimisticMessage.sender.avatarUrl,
+    };
+    upsertPendingMessage(pendingMessage);
+
+    // 3. Clear input immediately
     setDraft("");
     localStorage.removeItem(`draft-${conversationId}`);
     if (textAreaRef.current) textAreaRef.current.style.height = "auto";
@@ -93,13 +122,17 @@ export function MessageInputForm({
 
       const result = await sendMessage(conversationId, formData);
       if (result && 'error' in result) throw new Error(result.error);
+      // ⚡ Outbox entries are only cleared after a confirmed server response.
+      removePendingMessage(conversationId, tempId);
       if (result && "id" in result && onMessageSent) {
         onMessageSent({ ...result, status: "sent" });
       }
     } catch {
-      toast("Failed to send. Text saved to draft.", "error");
-      setDraft(bodyText);
-      localStorage.setItem(`draft-${conversationId}`, bodyText);
+      // ⚡ ISSUE 4: Keep it queued as FAILED — visible bubble with a Retry
+      // button, auto-flushed when connectivity returns.
+      updatePendingMessageStatus(conversationId, tempId, "FAILED");
+      if (onMessageFailed) onMessageFailed({ ...optimisticMessage, status: "failed" });
+      toast("Message not sent. It will be retried when you're back online.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,24 +158,29 @@ export function MessageInputForm({
             name="body"
             value={draft}
             onChange={handleInput}
-            className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pr-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
-            placeholder="Write a message..."
+            className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pr-4 disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
+            placeholder={isDisabled ? "Messaging is unavailable" : "Write a message..."}
             required
             rows={1}
             maxLength={MAX_MESSAGE_BODY}
             onKeyDown={handleKeyDown}
+            disabled={isDisabled}
             aria-label="Message"
           />
-          <span className="absolute -top-5 left-0 text-xs text-slate-400 inline-flex items-center gap-1">
-            <InfoTooltip message={MESSAGE_BODY_TIP} />
-          </span>
-          <span className="absolute -top-5 right-0 text-xs text-slate-400">
-            {draft.length}/{MAX_MESSAGE_BODY}
-          </span>
+          {!isDisabled && (
+            <>
+              <span className="absolute -top-5 left-0 text-xs text-slate-400 inline-flex items-center gap-1">
+                <InfoTooltip message={MESSAGE_BODY_TIP} />
+              </span>
+              <span className="absolute -top-5 right-0 text-xs text-slate-400">
+                {draft.length}/{MAX_MESSAGE_BODY}
+              </span>
+            </>
+          )}
         </div>
         <button
           type="submit"
-          disabled={!draft.trim() || isSubmitting}
+          disabled={!draft.trim() || isSubmitting || isDisabled}
           className="sb-button-primary rounded-full !p-0 h-10 w-10 flex items-center justify-center disabled:opacity-50"
         >
           <ArrowRight className="h-5 w-5" />

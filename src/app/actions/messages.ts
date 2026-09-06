@@ -32,6 +32,7 @@ const directConversationSelect = {
     select: {
       body: true,
       createdAt: true,
+      senderId: true,
       sender: {
         select: {
           id: true,
@@ -103,7 +104,7 @@ export async function findDirectConversation(userIdA: string, userIdB: string) {
 }
 
 export async function getConversation(conversationId: string, userId: string) {
-  return prisma.conversation.findFirst({
+  const conversation = await prisma.conversation.findFirst({
     where: {
       id: conversationId,
       participants: { some: { userId } },
@@ -135,6 +136,8 @@ export async function getConversation(conversationId: string, userId: string) {
           createdAt: true,
           senderId: true,
           conversationId: true,
+          editedAt: true,
+          isDeleted: true,
           sender: {
             select: {
               id: true,
@@ -147,6 +150,32 @@ export async function getConversation(conversationId: string, userId: string) {
       },
     },
   });
+
+  if (!conversation) return null;
+
+  // ⚡ BLOCK STATE: Resolve block relationships in the same action so the chat
+  // UI can disable the composer and render the correct notice banner.
+  const otherParticipantId = conversation.participants.find(
+    (p) => p.user.id !== userId,
+  )?.user.id;
+
+  if (!otherParticipantId) return conversation;
+
+  const block = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: userId, blockedId: otherParticipantId },
+        { blockerId: otherParticipantId, blockedId: userId },
+      ],
+    },
+    select: { blockerId: true },
+  });
+
+  return {
+    ...conversation,
+    blockedByMe: block?.blockerId === userId,
+    blockedMe: block ? block.blockerId !== userId : false,
+  };
 }
 
 // ⚡ INFINITE SCROLL: Fetch older messages using a cursor
@@ -173,6 +202,8 @@ export async function getMoreMessages(
       createdAt: true,
       senderId: true,
       conversationId: true,
+      editedAt: true,
+      isDeleted: true,
       sender: {
         select: { id: true, name: true, handle: true, avatarUrl: true },
       },
@@ -191,6 +222,8 @@ export async function getMessageDetails(messageId: string) {
       createdAt: true,
       senderId: true,
       conversationId: true,
+      editedAt: true,
+      isDeleted: true,
       sender: {
         select: { id: true, name: true, handle: true, avatarUrl: true },
       },
@@ -224,17 +257,21 @@ export async function startConversation(
   if (recipientId === supabaseUser.id)
     return { success: false, error: "You cannot message yourself." };
 
-  const recipientBlockedSender = await prisma.block.findUnique({
+  // ⚡ BLOCK ENFORCEMENT (Issue 5): Check BOTH directions — the recipient may
+  // have blocked the sender, or the sender may have blocked the recipient.
+  const block = await prisma.block.findFirst({
     where: {
-      blockerId_blockedId: {
-        blockerId: recipientId,
-        blockedId: supabaseUser.id,
-      },
+      OR: [
+        { blockerId: supabaseUser.id, blockedId: recipientId },
+        { blockerId: recipientId, blockedId: supabaseUser.id },
+      ],
     },
-    select: { id: true },
+    select: { blockerId: true },
   });
-  if (recipientBlockedSender)
+
+  if (block) {
     return { success: false, error: "You cannot message this scholar." };
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
@@ -349,24 +386,31 @@ export async function sendMessage(
   if (!conversation)
     return { success: false, error: "Conversation not found." };
 
+  // ⚡ BLOCK ENFORCEMENT (Issue 5): Dual-direction check — a block in either
+  // direction must prevent the message from being created.
   const otherParticipant = conversation.participants.find(
     (p) => p.userId !== user.id,
   );
   if (otherParticipant) {
-    const blocked = await prisma.block.findUnique({
+    const block = await prisma.block.findFirst({
       where: {
-        blockerId_blockedId: {
-          blockerId: otherParticipant.userId,
-          blockedId: user.id,
-        },
+        OR: [
+          { blockerId: user.id, blockedId: otherParticipant.userId },
+          { blockerId: otherParticipant.userId, blockedId: user.id },
+        ],
       },
+      select: { blockerId: true },
     });
-    if (blocked)
+
+    if (block) {
       return {
         success: false,
         error:
-          "You cannot send messages to this conversation because you have been blocked.",
+          block.blockerId === user.id
+            ? "You have blocked this scholar. Unblock them to send messages."
+            : "You cannot message this scholar.",
       };
+    }
   }
 
   const createdMessage = await prisma.message.create({
@@ -410,6 +454,105 @@ export async function sendMessage(
   }
 
   return createdMessage;
+}
+
+export async function editMessage(
+  messageId: string,
+  newBody: string,
+): Promise<SubmitResult | (CreatedMessage & { editedAt: Date | null })> {
+  const supabaseUser = await requireActiveUser(
+    "Please log in to edit a message.",
+  );
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:edit",
+    key: supabaseUser.id,
+    limit: 30,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
+  const trimmed = newBody?.trim();
+  if (!trimmed) return { success: false, error: "Message body is required." };
+
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { id: true, senderId: true, conversationId: true, isDeleted: true },
+  });
+
+  // ⚡ ACADEMIC INTEGRITY: only the author may edit their own message.
+  if (!message || message.senderId !== supabaseUser.id) {
+    return { success: false, error: "You can only edit your own messages." };
+  }
+
+  if (message.isDeleted) {
+    return { success: false, error: "Deleted messages cannot be edited." };
+  }
+
+  const updated = await prisma.message.update({
+    where: { id: messageId },
+    data: { body: trimmed, editedAt: new Date() },
+    select: {
+      id: true,
+      body: true,
+      createdAt: true,
+      editedAt: true,
+      senderId: true,
+      conversationId: true,
+      sender: {
+        select: { id: true, name: true, handle: true, avatarUrl: true },
+      },
+    },
+  });
+
+  // Realtime propagation happens via the Postgres Changes UPDATE listener in
+  // MessageList — no extra broadcast plumbing required.
+  return updated;
+}
+
+export async function deleteMessage(
+  messageId: string,
+): Promise<SubmitResult> {
+  const supabaseUser = await requireActiveUser(
+    "Please log in to delete a message.",
+  );
+
+  const rateLimit = await checkRateLimit({
+    namespace: "message:delete",
+    key: supabaseUser.id,
+    limit: 30,
+    window: "1 m",
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, error: RATE_LIMIT_ERROR };
+  }
+
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+    select: { id: true, senderId: true, isDeleted: true },
+  });
+
+  // ⚡ ACADEMIC INTEGRITY: only the author may delete their own message.
+  if (!message || message.senderId !== supabaseUser.id) {
+    return { success: false, error: "You can only delete your own messages." };
+  }
+
+  if (message.isDeleted) {
+    return { success: true };
+  }
+
+  // ⚡ TOMBSTONE (RULE 4): Soft delete — blank the body for privacy and flag
+  // the row so both clients render "This message was deleted".
+  await prisma.message.update({
+    where: { id: messageId },
+    data: { isDeleted: true, body: "" },
+  });
+
+  return { success: true };
 }
 
 export async function isUserBlocked(

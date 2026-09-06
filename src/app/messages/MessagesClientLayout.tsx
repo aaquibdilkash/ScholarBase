@@ -5,14 +5,15 @@ import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
-import { formatTimeAgo } from "@/utils/time-ago";
+import { useTimeAgo } from "@/utils/use-time-ago";
 import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox } from "@/app/actions/messages";
+import { usePresence } from "@/components/interactions/PresenceProvider";
 import { MessagesLayoutContext } from "./messages-context";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
-type Message = { body: string; createdAt?: Date | string; created_at?: Date | string; senderId?: string; sender_id?: string; };
+type Message = { body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
 type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
 
 type MessageRow = {
@@ -26,15 +27,17 @@ type MessageRow = {
   createdAt?: string;
 };
 
-type PresenceState = {
-  [userId: string]: Array<{
-    online_at?: string;
-  }>;
-};
+// Presence state typing now lives in PresenceProvider (global channel).
+
+/** ⚡ Shared-ticker relative timestamp for sidebar previews (Issue 2). */
+function SidebarTimeAgo({ date }: { date: Date | string | number | null | undefined }) {
+  const label = useTimeAgo(date);
+  return <>{label}</>;
+}
 
 function ConversationSidebar({ user }: { user: User | null }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
-  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const { onlineUserIds } = usePresence();
   const [, setTick] = useState(0);
 
   const inboxRef = useRef<InboxConversation[]>([]);
@@ -48,11 +51,15 @@ function ConversationSidebar({ user }: { user: User | null }) {
   }, [inbox]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const interval = setInterval(() => {
       setTick((t) => t + 1);
     }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // ⚡ PRESENCE: Online status now comes from the single global
+  // `presence:global` channel (PresenceProvider) — no per-component channels.
 
   useEffect(() => {
     if (user) {
@@ -67,51 +74,15 @@ function ConversationSidebar({ user }: { user: User | null }) {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const presenceChannel = supabase.channel('online-presence', {
-      config: { presence: { key: user.id } },
-    });
-
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState() as PresenceState;
-        const onlineIds = new Set(Object.keys(state));
-        setOnlineUserIds(onlineIds);
-      })
-      .on('presence', { event: 'join' }, ({ key }: { key: string }) => {
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          next.add(key);
-          return next;
-        });
-      })
-      .on('presence', { event: 'leave' }, ({ key }: { key: string }) => {
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({ online_at: new Date().toISOString() });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(presenceChannel);
-    };
-  }, [user]);
-
   function normalizeTimestamp(value: Date | string | number | null | undefined): Date | string | number {
     if (!value && value !== 0) return new Date();
     if (typeof value === 'number') return value;
     if (typeof value === 'string') {
       const trimmed = value.trim();
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(trimmed)) {
-        return trimmed + 'Z';
+      // ⚡ Postgres timestamps can arrive naive (no timezone). Treat them as
+      // UTC so relative times are never skewed by the client's locale.
+      if (!/[Zz]$|[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+        return trimmed.replace(' ', 'T') + 'Z';
       }
     }
     return value;
@@ -135,10 +106,17 @@ function ConversationSidebar({ user }: { user: User | null }) {
 
               const updatedInbox = [...currentInbox];
               const targetConv = { ...updatedInbox[convIndex] };
-              targetConv.messages = [{ body: rawMessage.body }];
+              // ⚡ Keep senderId + createdAt in the preview so unread math and
+              // relative timestamps stay correct.
+              targetConv.messages = [{
+                body: rawMessage.body,
+                senderId: rawMessage.senderId || rawMessage.sender_id,
+                createdAt: normalizeTimestamp(rawMessage.createdAt || rawMessage.created_at),
+              }];
               targetConv.lastMessageAt = normalizeTimestamp(rawMessage.createdAt || rawMessage.created_at) as string | Date;
               const senderId = rawMessage.senderId || rawMessage.sender_id;
               
+              // ⚡ ISSUE 1: Never count the current user's own messages as unread.
               if (senderId !== user.id) {
                 targetConv.unreadCount = (targetConv.unreadCount || 0) + 1;
               }
@@ -153,20 +131,22 @@ function ConversationSidebar({ user }: { user: User | null }) {
           const change = payload.new as { conversationId: string; userId: string; lastReadAt: string | null };
           if (change.userId !== user.id) return; 
           
-          if (change.lastReadAt) {
-            setInbox((currentInbox) => {
-              return currentInbox.map((conv) => {
-                if (conv.id !== change.conversationId) return conv;
-                const lastReadAt = new Date(change.lastReadAt!);
-                const unreadCount = conv.messages.filter((m) => {
-                  const senderId = m.senderId || m.sender_id;
-                  const msgDate = m.createdAt || m.created_at;
-                  return senderId !== user.id && msgDate && new Date(msgDate) > lastReadAt;
-                }).length;
-                return { ...conv, unreadCount };
-              });
+          // ⚡ ISSUE 1: This row only updates when the current user reads or
+          // sends in this conversation — either way nothing is unread anymore.
+          setInbox((currentInbox) => {
+            return currentInbox.map((conv) => {
+              if (conv.id !== change.conversationId) return conv;
+              return {
+                ...conv,
+                unreadCount: 0,
+                participants: conv.participants.map((p) =>
+                  p.user.id === user.id && change.lastReadAt
+                    ? { ...p, lastReadAt: change.lastReadAt }
+                    : p,
+                ),
+              };
             });
-          }
+          });
         }
       ).subscribe();
 
@@ -177,17 +157,20 @@ function ConversationSidebar({ user }: { user: User | null }) {
       setInbox((currentInbox) => {
         return currentInbox.map((conv) => {
           if (conv.id !== conversationId) return conv;
-          const lastReadAt = new Date();
-          const unreadCount = conv.messages.filter((m) => {
-            const senderId = m.senderId || m.sender_id;
-            const msgDate = m.createdAt || m.created_at;
-            return senderId !== user.id && msgDate && new Date(msgDate) > lastReadAt;
-          }).length;
-          return { ...conv, unreadCount };
+          return {
+            ...conv,
+            unreadCount: 0,
+            participants: conv.participants.map((p) =>
+              p.user.id === user.id ? { ...p, lastReadAt: new Date() } : p,
+            ),
+          };
         });
       });
     };
 
+    // ⚡ ISSUE 1 & 2: Optimistic sidebar sync when the active chat window sends
+    // a message — update preview, lastMessageAt, own read state and re-sort
+    // immediately, without waiting for the server or realtime events.
     const handleMessageSent = (event: CustomEvent) => {
       const { conversationId, message } = event.detail;
       
@@ -197,8 +180,19 @@ function ConversationSidebar({ user }: { user: User | null }) {
 
         const updatedInbox = [...currentInbox];
         const targetConv = { ...updatedInbox[convIndex] };
-        targetConv.messages = [{ body: message.body }];
+        targetConv.messages = [{
+          body: message.body,
+          senderId: message.senderId,
+          createdAt: message.createdAt,
+        }];
         targetConv.lastMessageAt = message.createdAt;
+        // ⚡ The sender has by definition read everything up to now.
+        targetConv.unreadCount = 0;
+        targetConv.participants = targetConv.participants.map((p) =>
+          p.user.id === message.senderId
+            ? { ...p, lastReadAt: message.createdAt }
+            : p,
+        );
         
         updatedInbox.splice(convIndex, 1);
         updatedInbox.unshift(targetConv);
@@ -271,7 +265,15 @@ function ConversationSidebar({ user }: { user: User | null }) {
                  const latestMessage = conversation.messages[0];
                  const participantData = conversation.participants.find((p) => p.user.id === user.id);
                  const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
-                 const isUnread = conversation.unreadCount > 0 || new Date(conversation.lastMessageAt) > lastReadAt;
+                 // ⚡ ISSUE 1: Own outgoing messages must never mark the thread unread.
+                 const latestSenderId = latestMessage
+                   ? (latestMessage.senderId || latestMessage.sender_id || latestMessage.sender?.id)
+                   : undefined;
+                 const isUnread =
+                   conversation.unreadCount > 0 ||
+                   (latestSenderId !== undefined &&
+                     latestSenderId !== user.id &&
+                     new Date(conversation.lastMessageAt) > lastReadAt);
                  const isActive = pathname === `/messages/${conversation.id}`;
                  const isOtherUserOnline = onlineUserIds.has(otherParticipant?.id || "");
 
@@ -322,7 +324,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                       </div>
                       {isSidebarOpen && (
                         <div className="flex shrink-0 flex-col items-end gap-1">
-                          <div suppressHydrationWarning className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{formatTimeAgo(conversation.lastMessageAt)}</div>
+                          <div suppressHydrationWarning className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{<SidebarTimeAgo date={conversation.lastMessageAt} />}</div>
                           {conversation.unreadCount > 0 && (
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold leading-none text-white">
                               {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
