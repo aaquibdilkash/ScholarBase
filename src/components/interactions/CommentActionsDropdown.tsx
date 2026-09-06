@@ -7,7 +7,10 @@ import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 export type CommentActionsDropdownProps = {
   onEdit: () => void;
   onDelete: () => void | Promise<void>;
+  /** Controls menu visibility — true for comment author, post author, or parent comment author. */
   isOwner: boolean;
+  /** Only the comment's own author may edit (post/parent owners can only delete). */
+  canEdit?: boolean;
   editLabel?: string;
   deleteLabel?: string;
 };
@@ -16,6 +19,7 @@ export default function CommentActionsDropdown({
   onEdit,
   onDelete,
   isOwner,
+  canEdit = true,
   editLabel = "Edit",
   deleteLabel = "Delete",
 }: CommentActionsDropdownProps) {
@@ -84,18 +88,20 @@ export default function CommentActionsDropdown({
             className="sb-menu absolute right-0 z-50 mt-2 w-40"
           >
             <div>
-              <button
-                type="button"
-                role="menuitem"
-                disabled={isDeleting}
-                onClick={() => {
-                  setOpen(false);
-                  onEdit();
-                }}
-                className="sb-menu-item"
-              >
-                {editLabel}
-              </button>
+              {canEdit && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={isDeleting}
+                  onClick={() => {
+                    setOpen(false);
+                    onEdit();
+                  }}
+                  className="sb-menu-item"
+                >
+                  {editLabel}
+                </button>
+              )}
               <button
                 type="button"
                 role="menuitem"

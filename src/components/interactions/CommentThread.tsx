@@ -236,6 +236,8 @@ interface CommentCardProps {
   targetId: string;
   currentUserId: string | null;
   postAuthorId?: string | null;
+  /** Author of the parent comment — only set for replies, enables PARENT_COMMENT_AUTHOR deletion. */
+  parentCommentAuthorId?: string | null;
   replyingToThis: boolean;
   onToggleReplyForm: () => void;
   onEdited: (next: CommentWithAuthorAndVotes) => void;
@@ -257,6 +259,7 @@ function CommentCard({
   module,
   currentUserId,
   postAuthorId,
+  parentCommentAuthorId,
   replyingToThis,
   onToggleReplyForm,
   onEdited,
@@ -270,6 +273,13 @@ function CommentCard({
   userFrozen = false,
 }: CommentCardProps) {
   const isOwner = !!currentUserId && comment.author?.id === currentUserId;
+  // Mirrors src/lib/deletion.ts: the root post author and (for replies) the
+  // parent comment author may delete without being the comment's own author.
+  // Edit stays exclusive to the comment's own author.
+  const isPostAuthor = !!currentUserId && !!postAuthorId && currentUserId === postAuthorId;
+  const isParentCommentAuthor =
+    isReply && !!currentUserId && !!parentCommentAuthorId && currentUserId === parentCommentAuthorId;
+  const canDelete = isOwner || isPostAuthor || isParentCommentAuthor;
   const wasEdited =
     comment.editedAt != null &&
     new Date(comment.editedAt).getTime() -
@@ -521,7 +531,8 @@ function CommentCard({
                   {!isFrozen && (
                     <>
                       <CommentActionsDropdown
-                        isOwner={isOwner}
+                        isOwner={canDelete}
+                        canEdit={isOwner}
                         onEdit={() => setEditingId(comment.id)}
                         onDelete={handleDeleteComment}
                       />
@@ -678,6 +689,7 @@ export function CommentThread({
                 targetId={targetId}
                 currentUserId={currentUserId}
                 postAuthorId={postAuthorId}
+                parentCommentAuthorId={comment.authorId}
                 replyingToThis={false}
                 locked={locked}
                 onToggleReplyForm={() => {}}
