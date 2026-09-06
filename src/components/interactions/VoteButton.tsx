@@ -109,7 +109,9 @@ export function VoteButton({
       } else {
         toast({
           title: "Error",
-          description: "Failed to register vote. Please try again.",
+          description:
+            (result && !result.success && result.error) ||
+            "Failed to register vote. Please try again.",
           variant: "destructive",
         });
       }

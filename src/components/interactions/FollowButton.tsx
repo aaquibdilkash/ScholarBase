@@ -76,8 +76,8 @@ export function FollowButton({
       onClick={handleClick}
       className={`px-6 py-2 text-sm font-semibold rounded-lg transition ${
         optimisticIsFollowing
-          ? "bg-gray-100 text-gray-800 hover:bg-gray-200"
-          : "bg-slate-950 text-white hover:bg-slate-800"
+          ? "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+          : "bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
       }`}
     >
       {isPending ? (

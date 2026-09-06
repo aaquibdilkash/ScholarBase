@@ -469,7 +469,12 @@ export async function deleteSocialPost(postId: string) {
 }
 
 export async function voteOnSocialPost(postId: string, voteType: VoteType) {
-  const user = await requireActiveUser("You must be logged in to vote.");
+  const auth = await getActiveUser("You must be logged in to vote.");
+  if (auth.frozen) {
+    return { success: false, error: auth.message };
+  }
+  const user = auth.user;
+
   const rateLimit = await checkRateLimit({
     namespace: "post-vote",
     key: user.id,

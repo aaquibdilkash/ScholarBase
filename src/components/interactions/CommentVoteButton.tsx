@@ -86,7 +86,7 @@ export function CommentVoteButton({
         } else {
           toast({
             title: "Error",
-            description: "Failed to register vote. Please try again.",
+            description: res.error || "Failed to register vote. Please try again.",
             variant: "destructive",
           });
         }

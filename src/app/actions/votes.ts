@@ -5,7 +5,7 @@ import {
   handleCommentVoteTransaction,
   ModuleKey,
 } from "@/lib/transactions";
-import { requireActiveUser } from "@/lib/auth";
+import { getActiveUser } from "@/lib/auth";
 import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
@@ -15,7 +15,15 @@ export async function voteOnContent(
   newVoteType: VoteType,
   module: ModuleKey,
 ) {
-  const user = await requireActiveUser("You must be logged in to vote.");
+  // Graceful auth: frozen accounts must get a `{ success: false, error }`
+  // payload (rendered as a toast) instead of a thrown Server Action error
+  // that crashes the page. Logged-out users still redirect via
+  // requireCurrentUser inside getActiveUser.
+  const auth = await getActiveUser("You must be logged in to vote.");
+  if (auth.frozen) {
+    return { success: false, error: auth.message };
+  }
+  const user = auth.user;
 
   if (!entityId || !newVoteType || !module) {
     throw new Error("Missing required parameters for voting.");
@@ -52,7 +60,11 @@ export async function toggleCommentVote(
   type: CommentEntityType,
   voteType: VoteType,
 ) {
-  const user = await requireActiveUser("You must be logged in to vote.");
+  const auth = await getActiveUser("You must be logged in to vote.");
+  if (auth.frozen) {
+    return { success: false, error: auth.message };
+  }
+  const user = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: `comment-vote:${type}`,

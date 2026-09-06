@@ -143,7 +143,7 @@ export function UserListModal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 m-auto max-h-[80vh] rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 max-w-md w-full"
+      className="fixed inset-0 m-auto max-h-[80vh] rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 max-w-md w-full dark:border-slate-700 dark:bg-slate-900"
       onClose={handleClose}
       onClick={(e) => {
         if (e.target === dialogRef.current) handleClose();
@@ -151,10 +151,10 @@ export function UserListModal({
     >
       <div className="p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+          <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">{title}</h2>
           <button
             onClick={handleClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-300"
           >
             <X className="h-5 w-5" />
           </button>
@@ -162,10 +162,10 @@ export function UserListModal({
 
         {loading ? (
           <div className="flex justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
           </div>
         ) : users.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-500">
+          <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
             No users found.
           </p>
         ) : (
@@ -173,28 +173,28 @@ export function UserListModal({
             {users.map((u) => (
               <div
                 key={u.id}
-                className="flex items-center justify-between gap-3 rounded-xl p-3 hover:bg-slate-50 transition"
+                className="flex items-center justify-between gap-3 rounded-xl p-3 hover:bg-slate-50 transition dark:hover:bg-slate-800/60"
               >
                 <Link
                   href={`/scholars/${u.id}`}
                   className="flex items-center gap-3 min-w-0"
                   onClick={handleClose}
                 >
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden">
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden dark:border-slate-700 dark:bg-slate-800">
                     {u.avatarUrl ? (
                       <UserAvatar src={u.avatarUrl} name={u.name} />
                     ) : (
-                      <span className="text-sm font-bold text-slate-400">
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500">
                         {u.name?.charAt(0).toUpperCase() || "?"}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">
+                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                       {u.name || "Scholar"}
                     </p>
                     {u.handle && (
-                      <p className="truncate text-xs text-slate-500">
+                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
                         @{u.handle}
                       </p>
                     )}
@@ -205,7 +205,7 @@ export function UserListModal({
                     onClick={() => handleFollow(u.id)}
                     className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
                       u.isFollowing
-                        ? "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-1 dark:ring-slate-600 dark:hover:bg-slate-700"
                         : "bg-blue-600 text-white hover:bg-blue-700"
                     }`}
                   >
@@ -218,7 +218,7 @@ export function UserListModal({
               <div ref={sentinelRef} className="py-4 text-center">
                 {loadingMore ? (
                   <div className="flex items-center justify-center gap-2 text-slate-500">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
                     Loading more...
                   </div>
                 ) : null}
