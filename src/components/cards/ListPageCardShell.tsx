@@ -53,6 +53,10 @@ export type ListPageCardShellProps = {
 
   // When true, children will NOT be wrapped in a <Link> (use case: children contain <a> tags)
   noBodyLink?: boolean;
+
+  // When false, the middle body is rendered without the generic line-clamp /
+  // measurement (use case: cards that manage their own text expansion).
+  constrainBody?: boolean;
 };
 
 export default function ListPageCardShell({
@@ -79,6 +83,7 @@ export default function ListPageCardShell({
   editedDate,
   createdDate,
   noBodyLink = false,
+  constrainBody,
 }: ListPageCardShellProps) {
   const showManagementControls = Boolean(managementControls);
 
@@ -145,6 +150,7 @@ export default function ListPageCardShell({
         detailPageHref={detailPageHref}
         className={clsx("block min-w-0 group", bodyClassName)}
         noBodyLink={noBodyLink}
+        constrainBody={constrainBody}
       >
         {children}
       </TruncatedCardBody>

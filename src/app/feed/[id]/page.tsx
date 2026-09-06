@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { PostContent } from "@/components/feed/PostContent";
+import { FeedImage } from "@/components/feed/FeedImage";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
@@ -126,14 +126,12 @@ export default async function SinglePostPage({
 
       {p.imageUrl && (
         <div className="mt-4 sm:mt-6">
-          <Image
+          <FeedImage
             src={p.imageUrl}
-            alt=""
             width={800}
             height={416}
             unoptimized
-            // className="w-full h-48 sm:h-64 rounded-xl object-cover border border-slate-200 hover:opacity-90 transition"
-            className="block w-full h-auto rounded-xl object-contain hover:opacity-90 transition"
+            className="block w-full h-auto rounded-xl object-contain"
           />
         </div>
       )}

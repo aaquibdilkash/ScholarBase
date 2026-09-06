@@ -3,36 +3,87 @@
 import Link from "next/link";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
+/**
+ * Inline styles for a native CSS line clamp. Unlike a rigid pixel-height
+ * (`overflow: hidden`) container, a line clamp clips only at whole lines, so
+ * text is never sliced in half mid-line.
+ */
+const lineClampStyle = (lines: number): React.CSSProperties => ({
+  display: "-webkit-box",
+  WebkitLineClamp: lines,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+});
+
 export function TruncatedCardBody({
   children,
   detailPageHref,
   className,
   noBodyLink,
+  constrainBody = true,
+  maxLines = 3,
 }: {
   children: ReactNode;
   detailPageHref: string;
   className?: string;
   noBodyLink: boolean;
+  /**
+   * When false the body is rendered verbatim (no clamp, measurement or toggle).
+   * Use this when a card manages its own expansion (e.g. SocialPostCard with an
+   * image beside the text) so the neighbouring media is never clipped.
+   */
+  constrainBody?: boolean;
+  /** Number of visible lines before clamping (default 3). */
+  maxLines?: number;
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
+  const updateTruncation = () => {
     const body = bodyRef.current;
-    if (!body) return;
+    const measure = measureRef.current;
+    if (!body || !measure) return setIsTruncated(false);
+    // The measurement copy carries the same children WITHOUT the clamp, so its
+    // natural height reveals whether the clamped body actually clipped content.
+    setIsTruncated(
+      measure.getBoundingClientRect().height >
+        body.getBoundingClientRect().height + 1,
+    );
+  };
 
-    const updateTruncation = () => {
-      setIsTruncated(body.scrollHeight > body.clientHeight + 1);
-    };
+  useEffect(() => {
+    if (!constrainBody) return;
     updateTruncation();
     const observer = new ResizeObserver(updateTruncation);
-    observer.observe(body);
+    if (bodyRef.current) observer.observe(bodyRef.current);
+    if (measureRef.current) observer.observe(measureRef.current);
     return () => observer.disconnect();
-  }, [children]);
+  }, [children, constrainBody]);
 
-  const content = (
-    <div ref={bodyRef} className={isExpanded ? "overflow-visible" : "max-h-35 min-w-0 overflow-hidden"}>
+  const content = constrainBody ? (
+    <div className="relative min-w-0">
+      <div
+        ref={bodyRef}
+        className="min-w-0"
+        style={isExpanded ? undefined : lineClampStyle(maxLines)}
+      >
+        {children}
+      </div>
+      {/* Hidden, non-clamped copy used purely for truncation measurement. */}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        inert
+        className="pointer-events-none absolute left-0 top-0 w-full"
+        style={{ visibility: "hidden" }}
+      >
+        {children}
+      </div>
+    </div>
+  ) : (
+    <div ref={bodyRef} className="min-w-0">
       {children}
     </div>
   );
@@ -46,7 +97,7 @@ export function TruncatedCardBody({
           {content}
         </Link>
       )}
-      {isTruncated || isExpanded ? (
+      {constrainBody && (isTruncated || isExpanded) ? (
         <button
           type="button"
           onClick={() => setIsExpanded((current) => !current)}
