@@ -173,7 +173,7 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Password is too long." };
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -184,6 +184,16 @@ export async function signup(formData: FormData): Promise<AuthResult> {
   if (error) {
     const message = mapAuthError(error.message);
     return { success: false, error: message };
+  }
+
+  // Detect existing user under Supabase Email Enumeration Protection
+  // When enabled, Supabase returns a user with empty identities array
+  // instead of an error to prevent email enumeration attacks
+  if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+    return {
+      success: false,
+      error: "An account with this email already exists. Please sign in.",
+    };
   }
 
   return {
@@ -245,10 +255,11 @@ export async function forgotPassword(
     return rateLimitResult;
   }
 
-  const userExists = await checkUserExists(email);
-  if (!userExists) {
-    return { success: false, error: "No account found with this email." };
-  }
+  // Note: We intentionally do NOT check if the user exists in our local database.
+  // Supabase's resetPasswordForEmail handles non-existent emails gracefully
+  // (it won't send an email but won't reveal if the email is registered).
+  // Checking our local DB would leak information about registered emails
+  // and could fail for users who exist in Supabase Auth but not yet in our DB.
 
   const redirectTo = `${baseUrl}/auth/callback?next=/auth/update-password`;
 
