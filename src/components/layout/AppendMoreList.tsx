@@ -14,6 +14,7 @@ export function AppendMoreList<T>({
   chunkSize = 10,
   className,
   emptyMessage,
+  emptyState,
 }: {
   initialItems: T[];
   resource: string;
@@ -22,6 +23,8 @@ export function AppendMoreList<T>({
   chunkSize?: number;
   className?: string;
   emptyMessage?: string;
+  /** Optional richer empty-state node; overrides `emptyMessage` when provided. */
+  emptyState?: ReactNode;
 }) {
   const [items, setItems] = useState<T[]>(initialItems);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -56,10 +59,12 @@ export function AppendMoreList<T>({
 
   return (
     <div className={className}>
-      {items.length === 0 && emptyMessage ? (
-        <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
-          <p className="font-medium text-slate-500">{emptyMessage}</p>
-        </div>
+      {items.length === 0 && (emptyState ?? emptyMessage) ? (
+        emptyState ?? (
+          <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
+            <p className="font-medium text-slate-500">{emptyMessage}</p>
+          </div>
+        )
       ) : (
         <>
           {items.map((item) => renderItem(item))}

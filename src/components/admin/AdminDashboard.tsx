@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useOptimistic } from "react";
+import { Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { RejectionModal } from "@/components/ui/RejectionModal";
@@ -426,7 +427,7 @@ export function AdminDashboard({
 
             {isPending ? (
               <div className="p-8 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 border-t-blue-600"></div>
+                <Loader2 className="inline-block h-8 w-8 animate-spin text-slate-400" />
               </div>
             ) : (
               <AdminTable
