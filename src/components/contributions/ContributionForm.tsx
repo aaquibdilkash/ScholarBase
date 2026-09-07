@@ -15,6 +15,8 @@ import {
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
 import { useFormDraft } from "@/hooks/useFormDraft";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useUser } from "@/hooks/useUser";
 import { upsertToList } from "@/utils/cacheMutation";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { Editor } from "@/components/ui/Editor";
@@ -91,6 +93,9 @@ export default function ContributionForm({
     initialValues?.screenshotUrl ?? "",
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
 
   // Restore screenshotUrl from draft once hydration completes
   useEffect(() => {
@@ -336,17 +341,28 @@ export default function ContributionForm({
               <InfoTooltip message={CONTRIBUTION_SCREENSHOT_TIP} />
             </label>
             <div className="mt-1 flex items-center gap-4">
-              <label className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user) {
+                    openAuthModal();
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                }}
+                disabled={uploading}
+                className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50"
+              >
                 <span>{uploading ? "Uploading..." : "Choose Image"}</span>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={uploading}
-                />
-              </label>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
               {screenshotUrl && (
                 <span className="text-xs text-green-600 font-semibold">
                   ✓ Screenshot uploaded

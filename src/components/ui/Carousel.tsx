@@ -126,22 +126,24 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
 
   return (
     <div className="relative group">
-      <div
-        ref={containerRef}
-        className="flex items-start overflow-x-auto snap-x snap-mandatory transition-[height] duration-200 ease-out [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-        style={activeHeight ? { height: activeHeight } : undefined}
-      >
-        {Children.map(children, (child, i) => (
-          <div
-            key={i}
-            ref={(element) => {
-              slideRefs.current[i] = element;
-            }}
-            className="w-full shrink-0 snap-center"
-          >
-            {child}
-          </div>
-        ))}
+      <div className="overflow-x-hidden">
+        <div
+          ref={containerRef}
+          className="flex items-start overflow-x-auto snap-x snap-mandatory transition-[height] duration-200 ease-out [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          style={activeHeight ? { height: activeHeight } : undefined}
+        >
+          {Children.map(children, (child, i) => (
+            <div
+              key={i}
+              ref={(element) => {
+                slideRefs.current[i] = element;
+              }}
+              className="w-full shrink-0 snap-center"
+            >
+              {child}
+            </div>
+          ))}
+        </div>
       </div>
 
       {childCount > 1 && canScrollLeft && (

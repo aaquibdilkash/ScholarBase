@@ -23,6 +23,44 @@ type Recipient = {
   avatarUrl: string | null;
 };
 
+const DRAFT_KEY = "sb_new_message_draft";
+type Draft = { body: string; recipient: Recipient | null };
+
+function readDraft(): Draft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Draft>;
+    return {
+      body: typeof parsed.body === "string" ? parsed.body : "",
+      recipient: parsed.recipient && typeof parsed.recipient === "object"
+        ? (parsed.recipient as Recipient)
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(draft: Draft) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!draft.body && !draft.recipient) {
+      window.localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {}
+}
+
+function clearDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch {}
+}
+
 export function NewMessageForm({
   initialRecipient,
 }: {
@@ -44,6 +82,25 @@ export function NewMessageForm({
   );
   const [isSearching, setIsSearching] = useState(false);
   const [body, setBody] = useState("");
+
+  // ⚡ DRAFT: Restore unsent message + recipient from localStorage on mount.
+  // This survives page reloads AND the re-login redirect via callbackUrl,
+  // so users never lose what they typed while signing in.
+  // Skip restore when an explicit recipient came from `?to=...` — the user
+  // came here with intent to message that specific scholar.
+  useEffect(() => {
+    if (initialRecipient) return;
+    const saved = readDraft();
+    if (!saved) return;
+    setBody(saved.body);
+    if (saved.recipient) setSelectedRecipient(saved.recipient);
+  }, [initialRecipient]);
+
+  // ⚡ DRAFT: Persist on every change to body or selectedRecipient.
+  useEffect(() => {
+    if (!body && !selectedRecipient) return;
+    writeDraft({ body, recipient: selectedRecipient });
+  }, [body, selectedRecipient]);
 
   useEffect(() => {
     if (search.length > 2) {
@@ -67,6 +124,7 @@ export function NewMessageForm({
         recipient.id,
       );
       if (conversationId) {
+        clearDraft();
         router.push(`/messages/${conversationId}`);
         return;
       }
@@ -88,6 +146,10 @@ export function NewMessageForm({
       return;
     }
     await submit(() => startConversation(formData));
+    // ⚡ DRAFT: Clear once the conversation has been created server-side.
+    clearDraft();
+    setBody("");
+    setSelectedRecipient(null);
   };
 
   return (

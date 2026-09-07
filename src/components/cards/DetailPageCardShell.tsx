@@ -164,10 +164,10 @@ export default function DetailPageCardShell({
           </div>
         </div>
 
-        {/* Body — clipping is scoped here so wide media can't bleed past the
-            card's rounded corners, while header/footer dropdown menus (which
-            render outside this box) are never cut off. */}
-        <div className="overflow-hidden">
+        {/* Body — clipping is handled by child components (e.g. Carousel
+            uses its own overflow-x-hidden) so positioned overlays like
+            carousel arrows are never cut off. */}
+        <div>
           {children}
 
           {bodyBottomContent}

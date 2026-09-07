@@ -115,17 +115,6 @@ export default async function SupervisorPage({
           initialUserVote={userVote}
         />
       }
-      managementControls={
-        user?.id === supervisor.authorId ? (
-          <OwnerActionsDropdown
-            editHref={`/supervisor/${supervisor.id}/edit`}
-            onDelete={handleDelete}
-            isOwner={true}
-            editLabel="Edit Profile"
-            deleteLabel="Delete"
-          />
-        ) : null
-      }
       discussion={
         <CommentSection
           locked={supervisor.isFrozen ?? false}
@@ -160,12 +149,24 @@ export default async function SupervisorPage({
             )}
           </div>
 
-          <RecommendButton
-            supervisorId={supervisor.id}
-            currentUserId={user?.id}
-            initialHasRecommendation={hasUserRecommendation}
-            initialUserRecommendationId={recMeta.userRecommendationId}
-          />
+          <div className="flex md:justify-end justify-center w-full">
+            <div className="flex items-center gap-3">
+              {user?.id === supervisor.authorId && (
+                <OwnerActionsDropdown
+                  editHref={`/supervisor/${supervisor.id}/edit`}
+                  onDelete={handleDelete}
+                  isOwner={true}
+                  editLabel="Edit Profile"
+                  deleteLabel="Delete"
+                />
+              )}
+              <RecommendButton
+                supervisorId={supervisor.id}
+                initialHasRecommendation={hasUserRecommendation}
+                initialUserRecommendationId={recMeta.userRecommendationId}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

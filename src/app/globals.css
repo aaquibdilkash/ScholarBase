@@ -39,6 +39,13 @@ html[data-theme="dark"] {
     scroll-behavior: smooth;
   }
 
+  html.sb-route-messages body > div main {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
   body {
     background:
       radial-gradient(

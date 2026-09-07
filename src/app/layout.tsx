@@ -1,6 +1,7 @@
 import Sidebar from "@/components/layout/Sidebar";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import ConditionalFooter from "@/components/layout/ConditionalFooter";
+import MainClassManager from "@/components/layout/MainClassManager";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
@@ -168,6 +169,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders isFrozen={isFrozen}>
+          <MainClassManager />
           <div className="flex min-h-screen">
             <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
@@ -190,7 +192,7 @@ export default async function RootLayout({
                 {children}
               </main>
 
-              <Footer />
+              <ConditionalFooter />
             </div>
           </div>
         </AppProviders>

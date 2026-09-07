@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useOptimistic } from "react";
+import { useState, useTransition, useOptimistic, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
@@ -82,6 +82,7 @@ export function AdminDashboard({
   // not just the active one (hydration-safe, same pattern as the nav hook).
   const { sectionStates, setSectionState } = useAdminSectionState();
   const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
   const [itemToReject, setItemToReject] = useState<{
     contentId: string;
   } | null>(null);
@@ -284,6 +285,13 @@ export function AdminDashboard({
 
   const handleTabClick = (sectionId: string) => {
     setActiveTab(sectionId); // list state (view/page/filters) is per-section
+    // On short screens, the stats grid sits above the table — scroll the
+    // user to the table so the just-selected section's data is visible.
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      requestAnimationFrame(() => {
+        tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   };
 
   const handleViewSelect = (nextView: ContentView) => {
@@ -394,7 +402,8 @@ export function AdminDashboard({
 
         <div className="flex-1">
           <div
-            className={`rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
+            ref={tableRef}
+            className={`scroll-mt-20 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
           >
             <AdminToolbar
               title={`${activeSectionTitle} Management`}

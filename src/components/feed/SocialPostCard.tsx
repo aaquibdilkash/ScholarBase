@@ -210,14 +210,22 @@ export function SocialPostCard({
     >
       <Link
         href={`/feed/${post.id}`}
-        className={`flex min-w-0 gap-4 ${post.imageUrl ? "items-start" : ""}`}
+        className={`flex min-w-0 gap-4 ${post.imageUrl ? "items-start" : ""} ${isExpanded ? "flex-col md:flex-row" : ""}`}
         style={
           isExpanded
             ? undefined
             : { minHeight: collapsedBodyHeight }
         }
       >
-        <div className={post.imageUrl ? "w-1/2 min-w-0" : "w-full"}>
+        <div
+          className={
+            post.imageUrl
+              ? isExpanded
+                ? "w-full md:w-1/2 min-w-0"
+                : "w-1/2 min-w-0"
+              : "w-full"
+          }
+        >
           <div className="relative min-w-0 w-full">
             <p
               ref={bodyRef}
@@ -247,7 +255,7 @@ export function SocialPostCard({
             ref={imageButtonRef}
             type="button"
             aria-label="Open image preview"
-            className="mb-4 w-1/2 self-start cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900"
+            className={`mb-4 ${isExpanded ? "w-full md:w-1/2" : "w-1/2"} self-start cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900`}
             style={
               !isExpanded ? { height: collapsedBodyHeight } : undefined
             }

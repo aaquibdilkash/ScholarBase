@@ -14,6 +14,8 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { MentionComposer, type MentionUser } from "@/components/interactions/MentionComposer";
 import type { SocialPostWithAuthor } from "@/types/cards";
+import { useAuthModal } from "@/components/interactions/AuthModal";
+import { useUser } from "@/hooks/useUser";
 
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
@@ -32,6 +34,9 @@ export function CreateSocialPostForm() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
+
+  const { openAuthModal } = useAuthModal();
+  const { user } = useUser();
 
   const [draftFields, updateDraftField, resetDraft, isRestored] = useFormDraft(
     "draft_social_post",
@@ -237,19 +242,32 @@ export function CreateSocialPostForm() {
         )}
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">
-            <ImageIcon className="h-5 w-5" aria-hidden="true" />
-            {uploading ? "Uploading..." : "Add Image"}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileUpload}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!user) {
+                  openAuthModal();
+                  return;
+                }
+                fileInputRef.current?.click();
+              }}
               disabled={uploading}
-            />
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <ImageIcon className="h-5 w-5" aria-hidden="true" />
+              {uploading ? "Uploading..." : "Add Image"}
+            </button>
             <InfoTooltip message={FEED_IMAGE_TIP} />
-          </label>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileUpload}
+            disabled={uploading}
+          />
           <SubmitBtnWithAuth
             className="sb-button-accent"
             loadingText={uploading ? "Uploading..." : undefined}

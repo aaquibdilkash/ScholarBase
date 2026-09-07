@@ -11,6 +11,7 @@ import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import type { EventWithAuthor } from "@/types/cards";
+import { RichContent } from "../content/RichContent";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -102,6 +103,7 @@ export function EventCard({
         />
       }
       noBodyLink={true}
+      constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           {event.notificationLink && (
@@ -171,10 +173,10 @@ export function EventCard({
           )}
         </div>
 
-        {/* <RichContent
+        <RichContent
           content={event.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
-        /> */}
+          className="text-sm leading-relaxed text-slate-600"
+        />
       </Link>
     </ListPageCardShell>
   );

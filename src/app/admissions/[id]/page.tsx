@@ -147,7 +147,7 @@ const AdmissionDetailPage = async ({
       <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
         {admission.university}
       </h1>
-      <p className="text-sm sm:text-base font-medium text-blue-700 mb-3 sm:mb-4">
+      <p className="text-sm sm:text-base font-medium text-slate-950 mb-3 sm:mb-4">
         {admission.department}
       </p>
 

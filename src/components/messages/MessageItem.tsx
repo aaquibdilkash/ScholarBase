@@ -172,7 +172,7 @@ export const MessageItem = React.memo(
             </div>
           )}
         </div>
-        <div className="flex max-w-[75%] items-center gap-1">
+        <div className="flex max-w-[90%] items-center gap-0">
           {isEditing && isMine ? (
             // ⚡ Native themed inline edit form (replaces the bubble entirely)
             <div className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg sm:w-96 dark:border-slate-700 dark:bg-slate-900">

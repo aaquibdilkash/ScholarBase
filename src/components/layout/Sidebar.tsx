@@ -198,7 +198,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       />
 
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
+        className={`fixed inset-y-0 left-0 z-[60] flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
 
         md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:py-6 md:backdrop-blur-xl md:shadow-sm 
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"} w-72 px-6 
@@ -214,15 +214,25 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
             <BrandMark />
           </Link>
 
-          <button
-            type="button"
-            onClick={toggleDesktop}
-            className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
-            ${desktopCollapsed ? "md:h-12 md:w-12 md:mx-auto md:p-0" : "md:h-11 md:w-11 md:p-0"}`}
-            aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {desktopCollapsed ? <Menu className="h-6 w-6" /> : <ChevronsLeft className="h-6 w-6" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="md:hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white inline-flex items-center justify-center h-10 w-10"
+              aria-label="Close sidebar"
+            >
+              <ChevronsLeft className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={toggleDesktop}
+              className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
+              ${desktopCollapsed ? "md:h-12 md:w-12 md:mx-auto md:p-0" : "md:h-11 md:w-11 md:p-0"}`}
+              aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {desktopCollapsed ? <Menu className="h-6 w-6" /> : <ChevronsLeft className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         <nav

@@ -10,7 +10,7 @@ import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } f
 import { getInbox } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { MessagesLayoutContext } from "./messages-context";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronRight, ChevronsLeft, Loader2 } from "lucide-react";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
 type Message = { body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
@@ -226,7 +226,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
   });
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-slate-950">
+    <div className="flex h-full flex-col overflow-y-auto">
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
         {isSidebarOpen && <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Conversations</h2>}
         <div className="flex items-center gap-2">
@@ -234,7 +234,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
             <Link href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black">New</Link>
           )}
           <button onClick={() => setIsSidebarOpen((prev) => !prev)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
-            {isSidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            {isSidebarOpen ? <ChevronsLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
           </button>
         </div>
       </div>
@@ -252,32 +252,31 @@ function ConversationSidebar({ user }: { user: User | null }) {
       )}
 
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {isSidebarOpen && (user ? (
+        {user ? (
           isLoading ? (
             <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500 dark:text-slate-400">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading conversations...
             </div>
-           ) : filteredInbox.length > 0 ? (
-             <div className="space-y-2 p-2 overflow-x-hidden">
-               {filteredInbox.map((conversation) => {
-                 const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
-                 const latestMessage = conversation.messages[0];
-                 const participantData = conversation.participants.find((p) => p.user.id === user.id);
-                 const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
-                 // ⚡ ISSUE 1: Own outgoing messages must never mark the thread unread.
-                 const latestSenderId = latestMessage
-                   ? (latestMessage.senderId || latestMessage.sender_id || latestMessage.sender?.id)
-                   : undefined;
-                 const isUnread =
-                   conversation.unreadCount > 0 ||
-                   (latestSenderId !== undefined &&
-                     latestSenderId !== user.id &&
-                     new Date(conversation.lastMessageAt) > lastReadAt);
-                 const isActive = pathname === `/messages/${conversation.id}`;
-                 const isOtherUserOnline = onlineUserIds.has(otherParticipant?.id || "");
+          ) : filteredInbox.length > 0 ? (
+            <div className="space-y-2 p-2 overflow-x-hidden">
+              {filteredInbox.map((conversation) => {
+                const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
+                const latestMessage = conversation.messages[0];
+                const participantData = conversation.participants.find((p) => p.user.id === user.id);
+                const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
+                const latestSenderId = latestMessage
+                  ? (latestMessage.senderId || latestMessage.sender_id || latestMessage.sender?.id)
+                  : undefined;
+                const isUnread =
+                  conversation.unreadCount > 0 ||
+                  (latestSenderId !== undefined &&
+                    latestSenderId !== user.id &&
+                    new Date(conversation.lastMessageAt) > lastReadAt);
+                const isActive = pathname === `/messages/${conversation.id}`;
+                const isOtherUserOnline = onlineUserIds.has(otherParticipant?.id || "");
 
-                 return (
+                return (
                   <Link
                     key={conversation.id}
                     href={`/messages/${conversation.id}`}
@@ -291,7 +290,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                       );
                       closeSidebarIfMobile();
                     }}
-                    className={`block rounded-lg transition ${isSidebarOpen ? "p-3" : "p-3 flex justify-center h-16"} ${isActive ? "bg-slate-100 dark:bg-slate-800 px-3 py-3" : isUnread ? "bg-blue-50 dark:bg-blue-950/40" : "hover:bg-slate-100 dark:hover:bg-slate-800/70"}`}
+                    className={`block rounded-lg transition ${isSidebarOpen ? "p-3" : "p-2 flex justify-center"} ${isActive ? "bg-slate-100 dark:bg-slate-800" : isUnread ? "bg-blue-50 dark:bg-blue-950/40" : "hover:bg-slate-100 dark:hover:bg-slate-800/70"}`}
                   >
                     <div className={`flex items-center ${isSidebarOpen ? "justify-between" : "justify-center"}`}>
                       <div className={`flex items-center ${isSidebarOpen ? "gap-3" : ""}`}>
@@ -342,7 +341,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
           )
         ) : (
           <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Please sign in to see your conversations.</div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -376,9 +375,9 @@ export default function MessagesClientLayout({
 
   return (
     <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-      <div className="relative flex h-[calc(100vh-10rem)] min-h-[28rem] overflow-hidden md:h-[calc(100vh-12rem)]">
-        {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
-        <div className={`fixed top-0 left-0 z-40 h-full shrink-0 md:static md:h-auto md:z-auto flex-col border-r border-slate-200 bg-white transition-all duration-300 ease-in-out dark:border-slate-800 dark:bg-slate-950 ${isSidebarOpen ? "w-80 translate-x-0" : "w-16 -translate-x-full md:translate-x-0"}`}>
+       <div className="relative flex h-[calc(100vh-3.5rem)] min-h-[28rem] overflow-hidden sm:h-[calc(100vh-4rem)]">
+         {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
+          <div className={`fixed top-14 left-0 z-50 h-[calc(100vh-3.5rem)] shrink-0 md:static md:top-16 md:h-auto md:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 translate-x-0" : "w-16 -translate-x-full sm:translate-x-0"}`}>
           <Suspense fallback={<div className="p-4">Loading conversations...</div>}>
             <ConversationSidebar user={user} />
           </Suspense>

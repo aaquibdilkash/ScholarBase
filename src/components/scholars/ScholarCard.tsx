@@ -63,13 +63,13 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <ShareButton href={`/scholars/${scholar.id}`} />
-            {currentUserId && currentUserId !== scholar.id ? (
+            {scholar.id !== currentUserId ? (
               <ReportMenu
                 entityId={scholar.id}
                 entityType="POST"
                 module="SCHOLAR_PROFILE"
                 ownerId={scholar.id}
-                currentUserId={currentUserId}
+                currentUserId={currentUserId ?? null}
                 reportLabel="Report User"
               />
             ) : null}

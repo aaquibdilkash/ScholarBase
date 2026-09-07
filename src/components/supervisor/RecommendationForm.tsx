@@ -80,10 +80,13 @@ export default function RecommendationForm({
             response.data as RecommendationWithAuthor,
             mode,
           );
-          // On create/update the count may have changed (brand-new rec, or an
-          // anonymity flip). Drop the cached total so the following
-          // router.push to the supervisor page reseeds from fresh server data.
-          if (supervisorId) resetRecommendationCount(queryClient, supervisorId);
+          if (supervisorId) {
+            resetRecommendationCount(queryClient, supervisorId);
+            queryClient.setQueryData(
+              ["user_rec_status", supervisorId],
+              (response.data as RecommendationWithAuthor).id,
+            );
+          }
         }
       },
     },

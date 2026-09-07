@@ -38,6 +38,7 @@ export async function getEvents(
       date: true,
       location: true,
       deadline: true,
+      description: true,
       createdAt: true,
       authorId: true,
       author: {

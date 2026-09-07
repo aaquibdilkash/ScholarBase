@@ -93,6 +93,7 @@ export function AdmissionCard({
         />
       }
       noBodyLink={true}
+      constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           {admission.notificationLink && (
@@ -135,7 +136,7 @@ export function AdmissionCard({
         </h2>
 
         <div className="mb-3 space-y-1.5">
-          <p className="text-sm font-semibold text-blue-700">
+          <p className="text-sm font-semibold text-slate-950">
             {admission.department}
           </p>
           <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -151,7 +152,7 @@ export function AdmissionCard({
 
         <RichContent
           content={admission.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600"
         />
       </Link>
     </ListPageCardShell>

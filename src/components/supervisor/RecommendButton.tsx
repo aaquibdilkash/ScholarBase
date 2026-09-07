@@ -10,12 +10,10 @@ import type { RecommendationWithAuthor } from "@/types/cards";
 
 export function RecommendButton({
   supervisorId,
-  currentUserId,
   initialHasRecommendation,
   initialUserRecommendationId,
 }: {
   supervisorId: string;
-  currentUserId?: string;
   initialHasRecommendation: boolean;
   initialUserRecommendationId?: string | null;
 }) {
@@ -35,8 +33,6 @@ export function RecommendButton({
   const deleteMutation = useMutation({
     mutationFn: deleteRecommendationAction,
   });
-
-  if (!currentUserId) return null;
 
   if (initialHasRecommendation && activeRecId) {
     return (

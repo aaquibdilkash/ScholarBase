@@ -37,6 +37,7 @@ export async function getAdmissions(
       university: true,
       department: true,
       deadline: true,
+      description: true,
       createdAt: true,
       authorId: true,
       author: {

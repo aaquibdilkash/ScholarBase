@@ -23,7 +23,7 @@ export const MAX_VACANCY_APPLY_LINK = 128;
 export const MAX_VACANCY_DESCRIPTION = 256;
 
 export const MAX_EVENT_TITLE = 64;
-export const MAX_EVENT_LOCATION = 64;
+export const MAX_EVENT_LOCATION = 32;
 export const MAX_EVENT_NOTIFICATION_LINK = 128;
 export const MAX_EVENT_APPLY_LINK = 128;
 export const MAX_EVENT_DESCRIPTION = 256;

@@ -20,7 +20,7 @@ import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { supabase } from "@/utils/supabase/client";
 import { usePresence } from "@/components/interactions/PresenceProvider";
-import { Menu, MoreVertical, Ban, UserCheck, Loader2, Flag } from "lucide-react";
+import { MoreVertical, Ban, UserCheck, Loader2, Flag, ChevronRight } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
 import { ReportModal } from "@/components/cards/ReportModal";
@@ -378,13 +378,13 @@ export default function ConversationPage({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 px-4 dark:border-slate-800">
+      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 sb-navbar-bg px-4 dark:border-slate-800">
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
           className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm md:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
         >
-          <Menu className="h-6 w-6" />
+          <ChevronRight className="h-6 w-6" />
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Link
@@ -464,9 +464,10 @@ export default function ConversationPage({
             </div>
           )}
         </div>
-      </div>
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-6">
+        <div className="px-4">
         <MessageList
           conversationId={conversation.id}
           initialMessages={conversation.messages}
@@ -476,7 +477,8 @@ export default function ConversationPage({
           registerAddFailed={handleRegisterAddFailed}
           onMessageReceived={onMessageReceived}
         />
-      </div>
+        </div>
+        </div>
 
       {isChatDisabled && (
         <div

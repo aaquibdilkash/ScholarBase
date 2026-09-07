@@ -95,6 +95,7 @@ export function VacancyCard({
         />
       }
       noBodyLink={true}
+      constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           {vacancy.notificationLink && (
@@ -155,7 +156,7 @@ export function VacancyCard({
 
         <RichContent
           content={vacancy.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600"
         />
       </Link>
     </ListPageCardShell>
