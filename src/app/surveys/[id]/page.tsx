@@ -15,6 +15,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SurveyResponseForm } from "@/components/surveys/SurveyResponseForm";
 import { SurveyOwnerControls } from "@/components/surveys/SurveyOwnerControls";
+import { parseSkipLogic, parseColumnLabels } from "@/lib/surveys/logic";
 
 const PRIVACY_LABELS: Record<string, string> = {
   ANONYMOUS: "Anonymous",
@@ -70,6 +71,13 @@ const SurveyDetailPage = async ({
 
   const isOwner = user?.id === survey.author?.id;
   const isOpen = survey.status === "OPEN";
+
+  // Deserialize JSON columns so the client form receives plain typed arrays.
+  const responseQuestions = survey.questions.map((q) => ({
+    ...q,
+    skipLogic: parseSkipLogic(q.skipLogic),
+    columnLabels: parseColumnLabels(q.columnLabels),
+  }));
 
   return (
     <DetailPageCardShell
@@ -207,10 +215,13 @@ const SurveyDetailPage = async ({
           <SurveyResponseForm
             key={response?.id ?? "no-response"}
             surveyId={survey.id}
-            questions={survey.questions}
+            questions={responseQuestions}
+            blocks={survey.blocks ?? []}
             privacy={survey.privacy}
             hasResponded={hasResponded}
             response={response}
+            consentRequired={survey.consentRequired === true}
+            consentText={survey.consentText}
           />
         </div>
       )}

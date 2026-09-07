@@ -5,7 +5,7 @@ export const metadata: Metadata = buildNoindexMetadata("Survey Results - Scholar
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
-import { getSurveyResults, getSurveyResponses } from "@/app/actions/surveys";
+import { getSurveyResults } from "@/app/actions/surveys";
 import { SurveyResultsView } from "@/components/surveys/SurveyResultsView";
 
 export default async function SurveyResultsPage({
@@ -21,12 +21,6 @@ export default async function SurveyResultsPage({
 
   const survey = await getSurveyResults(id);
   if (!survey) notFound();
-
-  // Fetch individual responses ONLY if the current user is the author
-  const responses =
-    user && user.id === survey.authorId
-      ? await getSurveyResponses(id, user.id)
-      : null;
 
   // Allow access if user is author or data sharing is enabled
   const canView = survey.authorId === user?.id || survey.shareData;
@@ -64,6 +58,11 @@ export default async function SurveyResultsPage({
       minValue: q.minValue,
       maxValue: q.maxValue,
       archivedAt: q.archivedAt?.toISOString() ?? null,
+      columnLabels: Array.isArray(q.columnLabels)
+        ? q.columnLabels
+            .filter((c): c is string => typeof c === "string")
+            .slice(0, 10)
+        : null,
       options: q.options.map((o) => ({
         id: o.id,
         value: o.value,
@@ -76,6 +75,8 @@ export default async function SurveyResultsPage({
     })),
   };
 
+  const isOwner = user?.id === survey.authorId;
+
   return (
     <main className="mx-auto max-w-3xl py-12">
       <Link
@@ -87,7 +88,11 @@ export default async function SurveyResultsPage({
       <h1 className="text-2xl font-semibold text-slate-950 mb-6">
         Survey Results
       </h1>
-      <SurveyResultsView survey={serializedSurvey} responses={responses} />
+      <SurveyResultsView
+        survey={serializedSurvey}
+        surveyId={survey.id}
+        isOwner={isOwner}
+      />
     </main>
   );
 }

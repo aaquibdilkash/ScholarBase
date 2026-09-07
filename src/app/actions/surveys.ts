@@ -9,7 +9,92 @@ import type { SurveyQuestionInput } from "@/types/survey";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE } from "@/lib/constants";
+import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
+import type { SurveyBlockInput } from "@/types/survey";
+
+const MAX_RESPONSE_DURATION_MS = 24 * 60 * 60 * 1000;
+
+/** Clamp a client-supplied consent statement before persisting. */
+function sanitizeConsentText(raw: FormDataEntryValue | null): string | null {
+  const text = typeof raw === "string" ? raw.trim() : "";
+  return text ? text.slice(0, MAX_SURVEY_CONSENT_TEXT) : null;
+}
+
+/** Parse + validate the block list submitted by the builder. */
+function parseBlockInputs(json: string | null): SurveyBlockInput[] {
+  if (!json) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    throw new Error("Invalid blocks payload.");
+  }
+  if (!Array.isArray(parsed)) throw new Error("Invalid blocks payload.");
+  if (parsed.length > MAX_SURVEY_BLOCKS) {
+    throw new Error(`A survey may have at most ${MAX_SURVEY_BLOCKS} blocks.`);
+  }
+  return parsed.map((block, i) => {
+    const b = block as SurveyBlockInput;
+    const title = typeof b.title === "string" ? b.title.trim() : "";
+    if (!title) throw new Error("Block title is required.");
+    return {
+      id: typeof b.id === "string" && b.id ? b.id : undefined,
+      title: title.slice(0, MAX_SURVEY_QUESTION_TITLE),
+      order: Number.isInteger(b.order) ? b.order : i,
+      randomizeOrder: b.randomizeOrder === true,
+    };
+  });
+}
+
+function sanitizeSkipLogic(raw: unknown): Prisma.InputJsonValue | null {
+  const rules = parseSkipLogic(raw);
+  if (rules.length === 0) return null;
+  return rules.map((rule) => ({
+    operator: rule.operator,
+    value: rule.value.slice(0, MAX_SURVEY_QUESTION_OPTION),
+    skipToOrder: rule.skipToOrder,
+  })) as Prisma.InputJsonValue;
+}
+
+function sanitizeColumnLabels(raw: unknown): Prisma.InputJsonValue | null {
+  if (!Array.isArray(raw)) return null;
+  const labels = raw
+    .filter((label): label is string => typeof label === "string")
+    .map((label) => label.slice(0, MAX_SURVEY_QUESTION_OPTION))
+    .slice(0, MAX_MATRIX_COLUMNS);
+  return labels.length > 0 ? (labels as Prisma.InputJsonValue) : null;
+}
+
+/**
+ * Persisted per-question academic fields. `blockId` is remapped by the caller
+ * from builder-local block ids to real SurveyBlock ids via `blockIdMap`.
+ */
+function buildQuestionExtras(
+  question: {
+    shuffleOptions?: boolean;
+    skipLogic?: unknown;
+    columnLabels?: unknown;
+    blockId?: string | null;
+  },
+  blockIdMap: Map<string, string>,
+): Pick<
+  Prisma.SurveyQuestionUncheckedCreateInput,
+  "shuffleOptions" | "skipLogic" | "columnLabels" | "blockId"
+> {
+  const extras: Pick<
+    Prisma.SurveyQuestionUncheckedCreateInput,
+    "shuffleOptions" | "skipLogic" | "columnLabels" | "blockId"
+  > = {
+    shuffleOptions: question.shuffleOptions === true,
+    blockId: question.blockId ? blockIdMap.get(question.blockId) : null,
+  };
+  const skipLogic = sanitizeSkipLogic(question.skipLogic);
+  if (skipLogic !== null) extras.skipLogic = skipLogic;
+  const columnLabels = sanitizeColumnLabels(question.columnLabels);
+  if (columnLabels !== null) extras.columnLabels = columnLabels;
+  return extras;
+}
 
 export async function getSurveys(
   q?: string,
@@ -80,6 +165,8 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       description: true,
       privacy: true,
       shareData: true,
+      consentRequired: true,
+      consentText: true,
       authorId: true,
       createdAt: true,
       updatedAt: true,
@@ -115,6 +202,9 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
             orderBy: { order: "asc" },
           },
         },
+      },
+      blocks: {
+        orderBy: { order: "asc" },
       },
       comments: {
         where: { parentId: null, isDeleted: false },
@@ -175,6 +265,8 @@ export async function createSurvey(formData: FormData) {
     "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
   const shareData = formData.get("shareData") === "true";
   const questionsJson = readFormValue(formData, "questions");
+  const consentRequired = formData.get("consentRequired") === "true";
+  const consentText = sanitizeConsentText(formData.get("consentText"));
 
   if (!title) throw new Error("Title is required");
   if (!questionsJson) throw new Error("Questions are required");
@@ -184,6 +276,7 @@ export async function createSurvey(formData: FormData) {
   assertRichTextWithinLimit(description ?? "", MAX_SURVEY_DESCRIPTION, "Survey description");
 
   const questions = JSON.parse(questionsJson) as SurveyQuestionInput[];
+  const blocks = parseBlockInputs(readOptionalFormValue(formData, "blocks"));
 
   const survey = await prisma.$transaction(async (tx) => {
     const newSurvey = await tx.researchSurvey.create({
@@ -193,26 +286,62 @@ export async function createSurvey(formData: FormData) {
         privacy: privacy || "HYBRID",
         shareData,
         authorId: user.id,
-        questions: {
-          create: questions.map((q) => ({
-            type: q.type as SurveyQuestionType,
-            title: q.title,
-            required: q.required,
-            order: q.order,
-            minValue: q.minValue,
-            maxValue: q.maxValue,
-            options: q.options?.length
-              ? {
-                  create: q.options.map(({ value, label, order }) => ({
-                    value,
-                    label,
-                    order,
-                  })),
-                }
-              : undefined,
-          })),
-        },
+        consentRequired,
+        consentText,
       },
+    });
+
+    // Blocks are created first so builder-local block ids on questions can be
+    // remapped to real SurveyBlock ids before the questions are written.
+    const blockIdMap = new Map<string, string>();
+    for (const block of blocks) {
+      const created = await tx.surveyBlock.create({
+        data: {
+          surveyId: newSurvey.id,
+          title: block.title,
+          order: block.order,
+          randomizeOrder: block.randomizeOrder,
+        },
+      });
+      if (block.id) blockIdMap.set(block.id, created.id);
+    }
+
+    await tx.surveyQuestion.createMany({
+      data: questions.map((q) => ({
+        surveyId: newSurvey.id,
+        type: q.type as SurveyQuestionType,
+        title: q.title,
+        required: q.required,
+        order: q.order,
+        minValue: q.minValue ?? null,
+        maxValue: q.maxValue ?? null,
+        ...buildQuestionExtras(q, blockIdMap),
+      })),
+    });
+
+    // Options cannot be nested in createMany — create them per question.
+    const savedQuestions = await tx.surveyQuestion.findMany({
+      where: { surveyId: newSurvey.id },
+      select: { id: true, order: true },
+    });
+    const savedByOrder = new Map(savedQuestions.map((q) => [q.order, q.id]));
+
+    for (const q of questions) {
+      if (!q.options?.length) continue;
+      const questionId = savedByOrder.get(q.order);
+      if (!questionId) continue;
+      await tx.surveyQuestionOption.createMany({
+        data: q.options.map(({ value, label, order }) => ({
+          questionId,
+          value,
+          label,
+          order,
+        })),
+      });
+    }
+
+    const complete = await tx.researchSurvey.findUniqueOrThrow({
+      where: { id: newSurvey.id },
       include: {
         author: true,
         votes: true,
@@ -220,12 +349,12 @@ export async function createSurvey(formData: FormData) {
       },
     });
 
-     await tx.user.update({
-       where: { id: user.id },
-       data: { surveyCount: { increment: 1 }, reputation: { increment: 1 } },
-     });
+ await tx.user.update({
+   where: { id: user.id },
+   data: { surveyCount: { increment: 1 }, reputation: { increment: 1 } },
+ });
 
-    return newSurvey;
+    return complete;
   });
 
   await notifyFollowersOfActivity({
@@ -259,6 +388,8 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
   const shareData = formData.get("shareData") === "true";
   const questionsJson = readFormValue(formData, "questions");
+  const consentRequired = formData.get("consentRequired") === "true";
+  const consentText = sanitizeConsentText(formData.get("consentText"));
 
   if (!title) throw new Error("Title is required");
 
@@ -269,6 +400,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
   const questions = questionsJson
     ? (JSON.parse(questionsJson) as SurveyQuestionInput[])
     : [];
+  const blocks = parseBlockInputs(readOptionalFormValue(formData, "blocks"));
 
   const submittedIds = questions.flatMap((question) =>
     question.id ? [question.id] : [],
@@ -291,6 +423,50 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     const existingById = new Map(
       existingQuestions.map((question) => [question.id, question]),
     );
+
+    // Block diff: update existing, create new, hard-delete removed (blocks
+    // carry no response data; questions detach via onDelete: SetNull).
+    const existingBlocks = await tx.surveyBlock.findMany({
+      where: { surveyId },
+      select: { id: true },
+    });
+    const existingBlockIds = new Set(existingBlocks.map((b) => b.id));
+    const submittedBlockIds = new Set(
+      blocks.flatMap((b) => (b.id ? [b.id] : [])),
+    );
+
+    const blockIdMap = new Map<string, string>();
+    for (const block of blocks) {
+      if (block.id && existingBlockIds.has(block.id)) {
+        await tx.surveyBlock.update({
+          where: { id: block.id },
+          data: {
+            title: block.title,
+            order: block.order,
+            randomizeOrder: block.randomizeOrder,
+          },
+        });
+        blockIdMap.set(block.id, block.id);
+      } else {
+        const created = await tx.surveyBlock.create({
+          data: {
+            surveyId,
+            title: block.title,
+            order: block.order,
+            randomizeOrder: block.randomizeOrder,
+          },
+        });
+        if (block.id) blockIdMap.set(block.id, created.id);
+      }
+    }
+    const removedBlockIds = [...existingBlockIds].filter(
+      (id) => !submittedBlockIds.has(id),
+    );
+    if (removedBlockIds.length > 0) {
+      await tx.surveyBlock.deleteMany({
+        where: { id: { in: removedBlockIds } },
+      });
+    }
 
     for (const question of questions) {
       const existing = question.id ? existingById.get(question.id) : undefined;
@@ -320,6 +496,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
             order: question.order,
             minValue: question.minValue,
             maxValue: question.maxValue,
+            ...buildQuestionExtras(question, blockIdMap),
             options: question.options?.length
               ? {
                   create: question.options.map(({ value, label, order }) => ({
@@ -343,6 +520,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
           order: question.order,
           minValue: question.minValue,
           maxValue: question.maxValue,
+          ...buildQuestionExtras(question, blockIdMap),
         },
       });
 
@@ -421,6 +599,8 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         description,
         privacy: privacy || "HYBRID",
         shareData,
+        consentRequired,
+        consentText,
         editedAt: new Date(),
       },
     });
@@ -557,6 +737,26 @@ export async function submitSurveyResponse(
 
   const isAnonymous = formData.get("isAnonymous") === "true";
 
+  // IRB CONSENT GATE: enforce server-side, never trust the client toggle.
+  const consented = formData.get("consented") === "true";
+
+  // RESPONSE METADATA: startedAt comes from the client form mount so
+  // completion duration is derivable; clamped to a sane window to prevent
+  // garbage data (future timestamps or multi-day staleness).
+  const completedAt = new Date();
+  const startedAtMs = Date.parse(String(formData.get("startedAt") ?? ""));
+  const startedAt =
+    Number.isFinite(startedAtMs) &&
+    startedAtMs <= completedAt.getTime() + 5 * 60 * 1000 &&
+    completedAt.getTime() - startedAtMs <= MAX_RESPONSE_DURATION_MS
+      ? new Date(startedAtMs)
+      : completedAt;
+  const parsedSeed = Number.parseInt(String(formData.get("seed") ?? ""), 10);
+  const randomizationSeed =
+    Number.isInteger(parsedSeed) && parsedSeed > 0 && parsedSeed < 2 ** 31
+      ? parsedSeed
+      : null;
+
   const answersJson = readFormValue(formData, "answers");
   if (!answersJson) throw new Error("Answers are required");
 
@@ -567,7 +767,7 @@ export async function submitSurveyResponse(
   }>;
 
   // 2. Format the values for Prisma JSONB
-  const answers = rawAnswers.map((ans) => {
+  const parsedAnswers = rawAnswers.map((ans) => {
     let finalValue: Prisma.InputJsonValue = ans.value;
 
     // Try to parse stringified arrays (from checkboxes) into real JS arrays.
@@ -586,6 +786,40 @@ export async function submitSurveyResponse(
       value: finalValue,
     };
   });
+
+  // SKIP LOGIC (server-side re-validation): the client hides skipped
+  // questions for UX, but the server is the source of truth — answers to
+  // questions hidden by an earlier trigger's rule are pruned so the dataset
+  // stays analytically clean ("not applicable", never "missing").
+  const surveyForValidation = await prisma.researchSurvey.findUnique({
+    where: { id: surveyId },
+    select: {
+      consentRequired: true,
+      questions: {
+        where: { archivedAt: null },
+        select: { id: true, order: true, skipLogic: true },
+      },
+    },
+  });
+  if (!surveyForValidation) {
+    return { error: "This survey is no longer available." };
+  }
+  if (surveyForValidation.consentRequired && !consented) {
+    return { error: "CONSENT_REQUIRED" };
+  }
+
+  let validatedAnswers = parsedAnswers;
+  if (surveyForValidation.questions.some((q) => q.skipLogic != null)) {
+    const valueById = new Map(parsedAnswers.map((a) => [a.questionId, a.value]));
+    const skippedIds = computeSkippedQuestionIds(
+      surveyForValidation.questions,
+      (id) => valueById.get(id),
+    );
+    if (skippedIds.size > 0) {
+      validatedAnswers = parsedAnswers.filter((a) => !skippedIds.has(a.questionId));
+    }
+  }
+  const answers = validatedAnswers;
 
   const activeQuestionCount = await prisma.surveyQuestion.count({
     where: {
@@ -632,6 +866,12 @@ export async function submitSurveyResponse(
       where: { id: existingResponse.id },
       data: {
         isAnonymous,
+        ...(surveyForValidation.consentRequired && consented
+          ? { consentedAt: completedAt }
+          : {}),
+        startedAt,
+        completedAt,
+        randomizationSeed,
         answers: {
           create: answers.map((a) => ({
             question: { connect: { id: a.questionId } },
@@ -680,6 +920,12 @@ export async function submitSurveyResponse(
         // is preserved via the isAnonymous flag (used in results/export).
         respondentId: user.id,
         isAnonymous,
+        ...(surveyForValidation.consentRequired && consented
+          ? { consentedAt: completedAt }
+          : {}),
+        startedAt,
+        completedAt,
+        randomizationSeed,
         answers: {
           create: answers.map((a) => ({
             question: { connect: { id: a.questionId } },

@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "@/components/interactions/AuthModal";
-import { Loader2, PencilLine, RefreshCw } from "lucide-react";
+import { Loader2, PencilLine, RefreshCw, ShieldCheck } from "lucide-react";
 import {
   MAX_SURVEY_ANSWER_SHORT,
   MAX_SURVEY_ANSWER_LONG,
 } from "@/lib/constants";
+import {
+  computeSkippedQuestionIds,
+  seededShuffle,
+  hashString,
+} from "@/lib/surveys/logic";
+import type { SkipRule, SurveyBlock } from "@/types/survey";
 
 type Answer = {
   id: string;
@@ -31,6 +37,10 @@ type Question = {
   order: number;
   minValue: number | null;
   maxValue: number | null;
+  shuffleOptions?: boolean;
+  skipLogic?: SkipRule[] | null;
+  columnLabels?: string[] | null;
+  blockId?: string | null;
   options: Array<{ id: string; value: string; label: string; order: number }>;
 };
 
@@ -39,15 +49,21 @@ type SurveyPrivacy = "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
 export function SurveyResponseForm({
   surveyId,
   questions,
+  blocks = [],
   privacy,
   hasResponded,
   response,
+  consentRequired = false,
+  consentText,
 }: {
   surveyId: string;
   questions: Question[];
+  blocks?: SurveyBlock[];
   privacy: SurveyPrivacy;
   hasResponded: boolean;
   response: Response;
+  consentRequired?: boolean;
+  consentText?: string | null;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -58,10 +74,92 @@ export function SurveyResponseForm({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [draftRestored, setDraftRestored] = useState(false);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [consented, setConsented] = useState(false);
   const draftKey = `draft_survey_response_${surveyId}`;
   const activeQuestionIds = useMemo(
     () => new Set(questions.map((question) => question.id)),
     [questions],
+  );
+
+  // Randomization seed: generated once per mount, stored on the response so
+  // the exact shuffled order a respondent saw is reconstructible. Set in an
+  // effect to avoid SSR/CSR hydration mismatches (unshuffled on the server).
+  const [seed, setSeed] = useState<number | null>(null);
+  const mountedAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    mountedAtRef.current = Date.now();
+    setSeed(Math.floor(Math.random() * 2 ** 31) + 1);
+  }, []);
+
+  // Option randomization (order-bias control): per-question display order.
+  const optionsByQuestion = useMemo(() => {
+    const map = new Map<string, typeof questions[number]["options"]>();
+    for (const question of questions) {
+      map.set(
+        question.id,
+        question.shuffleOptions && seed !== null
+          ? seededShuffle(question.options, (seed ^ hashString(question.id)) >>> 0)
+          : question.options,
+      );
+    }
+    return map;
+  }, [questions, seed]);
+
+  // Block randomization: shuffle question order within blocks flagged
+  // randomizeOrder, preserving each block's position in the survey.
+  const orderedQuestions = useMemo(() => {
+    if (seed === null || blocks.length === 0) return questions;
+    const randomizedBlocks = new Map(
+      blocks
+        .filter((b) => b.randomizeOrder)
+        .map((b) => [b.id, seededShuffle(
+          questions.filter((q) => q.blockId === b.id),
+          (seed ^ hashString(b.id)) >>> 0,
+        )]),
+    );
+    if (randomizedBlocks.size === 0) return questions;
+    const emitted = new Set<string>();
+    const result: Question[] = [];
+    for (const question of questions) {
+      if (emitted.has(question.id)) continue;
+      const randomized = question.blockId
+        ? randomizedBlocks.get(question.blockId)
+        : undefined;
+      if (randomized) {
+        for (const q of randomized) {
+          if (!emitted.has(q.id)) {
+            emitted.add(q.id);
+            result.push(q);
+          }
+        }
+      } else {
+        emitted.add(question.id);
+        result.push(question);
+      }
+    }
+    return result;
+  }, [questions, blocks, seed]);
+
+  // Skip-logic visibility, re-evaluated on every answer change. The server
+  // re-validates the same rules on submit (shared logic module).
+  const skippedQuestionIds = useMemo(
+    () =>
+      questions.some((q) => q.skipLogic != null)
+        ? computeSkippedQuestionIds(questions, (id) => {
+            const raw = answers[id];
+            if (raw === undefined) return undefined;
+            try {
+              return JSON.parse(raw);
+            } catch {
+              return raw;
+            }
+          })
+        : new Set<string>(),
+    [questions, answers],
+  );
+  const visibleQuestions = useMemo(
+    () => orderedQuestions.filter((q) => !skippedQuestionIds.has(q.id)),
+    [orderedQuestions, skippedQuestionIds],
   );
 
   // Hydrate form state from the saved response (DB) or the local draft.
@@ -139,12 +237,43 @@ export function SurveyResponseForm({
     setAnswers((prev) => ({ ...prev, [questionId]: JSON.stringify(updated) }));
   };
 
+  // MATRIX_LIKERT answers: { [rowOptionValue]: columnIndex(1-based) } stored
+  // as a JSON string, consistent with other multi-value answers.
+  const handleMatrixChange = (
+    questionId: string,
+    rowValue: string,
+    columnIndex: number,
+  ) => {
+    const current = answers[questionId]
+      ? (JSON.parse(answers[questionId]) as Record<string, number>)
+      : {};
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: JSON.stringify({ ...current, [rowValue]: columnIndex }),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required
-    for (const q of questions) {
-      if (q.required && !answers[q.id]) {
+    if (consentRequired && !consented) {
+      toast("Please accept the consent form to continue.", "error");
+      return;
+    }
+
+    // Validate required answers against VISIBLE questions only — a question
+    // hidden by skip logic is not applicable and must not block submission.
+    for (const q of visibleQuestions) {
+      if (!q.required) continue;
+      if (q.type === "MATRIX_LIKERT") {
+        const filled = answers[q.id]
+          ? Object.keys(JSON.parse(answers[q.id]) as Record<string, number>).length
+          : 0;
+        if (filled < q.options.length) {
+          toast(`Please answer all rows of: "${q.title}"`, "error");
+          return;
+        }
+      } else if (!answers[q.id]) {
         toast(`Please answer: "${q.title}"`, "error");
         return;
       }
@@ -155,18 +284,29 @@ export function SurveyResponseForm({
       const formData = new FormData();
       formData.set("isAnonymous", String(isAnonymous));
       formData.set(
+        "startedAt",
+        mountedAtRef.current
+          ? new Date(mountedAtRef.current).toISOString()
+          : new Date().toISOString(),
+      );
+      if (seed !== null) formData.set("seed", String(seed));
+      if (consentRequired) formData.set("consented", String(consented));
+      formData.set(
         "answers",
         JSON.stringify(
-          Object.entries(answers).filter(([questionId]) => activeQuestionIds.has(questionId)).map(([questionId, value]) => ({
-            questionId,
-            value,
-          })),
+          visibleQuestions
+            .filter((q) => answers[q.id] !== undefined && answers[q.id] !== "")
+            .map((q) => ({ questionId: q.id, value: answers[q.id] })),
         ),
       );
 
       const result = await submitSurveyResponse(formData, surveyId);
       if ("error" in result) {
-        openAuthModal();
+        if (result.error === "UNAUTHORIZED") {
+          openAuthModal();
+        } else if (result.error) {
+          toast(result.error, "error");
+        }
         return;
       }
       if (result.success) {
@@ -237,7 +377,7 @@ export function SurveyResponseForm({
       case "MULTIPLE_CHOICE":
         return (
           <div className="space-y-2">
-            {q.options.map((opt) => (
+            {(optionsByQuestion.get(q.id) ?? q.options).map((opt) => (
               <label
                 key={opt.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-blue-200 hover:bg-blue-50/50 dark:hover:border-blue-400/30 dark:hover:bg-blue-900/20 ${
@@ -266,7 +406,7 @@ export function SurveyResponseForm({
       case "CHECKBOXES":
         return (
           <div className="space-y-2">
-            {q.options.map((opt) => {
+            {(optionsByQuestion.get(q.id) ?? q.options).map((opt) => {
               const currentValues = answers[q.id]
                 ? JSON.parse(answers[q.id])
                 : [];
@@ -306,13 +446,62 @@ export function SurveyResponseForm({
             required={q.required}
           >
             <option value="">Select an option...</option>
-            {q.options.map((opt) => (
+            {(optionsByQuestion.get(q.id) ?? q.options).map((opt) => (
               <option key={opt.id} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </select>
         );
+
+      case "MATRIX_LIKERT": {
+        const columns = q.columnLabels ?? [];
+        const current: Record<string, number> = answers[q.id]
+          ? JSON.parse(answers[q.id])
+          : {};
+        return (
+          <div className="min-w-0 overflow-x-auto">
+            <table className="w-full min-w-[32rem] border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="w-2/5 pb-2 text-left font-semibold text-slate-600 dark:text-slate-300" />
+                  {columns.map((col, ci) => (
+                    <th
+                      key={ci}
+                      className="px-1 pb-2 text-center text-xs font-semibold text-slate-600 dark:text-slate-300"
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {q.options.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-t border-slate-100 dark:border-slate-700"
+                  >
+                    <td className="py-2 pr-2 break-words text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {row.label}
+                    </td>
+                    {columns.map((_, ci) => (
+                      <td key={ci} className="px-1 py-2 text-center">
+                        <input
+                          type="radio"
+                          name={`q_${q.id}_r_${row.id}`}
+                          checked={current[row.value] === ci + 1}
+                          onChange={() => handleMatrixChange(q.id, row.value, ci + 1)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
 
       case "RATING":
         return (
@@ -364,7 +553,7 @@ export function SurveyResponseForm({
       case "LIKERT_SCALE":
         return (
           <div className="space-y-2">
-            {q.options.map((opt) => (
+            {(optionsByQuestion.get(q.id) ?? q.options).map((opt) => (
               <label
                 key={opt.id}
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition hover:border-indigo-200 hover:bg-indigo-50/50 dark:hover:border-indigo-400/30 dark:hover:bg-indigo-900/20 ${
@@ -455,6 +644,33 @@ export function SurveyResponseForm({
         </div>
       ) : null}
 
+      {/* IRB CONSENT GATE: must be accepted before any question is shown */}
+      {consentRequired && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+          <div className="mb-3 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+            <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200">
+              Informed Consent
+            </h3>
+          </div>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-indigo-800 dark:text-indigo-300">
+            {consentText ||
+              "By participating, you agree that your responses may be used for research purposes."}
+          </p>
+          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-indigo-300 bg-white p-4 dark:border-indigo-500/40 dark:bg-slate-800/50">
+            <input
+              type="checkbox"
+              checked={consented}
+              onChange={(e) => setConsented(e.target.checked)}
+              className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+              I have read and accept the terms above.
+            </span>
+          </label>
+        </div>
+      )}
+
       {/* Privacy selection for HYBRID */}
       {privacy === "HYBRID" && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30">
@@ -529,8 +745,8 @@ export function SurveyResponseForm({
         </div>
       )}
 
-      {/* Questions */}
-      {questions.map((q, idx) => (
+      {/* Questions (visible only — skip logic hides non-applicable ones) */}
+      {visibleQuestions.map((q, idx) => (
         <div
           key={q.id}
           className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30"

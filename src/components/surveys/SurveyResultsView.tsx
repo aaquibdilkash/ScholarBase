@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import * as XLSX from "xlsx";
 import { ChevronDown, Download } from "lucide-react";
-import type { QuestionResult, SurveyResults, IndividualResponse } from "@/types/survey";
+import type { QuestionResult, SurveyResults } from "@/types/survey";
 
 function mapValueToLabel(q: QuestionResult, value: unknown): string {
   // If Prisma already returned an array, handle it directly
@@ -36,71 +35,14 @@ function mapValueToLabel(q: QuestionResult, value: unknown): string {
   return opt?.label || String(value);
 }
 
-function exportToExcel(
-  survey: SurveyResults,
-  responses: IndividualResponse[] | null,
-) {
-  // 1. Summary Sheet
-  const summaryHeader = ["Question", "Type", "Response Count", "Details"];
-  const summaryRows = survey.questions.map((q) => {
-    const answers = q.answers.map((a) => mapValueToLabel(q, a.value));
-    const details = answers.join("; ");
-    return [q.archivedAt ? `${q.title} (archived)` : q.title, q.type, String(answers.length), details];
-  });
-  const summarySheet = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, summarySheet, "Summary");
-
-  // 2. Individual Responses Sheet (if available)
-  if (responses) {
-    const questionHeaders = survey.questions
-      .sort((a, b) => a.order - b.order)
-      .map((q) => q.archivedAt ? `${q.title} (archived)` : q.title);
-
-    const individualResponsesHeader = [
-      "Response ID",
-      "Timestamp",
-      "Respondent",
-      ...questionHeaders,
-    ];
-
-    const individualResponsesRows = responses.map((res) => {
-      const answersByQuestionId = new Map(
-        res.answers.map((a) => [a.questionId, a.value]),
-      );
-      const row = [
-        res.id,
-        res.createdAt.toISOString(),
-        res.isAnonymous ? "Anonymous" : (res.respondent?.name ?? "Unknown"),
-      ];
-      survey.questions.forEach((q) => {
-        const rawValue = answersByQuestionId.get(q.id) || "";
-        row.push(mapValueToLabel(q, rawValue));
-      });
-      return row;
-    });
-
-    const individualResponsesSheet = XLSX.utils.aoa_to_sheet([
-      individualResponsesHeader,
-      ...individualResponsesRows,
-    ]);
-    XLSX.utils.book_append_sheet(
-      wb,
-      individualResponsesSheet,
-      "Individual Responses",
-    );
-  }
-
-  XLSX.writeFile(wb, `${survey.title.replace(/\s+/g, "_")}_results.xlsx`);
-}
-
 export function SurveyResultsView({
   survey,
-  responses,
+  surveyId,
+  isOwner = false,
 }: {
   survey: SurveyResults | null;
-  responses: IndividualResponse[] | null;
+  surveyId?: string;
+  isOwner?: boolean;
 }) {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
 
@@ -174,6 +116,31 @@ export function SurveyResultsView({
       return { total, counts: orderedCounts };
     }
 
+    if (q.type === "MATRIX_LIKERT") {
+      const columns = q.columnLabels ?? [];
+      const rows = q.options.map((row) => {
+        const counts: Record<string, number> = {};
+        columns.forEach((col) => {
+          counts[col] = 0;
+        });
+        let answered = 0;
+        answers.forEach((a) => {
+          const obj =
+            a && typeof a === "object" && !Array.isArray(a)
+              ? (a as Record<string, unknown>)
+              : null;
+          if (!obj) return;
+          const idx = Number(obj[row.value]);
+          if (Number.isInteger(idx) && idx >= 1 && idx <= columns.length) {
+            counts[columns[idx - 1]] += 1;
+            answered += 1;
+          }
+        });
+        return { label: row.label, counts, answered };
+      });
+      return { total, rows };
+    }
+
     // Text/Date types
     return { total, answers: answers.filter((a) => a) };
   };
@@ -190,13 +157,28 @@ export function SurveyResultsView({
             <strong className="text-slate-800 dark:text-white">{totalResponses}</strong>
           </p>
         </div>
-        <button
-          onClick={() => exportToExcel(survey, responses)}
-          className="sb-button-soft text-sm inline-flex items-center gap-2"
-        >
-          <Download className="w-4 h-4" />
-          Export Excel
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {isOwner && surveyId && (
+            <>
+              <a
+                href={`/api/surveys/${surveyId}/export?format=xlsx`}
+                download
+                className="sb-button-soft text-sm inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                XLSX (Codebook + Data)
+              </a>
+              <a
+                href={`/api/surveys/${surveyId}/export?format=csv`}
+                download
+                className="sb-button-soft text-sm inline-flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                CSV (R / Python / Stata)
+              </a>
+            </>
+          )}
+        </div>
       </div>
 
       {survey.questions.map((q, idx) => {
@@ -234,6 +216,44 @@ export function SurveyResultsView({
 
             {isExpanded && (
               <div className="border-t border-slate-100 p-6 dark:border-slate-700">
+                {"rows" in stats && stats.rows && (
+                  <div className="space-y-4">
+                    {stats.rows.map((row) => (
+                      <div key={row.label}>
+                        <p className="mb-1 break-words text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          {row.label}
+                        </p>
+                        <div className="space-y-1">
+                          {Object.entries(row.counts).map(([col, count]) => {
+                            const pct =
+                              row.answered > 0
+                                ? ((count / row.answered) * 100).toFixed(0)
+                                : "0";
+                            return (
+                              <div key={col} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-slate-600 dark:text-slate-300">
+                                    {col}
+                                  </span>
+                                  <span className="text-slate-500 dark:text-slate-400">
+                                    {count} ({pct}%)
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-700">
+                                  <div
+                                    className="h-1.5 rounded-full bg-indigo-500 transition-all"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {"counts" in stats && stats.counts && (
                   <div className="space-y-2">
                     {Object.entries(stats.counts).map(([option, count]) => {

@@ -97,6 +97,7 @@ enum SurveyQuestionType {
   LINEAR_SCALE
   DATE
   LIKERT_SCALE
+  MATRIX_LIKERT
 }
 
 enum SurveyPrivacy {
@@ -1401,8 +1402,15 @@ model ResearchSurvey {
   deletedById    String?
   reportCount    Int            @default(0)
 
+  // IRB CONSENT GATE: when required, respondents must accept the terms
+  // before the first question is shown. The accepted timestamp is stored on
+  // SurveyResponse.consentedAt as the auditable record.
+  consentRequired Boolean      @default(false)
+  consentText     String?
+
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  blocks    SurveyBlock[]
   questions SurveyQuestion[]
   responses SurveyResponse[]
   votes     SurveyVote[]
@@ -1410,6 +1418,21 @@ model ResearchSurvey {
 
   @@index([createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
+}
+
+model SurveyBlock {
+  id            String  @id @default(cuid())
+  surveyId      String
+  title         String
+  order         Int
+  // Randomize question order within this block per respondent.
+  randomizeOrder Boolean @default(false)
+  createdAt     DateTime @default(now())
+
+  survey    ResearchSurvey  @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questions SurveyQuestion[]
+
+  @@index([surveyId, order(sort: Asc)])
 }
 
 model SurveyQuestion {
@@ -1425,6 +1448,25 @@ model SurveyQuestion {
   createdAt  DateTime               @default(now())
   updatedAt  DateTime               @updatedAt
   editedAt   DateTime?
+
+  // ORDER-BIAS CONTROL: shuffle choice options per respondent (seed stored
+  // on SurveyResponse.randomizationSeed so the displayed order is
+  // reconstructible at analysis time).
+  shuffleOptions Boolean @default(false)
+
+  // SKIP LOGIC: evaluated client-side for rendering and re-validated
+  // server-side on submit. Array of { operator, value, skipToOrder } where
+  // operator is "equals" | "not_equals" | "includes" and skipToOrder is the
+  // order of the first question to show when the rule matches. Questions
+  // between this question and skipToOrder (exclusive) are skipped.
+  skipLogic Json?
+
+  // MATRIX_LIKERT: column labels (array of strings); rows are the question
+  // options. Answers are stored as { [rowOptionValue]: columnIndex }.
+  columnLabels Json?
+
+  blockId String?
+  block   SurveyBlock? @relation(fields: [blockId], references: [id], onDelete: SetNull)
   survey     ResearchSurvey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   options    SurveyQuestionOption[]
   answers    SurveyAnswer[]
@@ -1458,6 +1500,20 @@ model SurveyResponse {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   editedAt     DateTime?
+
+  // IRB AUDIT TRAIL: when the survey has a consent gate, the moment the
+  // respondent accepted the terms.
+  consentedAt DateTime?
+
+  // RESPONSE QUALITY METADATA: startedAt defaults to creation; completedAt
+  // is stamped on submit so completion duration is derivable for screening
+  // careless responses.
+  startedAt   DateTime   @default(now())
+  completedAt DateTime?
+
+  // Seed used for option/block shuffling so the exact order a respondent
+  // saw is reconstructible at analysis time.
+  randomizationSeed Int?
   survey       ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   respondent   User?          @relation(fields: [respondentId], references: [id], onDelete: Cascade)
   answers      SurveyAnswer[]

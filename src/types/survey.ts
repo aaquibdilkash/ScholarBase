@@ -4,6 +4,28 @@
 
 export type SurveyPrivacy = "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
 
+/** Skip-logic rule stored on the trigger question (see lib/surveys/logic.ts). */
+export interface SkipRule {
+  operator: "equals" | "not_equals" | "includes";
+  value: string;
+  skipToOrder: number;
+}
+
+export interface SurveyBlock {
+  id: string;
+  title: string;
+  order: number;
+  randomizeOrder: boolean;
+}
+
+/** Form-facing block shape used by the builder (no persisted id until saved). */
+export interface BlockInput {
+  id?: string;
+  title: string;
+  order: number;
+  randomizeOrder: boolean;
+}
+
 export interface SurveyOption {
   id: string;
   value: string;
@@ -20,6 +42,10 @@ export interface SurveyQuestion {
   order: number;
   minValue?: number | null;
   maxValue?: number | null;
+  shuffleOptions?: boolean;
+  skipLogic?: SkipRule[] | null;
+  columnLabels?: string[] | null;
+  blockId?: string | null;
   options: SurveyOption[];
 }
 
@@ -47,6 +73,10 @@ export interface Question {
   minValue?: number | null;
   maxValue?: number | null;
   archivedAt?: Date | string | null;
+  shuffleOptions?: boolean;
+  skipLogic?: SkipRule[] | null;
+  columnLabels?: string[] | null;
+  blockId?: string | null;
   options: QuestionOption[];
 }
 
@@ -73,7 +103,19 @@ export interface SurveyQuestionInput {
   order: number;
   minValue?: number;
   maxValue?: number;
+  shuffleOptions?: boolean;
+  skipLogic?: SkipRule[];
+  columnLabels?: string[];
+  blockId?: string | null;
   options?: SurveyOptionInput[];
+}
+
+/** Input shape for a survey block when creating/updating a survey. */
+export interface SurveyBlockInput {
+  id?: string;
+  title: string;
+  order: number;
+  randomizeOrder: boolean;
 }
 
 export interface SurveyResponse {
@@ -115,6 +157,7 @@ export interface QuestionResult {
   minValue?: number | null;
   maxValue?: number | null;
   archivedAt?: string | null;
+  columnLabels?: string[] | null;
   options: Array<{ id: string; value: string; label: string; order: number }>;
   answers: Array<{ value: unknown }>;
 }

@@ -1,11 +1,12 @@
 "use client";
 
 import { X } from "lucide-react";
-import type { QuestionOption, Question } from "@/types/survey";
+import type { QuestionOption, Question, SkipRule, BlockInput } from "@/types/survey";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   MAX_SURVEY_QUESTION_TITLE,
   MAX_SURVEY_QUESTION_OPTION,
+  MAX_MATRIX_COLUMNS,
 } from "@/lib/constants";
 import {
   SURVEY_QUESTION_TITLE_TIP,
@@ -26,7 +27,11 @@ export const QUESTION_TYPES = [
   { value: "LINEAR_SCALE", label: "Linear Scale" },
   { value: "DATE", label: "Date" },
   { value: "LIKERT_SCALE", label: "Likert Scale" },
+  { value: "MATRIX_LIKERT", label: "Matrix / Grid (Likert)" },
 ];
+
+const CHOICE_TYPES = ["MULTIPLE_CHOICE", "CHECKBOXES", "DROPDOWN"];
+const SHUFFLEABLE_TYPES = [...CHOICE_TYPES, "LIKERT_SCALE"];
 
 export const LIKERT_OPTIONS: Record<number, string[]> = {
   3: ["Disagree", "Neutral", "Agree"],
@@ -49,19 +54,28 @@ export function generateId() {
 export function QuestionEditor({
   question,
   index,
+  allQuestions = [],
+  blocks = [],
   onChange,
   onDelete,
 }: {
   question: Question;
   index: number;
+  allQuestions?: Question[];
+  blocks?: BlockInput[];
   onChange: (q: Question) => void;
   onDelete: () => void;
 }) {
-  const needsOptions = ["MULTIPLE_CHOICE", "CHECKBOXES", "DROPDOWN"].includes(
+  const needsOptions = [...CHOICE_TYPES, "MATRIX_LIKERT"].includes(
     question.type,
   );
   const isLikert = question.type === "LIKERT_SCALE";
   const isLinearScale = question.type === "LINEAR_SCALE";
+  const isMatrix = question.type === "MATRIX_LIKERT";
+  const supportsShuffle = SHUFFLEABLE_TYPES.includes(question.type);
+  const laterQuestions = allQuestions.filter((q) => q.order > question.order);
+  const canHaveSkipLogic =
+    CHOICE_TYPES.includes(question.type) && laterQuestions.length > 0;
 
   const handleLikertScaleChange = (size: number) => {
     const labels = LIKERT_OPTIONS[size];
@@ -102,13 +116,32 @@ export function QuestionEditor({
         <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
           Question {index + 1}
         </span>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="text-sm font-semibold text-red-500 hover:text-red-700"
-        >
-          Remove
-        </button>
+        <div className="flex items-center gap-3">
+          {blocks.length > 0 && (
+            <select
+              value={question.blockId ?? ""}
+              onChange={(e) =>
+                onChange({ ...question, blockId: e.target.value || null })
+              }
+              className="sb-select max-w-40 text-xs"
+              aria-label="Assign question to a section"
+            >
+              <option value="">No section</option>
+              {blocks.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.title}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-sm font-semibold text-red-500 hover:text-red-700"
+          >
+            Remove
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -146,6 +179,7 @@ export function QuestionEditor({
                   "CHECKBOXES",
                   "DROPDOWN",
                   "LIKERT_SCALE",
+                  "MATRIX_LIKERT",
                 ].includes(newType);
                 onChange({
                   ...question,
@@ -160,9 +194,27 @@ export function QuestionEditor({
                             label: l,
                             order: i,
                           }))
-                        : [{ value: "opt_1", label: "Option 1", order: 0 }],
+                        : newType === "MATRIX_LIKERT"
+                          ? ["Row 1", "Row 2", "Row 3"].map((l, i) => ({
+                              value: `row_${i + 1}`,
+                              label: l,
+                              order: i,
+                            }))
+                          : [{ value: "opt_1", label: "Option 1", order: 0 }],
+                  columnLabels:
+                    newType === "MATRIX_LIKERT"
+                      ? question.columnLabels ?? [
+                          "Strongly Disagree",
+                          "Neutral",
+                          "Agree",
+                        ]
+                      : null,
                   minValue: newType === "LIKERT_SCALE" ? 1 : question.minValue,
                   maxValue: newType === "LIKERT_SCALE" ? 5 : question.maxValue,
+                  // Changing type invalidates any configured skip logic.
+                  skipLogic: CHOICE_TYPES.includes(newType)
+                    ? question.skipLogic
+                    : null,
                 });
               }}
               className="sb-select"
@@ -322,6 +374,189 @@ export function QuestionEditor({
               className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
             >
               + Add Option
+            </button>
+          </div>
+        )}
+
+        {isMatrix && (
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+              Columns (Likert points)
+            </label>
+            <p className="mb-2 text-xs text-slate-500">
+              Each row above becomes a variable in the export; columns are the
+              answer scale shared by all rows.
+            </p>
+            <div className="space-y-2">
+              {(question.columnLabels ?? []).map((col, ci) => (
+                <div key={ci} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={col}
+                    onChange={(e) => {
+                      const next = [...(question.columnLabels ?? [])];
+                      next[ci] = e.target.value;
+                      onChange({ ...question, columnLabels: next });
+                    }}
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder={`Column ${ci + 1}`}
+                    required
+                    maxLength={MAX_SURVEY_QUESTION_OPTION}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...question,
+                        columnLabels: (question.columnLabels ?? []).filter(
+                          (_, i) => i !== ci,
+                        ),
+                      })
+                    }
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {(question.columnLabels ?? []).length < MAX_MATRIX_COLUMNS && (
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...question,
+                    columnLabels: [
+                      ...(question.columnLabels ?? []),
+                      `Column ${(question.columnLabels ?? []).length + 1}`,
+                    ],
+                  })
+                }
+                className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
+              >
+                + Add Column
+              </button>
+            )}
+          </div>
+        )}
+
+        {supportsShuffle && (
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              checked={question.shuffleOptions === true}
+              onChange={(e) =>
+                onChange({ ...question, shuffleOptions: e.target.checked })
+              }
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Randomize option order per respondent
+            </span>
+            <InfoTooltip message="Prevents order bias: each respondent sees the options in a different, reproducible order." />
+          </label>
+        )}
+
+        {canHaveSkipLogic && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+              Skip Logic
+              <InfoTooltip message="When this question's answer matches a rule, all questions up to the target are skipped for that respondent." />
+            </label>
+            <div className="space-y-2">
+              {(question.skipLogic ?? []).map((rule, ri) => (
+                <div key={ri} className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-500">If</span>
+                  <select
+                    value={rule.operator}
+                    onChange={(e) => {
+                      const next = [...(question.skipLogic ?? [])];
+                      next[ri] = {
+                        ...rule,
+                        operator: e.target.value as SkipRule["operator"],
+                      };
+                      onChange({ ...question, skipLogic: next });
+                    }}
+                    className="sb-select max-w-36"
+                  >
+                    <option value="equals">equals</option>
+                    <option value="not_equals">does not equal</option>
+                    {question.type === "CHECKBOXES" && (
+                      <option value="includes">includes</option>
+                    )}
+                  </select>
+                  <select
+                    value={rule.value}
+                    onChange={(e) => {
+                      const next = [...(question.skipLogic ?? [])];
+                      next[ri] = { ...rule, value: e.target.value };
+                      onChange({ ...question, skipLogic: next });
+                    }}
+                    className="sb-select max-w-48"
+                  >
+                    <option value="">choose option…</option>
+                    {question.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs font-semibold text-slate-500">skip to</span>
+                  <select
+                    value={String(rule.skipToOrder)}
+                    onChange={(e) => {
+                      const next = [...(question.skipLogic ?? [])];
+                      next[ri] = {
+                        ...rule,
+                        skipToOrder: parseInt(e.target.value, 10),
+                      };
+                      onChange({ ...question, skipLogic: next });
+                    }}
+                    className="sb-select max-w-52"
+                  >
+                    <option value="">choose question…</option>
+                    {laterQuestions.map((q) => (
+                      <option key={q.id} value={String(q.order)}>
+                        Q{q.order + 1}: {q.title.slice(0, 40)}
+                        {q.title.length > 40 ? "…" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...question,
+                        skipLogic: (question.skipLogic ?? []).filter(
+                          (_, i) => i !== ri,
+                        ),
+                      })
+                    }
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...question,
+                  skipLogic: [
+                    ...(question.skipLogic ?? []),
+                    {
+                      operator: "equals",
+                      value: question.options[0]?.value ?? "",
+                      skipToOrder: laterQuestions[0]?.order ?? 0,
+                    },
+                  ],
+                })
+              }
+              className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-800"
+            >
+              + Add Skip Rule
             </button>
           </div>
         )}

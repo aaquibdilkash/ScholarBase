@@ -6,17 +6,21 @@ import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { QuestionEditor, generateId } from "./QuestionEditor";
+import { DEMOGRAPHIC_BLOCKS } from "@/lib/surveys/demographics";
 import { Editor } from "@/components/ui/Editor";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
-import type { Question, QuestionOption } from "@/types/survey";
+import type { Question, QuestionOption, BlockInput } from "@/types/survey";
 import type { SurveyWithAuthor } from "@/types/cards";
 
 import {
   MAX_SURVEY_TITLE,
   MAX_SURVEY_DESCRIPTION,
+  MAX_SURVEY_QUESTION_TITLE,
+  MAX_SURVEY_CONSENT_TEXT,
+  MAX_SURVEY_BLOCKS,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -33,6 +37,9 @@ export type SurveyFormValues = {
   description: string | null | undefined;
   privacy: string;
   shareData: boolean;
+  consentRequired?: boolean;
+  consentText?: string | null;
+  blocks?: BlockInput[];
   questions: Question[];
 };
 
@@ -53,6 +60,10 @@ export default function SurveyForm({
       order: q.order ?? i,
       minValue: q.minValue,
       maxValue: q.maxValue,
+      shuffleOptions: q.shuffleOptions === true,
+      skipLogic: q.skipLogic ?? null,
+      columnLabels: q.columnLabels ?? null,
+      blockId: q.blockId ?? null,
       options:
         q.options?.map((o: QuestionOption, oi: number) => ({
           id: o.id,
@@ -61,6 +72,14 @@ export default function SurveyForm({
           order: o.order ?? oi,
         })) || [],
     })) || [];
+  const initialBlocks: BlockInput[] = (initialData?.blocks ?? []).map(
+    (b, i) => ({
+      id: b.id || generateId(),
+      title: b.title,
+      order: b.order ?? i,
+      randomizeOrder: b.randomizeOrder === true,
+    }),
+  );
 
   const draftKey = mode === "edit" ? null : "draft_survey_new";
   const [draft, updateDraft, resetDraft] = useFormDraft(draftKey, {
@@ -68,6 +87,9 @@ export default function SurveyForm({
     description: initialData?.description || "",
     privacy: initialData?.privacy || "NON_ANONYMOUS",
     shareData: initialData?.shareData || false,
+    consentRequired: initialData?.consentRequired || false,
+    consentText: initialData?.consentText || "",
+    blocks: initialBlocks,
     questions: initialQuestions,
   });
   const queryClient = useQueryClient();
@@ -93,7 +115,7 @@ export default function SurveyForm({
     },
   });
 
-  const { title, description, privacy, shareData, questions } = draft;
+  const { title, description, privacy, shareData, consentRequired, consentText, blocks, questions } = draft;
 
   const addQuestion = () => {
     const newQuestion: Question = {
@@ -105,6 +127,55 @@ export default function SurveyForm({
       options: [],
     };
     updateDraft("questions", [...questions, newQuestion]);
+  };
+
+  const addBlock = () => {
+    if (blocks.length >= MAX_SURVEY_BLOCKS) return;
+    updateDraft("blocks", [
+      ...blocks,
+      {
+        id: generateId(),
+        title: `Section ${blocks.length + 1}`,
+        order: blocks.length,
+        randomizeOrder: false,
+      },
+    ]);
+  };
+
+  const updateBlock = (index: number, block: BlockInput) => {
+    updateDraft(
+      "blocks",
+      blocks.map((b, i) => (i === index ? block : b)),
+    );
+  };
+
+  const removeBlock = (index: number) => {
+    const removed = blocks[index];
+    updateDraft(
+      "blocks",
+      blocks
+        .filter((_, i) => i !== index)
+        .map((b, i) => ({ ...b, order: i })),
+    );
+    // Detach, do not delete, the questions that belonged to the block.
+    updateDraft(
+      "questions",
+      questions.map((q) =>
+        q.blockId === removed.id ? { ...q, blockId: null } : q,
+      ),
+    );
+  };
+
+  const insertDemographicBlock = (blockKey: string) => {
+    const template = DEMOGRAPHIC_BLOCKS.find((b) => b.key === blockKey);
+    if (!template) return;
+    const newQuestions: Question[] = template.questions.map((q, i) => ({
+      ...q,
+      id: generateId(),
+      order: questions.length + i,
+      options: q.options.map((o) => ({ ...o })),
+    }));
+    updateDraft("questions", [...questions, ...newQuestions]);
   };
 
   const updateQuestion = (index: number, question: Question) => {
@@ -132,6 +203,9 @@ export default function SurveyForm({
     formData.set("description", description ?? "");
     formData.set("privacy", privacy);
     formData.set("shareData", String(shareData));
+    formData.set("consentRequired", String(consentRequired === true));
+    formData.set("consentText", consentText ?? "");
+    formData.set("blocks", JSON.stringify(blocks));
     formData.set("questions", JSON.stringify(questions));
 
     const editingId = mode === "edit" ? initialData?.id : undefined;
@@ -256,18 +330,122 @@ export default function SurveyForm({
           </div>
         </div>
 
+        {/* IRB Consent Gate */}
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={consentRequired === true}
+              onChange={(e) => updateDraft("consentRequired", e.target.checked)}
+              className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <div>
+              <span className="text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+                Require informed consent (IRB)
+                <InfoTooltip message="Respondents must accept your consent statement before the first question is shown. The acceptance timestamp is recorded with each response." />
+              </span>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Recommended for research involving human participants.
+              </p>
+            </div>
+          </label>
+          {consentRequired === true && (
+            <textarea
+              value={consentText ?? ""}
+              onChange={(e) => updateDraft("consentText", e.target.value)}
+              rows={4}
+              maxLength={MAX_SURVEY_CONSENT_TEXT}
+              placeholder="Describe the study purpose, data usage, risks, and participant rights…"
+              className="sb-textarea mt-3 resize-y"
+            />
+          )}
+        </div>
+
         {/* Questions Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
-            <button
-              type="button"
-              onClick={addQuestion}
-              className="sb-button-accent text-sm"
-            >
-              + Add Question
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) insertDemographicBlock(e.target.value);
+                }}
+                className="sb-select text-sm"
+                aria-label="Insert a standard demographic block"
+              >
+                <option value="">+ Insert Demographics…</option>
+                {DEMOGRAPHIC_BLOCKS.map((b) => (
+                  <option key={b.key} value={b.key}>
+                    {b.label} ({b.description})
+                  </option>
+                ))}
+              </select>
+              {blocks.length < MAX_SURVEY_BLOCKS && (
+                <button
+                  type="button"
+                  onClick={addBlock}
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  + Add Section
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="sb-button-accent text-sm"
+              >
+                + Add Question
+              </button>
+            </div>
           </div>
+
+          {blocks.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500">
+                Sections (optionally randomized per respondent to control order
+                effects)
+              </p>
+              {blocks.map((block, i) => (
+                <div
+                  key={block.id}
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2"
+                >
+                  <input
+                    type="text"
+                    value={block.title}
+                    onChange={(e) =>
+                      updateBlock(i, { ...block, title: e.target.value })
+                    }
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                    maxLength={MAX_SURVEY_QUESTION_TITLE}
+                    required
+                  />
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={block.randomizeOrder}
+                      onChange={(e) =>
+                        updateBlock(i, {
+                          ...block,
+                          randomizeOrder: e.target.checked,
+                        })
+                      }
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Randomize order
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeBlock(i)}
+                    className="text-xs font-semibold text-red-500 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           {questions.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-500">
               No questions yet. Click &ldquo;Add Question&rdquo; to start
@@ -280,6 +458,8 @@ export default function SurveyForm({
                 key={q.id}
                 question={q}
                 index={i}
+                allQuestions={questions}
+                blocks={blocks}
                 onChange={(updated) => updateQuestion(i, updated)}
                 onDelete={() => removeQuestion(i)}
               />

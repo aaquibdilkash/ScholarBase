@@ -83,6 +83,10 @@ export const MAX_SURVEY_QUESTION_TITLE = 128;
 export const MAX_SURVEY_QUESTION_OPTION = 64;
 export const MAX_SURVEY_ANSWER_SHORT = 64;
 export const MAX_SURVEY_ANSWER_LONG = 512;
+export const MAX_SURVEY_CONSENT_TEXT = 4000;
+export const MAX_SURVEY_BLOCKS = 20;
+export const MAX_MATRIX_ROWS = 12;
+export const MAX_MATRIX_COLUMNS = 10;
 
 export const MAX_REJECTION_REASON = 64;
 export const MAX_REPORT_DETAILS = 256;

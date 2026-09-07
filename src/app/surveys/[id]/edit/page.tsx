@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import SurveyForm from "@/components/surveys/SurveyForm";
 import { createClient } from "@/utils/supabase/server";
 import { getSurvey } from "@/app/actions/surveys";
+import { parseSkipLogic, parseColumnLabels } from "@/lib/surveys/logic";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function EditSurveyPage({
@@ -30,6 +31,8 @@ export default async function EditSurveyPage({
     updatedAt: survey.updatedAt.toISOString(),
     questions: survey.questions.map((q) => ({
       ...q,
+      skipLogic: parseSkipLogic(q.skipLogic),
+      columnLabels: parseColumnLabels(q.columnLabels),
       createdAt: q.createdAt.toISOString(),
       updatedAt: q.updatedAt.toISOString(),
     })),
