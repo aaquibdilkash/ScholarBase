@@ -462,7 +462,7 @@ export default async function HomePage() {
       )}
 
       {/* Asterisk note */}
-      <p className="mt-12 text-center text-sm text-slate-400 dark:text-slate-500 italic">
+      <p className="mt-12 text-center text-sm text-black dark:text-slate-300 italic">
         * ScholarBase runs on chai, coffee, and the quiet belief that
         academics deserve a homepage that doesn&apos;t try to sell them
         something. The cards above are non-negotiable. The em dashes,
