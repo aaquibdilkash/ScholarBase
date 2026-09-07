@@ -151,11 +151,12 @@ export function AdminDashboard({
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000,
     // SSR-hydrated first page of the default Feed view — zero fetch on mount.
+    // Must match the default sort ("reportCount") used by admin/page.tsx.
     initialData:
       activeTab === "feed" &&
       view === "posts" &&
       page === 1 &&
-      sortBy === "createdAt" &&
+      sortBy === "reportCount" &&
       statusFilter === "all"
         ? initialData
         : undefined,

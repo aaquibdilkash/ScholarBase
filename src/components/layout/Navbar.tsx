@@ -16,7 +16,10 @@ export default function Navbar({
   unreadCount?: number;
 }) {
   return (
-    <nav className="sticky top-0 z-50 shadow-sm border-b border-slate-200/70 sb-navbar-bg backdrop-blur-xl dark:border-slate-800/80">
+    <nav
+      id="sb-navbar"
+      className="sticky top-0 z-50 shadow-sm border-b border-slate-200/70 sb-navbar-bg backdrop-blur-xl dark:border-slate-800/80"
+    >
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
         <Link href="/" className="hidden items-center gap-3 md:flex">
           <SBIcon className="h-10 w-10 text-[18px]" />

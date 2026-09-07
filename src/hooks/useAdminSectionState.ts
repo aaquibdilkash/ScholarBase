@@ -27,12 +27,15 @@ export type SectionUiState = {
 export const DEFAULT_SECTION_STATE: SectionUiState = {
   view: "posts",
   page: 1,
-  sortBy: "createdAt",
+  // Moderation-first default: surface the most-reported content on load.
+  sortBy: "reportCount",
   statusFilter: "all",
   entityStatusFilter: "all",
 };
 
-const STORAGE_KEY = "sb_admin_sections";
+// v2 — bumped when the default sort changed to "reportCount" so previously
+// persisted "createdAt" defaults are dropped and the new default applies.
+const STORAGE_KEY = "sb_admin_sections_v2";
 
 const VIEWS: readonly string[] = ["posts", "comments"];
 const SORTS: readonly string[] = ["createdAt", "reportCount"];

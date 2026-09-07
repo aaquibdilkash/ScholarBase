@@ -1,8 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  Fragment,
+} from "react";
 import { createPortal } from "react-dom";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
 import {
   MoreHorizontal,
   Trash2,
@@ -87,16 +97,50 @@ export function AdminActionsDropdown({
     null,
   );
   // Reports inspection drawer — opens when "View Reports" is clicked (QA #11).
+  // Cursor-paginated: only the latest 10 reports load when the drawer opens,
+  // then older pages are fetched automatically as the admin scrolls.
   const [inspectOpen, setInspectOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  const { data: reports = [], isLoading } = useQuery({
+  const {
+    data: reportsData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey: ["reports-for-entity", contentId],
-    queryFn: () => getReportsForEntity(contentId),
+    queryFn: ({ pageParam }) =>
+      getReportsForEntity(contentId, pageParam as string | null),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     staleTime: 30_000,
     enabled: inspectOpen,
   });
+
+  const reports = reportsData?.pages.flatMap((page) => page.reports) ?? [];
+
+  // Infinite scroll: observe the sentinel at the bottom of the drawer and
+  // load the next page when it becomes visible.
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  useEffect(() => {
+    if (!inspectOpen || !hasNextPage) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) handleLoadMore();
+      },
+      { root: el.parentElement, rootMargin: "80px", threshold: 0 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [inspectOpen, hasNextPage, handleLoadMore]);
 
   const mutation = useMutation({
     mutationFn: (action: ModerationAction) =>
@@ -423,7 +467,7 @@ export function AdminActionsDropdown({
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
               onClick={() => setInspectOpen(false)}
             />
-            <div className="relative z-[81] max-h-[500px] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="relative z-[81] flex max-h-[500px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
               <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">
@@ -434,7 +478,9 @@ export function AdminActionsDropdown({
                       Reports on {entityLabel}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {reports.length} {reports.length === 1 ? "report" : "reports"}
+                      {hasNextPage
+                        ? `${reports.length} loaded${reportCount > 0 ? ` of ${reportCount}` : ""}`
+                        : `${reports.length} ${reports.length === 1 ? "report" : "reports"}`}
                     </p>
                   </div>
                 </div>
@@ -446,7 +492,7 @@ export function AdminActionsDropdown({
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="space-y-4 overflow-y-auto p-6">
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -464,30 +510,58 @@ export function AdminActionsDropdown({
                     </p>
                   </div>
                 ) : (
-                  reports.map((report) => (
-                    <div
-                      key={report.id}
-                      className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                          {report.category}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {new Date(report.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                        {report.reporter?.name ?? report.reporter?.email ??
-                          "Anonymous"}
-                      </p>
-                      {report.details && (
-                        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                          {report.details}
+                  <>
+                    {reports.map((report) => (
+                      <div
+                        key={report.id}
+                        className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/50"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                            {report.category}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(report.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {report.reporter?.name ?? report.reporter?.email ??
+                            "Anonymous"}
                         </p>
-                      )}
-                    </div>
-                  ))
+                        {report.details && (
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            {report.details}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Infinite scroll sentinel — next page auto-loads when
+                        this scrolls into view. Button is a fallback. */}
+                    {hasNextPage && (
+                      <div
+                        ref={loadMoreRef}
+                        className="flex flex-col items-center justify-center py-2"
+                      >
+                        {isFetchingNextPage ? (
+                          <>
+                            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                              Loading more reports...
+                            </p>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleLoadMore}
+                            className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                          >
+                            Load more reports
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

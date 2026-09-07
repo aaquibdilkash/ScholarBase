@@ -14,6 +14,7 @@ import {
   DeleteMapValue,
   FreezableContentModel,
   ReportWithReporter,
+  ReportsPage,
 } from "@/types/admin";
 import { ADMIN_PAGE_SIZE, MODULE_TO_CONTENT_TYPE } from "@/lib/constants";
 
@@ -765,23 +766,42 @@ export async function getAdminContent(
 }
 
 /**
- * Fetch all PENDING reports against a single entity so moderators can
- * inspect who reported, which category/reason, and the reporter's notes.
+ * Fetch PENDING reports against a single entity so moderators can inspect
+ * who reported, which category/reason, and the reporter's notes.
  * (QA #11 — report metadata was previously invisible to admins.)
+ *
+ * Cursor-paginated (RULE 2 — Zero-Compute): only `limit` rows (default 10)
+ * are read per call, keyed off `createdAt DESC`. Pass the previous page's
+ * `nextCursor` to fetch the following page; `nextCursor: null` means done.
  */
 export async function getReportsForEntity(
   entityId: string,
-): Promise<ReportWithReporter[]> {
+  cursor?: string | null,
+  limit: number = 10,
+): Promise<ReportsPage> {
   const user = await requireCurrentUser("Log in to access admin.");
   if (!(await isUserAdmin(user.id))) {
     throw new Error("Not authorized.");
   }
 
-  return prisma.report.findMany({
+  const reports = (await prisma.report.findMany({
     where: { entityId, status: "PENDING" },
     orderBy: { createdAt: "desc" },
+    // Fetch one extra row so we can detect whether a next page exists
+    // without issuing a separate count query.
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       reporter: { select: { id: true, name: true, email: true } },
     },
-    }) as unknown as Promise<ReportWithReporter[]>;
+  })) as unknown as ReportWithReporter[];
+
+  const hasMore = reports.length > limit;
+  const pageReports = hasMore ? reports.slice(0, limit) : reports;
+  const last = pageReports[pageReports.length - 1];
+
+  return {
+    reports: pageReports,
+    nextCursor: hasMore && last ? last.id : null,
+  };
 }

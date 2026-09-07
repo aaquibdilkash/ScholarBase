@@ -39,7 +39,12 @@ html[data-theme="dark"] {
     scroll-behavior: smooth;
   }
 
-  html.sb-route-messages body > div main {
+  /* Zero-out the root <main> padding on the /messages routes. Using :has()
+     makes this render-blocking: it applies on the very first paint from the
+     server-rendered HTML, so there is no "space then snap" flicker on
+     refresh (the old html.sb-route-messages class was only added after
+     hydration via useEffect). */
+  body:has(main .sb-messages-page) main {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     padding-left: 0 !important;

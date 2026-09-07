@@ -24,7 +24,9 @@ export default async function AdminPage() {
     
   const [stats, initialContent] = await Promise.all([
     getAdminStats(),
-    getAdminContent("feed"),
+    // Hydrate with the dashboard's default sort (Most Reports) so the
+    // client-side initialData cache matches the first render.
+    getAdminContent("feed", "reportCount"),
   ]);
 
   return (

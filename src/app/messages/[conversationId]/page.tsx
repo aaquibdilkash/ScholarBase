@@ -20,7 +20,7 @@ import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { supabase } from "@/utils/supabase/client";
 import { usePresence } from "@/components/interactions/PresenceProvider";
-import { MoreVertical, Ban, UserCheck, Loader2, Flag, ChevronRight } from "lucide-react";
+import { MoreVertical, Ban, UserCheck, Loader2, Flag, ChevronsRight } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
 import { ReportModal } from "@/components/cards/ReportModal";
@@ -386,7 +386,7 @@ export default function ConversationPage({
           onClick={() => setIsSidebarOpen(true)}
           className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm md:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronsRight className="h-6 w-6" />
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Link

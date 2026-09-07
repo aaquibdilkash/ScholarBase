@@ -210,6 +210,13 @@ export type ReportWithReporter = {
   } | null;
 };
 
+/** One page of reports for the admin inspection drawer (cursor pagination). */
+export type ReportsPage = {
+  reports: ReportWithReporter[];
+  /** Cursor for the next page — `null` when no more pages exist. */
+  nextCursor: string | null;
+};
+
 export interface ContentModel {
   findMany: (args: {
     include: { author: true }

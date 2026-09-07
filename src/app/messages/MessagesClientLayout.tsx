@@ -1,20 +1,23 @@
 "use client";
 
-import { useState, useEffect, Suspense, useContext, useRef } from "react";
+import { useState, useEffect, useCallback, Suspense, useContext, useRef } from "react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { useTimeAgo } from "@/utils/use-time-ago";
 import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
-import { getInbox } from "@/app/actions/messages";
+import { getInbox, searchInbox } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { MessagesLayoutContext } from "./messages-context";
-import { ChevronRight, ChevronsLeft, Loader2 } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
 type Message = { body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
 type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
+
+// ⚡ INFINITE SCROLL: conversations per page.
+const PAGE_SIZE = 10;
 
 type MessageRow = {
   id: string;
@@ -43,6 +46,12 @@ function ConversationSidebar({ user }: { user: User | null }) {
   const inboxRef = useRef<InboxConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  // ⚡ PAGINATION + SERVER-SIDE SEARCH state.
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [searchResults, setSearchResults] = useState<InboxConversation[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!;
 
@@ -64,12 +73,16 @@ function ConversationSidebar({ user }: { user: User | null }) {
   useEffect(() => {
     if (user) {
       setIsLoading(true);
-      getInbox(user.id)
-        .then((data) => setInbox(data))
+      getInbox(user.id, PAGE_SIZE)
+        .then((data) => {
+          setInbox(data);
+          setHasMore(data.length === PAGE_SIZE);
+        })
         .catch(() => setInbox([]))
         .finally(() => setIsLoading(false));
     } else {
       setInbox([]);
+      setHasMore(false);
       setIsLoading(false);
     }
   }, [user]);
@@ -98,7 +111,14 @@ function ConversationSidebar({ user }: { user: User | null }) {
           const convExists = inboxRef.current.some((c) => c.id === msgConvId);
 
           if (!convExists) {
-            getInbox(user.id).then((data) => setInbox(data));
+            // ⚡ PAGINATION: refetch the first page and merge just the new
+            // conversation so already-loaded pages aren't dropped.
+            getInbox(user.id, PAGE_SIZE).then((data) => {
+              const fresh = data.find((c) => c.id === msgConvId);
+              if (fresh) {
+                setInbox((prev) => [fresh, ...prev.filter((c) => c.id !== msgConvId)]);
+              }
+            });
           } else {
             setInbox((currentInbox) => {
               const convIndex = currentInbox.findIndex((c) => c.id === msgConvId);
@@ -209,6 +229,60 @@ function ConversationSidebar({ user }: { user: User | null }) {
     };
   }, [user]);
 
+  // ⚡ INFINITE SCROLL: fetch the next page using the last loaded conversation
+  // as the cursor. Skipped entirely while a search is active.
+  const loadMore = useCallback(() => {
+    if (!user || isLoadingMore || !hasMore || searchQuery.trim()) return;
+    const cursor = inboxRef.current[inboxRef.current.length - 1]?.id;
+    if (!cursor) return;
+    setIsLoadingMore(true);
+    getInbox(user.id, PAGE_SIZE, cursor)
+      .then((data) => {
+        setInbox((prev) => {
+          const seen = new Set(prev.map((c) => c.id));
+          const fresh = data.filter((c) => !seen.has(c.id));
+          return [...prev, ...fresh];
+        });
+        setHasMore(data.length === PAGE_SIZE);
+      })
+      .catch(() => setHasMore(false))
+      .finally(() => setIsLoadingMore(false));
+  }, [user, isLoadingMore, hasMore, searchQuery]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || searchResults !== null) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: "120px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [loadMore, searchResults]);
+
+  // ⚡ SEARCH: debounced server-side search across ALL conversations in the
+  // database. An empty query clears the search results and returns to the
+  // paginated list.
+  useEffect(() => {
+    if (!user) return;
+    const q = searchQuery.trim();
+    if (!q) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    const timer = setTimeout(() => {
+      searchInbox(user.id, q)
+        .then(setSearchResults)
+        .catch(() => setSearchResults([]))
+        .finally(() => setIsSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, user]);
+
   const closeSidebarIfMobile = () => {
     if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
       setIsSidebarOpen(false);
@@ -216,14 +290,9 @@ function ConversationSidebar({ user }: { user: User | null }) {
   };
   const handleNewMessageClick = () => closeSidebarIfMobile();
 
-  const filteredInbox = inbox.filter((conversation) => {
-    const otherParticipant = conversation.participants.find(p => p.user.id !== user?.id)?.user;
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      otherParticipant?.name?.toLowerCase().includes(searchLower) ||
-      otherParticipant?.handle?.toLowerCase().includes(searchLower)
-    );
-  });
+  // ⚡ When searching, show the server results (from the whole database);
+  // otherwise show the paginated inbox. No client-side filtering.
+  const displayList = searchResults ?? inbox;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -234,7 +303,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
             <Link href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black">New</Link>
           )}
           <button onClick={() => setIsSidebarOpen((prev) => !prev)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
-            {isSidebarOpen ? <ChevronsLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+            {isSidebarOpen ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />}
           </button>
         </div>
       </div>
@@ -256,11 +325,11 @@ function ConversationSidebar({ user }: { user: User | null }) {
           isLoading ? (
             <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500 dark:text-slate-400">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading conversations...
+              {isSidebarOpen && <span>Loading conversations...</span>}
             </div>
-          ) : filteredInbox.length > 0 ? (
+          ) : displayList.length > 0 ? (
             <div className="space-y-2 p-2 overflow-x-hidden">
-              {filteredInbox.map((conversation) => {
+              {displayList.map((conversation) => {
                 const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
                 const latestMessage = conversation.messages[0];
                 const participantData = conversation.participants.find((p) => p.user.id === user.id);
@@ -335,9 +404,17 @@ function ConversationSidebar({ user }: { user: User | null }) {
                   </Link>
                 );
               })}
+              {/* ⚡ INFINITE SCROLL sentinel: loads the next page when scrolled into view */}
+              {searchResults === null && hasMore && (
+                <div ref={sentinelRef} className="flex justify-center p-4">
+                  {isLoadingMore && <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-slate-500" />}
+                </div>
+              )}
             </div>
           ) : isSidebarOpen ? (
-            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">No conversations found.</div>
+            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
+              {isSearching ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "No conversations found."}
+            </div>
           ) : null
          ) : isSidebarOpen ? (
            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Please sign in to see your conversations.</div>
@@ -374,12 +451,45 @@ export default function MessagesClientLayout({
     return () => subscription.unsubscribe();
   }, []);
 
+  // ⚡ MEASURE THE REAL NAVBAR: The fixed conversations drawer must start
+  // exactly where the navbar ends. The navbar's height is not a fixed token
+  // (min-h-14 on mobile, min-h-16 from `sm`, its bottom border, plus the
+  // frozen-account banner can all change it), so we publish its measured
+  // height as --sb-navbar-h and consume it in the classes below. The 3.5rem
+  // fallback keeps the first paint correct before JS runs. On md+ the drawer
+  // is `md:static`, so the variable only affects the fixed mobile drawer.
+  useEffect(() => {
+    // ⚡ Target the top navbar by id — a plain `querySelector("nav")` would
+    // match the main Sidebar's inner <nav> link list, which renders first in
+    // the DOM and is ~half the viewport tall.
+    const navbar = document.getElementById("sb-navbar");
+    if (!navbar) return;
+    const setVar = () =>
+      document.documentElement.style.setProperty(
+        "--sb-navbar-h",
+        `${navbar.offsetHeight}px`,
+      );
+    setVar();
+    const observer = new ResizeObserver(setVar);
+    observer.observe(navbar);
+    window.addEventListener("resize", setVar);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", setVar);
+    };
+  }, []);
+
   return (
     <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-       <div className="relative flex h-[calc(100vh-3.5rem)] min-h-[28rem] overflow-hidden sm:h-[calc(100vh-4rem)]">
+       <div className="sb-messages-page relative flex h-[calc(100vh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden">
          {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
-          <div className={`fixed top-14 left-0 z-50 h-[calc(100vh-3.5rem)] shrink-0 md:static md:top-16 md:h-auto md:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 translate-x-0" : "w-16 -translate-x-full sm:translate-x-0"}`}>
-          <Suspense fallback={<div className="p-4">Loading conversations...</div>}>
+          <div className={`fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-50 h-[calc(100vh-var(--sb-navbar-h,3.5rem))] shrink-0 md:static md:h-auto md:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 translate-x-0" : "w-16 -translate-x-full sm:translate-x-0"}`}>
+          <Suspense fallback={
+            <div className="flex items-center justify-center gap-2 p-4 text-sm text-slate-500 dark:text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {isSidebarOpen && <span>Loading conversations...</span>}
+            </div>
+          }>
             <ConversationSidebar user={user} />
           </Suspense>
         </div>

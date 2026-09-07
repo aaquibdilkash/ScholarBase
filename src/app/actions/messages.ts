@@ -7,6 +7,7 @@ import { messageSelect } from "@/lib/message-select";
 import { notifyUserById } from "@/lib/notifications";
 import type { SubmitResult } from "@/types/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { Prisma } from "@prisma/client";
 
 const directConversationSelect = {
   id: true,
@@ -45,32 +46,87 @@ const directConversationSelect = {
   },
 };
 
-export async function getInbox(userId: string) {
+// ⚡ ZERO-COMPUTE: Attach unread counts for only the fetched page of
+// conversations, in one indexed raw query (Rule 2).
+async function attachUnreadCounts(
+  userId: string,
+  conversations: { id: string }[],
+): Promise<Map<string, number>> {
+  if (conversations.length === 0) return new Map();
+  const unreadCounts = await prisma.$queryRaw<{ conversationId: string; unreadCount: bigint }[]>`
+      WITH participant_reads AS (
+        SELECT "conversationId", COALESCE("lastReadAt", ${new Date(0)}) AS "lastReadAt"
+        FROM "ConversationParticipant"
+        WHERE "userId" = ${userId}
+      )
+      SELECT m."conversationId" AS "conversationId", COUNT(*)::int AS "unreadCount"
+      FROM "Message" m
+      INNER JOIN participant_reads pr ON pr."conversationId" = m."conversationId"
+      WHERE m."senderId" != ${userId}
+        AND m."createdAt" > pr."lastReadAt"
+        AND m."conversationId" IN (${Prisma.join(conversations.map((c) => c.id))})
+      GROUP BY m."conversationId"
+    `;
+  return new Map(
+    unreadCounts.map((row) => [row.conversationId, Number(row.unreadCount)]),
+  );
+}
+
+// ⚡ INFINITE SCROLL: Inbox loads `limit` conversations at a time (10 by
+// default), newest first. Pass the last conversation's id as `cursor` to
+// fetch the next page.
+export async function getInbox(
+  userId: string,
+  limit: number = 10,
+  cursor?: string,
+) {
   const conversations = await prisma.conversation.findMany({
     where: { participants: { some: { userId } } },
     orderBy: { lastMessageAt: "desc" },
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit,
     select: directConversationSelect,
   });
 
-  const unreadCounts = conversations.length > 0
-    ? await prisma.$queryRaw<{ conversationId: string; unreadCount: bigint }[]>`
-        WITH participant_reads AS (
-          SELECT "conversationId", COALESCE("lastReadAt", ${new Date(0)}) AS "lastReadAt"
-          FROM "ConversationParticipant"
-          WHERE "userId" = ${userId}
-        )
-        SELECT m."conversationId" AS "conversationId", COUNT(*)::int AS "unreadCount"
-        FROM "Message" m
-        INNER JOIN participant_reads pr ON pr."conversationId" = m."conversationId"
-        WHERE m."senderId" != ${userId}
-          AND m."createdAt" > pr."lastReadAt"
-        GROUP BY m."conversationId"
-      `
-    : [];
+  const unreadCountMap = await attachUnreadCounts(userId, conversations);
 
-  const unreadCountMap = new Map(
-    unreadCounts.map((row) => [row.conversationId, Number(row.unreadCount)]),
-  );
+  return conversations.map((conversation) => ({
+    ...conversation,
+    unreadCount: unreadCountMap.get(conversation.id) ?? 0,
+  }));
+}
+
+// ⚡ SERVER-SIDE SEARCH: Searches ALL of the user's conversations in the
+// database by the other participant's name or handle — not just the 10
+// currently loaded in the sidebar.
+export async function searchInbox(userId: string, query: string, limit = 30) {
+  const q = query.trim();
+  if (!q) return [];
+
+  const conversations = await prisma.conversation.findMany({
+    where: {
+      participants: { some: { userId } },
+      AND: [
+        {
+          participants: {
+            some: {
+              user: {
+                OR: [
+                  { name: { contains: q, mode: "insensitive" } },
+                  { handle: { contains: q, mode: "insensitive" } },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    },
+    orderBy: { lastMessageAt: "desc" },
+    take: limit,
+    select: directConversationSelect,
+  });
+
+  const unreadCountMap = await attachUnreadCounts(userId, conversations);
 
   return conversations.map((conversation) => ({
     ...conversation,
