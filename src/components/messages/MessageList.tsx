@@ -28,6 +28,7 @@ type MessageRow = {
   createdAt: string;
   editedAt?: string | null;
   isDeleted?: boolean | null;
+  replyToId?: string | null;
   sender?: { id: string; name: string | null; handle: string | null; avatarUrl: string | null };
 };
 
@@ -43,6 +44,7 @@ export function MessageList({
   registerAppend,
   registerAddFailed,
   onMessageReceived,
+  onSetReplyingTo,
 }: {
   conversationId: string;
   initialMessages: SentMessage[];
@@ -51,6 +53,8 @@ export function MessageList({
   registerAppend?: (fn: (message: SentMessage) => void) => void;
   registerAddFailed?: (fn: (message: SentMessage) => void) => void;
   onMessageReceived?: () => void;
+  /** Marks a message as the active reply target in the composer. */
+  onSetReplyingTo?: (message: SentMessage) => void;
 }) {
   const { toast } = useToast();
   const [messages, setMessages] = useState<SentMessage[]>(() =>
@@ -67,6 +71,10 @@ export function MessageList({
 
   const initialRenderRef = useRef(true);
   const previousMessageCount = useRef(initialMessages.length);
+  const currentMessagesRef = useRef<SentMessage[]>([]);
+  useEffect(() => {
+    currentMessagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     if (initialRenderRef.current) {
@@ -184,6 +192,7 @@ export function MessageList({
       try {
         const formData = new FormData();
         formData.append("body", message.body);
+        if (message.replyToId) formData.append("replyToId", message.replyToId);
         const result = await sendMessage(conversationId, formData);
         if (result && "error" in result) throw new Error(result.error);
 
@@ -216,20 +225,39 @@ export function MessageList({
 
     const outbox = getOutboxForConversation(conversationId);
     if (outbox.length > 0) {
-      const hydrated: SentMessage[] = outbox.map((pending) => ({
-        id: pending.id,
-        body: pending.body,
-        createdAt: pending.createdAt,
-        senderId: pending.senderId,
-        conversationId: pending.conversationId,
-        status: pending.status === "PENDING" ? "sending" : "failed",
-        sender: {
-          id: pending.senderId,
-          name: pending.senderName,
-          handle: pending.senderHandle,
-          avatarUrl: pending.senderAvatarUrl,
-        },
-      }));
+      const hydrated: SentMessage[] = outbox.map((pending) => {
+        // Restore the quoted snapshot so the bubble renders the quote header.
+        const quoted = pending.replyToId
+          ? currentMessagesRef.current.find((m) => m.id === pending.replyToId)
+          : undefined;
+        return {
+          id: pending.id,
+          body: pending.body,
+          createdAt: pending.createdAt,
+          senderId: pending.senderId,
+          conversationId: pending.conversationId,
+          status: pending.status === "PENDING" ? "sending" : "failed",
+          replyToId: pending.replyToId,
+          sender: {
+            id: pending.senderId,
+            name: pending.senderName,
+            handle: pending.senderHandle,
+            avatarUrl: pending.senderAvatarUrl,
+          },
+          replyTo: quoted
+            ? {
+                id: quoted.id,
+                body: quoted.body,
+                isDeleted: quoted.isDeleted ?? false,
+                sender: {
+                  id: quoted.sender.id,
+                  name: quoted.sender.name,
+                  handle: quoted.sender.handle,
+                },
+              }
+            : null,
+        };
+      });
       setMessages((current) => {
         const existing = new Set(current.map((m) => m.id));
         return [...current, ...hydrated.filter((m) => !existing.has(m.id))];
@@ -251,6 +279,7 @@ export function MessageList({
           senderId: pending.senderId,
           conversationId: pending.conversationId,
           status: "failed",
+          replyToId: pending.replyToId,
           sender: {
             id: pending.senderId,
             name: pending.senderName,
@@ -363,16 +392,29 @@ export function MessageList({
       if (rowConvId && rowConvId !== conversationId) return;
 
       setMessages((current) =>
-        current.map((m) =>
-          m.id === row.id
-            ? {
-                ...m,
-                body: row.isDeleted ? "" : row.body,
-                editedAt: row.editedAt ?? m.editedAt,
-                isDeleted: row.isDeleted,
-              }
-            : m,
-        ),
+        current.map((m) => {
+          if (m.id === row.id) {
+            return {
+              ...m,
+              body: row.isDeleted ? "" : row.body,
+              editedAt: row.editedAt ?? m.editedAt,
+              isDeleted: row.isDeleted,
+            };
+          }
+          // ⚡ QUOTE SYNC: When the original message is tombstoned, every
+          // bubble quoting it flips its preview to "Original message was
+          // deleted" without any extra fetches or page refresh.
+          if (m.replyToId === row.id && m.replyTo) {
+            return {
+              ...m,
+              replyTo: {
+                ...m.replyTo,
+                isDeleted: row.isDeleted ?? m.replyTo.isDeleted,
+              },
+            };
+          }
+          return m;
+        }),
       );
     };
 
@@ -400,7 +442,7 @@ export function MessageList({
   if (!user || !userId) return null;
 
   return (
-    <div ref={containerRef} className="space-y-4 h-full overflow-y-auto">
+    <div ref={containerRef} className="space-y-4 h-full overflow-y-auto px-1.5">
       {hasMore && (
         <div
           ref={observerTarget}
@@ -421,6 +463,7 @@ export function MessageList({
           onEdit={handleEdit}
           onDelete={handleDelete}
           onRetry={retryMessage}
+          onSetReplyingTo={onSetReplyingTo}
         />
       ))}
       <div ref={messagesEndRef} />

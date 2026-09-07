@@ -2,7 +2,7 @@
 
 import { sendMessage } from "@/app/actions/messages";
 import { useRef, useState, useEffect } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import type { User } from "@supabase/supabase-js";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
@@ -25,7 +25,14 @@ export type SentMessage = {
   status?: "sending" | "failed" | "sent";
   editedAt?: Date | string | null;
   isDeleted?: boolean | null;
+  replyToId?: string | null;
   sender: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; };
+  replyTo?: {
+    id: string;
+    body: string;
+    isDeleted: boolean | null;
+    sender: { id: string; name: string | null; handle: string | null; };
+  } | null;
 };
 
 export function MessageInputForm({
@@ -35,6 +42,8 @@ export function MessageInputForm({
   currentUser,
   onTyping,
   isDisabled = false,
+  replyingTo,
+  onCancelReply,
 }: {
   conversationId: string;
   onMessageSent?: (message: SentMessage) => void;
@@ -44,6 +53,10 @@ export function MessageInputForm({
   onTyping?: () => void;
   /** ⚡ ISSUE 5: Disables the composer when a block relationship exists. */
   isDisabled?: boolean;
+  /** The message currently being replied to (WhatsApp-style quote). */
+  replyingTo?: SentMessage | null;
+  /** Clear the active reply target. */
+  onCancelReply?: () => void;
 }) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -76,7 +89,7 @@ export function MessageInputForm({
     const bodyText = draft;
     setIsSubmitting(true);
 
-    // 1. Instantly display bubble
+        // 1. Instantly display bubble
     const tempId = `optimistic-${Date.now()}`;
     const optimisticMessage: SentMessage = {
       id: tempId,
@@ -85,12 +98,25 @@ export function MessageInputForm({
       senderId: currentUser.id,
       conversationId,
       status: "sending",
+      replyToId: replyingTo?.id ?? null,
       sender: {
         id: currentUser.id,
         name: currentUser.user_metadata?.name || "Scholar",
         handle: currentUser.user_metadata?.handle || "",
         avatarUrl: currentUser.user_metadata?.avatar_url || null,
       },
+      replyTo: replyingTo
+        ? {
+            id: replyingTo.id,
+            body: replyingTo.body,
+            isDeleted: replyingTo.isDeleted ?? false,
+            sender: {
+              id: replyingTo.sender.id,
+              name: replyingTo.sender.name,
+              handle: replyingTo.sender.handle,
+            },
+          }
+        : null,
     };
 
     if (onMessageSent) onMessageSent(optimisticMessage);
@@ -108,17 +134,20 @@ export function MessageInputForm({
       senderName: optimisticMessage.sender.name,
       senderHandle: optimisticMessage.sender.handle,
       senderAvatarUrl: optimisticMessage.sender.avatarUrl,
+      replyToId: replyingTo?.id ?? null,
     };
     upsertPendingMessage(pendingMessage);
 
-    // 3. Clear input immediately
+    // 3. Clear input + reply target immediately
     setDraft("");
     localStorage.removeItem(`draft-${conversationId}`);
     if (textAreaRef.current) textAreaRef.current.style.height = "auto";
+    onCancelReply?.();
 
     try {
       const formData = new FormData();
       formData.append("body", bodyText);
+      if (replyingTo?.id) formData.append("replyToId", replyingTo.id);
 
       const result = await sendMessage(conversationId, formData);
       if (result && 'error' in result) throw new Error(result.error);
@@ -139,6 +168,13 @@ export function MessageInputForm({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (onCancelReply && replyingTo) {
+        onCancelReply();
+      }
+      return;
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (!isSubmitting && draft.trim()) {
@@ -150,6 +186,40 @@ export function MessageInputForm({
 
   return (
     <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4 dark:border-slate-800">
+      {replyingTo && !isDisabled && (
+        <div
+          className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-blue-500 bg-blue-50/70 px-3 py-2 dark:bg-slate-800/80"
+          data-testid="reply-preview-banner"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
+                Replying to{" "}
+                {replyingTo.sender.name ||
+                  (replyingTo.sender.handle ? `@${replyingTo.sender.handle}` : "Scholar")}
+              </p>
+              {replyingTo.isDeleted ? (
+                <p className="mt-0.5 text-xs italic text-slate-500 dark:text-slate-400">
+                  Original message deleted
+                </p>
+              ) : (
+                <p className="mt-0.5 line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
+                  {replyingTo.body}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onCancelReply}
+              className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+              aria-label="Cancel reply"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <textarea

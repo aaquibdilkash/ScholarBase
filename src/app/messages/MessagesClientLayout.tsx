@@ -336,13 +336,14 @@ function ConversationSidebar({ user }: { user: User | null }) {
                 );
               })}
             </div>
-          ) : (
+          ) : isSidebarOpen ? (
             <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">No conversations found.</div>
-          )
-        ) : (
-          <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Please sign in to see your conversations.</div>
-        )}
-      </div>
+          ) : null
+         ) : isSidebarOpen ? (
+           <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Please sign in to see your conversations.</div>
+         ) : null
+         }
+       </div>
     </div>
   );
 }

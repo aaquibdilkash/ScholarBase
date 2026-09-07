@@ -70,6 +70,8 @@ export default function ConversationPage({
   const [menuOpen, setMenuOpen] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  // ⚡ QUOTE REPLY: The message currently being replied to (WhatsApp-style).
+  const [replyingTo, setReplyingTo] = useState<SentMessage | null>(null);
   const { toast } = useToast();
 
   const [isTyping, setIsTyping] = useState(false);
@@ -476,6 +478,7 @@ export default function ConversationPage({
           registerAppend={handleAppendMessage}
           registerAddFailed={handleRegisterAddFailed}
           onMessageReceived={onMessageReceived}
+          onSetReplyingTo={setReplyingTo}
         />
         </div>
         </div>
@@ -520,6 +523,8 @@ export default function ConversationPage({
         currentUser={user}
         onTyping={broadcastTyping}
         isDisabled={isChatDisabled}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
       />
 
       {otherParticipant && (

@@ -21,6 +21,7 @@ export interface PendingMessage {
   senderName: string | null;
   senderHandle: string | null;
   senderAvatarUrl: string | null;
+  replyToId: string | null;
 }
 
 const OUTBOX_KEY = "sb-message-outbox";

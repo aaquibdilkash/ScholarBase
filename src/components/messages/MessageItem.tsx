@@ -12,8 +12,10 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Reply,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 import type { SentMessage } from "./MessageInputForm";
@@ -25,6 +27,8 @@ interface MessageItemProps {
   onEdit?: (messageId: string, newBody: string) => Promise<boolean>;
   onDelete?: (messageId: string) => Promise<boolean>;
   onRetry?: (message: SentMessage) => void;
+  /** Sets this message as the active reply target in the composer. */
+  onSetReplyingTo?: (message: SentMessage) => void;
 }
 
 export const MessageItem = React.memo(
@@ -35,6 +39,7 @@ export const MessageItem = React.memo(
     onEdit,
     onDelete,
     onRetry,
+    onSetReplyingTo,
   }: MessageItemProps) {
     const isMine = message.senderId === currentUserId;
     const isRead = new Date(message.createdAt) <= otherParticipantLastReadAt;
@@ -49,6 +54,38 @@ export const MessageItem = React.memo(
     const [isDeleting, setIsDeleting] = useState(false);
     const editInputRef = useRef<HTMLTextAreaElement | null>(null);
     const actionBarRef = useRef<HTMLDivElement | null>(null);
+    const { toast } = useToast();
+
+    // ⚡ QUOTE JUMP: Scroll to (and briefly highlight) the quoted message.
+    // If it is paginated out of the DOM, tell the user it lives further up.
+    const handleQuoteClick = (targetId: string) => {
+      const target = document.getElementById(`message-${targetId}`);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+        target.classList.add(
+          "rounded-2xl",
+          "ring-2",
+          "ring-blue-500",
+          "ring-offset-2",
+          "ring-offset-white",
+          "dark:ring-offset-slate-950",
+          "bg-blue-500/10",
+        );
+        setTimeout(() => {
+          target.classList.remove(
+            "rounded-2xl",
+            "ring-2",
+            "ring-blue-500",
+            "ring-offset-2",
+            "ring-offset-white",
+            "dark:ring-offset-slate-950",
+            "bg-blue-500/10",
+          );
+        }, 1500);
+      } else {
+        toast("Quoted message is further up in history.");
+      }
+    };
 
     // Close the kebab menu when clicking anywhere outside of it.
     useEffect(() => {
@@ -120,7 +157,10 @@ export const MessageItem = React.memo(
     // text with all reactions/actions disabled.
     if (isDeleted) {
       return (
-        <div className={`flex items-start gap-3 ${isMine ? "flex-row-reverse" : ""}`}>
+        <div
+          id={`message-${message.id}`}
+          className={`flex items-center gap-3 rounded-2xl ${isMine ? "flex-row-reverse" : ""}`}
+        >
           <div
             className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${isMine ? "hidden" : ""}`}
           >
@@ -155,7 +195,8 @@ export const MessageItem = React.memo(
 
     return (
       <div
-        className={`group flex items-start gap-3 ${isMine ? "flex-row-reverse" : ""}`}
+        id={`message-${message.id}`}
+        className={`group flex items-center gap-3 rounded-2xl ${isMine ? "flex-row-reverse" : ""}`}
       >
         <div
           className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${isMine ? "hidden" : ""}`}
@@ -173,106 +214,7 @@ export const MessageItem = React.memo(
           )}
         </div>
         <div className="flex max-w-[90%] items-center gap-0">
-          {isEditing && isMine ? (
-            // ⚡ Native themed inline edit form (replaces the bubble entirely)
-            <div className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg sm:w-96 dark:border-slate-700 dark:bg-slate-900">
-              <label
-                htmlFor={`edit-message-${message.id}`}
-                className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300"
-              >
-                Edit message
-              </label>
-              <textarea
-                ref={editInputRef}
-                id={`edit-message-${message.id}`}
-                value={editBody}
-                onChange={(e) => setEditBody(e.target.value)}
-                onKeyDown={handleEditKeyDown}
-                rows={Math.min(5, editBody.split("\n").length + 1)}
-                maxLength={MAX_MESSAGE_BODY}
-                disabled={isSaving}
-                aria-label="Edit message"
-                className="sb-input w-full resize-none rounded-xl px-3 py-2 text-sm"
-              />
-              <div className="mt-2.5 flex items-center justify-between gap-2">
-                <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                  {editBody.length}/{MAX_MESSAGE_BODY}
-                  <span className="ml-2 hidden sm:inline">
-                    Enter to save · Esc to cancel
-                  </span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={cancelEdit}
-                    disabled={isSaving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={saveEdit}
-                    disabled={isSaving || !editBody.trim()}
-                  >
-                    {isSaving ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Saving...
-                      </span>
-                    ) : (
-                      "Save"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div
-              className={`rounded-lg px-4 py-2 ${
-                isMine
-                  ? "bg-blue-500 text-white"
-                  : "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
-              } ${message.status === "sending" ? "opacity-70" : ""}`}
-            >
-              <>
-                <p className="text-sm break-words whitespace-pre-wrap">
-                  {message.body}
-                </p>
-                <div className="mt-1 flex items-center justify-end gap-1.5">
-                  {message.editedAt && (
-                    <span
-                      className={`text-[10px] italic ${isMine ? "text-blue-100" : "text-slate-400 dark:text-slate-500"}`}
-                    >
-                      (edited)
-                    </span>
-                  )}
-                  <p
-                    suppressHydrationWarning
-                    className={`text-[10px] ${
-                      isMine
-                        ? "text-blue-100"
-                        : "text-slate-400 dark:text-slate-500"
-                    }`}
-                  >
-                    {timeLabel}
-                  </p>
-                  {isMine && (
-                    <div className="flex items-center text-blue-100">
-                      {message.status === "sending" ? (
-                        <Clock className="h-[14px] w-[14px] opacity-70" />
-                      ) : message.status === "failed" ? (
-                        <AlertCircle className="h-[14px] w-[14px] text-red-600 dark:text-red-400" />
-                      ) : isRead ? (
-                        <CheckCheck className="h-[14px] w-[14px] text-blue-200" />
-                      ) : (
-                        <Check className="h-[14px] w-[14px] opacity-70" />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            </div>
-          )}
+
 
           {/* ⚡ ISSUE 6: Message action bar (kebab) on owned, delivered messages.
               DB-loaded messages have no `status` field — only optimistic
@@ -330,6 +272,170 @@ export const MessageItem = React.memo(
               Retry
             </button>
           )}
+
+          {isEditing && isMine ? (
+            // ⚡ Native themed inline edit form (replaces the bubble entirely)
+            <div className="w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg sm:w-96 dark:border-slate-700 dark:bg-slate-900">
+              <label
+                htmlFor={`edit-message-${message.id}`}
+                className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
+                Edit message
+              </label>
+              <textarea
+                ref={editInputRef}
+                id={`edit-message-${message.id}`}
+                value={editBody}
+                onChange={(e) => setEditBody(e.target.value)}
+                onKeyDown={handleEditKeyDown}
+                rows={Math.min(5, editBody.split("\n").length + 1)}
+                maxLength={MAX_MESSAGE_BODY}
+                disabled={isSaving}
+                aria-label="Edit message"
+                className="sb-input w-full resize-none rounded-xl px-3 py-2 text-sm"
+              />
+              <div className="mt-2.5 flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                  {editBody.length}/{MAX_MESSAGE_BODY}
+                  <span className="ml-2 hidden sm:inline">
+                    Enter to save · Esc to cancel
+                  </span>
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelEdit}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={saveEdit}
+                    disabled={isSaving || !editBody.trim()}
+                  >
+                    {isSaving ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </span>
+                    ) : (
+                      "Save"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              className={`rounded-lg ${
+                message.replyTo ? "px-2 py-2" : "px-4 py-2"
+              } ${
+                isMine
+                  ? "bg-blue-500 text-white"
+                  : "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
+              } ${message.status === "sending" ? "opacity-70" : ""}`}
+            >
+              <>
+                {message.replyTo && (
+                  <button
+                    type="button"
+                    onClick={() => handleQuoteClick(message.replyTo!.id)}
+                    className={`mb-1.5 block w-full rounded-md border-l-2 px-1.5 py-1.5 text-left transition ${
+                      isMine
+                        ? "border-white/70 bg-white/15 hover:bg-white/25"
+                        : "border-blue-500 bg-white hover:bg-blue-50 dark:bg-slate-900/70 dark:hover:bg-slate-900"
+                    }`}
+                    aria-label="Jump to quoted message"
+                  >
+                    <span
+                      className={`block text-[11px] font-bold ${
+                        isMine
+                          ? "text-white"
+                          : "text-blue-600 dark:text-blue-400"
+                      }`}
+                    >
+                      {message.replyTo.sender.name ||
+                        (message.replyTo.sender.handle
+                          ? `@${message.replyTo.sender.handle}`
+                          : "Scholar")}
+                    </span>
+                    {message.replyTo.isDeleted ? (
+                      <span
+                        className={`block text-[11px] italic ${
+                          isMine
+                            ? "text-blue-100"
+                            : "text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        Original message was deleted
+                      </span>
+                    ) : (
+                      <span
+                        className={`block line-clamp-1 text-[11px] ${
+                          isMine
+                            ? "text-blue-50"
+                            : "text-slate-600 dark:text-slate-300"
+                        }`}
+                      >
+                        {message.replyTo.body}
+                      </span>
+                    )}
+                  </button>
+                )}
+                <p className="text-sm break-words whitespace-pre-wrap">
+                  {message.body}
+                </p>
+                <div className="mt-1 flex items-center justify-end gap-1.5">
+                  {message.editedAt && (
+                    <span
+                      className={`text-[10px] italic ${isMine ? "text-blue-100" : "text-slate-400 dark:text-slate-500"}`}
+                    >
+                      (edited)
+                    </span>
+                  )}
+                  <p
+                    suppressHydrationWarning
+                    className={`text-[10px] ${
+                      isMine
+                        ? "text-blue-100"
+                        : "text-slate-400 dark:text-slate-500"
+                    }`}
+                  >
+                    {timeLabel}
+                  </p>
+                  {isMine && (
+                    <div className="flex items-center text-blue-100">
+                      {message.status === "sending" ? (
+                        <Clock className="h-[14px] w-[14px] opacity-70" />
+                      ) : message.status === "failed" ? (
+                        <AlertCircle className="h-[14px] w-[14px] text-red-600 dark:text-red-400" />
+                      ) : isRead ? (
+                        <CheckCheck className="h-[14px] w-[14px] text-blue-200" />
+                      ) : (
+                        <Check className="h-[14px] w-[14px] opacity-70" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            </div>
+          )}
+
+          {/* ⚡ QUOTE REPLY: Always-visible reply trigger (mobile friendly).
+              Placed last so `flex-row-reverse` paints it on the LEFT edge of
+              own messages, and to the right of received messages. */}
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => onSetReplyingTo?.(message)}
+              aria-label="Reply to message"
+              title="Reply"
+              className="self-center rounded-full p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+            >
+              <Reply className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {/* ⚡ Shared app-wide confirmation modal for delete */}
@@ -354,6 +460,12 @@ export const MessageItem = React.memo(
       prevProps.message.body === nextProps.message.body &&
       prevProps.message.editedAt === nextProps.message.editedAt &&
       prevProps.message.isDeleted === nextProps.message.isDeleted &&
+      prevProps.message.replyToId === nextProps.message.replyToId &&
+      prevProps.message.replyTo?.id === nextProps.message.replyTo?.id &&
+      prevProps.message.replyTo?.isDeleted ===
+        nextProps.message.replyTo?.isDeleted &&
+      prevProps.message.replyTo?.body === nextProps.message.replyTo?.body &&
+      prevProps.onSetReplyingTo === nextProps.onSetReplyingTo &&
       prevProps.otherParticipantLastReadAt.getTime() ===
         nextProps.otherParticipantLastReadAt.getTime() &&
       prevProps.onEdit === nextProps.onEdit &&

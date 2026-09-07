@@ -2,7 +2,8 @@
 
 import prisma from "@/lib/db";
 import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
-import { readFormValue } from "@/lib/form";
+import { readFormValue, readOptionalFormValue } from "@/lib/form";
+import { messageSelect } from "@/lib/message-select";
 import { notifyUserById } from "@/lib/notifications";
 import type { SubmitResult } from "@/types/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
@@ -130,23 +131,7 @@ export async function getConversation(conversationId: string, userId: string) {
       messages: {
         take: 40, // ⚡ INFINITE SCROLL: Only load latest 40 initially
         orderBy: { createdAt: "desc" }, // ⚡ Must be descending to get newest
-        select: {
-          id: true,
-          body: true,
-          createdAt: true,
-          senderId: true,
-          conversationId: true,
-          editedAt: true,
-          isDeleted: true,
-          sender: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              avatarUrl: true,
-            },
-          },
-        },
+        select: messageSelect,
       },
     },
   });
@@ -196,18 +181,7 @@ export async function getMoreMessages(
     skip: 1, // Skip the cursor message itself
     cursor: { id: cursorId },
     orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      body: true,
-      createdAt: true,
-      senderId: true,
-      conversationId: true,
-      editedAt: true,
-      isDeleted: true,
-      sender: {
-        select: { id: true, name: true, handle: true, avatarUrl: true },
-      },
-    },
+    select: messageSelect,
   });
   return messages;
 }
@@ -216,18 +190,7 @@ export async function getMoreMessages(
 export async function getMessageDetails(messageId: string) {
   return prisma.message.findUnique({
     where: { id: messageId },
-    select: {
-      id: true,
-      body: true,
-      createdAt: true,
-      senderId: true,
-      conversationId: true,
-      editedAt: true,
-      isDeleted: true,
-      sender: {
-        select: { id: true, name: true, handle: true, avatarUrl: true },
-      },
-    },
+    select: messageSelect,
   });
 }
 
@@ -338,12 +301,23 @@ export interface CreatedMessage {
   createdAt: Date;
   senderId: string;
   conversationId: string;
+  replyToId: string | null;
   sender: {
     id: string;
     name: string | null;
     handle: string | null;
     avatarUrl: string | null;
   };
+  replyTo: {
+    id: string;
+    body: string;
+    isDeleted: boolean | null;
+    sender: {
+      id: string;
+      name: string | null;
+      handle: string | null;
+    };
+  } | null;
 }
 
 export async function sendMessage(
@@ -366,6 +340,7 @@ export async function sendMessage(
   }
 
   const body = readFormValue(formData, "body");
+  const replyToId = readOptionalFormValue(formData, "replyToId");
 
   if (!body) return { success: false, error: "Message body is required." };
 
@@ -413,28 +388,23 @@ export async function sendMessage(
     }
   }
 
-  const createdMessage = await prisma.message.create({
-    data: { conversationId, senderId: user.id, body },
-    select: {
-      id: true,
-      body: true,
-      createdAt: true,
-      senderId: true,
-      conversationId: true,
-      sender: {
-        select: { id: true, name: true, handle: true, avatarUrl: true },
-      },
-    },
-  });
+  const createdMessage = await prisma.$transaction(async (tx) => {
+    const newMessage = await tx.message.create({
+      data: { conversationId, senderId: user.id, body, replyToId: replyToId ?? null },
+      select: messageSelect,
+    });
 
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { lastMessageAt: new Date() },
-  });
+    await tx.conversation.update({
+      where: { id: conversationId },
+      data: { lastMessageAt: new Date() },
+    });
 
-  await prisma.conversationParticipant.update({
-    where: { conversationId_userId: { conversationId, userId: user.id } },
-    data: { lastReadAt: new Date() },
+    await tx.conversationParticipant.update({
+      where: { conversationId_userId: { conversationId, userId: user.id } },
+      data: { lastReadAt: new Date() },
+    });
+
+    return newMessage;
   });
 
   if (conversation) {
@@ -502,8 +472,19 @@ export async function editMessage(
       editedAt: true,
       senderId: true,
       conversationId: true,
+      replyToId: true,
       sender: {
         select: { id: true, name: true, handle: true, avatarUrl: true },
+      },
+      replyTo: {
+        select: {
+          id: true,
+          body: true,
+          isDeleted: true,
+          sender: {
+            select: { id: true, name: true, handle: true },
+          },
+        },
       },
     },
   });
