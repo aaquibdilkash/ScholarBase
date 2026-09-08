@@ -1,8 +1,10 @@
 "use client";
 
-import { X } from "lucide-react";
+import { useState } from "react";
+import { X, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import type { QuestionOption, Question, SkipRule, BlockInput } from "@/types/survey";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
   MAX_SURVEY_QUESTION_TITLE,
   MAX_SURVEY_QUESTION_OPTION,
@@ -58,6 +60,8 @@ export function QuestionEditor({
   blocks = [],
   onChange,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   question: Question;
   index: number;
@@ -65,6 +69,8 @@ export function QuestionEditor({
   blocks?: BlockInput[];
   onChange: (q: Question) => void;
   onDelete: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const needsOptions = [...CHOICE_TYPES, "MATRIX_LIKERT"].includes(
     question.type,
@@ -76,6 +82,12 @@ export function QuestionEditor({
   const laterQuestions = allQuestions.filter((q) => q.order > question.order);
   const canHaveSkipLogic =
     CHOICE_TYPES.includes(question.type) && laterQuestions.length > 0;
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showOptionDeleteModal, setShowOptionDeleteModal] = useState<{
+    isOpen: boolean;
+    optIndex: number | null;
+  }>({ isOpen: false, optIndex: null });
 
   const handleLikertScaleChange = (size: number) => {
     const labels = LIKERT_OPTIONS[size];
@@ -111,11 +123,22 @@ export function QuestionEditor({
   };
 
   return (
+    <>
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:bg-slate-800 dark:border-slate-700">
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-          Question {index + 1}
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="rounded p-0.5 text-slate-500 hover:text-slate-700"
+            aria-label={isCollapsed ? "Expand question" : "Collapse question"}
+          >
+            {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+          </button>
+          <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            Question {index + 1}
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           {blocks.length > 0 && (
             <select
@@ -123,27 +146,51 @@ export function QuestionEditor({
               onChange={(e) =>
                 onChange({ ...question, blockId: e.target.value || null })
               }
-              className="sb-select max-w-40 text-xs"
+              className="sb-select max-w-40 text-xs truncate pr-8 overflow-hidden text-overflow-ellipsis whitespace-nowrap"
               aria-label="Assign question to a section"
             >
               <option value="">No section</option>
               {blocks.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.title}
+                                  {b.title}
                 </option>
               ))}
             </select>
           )}
           <button
             type="button"
-            onClick={onDelete}
-            className="text-sm font-semibold text-red-500 hover:text-red-700"
+            onClick={onMoveUp}
+            disabled={index === 0}
+            title="Move question up"
+            aria-label="Move question up"
+            className="p-1 text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Remove
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={index === allQuestions.length - 1}
+            title="Move question down"
+            aria-label="Move question down"
+            className="p-1 text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            ▼
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="rounded p-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+            title="Delete question"
+            aria-label="Delete question"
+          >
+            <Trash2 className="h-4 w-4" />
           </button>
         </div>
       </div>
 
+      {/* Question body - collapsible */}
+      {!isCollapsed && (
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
@@ -174,6 +221,23 @@ export function QuestionEditor({
               value={question.type}
               onChange={(e) => {
                 const newType = e.target.value;
+                const oldType = question.type;
+
+                // Save current type's data before switching
+                const currentTypeData = question.typeData || {};
+                const newTypeData = {
+                  ...currentTypeData,
+                  [oldType]: {
+                    options: question.options,
+                    minValue: question.minValue ?? undefined,
+                    maxValue: question.maxValue ?? undefined,
+                    columnLabels: question.columnLabels ?? undefined,
+                  },
+                };
+
+                // Check if we have saved data for the new type
+                const savedData = currentTypeData[newType];
+
                 const needsReset = ![
                   "MULTIPLE_CHOICE",
                   "CHECKBOXES",
@@ -181,36 +245,42 @@ export function QuestionEditor({
                   "LIKERT_SCALE",
                   "MATRIX_LIKERT",
                 ].includes(newType);
-                onChange({
-                  ...question,
-                  type: newType,
-                  options: needsReset
+
+                // Restore saved data or use defaults
+                const restoredOptions = savedData?.options?.length
+                  ? savedData.options
+                  : needsReset
                     ? []
-                    : question.options.length > 0
-                      ? question.options
-                      : newType === "LIKERT_SCALE"
-                        ? LIKERT_OPTIONS[5].map((l, i) => ({
-                            value: `likert_${i + 1}`,
+                    : newType === "LIKERT_SCALE"
+                      ? LIKERT_OPTIONS[5].map((l, i) => ({
+                          value: `likert_${i + 1}`,
+                          label: l,
+                          order: i,
+                        }))
+                      : newType === "MATRIX_LIKERT"
+                        ? ["Row 1", "Row 2", "Row 3"].map((l, i) => ({
+                            value: `row_${i + 1}`,
                             label: l,
                             order: i,
                           }))
-                        : newType === "MATRIX_LIKERT"
-                          ? ["Row 1", "Row 2", "Row 3"].map((l, i) => ({
-                              value: `row_${i + 1}`,
-                              label: l,
-                              order: i,
-                            }))
-                          : [{ value: "opt_1", label: "Option 1", order: 0 }],
+                        : [{ value: "opt_1", label: "Option 1", order: 0 }];
+
+                onChange({
+                  ...question,
+                  type: newType,
+                  options: restoredOptions,
+                  typeData: newTypeData,
                   columnLabels:
-                    newType === "MATRIX_LIKERT"
+                    savedData?.columnLabels ??
+                    (newType === "MATRIX_LIKERT"
                       ? question.columnLabels ?? [
                           "Strongly Disagree",
                           "Neutral",
                           "Agree",
                         ]
-                      : null,
-                  minValue: newType === "LIKERT_SCALE" ? 1 : question.minValue,
-                  maxValue: newType === "LIKERT_SCALE" ? 5 : question.maxValue,
+                      : null),
+                  minValue: savedData?.minValue ?? (newType === "LIKERT_SCALE" ? 1 : question.minValue),
+                  maxValue: savedData?.maxValue ?? (newType === "LIKERT_SCALE" ? 5 : question.maxValue),
                   // Changing type invalidates any configured skip logic.
                   skipLogic: CHOICE_TYPES.includes(newType)
                     ? question.skipLogic
@@ -348,7 +418,8 @@ export function QuestionEditor({
              </label>
             <div className="space-y-2">
               {question.options.map((opt, optIndex) => (
-                <div key={opt.value} className="flex items-center gap-2">
+                <div key={opt.value}>
+                  <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={opt.label}
@@ -360,11 +431,15 @@ export function QuestionEditor({
                   />
                   <button
                     type="button"
-                    onClick={() => removeOption(optIndex)}
+                    onClick={() => setShowOptionDeleteModal({ isOpen: true, optIndex })}
                     className="text-red-400 hover:text-red-600"
                   >
                     <X className="h-5 w-5" />
                   </button>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {opt.label.length}/{MAX_SURVEY_QUESTION_OPTION} characters
+                  </div>
                 </div>
               ))}
             </div>
@@ -477,7 +552,7 @@ export function QuestionEditor({
                       };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select max-w-36"
+                    className="sb-select max-w-36 truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
                   >
                     <option value="equals">equals</option>
                     <option value="not_equals">does not equal</option>
@@ -492,7 +567,7 @@ export function QuestionEditor({
                       next[ri] = { ...rule, value: e.target.value };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select max-w-48"
+                    className="sb-select max-w-48 truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
                   >
                     <option value="">choose option…</option>
                     {question.options.map((opt) => (
@@ -512,7 +587,7 @@ export function QuestionEditor({
                       };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select max-w-52"
+                    className="sb-select max-w-52 truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
                   >
                     <option value="">choose question…</option>
                     {laterQuestions.map((q) => (
@@ -561,6 +636,34 @@ export function QuestionEditor({
           </div>
         )}
       </div>
+      )}
     </div>
+
+    <ConfirmationModal
+      isOpen={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      onConfirm={() => {
+        setShowDeleteModal(false);
+        onDelete();
+      }}
+      title="Delete Question"
+      message="Are you sure you want to delete this question? This action cannot be undone."
+      isConfirming={false}
+    />
+
+    <ConfirmationModal
+      isOpen={showOptionDeleteModal.isOpen}
+      onClose={() => setShowOptionDeleteModal({ isOpen: false, optIndex: null })}
+      onConfirm={() => {
+        if (showOptionDeleteModal.optIndex !== null) {
+          setShowOptionDeleteModal({ isOpen: false, optIndex: null });
+          removeOption(showOptionDeleteModal.optIndex);
+        }
+      }}
+      title="Delete Option"
+      message="Are you sure you want to delete this option?"
+      isConfirming={false}
+    />
+    </>
   );
 }

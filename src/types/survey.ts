@@ -78,6 +78,8 @@ export interface Question {
   columnLabels?: string[] | null;
   blockId?: string | null;
   options: QuestionOption[];
+  /** Stores type-specific data keyed by question type to preserve work when switching types */
+  typeData?: Record<string, { options?: QuestionOption[]; minValue?: number | null; maxValue?: number | null; columnLabels?: string[] | null }>;
 }
 
 export interface SurveyAnswer {

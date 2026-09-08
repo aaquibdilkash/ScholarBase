@@ -77,16 +77,39 @@ export const MAX_COURSE_DURATION = 16;
 export const MAX_COURSE_URL = 128;
 export const MAX_COURSE_DESCRIPTION = 512;
 
-export const MAX_SURVEY_TITLE = 64;
-export const MAX_SURVEY_DESCRIPTION = 512;
-export const MAX_SURVEY_QUESTION_TITLE = 128;
-export const MAX_SURVEY_QUESTION_OPTION = 64;
-export const MAX_SURVEY_ANSWER_SHORT = 64;
-export const MAX_SURVEY_ANSWER_LONG = 512;
-export const MAX_SURVEY_CONSENT_TEXT = 4000;
-export const MAX_SURVEY_BLOCKS = 20;
-export const MAX_MATRIX_ROWS = 12;
+export const MAX_SURVEY_TITLE = 256;
+export const MAX_SURVEY_DESCRIPTION = 1024;
+export const MAX_SURVEY_QUESTION_TITLE = 256;
+export const MAX_SURVEY_QUESTION_OPTION = 128;
+export const MAX_SURVEY_ANSWER_SHORT = 256;
+export const MAX_SURVEY_ANSWER_LONG = 1024;
+export const MAX_SURVEY_CONSENT_TEXT = 1024;
+export const MAX_SURVEY_BLOCKS = 10;
+export const MAX_MATRIX_ROWS = 10;
 export const MAX_MATRIX_COLUMNS = 10;
+
+export const TEMPLATE_CONSENT_TEXT = `By participating in this survey, you consent to the collection and use of your responses for research purposes.
+
+Purpose:
+This survey is conducted as part of an academic research study. Your responses will help us understand [briefly describe the research topic].
+
+Data Usage:
+- Your responses will be used solely for research purposes
+- Data may be published in aggregate form without identifying individuals
+- Individual responses will not be shared with third parties
+
+Risks and Benefits:
+- There are no anticipated risks beyond those encountered in daily life
+- Your participation contributes to academic knowledge in this field
+
+Voluntary Participation:
+Your participation is entirely voluntary. You may withdraw at any time without penalty by closing the survey.
+
+Data Protection:
+Your responses will be stored securely and handled in accordance with applicable data protection regulations.
+
+Contact:
+If you have any questions about this research, please contact the researcher at [contact information].`;
 
 export const MAX_REJECTION_REASON = 64;
 export const MAX_REPORT_DETAILS = 256;

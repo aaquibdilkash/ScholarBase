@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 import { createSurvey, updateSurvey } from "@/app/actions/surveys";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { QuestionEditor, generateId } from "./QuestionEditor";
+import { SurveyPreview } from "./SurveyPreview";
 import { DEMOGRAPHIC_BLOCKS } from "@/lib/surveys/demographics";
 import { Editor } from "@/components/ui/Editor";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,9 +24,12 @@ import {
   MAX_SURVEY_QUESTION_TITLE,
   MAX_SURVEY_CONSENT_TEXT,
   MAX_SURVEY_BLOCKS,
+  TEMPLATE_CONSENT_TEXT,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { Trash2 } from "lucide-react";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
   SURVEY_TITLE_TIP,
   SURVEY_DESCRIPTION_TIP,
@@ -117,16 +123,80 @@ export default function SurveyForm({
 
   const { title, description, privacy, shareData, consentRequired, consentText, blocks, questions } = draft;
 
+  const [activeTab, setActiveTab] = useState<"build" | "preview">("build");
+  const [selectedDemographic, setSelectedDemographic] = useState<string>("");
+  const [showBlockDeleteModal, setShowBlockDeleteModal] = useState<{
+    isOpen: boolean;
+    blockIndex: number | null;
+  }>({ isOpen: false, blockIndex: null });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const { toast } = useToast();
+
+  const normalizeOrders = (qs: Question[]) => qs.map((q, i) => ({ ...q, order: i }));
+
+  const withSkipIntegrity = (nextQuestions: Question[]) => {
+    const byOrder = new Map(nextQuestions.map((q) => [q.order, q]));
+    let touched = false;
+    const updated = nextQuestions.map((q) => {
+      if (!q.skipLogic) return q;
+      const skip = q.skipLogic as {
+        questionId: string;
+        operator: string;
+        value: unknown;
+        skipToOrder: number;
+      }[];
+      const newSkip = skip
+        .map((s) => {
+          const target = byOrder.get(s.skipToOrder);
+          if (!target) {
+            touched = true;
+            return null;
+          }
+          return { ...s, skipToOrder: target.order };
+        })
+        .filter(Boolean) as typeof skip;
+      if (newSkip.length !== skip.length) touched = true;
+      return { ...q, skipLogic: newSkip.length ? newSkip : null };
+    });
+    if (touched)
+            toast({
+        title: "Skip rules updated",
+        description: "Branching targets were re-mapped.",
+      });
+    return updated;
+  };
+
+  const moveQuestion = (index: number, dir: "up" | "down") => {
+    const next = [...questions];
+    const target = dir === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= questions.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    updateDraft("questions", withSkipIntegrity(normalizeOrders(next)));
+    toast("Question moved");
+  };
+
+  const moveBlock = (index: number, dir: "up" | "down") => {
+    const next = [...blocks];
+    const target = dir === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= blocks.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    updateDraft("blocks", next.map((b, i) => ({ ...b, order: i })));
+    toast("Section moved");
+  };
+
   const addQuestion = () => {
     const newQuestion: Question = {
       id: generateId(),
       type: "SHORT_TEXT",
-      title: "",
+      title: `Question ${questions.length + 1}`,
       required: false,
       order: questions.length,
       options: [],
+      typeData: {},
     };
     updateDraft("questions", [...questions, newQuestion]);
+    toast("Question added");
   };
 
   const addBlock = () => {
@@ -140,6 +210,7 @@ export default function SurveyForm({
         randomizeOrder: false,
       },
     ]);
+    toast("Section added");
   };
 
   const updateBlock = (index: number, block: BlockInput) => {
@@ -157,13 +228,13 @@ export default function SurveyForm({
         .filter((_, i) => i !== index)
         .map((b, i) => ({ ...b, order: i })),
     );
-    // Detach, do not delete, the questions that belonged to the block.
     updateDraft(
       "questions",
       questions.map((q) =>
         q.blockId === removed.id ? { ...q, blockId: null } : q,
       ),
     );
+    toast("Section removed (questions kept)");
   };
 
   const insertDemographicBlock = (blockKey: string) => {
@@ -176,6 +247,9 @@ export default function SurveyForm({
       options: q.options.map((o) => ({ ...o })),
     }));
     updateDraft("questions", [...questions, ...newQuestions]);
+    toast(
+      `${template.questions.length === 1 ? template.questions[0].title : `${template.questions.length} standard demographics`} added`,
+    );
   };
 
   const updateQuestion = (index: number, question: Question) => {
@@ -188,6 +262,7 @@ export default function SurveyForm({
   const removeQuestion = (index: number) => {
     const newQuestions = questions.filter((_, i: number) => i !== index);
     updateDraft("questions", newQuestions);
+    toast("Question removed");
   };
 
   const isDescriptionOverLimit =
@@ -220,7 +295,44 @@ export default function SurveyForm({
   }
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-6">
+    <>
+    <div className="space-y-6">
+      {/* Build / Preview tabs */}
+      <div
+        role="tablist"
+        aria-label="Survey editor"
+        className="flex w-full flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "build"}
+          onClick={() => setActiveTab("build")}
+          className={`flex-1 rounded-xl px-6 py-2 font-semibold text-center transition-all ${
+            activeTab === "build"
+              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          }`}
+        >
+          ✏️ Build
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "preview"}
+          onClick={() => setActiveTab("preview")}
+          className={`flex-1 rounded-xl px-6 py-2 font-semibold text-center transition-all ${
+            activeTab === "preview"
+              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+              : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+          }`}
+        >
+          👁️ Preview
+        </button>
+      </div>
+
+      {activeTab === "build" ? (
+        <form onSubmit={handleFormSubmit} className="space-y-6">
       <CautionNote />
       {/* Survey Details Section */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
@@ -336,7 +448,13 @@ export default function SurveyForm({
             <input
               type="checkbox"
               checked={consentRequired === true}
-              onChange={(e) => updateDraft("consentRequired", e.target.checked)}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                updateDraft("consentRequired", checked);
+                if (checked && !consentText) {
+                  updateDraft("consentText", TEMPLATE_CONSENT_TEXT);
+                }
+              }}
               className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
             />
             <div>
@@ -350,54 +468,35 @@ export default function SurveyForm({
             </div>
           </label>
           {consentRequired === true && (
-            <textarea
-              value={consentText ?? ""}
-              onChange={(e) => updateDraft("consentText", e.target.value)}
-              rows={4}
-              maxLength={MAX_SURVEY_CONSENT_TEXT}
-              placeholder="Describe the study purpose, data usage, risks, and participant rights…"
-              className="sb-textarea mt-3 resize-y"
-            />
+            <>
+              <textarea
+                value={consentText ?? ""}
+                onChange={(e) => updateDraft("consentText", e.target.value)}
+                rows={4}
+                maxLength={MAX_SURVEY_CONSENT_TEXT}
+                placeholder="Describe the study purpose, data usage, risks, and participant rights…"
+                className="sb-textarea mt-3 resize-y"
+              />
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {(consentText ?? "").length}/{MAX_SURVEY_CONSENT_TEXT} characters
+              </div>
+            </>
           )}
         </div>
 
-        {/* Questions Section */}
+        {/* Sections Section */}
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) insertDemographicBlock(e.target.value);
-                }}
-                className="sb-select text-sm"
-                aria-label="Insert a standard demographic block"
-              >
-                <option value="">+ Insert Demographics…</option>
-                {DEMOGRAPHIC_BLOCKS.map((b) => (
-                  <option key={b.key} value={b.key}>
-                    {b.label} ({b.description})
-                  </option>
-                ))}
-              </select>
-              {blocks.length < MAX_SURVEY_BLOCKS && (
-                <button
-                  type="button"
-                  onClick={addBlock}
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-800"
-                >
-                  + Add Section
-                </button>
-              )}
+            <h2 className="text-lg font-semibold text-slate-900">Sections</h2>
+            {blocks.length < MAX_SURVEY_BLOCKS && (
               <button
                 type="button"
-                onClick={addQuestion}
+                onClick={addBlock}
                 className="sb-button-accent text-sm"
               >
-                + Add Question
+                + Add Section
               </button>
-            </div>
+            )}
           </div>
 
           {blocks.length > 0 && (
@@ -437,15 +536,77 @@ export default function SurveyForm({
                   </label>
                   <button
                     type="button"
-                    onClick={() => removeBlock(i)}
-                    className="text-xs font-semibold text-red-500 hover:text-red-700"
+                    onClick={() => moveBlock(i, "up")}
+                    disabled={i === 0}
+                    className="rounded p-0.5 text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Move section up"
                   >
-                    Remove
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveBlock(i, "down")}
+                    disabled={i === blocks.length - 1}
+                    className="rounded p-0.5 text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Move section down"
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBlockDeleteModal({ isOpen: true, blockIndex: i })}
+                    className="rounded p-0.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    title="Delete section"
+                    aria-label="Delete section"
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
             </div>
           )}
+        </div>
+
+        {/* Questions Section */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
+            <button
+              type="button"
+              onClick={addQuestion}
+              className="sb-button-accent text-sm"
+            >
+              + Add Question
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedDemographic}
+              onChange={(e) => setSelectedDemographic(e.target.value)}
+              className="sb-select max-w-56 text-sm truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
+              aria-label="Insert a standard demographic block"
+            >
+              <option value="">+ Insert Demographics…</option>
+              {DEMOGRAPHIC_BLOCKS.map((b) => (
+                <option key={b.key} value={b.key}>
+                  {b.label} ({b.description})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedDemographic) {
+                  insertDemographicBlock(selectedDemographic);
+                  setSelectedDemographic("");
+                }
+              }}
+              disabled={!selectedDemographic}
+              className="sb-button-accent text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Insert
+            </button>
+          </div>
           {questions.length === 0 && (
             <p className="py-8 text-center text-sm text-slate-500">
               No questions yet. Click &ldquo;Add Question&rdquo; to start
@@ -462,6 +623,8 @@ export default function SurveyForm({
                 blocks={blocks}
                 onChange={(updated) => updateQuestion(i, updated)}
                 onDelete={() => removeQuestion(i)}
+                onMoveUp={() => moveQuestion(i, "up")}
+                onMoveDown={() => moveQuestion(i, "down")}
               />
             ))}
           </div>
@@ -489,6 +652,33 @@ export default function SurveyForm({
           {mode === "create" ? "Create Survey" : "Save Changes"}
         </SubmitBtnWithAuth>
       </div>
-    </form>
+      </form>
+      ) : (
+        <SurveyPreview
+          title={title}
+          description={description}
+          questions={questions}
+          consentRequired={consentRequired === true}
+          consentText={consentText}
+        />
+      )}
+    </div>
+
+    <ConfirmationModal
+      isOpen={showBlockDeleteModal.isOpen}
+      onClose={() => setShowBlockDeleteModal({ isOpen: false, blockIndex: null })}
+      onConfirm={() => {
+        if (showBlockDeleteModal.blockIndex !== null) {
+          setIsDeleting(true);
+          setShowBlockDeleteModal({ isOpen: false, blockIndex: null });
+          removeBlock(showBlockDeleteModal.blockIndex);
+          setIsDeleting(false);
+        }
+      }}
+      title="Delete Section"
+      message="Are you sure you want to delete this section? This action cannot be undone."
+      isConfirming={isDeleting}
+    />
+    </>
   );
 }
