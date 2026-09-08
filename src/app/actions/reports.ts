@@ -11,6 +11,7 @@ import type {
 } from "@/types/reports";
 import { MAX_REPORT_DETAILS } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
+import { queueNotification } from "@/lib/qstash";
 
 // -----------------------------------------------------------------------------
 // MODULE MODEL MAP
@@ -614,22 +615,23 @@ type ModerationTx = {
 };
 
 async function notifyModerationTarget(
-  tx: ModerationTx,
+  _tx: ModerationTx,
   target: ModerationTarget,
   actorId: string,
   notice: { type: string; title: string; body: string },
 ) {
   if (!target.recipientId || target.recipientId === actorId) return;
-  await tx.notification.create({
-    data: {
-      recipientId: target.recipientId,
-      actorId,
-      type: notice.type,
-      targetType: target.targetType,
-      targetId: target.targetId,
-      title: notice.title,
-      body: notice.body,
-    },
+  void queueNotification({
+    mode: "TARGETED",
+    recipientId: target.recipientId,
+    actorId,
+    type: notice.type,
+    targetType: target.targetType,
+    targetId: target.targetId,
+    title: notice.title,
+    body: notice.body,
+  }).catch((error) => {
+    console.error("QStash moderation notification error:", error);
   });
 }
 

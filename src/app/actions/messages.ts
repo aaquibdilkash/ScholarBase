@@ -4,7 +4,6 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { messageSelect } from "@/lib/message-select";
-import { notifyUserById } from "@/lib/notifications";
 import type { SubmitResult } from "@/types/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { Prisma } from "@prisma/client";
@@ -338,16 +337,6 @@ export async function startConversation(
     data: { lastReadAt: new Date() },
   });
 
-  await notifyUserById({
-    recipientId,
-    actorId: user.id,
-    type: "message-received",
-    targetType: "conversation",
-    targetId: conversationId,
-    title: `${user.name || "Someone"} sent you a new message`,
-    body: body,
-  });
-
   return { success: true, redirect: `/messages/${conversationId}` };
 }
 
@@ -462,22 +451,6 @@ export async function sendMessage(
 
     return newMessage;
   });
-
-  if (conversation) {
-    for (const participant of conversation.participants) {
-      if (participant.userId !== user.id) {
-        await notifyUserById({
-          recipientId: participant.userId,
-          actorId: user.id,
-          type: "message-received",
-          targetType: "conversation",
-          targetId: conversationId,
-          title: `${user.name || "Someone"} sent a new message`,
-          body: body,
-        });
-      }
-    }
-  }
 
   return createdMessage;
 }

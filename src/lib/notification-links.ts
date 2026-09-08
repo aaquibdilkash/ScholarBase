@@ -56,6 +56,7 @@ export function getNotificationLink(notification: Notification) {
 
   switch (notification.type) {
     case "follow":
+    case "NEW_FOLLOWER":
       return `/scholars/${notification.actorId}`;
     case "post-mention":
       // Post mention: link directly to the post (not comments)

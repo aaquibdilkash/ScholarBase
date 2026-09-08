@@ -206,7 +206,8 @@ export async function createComment(
       actorId: user.id,
       type: parentId ? "reply-created" : "comment-created",
       targetType: type,
-      targetId,
+      // Replies roll up per comment; top-level comments roll up per content.
+      targetId: parentId ?? targetId,
       title: parentId
         ? `${actorName} replied to your comment`
         : `${actorName} commented on your post`,

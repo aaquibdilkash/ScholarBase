@@ -42,7 +42,7 @@ export async function toggleFollow(
 
     const isNowFollowing = !wasFollowing;
 
-    if (!isNowFollowing) {
+    if (isNowFollowing) {
       const follower = await prisma.user.findUnique({
         where: { id: authUser.id },
         select: { name: true },
@@ -51,8 +51,9 @@ export async function toggleFollow(
         recipientId: followingId,
         actorId: authUser.id,
         type: "follow",
-        targetType: "user",
-        targetId: authUser.id,
+        targetType: "profile",
+        // All new followers of the same recipient share one rollup key.
+        targetId: followingId,
         title: `${follower?.name || "Someone"} started following you`,
         body: `You have a new follower: ${follower?.name || "a new user"}.`,
       });

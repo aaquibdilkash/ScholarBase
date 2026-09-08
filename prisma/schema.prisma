@@ -861,17 +861,19 @@ model Notification {
   targetId    String?
   title       String
   body        String
+  // Number of interactions represented by this unread notification.
+  count       Int       @default(1)
   readAt      DateTime?
   // Tracks whether this notification has been included in a digest email
   isEmailed   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  editedAt    DateTime?
   recipient   User      @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
   actor       User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, createdAt])
   @@index([recipientId, readAt])
+  @@index([recipientId, targetId, type, readAt])
   // CRITICAL: Isolates unsent notifications per user via B-Tree lookup,
   // preventing CPU-spiking sequential scans during digest cron runs.
   @@index([recipientId, isEmailed])

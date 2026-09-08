@@ -274,32 +274,22 @@ const MODULE_VOTE_TARGET_TYPE: Record<ModuleKey, string> = {
   RECOMMENDATION: 'recommendation',
 }
 
-const MODULE_DISPLAY_NAME: Record<ModuleKey, string> = {
-  SOCIAL_POST: 'post',
-  ARTICLE: 'article',
-  HELP_POST: 'help post',
-  CONTRIBUTION: 'contribution',
-  PUBLICATION: 'publication',
-  RESEARCH_TOOL: 'research tool',
-  RESEARCH_GRANT: 'research grant',
-  COURSE: 'course',
-  JOURNAL: 'journal',
-  RESULT: 'result',
-  RESEARCH_SURVEY: 'survey',
-  RESEARCH_EVENT: 'event',
-  PHD_ADMISSION: 'admission',
-  JOB_VACANCY: 'vacancy',
-  SUPERVISOR: 'profile',
-  RECOMMENDATION: 'recommendation',
-}
-
 const getVoteValue = (current: VoteType | null, next: VoteType): number => {
   if (current === next) return next === 'UPVOTE' ? -1 : 1
   if (current === null) return next === 'UPVOTE' ? 1 : -1
   return next === 'UPVOTE' ? 2 : -2
 }
 
-type VoteResult = { totalVotes: number; userVote: VoteType | null }
+export type VoteResult = {
+  totalVotes: number
+  userVote: VoteType | null
+  notification?: {
+    recipientId: string
+    targetType: string
+    targetId: string
+    body: string
+  }
+}
 
 // ============================================
 // FOLLOW TRANSACTION
@@ -426,25 +416,16 @@ export async function handleVoteTransaction(
           }
         }
 
-        const actor = await tx.user.findUnique({
-          where: { id: userId },
-          select: { name: true, handle: true, email: true },
-        })
-        const actorName =
-          actor?.name || actor?.handle || actor?.email?.split('@')[0] || 'Someone'
-        const moduleName = MODULE_DISPLAY_NAME[moduleKey] || 'content'
-
-        await tx.notification.create({
-          data: {
+        return {
+          totalVotes,
+          userVote: newVote === currentVote ? null : newVote,
+          notification: {
             recipientId: entity.authorId,
-            actorId: userId,
-            type: 'content-upvoted',
             targetType,
             targetId,
-            title: `${actorName} upvoted your ${moduleName}`,
             body: entityTitle,
           },
-        })
+        }
       }
     }
 

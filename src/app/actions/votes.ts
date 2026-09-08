@@ -9,6 +9,7 @@ import { getActiveUser } from "@/lib/auth";
 import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { queueNotification } from "@/lib/qstash";
 
 export async function voteOnContent(
   entityId: string,
@@ -41,12 +42,25 @@ export async function voteOnContent(
   }
 
   try {
-    const { totalVotes, userVote } = await handleVoteTransaction(
+    const { totalVotes, userVote, notification } = await handleVoteTransaction(
       module,
       entityId,
       user.id,
       newVoteType,
     );
+
+    if (notification) {
+      void queueNotification({
+        mode: "TARGETED",
+        type: "NEW_VOTE",
+        actorId: user.id,
+        recipientId: notification.recipientId,
+        targetType: notification.targetType,
+        targetId: notification.targetId,
+        title: "New Upvote",
+        body: notification.body,
+      }).catch((error) => console.error("QStash vote notification error:", error));
+    }
 
     return { success: true, data: { totalVotes, userVote } };
   } catch (error) {

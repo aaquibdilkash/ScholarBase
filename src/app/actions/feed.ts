@@ -21,6 +21,7 @@ import {
   notifyMentionedUsers,
 } from "@/lib/notifications";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
+import { queueNotification } from "@/lib/qstash";
 import type { SocialPostWithAuthor } from "@/types/cards";
 import type { MentionUser } from "@/components/interactions/CommentThread";
 
@@ -485,7 +486,19 @@ export async function voteOnSocialPost(postId: string, voteType: VoteType) {
   if (!rateLimit.allowed) {
     return { success: false, error: RATE_LIMIT_ERROR };
   }
-  await handleVoteTransaction("SOCIAL_POST", postId, user.id, voteType);
+  const { notification } = await handleVoteTransaction("SOCIAL_POST", postId, user.id, voteType);
+  if (notification) {
+    void queueNotification({
+      mode: "TARGETED",
+      type: "NEW_VOTE",
+      actorId: user.id,
+      recipientId: notification.recipientId,
+      targetType: notification.targetType,
+      targetId: notification.targetId,
+      title: "New Upvote",
+      body: notification.body,
+    }).catch((error) => console.error("QStash vote notification error:", error));
+  }
 }
 
 export async function createSocialPostComment(
