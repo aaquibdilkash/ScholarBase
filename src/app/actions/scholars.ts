@@ -78,7 +78,6 @@ export async function getScholarById(id: string) {
       // RULE 6: Read materialized counters instead of a live COUNT(*) subquery.
       followersCount: true,
       followingCount: true,
-      followers: { select: { followerId: true } },
     },
   });
 }

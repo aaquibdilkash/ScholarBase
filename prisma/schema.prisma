@@ -149,6 +149,7 @@ model Article {
   votes    ArticleVote[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -186,6 +187,7 @@ model Supervisor {
   recommendations Recommendation[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -217,6 +219,7 @@ model SocialPost {
   author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -448,6 +451,7 @@ model HelpPost {
   comments HelpPostComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -541,6 +545,7 @@ model Contribution {
   comments ContributionComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -638,6 +643,7 @@ model Publication {
   comments PublicationComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -872,7 +878,7 @@ model Notification {
   actor       User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, createdAt])
-  @@index([recipientId, readAt])
+  @@index([recipientId, readAt, createdAt(sort: Desc)])
   @@index([recipientId, targetId, type, readAt])
   // CRITICAL: Isolates unsent notifications per user via B-Tree lookup,
   // preventing CPU-spiking sequential scans during digest cron runs.
@@ -928,7 +934,7 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
-  @@index([conversationId, createdAt])
+  @@index([conversationId, createdAt(sort: Desc)])
   @@index([senderId, createdAt])
   @@index([conversationId, readAt])
   @@index([replyToId])
@@ -961,6 +967,7 @@ model ResearchTool {
   votes    ResearchToolVote[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1046,6 +1053,7 @@ model ResearchGrant {
   votes    ResearchGrantVote[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1135,6 +1143,7 @@ model Course {
   votes    CourseVote[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1232,6 +1241,7 @@ model Journal {
   about    String?
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1321,6 +1331,7 @@ model Result {
   comments ResultComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1419,6 +1430,7 @@ model ResearchSurvey {
   comments  SurveyComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1651,6 +1663,7 @@ model ResearchEvent {
   comments ResearchEventComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1740,6 +1753,7 @@ model PhdAdmission {
   comments PhdAdmissionComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1829,6 +1843,7 @@ model JobVacancy {
   comments JobVacancyComment[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -1982,6 +1997,7 @@ model Recommendation {
   // supervisorId + authorId + isDeleted). isDeleted is a cheap residual filter.
   @@index([supervisorId, authorId])
   @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
@@ -2037,4 +2053,13 @@ model RecommendationCommentVote {
   user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
+}
+
+
+model OrphanedAsset {
+  id        String   @id @default(cuid())
+  url       String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

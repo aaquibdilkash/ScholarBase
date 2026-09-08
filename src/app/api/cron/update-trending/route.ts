@@ -1,26 +1,9 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { verifyCronSecret } from '@/lib/cron'
+import { CONTENT_TABLES } from '@/lib/module-registry'
 
 const GRAVITY = 1.8
-
-const TRENDING_MODELS = [
-  { model: 'article', table: 'Article' },
-  { model: 'socialPost', table: 'SocialPost' },
-  { model: 'helpPost', table: 'HelpPost' },
-  { model: 'contribution', table: 'Contribution' },
-  { model: 'publication', table: 'Publication' },
-  { model: 'researchTool', table: 'ResearchTool' },
-  { model: 'researchGrant', table: 'ResearchGrant' },
-  { model: 'course', table: 'Course' },
-  { model: 'journal', table: 'Journal' },
-  { model: 'result', table: 'Result' },
-  { model: 'researchSurvey', table: 'ResearchSurvey' },
-  { model: 'researchEvent', table: 'ResearchEvent' },
-  { model: 'phdAdmission', table: 'PhdAdmission' },
-  { model: 'jobVacancy', table: 'JobVacancy' },
-  { model: 'recommendation', table: 'Recommendation' },
-]
 
 export async function GET() {
   if (!(await verifyCronSecret())) {
@@ -33,7 +16,7 @@ export async function GET() {
 
     // 1. Standard Content (Votes + Comments)
     // Run sequentially to prevent one missing column from crashing the entire job
-    for (const { table } of TRENDING_MODELS) {
+    for (const table of CONTENT_TABLES) {
       try {
         await prisma.$executeRawUnsafe(`
           UPDATE "${table}"

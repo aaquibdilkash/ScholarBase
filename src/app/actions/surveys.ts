@@ -6,7 +6,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma, SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getCurrentUser, requireActiveUser, isAuthorizedOrAdmin, isUserAdmin } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE } from "@/lib/constants";
@@ -245,6 +245,9 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
 });
 
 export async function getSurveyResponse(surveyId: string, userId: string) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.id !== userId) return null;
+
   return prisma.surveyResponse.findFirst({
     where: {
       surveyId,
@@ -960,6 +963,9 @@ export async function submitSurveyResponse(
 }
 
 export async function getSurveyResponses(surveyId: string, userId?: string) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.id !== userId) return null;
+
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
     select: { authorId: true },
@@ -1003,10 +1009,21 @@ export async function getSurveyResults(surveyId: string) {
       },
     },
   });
+  if (!survey) return null;
+
+  const currentUser = await getCurrentUser();
+  const isAdmin = currentUser ? await isUserAdmin(currentUser.id) : false;
+  if (!survey.shareData && survey.authorId !== currentUser?.id && !isAdmin) {
+    return null;
+  }
+
   return survey;
 }
 
 export async function hasUserResponded(surveyId: string, userId: string) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser || currentUser.id !== userId) return false;
+
   // Check if user is the survey author - authors can always respond (preview)
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },

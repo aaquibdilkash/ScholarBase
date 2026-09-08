@@ -5,20 +5,12 @@
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron/clear-conversation-history",
-      "schedule": "0 3 * * *"
-    },
-    {
       "path": "/api/cron/cleanup-deadlines",
       "schedule": "5 3 * * *"
     },
     {
-      "path": "/api/cron/trim-activities",
+      "path": "/api/cron/trim-maintenance",
       "schedule": "10 3 * * *"
-    },
-    {
-      "path": "/api/cron/trim-notifications",
-      "schedule": "15 3 * * *"
     },
     {
       "path": "/api/cron/trim-soft-deleted-posts",

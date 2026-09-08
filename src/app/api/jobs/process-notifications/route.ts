@@ -1,7 +1,11 @@
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import type { NotificationPayload } from "@/lib/qstash";
+import {
+  notificationPayloadSchema,
+  type NotificationPayload,
+} from "@/lib/qstash";
 
 const ROLLUP_TYPES = new Set([
   "NEW_COMMENT",
@@ -47,7 +51,11 @@ function formatRollupBody(
 
 async function handler(request: Request) {
   try {
-    const payload = (await request.json()) as NotificationPayload;
+    const parsedPayload = notificationPayloadSchema.safeParse(await request.json());
+    if (!parsedPayload.success) {
+      return NextResponse.json({ error: "Invalid notification payload" }, { status: 400 });
+    }
+    const payload: NotificationPayload = parsedPayload.data;
 
     if (payload.mode === "TARGETED") {
       if (payload.actorId === payload.recipientId) {
@@ -60,38 +68,36 @@ async function handler(request: Request) {
       });
       const actorName = actor?.name || actor?.handle || "A researcher";
 
-      // Only unread notifications are rolled up. Once read, the next event
-      // starts a fresh notification row for the user.
-      const existingNotification = ROLLUP_TYPES.has(payload.type)
-        ? await prisma.notification.findFirst({
-            where: {
-              recipientId: payload.recipientId,
-              targetId: payload.targetId,
-              type: payload.type,
-              readAt: null,
-            },
-            orderBy: { updatedAt: "desc" },
-          })
-        : null;
+      // Serialize the read-rollup check and write so concurrent QStash
+      // deliveries cannot both observe the same count and lose an event.
+      const aggregated = await prisma.$transaction(async (tx) => {
+        const existingNotification = ROLLUP_TYPES.has(payload.type)
+          ? await tx.notification.findFirst({
+              where: {
+                recipientId: payload.recipientId,
+                targetId: payload.targetId,
+                type: payload.type,
+                readAt: null,
+              },
+              orderBy: { updatedAt: "desc" },
+            })
+          : null;
 
-      if (existingNotification) {
-        const count = existingNotification.count + 1;
-        await prisma.notification.update({
-          where: { id: existingNotification.id },
-          data: {
-            actorId: payload.actorId,
-            count,
-            body: formatRollupBody(
-              payload.type,
-              actorName,
-              count - 1,
-              payload.body,
-            ),
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        await prisma.notification.create({
+        if (existingNotification) {
+          const count = existingNotification.count + 1;
+          await tx.notification.update({
+            where: { id: existingNotification.id },
+            data: {
+              actorId: payload.actorId,
+              count,
+              body: formatRollupBody(payload.type, actorName, count - 1, payload.body),
+              updatedAt: new Date(),
+            },
+          });
+          return true;
+        }
+
+        await tx.notification.create({
           data: {
             recipientId: payload.recipientId,
             actorId: payload.actorId,
@@ -103,25 +109,37 @@ async function handler(request: Request) {
             count: 1,
           },
         });
-      }
+        return false;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       return NextResponse.json({
         success: true,
         processed: 1,
-        aggregated: Boolean(existingNotification),
+        aggregated,
       });
     }
 
     if (payload.mode === "FAN_OUT") {
-      const followers = await prisma.follows.findMany({
-        where: { followingId: payload.actorId },
-        select: { followerId: true },
-      });
-
       const chunkSize = 500;
       let processed = 0;
-      for (let index = 0; index < followers.length; index += chunkSize) {
-        const chunk = followers.slice(index, index + chunkSize);
+      let cursor: { followerId: string; followingId: string } | undefined;
+
+      // Page through the compound primary key instead of loading every
+      // follower into one serverless invocation's memory.
+      while (true) {
+        const followers = await prisma.follows.findMany({
+          where: { followingId: payload.actorId },
+          select: { followerId: true, followingId: true },
+          orderBy: [{ followerId: "asc" }, { followingId: "asc" }],
+          take: chunkSize,
+          ...(cursor
+            ? { cursor: { followerId_followingId: cursor }, skip: 1 }
+            : {}),
+        });
+
+        if (followers.length === 0) break;
+
+        const chunk = followers;
         if (chunk.length === 0) continue;
 
         const data = chunk
@@ -141,6 +159,13 @@ async function handler(request: Request) {
           await prisma.notification.createMany({ data });
           processed += data.length;
         }
+
+        if (followers.length < chunkSize) break;
+        const lastFollower = followers[followers.length - 1];
+        cursor = {
+          followerId: lastFollower.followerId,
+          followingId: lastFollower.followingId,
+        };
       }
 
       return NextResponse.json({ success: true, processed });

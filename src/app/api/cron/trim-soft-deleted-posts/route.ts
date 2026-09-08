@@ -1,15 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import { verifyCronSecret } from '@/lib/cron'
-
-// We strictly target parent content tables. 
-// We do NOT include 'Comment' or 'Reply' in this list.
-const CONTENT_TABLES = [
-    'Article', 'SocialPost', 'HelpPost', 'Contribution',
-    'Publication', 'ResearchTool', 'ResearchGrant', 'Course',
-    'Journal', 'Result', 'ResearchSurvey', 'ResearchEvent',
-    'PhdAdmission', 'JobVacancy', 'Recommendation'
-]
+import { CONTENT_TABLES } from '@/lib/module-registry'
 
 export async function GET() {
     if (!(await verifyCronSecret())) {

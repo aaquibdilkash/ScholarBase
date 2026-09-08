@@ -80,6 +80,9 @@ export async function getInbox(
   limit: number = 10,
   cursor?: string,
 ) {
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+  if (currentUser.id !== userId) throw new Error("Not authorized.");
+
   const conversations = await prisma.conversation.findMany({
     where: { participants: { some: { userId } } },
     orderBy: { lastMessageAt: "desc" },
@@ -100,6 +103,9 @@ export async function getInbox(
 // database by the other participant's name or handle — not just the 10
 // currently loaded in the sidebar.
 export async function searchInbox(userId: string, query: string, limit = 30) {
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+  if (currentUser.id !== userId) throw new Error("Not authorized.");
+
   const q = query.trim();
   if (!q) return [];
 
@@ -244,8 +250,13 @@ export async function getMoreMessages(
 
 // ⚡ REALTIME FIX: Safe fetcher for Prisma/Supabase conflicts
 export async function getMessageDetails(messageId: string) {
-  return prisma.message.findUnique({
-    where: { id: messageId },
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+
+  return prisma.message.findFirst({
+    where: {
+      id: messageId,
+      conversation: { participants: { some: { userId: currentUser.id } } },
+    },
     select: messageSelect,
   });
 }
@@ -570,6 +581,9 @@ export async function isUserBlocked(
   blockerId: string,
   blockedId: string,
 ): Promise<boolean> {
+  const currentUser = await requireCurrentUser();
+  if (currentUser.id !== blockerId) throw new Error("Not authorized.");
+
   const block = await prisma.block.findUnique({
     where: { blockerId_blockedId: { blockerId, blockedId } },
     select: { id: true },
@@ -613,6 +627,9 @@ export async function unblockUser(blockedId: string) {
 }
 
 export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
+  const currentUser = await requireCurrentUser();
+  if (currentUser.id !== blockerId) throw new Error("Not authorized.");
+
   const blocks = await prisma.block.findMany({
     where: { blockerId },
     select: { blockedId: true },

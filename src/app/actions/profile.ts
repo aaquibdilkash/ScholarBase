@@ -7,6 +7,10 @@ import { requireActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { deleteFromCloudinary } from "@/app/actions/cloudinary";
 import { MAX_PROFILE_BIO } from "@/lib/constants";
+import {
+  PROFILE_SECTION_CONFIG,
+  type ProfileSection,
+} from "@/lib/module-registry";
 
 export const getProfile = cache(
   async (profileId: string, currentUserId?: string) => {
@@ -59,6 +63,35 @@ export const getProfile = cache(
 // (N+1 fix) instead of fetching the full relation arrays.
 // ─────────────────────────────────────────────────────────────
 
+function getProfileAuthorInclude(currentUserId?: string) {
+  return {
+    select: {
+      id: true,
+      name: true,
+      handle: true,
+      avatarUrl: true,
+      createdAt: true,
+      email: true,
+      bio: true,
+      followers: currentUserId
+        ? {
+          where: { followerId: currentUserId },
+          select: { followerId: true },
+        }
+        : false,
+    },
+  } as const;
+}
+
+function getProfileVotesInclude(currentUserId?: string) {
+  return currentUserId
+    ? {
+      where: { userId: currentUserId },
+      select: { userId: true, voteType: true },
+    }
+    : false;
+}
+
 export async function getProfileSections(
   profileId: string,
   currentUserId?: string,
@@ -88,30 +121,8 @@ export async function getProfileSections(
     },
   });
 
-  const authorSelect = {
-    select: {
-      id: true,
-      name: true,
-      handle: true,
-      avatarUrl: true,
-      createdAt: true,
-      email: true,
-      bio: true,
-      followers: currentUserId
-        ? {
-          where: { followerId: currentUserId },
-          select: { followerId: true },
-        }
-        : false,
-    },
-  };
-
-  const votesSelect = currentUserId
-    ? {
-      where: { userId: currentUserId },
-      select: { userId: true, voteType: true },
-    }
-    : false;
+  const authorSelect = getProfileAuthorInclude(currentUserId);
+  const votesSelect = getProfileVotesInclude(currentUserId);
 
   const [
     articles,
@@ -273,59 +284,18 @@ export async function getProfileSections(
   };
 }
 
-const ProfileSectionMap = {
-  articles: "article",
-  socialPosts: "socialPost",
-  vacancies: "jobVacancy",
-  admissions: "phdAdmission",
-  events: "researchEvent",
-  helpPosts: "helpPost",
-  journals: "journal",
-  researchTools: "researchTool",
-  recommendations: "recommendation",
-  supervisors: "supervisor",
-  results: "result",
-  contributionPosts: "contribution",
-  publications: "publication",
-  surveys: "researchSurvey",
-  researchGrants: "researchGrant",
-  courses: "course",
-} as const;
-
 export async function getProfileSection(
   profileId: string,
-  section: keyof typeof ProfileSectionMap,
+  section: ProfileSection,
   currentUserId?: string,
   skip: number = 0,
   take: number = 5,
 ) {
-  const model = ProfileSectionMap[section];
-  if (!model) throw new Error(`Invalid section: ${section}`);
+  const model = PROFILE_SECTION_CONFIG[section].model;
 
   const include = {
-    author: {
-      select: {
-        id: true,
-        name: true,
-        handle: true,
-        avatarUrl: true,
-        createdAt: true,
-        email: true,
-        bio: true,
-        followers: currentUserId
-          ? {
-            where: { followerId: currentUserId },
-            select: { followerId: true },
-          }
-          : false,
-      },
-    },
-    votes: currentUserId
-      ? {
-        where: { userId: currentUserId },
-        select: { userId: true, voteType: true },
-      }
-      : false,
+    author: getProfileAuthorInclude(currentUserId),
+    votes: getProfileVotesInclude(currentUserId),
     ...(model === "recommendation"
       ? { supervisor: { select: { id: true, name: true } } }
       : {}),

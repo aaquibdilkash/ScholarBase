@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
+import { unstable_cache } from "next/cache";
 import prisma from "@/lib/db";
 
-// 1. Bypass Next.js static build crash & cache for 24 hours
+// Keep sitemap generation out of the build, where the database may not be
+// reachable. The route can still be refreshed by the platform at runtime.
 export const dynamic = "force-dynamic";
-export const revalidate = 86400; 
+export const revalidate = 86400;
 
 // 2. Safely grab the correct URL based on Vercel's build environment
 const baseUrl = 
@@ -39,6 +41,30 @@ const staticRoutes = [
   "/terms",
 ];
 
+const getSitemapData = unstable_cache(
+  async () => Promise.all([
+    prisma.article.findMany({ where: { published: true, isDeleted: false }, select: { slug: true, updatedAt: true } }),
+    prisma.researchTool.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.researchGrant.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.course.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.journal.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.publication.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.researchSurvey.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.phdAdmission.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.jobVacancy.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.researchEvent.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.result.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.helpPost.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.socialPost.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.supervisor.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.contribution.findMany({ where: { status: "APPROVED", isDeleted: false }, select: { id: true, updatedAt: true } }),
+    prisma.recommendation.findMany({ where: { isDeleted: false }, select: { id: true, supervisorId: true, updatedAt: true } }),
+    prisma.user.findMany({ where: { isDeleted: false }, select: { id: true, updatedAt: true } }),
+  ]),
+  ["sitemap-content"],
+  { revalidate: 86400 },
+);
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [
     articles,
@@ -58,25 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     contributions,
     recommendations,
     users,
-  ] = await Promise.all([
-    prisma.article.findMany({ where: { published: true }, select: { slug: true, updatedAt: true } }),
-    prisma.researchTool.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.researchGrant.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.course.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.journal.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.publication.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.researchSurvey.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.phdAdmission.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.jobVacancy.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.researchEvent.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.result.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.helpPost.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.socialPost.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.supervisor.findMany({ select: { id: true, updatedAt: true } }),
-    prisma.contribution.findMany({ where: { status: "APPROVED" }, select: { id: true, updatedAt: true } }),
-    prisma.recommendation.findMany({ select: { id: true, supervisorId: true, updatedAt: true } }),
-    prisma.user.findMany({ select: { id: true, updatedAt: true } }),
-  ]);
+  ] = await getSitemapData();
 
   const dynamicRoutes = [
     ...articles.map((item) => ({ path: `/blog/${item.slug}`, updatedAt: item.updatedAt })),
