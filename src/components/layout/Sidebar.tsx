@@ -33,6 +33,9 @@ import { BrandMark } from "@/components/BrandMark";
 import useMediaQuery from "@/hooks/useMediaQuery";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import SignOutButton from "@/components/auth/SignOutButton";
+import { useToast } from "@/components/ui/Toast";
+import { supabase } from "@/utils/supabase/client";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 type SidebarUser = {
   id: string;
@@ -47,9 +50,21 @@ type SidebarProps = {
   defaultCollapsed: boolean;
 };
 
+type RealtimeMessageRow = {
+  id: string;
+  body: string;
+  conversationId?: string;
+  conversation_id?: string;
+  senderId?: string;
+  sender_id?: string;
+  createdAt?: string;
+  created_at?: string;
+};
+
 export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   
   // We keep this ONLY for click handlers, NOT for rendering classes
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -131,10 +146,106 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
   }, [checkScrollable]);
 
   const [optimisticUnreadMessages, setOptimisticUnreadMessages] = useState(user?.unreadMessages ?? 0);
+  const pathnameRef = useRef(pathname);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     setOptimisticUnreadMessages(user?.unreadMessages ?? 0);
   }, [user?.unreadMessages]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const markSeen = (messageId: string) => {
+      if (seenMessageIdsRef.current.has(messageId)) return false;
+      seenMessageIdsRef.current.add(messageId);
+      // Keep this browser-session dedupe set bounded.
+      if (seenMessageIdsRef.current.size > 1000) {
+        const oldest = seenMessageIdsRef.current.values().next().value;
+        if (oldest) seenMessageIdsRef.current.delete(oldest);
+      }
+      return true;
+    };
+
+    const handleMessageReceived = (event: CustomEvent) => {
+      const { conversationId, message } = event.detail ?? {};
+      if (!conversationId || !message?.id || !markSeen(message.id)) return;
+      if (message.senderId === user.id) return;
+
+      const routeSegments = pathnameRef.current.split("/").filter(Boolean);
+      const isMessagesPage = routeSegments[0] === "messages";
+      const activeConversationId = isMessagesPage ? routeSegments[1] : undefined;
+      const isActiveConversation =
+        activeConversationId === decodeURIComponent(String(conversationId));
+
+      // Messages in the active conversation are already visible. Messages
+      // from every other conversation notify and increment the global badge,
+      // even while a conversation page is open.
+      if (isActiveConversation) return;
+
+      toast({
+        title: message.sender?.name || "New message",
+        description: message.body || undefined,
+      });
+      setOptimisticUnreadMessages((count) => count + 1);
+    };
+
+    const handleDatabaseMessage = (
+      payload: RealtimePostgresChangesPayload<RealtimeMessageRow>,
+    ) => {
+      const raw = payload.new as RealtimeMessageRow;
+      const conversationId = raw.conversationId || raw.conversation_id;
+      const senderId = raw.senderId || raw.sender_id;
+      if (!conversationId || !raw.id || !senderId) return;
+
+      // One shared event feeds the conversation sidebar and the main badge.
+      window.dispatchEvent(
+        new CustomEvent("message-received", {
+          detail: {
+            conversationId,
+            message: {
+              id: raw.id,
+              body: raw.body,
+              senderId,
+              createdAt: raw.createdAt || raw.created_at,
+            },
+          },
+        }),
+      );
+    };
+
+    const channel = supabase
+      .channel(`main-sidebar-messages:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Message" },
+        handleDatabaseMessage,
+      )
+      .subscribe((status: string) => {
+        if (
+          status !== "SUBSCRIBED" &&
+          process.env.NODE_ENV === "development"
+        ) {
+          console.warn(`Main message realtime status: ${status}`);
+        }
+      });
+
+    window.addEventListener(
+      "message-received",
+      handleMessageReceived as EventListener,
+    );
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener(
+        "message-received",
+        handleMessageReceived as EventListener,
+      );
+    };
+  }, [user, toast]);
 
   useEffect(() => {
     const handleConversationRead = (event: Event) => {

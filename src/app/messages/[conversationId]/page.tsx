@@ -33,6 +33,16 @@ type TypingPayload = {
   isTyping?: boolean;
 };
 
+type ReadReceiptPayload = {
+  userId: string;
+  lastReadAt: string;
+};
+
+type BroadcastMessagePayload = {
+  userId: string;
+  message: SentMessage;
+};
+
 type Participant = {
   lastReadAt: string | Date | null;
   user: {
@@ -83,6 +93,12 @@ export default function ConversationPage({
   const [otherParticipantLastReadAt, setOtherParticipantLastReadAt] =
     useState<Date>(new Date(0));
 
+  const updateOtherParticipantLastReadAt = useCallback((next: Date) => {
+    setOtherParticipantLastReadAt((current) =>
+      next.getTime() > current.getTime() ? next : current,
+    );
+  }, []);
+
   const appendMessageRef = useRef<((msg: SentMessage) => void) | null>(null);
   const handleAppendMessage = useCallback((fn: (msg: SentMessage) => void) => {
     appendMessageRef.current = fn;
@@ -103,6 +119,24 @@ export default function ConversationPage({
 
   const userId = user?.id;
   const hasMarkedReadRef = useRef(false);
+  const lastReadAtRef = useRef<Date | null>(null);
+
+  const broadcastReadReceipt = useCallback(
+    (lastReadAt: Date) => {
+      if (!userId || !roomRef.current) return;
+      roomRef.current
+        .send({
+          type: "broadcast",
+          event: "read-receipt",
+          payload: {
+            userId,
+            lastReadAt: lastReadAt.toISOString(),
+          } satisfies ReadReceiptPayload,
+        })
+        .catch(() => {});
+    },
+    [userId],
+  );
 
   // ⚡ Throttled read-marker: only hits the database server once unless forced by a new message
   const triggerMarkRead = useCallback(
@@ -110,10 +144,15 @@ export default function ConversationPage({
       if (!userId) return;
       if (!hasMarkedReadRef.current || force) {
         hasMarkedReadRef.current = true;
-        markConversationAsRead(conversationId);
+        void markConversationAsRead(conversationId).then((result) => {
+          if (!result?.lastReadAt) return;
+          const lastReadAt = new Date(result.lastReadAt);
+          lastReadAtRef.current = lastReadAt;
+          broadcastReadReceipt(lastReadAt);
+        });
       }
     },
-    [userId, conversationId],
+    [userId, conversationId, broadcastReadReceipt],
   );
 
   // Stable ref to avoid re-running effects when callback identity changes
@@ -126,13 +165,40 @@ export default function ConversationPage({
     (message: SentMessage) => {
       appendMessageRef.current?.(message);
       triggerMarkRead(true);
+
+      // Broadcast only the server-confirmed message. The initial optimistic
+      // message has a temporary id and must never reach the other participant.
+      if (message.status === "sent" && roomRef.current && userId) {
+        roomRef.current
+          .send({
+            type: "broadcast",
+            event: "message",
+            payload: { userId, message } satisfies BroadcastMessagePayload,
+          })
+          .catch(() => {});
+      }
+
       window.dispatchEvent(
         new CustomEvent("message-sent", {
           detail: { conversationId, message },
         }),
       );
     },
-    [triggerMarkRead, conversationId],
+    [triggerMarkRead, conversationId, userId],
+  );
+
+  const handleBroadcastMessage = useCallback(
+    (message: SentMessage) => {
+      if (!userId || message.senderId === userId) return;
+      appendMessageRef.current?.({ ...message, status: "sent" });
+      triggerMarkRead(true);
+      window.dispatchEvent(
+        new CustomEvent("message-received", {
+          detail: { conversationId, message },
+        }),
+      );
+    },
+    [conversationId, triggerMarkRead, userId],
   );
 
   // Initial fetch on mount only
@@ -155,7 +221,11 @@ export default function ConversationPage({
             blockedMe: Boolean((conv as Conversation).blockedMe),
           });
 
-          await markConversationAsRead(conversationId);
+          const readResult = await markConversationAsRead(conversationId);
+          hasMarkedReadRef.current = true;
+          if (readResult?.lastReadAt) {
+            lastReadAtRef.current = new Date(readResult.lastReadAt);
+          }
 
           const currentParticipant = (conv as unknown as Conversation).participants.find(
             (p) => p.user.id === user.id,
@@ -243,11 +313,36 @@ export default function ConversationPage({
         },
       )
       .on(
+        "broadcast",
+        { event: "read-receipt" },
+        ({ payload }: { payload: ReadReceiptPayload }) => {
+          if (
+            !payload ||
+            payload.userId === userId ||
+            !payload.lastReadAt
+          ) {
+            return;
+          }
+          updateOtherParticipantLastReadAt(new Date(payload.lastReadAt));
+        },
+      )
+      .on(
+        "broadcast",
+        { event: "message" },
+        ({ payload }: { payload: BroadcastMessagePayload }) => {
+          if (!payload || payload.userId === userId || !payload.message?.id) {
+            return;
+          }
+          handleBroadcastMessage(payload.message);
+        },
+      )
+      .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "ConversationParticipant",
+          filter: `conversationId=eq.${conversationId}`,
         },
         (
           payload: RealtimePostgresChangesPayload<{
@@ -267,11 +362,23 @@ export default function ConversationPage({
             row.userId !== userId &&
             row.lastReadAt
           ) {
-            setOtherParticipantLastReadAt(new Date(row.lastReadAt));
+            updateOtherParticipantLastReadAt(new Date(row.lastReadAt));
           }
         },
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        if (status === "SUBSCRIBED") {
+          // The initial mark-read can happen before this channel is ready.
+          // Replay it over Broadcast once the channel is connected.
+          if (lastReadAtRef.current) {
+            broadcastReadReceipt(lastReadAtRef.current);
+          } else {
+            triggerMarkReadRef.current(true);
+          }
+        } else if (process.env.NODE_ENV === "development") {
+          console.warn(`Conversation realtime status: ${status}`);
+        }
+      });
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -288,7 +395,13 @@ export default function ConversationPage({
       supabase.removeChannel(channel);
       roomRef.current = null;
     };
-  }, [userId, conversationId]);
+  }, [
+    userId,
+    conversationId,
+    broadcastReadReceipt,
+    handleBroadcastMessage,
+    updateOtherParticipantLastReadAt,
+  ]);
 
   const broadcastTyping = useCallback(() => {
     if (!userId || !roomRef.current) return;

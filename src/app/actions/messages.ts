@@ -31,6 +31,7 @@ const directConversationSelect = {
     take: 1,
     orderBy: { createdAt: "desc" as const },
     select: {
+      id: true,
       body: true,
       createdAt: true,
       senderId: true,
@@ -635,17 +636,20 @@ export async function markConversationAsRead(conversationId: string) {
     return;
   }
 
-  await prisma.conversationParticipant
-    .update({
+  const lastReadAt = new Date();
+  const result = await prisma.conversationParticipant
+    .updateMany({
       where: {
-        conversationId_userId: {
-          conversationId,
-          userId: supabaseUser.id,
-        },
+        conversationId,
+        userId: supabaseUser.id,
+        OR: [
+          { lastReadAt: null },
+          { lastReadAt: { lt: lastReadAt } },
+        ],
       },
-      data: { lastReadAt: new Date() },
+      data: { lastReadAt },
     })
-    .catch(() => {
-      // Fail silently if participant record doesn't match
-    });
+    .catch(() => ({ count: 0 }));
+
+  return { lastReadAt, updated: result.count > 0 };
 }

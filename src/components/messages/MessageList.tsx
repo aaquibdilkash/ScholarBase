@@ -421,16 +421,30 @@ export function MessageList({
     channel
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "Message" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "Message",
+          filter: `conversationId=eq.${conversationId}`,
+        },
         handleInsert,
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "Message" },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "Message",
+          filter: `conversationId=eq.${conversationId}`,
+        },
         handleUpdate,
       )
       .subscribe((status: string) => {
-        if (status === "SUBSCRIBED") isSubscribedRef.current = true;
+        if (status === "SUBSCRIBED") {
+          isSubscribedRef.current = true;
+        } else if (process.env.NODE_ENV === "development") {
+          console.warn(`Message realtime status: ${status}`);
+        }
       });
 
     return () => {

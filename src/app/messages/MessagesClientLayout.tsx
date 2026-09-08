@@ -13,22 +13,11 @@ import { MessagesLayoutContext } from "./messages-context";
 import { ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
-type Message = { body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
+type Message = { id?: string; body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
 type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
 
 // ⚡ INFINITE SCROLL: conversations per page.
 const PAGE_SIZE = 10;
-
-type MessageRow = {
-  id: string;
-  body: string;
-  senderId?: string;
-  sender_id?: string;
-  conversation_id?: string;
-  conversationId?: string;
-  created_at: string;
-  createdAt?: string;
-};
 
 // Presence state typing now lives in PresenceProvider (global channel).
 
@@ -44,6 +33,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
   const [, setTick] = useState(0);
 
   const inboxRef = useRef<InboxConversation[]>([]);
+  const inboxRefreshInFlightRef = useRef<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   // ⚡ PAGINATION + SERVER-SIDE SEARCH state.
@@ -53,7 +43,12 @@ function ConversationSidebar({ user }: { user: User | null }) {
   const [isSearching, setIsSearching] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
   const { isSidebarOpen, setIsSidebarOpen } = useContext(MessagesLayoutContext)!;
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     inboxRef.current = inbox;
@@ -104,50 +99,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel('sidebar-global-listener')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Message' }, (payload: RealtimePostgresChangesPayload<MessageRow>) => {
-          const rawMessage = payload.new as MessageRow;
-          const msgConvId = rawMessage.conversationId || rawMessage.conversation_id;
-
-          const convExists = inboxRef.current.some((c) => c.id === msgConvId);
-
-          if (!convExists) {
-            // ⚡ PAGINATION: refetch the first page and merge just the new
-            // conversation so already-loaded pages aren't dropped.
-            getInbox(user.id, PAGE_SIZE).then((data) => {
-              const fresh = data.find((c) => c.id === msgConvId);
-              if (fresh) {
-                setInbox((prev) => [fresh, ...prev.filter((c) => c.id !== msgConvId)]);
-              }
-            });
-          } else {
-            setInbox((currentInbox) => {
-              const convIndex = currentInbox.findIndex((c) => c.id === msgConvId);
-              if (convIndex === -1) return currentInbox; 
-
-              const updatedInbox = [...currentInbox];
-              const targetConv = { ...updatedInbox[convIndex] };
-              // ⚡ Keep senderId + createdAt in the preview so unread math and
-              // relative timestamps stay correct.
-              targetConv.messages = [{
-                body: rawMessage.body,
-                senderId: rawMessage.senderId || rawMessage.sender_id,
-                createdAt: normalizeTimestamp(rawMessage.createdAt || rawMessage.created_at),
-              }];
-              targetConv.lastMessageAt = normalizeTimestamp(rawMessage.createdAt || rawMessage.created_at) as string | Date;
-              const senderId = rawMessage.senderId || rawMessage.sender_id;
-              
-              // ⚡ ISSUE 1: Never count the current user's own messages as unread.
-              if (senderId !== user.id) {
-                targetConv.unreadCount = (targetConv.unreadCount || 0) + 1;
-              }
-              
-              updatedInbox.splice(convIndex, 1);
-              updatedInbox.unshift(targetConv);
-              return updatedInbox;
-            });
-          }
-        }
-      ).on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ConversationParticipant' }, (payload: RealtimePostgresChangesPayload<{ conversationId: string; userId: string; lastReadAt: string | null }>) => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ConversationParticipant' }, (payload: RealtimePostgresChangesPayload<{ conversationId: string; userId: string; lastReadAt: string | null }>) => {
           const change = payload.new as { conversationId: string; userId: string; lastReadAt: string | null };
           if (change.userId !== user.id) return; 
           
@@ -169,6 +121,64 @@ function ConversationSidebar({ user }: { user: User | null }) {
           });
         }
       ).subscribe();
+
+    // The active conversation already receives the confirmed message over
+    // Broadcast. Reuse that event for the sidebar instead of fetching the
+    // inbox again.
+    const handleMessageReceived = (event: CustomEvent) => {
+      const { conversationId, message } = event.detail ?? {};
+      if (!conversationId || !message || message.senderId === user.id) return;
+
+      if (!inboxRef.current.some((item) => item.id === conversationId)) {
+        // The conversation may be outside the current paginated page. Load
+        // one inbox page only once per conversation so its row can appear
+        // with the server-computed unread count.
+        if (!inboxRefreshInFlightRef.current.has(conversationId)) {
+          inboxRefreshInFlightRef.current.add(conversationId);
+          getInbox(user.id, PAGE_SIZE)
+            .then((data) => {
+              const fresh = data.find((item) => item.id === conversationId);
+              if (fresh) {
+                setInbox((current) => [
+                  fresh,
+                  ...current.filter((item) => item.id !== conversationId),
+                ]);
+              }
+            })
+            .finally(() => {
+              inboxRefreshInFlightRef.current.delete(conversationId);
+            });
+        }
+        return;
+      }
+
+      setInbox((currentInbox) => {
+        const convIndex = currentInbox.findIndex((c) => c.id === conversationId);
+        if (convIndex === -1) return currentInbox;
+
+        const updatedInbox = [...currentInbox];
+        const targetConv = { ...updatedInbox[convIndex] };
+        const isDuplicate = targetConv.messages[0]?.id === message.id;
+        targetConv.messages = [{
+          id: message.id,
+          body: message.body,
+          senderId: message.senderId,
+          createdAt: normalizeTimestamp(message.createdAt),
+        }];
+        targetConv.lastMessageAt = normalizeTimestamp(message.createdAt) as string | Date;
+        const routeSegments = pathnameRef.current.split("/").filter(Boolean);
+        const activeConversationId =
+          routeSegments[0] === "messages" ? routeSegments[1] : undefined;
+        const isActiveConversation =
+          activeConversationId === decodeURIComponent(String(conversationId));
+        if (!isDuplicate && !isActiveConversation) {
+          targetConv.unreadCount = (targetConv.unreadCount || 0) + 1;
+        }
+        updatedInbox.splice(convIndex, 1);
+        updatedInbox.unshift(targetConv);
+        return updatedInbox;
+      });
+    };
 
     const handleConversationRead = (event: CustomEvent) => {
       const { conversationId, userId: eventUserId } = event.detail;
@@ -222,10 +232,12 @@ function ConversationSidebar({ user }: { user: User | null }) {
 
     window.addEventListener('conversation-read', handleConversationRead as EventListener);
     window.addEventListener('message-sent', handleMessageSent as EventListener);
+    window.addEventListener('message-received', handleMessageReceived as EventListener);
     return () => { 
       supabase.removeChannel(channel);
       window.removeEventListener('conversation-read', handleConversationRead as EventListener);
       window.removeEventListener('message-sent', handleMessageSent as EventListener);
+      window.removeEventListener('message-received', handleMessageReceived as EventListener);
     };
   }, [user]);
 

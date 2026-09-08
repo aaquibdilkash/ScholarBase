@@ -69,6 +69,21 @@ export function MessageInputForm({
     if (saved) setDraft(saved);
   }, [conversationId]);
 
+  useEffect(() => {
+    if (!replyingTo || isDisabled) return;
+
+    // Wait for the reply preview to render, then bring the composer into view
+    // and place the caret where the user can immediately start typing.
+    const frame = requestAnimationFrame(() => {
+      textAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      textAreaRef.current?.focus();
+      const end = textAreaRef.current?.value.length ?? 0;
+      textAreaRef.current?.setSelectionRange(end, end);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [replyingTo, isDisabled]);
+
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setDraft(e.target.value);
     localStorage.setItem(`draft-${conversationId}`, e.target.value);
