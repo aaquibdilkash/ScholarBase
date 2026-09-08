@@ -119,11 +119,12 @@ export function FeedList({
       )}
 
       <div className="flex flex-col gap-6">
-        {feedPosts.map((post) => (
+        {feedPosts.map((post, index) => (
           <SocialPostCard
             key={post.id}
             post={post}
             currentUserId={currentUserId}
+            priority={index === 0}
           />
         ))}
         <LoadMoreSentinel

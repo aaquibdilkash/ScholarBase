@@ -31,9 +31,11 @@ const COLLAPSED_MIN_HEIGHT = 100;
 export function SocialPostCard({
   post,
   currentUserId,
+  priority = false,
 }: {
   post: PostWithDetails;
   currentUserId?: string;
+  priority?: boolean;
 }) {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -272,6 +274,7 @@ export function SocialPostCard({
               width={800}
               height={400}
               unoptimized
+              loading={priority ? "eager" : "lazy"}
               onLoad={(e) => {
                 const el = e.currentTarget;
                 if (el.naturalWidth && el.naturalHeight) {
