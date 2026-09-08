@@ -106,7 +106,7 @@ export function ContactForm() {
           onChange={(e) => updateDraftField("name", e.target.value)}
           required
           className="sb-input"
-          placeholder="John Doe"
+          placeholder="Jane Doe"
           maxLength={MAX_CONTACT_NAME}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">

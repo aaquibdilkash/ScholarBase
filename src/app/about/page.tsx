@@ -106,7 +106,7 @@ export default function AboutPage() {
                 <Code2 className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <span>
                   <strong className="text-slate-900 dark:text-slate-200">We are open source.</strong>{" "}
-                  Built for the community, by the community — every line of code is public and anyone can contribute.
+                  Built for the community, by the community — every line of code is public and Everyone can contribute.
                 </span>
               </li>
               <li className="flex gap-3">

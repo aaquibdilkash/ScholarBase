@@ -70,7 +70,7 @@ export default function PrivacyPolicyPage() {
             </li>
           </ul>
           <p>
-            <strong>Limited Use Disclosure:</strong> ScholarBase&apos;s use and
+            <strong>Limited Use Disclosure: </strong>ScholarBase&apos;s use and
             transfer of information received from Google APIs to any other app
             will adhere to the{" "}
             <a

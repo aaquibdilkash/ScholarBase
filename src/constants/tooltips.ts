@@ -37,7 +37,7 @@ export const ADMISSION_APPLY_LINK_TIP = "URL to the online application portal fo
 // PUBLICATIONS MODULE
 // -----------------------------------------------------------------------------
 export const PUBLICATION_TITLE_TIP = "The full title of your research paper or publication.";
-export const PUBLICATION_AUTHORS_TIP = "List all authors in order (e.g., John Doe, Jane Smith).";
+export const PUBLICATION_AUTHORS_TIP = "List all authors in order (e.g., Jane Doe, John Smith).";
 export const PUBLICATION_TYPE_TIP = "The type of publication (research paper, conference proceeding, book, etc.).";
 export const PUBLICATION_YEAR_TIP = "The year the work was published or accepted for publication.";
 export const PUBLICATION_JOURNAL_TIP = "The name of the journal, conference, or book where published.";

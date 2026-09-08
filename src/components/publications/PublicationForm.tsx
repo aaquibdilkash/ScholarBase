@@ -196,7 +196,7 @@ export default function PublicationForm({
         </label>
         <input
           name="authors"
-          placeholder="e.g., John Doe, Jane Smith, ..."
+          placeholder="e.g., Jane Doe, John Smith, ..."
           className="sb-input"
           required
           maxLength={MAX_PUBLICATION_AUTHORS}

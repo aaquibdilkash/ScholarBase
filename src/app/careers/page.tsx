@@ -44,7 +44,7 @@ const whatYouGet = [
     icon: Rocket,
     title: "Real Platform, Real Users",
     description:
-      "Skip the toy projects. Everything you do — campaigns, curated listings, bug reports — happens on a live, open-source platform used by scholars around the world, and your contributions are public for anyone to see.",
+      "Skip the toy projects. Everything you do — campaigns, curated listings, bug reports — happens on a live, open-source platform used by scholars around the world, and your contributions are public for everyone to see.",
   },
   {
     icon: GraduationCap,

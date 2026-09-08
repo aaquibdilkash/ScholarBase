@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Download } from "lucide-react";
+import { ChevronDown, Download, Loader2 } from "lucide-react";
 import type { QuestionResult, SurveyResults } from "@/types/survey";
 
 function mapValueToLabel(q: QuestionResult, value: unknown): string {
@@ -16,7 +16,7 @@ function mapValueToLabel(q: QuestionResult, value: unknown): string {
   }
 
   // If it's still a string, try parsing it just in case
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) {
@@ -45,6 +45,7 @@ export function SurveyResultsView({
   isOwner?: boolean;
 }) {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<"xlsx" | "csv" | null>(null);
 
   if (!survey) {
     return (
@@ -57,8 +58,57 @@ export function SurveyResultsView({
   const totalResponses = survey.totalResponses;
 
   function safeParse(str: string) {
-      try { return JSON.parse(str) } catch { return [str] }
+    try {
+      return JSON.parse(str);
+    } catch {
+      return [str];
     }
+  }
+
+  const handleDownload = async (format: "xlsx" | "csv") => {
+    if (!surveyId || exportingFormat) return;
+
+    try {
+      setExportingFormat(format);
+
+      const response = await fetch(
+        `/api/surveys/${surveyId}/export?format=${format}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to export survey data");
+      }
+
+      // Read response as binary blob without triggering page navigation
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      // Determine clean filename from Content-Disposition or fallback
+      let fileName = `ScholarBase_${survey.title.replace(/[^a-zA-Z0-9_-]/g, "_")}.${format}`;
+      const disposition = response.headers.get("Content-Disposition");
+      if (disposition && disposition.includes("filename=")) {
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        if (match?.[1]) {
+          fileName = match[1];
+        }
+      }
+
+      // Trigger standard browser download
+      const tempLink = document.createElement("a");
+      tempLink.href = downloadUrl;
+      tempLink.download = fileName;
+      document.body.appendChild(tempLink);
+      tempLink.click();
+
+      // Clean up object URL from memory
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(tempLink);
+    } catch (error) {
+      console.error("Download failed:", error);
+    } finally {
+      setExportingFormat(null);
+    }
+  };
 
   const getQuestionStats = (q: QuestionResult) => {
     const answers = q.answers.map((a) => a.value);
@@ -81,7 +131,7 @@ export function SurveyResultsView({
     if (q.type === "MULTIPLE_CHOICE" || q.type === "DROPDOWN") {
       const counts: Record<string, number> = {};
       answers.forEach((a) => {
-        const label = mapValueToLabel(q, a); // Map value to label
+        const label = mapValueToLabel(q, a);
         counts[label] = (counts[label] || 0) + 1;
       });
       return { total, counts };
@@ -90,12 +140,15 @@ export function SurveyResultsView({
     if (q.type === "CHECKBOXES") {
       const counts: Record<string, number> = {};
       answers.forEach((a) => {
-        // 'a' might already be a JS array because of Prisma JSONB
-        const vals = Array.isArray(a) ? a : (typeof a === 'string' ? safeParse(a) : [a]);
-        
+        const vals = Array.isArray(a)
+          ? a
+          : typeof a === "string"
+          ? safeParse(a)
+          : [a];
+
         if (Array.isArray(vals)) {
           vals.forEach((v: string) => {
-            const label = mapValueToLabel(q, v); 
+            const label = mapValueToLabel(q, v);
             counts[label] = (counts[label] || 0) + 1;
           });
         }
@@ -141,7 +194,6 @@ export function SurveyResultsView({
       return { total, rows };
     }
 
-    // Text/Date types
     return { total, answers: answers.filter((a) => a) };
   };
 
@@ -154,28 +206,41 @@ export function SurveyResultsView({
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-300">
             Total Responses:{" "}
-            <strong className="text-slate-800 dark:text-white">{totalResponses}</strong>
+            <strong className="text-slate-800 dark:text-white">
+              {totalResponses}
+            </strong>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {isOwner && surveyId && (
             <>
-              <a
-                href={`/api/surveys/${surveyId}/export?format=xlsx`}
-                download
-                className="sb-button-soft text-sm inline-flex items-center gap-2"
+              <button
+                type="button"
+                onClick={() => handleDownload("xlsx")}
+                disabled={!!exportingFormat}
+                className="sb-button-soft text-sm inline-flex items-center gap-2 disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
-                XLSX (Codebook + Data)
-              </a>
-              <a
-                href={`/api/surveys/${surveyId}/export?format=csv`}
-                download
-                className="sb-button-soft text-sm inline-flex items-center gap-2"
+                {exportingFormat === "xlsx" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {exportingFormat === "xlsx" ? "Generating XLSX..." : "XLSX (Codebook + Data)"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDownload("csv")}
+                disabled={!!exportingFormat}
+                className="sb-button-soft text-sm inline-flex items-center gap-2 disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
-                CSV (R / Python / Stata)
-              </a>
+                {exportingFormat === "csv" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {exportingFormat === "csv" ? "Generating CSV..." : "CSV (R / Python / Stata)"}
+              </button>
             </>
           )}
         </div>
@@ -318,7 +383,8 @@ export function SurveyResultsView({
                   <div className="space-y-2">
                     {stats.answers.length > 0 ? (
                       stats.answers.map((answer, i: number) => {
-                        const text = typeof answer === "string" ? answer : String(answer);
+                        const text =
+                          typeof answer === "string" ? answer : String(answer);
                         return (
                           <div
                             key={i}

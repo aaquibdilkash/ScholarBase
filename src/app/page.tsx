@@ -332,7 +332,7 @@ export default async function HomePage() {
             {
               icon: Code2,
               title: "Open source",
-              desc: "Every line of code is public. Anyone can read it, contribute to it, or build on it.",
+              desc: "Every line of code is public. Everyone can read it, contribute to it, or build on it.",
               iconWrap: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
             },
             {
