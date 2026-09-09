@@ -2,6 +2,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 
 import prisma from '@/lib/db'
+import { normalizeEmail, validateEmailFormat } from '@/lib/email-normalizer'
 
 function normalizeHandleSeed(value: string) {
     return value
@@ -43,13 +44,18 @@ export async function ensureUserProfile(user: SupabaseUser) {
         throw new Error('Authenticated users must have an email address.')
     }
 
-    const name = user.user_metadata.full_name || user.email.split('@')[0] || null
-    const handle = await createUniqueHandle(name || user.email.split('@')[0], user.id)
+    const email = normalizeEmail(user.email)
+    if (!validateEmailFormat(email)) {
+        throw new Error('Authenticated users must have a valid email address.')
+    }
+
+    const name = user.user_metadata.full_name || email.split('@')[0] || null
+    const handle = await createUniqueHandle(name || email.split('@')[0], user.id)
 
     return prisma.user.create({
         data: {
             id: user.id,
-            email: user.email,
+            email,
             name,
             handle,
             avatarUrl: user.user_metadata.avatar_url || null,

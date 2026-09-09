@@ -16,6 +16,10 @@ import {
   MAX_AUTH_EMAIL,
   MAX_AUTH_PASSWORD,
 } from "@/lib/constants";
+import {
+  normalizeEmail,
+  validateEmailFormat,
+} from "@/lib/email-normalizer";
 
 type AuthResult =
   | { success: true; redirect?: string; message?: string; url?: string }
@@ -85,10 +89,6 @@ async function limitByEmailAndIp(
   return null;
 }
 
-function normalizeAuthEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
 function readAuthField(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
@@ -97,11 +97,11 @@ function readAuthField(formData: FormData, key: string): string {
 export async function login(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
 
-  const email = normalizeAuthEmail(readAuthField(formData, "email"));
+  const email = normalizeEmail(readAuthField(formData, "email"));
   const password = readAuthField(formData, "password");
   const callbackUrl = sanitizeRedirectUrl(formData.get("callbackUrl") as string);
 
-  if (email.length === 0 || email.length > MAX_AUTH_EMAIL) {
+  if (!validateEmailFormat(email) || email.length > MAX_AUTH_EMAIL) {
     return { success: false, error: "Please enter a valid email address." };
   }
   if (!password) {
@@ -135,13 +135,13 @@ export async function signup(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
 
-  const email = normalizeAuthEmail(readAuthField(formData, "email"));
+  const email = normalizeEmail(readAuthField(formData, "email"));
   const password = readAuthField(formData, "password");
   if (!email || !password) {
     return { success: false, error: "Email and password are required." };
   }
 
-  if (email.length > MAX_AUTH_EMAIL) {
+  if (!validateEmailFormat(email) || email.length > MAX_AUTH_EMAIL) {
     return { success: false, error: "Please enter a valid email address." };
   }
 
@@ -224,13 +224,13 @@ export async function forgotPassword(
   const supabase = await createClient();
   const baseUrl = await getBaseUrl();
 
-  const email = normalizeAuthEmail(readAuthField(formData, "email"));
+  const email = normalizeEmail(readAuthField(formData, "email"));
 
   if (!email) {
     return { success: false, error: "Please enter your email address." };
   }
 
-  if (email.length > MAX_AUTH_EMAIL) {
+  if (!validateEmailFormat(email) || email.length > MAX_AUTH_EMAIL) {
     return { success: false, error: "Please enter a valid email address." };
   }
 
