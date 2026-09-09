@@ -285,12 +285,11 @@ export const MessageItem = React.memo(
           {/* ⚡ ISSUE 6: Message action bar (kebab) on owned, delivered messages.
               DB-loaded messages have no `status` field — only optimistic
               realtime ones are marked "sent" — so treat undefined as sent. */}
-          {isMine &&
-            (message.status === "sent" || !message.status) &&
+          {(!isMine || message.status === "sent" || !message.status) &&
             !isEditing && (
             <div
               ref={actionBarRef}
-              className="relative z-30 self-center opacity-100 transition-opacity"
+              className="relative z-30 order-3 flex h-7 w-7 shrink-0 self-center items-center justify-center opacity-100 transition-opacity"
             >
               <button
                 type="button"
@@ -314,14 +313,16 @@ export const MessageItem = React.memo(
                 style={{ top: menuPosition.top, left: menuPosition.left }}
                 className="fixed z-[10000] w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
               >
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
-                </button>
+                {isMine && (
+                  <button
+                    type="button"
+                    onClick={startEdit}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={copyMessage}
@@ -330,14 +331,16 @@ export const MessageItem = React.memo(
                   <Copy className="h-3.5 w-3.5" />
                   Copy
                 </button>
-                <button
-                  type="button"
-                  onClick={requestDelete}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </button>
+                {isMine && (
+                  <button
+                    type="button"
+                    onClick={requestDelete}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </button>
+                )}
               </div>,
               document.body,
             )}
@@ -511,7 +514,7 @@ export const MessageItem = React.memo(
               onClick={() => onSetReplyingTo?.(message)}
               aria-label="Reply to message"
               title="Reply"
-              className="self-center rounded-full p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+              className="flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
             >
               <Reply className="h-4 w-4" />
             </button>
