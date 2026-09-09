@@ -335,7 +335,7 @@ export default function SurveyForm({
         <form onSubmit={handleFormSubmit} className="space-y-6">
       <CautionNote />
       {/* Survey Details Section */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold text-slate-900">Survey Details</h2>
 
          <div>
@@ -485,14 +485,14 @@ export default function SurveyForm({
         </div>
 
         {/* Sections Section */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Sections</h2>
             {blocks.length < MAX_SURVEY_BLOCKS && (
               <button
                 type="button"
                 onClick={addBlock}
-                className="sb-button-accent text-sm"
+                className="sb-button-accent w-full text-sm sm:w-auto"
               >
                 + Add Section
               </button>
@@ -508,7 +508,7 @@ export default function SurveyForm({
               {blocks.map((block, i) => (
                 <div
                   key={block.id}
-                  className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2"
+                  className="grid gap-3 border-t border-slate-200 bg-transparent p-0 pt-3 first:border-t-0 first:pt-0 dark:border-slate-700 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:rounded-lg sm:border sm:bg-slate-50 sm:p-2"
                 >
                   <input
                     type="text"
@@ -516,11 +516,12 @@ export default function SurveyForm({
                     onChange={(e) =>
                       updateBlock(i, { ...block, title: e.target.value })
                     }
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                    className="min-w-0 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm sm:flex-1 sm:py-1.5"
                     maxLength={MAX_SURVEY_QUESTION_TITLE}
                     required
                   />
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-slate-600">
+                  <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-start">
+                    <label className="flex min-h-9 min-w-0 cursor-pointer items-center gap-2 text-xs font-semibold leading-5 text-slate-600">
                     <input
                       type="checkbox"
                       checked={block.randomizeOrder}
@@ -533,12 +534,13 @@ export default function SurveyForm({
                       className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
                     Randomize order
-                  </label>
+                    </label>
+                    <div className="ml-auto flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => moveBlock(i, "up")}
                     disabled={i === 0}
-                    className="rounded p-0.5 text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Move section up"
                   >
                     ▲
@@ -547,7 +549,7 @@ export default function SurveyForm({
                     type="button"
                     onClick={() => moveBlock(i, "down")}
                     disabled={i === blocks.length - 1}
-                    className="rounded p-0.5 text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Move section down"
                   >
                     ▼
@@ -555,12 +557,14 @@ export default function SurveyForm({
                   <button
                     type="button"
                     onClick={() => setShowBlockDeleteModal({ isOpen: true, blockIndex: i })}
-                    className="rounded p-0.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
                     title="Delete section"
                     aria-label="Delete section"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -568,22 +572,22 @@ export default function SurveyForm({
         </div>
 
         {/* Questions Section */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
             <button
               type="button"
               onClick={addQuestion}
-              className="sb-button-accent text-sm"
+              className="sb-button-accent w-full text-sm sm:w-auto"
             >
               + Add Question
             </button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
             <select
               value={selectedDemographic}
               onChange={(e) => setSelectedDemographic(e.target.value)}
-              className="sb-select max-w-56 text-sm truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
+              className="sb-select min-w-0 w-full text-sm sm:max-w-56 !pr-10"
               aria-label="Insert a standard demographic block"
             >
               <option value="">+ Insert Demographics…</option>
@@ -602,7 +606,7 @@ export default function SurveyForm({
                 }
               }}
               disabled={!selectedDemographic}
-              className="sb-button-accent text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+              className="sb-button-accent w-full text-sm disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
             >
               Insert
             </button>
@@ -613,7 +617,7 @@ export default function SurveyForm({
               building your survey.
             </p>
           )}
-          <div className="space-y-4">
+        <div className="space-y-4">
             {questions.map((q: Question, i: number) => (
               <QuestionEditor
                 key={q.id}
@@ -633,7 +637,7 @@ export default function SurveyForm({
               <button
                 type="button"
                 onClick={addQuestion}
-                className="sb-button-accent text-sm"
+                className="sb-button-accent w-full text-sm sm:w-auto"
               >
                 + Add Question
               </button>

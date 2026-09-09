@@ -41,6 +41,10 @@ export async function ensureUserProfile(user: SupabaseUser) {
     })
 
     if (existingUser) {
+        // Deleted accounts remain as database tombstones. Never let a later
+        // authenticated request rewrite the tombstone or recreate the profile.
+        if (existingUser.isDeleted) return existingUser
+
         const supabaseEmail = user.email ? normalizeEmail(user.email) : ''
         const hasChangedPrimaryEmail =
             validateEmailFormat(supabaseEmail) &&
@@ -65,6 +69,10 @@ export async function ensureUserProfile(user: SupabaseUser) {
                             institutionEmail: supabaseEmail,
                             institutionDomain: getEmailDomain(supabaseEmail),
                             institutionVerifiedAt: new Date(),
+                            pendingInstitutionEmail: null,
+                            pendingInstitutionDomain: null,
+                            institutionVerificationTokenHash: null,
+                            institutionVerificationExpiresAt: null,
                         }
                         : {}),
                 },
@@ -86,6 +94,10 @@ export async function ensureUserProfile(user: SupabaseUser) {
                     institutionEmail: existingUser.email,
                     institutionDomain: getEmailDomain(existingUser.email),
                     institutionVerifiedAt: new Date(),
+                    pendingInstitutionEmail: null,
+                    pendingInstitutionDomain: null,
+                    institutionVerificationTokenHash: null,
+                    institutionVerificationExpiresAt: null,
                 },
             })
         }

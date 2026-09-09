@@ -22,6 +22,7 @@ import {
   validateEmailFormat,
 } from "@/lib/email-normalizer";
 import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
+import { recoverDeletedAccount } from "@/lib/account-recovery";
 
 type AuthResult =
   | { success: true; redirect?: string; message?: string; url?: string }
@@ -124,10 +125,33 @@ export async function login(formData: FormData): Promise<AuthResult> {
     return rateLimitResult;
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) {
     return { success: false, error: "Incorrect email or password." };
+  }
+
+  if (data.user) {
+    const recovery = await recoverDeletedAccount(data.user.id);
+    if (recovery === "expired") {
+      await supabase.auth.signOut();
+      return {
+        success: false,
+        error:
+          "This account’s 30-day recovery period has expired. Please contact support.",
+      };
+    }
+
+    if (recovery === "recovered") {
+      return {
+        success: true,
+        redirect: callbackUrl,
+        message: "Your account was recovered successfully.",
+      };
+    }
   }
 
   return { success: true, redirect: callbackUrl };

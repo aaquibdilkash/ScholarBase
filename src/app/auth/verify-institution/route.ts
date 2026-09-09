@@ -38,6 +38,8 @@ export async function GET(request: NextRequest) {
     where: { institutionVerificationTokenHash: tokenHash },
     select: {
       id: true,
+      pendingInstitutionEmail: true,
+      pendingInstitutionDomain: true,
       institutionVerificationExpiresAt: true,
     },
   });
@@ -53,22 +55,51 @@ export async function GET(request: NextRequest) {
     return redirectToSettings(request, supabaseUser.id, "expired");
   }
 
-  const result = await prisma.user.updateMany({
-    where: {
-      id: supabaseUser.id,
-      institutionVerificationTokenHash: tokenHash,
-      institutionVerificationExpiresAt: { gt: new Date() },
-    },
-    data: {
-      institutionVerifiedAt: new Date(),
-      institutionVerificationTokenHash: null,
-      institutionVerificationExpiresAt: null,
-    },
-  });
+  const verifiedAt = new Date();
+  let result = 0;
+  try {
+    result = await prisma.$transaction(async (tx) => {
+      const targetEmail = pendingVerification.pendingInstitutionEmail;
+      const updateResult = await tx.user.updateMany({
+        where: {
+          id: supabaseUser.id,
+          institutionVerificationTokenHash: tokenHash,
+          institutionVerificationExpiresAt: { gt: verifiedAt },
+        },
+        data: targetEmail
+          ? {
+              institutionEmail: targetEmail,
+              institutionDomain:
+                pendingVerification.pendingInstitutionDomain,
+              institutionVerifiedAt: verifiedAt,
+              pendingInstitutionEmail: null,
+              pendingInstitutionDomain: null,
+              institutionVerificationTokenHash: null,
+              institutionVerificationExpiresAt: null,
+            }
+          : {
+              // Compatibility for tokens created before pending institution
+              // fields existed: the legacy institutionEmail is already the
+              // address that was requested.
+              institutionVerifiedAt: verifiedAt,
+              pendingInstitutionEmail: null,
+              pendingInstitutionDomain: null,
+              institutionVerificationTokenHash: null,
+              institutionVerificationExpiresAt: null,
+            },
+      });
+
+      return updateResult.count;
+    });
+  } catch {
+    // Another account may have verified the same address after this request
+    // was created. The unique institutionEmail constraint wins safely.
+    return redirectToSettings(request, supabaseUser.id, "invalid");
+  }
 
   return redirectToSettings(
     request,
     supabaseUser.id,
-    result.count === 1 ? "verified" : "invalid",
+    result === 1 ? "verified" : "invalid",
   );
 }

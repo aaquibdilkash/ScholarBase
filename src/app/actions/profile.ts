@@ -15,7 +15,7 @@ import {
 export const getProfile = cache(
   async (profileId: string, currentUserId?: string) => {
     const userWithProfileData = await prisma.user.findUnique({
-      where: { id: profileId },
+      where: { id: profileId, isDeleted: false },
       select: {
         id: true,
         name: true,

@@ -8,6 +8,7 @@ import { buildNoindexMetadata } from "@/lib/seo";
 import prisma from "@/lib/db";
 import { InstitutionVerificationForm } from "@/components/auth/InstitutionVerificationForm";
 import { UpdateEmailForm } from "@/components/auth/UpdateEmailForm";
+import { DeleteAccountForm } from "@/components/auth/DeleteAccountForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import EditProfileForm from "@/components/profile/EditProfileForm";
 
@@ -82,7 +83,9 @@ export default async function ScholarSettingsPage({
           <InstitutionVerificationForm
             institutionEmail={profile.institutionEmail}
             institutionVerifiedAt={profile.institutionVerifiedAt}
+            pendingInstitutionEmail={profile.pendingInstitutionEmail}
           />
+          <DeleteAccountForm />
         </section>
       </div>
     </CreateOrEditPageShell>

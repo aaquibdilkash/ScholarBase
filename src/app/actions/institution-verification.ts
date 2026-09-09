@@ -124,9 +124,8 @@ export async function requestInstitutionVerification(
     await prisma.user.update({
       where: { id: supabaseUser.id },
       data: {
-        institutionEmail,
-        institutionDomain: getEmailDomain(institutionEmail),
-        institutionVerifiedAt: null,
+        pendingInstitutionEmail: institutionEmail,
+        pendingInstitutionDomain: getEmailDomain(institutionEmail),
         institutionVerificationTokenHash: tokenHash,
         institutionVerificationExpiresAt: expiresAt,
       },
@@ -147,13 +146,8 @@ export async function requestInstitutionVerification(
           institutionVerificationTokenHash: tokenHash,
         },
         data: {
-          institutionEmail: user.institutionVerifiedAt
-            ? user.institutionEmail
-            : null,
-          institutionDomain: user.institutionVerifiedAt
-            ? getEmailDomain(user.institutionEmail ?? "") || null
-            : null,
-          institutionVerifiedAt: user.institutionVerifiedAt,
+          pendingInstitutionEmail: null,
+          pendingInstitutionDomain: null,
           institutionVerificationTokenHash: null,
           institutionVerificationExpiresAt: null,
         },

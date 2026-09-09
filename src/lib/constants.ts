@@ -163,6 +163,7 @@ export const MAX_INVITE_MESSAGE = 512;
 
 export const MAX_AUTH_EMAIL = 32;
 export const MAX_AUTH_PASSWORD = 16;
+export const ACCOUNT_RECOVERY_DAYS = 30;
 export const MAX_INSTITUTION_NAME = 64;
 export const MAX_INSTITUTION_REQUEST_EMAIL = 32;
 export const MAX_INSTITUTION_WEBSITE = 128;

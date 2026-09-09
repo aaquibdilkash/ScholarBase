@@ -743,6 +743,8 @@ model User {
   institutionEmail String?   @unique
   institutionDomain String?
   institutionVerifiedAt DateTime?
+  pendingInstitutionEmail String?
+  pendingInstitutionDomain String?
   institutionVerificationTokenHash String? @unique
   institutionVerificationExpiresAt DateTime?
   name             String?

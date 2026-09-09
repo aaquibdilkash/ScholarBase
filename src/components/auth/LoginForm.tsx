@@ -63,6 +63,25 @@ export function LoginForm({
           </p>
         )}
 
+        {initialError === "account-deleted" && (
+          <p
+            role="alert"
+            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300"
+          >
+            This account has been deleted. You have been signed out.
+          </p>
+        )}
+
+        {initialError === "account-recovery-expired" && (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+          >
+            This account’s 30-day recovery period has expired. Please contact
+            support if you need help.
+          </p>
+        )}
+
         <form
           action={async () => {
             setPendingAction("signin");

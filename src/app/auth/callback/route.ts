@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
+import { recoverDeletedAccount } from "@/lib/account-recovery";
 
 function getSafeNextPath(next: string | null): string {
   if (!next) return "/";
@@ -79,8 +80,23 @@ export async function GET(request: NextRequest) {
   if (data.user && type !== "recovery") {
     const existingProfile = await prisma.user.findUnique({
       where: { id: data.user.id },
-      select: { id: true },
+      select: { id: true, isDeleted: true },
     });
+
+    if (existingProfile?.isDeleted) {
+      const recovery = await recoverDeletedAccount(data.user.id);
+      if (recovery === "expired") {
+        await supabase.auth.signOut();
+        response.headers.set(
+          "Location",
+          new URL(
+            "/login?error=account-recovery-expired",
+            publicOrigin,
+          ).toString(),
+        );
+        return response;
+      }
+    }
 
     if (existingProfile === null && !isAllowedEmailDomain(data.user.email ?? "")) {
       await supabase.auth.signOut();

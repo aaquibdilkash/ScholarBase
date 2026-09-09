@@ -34,8 +34,14 @@ export async function requireActiveUser(message = 'Please log in to continue.'):
 
     const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { isFrozen: true },
+        select: { isFrozen: true, isDeleted: true },
     })
+
+    if (dbUser?.isDeleted) {
+        throw new Error(
+            'ACCOUNT_DELETED: This account has been deleted and this action is disabled.',
+        )
+    }
 
     if (dbUser?.isFrozen) {
         throw new Error(
@@ -76,8 +82,12 @@ export async function getActiveUser(
 
     const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { isFrozen: true },
+        select: { isFrozen: true, isDeleted: true },
     })
+
+    if (dbUser?.isDeleted) {
+        return { frozen: true, message: 'This account has been deleted.' }
+    }
 
     if (dbUser?.isFrozen) {
         return { frozen: true, message: FROZEN_ACTION_MESSAGE }

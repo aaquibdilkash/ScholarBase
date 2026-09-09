@@ -12,6 +12,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/components/interactions/AppProviders";
 import { getUnreadMessageCount } from "@/app/actions/messages";
 import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
 
 // In app/layout.tsx or your root SEO metadata config
 const isDev =
@@ -129,11 +131,23 @@ export default async function RootLayout({
 
   if (user) {
     await ensureUserProfile(user);
-    const [dbUser, messageCount, notificationCount] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: user.id },
-        select: { isAdmin: true, avatarUrl: true, isFrozen: true },
-      }),
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        isAdmin: true,
+        avatarUrl: true,
+        isFrozen: true,
+        isDeleted: true,
+      },
+    });
+
+    if (dbUser?.isDeleted) {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+      redirect("/login?error=account-deleted");
+    }
+
+    const [messageCount, notificationCount] = await Promise.all([
       getUnreadMessageCount(user.id),
       prisma.notification.count({
         where: { recipientId: user.id, readAt: null },

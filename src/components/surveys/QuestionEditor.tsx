@@ -124,9 +124,9 @@ export function QuestionEditor({
 
   return (
     <>
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:bg-slate-800 dark:border-slate-700">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="rounded-none border-0 border-t border-slate-200 bg-transparent pt-5 first:border-t-0 first:pt-0 dark:border-slate-700 dark:bg-transparent sm:rounded-xl sm:border sm:bg-white sm:p-5 sm:shadow-sm sm:dark:bg-slate-800">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -139,14 +139,14 @@ export function QuestionEditor({
             Question {index + 1}
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {blocks.length > 0 && (
             <select
               value={question.blockId ?? ""}
               onChange={(e) =>
                 onChange({ ...question, blockId: e.target.value || null })
               }
-              className="sb-select max-w-40 text-xs truncate pr-8 overflow-hidden text-overflow-ellipsis whitespace-nowrap"
+              className="sb-select min-w-0 w-full text-xs sm:max-w-40 !pr-10"
               aria-label="Assign question to a section"
             >
               <option value="">No section</option>
@@ -157,35 +157,37 @@ export function QuestionEditor({
               ))}
             </select>
           )}
-          <button
-            type="button"
-            onClick={onMoveUp}
-            disabled={index === 0}
-            title="Move question up"
-            aria-label="Move question up"
-            className="p-1 text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            onClick={onMoveDown}
-            disabled={index === allQuestions.length - 1}
-            title="Move question down"
-            aria-label="Move question down"
-            className="p-1 text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            ▼
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowDeleteModal(true)}
-            className="rounded p-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-            title="Delete question"
-            aria-label="Delete question"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          <div className="flex w-full justify-end gap-3 sm:w-auto">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              disabled={index === 0}
+              title="Move question up"
+              aria-label="Move question up"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              disabled={index === allQuestions.length - 1}
+              title="Move question down"
+              aria-label="Move question down"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30"
+              title="Delete question"
+              aria-label="Delete question"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -211,7 +213,7 @@ export function QuestionEditor({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
               Question Type
@@ -287,7 +289,7 @@ export function QuestionEditor({
                     : null,
                 });
               }}
-              className="sb-select"
+              className="sb-select min-w-0 w-full !pr-10"
             >
               {QUESTION_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -297,8 +299,8 @@ export function QuestionEditor({
             </select>
           </div>
 
-          <div className="flex items-end">
-            <label className="flex cursor-pointer items-center gap-2">
+          <div className="flex min-h-10 items-start sm:items-end">
+            <label className="flex min-w-0 cursor-pointer items-center gap-2 leading-5">
               <input
                 type="checkbox"
                 checked={question.required}
@@ -307,7 +309,7 @@ export function QuestionEditor({
                 }
                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 inline-flex items-center gap-1.5">
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Required
                 <InfoTooltip message={SURVEY_QUESTION_REQUIRED_TIP} />
               </span>
@@ -419,12 +421,12 @@ export function QuestionEditor({
             <div className="space-y-2">
               {question.options.map((opt, optIndex) => (
                 <div key={opt.value}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
                   <input
                     type="text"
                     value={opt.label}
                     onChange={(e) => updateOption(optIndex, e.target.value)}
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={`Option ${optIndex + 1}`}
                     required
                     maxLength={MAX_SURVEY_QUESTION_OPTION}
@@ -432,7 +434,7 @@ export function QuestionEditor({
                   <button
                     type="button"
                     onClick={() => setShowOptionDeleteModal({ isOpen: true, optIndex })}
-                    className="text-red-400 hover:text-red-600"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-400 hover:text-red-600"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -464,7 +466,7 @@ export function QuestionEditor({
             </p>
             <div className="space-y-2">
               {(question.columnLabels ?? []).map((col, ci) => (
-                <div key={ci} className="flex items-center gap-2">
+                <div key={ci} className="flex min-w-0 items-center gap-2">
                   <input
                     type="text"
                     value={col}
@@ -473,7 +475,7 @@ export function QuestionEditor({
                       next[ci] = e.target.value;
                       onChange({ ...question, columnLabels: next });
                     }}
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder={`Column ${ci + 1}`}
                     required
                     maxLength={MAX_SURVEY_QUESTION_OPTION}
@@ -488,7 +490,7 @@ export function QuestionEditor({
                         ),
                       })
                     }
-                    className="text-red-400 hover:text-red-600"
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-400 hover:text-red-600"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -516,7 +518,7 @@ export function QuestionEditor({
         )}
 
         {supportsShuffle && (
-          <label className="flex cursor-pointer items-center gap-2">
+          <label className="flex min-w-0 cursor-pointer items-center gap-2 leading-5">
             <input
               type="checkbox"
               checked={question.shuffleOptions === true}
@@ -525,7 +527,7 @@ export function QuestionEditor({
               }
               className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <span className="min-w-0 text-sm font-semibold text-slate-700 dark:text-slate-300">
               Randomize option order per respondent
             </span>
             <InfoTooltip message="Prevents order bias: each respondent sees the options in a different, reproducible order." />
@@ -533,14 +535,14 @@ export function QuestionEditor({
         )}
 
         {canHaveSkipLogic && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <div className="border-t border-slate-200 bg-transparent px-0 pb-0 pt-4 dark:border-slate-700 sm:rounded-lg sm:border sm:bg-slate-50 sm:p-3">
             <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
               Skip Logic
               <InfoTooltip message="When this question's answer matches a rule, all questions up to the target are skipped for that respondent." />
             </label>
             <div className="space-y-2">
               {(question.skipLogic ?? []).map((rule, ri) => (
-                <div key={ri} className="flex flex-wrap items-center gap-2">
+                <div key={ri} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="text-xs font-semibold text-slate-500">If</span>
                   <select
                     value={rule.operator}
@@ -552,7 +554,7 @@ export function QuestionEditor({
                       };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select max-w-36 truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
+                    className="sb-select min-w-0 w-full !pr-10 sm:max-w-36"
                   >
                     <option value="equals">equals</option>
                     <option value="not_equals">does not equal</option>
@@ -567,7 +569,7 @@ export function QuestionEditor({
                       next[ri] = { ...rule, value: e.target.value };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select max-w-48 truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
+                    className="sb-select min-w-0 w-full !pr-10 sm:max-w-48"
                   >
                     <option value="">choose option…</option>
                     {question.options.map((opt) => (
@@ -587,7 +589,7 @@ export function QuestionEditor({
                       };
                       onChange({ ...question, skipLogic: next });
                     }}
-                    className="sb-select max-w-52 truncate pr-[1.5rem] overflow-hidden text-overflow-ellipsis whitespace-nowrap"
+                    className="sb-select min-w-0 w-full !pr-10 sm:max-w-52"
                   >
                     <option value="">choose question…</option>
                     {laterQuestions.map((q) => (
@@ -607,7 +609,7 @@ export function QuestionEditor({
                         ),
                       })
                     }
-                    className="text-red-400 hover:text-red-600"
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center self-end rounded-lg text-red-400 hover:text-red-600 sm:self-auto"
                   >
                     <X className="h-4 w-4" />
                   </button>
