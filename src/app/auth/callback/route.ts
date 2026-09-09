@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import prisma from "@/lib/db";
+import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
 
 function getSafeNextPath(next: string | null): string {
   if (!next) return "/";
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  const { error } = code
+  const { data, error } = code
     ? await supabase.auth.exchangeCodeForSession(code)
     : await supabase.auth.verifyOtp({
         type: type as "recovery" | "signup" | "invite" | "email_change",
@@ -68,6 +70,28 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(new URL("/auth/auth-code-error", publicOrigin));
+  }
+
+  // Email signup and OAuth can both create a Supabase user without passing
+  // through the email signup form. Keep the allowlist enforced at the auth
+  // callback boundary as well, while preserving existing user accounts and
+  // password-recovery flows.
+  if (data.user && type !== "recovery") {
+    const existingProfile = await prisma.user.findUnique({
+      where: { id: data.user.id },
+      select: { id: true },
+    });
+
+    if (existingProfile === null && !isAllowedEmailDomain(data.user.email ?? "")) {
+      await supabase.auth.signOut();
+      // Keep the same response object so the signOut cookie removals are
+      // returned to the browser along with the redirect.
+      response.headers.set(
+        "Location",
+        new URL("/login?error=email-domain-not-allowed", publicOrigin).toString(),
+      );
+      return response;
+    }
   }
 
   return response;

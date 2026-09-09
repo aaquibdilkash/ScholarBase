@@ -11,17 +11,27 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Loader2 } from "lucide-react";
 import { AUTH_EMAIL_TIP, AUTH_PASSWORD_TIP } from "@/constants/tooltips";
 import { MAX_AUTH_EMAIL, MAX_AUTH_PASSWORD } from "@/lib/constants";
+import { InstitutionDomainRequestForm } from "@/components/auth/InstitutionDomainRequestForm";
 
-export function LoginForm({ returnUrl }: { returnUrl: string }) {
+export function LoginForm({
+  returnUrl,
+  initialError,
+}: {
+  returnUrl: string;
+  initialError?: string;
+}) {
   const router = useRouter();
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<"signin" | "register" | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showDomainRequest, setShowDomainRequest] = useState(
+    initialError === "email-domain-not-allowed",
+  );
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6">
-      <div className="sb-surface w-full max-w-md space-y-6 p-8 md:p-10">
+    <main className="-mx-2 -mt-4 flex min-h-screen flex-col items-center justify-start p-2 sm:mx-0 sm:mt-0 sm:justify-center sm:p-6">
+      <div className="sb-surface w-full max-w-md space-y-6 p-4 sm:p-8 md:p-10">
         <div className="text-center">
           <div className="mx-auto mb-4 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
             Sign In
@@ -33,6 +43,25 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             Sign in to your account or register a new one
           </p>
         </div>
+
+        {initialError === "email-domain-not-allowed" && (
+          <p
+            role="alert"
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+          >
+            This email domain is not approved for ScholarBase yet. You can
+            request your institution to be reviewed below.
+          </p>
+        )}
+
+        {initialError === "institution-verification-login-required" && (
+          <p
+            role="alert"
+            className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
+          >
+            Please sign in to complete your institutional email verification.
+          </p>
+        )}
 
         <form
           action={async () => {
@@ -100,9 +129,13 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             const result = await (action === "register" ? signup : login)(new FormData(event.currentTarget));
             if (!result.success) {
               toast(result.error, "error");
+              setShowDomainRequest(
+                action === "register" && result.code === "EMAIL_DOMAIN_NOT_ALLOWED",
+              );
               setPendingAction(null);
               return;
             }
+            setShowDomainRequest(false);
             toast(result.message || "Signed in successfully!", "success");
             if (result.redirect) router.push(result.redirect);
             else setPendingAction(null);
@@ -180,6 +213,8 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             </button>
           </div>
         </form>
+
+        {showDomainRequest && <InstitutionDomainRequestForm defaultEmail={email} />}
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">

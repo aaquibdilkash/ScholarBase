@@ -5,8 +5,10 @@ export const metadata: Metadata = buildNoindexMetadata("Admin - ScholarBase");
 import {
   getAdminStats,
   getAdminContent,
+  getAdminInstitutionDomainRequests,
 } from "@/app/actions/admin";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { InstitutionDomainRequestsPanel } from "@/components/admin/InstitutionDomainRequestsPanel";
 import { createClient } from "@/utils/supabase/server";
 import { isUserAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -22,11 +24,12 @@ export default async function AdminPage() {
       redirect("/");
     }
     
-  const [stats, initialContent] = await Promise.all([
+  const [stats, initialContent, initialDomainRequests] = await Promise.all([
     getAdminStats(),
     // Hydrate with the dashboard's default sort (Most Reports) so the
     // client-side initialData cache matches the first render.
     getAdminContent("feed", "reportCount"),
+    getAdminInstitutionDomainRequests(),
   ]);
 
   return (
@@ -36,10 +39,11 @@ export default async function AdminPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Admin Dashboard
           </h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             Manage content, moderate posts, and control user access
           </p>
         </div>
+        <InstitutionDomainRequestsPanel initialData={initialDomainRequests} />
         <AdminDashboard initialStats={stats} initialData={initialContent} />
       </div>
     </main>

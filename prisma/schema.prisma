@@ -363,6 +363,31 @@ enum AppealReason {
   OTHER
 }
 
+enum InstitutionDomainRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model InstitutionDomainRequest {
+  id              String                         @id @default(cuid())
+  domain          String                         @unique
+  institutionName String
+  requesterEmail  String
+  website         String?
+  details         String?                        @db.Text
+  status          InstitutionDomainRequestStatus @default(PENDING)
+  reviewNote      String?                        @db.Text
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  reviewedBy User? @relation("InstitutionDomainRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)])
+}
+
 model Appeal {
   id          String       @id @default(cuid())
   entityId    String
@@ -715,6 +740,11 @@ model User {
   helpPostCommentVotes HelpPostCommentVote[]
 
   email            String    @unique
+  institutionEmail String?   @unique
+  institutionDomain String?
+  institutionVerifiedAt DateTime?
+  institutionVerificationTokenHash String? @unique
+  institutionVerificationExpiresAt DateTime?
   name             String?
   avatarUrl        String?
   handle           String?   @unique
@@ -737,6 +767,7 @@ model User {
   isDeleted      Boolean        @default(false)
   reportCount    Int            @default(0)
   activities     UserActivity[]
+  institutionDomainRequestsReviewed InstitutionDomainRequest[] @relation("InstitutionDomainRequestReviewer")
 
   articleCount        Int @default(0)
   socialPostCount     Int @default(0)

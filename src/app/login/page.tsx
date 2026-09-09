@@ -10,6 +10,7 @@ import { Suspense } from "react";
 interface LoginPageProps {
   searchParams: Promise<{
     message?: string;
+    error?: string;
     callbackUrl?: string;
     type?: string;
   }>;
@@ -21,7 +22,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect("/");
   }
 
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, error } = await searchParams;
   let returnUrl = callbackUrl || "/";
 
   if (returnUrl === "/") {
@@ -36,7 +37,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <LoginForm returnUrl={returnUrl} />
+      <LoginForm returnUrl={returnUrl} initialError={error} />
     </Suspense>
   );
 }

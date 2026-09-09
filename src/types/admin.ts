@@ -192,6 +192,21 @@ export type AdminAppealItem = {
   entityStatus?: "ACTIVE" | "FROZEN" | "DELETED";
 };
 
+export type InstitutionDomainRequestItem = {
+  id: string;
+  domain: string;
+  institutionName: string;
+  requesterEmail: string;
+  website: string | null;
+  details: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewNote: string | null;
+  reviewedById: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 /** A single Report row joined with the reporter's profile, surfaced in the
  *  admin inspection drawer so moderators see WHO reported what and WHY. */
 export type ReportWithReporter = {

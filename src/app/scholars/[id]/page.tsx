@@ -7,7 +7,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
 import { ReportMenu } from "@/components/cards/ReportMenu";
-import { Star } from "lucide-react";
+import { BadgeCheck, Star } from "lucide-react";
 import { FollowerCount } from "./FollowerCount";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
@@ -64,7 +64,15 @@ export default async function ScholarProfile({
 
             <div className="min-w-0">
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-              {profile.name}
+              <span className="inline-flex items-center gap-2">
+                {profile.name}
+                {profile.institutionVerifiedAt && (
+                  <BadgeCheck
+                    className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                    aria-label="Institutional email verified"
+                  />
+                )}
+              </span>
             </h1>
             <p className="font-medium text-blue-700 dark:text-blue-300">
               {profile.handle ? `@${profile.handle}` : "No handle set"}

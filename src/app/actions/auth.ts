@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getBaseUrl } from "@/lib/url";
+import prisma from "@/lib/db";
 import type { Duration } from "@upstash/ratelimit";
 import {
   checkRateLimit,
@@ -20,10 +21,11 @@ import {
   normalizeEmail,
   validateEmailFormat,
 } from "@/lib/email-normalizer";
+import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
 
 type AuthResult =
   | { success: true; redirect?: string; message?: string; url?: string }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: "EMAIL_DOMAIN_NOT_ALLOWED" };
 
 function mapAuthError(message: string): string {
   const lower = message.toLowerCase();
@@ -145,6 +147,15 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Please enter a valid email address." };
   }
 
+  if (!isAllowedEmailDomain(email)) {
+    return {
+      success: false,
+      code: "EMAIL_DOMAIN_NOT_ALLOWED",
+      error:
+        "This email domain is not approved yet. You can request your institution to be added.",
+    };
+  }
+
   const rateLimitResult = await limitByEmailAndIp(
     "auth:signup",
     email,
@@ -189,6 +200,76 @@ export async function signup(formData: FormData): Promise<AuthResult> {
   return {
     success: true,
     message: "Check your email to confirm your account.",
+  };
+}
+
+export async function requestEmailChange(
+  formData: FormData,
+): Promise<{ success: true; message: string } | { success: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return { success: false, error: "You must be signed in to change your email." };
+  }
+
+  const newEmail = normalizeEmail(readAuthField(formData, "email"));
+  if (!validateEmailFormat(newEmail) || newEmail.length > MAX_AUTH_EMAIL) {
+    return { success: false, error: "Please enter a valid email address." };
+  }
+
+  if (normalizeEmail(user.email) === newEmail) {
+    return { success: false, error: "That is already your primary email address." };
+  }
+
+  if (!isAllowedEmailDomain(newEmail)) {
+    return {
+      success: false,
+      error: "That email domain is not approved for ScholarBase.",
+    };
+  }
+
+  const verifiedEmailOwner = await prisma.user.findUnique({
+    where: { institutionEmail: newEmail },
+    select: { id: true },
+  });
+  if (verifiedEmailOwner && verifiedEmailOwner.id !== user.id) {
+    return {
+      success: false,
+      error: "That email is already verified on another ScholarBase account.",
+    };
+  }
+
+  const rateLimitResult = await limitByEmailAndIp(
+    "auth:change-email",
+    newEmail,
+    2,
+    5,
+    "1 h",
+  );
+  if (rateLimitResult) {
+    return {
+      success: false,
+      error: rateLimitResult.success ? RATE_LIMIT_ERROR : rateLimitResult.error,
+    };
+  }
+
+  const baseUrl = await getBaseUrl();
+  const { error } = await supabase.auth.updateUser(
+    { email: newEmail },
+    { emailRedirectTo: `${baseUrl}/auth/callback?next=/auth/confirmed` },
+  );
+
+  if (error) {
+    return { success: false, error: mapAuthError(error.message) };
+  }
+
+  return {
+    success: true,
+    message:
+      "Confirmation links were sent. Confirm the change from the required email inboxes.",
   };
 }
 

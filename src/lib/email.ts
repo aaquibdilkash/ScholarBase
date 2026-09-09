@@ -88,3 +88,60 @@ export async function sendScholarInviteEmail({
         return { success: false, error };
     }
 }
+
+function escapeHtml(value: string): string {
+    return value.replace(/[&<>'"]/g, (character) => {
+        const entities: Record<string, string> = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "'": "&#39;",
+            '"': "&quot;",
+        };
+        return entities[character];
+    });
+}
+
+export async function sendInstitutionVerificationEmail({
+    recipientEmail,
+    recipientName,
+    verificationUrl,
+}: {
+    recipientEmail: string;
+    recipientName: string | null;
+    verificationUrl: string;
+}) {
+    const safeName = escapeHtml(recipientName || "Scholar");
+    const safeUrl = escapeHtml(verificationUrl);
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: "ScholarBase <notifications@scholarbase.app>",
+            to: [recipientEmail],
+            subject: "Verify your institutional email on ScholarBase",
+            html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+          <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; border-top: 4px solid #2563eb;">
+            <h1 style="margin-top: 0; color: #0f172a; font-size: 22px;">Verify your institutional email</h1>
+            <p style="color: #475569; font-size: 16px; line-height: 1.6;">Hi ${safeName},</p>
+            <p style="color: #475569; font-size: 16px; line-height: 1.6;">Click the button below to verify that you control this institutional email address and receive the ScholarBase institutional badge.</p>
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${safeUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Verify institutional email</a>
+            </div>
+            <p style="color: #64748b; font-size: 14px; line-height: 1.5;">This link expires in 20 minutes and can be used only once. If you did not request this, you can ignore the email.</p>
+          </div>
+        </div>
+      `,
+        });
+
+        if (error) {
+            console.error("Failed to send institution verification email:", error);
+            return { success: false, error };
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.error("Failed to send institution verification email:", error);
+        return { success: false, error };
+    }
+}

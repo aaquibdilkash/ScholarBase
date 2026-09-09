@@ -9,6 +9,7 @@ import {
   AdminContentItem,
   AdminPage,
   AdminAppealItem,
+  InstitutionDomainRequestItem,
   CommentModel,
   ContentMap,
   DeleteMapValue,
@@ -210,6 +211,85 @@ export async function getAdminStats() {
     totalContent,
     sections,
   };
+}
+
+export async function getAdminInstitutionDomainRequests(
+  page = 1,
+  status: "PENDING" | "APPROVED" | "REJECTED" | "ALL" = "PENDING",
+  pageSize: number = ADMIN_PAGE_SIZE,
+): Promise<AdminPage<InstitutionDomainRequestItem>> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const safePage = Number.isFinite(page) ? Math.max(1, Math.floor(page)) : 1;
+  const safePageSize = Math.min(
+    50,
+    Math.max(1, Number.isFinite(pageSize) ? Math.floor(pageSize) : ADMIN_PAGE_SIZE),
+  );
+  const skip = (safePage - 1) * safePageSize;
+  const safeStatus =
+    status === "PENDING" ||
+    status === "APPROVED" ||
+    status === "REJECTED" ||
+    status === "ALL"
+      ? status
+      : "PENDING";
+  const where = safeStatus === "ALL" ? undefined : { status: safeStatus };
+
+  const [rows, total] = await Promise.all([
+    prisma.institutionDomainRequest.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: safePageSize,
+    }),
+    prisma.institutionDomainRequest.count({ where }),
+  ]);
+
+  return {
+    items: rows as InstitutionDomainRequestItem[],
+    total,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
+}
+
+export async function reviewInstitutionDomainRequest(
+  requestId: string,
+  status: "APPROVED" | "REJECTED",
+  reviewNote?: string,
+): Promise<{ success: true; data: InstitutionDomainRequestItem }> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  if (status !== "APPROVED" && status !== "REJECTED") {
+    throw new Error("Invalid institution request status.");
+  }
+
+  const id = typeof requestId === "string" ? requestId.trim() : "";
+  if (!id) throw new Error("Invalid institution request.");
+
+  const safeReviewNote =
+    typeof reviewNote === "string" ? reviewNote.trim().slice(0, 512) : "";
+
+  const updated = await prisma.institutionDomainRequest.update({
+    where: { id },
+    data: {
+      status,
+      reviewNote: safeReviewNote || null,
+      reviewedById: user.id,
+      reviewedAt: new Date(),
+    },
+  });
+
+  return { success: true, data: updated as InstitutionDomainRequestItem };
 }
 
 // Get appeals for the admin Appeals section — paginated, newest first.

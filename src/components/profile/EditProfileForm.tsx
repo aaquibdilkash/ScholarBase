@@ -6,6 +6,7 @@ import {
   updateProfile,
   isHandleAvailable as checkHandle,
 } from "@/app/actions/profile";
+import { requestInstitutionVerification } from "@/app/actions/institution-verification";
 import { uploadImage } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -40,6 +41,9 @@ type UserData = {
   orcidUrl: string | null;
   linkedinUrl: string | null;
   googleScholarUrl: string | null;
+  institutionEmail: string | null;
+  institutionDomain: string | null;
+  institutionVerifiedAt: Date | null;
 };
 
 // Simple debounce hook
@@ -91,6 +95,12 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const { toast } = useToast();
 
   const [bio, setBio] = useState(user.bio || "");
+  const [institutionEmail, setInstitutionEmail] = useState("");
+  const [institutionVerificationMessage, setInstitutionVerificationMessage] =
+    useState<string | null>(null);
+  const [institutionVerificationError, setInstitutionVerificationError] =
+    useState<string | null>(null);
+  const [verifyingInstitution, setVerifyingInstitution] = useState(false);
 
   const debouncedCheckHandle = useDebounce(async (h: string) => {
     if (h.length > 2) {
@@ -178,6 +188,30 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       toast(msg, "error");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleInstitutionVerification() {
+    setInstitutionVerificationMessage(null);
+    setInstitutionVerificationError(null);
+    setVerifyingInstitution(true);
+
+    try {
+      const formData = new FormData();
+      formData.set("institutionEmail", institutionEmail);
+      const result = await requestInstitutionVerification(formData);
+
+      if (result.success) {
+        setInstitutionVerificationMessage(result.message);
+      } else {
+        setInstitutionVerificationError(result.error);
+      }
+    } catch {
+      setInstitutionVerificationError(
+        "We could not start verification. Please try again later.",
+      );
+    } finally {
+      setVerifyingInstitution(false);
     }
   }
 
@@ -321,6 +355,48 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           Upload a profile photo. Recommended: square image, max 5MB.
         </p>
         <input type="hidden" name="avatarUrl" value={avatarUrl} />
+      </div>
+
+      <div className="border-t border-slate-200/70 pt-6 dark:border-slate-800">
+        <label className="sb-label !mb-1">Institutional verification</label>
+        <p className="mb-4 text-sm text-slate-500">
+          Verify an institutional email without changing your ScholarBase sign-in email.
+        </p>
+        {user.institutionVerifiedAt ? (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300">
+            <p className="font-semibold">Institutional email verified</p>
+            <p className="mt-1">{user.institutionEmail}</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <input
+              type="email"
+              value={institutionEmail}
+              onChange={(event) => setInstitutionEmail(event.target.value)}
+              className="sb-input px-3 py-2 sm:px-3 sm:py-2"
+              placeholder="you@university.edu"
+              maxLength={128}
+            />
+            <button
+              type="button"
+              onClick={handleInstitutionVerification}
+              disabled={verifyingInstitution || institutionEmail.trim().length === 0}
+              className="sb-button-soft"
+            >
+              {verifyingInstitution ? "Sending..." : "Send verification email"}
+            </button>
+            {institutionVerificationMessage && (
+              <p className="text-sm text-emerald-600" role="status">
+                {institutionVerificationMessage}
+              </p>
+            )}
+            {institutionVerificationError && (
+              <p className="text-sm text-red-600" role="alert">
+                {institutionVerificationError}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="border-t border-slate-200/70 pt-6 dark:border-slate-800">

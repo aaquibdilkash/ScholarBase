@@ -8,6 +8,7 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 import EditProfileForm from "@/components/profile/EditProfileForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { UpdateEmailForm } from "@/components/auth/UpdateEmailForm";
 
 export default async function ScholarSettingsPage({
   params,
@@ -72,6 +73,7 @@ export default async function ScholarSettingsPage({
               Update Password
             </Link>
           </div>
+          <UpdateEmailForm currentEmail={profile.email} />
         </section>
       </div>
     </CreateOrEditPageShell>

@@ -22,6 +22,8 @@ export const getProfile = cache(
         handle: true,
         avatarUrl: true,
         bio: true,
+        institutionDomain: true,
+        institutionVerifiedAt: true,
         githubUrl: true,
         orcidUrl: true,
         linkedinUrl: true,
