@@ -5,7 +5,6 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getBaseUrl } from "@/lib/url";
-import prisma from "@/lib/db";
 import type { Duration } from "@upstash/ratelimit";
 import {
   checkRateLimit,
@@ -88,15 +87,6 @@ async function limitByEmailAndIp(
 
 function normalizeAuthEmail(email: string) {
   return email.trim().toLowerCase();
-}
-
-export async function checkUserExists(email: string): Promise<boolean> {
-  const normalizedEmail = normalizeAuthEmail(email);
-  const user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-    select: { id: true },
-  });
-  return !!user;
 }
 
 function readAuthField(formData: FormData, key: string): string {

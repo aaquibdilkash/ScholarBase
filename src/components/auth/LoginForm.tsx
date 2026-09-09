@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { login, signup, signInWithGoogle, checkUserExists } from "@/app/actions/auth";
+import { login, signup, signInWithGoogle } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 import { useToast } from "@/components/ui/Toast";
@@ -96,15 +96,6 @@ export function LoginForm({ returnUrl }: { returnUrl: string }) {
             const submitter = event.nativeEvent.submitter as HTMLButtonElement | null;
             const action = submitter?.value === "register" ? "register" : "signin";
             setPendingAction(action);
-
-            if (action === "register") {
-              const exists = await checkUserExists(email);
-              if (exists) {
-                toast("Scholar already registered. Please sign in instead.", "error");
-                setPendingAction(null);
-                return;
-              }
-            }
 
             const result = await (action === "register" ? signup : login)(new FormData(event.currentTarget));
             if (!result.success) {
