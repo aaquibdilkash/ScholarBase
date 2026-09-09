@@ -45,8 +45,9 @@ export default async function ScholarProfile({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
-        <div className="flex items-center gap-4 sm:gap-6">
+      <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-x-8 lg:gap-y-0">
+        <div className="lg:row-span-2 lg:min-w-0">
+          <div className="flex items-center gap-4 sm:gap-6">
           <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
             {profile.avatarUrl ? (
               <UserAvatar
@@ -61,7 +62,7 @@ export default async function ScholarProfile({
             )}
           </div>
 
-          <div className="min-w-0">
+            <div className="min-w-0">
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
               {profile.name}
             </h1>
@@ -76,10 +77,11 @@ export default async function ScholarProfile({
                 currentUserId={currentUser?.id}
               />
             </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-x-3 text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-center gap-x-3 text-sm text-slate-500 dark:text-slate-400 lg:justify-start">
           <span className="inline-flex items-center gap-1">
             <Star className="h-3.5 w-3.5 text-amber-500" />
             {profile.reputation} reputation
@@ -103,7 +105,7 @@ export default async function ScholarProfile({
           </div>
         </div>
 
-        <div className="flex w-full justify-end">
+        <div className="flex w-full justify-end lg:w-auto lg:justify-self-end">
           {isOwnProfile ? (
             <div className="flex w-full justify-end sm:w-auto">
               <Link
