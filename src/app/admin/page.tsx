@@ -30,9 +30,9 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="sb-shell py-3 sm:py-8">
-        <div className="mb-6 sm:mb-8">
+    <main className="-mx-2 -mt-2 min-h-screen bg-slate-50 dark:bg-slate-950 sm:mx-0 sm:mt-0">
+      <div className="w-full px-2 py-3 sm:px-6 sm:py-8 lg:px-8">
+        <div className="mb-6 px-4 sm:mb-8 sm:px-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
             Admin Dashboard
           </h1>

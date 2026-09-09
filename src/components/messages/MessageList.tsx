@@ -466,7 +466,7 @@ export function MessageList({
   if (!user || !userId) return null;
 
   return (
-    <div ref={containerRef} className="space-y-4 h-full overflow-y-auto px-1.5">
+    <div ref={containerRef} className="space-y-4 h-full overflow-y-auto px-0.5 sm:px-1.5">
       {hasMore && (
         <div
           ref={observerTarget}

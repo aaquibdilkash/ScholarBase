@@ -565,7 +565,7 @@ export default function ConversationPage({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 sb-navbar-bg px-4 dark:border-slate-800">
+      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 sb-navbar-bg px-2 dark:border-slate-800 sm:px-4">
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
@@ -654,7 +654,7 @@ export default function ConversationPage({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-6">
-        <div className="px-4">
+        <div className="px-2 sm:px-4">
         <MessageList
           conversationId={conversation.id}
           initialMessages={conversation.messages}

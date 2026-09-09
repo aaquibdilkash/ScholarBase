@@ -209,7 +209,7 @@ export function MessageInputForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4 dark:border-slate-800">
+    <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-1.5 sm:p-4 dark:border-slate-800">
       {replyingTo && !isDisabled && (
         <div
           className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-blue-500 bg-blue-50/70 px-3 py-2 dark:bg-slate-800/80"
