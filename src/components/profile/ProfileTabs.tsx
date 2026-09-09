@@ -572,7 +572,7 @@ export default function ProfileTabs({
                     {section.title} ({count})
                   </h2>
                   {items.length > 0 ? (
-                    <div className="relative">
+                    <div className="relative px-1">
                       <Carousel
                         onLoadMore={
                           sectionHasMoreItems ? () => loadMore(section.key) : undefined

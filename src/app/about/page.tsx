@@ -45,8 +45,8 @@ const features = [
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen py-12 sm:py-16 md:py-20">
-      <div className="sb-shell">
+    <main className="min-h-screen py-6 sm:py-16 md:py-20">
+      <div className="w-full px-2 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           {/* Hero */}
           <div className="text-center mb-12 sm:mb-16">

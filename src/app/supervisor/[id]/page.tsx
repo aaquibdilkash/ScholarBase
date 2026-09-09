@@ -128,7 +128,7 @@ export default async function SupervisorPage({
       }
     >
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">
-        <div className="flex min-w-0 w-full flex-1 flex-col items-start justify-between gap-4 sm:gap-6 md:flex-row md:items-center">
+        <div className="flex min-w-0 w-full flex-1 flex-row items-start justify-between gap-4 sm:gap-6">
           <div className="min-w-0 w-full flex-1">
             <h1 className="max-w-full break-words text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-1.5 sm:mb-2">
               {supervisor.name}
@@ -149,7 +149,7 @@ export default async function SupervisorPage({
             )}
           </div>
 
-          <div className="flex w-full shrink-0 justify-center md:w-auto md:justify-end">
+          <div className="flex w-auto shrink-0 justify-end">
             <div className="flex items-center gap-3">
               {user?.id === supervisor.authorId && (
                 <OwnerActionsDropdown

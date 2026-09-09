@@ -115,7 +115,7 @@ export function ReportMenu({
             // — opening upward guarantees the menu is never clipped.
             // Pass direction="down" when placed near the top of the viewport.
             className={clsx(
-              "sb-menu absolute left-0 z-50 w-44",
+              "sb-menu absolute right-0 z-50 w-44",
               direction === "up" ? "bottom-full mb-2" : "top-full mt-2",
             )}
           >

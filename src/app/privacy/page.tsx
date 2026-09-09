@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-[calc(100vh-8rem)] py-12">
-      <div className="mx-auto max-w-4xl px-4">
+    <div className="min-h-[calc(100vh-8rem)] py-6 sm:py-12">
+      <div className="mx-auto max-w-4xl px-2 sm:px-4">
         <h1 className="sb-heading text-center">Privacy Policy</h1>
         <p className="sb-subtitle mt-4 text-center">
           Last updated: July 29, 2026

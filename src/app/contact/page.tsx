@@ -9,9 +9,9 @@ export const metadata = {
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen py-12 sm:py-16 md:py-20">
-      <div className="sb-shell">
-        <div className="mx-auto max-w-2xl">
+    <main className="min-h-screen py-6 sm:py-16 md:py-20">
+      <div className="w-full px-0 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl">
           <div className="text-center mb-10 sm:mb-12">
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-950 dark:text-slate-50 mb-3 sm:mb-4">
               Get in Touch

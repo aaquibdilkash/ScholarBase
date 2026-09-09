@@ -70,7 +70,14 @@ function useDebounce<A extends unknown[]>(
 export default function EditProfileForm({ user }: { user: UserData }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState(user.name || "");
   const [handle, setHandle] = useState(user.handle || "");
+  const [githubUrl, setGithubUrl] = useState(user.githubUrl || "");
+  const [orcidUrl, setOrcidUrl] = useState(user.orcidUrl || "");
+  const [linkedinUrl, setLinkedinUrl] = useState(user.linkedinUrl || "");
+  const [googleScholarUrl, setGoogleScholarUrl] = useState(
+    user.googleScholarUrl || "",
+  );
   const [isHandleAvailable, setIsHandleAvailable] = useState<boolean | null>(
     null,
   );
@@ -177,7 +184,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="sb-surface-strong space-y-6 p-8 md:p-10"
+      className="space-y-6 px-0 py-4 sm:px-0 sm:py-6 md:px-0 md:py-8"
     >
       {error && (
         <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
@@ -186,37 +193,38 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       )}
 
        <div>
-         <label className="sb-label inline-flex items-center gap-1.5">
+         <label className="sb-label !mb-1 inline-flex items-center gap-1.5">
            Full Name
            <InfoTooltip message={PROFILE_NAME_TIP} />
          </label>
         <input
           name="name"
-          defaultValue={user.name || ""}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           required
-          className="sb-input"
+          className="sb-input px-3 py-2 sm:px-3 sm:py-2"
           placeholder="e.g. Dr. Jane Smith"
           maxLength={MAX_PROFILE_NAME}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {MAX_PROFILE_NAME} characters max
+          {name.length}/{MAX_PROFILE_NAME} characters
         </div>
       </div>
 
        <div>
-         <label className="sb-label inline-flex items-center gap-1.5">
+         <label className="sb-label !mb-1 inline-flex items-center gap-1.5">
            Scholar Handle
            <InfoTooltip message={PROFILE_HANDLE_TIP} />
          </label>
         <div className="relative">
-          <span className="absolute left-4 top-3.5 font-medium text-slate-400">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-medium text-slate-400">
             @
           </span>
           <input
             name="handle"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
-            className={`sb-input pl-9 ${
+            className={`sb-input px-3 py-2 !pl-9 sm:px-3 sm:py-2 ${
               !isHandleValid
                 ? "border-red-500"
                 : isHandleAvailable === true
@@ -259,7 +267,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       </div>
 
        <div>
-         <label className="sb-label inline-flex items-center gap-1.5">
+         <label className="sb-label !mb-1 inline-flex items-center gap-1.5">
            Bio / About Me
            <InfoTooltip message={PROFILE_BIO_TIP} />
          </label>
@@ -271,8 +279,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         <input type="hidden" name="bio" value={bio} />
       </div>
 
-       <div>
-         <label className="sb-label inline-flex items-center gap-1.5">
+       <div className="border-t border-slate-200/70 pt-6 dark:border-slate-800">
+         <label className="sb-label !mb-1 inline-flex items-center gap-1.5">
            Avatar
            <InfoTooltip message={PROFILE_AVATAR_TIP} />
          </label>
@@ -315,8 +323,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         <input type="hidden" name="avatarUrl" value={avatarUrl} />
       </div>
 
-      <div>
-        <label className="sb-label">Profile Links</label>
+      <div className="border-t border-slate-200/70 pt-6 dark:border-slate-800">
+        <label className="sb-label !mb-1">Profile Links</label>
         <p className="mb-4 text-sm text-slate-500">
           Add your academic and professional profile links to be shown on your
           profile page.
@@ -329,13 +337,14 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="githubUrl"
-              defaultValue={user.githubUrl || ""}
-              className="sb-input"
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              className="sb-input px-3 py-2 sm:px-3 sm:py-2"
               placeholder="https://github.com/janesmith"
               maxLength={MAX_PROFILE_URL}
             />
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {MAX_PROFILE_URL} characters max
+              {githubUrl.length}/{MAX_PROFILE_URL} characters
             </div>
           </div>
            <div>
@@ -345,13 +354,14 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="orcidUrl"
-              defaultValue={user.orcidUrl || ""}
-              className="sb-input"
+              value={orcidUrl}
+              onChange={(e) => setOrcidUrl(e.target.value)}
+              className="sb-input px-3 py-2 sm:px-3 sm:py-2"
               placeholder="https://orcid.org/0000-0001-2345-6789"
               maxLength={MAX_PROFILE_URL}
             />
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {MAX_PROFILE_URL} characters max
+              {orcidUrl.length}/{MAX_PROFILE_URL} characters
             </div>
           </div>
            <div>
@@ -361,13 +371,14 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="linkedinUrl"
-              defaultValue={user.linkedinUrl || ""}
-              className="sb-input"
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              className="sb-input px-3 py-2 sm:px-3 sm:py-2"
               placeholder="https://www.linkedin.com/in/janesmith"
               maxLength={MAX_PROFILE_URL}
             />
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {MAX_PROFILE_URL} characters max
+              {linkedinUrl.length}/{MAX_PROFILE_URL} characters
             </div>
           </div>
            <div>
@@ -377,13 +388,14 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="googleScholarUrl"
-              defaultValue={user.googleScholarUrl || ""}
-              className="sb-input"
+              value={googleScholarUrl}
+              onChange={(e) => setGoogleScholarUrl(e.target.value)}
+              className="sb-input px-3 py-2 sm:px-3 sm:py-2"
               placeholder="https://scholar.google.com/citations?user=..."
               maxLength={MAX_PROFILE_URL}
             />
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {MAX_PROFILE_URL} characters max
+              {googleScholarUrl.length}/{MAX_PROFILE_URL} characters
             </div>
           </div>
         </div>

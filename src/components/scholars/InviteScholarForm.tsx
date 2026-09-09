@@ -97,7 +97,7 @@ export function InviteScholarForm() {
     <form
       ref={formRef}
       action={handleFormAction}
-      className="space-y-5 sb-card p-6 md:p-8"
+      className="space-y-5 sb-card p-3 sm:p-6 md:p-8"
     >
       {state.message && !state.success && (
         <div className="p-3 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-500/30 rounded-md">

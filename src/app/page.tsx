@@ -145,7 +145,7 @@ export default async function HomePage() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-0 py-6 sm:py-8 md:py-10">
+    <div className="mx-auto max-w-6xl px-0 py-3 sm:py-8 md:py-10">
       {/* Hero Section */}
       <section className="sb-surface overflow-hidden">
         <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">

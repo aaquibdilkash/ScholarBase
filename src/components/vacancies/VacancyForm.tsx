@@ -133,7 +133,7 @@ export default function VacancyForm({
 return (
     <form
       onSubmit={onSubmit}
-      className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+      className="sb-surface-strong flex flex-col gap-5 p-4 sm:p-6 md:p-10"
     >
          <CautionNote />
       <div>

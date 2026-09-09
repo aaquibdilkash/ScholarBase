@@ -335,7 +335,7 @@ export default function SurveyForm({
         <form onSubmit={handleFormSubmit} className="space-y-6">
       <CautionNote />
       {/* Survey Details Section */}
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Survey Details</h2>
 
          <div>
@@ -485,7 +485,7 @@ export default function SurveyForm({
         </div>
 
         {/* Sections Section */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-slate-900">Sections</h2>
             {blocks.length < MAX_SURVEY_BLOCKS && (
@@ -568,7 +568,7 @@ export default function SurveyForm({
         </div>
 
         {/* Questions Section */}
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
             <button

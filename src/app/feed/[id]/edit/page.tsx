@@ -136,7 +136,7 @@ export default function EditPostPage({
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-2xl py-12 px-4 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-2xl px-2 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="flex items-center justify-center py-20">
           <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
         </div>
@@ -155,7 +155,7 @@ export default function EditPostPage({
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="sb-surface-strong p-6 md:p-8 flex flex-col gap-4"
+        className="sb-surface-strong flex flex-col gap-4 p-4 sm:p-6 md:p-8"
       >
         <MentionComposer
           name="content"

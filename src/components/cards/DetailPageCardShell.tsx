@@ -88,7 +88,7 @@ export default function DetailPageCardShell({
   return (
     <main
       className={clsx(
-        "mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8 md:px-8 md:py-10",
+        "mx-auto w-full max-w-3xl px-0 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10",
         className,
       )}
     >
@@ -99,7 +99,7 @@ export default function DetailPageCardShell({
         ← {backLabel}
       </Link>
 
-      <div className={clsx(bodyClassName ?? "sb-card p-4 sm:p-6 md:p-8")}>
+      <div className={clsx(bodyClassName ?? "sb-card p-6 sm:p-6 md:p-8")}>
         {/* Moderation banner — frozen content is visible but read-only */}
         {isFrozen && (
           <div className="mb-5 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
@@ -109,7 +109,7 @@ export default function DetailPageCardShell({
           </div>
         )}
         {/* Common header */}
-        <div className="flex items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
+        <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
             {authorHref ? (
               <Link href={authorHref} className="shrink-0">
@@ -173,7 +173,7 @@ export default function DetailPageCardShell({
           {bodyBottomContent}
         </div>
 
-        <div className="flex items-center justify-between text-xs text-slate-400 mt-2">
+        <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
           <span
             suppressHydrationWarning
             className="font-semibold text-slate-400"
@@ -191,8 +191,8 @@ export default function DetailPageCardShell({
         </div>
 
         {/* Common footer — votes/comments left, Share + Report far right */}
-        <div className="border-t border-slate-200 pt-2 mt-2 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-6">
+        <div className="mt-2 flex items-center justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-800 sm:gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             {/* Frozen: keep the vote button visible but disabled (VoteButton
                 supports the `frozen` prop, injected here for detail pages). */}
             {isFrozen && footerVoteButton && isValidElement(footerVoteButton)

@@ -227,7 +227,7 @@ export default function ContributionForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="sb-surface-strong flex flex-col gap-5 p-8 md:p-10"
+      className="sb-surface-strong flex flex-col gap-5 p-4 sm:p-6 md:p-10"
     >
       {!isApprovedEdit && (
         <div className="rounded-xl border border-blue-100/50 bg-blue-50/50 p-4 text-sm dark:border-blue-500/20 dark:bg-blue-500/10">

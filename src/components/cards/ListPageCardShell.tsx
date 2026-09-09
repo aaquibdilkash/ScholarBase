@@ -88,7 +88,7 @@ export default function ListPageCardShell({
   const showManagementControls = Boolean(managementControls);
 
   return (
-    <div className={clsx("sb-card p-5 sm:p-6 md:p-8", className)}>
+    <div className={clsx("sb-card min-w-0 w-full p-6 sm:p-6 md:p-8", className)}>
       {/* Common header */}
       <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
         <div className="flex min-w-0 flex-1 items-center gap-3">

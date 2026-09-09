@@ -33,7 +33,7 @@ export default function CreateOrEditPageShell({
   return (
     <main
       className={clsx(
-        `mx-auto w-full ${maxWidthClass} py-6 sm:py-8 px-4 sm:px-6 lg:px-8`,
+        `mx-auto w-full ${maxWidthClass} py-3 px-0 sm:py-8 sm:px-6 lg:px-8`,
         className,
       )}
     >

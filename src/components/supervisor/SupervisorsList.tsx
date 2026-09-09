@@ -84,7 +84,7 @@ export function SupervisorsList({
             currentUserId={currentUserId}
           />
         )}
-        className="grid gap-6 md:grid-cols xl:grid-cols"
+        className="grid min-w-0 w-full gap-6 md:grid-cols xl:grid-cols"
         emptyState={
           <div className="flex flex-col items-center rounded-[28px] border border-dashed border-slate-200 bg-white/80 px-6 py-16 text-center shadow-sm">
             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">

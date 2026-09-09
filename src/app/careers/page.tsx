@@ -68,9 +68,9 @@ const whatYouGet = [
 
 export default function CareersPage() {
   return (
-    <main className="min-h-screen py-12 sm:py-16 md:py-20">
-      <div className="sb-shell">
-        <div className="mx-auto max-w-3xl">
+    <main className="min-h-screen py-6 sm:py-16 md:py-20">
+      <div className="w-full px-0 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl">
           {/* Hero */}
           <div className="text-center mb-12 sm:mb-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-950 dark:text-slate-50 mb-4 sm:mb-6">

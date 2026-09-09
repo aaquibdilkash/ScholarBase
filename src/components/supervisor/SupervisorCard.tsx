@@ -107,7 +107,7 @@ export function SupervisorCard({
       )}
 
       {recommendationCount > 0 ? (
-        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white p-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3">
           <StarRating rating={avgRating} size="sm" />
           <div className="text-sm">
             <span className="font-semibold">{avgRating.toFixed(1)}</span>

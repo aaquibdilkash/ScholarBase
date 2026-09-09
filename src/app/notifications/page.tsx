@@ -29,7 +29,7 @@ export default async function NotificationsPage() {
   ).length;
 
   return (
-    <main className="mx-auto max-w-4xl py-6">
+    <main className="mx-auto max-w-4xl py-3 sm:py-6">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <div className="mb-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">

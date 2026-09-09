@@ -4,9 +4,10 @@ export const metadata: Metadata = buildNoindexMetadata("Account Settings - Schol
 import { createClient } from "@/utils/supabase/server";
 import prisma from "@/lib/db";
 import { redirect } from "next/navigation";
-import { ChevronLeft, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import Link from "next/link";
 import EditProfileForm from "@/components/profile/EditProfileForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
 export default async function ScholarSettingsPage({
   params,
@@ -36,54 +37,43 @@ export default async function ScholarSettingsPage({
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6">
-      <Link
-        href={`/scholars/${id}`}
-        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        Back to Profile
-      </Link>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-          Account Settings
-        </h1>
-        <p className="mt-2 text-slate-600 dark:text-slate-400">
-          Manage your profile and account security.
-        </p>
-      </div>
-
+    <CreateOrEditPageShell
+      title="Account Settings"
+      description="Manage your profile and account security."
+      backHref={`/scholars/${id}`}
+      backLabel="← Back to Profile"
+      maxWidth="lg"
+    >
       <div className="mb-8 space-y-6">
-        <div className="sb-surface-strong p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4 mx-1">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Profile Information</h2>
-              <p className="my-1 text-sm text-slate-500 dark:text-slate-400">
-                Update your name, handle, bio, avatar, and profile links.
-              </p>
-            </div>
+        <section className="sb-surface-strong rounded-2xl p-4 sm:p-6">
+          <div className="mb-2">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              Profile Information
+            </h2>
+            <p className="my-1 text-sm text-slate-500 dark:text-slate-400">
+              Update your name, handle, bio, avatar, and profile links.
+            </p>
           </div>
           <EditProfileForm user={profile} />
-        </div>
-        <div className="sb-surface-strong p-6">
+        </section>
+
+        <section className="sb-surface-strong rounded-2xl p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Security</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                Security
+              </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 Manage your password and account access.
               </p>
             </div>
-            <Link
-              href="/auth/update-password"
-              className="sb-button-primary gap-2"
-            >
+            <Link href="/auth/update-password" className="sb-button-primary gap-2">
               <Lock className="h-4 w-4" aria-hidden="true" />
               Update Password
             </Link>
           </div>
-        </div>
+        </section>
       </div>
-    </main>
+    </CreateOrEditPageShell>
   );
 }

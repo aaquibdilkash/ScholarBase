@@ -186,7 +186,7 @@ export default async function RootLayout({
 
               <Navbar user={user} unreadCount={unreadNotifications} />
 
-              <main className="sb-shell w-full min-w-0 flex-1 grow py-8 md:py-10">
+              <main className="sb-shell w-full min-w-0 flex-1 grow py-4 md:py-10">
                 {children}
               </main>
 

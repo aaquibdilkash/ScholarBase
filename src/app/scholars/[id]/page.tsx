@@ -44,7 +44,7 @@ export default async function ScholarProfile({
   const { isFollowing, isOwnProfile } = profile;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6">
+    <main className="mx-auto max-w-5xl px-0 py-3 sm:px-4 sm:py-6">
       <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-x-8 lg:gap-y-0">
         <div className="lg:row-span-2 lg:min-w-0">
           <div className="flex items-center gap-4 sm:gap-6">
