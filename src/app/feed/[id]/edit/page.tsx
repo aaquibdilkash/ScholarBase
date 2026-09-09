@@ -214,8 +214,8 @@ export default function EditPostPage({
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-          <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
+        <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 sm:w-auto">
             <ImageIcon className="h-5 w-5" />
             {uploading ? "Uploading..." : "Add Image"}
             <input
@@ -228,12 +228,12 @@ export default function EditPostPage({
             />
             <InfoTooltip message={FEED_IMAGE_TIP} />
           </label>
-          <div className="flex justify-end gap-3">
-            <FormCancelButton />
+          <div className="flex w-full gap-3 sm:w-auto">
+            <FormCancelButton className="flex-1 sm:flex-initial" />
             <button
               type="submit"
               disabled={submitting || uploading}
-              className="sb-button-accent"
+              className="sb-button-accent flex-1 sm:flex-initial"
             >
               {submitting ? (
                 <span className="inline-flex items-center gap-2">

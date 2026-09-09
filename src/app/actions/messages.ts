@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireCurrentUser, requireActiveUser } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser, getActiveUser } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { messageSelect } from "@/lib/message-select";
 import type { SubmitResult } from "@/types/form";
@@ -20,6 +20,8 @@ const directConversationSelect = {
           name: true,
           handle: true,
           avatarUrl: true,
+          isFrozen: true,
+          isDeleted: true,
           bio: true,
           reputation: true,
         },
@@ -183,6 +185,8 @@ export async function getConversation(conversationId: string, userId: string) {
               name: true,
               handle: true,
               avatarUrl: true,
+              isFrozen: true,
+              isDeleted: true,
               bio: true,
               reputation: true,
             },
@@ -377,13 +381,35 @@ export interface CreatedMessage {
   } | null;
 }
 
+export type MessageFailureCode =
+  | "BLOCKED"
+  | "FROZEN"
+  | "RECIPIENT_FROZEN"
+  | "VALIDATION"
+  | "CONVERSATION_DELETED"
+  | "UNKNOWN";
+
+export type SendMessageFailure = {
+  success: false;
+  error: string;
+  code: MessageFailureCode;
+};
+
 export async function sendMessage(
   conversationId: string,
   formData: FormData,
-): Promise<SubmitResult | CreatedMessage> {
-  const supabaseUser = await requireActiveUser(
+): Promise<SendMessageFailure | CreatedMessage> {
+  const auth = await getActiveUser(
     "Please log in to message a scholar.",
   );
+  if (auth.frozen) {
+    return {
+      success: false,
+      error: "Your account is frozen. Messaging is disabled.",
+      code: "FROZEN",
+    };
+  }
+  const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:send",
@@ -393,30 +419,38 @@ export async function sendMessage(
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: RATE_LIMIT_ERROR, code: "UNKNOWN" };
   }
 
   const body = readFormValue(formData, "body");
   const replyToId = readOptionalFormValue(formData, "replyToId");
 
-  if (!body) return { success: false, error: "Message body is required." };
+  if (!body) return { success: false, error: "Message body is required.", code: "VALIDATION" };
 
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
     select: { id: true, name: true },
   });
-  if (!user) return { success: false, error: "User not found." };
+  if (!user) return { success: false, error: "User not found.", code: "UNKNOWN" };
 
   const conversation = await prisma.conversation.findFirst({
     where: {
       id: conversationId,
       participants: { some: { userId: user.id } },
     },
-    select: { id: true, participants: { select: { userId: true } } },
+    select: {
+      id: true,
+      participants: {
+        select: {
+          userId: true,
+          user: { select: { id: true, isFrozen: true, isDeleted: true } },
+        },
+      },
+    },
   });
 
   if (!conversation)
-    return { success: false, error: "Conversation not found." };
+    return { success: false, error: "Conversation not found.", code: "CONVERSATION_DELETED" };
 
   // ⚡ BLOCK ENFORCEMENT (Issue 5): Dual-direction check — a block in either
   // direction must prevent the message from being created.
@@ -424,6 +458,20 @@ export async function sendMessage(
     (p) => p.userId !== user.id,
   );
   if (otherParticipant) {
+    if (otherParticipant.user.isDeleted) {
+      return {
+        success: false,
+        error: "This conversation is no longer available.",
+        code: "CONVERSATION_DELETED",
+      };
+    }
+    if (otherParticipant.user.isFrozen) {
+      return {
+        success: false,
+        error: "This scholar's account is currently frozen. Messaging is unavailable.",
+        code: "RECIPIENT_FROZEN",
+      };
+    }
     const block = await prisma.block.findFirst({
       where: {
         OR: [
@@ -441,6 +489,7 @@ export async function sendMessage(
           block.blockerId === user.id
             ? "You have blocked this scholar. Unblock them to send messages."
             : "You cannot message this scholar.",
+        code: "BLOCKED",
       };
     }
   }
@@ -591,7 +640,7 @@ export async function isUserBlocked(
   return !!block;
 }
 
-export async function blockUser(blockedId: string) {
+export async function blockUser(blockedId: string): Promise<SubmitResult> {
   const user = await requireCurrentUser("Please log in to block a scholar.");
   const rateLimit = await checkRateLimit({
     namespace: "message:block",
@@ -601,15 +650,30 @@ export async function blockUser(blockedId: string) {
   });
 
   if (!rateLimit.allowed) {
-    throw new Error(RATE_LIMIT_ERROR);
+    return { success: false, error: RATE_LIMIT_ERROR };
   }
 
-  if (user.id === blockedId) throw new Error("You cannot block yourself.");
-  await prisma.block.create({ data: { blockerId: user.id, blockedId } });
+  if (user.id === blockedId) {
+    return { success: false, error: "You cannot block yourself." };
+  }
+
+  try {
+    await prisma.block.create({ data: { blockerId: user.id, blockedId } });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { success: true };
+    }
+    console.error("[BlockUser Error]:", error);
+    return { success: false, error: "Could not update block status. Please try again." };
+  }
+
+  return { success: true };
 }
 
-export async function unblockUser(blockedId: string) {
-  const user = await requireActiveUser("Please log in to unblock a scholar.");
+export async function unblockUser(blockedId: string): Promise<SubmitResult> {
+  // Unblocking must remain available to frozen users so they can restore a
+  // conversation. This is a recovery action, not a messaging mutation.
+  const user = await requireCurrentUser("Please log in to unblock a scholar.");
   const rateLimit = await checkRateLimit({
     namespace: "message:unblock",
     key: user.id,
@@ -618,12 +682,14 @@ export async function unblockUser(blockedId: string) {
   });
 
   if (!rateLimit.allowed) {
-    throw new Error(RATE_LIMIT_ERROR);
+    return { success: false, error: RATE_LIMIT_ERROR };
   }
 
-  await prisma.block.delete({
-    where: { blockerId_blockedId: { blockerId: user.id, blockedId } },
+  await prisma.block.deleteMany({
+    where: { blockerId: user.id, blockedId },
   });
+
+  return { success: true };
 }
 
 export async function getBlockedUserIds(blockerId: string): Promise<string[]> {

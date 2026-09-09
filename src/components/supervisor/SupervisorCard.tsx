@@ -95,14 +95,15 @@ export function SupervisorCard({
         />
       }
     >
-      <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
+      <div className="min-w-0 w-full">
+      <h3 className="max-w-full break-words text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
         {supervisor.name}
       </h3>
-      <p className="mb-2 text-sm font-medium text-slate-600">
+      <p className="mb-2 whitespace-normal break-words text-sm font-medium text-slate-600">
         {supervisor.university}
       </p>
       {supervisor.department && (
-        <p className="mb-4 text-sm text-slate-500">{supervisor.department}</p>
+        <p className="mb-4 whitespace-normal break-words text-sm text-slate-500">{supervisor.department}</p>
       )}
 
       {recommendationCount > 0 ? (
@@ -122,6 +123,7 @@ export function SupervisorCard({
           No recommendations yet.
         </div>
       )}
+      </div>
     </ListPageCardShell>
   );
 }

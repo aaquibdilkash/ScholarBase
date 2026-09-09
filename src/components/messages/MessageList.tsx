@@ -18,6 +18,7 @@ import {
   removePendingMessage,
   updatePendingMessageStatus,
 } from "@/utils/message-outbox";
+import { type MessageFailureCode } from "@/app/actions/messages";
 
 type MessageRow = {
   id: string;
@@ -44,6 +45,7 @@ export function MessageList({
   registerAppend,
   registerAddFailed,
   onMessageReceived,
+  onMessageRejected,
   onSetReplyingTo,
 }: {
   conversationId: string;
@@ -53,6 +55,7 @@ export function MessageList({
   registerAppend?: (fn: (message: SentMessage) => void) => void;
   registerAddFailed?: (fn: (message: SentMessage) => void) => void;
   onMessageReceived?: () => void;
+  onMessageRejected?: (code: MessageFailureCode) => void;
   /** Marks a message as the active reply target in the composer. */
   onSetReplyingTo?: (message: SentMessage) => void;
 }) {
@@ -140,23 +143,18 @@ export function MessageList({
     if (registerAppend) {
       registerAppend((message: SentMessage) => {
         setMessages((current) => {
-          if (current.some((m) => m.id === message.id)) return current;
-
-          if (message.status === "sent") {
-            const optimisticIndex = current.findIndex(
-              (m) =>
+          const hasConfirmed = current.some((m) => m.id === message.id);
+          const withoutOptimisticEcho = current.filter(
+            (m) =>
+              !(
                 (m.status === "sending" || m.status === "failed") &&
                 m.body === message.body &&
-                m.senderId === message.senderId,
-            );
-            if (optimisticIndex >= 0) {
-              const next = [...current];
-              next[optimisticIndex] = message;
-              return next;
-            }
-          }
+                m.senderId === message.senderId
+              ),
+          );
+          if (hasConfirmed) return withoutOptimisticEcho;
 
-          return [...current, message];
+          return [...withoutOptimisticEcho, message];
         });
       });
     }
@@ -194,7 +192,17 @@ export function MessageList({
         formData.append("body", message.body);
         if (message.replyToId) formData.append("replyToId", message.replyToId);
         const result = await sendMessage(conversationId, formData);
-        if (result && "error" in result) throw new Error(result.error);
+        if (result && "success" in result && result.success === false) {
+          removePendingMessage(conversationId, message.id);
+          setMessages((current) =>
+            current.map((m) =>
+              m.id === message.id ? { ...m, status: "failed", retryable: false } : m,
+            ),
+          );
+          onMessageRejected?.(result.code);
+          toast(result.error, "error");
+          return;
+        }
 
         // Confirmed by the server → safe to drop from the local outbox.
         removePendingMessage(conversationId, message.id);
@@ -215,7 +223,7 @@ export function MessageList({
         toast("Still offline — message will be retried.", "error");
       }
     },
-    [conversationId, toast],
+    [conversationId, onMessageRejected, toast],
   );
 
   // ⚡ ISSUE 4: Rehydrate pending/failed messages after a refresh while
@@ -362,8 +370,10 @@ export function MessageList({
         fetchedMessage.status = "sent";
 
         setMessages((current) => {
-          // Replace any temporary optimistic "sending"/"failed" message with
-          // the real one.
+          // Reconcile by the server id first, while also removing a matching
+          // optimistic copy. This handles either arrival order: the server
+          // action response may beat Realtime, or Realtime may beat it.
+          const hasConfirmed = current.some((m) => m.id === fetchedMessage.id);
           const filtered = current.filter(
             (m) =>
               !(
@@ -372,7 +382,7 @@ export function MessageList({
                 m.senderId === fetchedMessage.senderId
               ),
           );
-          if (filtered.some((m) => m.id === fetchedMessage.id)) return current;
+          if (hasConfirmed) return filtered;
           return [...filtered, fetchedMessage];
         });
 

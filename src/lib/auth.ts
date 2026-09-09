@@ -39,7 +39,7 @@ export async function requireActiveUser(message = 'Please log in to continue.'):
 
     if (dbUser?.isFrozen) {
         throw new Error(
-            'ACCOUNT_FROZEN: Your account is restricted from posting or commenting.',
+            'ACCOUNT_FROZEN: Your account is frozen and this action is disabled.',
         )
     }
 
@@ -52,7 +52,7 @@ export async function requireActiveUser(message = 'Please log in to continue.'):
  * the UI toast always matches what the server rejects.
  */
 export const FROZEN_ACTION_MESSAGE =
-    'Your account is frozen. You are restricted from posting or commenting.'
+    'Your account is frozen. You are restricted from posting, commenting, voting, and reporting.'
 
 export type ActiveUserResult =
     | { frozen: false; user: SupabaseUser }
@@ -114,4 +114,3 @@ export async function requireAdmin(message = 'Please log in to continue.'): Prom
     }
     return user
 }
-

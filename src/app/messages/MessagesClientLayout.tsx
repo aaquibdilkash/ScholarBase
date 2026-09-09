@@ -12,7 +12,7 @@ import { usePresence } from "@/components/interactions/PresenceProvider";
 import { MessagesLayoutContext } from "./messages-context";
 import { ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 
-type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; }; lastReadAt: Date | string | null; };
+type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; isFrozen?: boolean; isDeleted?: boolean; }; lastReadAt: Date | string | null; };
 type Message = { id?: string; body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
 type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
 
@@ -355,7 +355,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                     latestSenderId !== user.id &&
                     new Date(conversation.lastMessageAt) > lastReadAt);
                 const isActive = pathname === `/messages/${conversation.id}`;
-                const isOtherUserOnline = onlineUserIds.has(otherParticipant?.id || "");
+                const isOtherUserOnline = !otherParticipant?.isFrozen && onlineUserIds.has(otherParticipant?.id || "");
 
                 return (
                   <Link

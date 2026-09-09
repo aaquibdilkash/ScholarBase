@@ -22,7 +22,10 @@ export async function voteOnContent(
   // requireCurrentUser inside getActiveUser.
   const auth = await getActiveUser("You must be logged in to vote.");
   if (auth.frozen) {
-    return { success: false, error: auth.message };
+    return {
+      success: false,
+      error: "Your account is frozen. You are restricted from voting on content.",
+    };
   }
   const user = auth.user;
 
@@ -76,7 +79,10 @@ export async function toggleCommentVote(
 ) {
   const auth = await getActiveUser("You must be logged in to vote.");
   if (auth.frozen) {
-    return { success: false, error: auth.message };
+    return {
+      success: false,
+      error: "Your account is frozen. You are restricted from voting on content.",
+    };
   }
   const user = auth.user;
 

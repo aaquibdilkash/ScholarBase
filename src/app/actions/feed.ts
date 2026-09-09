@@ -226,16 +226,17 @@ export async function createSocialPost(formData: FormData) {
   }
   const authUser = auth.user;
 
-  const rateLimit = await checkRateLimit({
+  try {
+    const rateLimit = await checkRateLimit({
     namespace: "post:create",
     key: authUser.id,
     limit: 10,
     window: "10 m",
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
-  }
+    if (!rateLimit.allowed) {
+      return { success: false, error: RATE_LIMIT_ERROR };
+    }
 
   const [content, user] = await Promise.all([
     readFormValue(formData, "content"),
@@ -270,6 +271,7 @@ export async function createSocialPost(formData: FormData) {
       data: {
         content,
         imageUrl: imageUrl || undefined,
+        imageUrls: imageUrl ? [imageUrl] : [],
         authorId: authUser.id,
         mentions: mentions ?? undefined,
       },
@@ -320,12 +322,24 @@ export async function createSocialPost(formData: FormData) {
   ]);
 
   return { success: true, data: castPost(post) };
+  } catch (error) {
+    console.error("[CreateSocialPostAction Error]:", error);
+    return {
+      success: false,
+      message: "Unable to publish post. Please check the image and try again.",
+    };
+  }
 }
 
 export async function updateSocialPost(formData: FormData, postId: string) {
-  const user = await requireActiveUser("Log in to edit this post.");
+  const auth = await getActiveUser("Log in to edit this post.");
+  if (auth.frozen) {
+    return { success: false, message: "Your account is frozen. Editing is disabled." };
+  }
+  const user = auth.user;
 
-  const rateLimit = await checkRateLimit({
+  try {
+    const rateLimit = await checkRateLimit({
     namespace: "post:edit",
     key: user.id,
     limit: 20,
@@ -371,7 +385,13 @@ export async function updateSocialPost(formData: FormData, postId: string) {
 
   const updatedPost = await prisma.socialPost.update({
     where: { id: postId },
-    data: { content, imageUrl: newImage || undefined, editedAt: new Date(), mentions: mentions ?? undefined },
+    data: {
+      content,
+      imageUrl: newImage,
+      imageUrls: newImage ? [newImage] : [],
+      editedAt: new Date(),
+      mentions: mentions ?? undefined,
+    },
     include: {
       ...socialPostInclude,
       author: {
@@ -392,6 +412,13 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   }
 
   return { success: true, data: castPost(updatedPost) };
+  } catch (error) {
+    console.error("[UpdateSocialPostAction Error]:", error);
+    return {
+      success: false,
+      message: "Unable to update post. Please check the image and try again.",
+    };
+  }
 }
 
 export async function getPostEditData(id: string) {

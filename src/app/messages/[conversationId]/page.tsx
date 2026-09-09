@@ -20,6 +20,7 @@ import { MessageInputForm } from "@/components/messages/MessageInputForm";
 import { MessageList } from "@/components/messages/MessageList";
 import { supabase } from "@/utils/supabase/client";
 import { usePresence } from "@/components/interactions/PresenceProvider";
+import { useIsFrozen } from "@/components/interactions/FrozenUserProvider";
 import { MoreVertical, Ban, UserCheck, Loader2, Flag, ChevronsRight } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
@@ -27,6 +28,7 @@ import { ReportModal } from "@/components/cards/ReportModal";
 import type { User } from "@supabase/supabase-js";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import type { SentMessage } from "@/components/messages/MessageInputForm";
+import type { MessageFailureCode } from "@/app/actions/messages";
 
 type TypingPayload = {
   userId?: string;
@@ -50,6 +52,8 @@ type Participant = {
     name: string | null;
     handle: string | null;
     avatarUrl: string | null;
+    isFrozen?: boolean;
+    isDeleted?: boolean;
   };
 };
 type Conversation = {
@@ -83,6 +87,7 @@ export default function ConversationPage({
   // ⚡ QUOTE REPLY: The message currently being replied to (WhatsApp-style).
   const [replyingTo, setReplyingTo] = useState<SentMessage | null>(null);
   const { toast } = useToast();
+  const isCurrentUserFrozen = useIsFrozen();
 
   const [isTyping, setIsTyping] = useState(false);
   const lastTypedAt = useRef<number>(0);
@@ -115,6 +120,11 @@ export default function ConversationPage({
   );
   const handleMessageFailed = useCallback((message: SentMessage) => {
     addFailedMessageRef.current?.(message);
+  }, []);
+  const handleMessageRejected = useCallback((code: MessageFailureCode) => {
+    if (code === "BLOCKED") {
+      setBlockState((state) => ({ ...state, blockedByMe: true }));
+    }
   }, []);
 
   const userId = user?.id;
@@ -296,6 +306,48 @@ export default function ConversationPage({
     channel
       .on(
         "broadcast",
+        { event: "CONVERSATION_BLOCKED" },
+        ({ payload }: { payload?: { blockerId?: string; blockedId?: string } }) => {
+          if (!payload?.blockerId || !payload.blockedId || !userId) return;
+          if (payload.blockerId !== userId && payload.blockedId !== userId) return;
+          setBlockState((state) => ({
+            ...state,
+            blockedByMe: payload.blockerId === userId || state.blockedByMe,
+            blockedMe: payload.blockedId === userId || state.blockedMe,
+          }));
+          setIsTyping(false);
+          toast("Messaging is no longer available in this conversation.", "error");
+        },
+      )
+      .on(
+        "broadcast",
+        { event: "CONVERSATION_UNBLOCKED" },
+        ({ payload }: { payload?: { blockerId?: string; blockedId?: string } }) => {
+          if (!payload?.blockerId || !payload.blockedId || !userId) return;
+          if (payload.blockerId !== userId && payload.blockedId !== userId) return;
+
+          // Update optimistically, then re-read the authoritative state so a
+          // second block in the opposite direction is still respected.
+          setBlockState((state) => ({
+            ...state,
+            blockedByMe:
+              payload.blockerId === userId ? false : state.blockedByMe,
+            blockedMe:
+              payload.blockedId === userId ? false : state.blockedMe,
+          }));
+          void getConversation(conversationId, userId).then((next) => {
+            if (!next) return;
+            const nextBlockState = next as { blockedByMe?: boolean; blockedMe?: boolean };
+            setBlockState({
+              blockedByMe: Boolean(nextBlockState.blockedByMe),
+              blockedMe: Boolean(nextBlockState.blockedMe),
+            });
+          });
+          toast("Messaging is available again in this conversation.", "default");
+        },
+      )
+      .on(
+        "broadcast",
         { event: "typing" },
         ({ payload }: { payload: TypingPayload }) => {
           if (!payload || payload.userId === userId) return;
@@ -401,6 +453,7 @@ export default function ConversationPage({
     broadcastReadReceipt,
     handleBroadcastMessage,
     updateOtherParticipantLastReadAt,
+    toast,
   ]);
 
   const broadcastTyping = useCallback(() => {
@@ -468,12 +521,30 @@ export default function ConversationPage({
     // setMenuOpen(false);  <-- intentionally removed
     try {
       if (blockState.blockedByMe) {
-        await unblockUser(otherParticipant.id);
+        const result = await unblockUser(otherParticipant.id);
+        if (!result.success) {
+          toast(result.error || "Failed to unblock scholar.", "error");
+          return;
+        }
         setBlockState((s) => ({ ...s, blockedByMe: false }));
+        roomRef.current?.send({
+          type: "broadcast",
+          event: "CONVERSATION_UNBLOCKED",
+          payload: { blockerId: userId, blockedId: otherParticipant.id },
+        }).catch(() => {});
         toast(`${otherParticipant.name || "Scholar"} unblocked. You can message them again.`, "default");
       } else {
-        await blockUser(otherParticipant.id);
+        const result = await blockUser(otherParticipant.id);
+        if (!result.success) {
+          toast(result.error || "Failed to block scholar.", "error");
+          return;
+        }
         setBlockState((s) => ({ ...s, blockedByMe: true }));
+        roomRef.current?.send({
+          type: "broadcast",
+          event: "CONVERSATION_BLOCKED",
+          payload: { blockerId: userId, blockedId: otherParticipant.id },
+        }).catch(() => {});
         toast(`${otherParticipant.name || "Scholar"} blocked. They can no longer message you.`, "default");
       }
     } catch (err) {
@@ -489,7 +560,8 @@ export default function ConversationPage({
   };
 
   // ⚡ ISSUE 5: A block in either direction disables the composer.
-  const isChatDisabled = blockState.blockedByMe || blockState.blockedMe;
+  const isPeerFrozen = Boolean(otherParticipant?.isFrozen);
+  const isChatDisabled = isCurrentUserFrozen || isPeerFrozen || blockState.blockedByMe || blockState.blockedMe;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -591,6 +663,7 @@ export default function ConversationPage({
           registerAppend={handleAppendMessage}
           registerAddFailed={handleRegisterAddFailed}
           onMessageReceived={onMessageReceived}
+          onMessageRejected={handleMessageRejected}
           onSetReplyingTo={setReplyingTo}
         />
         </div>
@@ -601,7 +674,11 @@ export default function ConversationPage({
           role="alert"
           className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-t border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
         >
-          {blockState.blockedMe ? (
+          {isCurrentUserFrozen ? (
+            <span>Your account is frozen. Messaging is disabled.</span>
+          ) : isPeerFrozen ? (
+            <span>This scholar&apos;s account is currently frozen. Messaging is unavailable.</span>
+          ) : blockState.blockedMe ? (
             <span>You cannot send messages to this scholar.</span>
           ) : (
             <>
@@ -633,6 +710,7 @@ export default function ConversationPage({
         conversationId={conversation.id}
         onMessageSent={handleMessageSent}
         onMessageFailed={handleMessageFailed}
+        onMessageRejected={handleMessageRejected}
         currentUser={user}
         onTyping={broadcastTyping}
         isDisabled={isChatDisabled}

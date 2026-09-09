@@ -1,6 +1,6 @@
 "use client";
 
-import { sendMessage } from "@/app/actions/messages";
+import { sendMessage, type MessageFailureCode } from "@/app/actions/messages";
 import { useRef, useState, useEffect } from "react";
 import { ArrowRight, X } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
@@ -23,6 +23,7 @@ export type SentMessage = {
   senderId: string;
   conversationId: string;
   status?: "sending" | "failed" | "sent";
+  retryable?: boolean;
   editedAt?: Date | string | null;
   isDeleted?: boolean | null;
   replyToId?: string | null;
@@ -39,6 +40,7 @@ export function MessageInputForm({
   conversationId,
   onMessageSent,
   onMessageFailed,
+  onMessageRejected,
   currentUser,
   onTyping,
   isDisabled = false,
@@ -49,6 +51,7 @@ export function MessageInputForm({
   onMessageSent?: (message: SentMessage) => void;
   /** Called when a send fails so the failed bubble can be shown with Retry. */
   onMessageFailed?: (message: SentMessage) => void;
+  onMessageRejected?: (code: MessageFailureCode) => void;
   currentUser: User;
   onTyping?: () => void;
   /** ⚡ ISSUE 5: Disables the composer when a block relationship exists. */
@@ -165,7 +168,13 @@ export function MessageInputForm({
       if (replyingTo?.id) formData.append("replyToId", replyingTo.id);
 
       const result = await sendMessage(conversationId, formData);
-      if (result && 'error' in result) throw new Error(result.error);
+      if (result && "success" in result && result.success === false) {
+        removePendingMessage(conversationId, tempId);
+        onMessageFailed?.({ ...optimisticMessage, status: "failed", retryable: false });
+        onMessageRejected?.(result.code);
+        toast(result.error, "error");
+        return;
+      }
       // ⚡ Outbox entries are only cleared after a confirmed server response.
       removePendingMessage(conversationId, tempId);
       if (result && "id" in result && onMessageSent) {
@@ -175,7 +184,7 @@ export function MessageInputForm({
       // ⚡ ISSUE 4: Keep it queued as FAILED — visible bubble with a Retry
       // button, auto-flushed when connectivity returns.
       updatePendingMessageStatus(conversationId, tempId, "FAILED");
-      if (onMessageFailed) onMessageFailed({ ...optimisticMessage, status: "failed" });
+      if (onMessageFailed) onMessageFailed({ ...optimisticMessage, status: "failed", retryable: true });
       toast("Message not sent. It will be retried when you're back online.", "error");
     } finally {
       setIsSubmitting(false);
@@ -243,7 +252,7 @@ export function MessageInputForm({
             name="body"
             value={draft}
             onChange={handleInput}
-            className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pr-4 disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
+            className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pb-7 pr-4 disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
             placeholder={isDisabled ? "Messaging is unavailable" : "Write a message..."}
             required
             rows={1}
@@ -253,14 +262,10 @@ export function MessageInputForm({
             aria-label="Message"
           />
           {!isDisabled && (
-            <>
-              <span className="absolute -top-5 left-0 text-xs text-slate-400 inline-flex items-center gap-1">
-                <InfoTooltip message={MESSAGE_BODY_TIP} />
-              </span>
-              <span className="absolute -top-5 right-0 text-xs text-slate-400">
-                {draft.length}/{MAX_MESSAGE_BODY}
-              </span>
-            </>
+            <span className="absolute bottom-2 right-3 inline-flex items-center gap-1 text-[10px] tabular-nums text-slate-400">
+              <InfoTooltip message={MESSAGE_BODY_TIP} />
+              {draft.length}/{MAX_MESSAGE_BODY}
+            </span>
           )}
         </div>
         <button

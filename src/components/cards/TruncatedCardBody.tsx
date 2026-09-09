@@ -63,10 +63,10 @@ export function TruncatedCardBody({
   }, [children, constrainBody]);
 
   const content = constrainBody ? (
-    <div className="relative min-w-0">
+    <div className="relative min-w-0 w-full whitespace-normal break-words">
       <div
         ref={bodyRef}
-        className="min-w-0"
+        className="min-w-0 w-full whitespace-normal break-words"
         style={isExpanded ? undefined : lineClampStyle(maxLines)}
       >
         {children}
@@ -83,7 +83,7 @@ export function TruncatedCardBody({
       </div>
     </div>
   ) : (
-    <div ref={bodyRef} className="min-w-0">
+    <div ref={bodyRef} className="min-w-0 w-full whitespace-normal break-words">
       {children}
     </div>
   );

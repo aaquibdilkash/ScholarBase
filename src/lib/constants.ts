@@ -170,7 +170,7 @@ export const MAX_CONTRIBUTION_MESSAGE = 512;
 
 export const MAX_SOCIAL_POST_CONTENT = 256;
 
-export const MAX_MESSAGE_BODY = 128;
+export const MAX_MESSAGE_BODY = 256;
 
 export const MAX_COMMENT_BODY = 256;
 

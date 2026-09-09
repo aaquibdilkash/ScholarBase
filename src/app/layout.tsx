@@ -168,10 +168,10 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders isFrozen={isFrozen}>
-          <div className="flex min-h-screen">
+          <div className="relative flex min-h-screen w-full min-w-0 flex-col overflow-x-clip md:flex-row">
             <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
-            <div className="flex min-w-0 flex-1 flex-col">
+            <div className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip">
               {isFrozen && (
                 <div
                   role="alert"
@@ -186,7 +186,7 @@ export default async function RootLayout({
 
               <Navbar user={user} unreadCount={unreadNotifications} />
 
-              <main className="sb-shell flex-1 grow py-8 md:py-10">
+              <main className="sb-shell w-full min-w-0 flex-1 grow py-8 md:py-10">
                 {children}
               </main>
 

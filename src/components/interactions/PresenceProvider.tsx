@@ -9,6 +9,7 @@ import {
 } from "react";
 import { supabase } from "@/utils/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { useIsFrozen } from "./FrozenUserProvider";
 
 /**
  * ⚡ Centralized Presence Channel (Issue 3)
@@ -43,6 +44,7 @@ export function usePresence() {
 export function PresenceProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const isFrozen = useIsFrozen();
 
   useEffect(() => {
     supabase.auth
@@ -52,7 +54,10 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isFrozen) {
+      setOnlineUserIds(new Set());
+      return;
+    }
 
     const channel = supabase.channel("presence:global", {
       config: { presence: { key: user.id } },
@@ -108,7 +113,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(channel);
       setOnlineUserIds(new Set());
     };
-  }, [user]);
+  }, [user, isFrozen]);
 
   return (
     <PresenceContext.Provider

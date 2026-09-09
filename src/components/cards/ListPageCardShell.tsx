@@ -91,7 +91,7 @@ export default function ListPageCardShell({
     <div className={clsx("sb-card p-5 sm:p-6 md:p-8", className)}>
       {/* Common header */}
       <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
-                <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           {authorHref ? (
             <Link href={authorHref} className="shrink-0">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border-slate-700 dark:bg-slate-800">
@@ -110,11 +110,11 @@ export default function ListPageCardShell({
             </div>
           )}
 
-          <div>
+          <div className="min-w-0 flex-1">
             {authorHref ? (
               <Link
                 href={authorHref}
-                className="font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
+                className="block max-w-full truncate font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
               >
                 {authorName || "Scholar"}
               </Link>
@@ -124,7 +124,7 @@ export default function ListPageCardShell({
               </span>
             )}
             {authorHandle ? (
-              <div className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <div className="mt-0.5 max-w-full whitespace-normal break-words text-xs font-medium text-slate-500 dark:text-slate-400">
                 @{authorHandle}
               </div>
             ) : null}

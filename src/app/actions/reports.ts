@@ -2,7 +2,7 @@
 
 import { cache } from "react";
 import prisma from "@/lib/db";
-import { requireActiveUser } from "@/lib/auth";
+import { getActiveUser, requireActiveUser } from "@/lib/auth";
 import type {
   ReportEntityType,
   ReportModule,
@@ -231,31 +231,37 @@ export async function submitReport(
   reason: ReportReason,
   details?: string | null,
 ) {
-  const user = await requireActiveUser("Log in to continue.");
+  try {
+    const auth = await getActiveUser("Log in to continue.");
+    if (auth.frozen) {
+      return {
+        success: false,
+        message: "Your account is frozen. Reporting is disabled.",
+      };
+    }
+    const user = auth.user;
 
-  const config = MODULE_MODEL_MAP[mod];
-  if (!config) {
-    throw new Error(`Unsupported report module: ${mod}`);
-  }
+    const config = MODULE_MODEL_MAP[mod];
+    if (!config) {
+      throw new Error(`Unsupported report module: ${mod}`);
+    }
 
   // Verify the target entity actually exists before creating a report.
-  const entity = await config.delegate.findUnique({
-    where: { id: entityId },
-    select: { id: true },
-  });
+    const entity = await config.delegate.findUnique({
+      where: { id: entityId },
+      select: { id: true },
+    });
 
-  if (!entity) {
-    throw new Error("Content not found");
-  }
+    if (!entity) {
+      throw new Error("Content not found");
+    }
 
-  const normalizedDetails = details?.trim() || null;
-  if (normalizedDetails && normalizedDetails.length > MAX_REPORT_DETAILS) {
-    throw new Error(`Report details are too long (max ${MAX_REPORT_DETAILS} characters).`);
-  }
+    const normalizedDetails = details?.trim() || null;
+    if (normalizedDetails && normalizedDetails.length > MAX_REPORT_DETAILS) {
+      throw new Error(`Report details are too long (max ${MAX_REPORT_DETAILS} characters).`);
+    }
 
-  let report;
-  try {
-    report = await prisma.$transaction(async (tx) => {
+  const report = await prisma.$transaction(async (tx) => {
       // 1. Create the report record.
       const newReport = await tx.report.create({
         data: {
@@ -289,11 +295,11 @@ export async function submitReport(
         },
       });
 
-      return newReport;
-    });
+    return newReport;
+  });
+
+  return { success: true, data: report };
   } catch (err) {
-    // @@unique([reporterId, entityId]) — the user already reported this
-    // entity. Return a friendly message instead of an uncaught 500.
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
@@ -303,10 +309,12 @@ export async function submitReport(
         message: "You have already reported this item.",
       };
     }
-    throw err;
+    console.error("[SubmitReportAction Error]:", err);
+    return {
+      success: false,
+      message: "Failed to submit report. Please try again later.",
+    };
   }
-
-  return { success: true, data: report };
 }
 
 // ----------------------------------------------------------------------------

@@ -188,7 +188,7 @@ export function CommentSection({
       toast({
         title: "Error",
         description:
-          "Your account is frozen. You are restricted from posting or commenting.",
+          "Your account is frozen. Commenting is disabled.",
         variant: "destructive",
       });
       return;
@@ -332,4 +332,3 @@ export function CommentSection({
     </div>
   );
 }
-

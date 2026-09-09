@@ -37,6 +37,14 @@ html[data-theme="dark"] {
 @layer base {
   html {
     scroll-behavior: smooth;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+    position: relative;
   }
 
   /* Zero-out the root <main> padding on the /messages routes. Using :has()

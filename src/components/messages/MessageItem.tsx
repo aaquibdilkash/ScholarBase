@@ -22,7 +22,7 @@ import type { SentMessage } from "./MessageInputForm";
 
 interface MessageItemProps {
   message: SentMessage;
-  currentUserId: string;
+  currentUserId?: string;
   otherParticipantLastReadAt: Date;
   onEdit?: (messageId: string, newBody: string) => Promise<boolean>;
   onDelete?: (messageId: string) => Promise<boolean>;
@@ -41,7 +41,7 @@ export const MessageItem = React.memo(
     onRetry,
     onSetReplyingTo,
   }: MessageItemProps) {
-    const isMine = message.senderId === currentUserId;
+    const isMine = Boolean(currentUserId && message.senderId === currentUserId);
     const isRead = new Date(message.createdAt) <= otherParticipantLastReadAt;
     const isDeleted = Boolean(message.isDeleted);
     const timeLabel = useTimeAgo(message.createdAt);
@@ -263,7 +263,7 @@ export const MessageItem = React.memo(
           )}
 
           {/* ⚡ ISSUE 4: Retry affordance for failed sends */}
-          {isMine && message.status === "failed" && onRetry && (
+          {isMine && message.status === "failed" && message.retryable !== false && onRetry && (
             <button
               type="button"
               onClick={() => onRetry(message)}

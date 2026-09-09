@@ -36,6 +36,8 @@ export async function uploadImage(
 ): Promise<UploadResult> {
   await requireActiveUser();
 
+  try {
+
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("No file provided");
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -103,6 +105,10 @@ export async function uploadImage(
     height: result.height,
     format: result.format,
   };
+  } catch (error) {
+    console.error("[CloudinaryUpload Error]:", error);
+    throw new Error("Image upload failed. Please check the image and try again.");
+  }
 }
 
 /**
@@ -136,4 +142,3 @@ export async function deleteFromCloudinary(
     return false;
   }
 }
-

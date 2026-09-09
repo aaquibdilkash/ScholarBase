@@ -90,7 +90,7 @@ export function CreateSocialPostForm() {
 
   const handleSubmit = async (formData: FormData) => {
     if (isFrozen) {
-      toast("Your account is frozen. You are restricted from posting or commenting.", "error");
+      toast("Your account is frozen. Posting is disabled.", "error");
       return;
     }
     if (uploading) {
@@ -194,8 +194,8 @@ export function CreateSocialPostForm() {
           className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400"
         >
           <span aria-hidden>❄</span>
-          Your account is frozen. You are restricted from posting or
-          commenting.
+          Your account is frozen. Posting is disabled until a moderator reviews
+          your account.
         </p>
       ) : (
       <form ref={formRef} action={handleSubmit} className="flex flex-col gap-4">
