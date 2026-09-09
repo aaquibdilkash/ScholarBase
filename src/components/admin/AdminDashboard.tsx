@@ -29,6 +29,7 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminTable } from "@/components/admin/AdminTable";
+import { InstitutionDomainRequestsPanel } from "@/components/admin/InstitutionDomainRequestsPanel";
 import {
   buildContentColumns,
   buildUsersColumns,
@@ -39,6 +40,7 @@ import type {
   AdminAppealItem,
   AdminContentItem,
   AdminPage,
+  InstitutionDomainRequestItem,
 } from "@/types/admin";
 import type { ModerationAction } from "@/types/reports";
 
@@ -50,7 +52,8 @@ type Stats = {
 
 type AdminDashboardProps = {
   initialStats: Stats;
-  initialData: AdminPage<AdminContentItem>;
+  initialData?: AdminPage<AdminContentItem>;
+  initialInstitutionDomainRequests: AdminPage<InstitutionDomainRequestItem>;
 };
 
 // Per-section UI state — switching modules never resets another module's
@@ -70,6 +73,7 @@ const EMPTY_PAGE: AdminPage<AdminContentItem> = {
 export function AdminDashboard({
   initialStats,
   initialData,
+  initialInstitutionDomainRequests,
 }: AdminDashboardProps) {
   const queryClient = useQueryClient();
   // Navigation persisted in localStorage ("sb_admin_nav") — refreshing /admin
@@ -92,6 +96,7 @@ export function AdminDashboard({
 
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
   const { view, page, sortBy, statusFilter, entityStatusFilter } = ui;
+  const isInstitutionRequestsTab = activeTab === "institutionRequests";
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionState(activeTab, patch);
@@ -150,6 +155,7 @@ export function AdminDashboard({
           ),
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000,
+    enabled: !isInstitutionRequestsTab,
     // SSR-hydrated first page of the default Feed view — zero fetch on mount.
     // Must match the default sort ("reportCount") used by admin/page.tsx.
     initialData:
@@ -341,7 +347,7 @@ export function AdminDashboard({
   };
 
   const isPending =
-    contentQuery.isPending ||
+    (!isInstitutionRequestsTab && contentQuery.isPending) ||
     statsQuery.isPending ||
     contributionMutation.isPending;
 
@@ -402,63 +408,71 @@ export function AdminDashboard({
         />
 
         <div className="flex-1">
-          <div
-            ref={tableRef}
-            className={`scroll-mt-20 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
-          >
-            <AdminToolbar
-              title={`${activeSectionTitle} Management`}
-              subtitle={
-                activeTab !== "users"
-                  ? view === "comments"
-                    ? "Comments"
-                    : "Posts"
-                  : undefined
-              }
-              showPostsComments={activeTab !== "users"}
-              view={view}
-              onViewSelect={handleViewSelect}
-              showAppealFilters={activeTab === "appeals"}
-              statusFilter={statusFilter}
-              onStatusFilterChange={handleStatusFilterChange}
-              entityStatusFilter={entityStatusFilter}
-              onEntityStatusFilterChange={handleEntityStatusFilterChange}
-              showStatusFilter={
-                activeTab !== "users" && activeTab !== "appeals"
-              }
-              showSort={activeTab !== "users"}
-              sortBy={sortBy}
-              onToggleSort={() =>
-                handleSortChange(
-                  sortBy === "createdAt" ? "reportCount" : "createdAt",
-                )
-              }
-            />
-
-            {isPending ? (
-              <div className="p-8 text-center">
-                <Loader2 className="inline-block h-8 w-8 animate-spin text-slate-400" />
-              </div>
-            ) : (
-              <AdminTable
-                columns={columns}
-                rows={tableItems}
-                rowKey={(item) => item.id}
-                emptyMessage={emptyMessage}
+          {isInstitutionRequestsTab ? (
+            <div ref={tableRef} className="scroll-mt-20">
+              <InstitutionDomainRequestsPanel
+                initialData={initialInstitutionDomainRequests}
               />
-            )}
-
-            {data.totalPages > 1 && (
-              <AdminPagination
-                page={data.page}
-                total={data.total}
-                totalPages={data.totalPages}
-                itemsCount={data.items.length}
-                isPending={isPending}
-                onPageChange={handlePageChange}
+            </div>
+          ) : (
+            <div
+              ref={tableRef}
+              className={`scroll-mt-20 rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 overflow-hidden transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}
+            >
+              <AdminToolbar
+                title={`${activeSectionTitle} Management`}
+                subtitle={
+                  activeTab !== "users"
+                    ? view === "comments"
+                      ? "Comments"
+                      : "Posts"
+                    : undefined
+                }
+                showPostsComments={activeTab !== "users"}
+                view={view}
+                onViewSelect={handleViewSelect}
+                showAppealFilters={activeTab === "appeals"}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleStatusFilterChange}
+                entityStatusFilter={entityStatusFilter}
+                onEntityStatusFilterChange={handleEntityStatusFilterChange}
+                showStatusFilter={
+                  activeTab !== "users" && activeTab !== "appeals"
+                }
+                showSort={activeTab !== "users"}
+                sortBy={sortBy}
+                onToggleSort={() =>
+                  handleSortChange(
+                    sortBy === "createdAt" ? "reportCount" : "createdAt",
+                  )
+                }
               />
-            )}
-          </div>
+
+              {isPending ? (
+                <div className="p-8 text-center">
+                  <Loader2 className="inline-block h-8 w-8 animate-spin text-slate-400" />
+                </div>
+              ) : (
+                <AdminTable
+                  columns={columns}
+                  rows={tableItems}
+                  rowKey={(item) => item.id}
+                  emptyMessage={emptyMessage}
+                />
+              )}
+
+              {data.totalPages > 1 && (
+                <AdminPagination
+                  page={data.page}
+                  total={data.total}
+                  totalPages={data.totalPages}
+                  itemsCount={data.items.length}
+                  isPending={isPending}
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </div>
+          )}
         </div>
       </div>
 

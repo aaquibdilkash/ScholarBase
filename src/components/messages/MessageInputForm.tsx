@@ -209,7 +209,7 @@ export function MessageInputForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-1.5 sm:p-4 dark:border-slate-800">
+    <form onSubmit={handleSubmit} className="shrink-0 border-t border-slate-200 p-3 sm:p-4 dark:border-slate-800">
       {replyingTo && !isDisabled && (
         <div
           className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-blue-500 bg-blue-50/70 px-3 py-2 dark:bg-slate-800/80"
@@ -244,15 +244,15 @@ export function MessageInputForm({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+      <div className="flex items-end gap-3">
+        <div className="relative flex min-h-[52px] flex-1">
           <textarea
             ref={textAreaRef}
             id="body"
             name="body"
             value={draft}
             onChange={handleInput}
-            className="sb-input min-h-[44px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 py-3 pb-7 pr-4 disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
+            className="sb-input h-[52px] min-h-[52px] w-full resize-none overflow-y-auto overflow-x-hidden rounded-2xl px-4 !py-3 pr-4 leading-5 disabled:cursor-not-allowed disabled:opacity-60 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-slate-800"
             placeholder={isDisabled ? "Messaging is unavailable" : "Write a message..."}
             required
             rows={1}
@@ -271,7 +271,7 @@ export function MessageInputForm({
         <button
           type="submit"
           disabled={!draft.trim() || isSubmitting || isDisabled}
-          className="sb-button-primary rounded-full !p-0 h-10 w-10 flex items-center justify-center disabled:opacity-50"
+          className="sb-button-primary h-[52px] w-[52px] shrink-0 !p-0 disabled:opacity-50"
         >
           <ArrowRight className="h-5 w-5" />
         </button>

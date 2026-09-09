@@ -16,10 +16,18 @@ import type {
 
 type RequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "ALL";
 
+const EMPTY_REQUEST_PAGE: AdminPage<InstitutionDomainRequestItem> = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 10,
+  totalPages: 0,
+};
+
 export function InstitutionDomainRequestsPanel({
   initialData,
 }: {
-  initialData: AdminPage<InstitutionDomainRequestItem>;
+  initialData?: AdminPage<InstitutionDomainRequestItem>;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -36,7 +44,7 @@ export function InstitutionDomainRequestsPanel({
     gcTime: 30 * 60 * 1000,
   });
 
-  const data = query.data ?? initialData;
+  const data = query.data ?? initialData ?? EMPTY_REQUEST_PAGE;
   const [optimisticItems, applyOptimistic] = useOptimistic(
     data.items,
     (items, update: { id: string; status: "APPROVED" | "REJECTED" }) =>

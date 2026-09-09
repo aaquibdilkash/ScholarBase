@@ -8,11 +8,13 @@ import {
   Publication,
   Recommendation,
   ResearchEvent,
+  ResearchGrant,
   ResearchSurvey,
   ResearchTool,
   Result,
   SocialPost,
   Supervisor,
+  Course,
   User,
   ArticleComment,
   SocialComment,
@@ -93,6 +95,8 @@ export type ContentItem =
   | (ResearchTool & { author: User })
   | (PhdAdmission & { author: User })
   | (ResearchEvent & { author: User })
+  | (ResearchGrant & { author: User })
+  | (Course & { author: User })
   | (JobVacancy & { author: User })
   | (HelpPost & { author: User })
   | (Result & { author: User })

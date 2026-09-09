@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
-import { buildNoindexMetadata } from "@/lib/seo";
-export const metadata: Metadata = buildNoindexMetadata("Account Settings - ScholarBase");
 import { createClient } from "@/utils/supabase/server";
-import prisma from "@/lib/db";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Lock } from "lucide-react";
-import Link from "next/link";
-import EditProfileForm from "@/components/profile/EditProfileForm";
-import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+
+import { buildNoindexMetadata } from "@/lib/seo";
+import prisma from "@/lib/db";
+import { InstitutionVerificationForm } from "@/components/auth/InstitutionVerificationForm";
 import { UpdateEmailForm } from "@/components/auth/UpdateEmailForm";
+import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import EditProfileForm from "@/components/profile/EditProfileForm";
+
+export const metadata: Metadata = buildNoindexMetadata(
+  "Account Settings - ScholarBase",
+);
 
 export default async function ScholarSettingsPage({
   params,
@@ -65,7 +70,7 @@ export default async function ScholarSettingsPage({
                 Security
               </h2>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Manage your password and account access.
+                Manage your password, email, and institutional verification.
               </p>
             </div>
             <Link href="/auth/update-password" className="sb-button-primary gap-2">
@@ -74,6 +79,10 @@ export default async function ScholarSettingsPage({
             </Link>
           </div>
           <UpdateEmailForm currentEmail={profile.email} />
+          <InstitutionVerificationForm
+            institutionEmail={profile.institutionEmail}
+            institutionVerifiedAt={profile.institutionVerifiedAt}
+          />
         </section>
       </div>
     </CreateOrEditPageShell>

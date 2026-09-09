@@ -33,36 +33,38 @@ export function UpdateEmailForm({ currentEmail }: { currentEmail: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="mt-5 space-y-3 border-t border-slate-200/70 pt-5 dark:border-slate-800">
-      <div>
-        <label className="sb-label" htmlFor="primary-email">
-          Primary email
-        </label>
-        <p className="text-sm text-slate-500 dark:text-slate-400">Current: {currentEmail}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="min-w-0 flex-1">
+          <label className="sb-label" htmlFor="primary-email">
+            Primary email
+          </label>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Current: {currentEmail}</p>
+          <input
+            id="primary-email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="sb-input mt-2 px-3 py-2 sm:px-3 sm:py-2"
+            placeholder="new-email@example.com"
+            maxLength={MAX_AUTH_EMAIL}
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          className="sb-button-primary w-full shrink-0 sm:w-auto"
+          disabled={submitting || email.trim().length === 0}
+        >
+          {submitting ? "Sending..." : "Update email"}
+        </button>
       </div>
-      <input
-        id="primary-email"
-        name="email"
-        type="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        className="sb-input px-3 py-2 sm:px-3 sm:py-2"
-        placeholder="new-email@example.com"
-        maxLength={MAX_AUTH_EMAIL}
-        required
-      />
       <p className="text-xs text-slate-500 dark:text-slate-400">
         Only approved consumer or institutional domains can become your primary email.
-        Supabase may require confirmation from both email addresses.
+        ScholarBase may require confirmation from both email addresses.
       </p>
       {message && <p className="text-sm text-emerald-600" role="status">{message}</p>}
       {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-      <button
-        type="submit"
-        className="sb-button-soft"
-        disabled={submitting || email.trim().length === 0}
-      >
-        {submitting ? "Sending..." : "Update email"}
-      </button>
     </form>
   );
 }

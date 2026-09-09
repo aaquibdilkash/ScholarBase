@@ -329,6 +329,8 @@ const modelMap: Record<string, { model: string }> = {
   publication: { model: "publication" },
   journal: { model: "journal" },
   researchTool: { model: "researchTool" },
+  researchGrant: { model: "researchGrant" },
+  course: { model: "course" },
   admission: { model: "phdAdmission" },
   event: { model: "researchEvent" },
   vacancy: { model: "jobVacancy" },

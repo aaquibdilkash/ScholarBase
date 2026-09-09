@@ -36,6 +36,8 @@ export async function toggleContentFreeze(
     publication: prisma.publication,
     journal: prisma.journal,
     researchTool: prisma.researchTool,
+    researchGrant: prisma.researchGrant,
+    course: prisma.course,
     admission: prisma.phdAdmission,
     event: prisma.researchEvent,
     vacancy: prisma.jobVacancy,
@@ -105,6 +107,8 @@ export async function adminDeleteContent(
     publication: { model: prisma.publication, path: "/publications" },
     journal: { model: prisma.journal, path: "/journals" },
     researchTool: { model: prisma.researchTool, path: "/research-tools" },
+    researchGrant: { model: prisma.researchGrant, path: "/grants" },
+    course: { model: prisma.course, path: "/learn" },
     admission: { model: prisma.phdAdmission, path: "/admissions" },
     event: { model: prisma.researchEvent, path: "/events" },
     vacancy: { model: prisma.jobVacancy, path: "/vacancies" },
@@ -144,6 +148,8 @@ export async function adminDeleteComment(
     publication: prisma.publicationComment,
     journal: prisma.journalComment,
     researchTool: prisma.researchToolComment,
+    researchGrant: prisma.researchGrantComment,
+    course: prisma.courseComment,
     admission: prisma.phdAdmissionComment,
     event: prisma.researchEventComment,
     vacancy: prisma.jobVacancyComment,
@@ -168,10 +174,9 @@ export async function adminDeleteComment(
   return { success: true, data: { id: commentId } };
 }
 
-// Get admin dashboard stats (counts per content type + users).
-// Uses pg_class row estimates for users (RULE 2 — zero-compute reads)
-// because User is the only table that grows unbounded; content tables
-// stay small enough that exact counts are cheap.
+// Get admin dashboard stats (estimated rows per table + users).
+// pg_class.reltuples is maintained by PostgreSQL statistics collection and
+// avoids scanning application tables for dashboard-only counters (RULE 2).
 export async function getAdminStats() {
   const user = await requireCurrentUser("Log in to access admin.");
 
@@ -179,35 +184,78 @@ export async function getAdminStats() {
     throw new Error("Not authorized.");
   }
 
-  // Fast user count via pg_class (avoids full table scan on User).
-  const pgResult = await prisma.$queryRaw<
-    [{ estimate: bigint }]  >`SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = 'User'`;
-  const userEstimate = Number(pgResult[0]?.estimate ?? 0);
+  // Read every dashboard counter from PostgreSQL metadata in one query. This
+  // is substantially cheaper than running one exact COUNT(*) per table on the
+  // free tier. The namespace filter prevents similarly named tables in other
+  // schemas from being mixed into the result.
+  const pgRows = await prisma.$queryRaw<
+    Array<{ tableName: string; estimate: bigint }>
+  >`
+    SELECT
+      c.relname AS "tableName",
+      GREATEST(c.reltuples, 0)::bigint AS estimate
+    FROM pg_class AS c
+    INNER JOIN pg_namespace AS n ON n.oid = c.relnamespace
+    WHERE n.nspname = current_schema()
+      AND c.relkind IN ('r', 'p')
+      AND c.relname IN (
+        'User',
+        'Appeal',
+        'SocialPost',
+        'Article',
+        'Publication',
+        'Journal',
+        'ResearchTool',
+        'ResearchGrant',
+        'Course',
+        'PhdAdmission',
+        'ResearchEvent',
+        'JobVacancy',
+        'HelpPost',
+        'Result',
+        'Contribution',
+        'Supervisor',
+        'Recommendation',
+        'ResearchSurvey',
+        'InstitutionDomainRequest'
+      )
+  `;
+
+  const estimates = new Map(
+    pgRows.map((row) => [row.tableName, Number(row.estimate)]),
+  );
+  const estimate = (tableName: string) =>
+    Math.max(0, estimates.get(tableName) ?? 0);
 
   const sections = {
-    users: userEstimate,
-    appeals: await prisma.appeal.count(),
-    feed: await prisma.socialPost.count(),
-    blog: await prisma.article.count(),
-    publications: await prisma.publication.count(),
-    journals: await prisma.journal.count(),
-    researchTools: await prisma.researchTool.count(),
-    admissions: await prisma.phdAdmission.count(),
-    events: await prisma.researchEvent.count(),
-    vacancies: await prisma.jobVacancy.count(),
-    help: await prisma.helpPost.count(),
-    results: await prisma.result.count(),
-    contributions: await prisma.contribution.count(),
-    supervisors: await prisma.supervisor.count(),
-    recommendations: await prisma.recommendation.count(),
-    surveys: await prisma.researchSurvey.count(),
+    users: estimate("User"),
+    appeals: estimate("Appeal"),
+    feed: estimate("SocialPost"),
+    blog: estimate("Article"),
+    publications: estimate("Publication"),
+    journals: estimate("Journal"),
+    researchTools: estimate("ResearchTool"),
+    researchGrants: estimate("ResearchGrant"),
+    courses: estimate("Course"),
+    admissions: estimate("PhdAdmission"),
+    events: estimate("ResearchEvent"),
+    vacancies: estimate("JobVacancy"),
+    help: estimate("HelpPost"),
+    results: estimate("Result"),
+    contributions: estimate("Contribution"),
+    supervisors: estimate("Supervisor"),
+    recommendations: estimate("Recommendation"),
+    surveys: estimate("ResearchSurvey"),
+    institutionRequests: estimate("InstitutionDomainRequest"),
   };
 
   const totalContent =
-    Object.values(sections).reduce((a, b) => a + b, 0) - sections.users;
+    Object.values(sections).reduce((a, b) => a + b, 0) -
+    sections.users -
+    sections.institutionRequests;
 
   return {
-    totalUsers: userEstimate,
+    totalUsers: sections.users,
     totalContent,
     sections,
   };
@@ -683,6 +731,8 @@ export async function getAdminContent(
       publications: { modelKey: "publicationComment", model: prisma.publicationComment as unknown as AdminCommentModel },
       journals: { modelKey: "journalComment", model: prisma.journalComment as unknown as AdminCommentModel },
       researchTools: { modelKey: "researchToolComment", model: prisma.researchToolComment as unknown as AdminCommentModel },
+      researchGrants: { modelKey: "researchGrantComment", model: prisma.researchGrantComment as unknown as AdminCommentModel },
+      courses: { modelKey: "courseComment", model: prisma.courseComment as unknown as AdminCommentModel },
       admissions: { modelKey: "admissionComment", model: prisma.phdAdmissionComment as unknown as AdminCommentModel },
       events: { modelKey: "researchEventComment", model: prisma.researchEventComment as unknown as AdminCommentModel },
       vacancies: { modelKey: "vacancyComment", model: prisma.jobVacancyComment as unknown as AdminCommentModel },
@@ -758,6 +808,14 @@ export async function getAdminContent(
       researchTools: {
         model: prisma.researchTool,
         detailHref: (item) => `/research-tools/${item.id}`,
+      },
+      researchGrants: {
+        model: prisma.researchGrant,
+        detailHref: (item) => `/grants/${item.id}`,
+      },
+      courses: {
+        model: prisma.course,
+        detailHref: (item) => `/learn/${item.id}`,
       },
       admissions: {
         model: prisma.phdAdmission,

@@ -205,7 +205,10 @@ export async function signup(formData: FormData): Promise<AuthResult> {
 
 export async function requestEmailChange(
   formData: FormData,
-): Promise<{ success: true; message: string } | { success: false; error: string }> {
+): Promise<
+  | { success: true; message: string }
+  | { success: false; error: string; code?: "EMAIL_DOMAIN_NOT_ALLOWED" }
+> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -227,6 +230,7 @@ export async function requestEmailChange(
   if (!isAllowedEmailDomain(newEmail)) {
     return {
       success: false,
+      code: "EMAIL_DOMAIN_NOT_ALLOWED",
       error: "That email domain is not approved for ScholarBase.",
     };
   }

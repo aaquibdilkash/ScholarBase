@@ -27,7 +27,7 @@ const VERIFICATION_TTL_MS = 20 * 60 * 1000;
 
 type InstitutionVerificationResult =
   | { success: true; message: string }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: "EMAIL_DOMAIN_NOT_ALLOWED" };
 
 function readField(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -56,6 +56,7 @@ export async function requestInstitutionVerification(
   if (!isInstitutionalEmailDomain(institutionEmail)) {
     return {
       success: false,
+      code: "EMAIL_DOMAIN_NOT_ALLOWED",
       error: "This email domain is not recognized as an institutional domain yet.",
     };
   }

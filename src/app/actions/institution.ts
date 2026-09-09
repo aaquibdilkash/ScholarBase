@@ -6,10 +6,15 @@ import prisma from "@/lib/db";
 import {
   MAX_INSTITUTION_NAME,
   MAX_INSTITUTION_REQUEST_DETAILS,
+  MAX_INSTITUTION_REQUEST_EMAIL,
   MAX_INSTITUTION_WEBSITE,
 } from "@/lib/constants";
-import { getEmailDomain, isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
+import {
+  getEmailDomain,
+  isAllowedEmailDomain,
+} from "@/lib/email-domain-allowlist";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
+import { verifyInstitutionRequestTurnstile } from "@/lib/turnstile";
 import {
   checkRateLimit,
   getRequestFingerprint,
@@ -46,17 +51,12 @@ export async function requestInstitutionDomain(
   const institutionName = readField(formData, "institutionName");
   const websiteInput = readField(formData, "website");
   const details = readField(formData, "details");
+  const turnstileToken = readField(formData, "turnstileToken");
 
-  // Cheap bot filter for scripts that fill every form field. It intentionally
-  // returns the same generic success response as a real submission.
-  if (readField(formData, "company")) {
-    return {
-      success: true,
-      message: "Your institution request was submitted for review.",
-    };
-  }
-
-  if (!validateEmailFormat(requesterEmail)) {
+  if (
+    requesterEmail.length > MAX_INSTITUTION_REQUEST_EMAIL ||
+    !validateEmailFormat(requesterEmail)
+  ) {
     return { success: false, error: "Please enter a valid institutional email." };
   }
   if (!institutionName || institutionName.length > MAX_INSTITUTION_NAME) {
@@ -79,6 +79,13 @@ export async function requestInstitutionDomain(
     return { success: false, error: "Please enter a valid institution website." };
   }
 
+  if (!(await verifyInstitutionRequestTurnstile(turnstileToken))) {
+    return {
+      success: false,
+      error: "Please complete the security check and try again.",
+    };
+  }
+
   const headersList = await headers();
   const requestFingerprint = getRequestFingerprint(headersList);
   const [emailRateLimit, ipRateLimit] = await Promise.all([
@@ -96,7 +103,18 @@ export async function requestInstitutionDomain(
     }),
   ]);
 
-  if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+  if (
+    !emailRateLimit.allowed ||
+    !ipRateLimit.allowed ||
+    emailRateLimit.degraded ||
+    ipRateLimit.degraded
+  ) {
+    if (emailRateLimit.degraded || ipRateLimit.degraded) {
+      return {
+        success: false,
+        error: "Request protection is temporarily unavailable. Please try again later.",
+      };
+    }
     return { success: false, error: RATE_LIMIT_ERROR };
   }
 

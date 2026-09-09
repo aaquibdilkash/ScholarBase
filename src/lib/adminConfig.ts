@@ -10,12 +10,15 @@ export interface AdminSection {
 /** Sidebar + stats-card sections. Ordered by precedence; "appeals" and
  *  "users" have no public route (they're admin-only). */
 export const ADMIN_SECTIONS: AdminSection[] = [
+  { id: "institutionRequests", title: "Institution Requests", href: "#" },
   { id: "appeals", title: "Appeals", href: "#" },
   { id: "feed", title: "Feed", href: "/feed" },
   { id: "blog", title: "Blog", href: "/blog" },
   { id: "publications", title: "Publications", href: "/publications" },
   { id: "journals", title: "Journals", href: "/journals" },
   { id: "researchTools", title: "Research Tools", href: "/research-tools" },
+  { id: "researchGrants", title: "Research Grants", href: "/grants" },
+  { id: "courses", title: "Courses", href: "/learn" },
   { id: "admissions", title: "Admissions", href: "/admissions" },
   { id: "events", title: "Events", href: "/events" },
   { id: "vacancies", title: "Vacancies", href: "/vacancies" },
@@ -37,6 +40,8 @@ export const SECTION_CONTENT_TYPES: Record<string, string> = {
   publications: "publication",
   journals: "journal",
   researchTools: "researchTool",
+  researchGrants: "researchGrant",
+  courses: "course",
   admissions: "admission",
   events: "event",
   vacancies: "vacancy",

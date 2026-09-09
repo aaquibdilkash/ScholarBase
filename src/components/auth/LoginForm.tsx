@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { login, signup, signInWithGoogle } from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
@@ -11,7 +12,6 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Loader2 } from "lucide-react";
 import { AUTH_EMAIL_TIP, AUTH_PASSWORD_TIP } from "@/constants/tooltips";
 import { MAX_AUTH_EMAIL, MAX_AUTH_PASSWORD } from "@/lib/constants";
-import { InstitutionDomainRequestForm } from "@/components/auth/InstitutionDomainRequestForm";
 
 export function LoginForm({
   returnUrl,
@@ -30,7 +30,7 @@ export function LoginForm({
   );
 
   return (
-    <main className="-mx-2 -mt-4 flex min-h-screen flex-col items-center justify-start p-2 sm:mx-0 sm:mt-0 sm:justify-center sm:p-6">
+    <main className="flex min-h-screen flex-col items-center justify-center p-2 sm:mx-0 sm:mt-0 sm:p-6">
       <div className="sb-surface w-full max-w-md space-y-6 p-4 sm:p-8 md:p-10">
         <div className="text-center">
           <div className="mx-auto mb-4 inline-flex rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-200">
@@ -49,8 +49,8 @@ export function LoginForm({
             role="alert"
             className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300"
           >
-            This email domain is not approved for ScholarBase yet. You can
-            request your institution to be reviewed below.
+            This email domain is not approved for ScholarBase yet. Use the
+            request option below to ask us to review your institution.
           </p>
         )}
 
@@ -214,7 +214,38 @@ export function LoginForm({
           </div>
         </form>
 
-        {showDomainRequest && <InstitutionDomainRequestForm defaultEmail={email} />}
+        {showDomainRequest && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-sm dark:border-blue-900/50 dark:bg-blue-950/20">
+            <p className="text-slate-700 dark:text-slate-300">
+              Is this an institutional or research-lab email?
+            </p>
+            <Link
+              href={
+                email.trim()
+                  ? `/request-institution?email=${encodeURIComponent(email.trim())}`
+                  : "/request-institution"
+              }
+              className="mt-2 inline-block font-semibold text-blue-700 hover:underline dark:text-blue-300"
+            >
+              Request institution access
+            </Link>
+          </div>
+        )}
+        {!showDomainRequest && (
+          <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+            Institution not listed?{" "}
+            <Link
+              href={
+                email.trim()
+                  ? `/request-institution?email=${encodeURIComponent(email.trim())}`
+                  : "/request-institution"
+              }
+              className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
+            >
+              Request access
+            </Link>
+          </p>
+        )}
 
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
