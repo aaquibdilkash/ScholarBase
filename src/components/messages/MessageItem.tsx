@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTimeAgo } from "@/utils/use-time-ago";
 import {
@@ -8,6 +9,7 @@ import {
   CheckCheck,
   Clock,
   AlertCircle,
+  Copy,
   MoreVertical,
   Pencil,
   Trash2,
@@ -47,6 +49,7 @@ export const MessageItem = React.memo(
     const timeLabel = useTimeAgo(message.createdAt);
 
     const [menuOpen, setMenuOpen] = useState(false);
+    const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editBody, setEditBody] = useState(message.body);
     const [isSaving, setIsSaving] = useState(false);
@@ -54,6 +57,8 @@ export const MessageItem = React.memo(
     const [isDeleting, setIsDeleting] = useState(false);
     const editInputRef = useRef<HTMLTextAreaElement | null>(null);
     const actionBarRef = useRef<HTMLDivElement | null>(null);
+    const actionButtonRef = useRef<HTMLButtonElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
     const { toast } = useToast();
 
     // ⚡ QUOTE JUMP: Scroll to (and briefly highlight) the quoted message.
@@ -91,12 +96,50 @@ export const MessageItem = React.memo(
     useEffect(() => {
       if (!menuOpen) return;
       const closeOnOutside = (e: MouseEvent) => {
-        if (!actionBarRef.current?.contains(e.target as Node)) {
+        if (
+          !actionBarRef.current?.contains(e.target as Node) &&
+          !menuRef.current?.contains(e.target as Node)
+        ) {
           setMenuOpen(false);
         }
       };
       document.addEventListener("mousedown", closeOnOutside);
       return () => document.removeEventListener("mousedown", closeOnOutside);
+    }, [menuOpen]);
+
+    useEffect(() => {
+      if (!menuOpen) {
+        setMenuPosition(null);
+        return;
+      }
+
+      const updateMenuPosition = () => {
+        const button = actionButtonRef.current;
+        if (!button) return;
+
+        const rect = button.getBoundingClientRect();
+        const menuWidth = 144;
+        const menuHeight = 76;
+        const gap = 4;
+        const left = Math.min(
+          Math.max(8, rect.right + gap),
+          window.innerWidth - menuWidth - 8,
+        );
+        const top =
+          rect.bottom + gap + menuHeight <= window.innerHeight
+            ? rect.bottom + gap
+            : Math.max(8, rect.top - menuHeight - gap);
+
+        setMenuPosition({ top, left });
+      };
+
+      updateMenuPosition();
+      window.addEventListener("resize", updateMenuPosition);
+      window.addEventListener("scroll", updateMenuPosition, true);
+      return () => {
+        window.removeEventListener("resize", updateMenuPosition);
+        window.removeEventListener("scroll", updateMenuPosition, true);
+      };
     }, [menuOpen]);
 
     useEffect(() => {
@@ -143,6 +186,30 @@ export const MessageItem = React.memo(
       setMenuOpen(false);
       if (!onDelete) return;
       setIsDeleteOpen(true);
+    };
+
+    const copyMessage = async () => {
+      setMenuOpen(false);
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(message.body);
+        } else {
+          const textarea = document.createElement("textarea");
+          textarea.value = message.body;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          const copied = document.execCommand("copy");
+          textarea.remove();
+          if (!copied) throw new Error("Copy command was rejected");
+        }
+        toast("Message copied.");
+      } catch {
+        toast("Could not copy the message.", "error");
+      }
     };
 
     const handleDelete = async () => {
@@ -196,7 +263,7 @@ export const MessageItem = React.memo(
     return (
       <div
         id={`message-${message.id}`}
-        className={`group flex items-center gap-3 rounded-2xl ${isMine ? "flex-row-reverse" : ""}`}
+        className={`group flex min-w-0 w-full items-center gap-3 rounded-2xl ${isMine ? "flex-row-reverse" : ""}`}
       >
         <div
           className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${isMine ? "hidden" : ""}`}
@@ -213,8 +280,7 @@ export const MessageItem = React.memo(
             </div>
           )}
         </div>
-        <div className="flex max-w-[90%] items-center gap-0">
-
+        <div className="flex min-w-0 max-w-[90%] items-center gap-0">
 
           {/* ⚡ ISSUE 6: Message action bar (kebab) on owned, delivered messages.
               DB-loaded messages have no `status` field — only optimistic
@@ -224,10 +290,11 @@ export const MessageItem = React.memo(
             !isEditing && (
             <div
               ref={actionBarRef}
-              className="relative self-center opacity-100 transition-opacity"
+              className="relative z-30 self-center opacity-100 transition-opacity"
             >
               <button
                 type="button"
+                ref={actionButtonRef}
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-label="Message actions"
                 aria-haspopup="menu"
@@ -236,31 +303,44 @@ export const MessageItem = React.memo(
               >
                 <MoreVertical className="h-4 w-4" />
               </button>
-              {menuOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 top-8 z-20 w-36 origin-top-right rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-                >
-                  <button
-                    type="button"
-                    onClick={startEdit}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={requestDelete}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </button>
-                </div>
-              )}
             </div>
           )}
+
+          {menuOpen && menuPosition && typeof document !== "undefined" &&
+            createPortal(
+              <div
+                ref={menuRef}
+                role="menu"
+                style={{ top: menuPosition.top, left: menuPosition.left }}
+                className="fixed z-[10000] w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+              >
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={copyMessage}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy
+                </button>
+                <button
+                  type="button"
+                  onClick={requestDelete}
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </div>,
+              document.body,
+            )}
 
           {/* ⚡ ISSUE 4: Retry affordance for failed sends */}
           {isMine && message.status === "failed" && message.retryable !== false && onRetry && (
@@ -328,7 +408,7 @@ export const MessageItem = React.memo(
             </div>
           ) : (
             <div
-              className={`rounded-lg ${
+              className={`min-w-0 max-w-full rounded-lg ${
                 message.replyTo ? "px-2 py-2" : "px-4 py-2"
               } ${
                 isMine

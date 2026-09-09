@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v1";
+const CACHE_NAME = "scholarbase-v2";
 const urlsToCache = [
   "/",
   "/manifest.json",
@@ -31,6 +31,13 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = event.request.url;
+
+  // Never serve cached bundles during local development. Without this guard,
+  // the service worker can keep an older React client in front of Next.js HMR.
+  if (self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1") {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   
   if (url.includes("/api/")) {
     event.respondWith(fetch(event.request));
