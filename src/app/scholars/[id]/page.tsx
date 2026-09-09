@@ -45,7 +45,7 @@ export default async function ScholarProfile({
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-10 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
             {profile.avatarUrl ? (
@@ -75,38 +75,46 @@ export default async function ScholarProfile({
                 profileId={profile.id}
                 currentUserId={currentUser?.id}
               />
-              <span className="inline-flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 text-amber-500" />
-                {profile.reputation} reputation
-              </span>
-              <span suppressHydrationWarning>Joined {formatTimeAgo(profile.createdAt)}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <ReportMenu
-            entityId={profile.id}
-            entityType="POST"
-            module="SCHOLAR_PROFILE"
-            direction="down"
-            ownerId={profile.id}
-            currentUserId={currentUser?.id}
-            isFrozen={profile.isFrozen}
-            isDeleted={profile.isDeleted}
-            hasActiveAppeal={profile.hasActiveAppeal}
-            reportLabel="Report User"
-          />
-          <ShareButton label="Share profile" href={`/scholars/${profile.id}`} />
+        <div className="flex items-center justify-center gap-x-3 text-sm text-slate-500 dark:text-slate-400">
+          <span className="inline-flex items-center gap-1">
+            <Star className="h-3.5 w-3.5 text-amber-500" />
+            {profile.reputation} reputation
+          </span>
+          <span suppressHydrationWarning>Joined {formatTimeAgo(profile.createdAt)}</span>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <ReportMenu
+              entityId={profile.id}
+              entityType="POST"
+              module="SCHOLAR_PROFILE"
+              direction="down"
+              ownerId={profile.id}
+              currentUserId={currentUser?.id}
+              isFrozen={profile.isFrozen}
+              isDeleted={profile.isDeleted}
+              hasActiveAppeal={profile.hasActiveAppeal}
+              reportLabel="Report User"
+            />
+            <ShareButton label="Share profile" href={`/scholars/${profile.id}`} />
+          </div>
+        </div>
+
+        <div className="flex w-full justify-end">
           {isOwnProfile ? (
-            <Link
-              href={`/scholars/${profile.id}/settings`}
-              className="sb-button-soft"
-            >
-              Edit Profile
-            </Link>
+            <div className="flex w-full justify-end sm:w-auto">
+              <Link
+                href={`/scholars/${profile.id}/settings`}
+                className="sb-button-soft w-full justify-center sm:w-auto"
+              >
+                Edit Profile
+              </Link>
+            </div>
           ) : (
-            <>
+            <div className="flex w-full gap-2 sm:w-auto">
               <MessageButton
                 recipientId={profile.id}
                 recipientName={profile.name}
@@ -116,7 +124,7 @@ export default async function ScholarProfile({
                 isFollowing={isFollowing}
                 currentUserId={currentUser?.id}
               />
-            </>
+            </div>
           )}
         </div>
       </div>

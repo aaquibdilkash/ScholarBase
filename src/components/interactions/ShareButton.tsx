@@ -44,12 +44,12 @@ export function ShareButton({
     <button
       type="button"
       onClick={onShare}
-      className="text-sm font-medium hover:text-blue-600 transition flex items-center gap-2"
+      className="inline-flex h-8 min-w-8 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium transition hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800"
       aria-label={label}
       title={label}
     >
       <Share className="w-5 h-5" />
-      <span className="hidden md:inline">{label}</span>
+      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }

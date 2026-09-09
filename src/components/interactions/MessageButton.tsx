@@ -16,7 +16,7 @@ export function MessageButton({
   const { openAuthModal } = useAuthModal();
 
   const baseClass =
-    "inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 py-2 text-sm font-semibold text-white transition hover:bg-slate-800";
+    "inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 sm:flex-none sm:px-6";
 
   if (!user) {
     return (
