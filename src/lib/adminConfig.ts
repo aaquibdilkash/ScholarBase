@@ -11,6 +11,7 @@ export interface AdminSection {
  *  "users" have no public route (they're admin-only). */
 export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "institutionRequests", title: "Institution Requests", href: "#" },
+  { id: "invites", title: "Email Outreach", href: "#" },
   { id: "appeals", title: "Appeals", href: "#" },
   { id: "feed", title: "Feed", href: "/feed" },
   { id: "blog", title: "Blog", href: "/blog" },

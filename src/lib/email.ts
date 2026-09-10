@@ -4,6 +4,12 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 import type { CommentNotificationProps, ScholarInviteProps } from '@/types/email';
+import {
+    generateScholarInviteHtml,
+    generateScholarInvitePlainText,
+    type ScholarInviteEmailProps,
+} from '@/lib/emails/scholarInvite';
+import { renderScholarBaseCompactHeader } from '@/lib/emails/brand';
 
 export async function sendCommentNotification({
     recipientEmail,
@@ -18,9 +24,7 @@ export async function sendCommentNotification({
             subject: `${commenterName} commented on your paper`,
             html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="font-size: 24px; color: #020617; margin: 0;">Scholar<span style="color: #2563eb;">Base</span></h1>
-          </div>
+          ${renderScholarBaseCompactHeader("New activity on ScholarBase")}
           <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
             <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">New Comment on "${paperTitle}"</h2>
             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;"><strong>${commenterName}</strong> left a comment:</p>
@@ -58,9 +62,7 @@ export async function sendScholarInviteEmail({
             subject: `${inviterName} invited you to join ScholarBase`,
             html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="font-size: 24px; color: #020617; margin: 0;">Scholar<span style="color: #2563eb;">Base</span></h1>
-          </div>
+          ${renderScholarBaseCompactHeader("Collaboration Invitation")}
           <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
             <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Collaboration Invitation</h2>
             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${inviterName} wants to collaborate with you on ScholarBase.</p>
@@ -86,6 +88,37 @@ export async function sendScholarInviteEmail({
     } catch (error) {
         console.error('Failed to send scholar invite email:', error);
         return { success: false, error };
+    }
+}
+
+export async function sendScholarOutreachEmail({
+    recipientEmail,
+    isTestSend,
+    ...emailProps
+}: ScholarInviteEmailProps & {
+    recipientEmail: string;
+    isTestSend?: boolean;
+}) {
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'ScholarBase <invitations@scholarbase.app>',
+            to: [recipientEmail],
+            subject: isTestSend
+                ? `[TEST] ${emailProps.subject}`
+                : emailProps.subject,
+            html: generateScholarInviteHtml(emailProps),
+            text: generateScholarInvitePlainText(emailProps),
+        });
+
+        if (error) {
+            console.error('Failed to send scholar outreach email:', error);
+            return { success: false as const, error: error.message };
+        }
+
+        return { success: true as const, id: data?.id ?? null };
+    } catch (error) {
+        console.error('Failed to send scholar outreach email:', error);
+        return { success: false as const, error: 'Email provider unavailable.' };
     }
 }
 
@@ -121,6 +154,7 @@ export async function sendInstitutionVerificationEmail({
             subject: "Verify your institutional email on ScholarBase",
             html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+          ${renderScholarBaseCompactHeader("Institutional verification")}
           <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; border-top: 4px solid #2563eb;">
             <h1 style="margin-top: 0; color: #0f172a; font-size: 22px;">Verify your institutional email</h1>
             <p style="color: #475569; font-size: 16px; line-height: 1.6;">Hi ${safeName},</p>

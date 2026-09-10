@@ -10,6 +10,7 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import type { ContactFormState } from "@/types/contact";
+import { renderScholarBaseCompactHeader } from "@/lib/emails/brand";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -75,9 +76,7 @@ export async function sendContactMessage(
       subject: `Contact Form: ${subject}`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="font-size: 24px; color: #020617; margin: 0;">Scholar<span style="color: #2563eb;">Base</span></h1>
-          </div>
+          ${renderScholarBaseCompactHeader("Contact form submission")}
           <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
             <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">New Contact Form Submission</h2>
             <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">

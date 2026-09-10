@@ -30,6 +30,7 @@ import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { InstitutionDomainRequestsPanel } from "@/components/admin/InstitutionDomainRequestsPanel";
+import { AdminInviteScholarForm } from "@/components/admin/AdminInviteScholarForm";
 import {
   buildContentColumns,
   buildUsersColumns,
@@ -97,6 +98,7 @@ export function AdminDashboard({
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
   const { view, page, sortBy, statusFilter, entityStatusFilter } = ui;
   const isInstitutionRequestsTab = activeTab === "institutionRequests";
+  const isInviteTab = activeTab === "invites";
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionState(activeTab, patch);
@@ -155,7 +157,7 @@ export function AdminDashboard({
           ),
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000,
-    enabled: !isInstitutionRequestsTab,
+    enabled: !isInstitutionRequestsTab && !isInviteTab,
     // SSR-hydrated first page of the default Feed view — zero fetch on mount.
     // Must match the default sort ("reportCount") used by admin/page.tsx.
     initialData:
@@ -347,7 +349,7 @@ export function AdminDashboard({
   };
 
   const isPending =
-    (!isInstitutionRequestsTab && contentQuery.isPending) ||
+    (!isInstitutionRequestsTab && !isInviteTab && contentQuery.isPending) ||
     statsQuery.isPending ||
     contributionMutation.isPending;
 
@@ -413,6 +415,10 @@ export function AdminDashboard({
               <InstitutionDomainRequestsPanel
                 initialData={initialInstitutionDomainRequests}
               />
+            </div>
+          ) : isInviteTab ? (
+            <div ref={tableRef} className="scroll-mt-20">
+              <AdminInviteScholarForm />
             </div>
           ) : (
             <div

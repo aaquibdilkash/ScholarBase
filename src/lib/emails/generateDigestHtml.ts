@@ -1,6 +1,7 @@
 // src/lib/emails/generateDigestHtml.ts
 // Zero-dependency HTML email generator. No @react-email — returns raw HTML
 // with inline CSS only (required for maximum email-client compatibility).
+import { renderScholarBaseBrandLockup } from "@/lib/emails/brand";
 
 export type DigestNotification = {
   id: string;
@@ -120,9 +121,9 @@ export function generateDigestHtml(
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
         <!-- Header -->
-        <tr><td style="padding:24px 0;text-align:center;">
-          <span style="font-size:22px;font-weight:800;color:${COLORS.primary};">ScholarBase</span>
-          <div style="font-size:13px;color:${COLORS.muted};margin-top:4px;">Your academic notification digest</div>
+        <tr><td style="padding:24px 0;background:#0f172a;text-align:center;">
+          ${renderScholarBaseBrandLockup()}
+          <div style="font-size:13px;color:#cbd5e1;margin-top:16px;">Your academic notification digest</div>
         </td></tr>
 
         <!-- Greeting -->
@@ -161,4 +162,3 @@ export function generateDigestHtml(
 </body>
 </html>`;
 }
-
