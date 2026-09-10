@@ -10,7 +10,10 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import type { ContactFormState } from "@/types/contact";
-import { renderScholarBaseCompactHeader } from "@/lib/emails/brand";
+import {
+  renderScholarBaseCompactHeader,
+  renderScholarBaseResponsiveStyles,
+} from "@/lib/emails/brand";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -75,9 +78,10 @@ export async function sendContactMessage(
       replyTo: replyToEmail,
       subject: `Contact Form: ${subject}`,
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        ${renderScholarBaseResponsiveStyles()}
+        <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
           ${renderScholarBaseCompactHeader("Contact form submission")}
-          <div style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
+          <div class="sb-email-panel" style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
             <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">New Contact Form Submission</h2>
             <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
               <p style="margin: 8px 0; color: #374151;"><strong>From:</strong> ${name}</p>
@@ -89,7 +93,7 @@ export async function sendContactMessage(
               <p style="margin: 8px 0; color: #374151; white-space: pre-wrap; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">${message}</p>
             </div>
           </div>
-          <div style="text-align: center; margin-top: 24px;">
+          <div class="sb-email-footer" style="text-align: center; margin-top: 24px;">
             <p style="color: #94a3b8; font-size: 12px; margin: 0;">© 2026 ScholarBase. All rights reserved.</p>
           </div>
         </div>

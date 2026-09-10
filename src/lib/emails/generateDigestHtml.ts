@@ -1,7 +1,10 @@
 // src/lib/emails/generateDigestHtml.ts
 // Zero-dependency HTML email generator. No @react-email — returns raw HTML
 // with inline CSS only (required for maximum email-client compatibility).
-import { renderScholarBaseBrandLockup } from "@/lib/emails/brand";
+import {
+  renderScholarBaseBrandLockup,
+  renderScholarBaseResponsiveStyles,
+} from "@/lib/emails/brand";
 
 export type DigestNotification = {
   id: string;
@@ -77,7 +80,7 @@ function renderModuleSection(group: DigestModuleGroup): string {
   const items = group.notifications.map(renderNotificationItem).join("");
 
   return `
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    <table class="sb-digest-module" role="presentation" width="100%" cellpadding="0" cellspacing="0"
            style="background:${COLORS.card};border:1px solid ${COLORS.border};border-radius:8px;margin-bottom:20px;">
       <tr>
         <td style="padding:12px 16px;background:#f8fafc;border-bottom:1px solid ${COLORS.border};border-radius:8px 8px 0 0;">
@@ -90,7 +93,7 @@ function renderModuleSection(group: DigestModuleGroup): string {
         </td>
       </tr>
       <tr>
-        <td style="padding:0;">${items}</td>
+        <td class="sb-digest-module-content" style="padding:0;">${items}</td>
       </tr>
     </table>
   `;
@@ -114,20 +117,20 @@ export function generateDigestHtml(
 
   return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">${renderScholarBaseResponsiveStyles()}</head>
 <body style="margin:0;padding:0;background:${COLORS.background};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.background};">
-    <tr><td align="center" style="padding:24px 12px;">
+    <tr><td class="sb-digest-shell" align="center" style="padding:24px 12px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
 
         <!-- Header -->
-        <tr><td style="padding:24px 0;background:#0f172a;text-align:center;">
+        <tr><td class="sb-digest-header" style="padding:24px 0;background:#0f172a;text-align:center;">
           ${renderScholarBaseBrandLockup()}
           <div style="font-size:13px;color:#cbd5e1;margin-top:16px;">Your academic notification digest</div>
         </td></tr>
 
         <!-- Greeting -->
-        <tr><td style="padding:0 0 16px 0;">
+        <tr><td class="sb-digest-greeting" style="padding:0 0 16px 0;">
           <div style="font-size:18px;font-weight:700;color:${COLORS.text};">
             Hello ${escapeHtml(userName || "Scholar")} 👋
           </div>
