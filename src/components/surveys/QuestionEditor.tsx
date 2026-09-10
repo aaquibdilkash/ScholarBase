@@ -124,7 +124,7 @@ export function QuestionEditor({
 
   return (
     <>
-    <div className="rounded-none border-0 border-t border-slate-200 bg-transparent pt-5 first:border-t-0 first:pt-0 dark:border-slate-700 dark:bg-transparent sm:rounded-xl sm:border sm:bg-white sm:p-5 sm:shadow-sm sm:dark:bg-slate-800">
+    <div className="rounded-none border-0 border-t border-slate-200 bg-transparent pt-5 first:border-t-0 first:pt-0 dark:border-slate-700 dark:bg-transparent sm:rounded-xl sm:border sm:bg-white sm:p-5 sm:first:pt-5 sm:shadow-sm sm:dark:bg-slate-800">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2">
           <button
@@ -390,15 +390,15 @@ export function QuestionEditor({
               ))}
             </div>
             {question.options.length > 0 && (
-              <div className="mt-4 rounded-lg bg-slate-50 p-3">
-                <label className="mb-2 block text-xs font-semibold text-slate-600">
+              <div className="mt-4 rounded-lg bg-slate-50 p-3 dark:bg-slate-800">
+                <label className="mb-2 block text-xs font-semibold text-slate-600 dark:text-slate-300">
                   Preview Options:
                 </label>
                 <div className="space-y-1">
                   {question.options.map((opt, i) => (
                     <div
                       key={opt.value}
-                      className="flex items-center gap-2 text-sm text-slate-700"
+                      className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
                     >
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
                         {i + 1}
@@ -535,15 +535,15 @@ export function QuestionEditor({
         )}
 
         {canHaveSkipLogic && (
-          <div className="border-t border-slate-200 bg-transparent px-0 pb-0 pt-4 dark:border-slate-700 sm:rounded-lg sm:border sm:bg-slate-50 sm:p-3">
-            <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
+          <div className="border-t border-slate-200 bg-transparent px-0 pb-0 pt-4 dark:border-slate-700 sm:rounded-lg sm:border sm:bg-slate-50 sm:p-3 sm:dark:bg-slate-800">
+            <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5 dark:text-slate-200">
               Skip Logic
               <InfoTooltip message="When this question's answer matches a rule, all questions up to the target are skipped for that respondent." />
             </label>
             <div className="space-y-2">
               {(question.skipLogic ?? []).map((rule, ri) => (
                 <div key={ri} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                  <span className="text-xs font-semibold text-slate-500">If</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">If</span>
                   <select
                     value={rule.operator}
                     onChange={(e) => {
@@ -578,7 +578,7 @@ export function QuestionEditor({
                       </option>
                     ))}
                   </select>
-                  <span className="text-xs font-semibold text-slate-500">skip to</span>
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">skip to</span>
                   <select
                     value={String(rule.skipToOrder)}
                     onChange={(e) => {

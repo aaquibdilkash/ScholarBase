@@ -434,6 +434,25 @@ html[data-theme="dark"] {
   html.dark .sb-select:hover, html[data-theme="dark"] .sb-select:hover { border-color: rgba(148, 163, 184, 0.42); }
   html.dark .sb-select option, html[data-theme="dark"] .sb-select option { background: #0f172a; color: #e2e8f0; }
 
+  /* Keep all text-entry controls on the same dark surface as dropdowns. */
+  html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]),
+  html.dark textarea,
+  html.dark select,
+  html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]),
+  html[data-theme="dark"] textarea,
+  html[data-theme="dark"] select {
+    background-color: rgba(15, 23, 42, 0.9) !important;
+    border-color: rgba(148, 163, 184, 0.24) !important;
+    color: #e2e8f0 !important;
+  }
+
+  html.dark input::placeholder,
+  html.dark textarea::placeholder,
+  html[data-theme="dark"] input::placeholder,
+  html[data-theme="dark"] textarea::placeholder {
+    color: #94a3b8 !important;
+  }
+
   html.dark .sb-menu-trigger, html[data-theme="dark"] .sb-menu-trigger {
     border-color: rgba(148, 163, 184, 0.24); background: rgba(15, 23, 42, 0.92); color: #cbd5e1;
   }

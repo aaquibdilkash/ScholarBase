@@ -508,7 +508,7 @@ export default function SurveyForm({
               {blocks.map((block, i) => (
                 <div
                   key={block.id}
-                  className="grid gap-3 border-t border-slate-200 bg-transparent p-0 pt-3 first:border-t-0 first:pt-0 dark:border-slate-700 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:rounded-lg sm:border sm:bg-slate-50 sm:p-2"
+                  className="grid gap-3 border-t border-slate-200 bg-transparent p-0 pt-3 first:border-t-0 first:pt-0 dark:border-slate-700 sm:flex sm:flex-wrap sm:items-center sm:gap-2 sm:rounded-lg sm:border sm:bg-slate-50 sm:p-2 sm:dark:bg-slate-800"
                 >
                   <input
                     type="text"
@@ -516,12 +516,12 @@ export default function SurveyForm({
                     onChange={(e) =>
                       updateBlock(i, { ...block, title: e.target.value })
                     }
-                    className="min-w-0 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm sm:flex-1 sm:py-1.5"
+                    className="min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm sm:flex-1 sm:py-1.5 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-400"
                     maxLength={MAX_SURVEY_QUESTION_TITLE}
                     required
                   />
                   <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3 sm:w-auto sm:justify-start">
-                    <label className="flex min-h-9 min-w-0 cursor-pointer items-center gap-2 text-xs font-semibold leading-5 text-slate-600">
+                    <label className="flex min-h-9 min-w-0 cursor-pointer items-center gap-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">
                     <input
                       type="checkbox"
                       checked={block.randomizeOrder}
