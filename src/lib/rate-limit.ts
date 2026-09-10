@@ -52,6 +52,22 @@ export function hashRateLimitKey(value: string): string {
     return createHash('sha256').update(value).digest('hex')
 }
 
+/**
+ * Returns a hashed key for the shared network address.
+ *
+ * This is intentionally separate from getRequestFingerprint(): user-agent
+ * values are useful for coarse anonymous-action partitioning, but they are
+ * not an identity and should not make a campus network receive separate
+ * authentication quotas per browser.
+ */
+export function getRequestIpKey(headers: Headers): string {
+    const forwardedFor = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    const realIp = headers.get('x-real-ip')?.trim()
+    const ip = forwardedFor || realIp || 'unknown'
+
+    return hashRateLimitKey(ip)
+}
+
 export function getRequestFingerprint(headers: Headers): string {
     const forwardedFor = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     const realIp = headers.get('x-real-ip')?.trim()

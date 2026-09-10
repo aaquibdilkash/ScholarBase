@@ -9,7 +9,7 @@ import prisma from "@/lib/db";
 import type { Duration } from "@upstash/ratelimit";
 import {
   checkRateLimit,
-  getRequestFingerprint,
+  getRequestIpKey,
   hashRateLimitKey,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
@@ -67,7 +67,7 @@ async function limitByEmailAndIp(
   window: Duration,
 ): Promise<AuthResult | null> {
   const headersList = await headers();
-  const requestKey = getRequestFingerprint(headersList);
+  const requestKey = getRequestIpKey(headersList);
   const emailKey = hashRateLimitKey(email.trim().toLowerCase());
 
   const [emailRateLimit, ipRateLimit] = await Promise.all([
@@ -118,7 +118,7 @@ export async function login(formData: FormData): Promise<AuthResult> {
     "auth:login",
     email,
     5,
-    25,
+    100,
     "1 m",
   );
   if (rateLimitResult) {
@@ -184,7 +184,7 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     "auth:signup",
     email,
     3,
-    10,
+    200,
     "1 h",
   );
   if (rateLimitResult) {
