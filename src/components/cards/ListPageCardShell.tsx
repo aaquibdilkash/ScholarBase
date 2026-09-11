@@ -93,7 +93,7 @@ export default function ListPageCardShell({
       <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {authorHref ? (
-            <Link href={authorHref} className="shrink-0">
+            <Link href={authorHref} prefetch={false} className="shrink-0">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border-slate-700 dark:bg-slate-800">
                 {authorAvatarUrl ? (
                   <UserAvatar src={authorAvatarUrl} name={authorName} />
@@ -114,6 +114,7 @@ export default function ListPageCardShell({
             {authorHref ? (
               <Link
                 href={authorHref}
+                prefetch={false}
                 className="block max-w-full truncate font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
               >
                 {authorName || "Scholar"}
@@ -181,6 +182,7 @@ export default function ListPageCardShell({
               {footerCommentsHref && (
                 <Link
                   href={footerCommentsHref}
+                  prefetch={false}
                   className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 sm:gap-2"
                 >
                   <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />

@@ -129,7 +129,7 @@ export function EventCard({
         </div>
       }
     >
-      <Link href={`/events/${event.id}`} className="block group">
+      <Link href={`/events/${event.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {urgency && (
             <span

@@ -93,7 +93,7 @@ export function TruncatedCardBody({
       {noBodyLink ? (
         <div className={className}>{content}</div>
       ) : (
-        <Link href={detailPageHref} className={className}>
+        <Link href={detailPageHref} prefetch={false} className={className}>
           {content}
         </Link>
       )}

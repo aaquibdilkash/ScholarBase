@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   updateProfile,
   isHandleAvailable as checkHandle,
 } from "@/app/actions/profile";
-import { uploadImage, deleteDraftImage } from "@/app/actions/cloudinary";
+import { ImageUploadField } from "@/components/upload/ImageUploadField";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { Editor } from "@/components/ui/Editor";
@@ -85,10 +85,34 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const [isHandleValid, setIsHandleValid] = useState(true);
   const [isCheckingHandle, setIsCheckingHandle] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || "");
-   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Persist the pending draft avatar across navigation (the asset lives in
+  // the user's Cloudinary draft folder until Save promotes it). Restored on
+  // mount so returning to the form shows the draft instead of the published
+  // avatar, and the replace-cleanup deletes the previous draft correctly.
+  const avatarDraftKey = `draft_profile_avatar_${user.id}`;
+  const [avatarRestored, setAvatarRestored] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(avatarDraftKey);
+      if (saved) setAvatarUrl(saved);
+    } catch {
+      // ignore storage errors
+    }
+    setAvatarRestored(true);
+  }, [avatarDraftKey]);
+
+  useEffect(() => {
+    if (!avatarRestored) return;
+    try {
+      if (avatarUrl) localStorage.setItem(avatarDraftKey, avatarUrl);
+      else localStorage.removeItem(avatarDraftKey);
+    } catch {
+      // ignore storage errors
+    }
+  }, [avatarUrl, avatarRestored, avatarDraftKey]);
   const { toast } = useToast();
 
   const [bio, setBio] = useState(user.bio || "");
@@ -115,46 +139,6 @@ export default function EditProfileForm({ user }: { user: UserData }) {
     }
   }, [handle, user.handle, debouncedCheckHandle]);
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setUploadError("Please upload an image file.");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError("File size must be less than 5MB.");
-      return;
-    }
-
-    setUploading(true);
-    setUploadError("");
-
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-
-      const data = await uploadImage(fd, "avatar");
-
-      // Remove the replaced draft (folder-prefixed check makes this a no-op
-      // for the currently published avatar, which lives outside /draft/).
-      if (avatarUrl && avatarUrl !== data.url) {
-        await deleteDraftImage(avatarUrl);
-      }
-
-      setAvatarUrl(data.url);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to upload avatar.";
-      setUploadError(message);
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
   const isBioOverLimit = getRichTextLength(bio) > MAX_PROFILE_BIO;
   const isFormOverLimit = isBioOverLimit;
 
@@ -172,6 +156,13 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       const result = await updateProfile(formData);
 
       if (result?.success) {
+        // The draft avatar was promoted server-side — the pending store must
+        // not restore the stale draft URL on the next visit.
+        try {
+          localStorage.removeItem(avatarDraftKey);
+        } catch {
+          // ignore storage errors
+        }
         toast("Profile updated successfully!", "success");
         router.push(`/scholars/${user.id}`);
       } else {
@@ -291,42 +282,20 @@ export default function EditProfileForm({ user }: { user: UserData }) {
            Avatar
            <InfoTooltip message={PROFILE_AVATAR_TIP} />
          </label>
-        <div className="mt-1 flex items-center gap-4">
-          {avatarUrl && (
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shrink-0">
-              <Image
-                src={avatarUrl}
-                alt="Avatar preview"
-                width={64}
-                height={64}
-                unoptimized
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          <label className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50">
-            <span>{uploading ? "Uploading..." : "Choose Image"}</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarUpload}
-              disabled={uploading}
-            />
-          </label>
-          {avatarUrl && (
-            <span className="text-xs text-green-600 font-semibold">
-              ✓ Avatar uploaded
-            </span>
-          )}
+        <div className="mt-1">
+          <ImageUploadField
+            kind="avatar"
+            crop
+            circular
+            previewSize={64}
+            value={avatarUrl}
+            onChange={setAvatarUrl}
+            buttonLabel={avatarUrl ? "Replace Avatar" : "Choose Image"}
+            buttonVariant="dashed"
+            successHint="✓ Avatar uploaded — click Save Profile to apply"
+            hint="You can crop and zoom after choosing. Removing the avatar clears it when you save. Max 5MB."
+          />
         </div>
-        {uploadError && (
-          <p className="mt-1 text-xs text-red-500 font-medium">{uploadError}</p>
-        )}
-        <p className="mt-2 text-xs text-slate-500">
-          Upload a profile photo. Recommended: square image, max 5MB.
-        </p>
         <input type="hidden" name="avatarUrl" value={avatarUrl} />
       </div>
 
@@ -408,7 +377,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         </div>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end gap-3 pt-4">
+        <FormCancelButton />
         <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit} loadingText="Saving...">
           Save Profile
         </SubmitBtnWithAuth>

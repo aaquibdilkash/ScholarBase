@@ -119,7 +119,7 @@ export function AdmissionCard({
         </div>
       }
     >
-      <Link href={`/admissions/${admission.id}`} className="block group">
+      <Link href={`/admissions/${admission.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {urgency && (
             <span

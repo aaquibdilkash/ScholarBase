@@ -104,7 +104,7 @@ export function SurveyCard({
         />
       }
     >
-      <Link href={`/surveys/${survey.id}`} className="block group">
+      <Link href={`/surveys/${survey.id}`} prefetch={false} className="block group">
         <div className="mb-2 flex items-center gap-2">
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -136,6 +136,7 @@ export function SurveyCard({
       {survey.shareData && (
         <Link
           href={`/surveys/${survey.id}/results`}
+          prefetch={false}
           className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
         >
           <BarChart2 className="w-4 h-4" />

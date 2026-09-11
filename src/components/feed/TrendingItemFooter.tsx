@@ -60,6 +60,7 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
       />
       <Link
         href={detailUrl}
+        prefetch={false}
         className="flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-700"
       >
         <MessageCircle className="w-5 h-5" />

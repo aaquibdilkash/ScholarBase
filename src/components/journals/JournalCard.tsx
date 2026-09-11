@@ -110,7 +110,7 @@ export function JournalCard({
         </>
       }
     >
-      <Link href={`/journals/${journal.id}`} className="block group">
+      <Link href={`/journals/${journal.id}`} prefetch={false} className="block group">
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
           {journal.title}
         </h2>

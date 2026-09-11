@@ -399,8 +399,9 @@ export async function updateProfile(formData: FormData) {
     throw new Error("Invalid avatar image.");
   }
 
-  // Delete old avatar from Cloudinary if a new one is being set
-  if (finalAvatarUrl && finalAvatarUrl !== user.avatarUrl && user.avatarUrl) {
+  // Delete the previous avatar from Cloudinary when it is being replaced OR
+  // explicitly removed (saved with no avatar).
+  if (user.avatarUrl && finalAvatarUrl !== user.avatarUrl) {
     await deleteCloudinaryAsset(user.avatarUrl);
   }
 
@@ -410,7 +411,7 @@ export async function updateProfile(formData: FormData) {
       handle: newHandle ? normalizeHandle(newHandle) : user.handle,
       name: newName || user.name,
       bio: newBio,
-      avatarUrl: finalAvatarUrl ?? user.avatarUrl,
+      avatarUrl: finalAvatarUrl,
       githubUrl: safeGithubUrl ?? user.githubUrl,
       orcidUrl: safeOrcidUrl ?? user.orcidUrl,
       linkedinUrl: safeLinkedinUrl ?? user.linkedinUrl,

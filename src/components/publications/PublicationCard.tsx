@@ -119,7 +119,7 @@ export function PublicationCard({
         )
       }
     >
-      <Link href={`/publications/${publication.id}`} className="block group">
+      <Link href={`/publications/${publication.id}`} prefetch={false} className="block group">
         <div className="flex items-start justify-between gap-3 mb-2">
           <h2 className="text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
             {publication.title}

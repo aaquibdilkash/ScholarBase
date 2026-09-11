@@ -122,7 +122,7 @@ export function VacancyCard({
         </div>
       }
     >
-      <Link href={`/vacancies/${vacancy.id}`} className="block group">
+      <Link href={`/vacancies/${vacancy.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {urgency && (
             <span

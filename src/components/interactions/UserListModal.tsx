@@ -177,6 +177,7 @@ export function UserListModal({
               >
                 <Link
                   href={`/scholars/${u.id}`}
+                  prefetch={false}
                   className="flex items-center gap-3 min-w-0"
                   onClick={handleClose}
                 >

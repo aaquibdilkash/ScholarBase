@@ -103,7 +103,7 @@ export function ResearchToolCard({
         )
       }
     >
-      <Link href={`/research-tools/${tool.id}`} className="block group">
+      <Link href={`/research-tools/${tool.id}`} prefetch={false} className="block group">
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
           {tool.name}
         </h2>

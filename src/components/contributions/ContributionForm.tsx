@@ -1,22 +1,16 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   createContribution,
   updateContribution,
 } from "@/app/actions/contributions";
-import {
-  uploadImage,
-  deleteDraftImage,
-} from "@/app/actions/cloudinary";
+import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
 import { useFormDraft } from "@/hooks/useFormDraft";
-import { useAuthModal } from "@/components/interactions/AuthModal";
-import { useUser } from "@/hooks/useUser";
 import { upsertToList } from "@/utils/cacheMutation";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { Editor } from "@/components/ui/Editor";
@@ -67,8 +61,7 @@ export default function ContributionForm({
   contributionStatus?: string;
   initialValues?: Partial<ContributionFormValues>;
 }) {
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState("");
+  const [imageBusy, setImageBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -92,11 +85,6 @@ export default function ContributionForm({
   const [screenshotUrl, setScreenshotUrl] = useState(
     initialValues?.screenshotUrl ?? "",
   );
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const { openAuthModal } = useAuthModal();
-  const { user } = useUser();
-
   // Restore screenshotUrl from draft once hydration completes
   useEffect(() => {
     if (isRestored && draftFields.screenshotUrl) {
@@ -164,68 +152,6 @@ export default function ContributionForm({
     }
   }
 
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // 1. Client-Side Validation
-    if (!file.type.startsWith("image/")) {
-      setUploadError("Please upload an image file.");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError("File size must be less than 5MB.");
-      return;
-    }
-
-    setUploading(true);
-    setUploadError("");
-
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-
-      const data = await uploadImage(fd, "contribution");
-      const newUrl = data.url;
-
-      // Folder-prefixed check makes this a no-op for the currently published
-      // screenshot (which lives outside /draft/), so this is safe in edit mode.
-      if (screenshotUrl && screenshotUrl !== newUrl) {
-        await deleteDraftImage(screenshotUrl);
-      }
-
-      setScreenshotUrl(newUrl);
-    } catch (err) {
-      setUploadError(
-        err instanceof Error ? err.message : "Failed to upload screenshot.",
-      );
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
-  async function handleRemoveScreenshot() {
-    if (!screenshotUrl) return;
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    if (mode === "create") {
-      const deleted = await deleteDraftImage(screenshotUrl);
-      if (!deleted) {
-        toast("Could not delete the draft image. Please try again.", "error");
-        return;
-      }
-    }
-
-    setScreenshotUrl("");
-    setUploadError("");
-    updateDraftField("screenshotUrl", "");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
 
   return (
     <form
@@ -343,71 +269,23 @@ export default function ContributionForm({
               Payment Screenshot (Optional)
               <InfoTooltip message={CONTRIBUTION_SCREENSHOT_TIP} />
             </label>
-            <div className="mt-1 flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!user) {
-                    openAuthModal();
-                    return;
-                  }
-                  fileInputRef.current?.click();
+            <div className="mt-1">
+              <ImageUploadField
+                kind="contribution"
+                value={screenshotUrl}
+                onChange={(url) => {
+                  setScreenshotUrl(url);
+                  updateDraftField("screenshotUrl", url);
                 }}
-                disabled={uploading}
-                className="cursor-pointer rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50"
-              >
-                <span>{uploading ? "Uploading..." : "Choose Image"}</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileUpload}
-                disabled={uploading}
+                onUploadingChange={setImageBusy}
+                buttonLabel="Choose Image"
+                buttonVariant="dashed"
+                previewSize={128}
+                successHint="✓ Screenshot uploaded"
+                hint="Large images are auto-compressed under 500 KB."
               />
-              {screenshotUrl && (
-                <span className="text-xs text-green-600 font-semibold">
-                  ✓ Screenshot uploaded
-                </span>
-              )}
+              <input type="hidden" name="screenshotUrl" value={screenshotUrl} />
             </div>
-            {uploadError && (
-              <p className="mt-1 text-xs text-red-500 font-medium">
-                {uploadError}
-              </p>
-            )}
-            {screenshotUrl && (
-              <div className="relative group mt-2 w-fit">
-                <Image
-                  src={screenshotUrl}
-                  alt="Payment screenshot preview"
-                  width={320}
-                  height={160}
-                  unoptimized
-                  className="h-32 w-auto rounded-lg border border-slate-200 object-cover shadow-sm dark:border-slate-700"
-                />
-                {/* Always-visible remove button (works on touch/mobile) */}
-                <button
-                  type="button"
-                  onClick={handleRemoveScreenshot}
-                  aria-label="Remove screenshot"
-                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-sm hover:bg-red-600"
-                >
-                  ×
-                </button>
-                {/* Hover overlay: Remove image (desktop) */}
-                <div
-                  onClick={handleRemoveScreenshot}
-                  className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-lg bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <span className="text-xs font-semibold text-white">
-                    Remove
-                  </span>
-                </div>
-              </div>
-            )}
-            <input type="hidden" name="screenshotUrl" value={screenshotUrl} />
           </div>
         </>
       )}
@@ -444,7 +322,7 @@ export default function ContributionForm({
         <SubmitBtnWithAuth
           className="sb-button-accent"
           loadingText="Submitting..."
-          disabled={submitting || isFormOverLimit}
+          disabled={submitting || isFormOverLimit || imageBusy}
         >
           {mode === "edit" ? "Save Changes" : "Submit Contribution"}
         </SubmitBtnWithAuth>

@@ -212,6 +212,7 @@ export function SocialPostCard({
     >
       <Link
         href={`/feed/${post.id}`}
+        prefetch={false}
         className={`flex min-w-0 gap-4 ${post.imageUrl ? "items-start" : ""} ${isExpanded ? "flex-col md:flex-row" : ""}`}
         style={
           isExpanded

@@ -53,28 +53,40 @@ export function hashRateLimitKey(value: string): string {
 }
 
 /**
- * Returns a hashed key for the shared network address.
+ * Resolves the real visitor IP behind reverse proxies.
  *
- * This is intentionally separate from getRequestFingerprint(): user-agent
- * values are useful for coarse anonymous-action partitioning, but they are
- * not an identity and should not make a campus network receive separate
- * authentication quotas per browser.
+ * With the Cloudflare Orange Cloud proxy enabled, socket-level lookups and
+ * 'x-forwarded-for'/'x-real-ip' return Cloudflare Anycast datacenter IPs
+ * (e.g. 172.71.x.x, 162.158.x.x). Without this resolution, every visitor
+ * collapses onto a few Cloudflare edge keys and Upstash Redis rate limiting
+ * throttles unrelated users as a single shared client.
+ *
+ * Priority: verified Cloudflare client IP -> first entry of the
+ * comma-separated forwarding chain -> 'x-real-ip' -> loopback fallback.
  */
-export function getRequestIpKey(headers: Headers): string {
-    const forwardedFor = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    const realIp = headers.get('x-real-ip')?.trim()
-    const ip = forwardedFor || realIp || 'unknown'
+export function getClientIp(headers: Headers): string {
+    const cfIp = headers.get('cf-connecting-ip')
+    if (cfIp) return cfIp.trim()
 
-    return hashRateLimitKey(ip)
+    const forwardedFor = headers.get('x-forwarded-for')
+    if (forwardedFor) {
+        const firstIp = forwardedFor.split(',')[0]?.trim()
+        if (firstIp) return firstIp
+    }
+
+    const realIp = headers.get('x-real-ip')
+    if (realIp) return realIp.trim()
+
+    return '127.0.0.1'
+}
+
+export function getRequestIpKey(headers: Headers): string {
+    return hashRateLimitKey(getClientIp(headers))
 }
 
 export function getRequestFingerprint(headers: Headers): string {
-    const forwardedFor = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    const realIp = headers.get('x-real-ip')?.trim()
     const userAgent = headers.get('user-agent')?.trim() ?? ''
-    const rawFingerprint = `${forwardedFor || realIp || 'unknown'}|${userAgent}`
-
-    return hashRateLimitKey(rawFingerprint)
+    return hashRateLimitKey(`${getClientIp(headers)}|${userAgent}`)
 }
 
 export async function checkRateLimit({

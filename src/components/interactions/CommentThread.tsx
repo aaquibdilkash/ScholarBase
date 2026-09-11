@@ -402,6 +402,7 @@ function CommentCard({
     <div className="group flex gap-1 md:gap-2">
       <Link
         href={`/scholars/${comment.author?.id ?? "#"}`}
+        prefetch={false}
         className="shrink-0 pt-1"
       >
         <div
@@ -439,6 +440,7 @@ function CommentCard({
               <div className="flex items-center gap-1.5">
                 <Link
                   href={`/scholars/${comment.author?.id ?? "#"}`}
+                  prefetch={false}
                   className="truncate text-xs font-bold text-slate-900 hover:text-blue-600 hover:underline dark:text-slate-50 dark:hover:text-blue-300 md:text-sm"
                 >
                   {comment.author?.name || "Scholar"}
@@ -452,6 +454,7 @@ function CommentCard({
               {comment.author?.handle ? (
                 <Link
                   href={`/scholars/${comment.author?.id ?? "#"}`}
+                  prefetch={false}
                   className="mt-0.5 block truncate text-[11px] font-medium text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
                 >
                   @{comment.author?.handle}

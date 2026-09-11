@@ -117,7 +117,7 @@ export function ResearchGrantCard({
         </div>
       }
     >
-      <Link href={`/grants/${grant.id}`} className="block group">
+      <Link href={`/grants/${grant.id}`} prefetch={false} className="block group">
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {grant.title}
         </h2>

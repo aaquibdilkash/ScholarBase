@@ -111,7 +111,7 @@ export function CourseCard({
         </a>
       }
     >
-      <Link href={`/learn/${course.id}`} className="block group">
+      <Link href={`/learn/${course.id}`} prefetch={false} className="block group">
         <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {course.title}
         </h2>

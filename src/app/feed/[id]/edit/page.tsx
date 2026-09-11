@@ -2,16 +2,14 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
 import type { SocialPostWithAuthor } from "@/types/cards";
-import { uploadImage, deleteDraftImage } from "@/app/actions/cloudinary";
-import { Loader2, Image as ImageIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { MentionComposer, type MentionUser } from "@/components/interactions/MentionComposer";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
@@ -26,11 +24,10 @@ export default function EditPostPage({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState<string>("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -57,48 +54,22 @@ export default function EditPostPage({
     init();
   }, [params, router, toast]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast("Please upload an image file.", "error");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast("Image must be less than 5MB.", "error");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-
-      const data = await uploadImage(fd, "social");
-
-      // Remove the replaced draft (folder-prefixed check makes this a no-op
-      // for the currently published image, which lives outside /draft/).
-      if (imageUrl && imageUrl !== data.url) {
-        await deleteDraftImage(imageUrl);
-      }
-
-      setImageUrl(data.url);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to upload image.";
-      toast(message, "error");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-2xl px-2 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
+        </div>
+      </main>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!postId) return;
 
-    if (uploading) {
+    if (imageBusy) {
       toast("Please wait for images to finish uploading.", "error");
       return;
     }
@@ -141,16 +112,6 @@ export default function EditPostPage({
     }
   };
 
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-2xl px-2 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="animate-spin h-8 w-8 text-blue-600" />
-        </div>
-      </main>
-    );
-  }
-
   return (
     <CreateOrEditPageShell
       title="Edit Post"
@@ -177,69 +138,22 @@ export default function EditPostPage({
           showPreview={true}
         />
 
-        {/* Image */}
-        {imageUrl && (
-          <div>
-            <label className="sb-label mb-2 block">Current Image</label>
-            <div className="flex">
-              <div className="relative group">
-                <Image
-                  src={imageUrl}
-                  alt=""
-                  width={80}
-                  height={80}
-                  unoptimized
-                  className="h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
-                />
-                {/* Always-visible remove button (works on touch/mobile) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImageUrl("");
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  aria-label="Remove image"
-                  className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-sm hover:bg-red-600"
-                >
-                  ×
-                </button>
-                {/* Hover overlay: Remove image. The image is only deleted from
-                    Cloudinary server-side after a successful save. */}
-                <div
-                  onClick={() => {
-                    setImageUrl("");
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  }}
-                  className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-lg bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  <span className="text-xs font-semibold text-white">
-                    Remove
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ImageUploadField
+          kind="social"
+          value={imageUrl}
+          onChange={setImageUrl}
+          onUploadingChange={setImageBusy}
+          buttonLabel="Add Image"
+          tooltip={FEED_IMAGE_TIP}
+          hint="Removing the image keeps the post text; the old image is deleted when you save."
+        />
 
         <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 sm:w-auto">
-            <ImageIcon className="h-5 w-5" />
-            {uploading ? "Uploading..." : "Add Image"}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
-            <InfoTooltip message={FEED_IMAGE_TIP} />
-          </label>
           <div className="flex w-full gap-3 sm:w-auto">
             <FormCancelButton className="flex-1 sm:flex-initial" />
             <button
               type="submit"
-              disabled={submitting || uploading}
+              disabled={submitting || imageBusy}
               className="sb-button-accent flex-1 sm:flex-initial"
             >
               {submitting ? (

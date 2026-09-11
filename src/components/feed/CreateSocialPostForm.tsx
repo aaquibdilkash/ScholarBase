@@ -1,42 +1,29 @@
 "use client";
 
-import { Image as ImageIcon } from "lucide-react";
-import NextImage from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
-import {
-  uploadImage,
-  deleteDraftImage,
-} from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
+import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { MentionComposer, type MentionUser } from "@/components/interactions/MentionComposer";
 import type { SocialPostWithAuthor } from "@/types/cards";
-import { useAuthModal } from "@/components/interactions/AuthModal";
-import { useUser } from "@/hooks/useUser";
-
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 import { useIsFrozen } from "@/components/interactions/FrozenUserProvider";
 
 export function CreateSocialPostForm() {
   const formRef = useRef<HTMLFormElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   // Frozen accounts are blocked from posting — proactively hide the composer
   // instead of letting the user hit a rejected server action.
   const isFrozen = useIsFrozen();
   const [imageUrl, setImageUrl] = useState<string>("");
-  const [uploading, setUploading] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
-
-  const { openAuthModal } = useAuthModal();
-  const { user } = useUser();
 
   const [draftFields, updateDraftField, resetDraft, isRestored] = useFormDraft(
     "draft_social_post",
@@ -93,7 +80,7 @@ export function CreateSocialPostForm() {
       toast("Your account is frozen. Posting is disabled.", "error");
       return;
     }
-    if (uploading) {
+    if (imageBusy) {
       toast("Please wait for images to finish uploading.", "error");
       return;
     }
@@ -136,59 +123,6 @@ export function CreateSocialPostForm() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast("Please upload an image file.", "error");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast("Image must be less than 5MB.", "error");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-
-      const data = await uploadImage(fd, "social");
-      const newUrl = data.url;
-
-      if (imageUrl && imageUrl !== newUrl) {
-        await deleteDraftImage(imageUrl);
-      }
-
-      setImageUrl(newUrl);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to upload image.";
-      toast(message, "error");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
-
-  const handleRemoveImage = async () => {
-    if (!imageUrl) return;
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-
-    const deleted = await deleteDraftImage(imageUrl);
-    if (!deleted) {
-      toast("Could not delete the draft image. Please try again.", "error");
-      return;
-    }
-
-    setImageUrl("");
-    updateDraftField("imageUrl", "");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
 
   return (
     <div className="sb-surface-strong mb-10 p-6 md:p-7">
@@ -216,66 +150,23 @@ export function CreateSocialPostForm() {
           showPreview={true}
         />
 
-        {imageUrl && (
-          <div className="relative group w-fit">
-            <NextImage
-              src={imageUrl}
-              alt=""
-              width={80}
-              height={80}
-              unoptimized
-              className="h-20 w-20 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
-            />
-            {/* Always-visible remove button (works on touch/mobile) */}
-            <button
-              type="button"
-              onClick={handleRemoveImage}
-              aria-label="Remove image"
-              className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold shadow-sm hover:bg-red-600"
-            >
-              ×
-            </button>
-            {/* Hover overlay: Remove image (desktop) */}
-            <div
-              onClick={handleRemoveImage}
-              className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-lg bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
-            >
-              <span className="text-xs font-semibold text-white">Remove</span>
-            </div>
-          </div>
-        )}
+
+        <ImageUploadField
+          kind="social"
+          value={imageUrl}
+          onChange={setImageUrl}
+          onUploadingChange={setImageBusy}
+          buttonLabel="Add Image"
+          tooltip={FEED_IMAGE_TIP}
+          hint="Large images are auto-compressed under 500 KB."
+          className="w-fit"
+        />
 
         <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (!user) {
-                  openAuthModal();
-                  return;
-                }
-                fileInputRef.current?.click();
-              }}
-              disabled={uploading}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              <ImageIcon className="h-5 w-5" aria-hidden="true" />
-              {uploading ? "Uploading..." : "Add Image"}
-            </button>
-            <InfoTooltip message={FEED_IMAGE_TIP} />
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileUpload}
-            disabled={uploading}
-          />
           <SubmitBtnWithAuth
             className="sb-button-accent"
-            loadingText={uploading ? "Uploading..." : undefined}
-            disabled={uploading || submitting}
+            loadingText={imageBusy ? "Uploading..." : undefined}
+            disabled={imageBusy || submitting}
           >
             Post Update
           </SubmitBtnWithAuth>

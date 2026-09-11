@@ -15,18 +15,16 @@ export async function deleteCloudinaryAsset(
 ): Promise<boolean> {
   if (!imageUrl) return true;
 
+  // Parse with the same robust parser used for draft/promote checks — the
+  // legacy split-on-version parser silently failed on promoted/published
+  // URLs, which are generated without a version segment.
+  const publicId = getCloudinaryPublicId(imageUrl);
+  if (!publicId) {
+    console.warn("[deleteCloudinaryAsset] Could not parse public ID from:", imageUrl);
+    return false;
+  }
+
   try {
-    const urlParts = imageUrl.split("/");
-    const versionIndex = urlParts.findIndex(
-      (part) => part.startsWith("v") && /^\d+$/.test(part.slice(1)),
-    );
-
-    if (versionIndex === -1) return false;
-
-    const publicIdWithExt = urlParts.slice(versionIndex + 1).join("/");
-    const publicId = publicIdWithExt.replace(/\.[^.]+$/, "");
-    if (!publicId) return false;
-
     const result = await cloudinary.uploader.destroy(publicId);
     // "not found" means the asset is already gone — deletion is idempotent.
     if (result.result === "not found") return true;

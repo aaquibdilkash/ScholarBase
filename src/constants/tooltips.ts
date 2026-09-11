@@ -146,7 +146,7 @@ export const CONTRIBUTION_TITLE_TIP = "A brief description of your contribution.
 export const CONTRIBUTION_PAYMENT_METHOD_TIP = "The method used for the contribution payment.";
 export const CONTRIBUTION_AMOUNT_TIP = "The amount contributed in Indian Rupees (₹).";
 export const CONTRIBUTION_UPI_ID_TIP = "Transaction ID or UPI reference for the payment.";
-export const CONTRIBUTION_SCREENSHOT_TIP = "Upload a screenshot of the payment confirmation.";
+export const CONTRIBUTION_SCREENSHOT_TIP = "Upload a screenshot of the payment confirmation. Large images are auto-compressed under 500 KB.";
 export const CONTRIBUTION_MESSAGE_TIP = "Any additional message or note about your contribution.";
 
 // -----------------------------------------------------------------------------
@@ -192,7 +192,7 @@ export const CONTACT_MESSAGE_TIP = "The details of your inquiry or message.";
 export const PROFILE_NAME_TIP = "Your full display name visible to other scholars.";
 export const PROFILE_HANDLE_TIP = "Your unique identifier used in profile URLs and mentions.";
 export const PROFILE_BIO_TIP = "A brief introduction about your research interests and background.";
-export const PROFILE_AVATAR_TIP = "Upload a profile photo (JPG, PNG, max 2MB).";
+export const PROFILE_AVATAR_TIP = "Upload a profile photo (JPG, PNG, max 5MB). You can crop and zoom after selecting.";
 export const PROFILE_GITHUB_TIP = "Link to your GitHub profile for code contributions.";
 export const PROFILE_ORCID_TIP = "Your ORCID iD for linking your research outputs.";
 export const PROFILE_LINKEDIN_TIP = "Link to your LinkedIn professional profile.";
@@ -202,7 +202,7 @@ export const PROFILE_GOOGLE_SCHOLAR_TIP = "Link to your Google Scholar citation 
 // FEED / SOCIAL POSTS MODULE
 // -----------------------------------------------------------------------------
 export const FEED_CONTENT_TIP = "Share your thoughts, questions, or research updates. Type @ to mention a scholar";
-export const FEED_IMAGE_TIP = "Attach an image to your post (optional).";
+export const FEED_IMAGE_TIP = "Attach an image to your post (optional). Large images are auto-compressed under 500 KB.";
 
 // -----------------------------------------------------------------------------
 // MESSAGES MODULE

@@ -15,6 +15,7 @@ import {
   AVATAR_MAX_HEIGHT,
   AVATAR_QUALITY,
   MAX_FILE_BYTES,
+  MAX_STORED_BYTES,
   ALLOWED_IMAGE_TYPES,
 } from "@/lib/image-constants";
 
@@ -35,8 +36,6 @@ export async function uploadImage(
 ): Promise<UploadResult> {
   const user = await requireActiveUser();
 
-  try {
-
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("No file provided");
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -47,67 +46,96 @@ export async function uploadImage(
   }
 
   const folder = getUserImageFolder(user.id, kind, true);
-  const transformation =
-    kind === "avatar"
-      ? [
-          {
-            width: AVATAR_MAX_WIDTH,
-            height: AVATAR_MAX_HEIGHT,
-            crop: "fill",
-            gravity: "auto",
-            quality: AVATAR_QUALITY,
-            fetch_format: "auto",
-            flags: "strip_profile",
-          },
-        ]
-      : [
-          {
-            width: POST_MAX_WIDTH,
-            height: POST_MAX_HEIGHT,
-            crop: "limit",
-            quality: POST_QUALITY,
-            fetch_format: "auto",
-            flags: ["strip_profile", "lossy"],
-          },
-        ];
-
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const result = await new Promise<{
-    secure_url: string;
-    public_id: string;
-    bytes: number;
-    width: number;
-    height: number;
-    format: string;
-  }>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        transformation,
-        resource_type: "image",
-        invalidate: true,
-      },
-      (error, res) => {
-        if (error || !res) reject(error ?? new Error("Upload failed"));
-        else resolve(res as never);
-      },
-    );
-    stream.end(buffer);
-  });
+  // Compression ladder: every stored asset must land under the storage
+  // budget. The first rung preserves current quality; later rungs trade
+  // quality and dimensions for size, so well-behaved images still upload
+  // exactly once. All rungs share one public_id and overwrite it, so a
+  // retry never leaves orphan assets behind in the draft folder.
+  const isAvatar = kind === "avatar";
+  const baseWidth = isAvatar ? AVATAR_MAX_WIDTH : POST_MAX_WIDTH;
+  const baseHeight = isAvatar ? AVATAR_MAX_HEIGHT : POST_MAX_HEIGHT;
+  const compressionLadder = [
+    {
+      quality: isAvatar ? AVATAR_QUALITY : POST_QUALITY,
+      width: baseWidth,
+      height: baseHeight,
+    },
+    { quality: "auto:eco" as const, width: baseWidth, height: baseHeight },
+    {
+      quality: 50,
+      width: Math.min(baseWidth, 1280),
+      height: Math.min(baseHeight, 1280),
+    },
+    {
+      quality: 30,
+      width: Math.min(baseWidth, 1024),
+      height: Math.min(baseHeight, 1024),
+    },
+  ];
 
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-    bytes: result.bytes,
-    width: result.width,
-    height: result.height,
-    format: result.format,
-  };
-  } catch (error) {
-    console.error("[CloudinaryUpload Error]:", error);
-    throw new Error("Image upload failed. Please check the image and try again.");
+  const publicId = crypto.randomUUID();
+  let bestBytes = 0;
+  for (const attempt of compressionLadder) {
+    try {
+      const result = await new Promise<{
+        secure_url: string;
+        public_id: string;
+        bytes: number;
+        width: number;
+        height: number;
+        format: string;
+      }>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder,
+            public_id: publicId,
+            overwrite: true,
+            transformation: [
+              {
+                width: attempt.width,
+                height: attempt.height,
+                crop: isAvatar ? "fill" : "limit",
+                ...(isAvatar ? { gravity: "auto" } : {}),
+                quality: attempt.quality,
+                fetch_format: "auto",
+                flags: isAvatar ? "strip_profile" : ["strip_profile", "lossy"],
+              },
+            ],
+            resource_type: "image",
+            invalidate: true,
+          },
+          (error, res) => {
+            if (error || !res) reject(error ?? new Error("Upload failed"));
+            else resolve(res as never);
+          },
+        );
+        stream.end(buffer);
+      });
+
+      if (result.bytes <= MAX_STORED_BYTES) {
+        return {
+          url: result.secure_url,
+          publicId: result.public_id,
+          bytes: result.bytes,
+          width: result.width,
+          height: result.height,
+          format: result.format,
+        };
+      }
+      bestBytes = Math.max(bestBytes, result.bytes);
+    } catch (error) {
+      console.error("[CloudinaryUpload Error]:", error);
+      throw new Error(
+        "Image upload failed. Please check the image and try again.",
+      );
+    }
   }
+
+  throw new Error(
+    `This image is too large to compress under ${Math.round(MAX_STORED_BYTES / 1024)} KB (closest: ${Math.round(bestBytes / 1024)} KB). Please upload a smaller image.`,
+  );
 }
 
 export async function deleteDraftImage(

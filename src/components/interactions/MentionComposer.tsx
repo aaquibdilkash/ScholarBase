@@ -191,6 +191,7 @@ export function renderMentionContent(content: string, mentions: unknown, options
           <Link
             key={index}
             href={`/scholars/${mentionId}`}
+            prefetch={false}
             onClick={options?.onMentionClick}
             className="font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
           >
