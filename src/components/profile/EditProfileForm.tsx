@@ -7,7 +7,7 @@ import {
   updateProfile,
   isHandleAvailable as checkHandle,
 } from "@/app/actions/profile";
-import { uploadImage } from "@/app/actions/cloudinary";
+import { uploadImage, deleteDraftImage } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { Editor } from "@/components/ui/Editor";
@@ -137,6 +137,13 @@ export default function EditProfileForm({ user }: { user: UserData }) {
       fd.append("file", file);
 
       const data = await uploadImage(fd, "avatar");
+
+      // Remove the replaced draft (folder-prefixed check makes this a no-op
+      // for the currently published avatar, which lives outside /draft/).
+      if (avatarUrl && avatarUrl !== data.url) {
+        await deleteDraftImage(avatarUrl);
+      }
+
       setAvatarUrl(data.url);
     } catch (err) {
       const message =

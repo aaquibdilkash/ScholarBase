@@ -19,8 +19,12 @@ import { VoteType, DeletedByType } from "@prisma/client";
 import {
   notifyFollowersOfActivity,
   notifyMentionedUsers,
+  resolveMentionedUsers,
 } from "@/lib/notifications";
-import { deleteFromCloudinary } from "@/app/actions/cloudinary";
+import {
+  deleteCloudinaryAsset,
+  promoteDraftCloudinaryAsset,
+} from "@/lib/cloudinary";
 import { queueNotification } from "@/lib/qstash";
 import type { SocialPostWithAuthor } from "@/types/cards";
 import type { MentionUser } from "@/components/interactions/CommentThread";
@@ -248,17 +252,6 @@ export async function createSocialPost(formData: FormData) {
 
   const imageUrl = formData.get("imageUrl") as string | null;
 
-  // Parse mentions from FormData
-  const mentionsRaw = readFormValue(formData, "mentions");
-  let mentions: { id: string; handle: string | null }[] | undefined;
-  if (mentionsRaw) {
-    try {
-      mentions = JSON.parse(mentionsRaw);
-    } catch {
-      /* ignore invalid JSON */
-    }
-  }
-
   if (!content) {
     throw new Error("Content cannot be empty.");
   }
@@ -266,12 +259,23 @@ export async function createSocialPost(formData: FormData) {
     throw new Error("User not found in database.");
   }
 
+  const mentions = await resolveMentionedUsers(content);
+  let publishedImageUrl: string | null = null;
+  if (imageUrl) {
+    publishedImageUrl = await promoteDraftCloudinaryAsset(
+      imageUrl,
+      authUser.id,
+      "social",
+    );
+    if (!publishedImageUrl) throw new Error("Invalid post image.");
+  }
+
   const post = await prisma.$transaction(async (tx) => {
     const newPost = await tx.socialPost.create({
       data: {
         content,
-        imageUrl: imageUrl || undefined,
-        imageUrls: imageUrl ? [imageUrl] : [],
+        imageUrl: publishedImageUrl || undefined,
+        imageUrls: publishedImageUrl ? [publishedImageUrl] : [],
         authorId: authUser.id,
         mentions: mentions ?? undefined,
       },
@@ -296,10 +300,6 @@ export async function createSocialPost(formData: FormData) {
     return newPost;
   });
 
-  const validMentions = mentions?.filter((m): m is { id: string; handle: string } =>
-    Boolean(m.handle),
-  ) ?? [];
-
   await Promise.all([
     await notifyFollowersOfActivity({
       actorId: authUser.id,
@@ -317,7 +317,7 @@ export async function createSocialPost(formData: FormData) {
       targetId: post.id,
       titleFactory: (handle) => `@${handle} mentioned you in a post`,
       bodyFactory: () => content.slice(0, 120),
-      mentions: validMentions.length > 0 ? validMentions : undefined,
+      mentions,
     }),
   ]);
 
@@ -355,17 +355,6 @@ export async function updateSocialPost(formData: FormData, postId: string) {
 
   const imageUrl = formData.get("imageUrl") as string | null;
 
-  // Parse mentions from FormData
-  const mentionsRaw = readFormValue(formData, "mentions");
-  let mentions: { id: string; handle: string | null }[] | undefined;
-  if (mentionsRaw) {
-    try {
-      mentions = JSON.parse(mentionsRaw);
-    } catch {
-      /* ignore invalid JSON */
-    }
-  }
-
   const post = await prisma.socialPost.findUnique({
     where: { id: postId },
     select: { authorId: true, imageUrl: true },
@@ -376,12 +365,22 @@ export async function updateSocialPost(formData: FormData, postId: string) {
     throw new Error("Not authorized to edit this post.");
   }
 
+  const mentions = await resolveMentionedUsers(content);
+
   // Persist the edit first so the DB is the source of truth. Then delete the
   // old image from Cloudinary only after the update has succeeded — so if the
   // user changes their mind before saving, the original image is preserved,
   // and if the update fails, the old image is never deleted.
   const oldImage = post.imageUrl;
-  const newImage = imageUrl || null;
+  const newImage = imageUrl
+    ? imageUrl === oldImage
+      ? imageUrl
+      : await promoteDraftCloudinaryAsset(imageUrl, user.id, "social")
+    : null;
+
+  if (imageUrl && !newImage) {
+    throw new Error("Invalid post image.");
+  }
 
   const updatedPost = await prisma.socialPost.update({
     where: { id: postId },
@@ -408,7 +407,7 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   });
 
   if (oldImage && oldImage !== newImage) {
-    await deleteFromCloudinary(oldImage);
+    await deleteCloudinaryAsset(oldImage);
   }
 
   return { success: true, data: castPost(updatedPost) };

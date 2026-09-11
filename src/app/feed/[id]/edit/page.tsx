@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
 import type { SocialPostWithAuthor } from "@/types/cards";
-import { uploadImage } from "@/app/actions/cloudinary";
+import { uploadImage, deleteDraftImage } from "@/app/actions/cloudinary";
 import { Loader2, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
@@ -75,7 +75,14 @@ export default function EditPostPage({
       const fd = new FormData();
       fd.append("file", file);
 
-      const data = await uploadImage(fd, "post");
+      const data = await uploadImage(fd, "social");
+
+      // Remove the replaced draft (folder-prefixed check makes this a no-op
+      // for the currently published image, which lives outside /draft/).
+      if (imageUrl && imageUrl !== data.url) {
+        await deleteDraftImage(imageUrl);
+      }
+
       setImageUrl(data.url);
     } catch (err) {
       const message =

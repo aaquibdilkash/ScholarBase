@@ -6,14 +6,17 @@ import { Prisma, PublicationType } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
 
 export async function createPublication(formData: FormData) {
   const user = await requireActiveUser(
     "Please log in to submit a publication.",
   );
+  await enforceRateLimit({ namespace: "publication:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const authors = readFormValue(formData, "authors");
@@ -33,6 +36,7 @@ export async function createPublication(formData: FormData) {
   const doi = readOptionalFormValue(formData, "doi");
   const isbn = readOptionalFormValue(formData, "isbn");
   const url = readOptionalFormValue(formData, "url");
+  const safeUrl = validateExternalUrl(url, "Publication URL");
   const keywords = readOptionalFormValue(formData, "keywords");
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
@@ -53,7 +57,7 @@ export async function createPublication(formData: FormData) {
         pages,
         doi,
         isbn,
-        url,
+    url: safeUrl,
         keywords,
         domain,
         abstract,
@@ -109,6 +113,7 @@ export async function updatePublication(
   publicationId: string,
 ) {
   const user = await requireActiveUser("Log in to edit this publication.");
+  await enforceRateLimit({ namespace: "publication:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const authors = readFormValue(formData, "authors");
@@ -128,6 +133,7 @@ export async function updatePublication(
   const doi = readOptionalFormValue(formData, "doi");
   const isbn = readOptionalFormValue(formData, "isbn");
   const url = readOptionalFormValue(formData, "url");
+  const safeUrl = validateExternalUrl(url, "Publication URL");
   const keywords = readOptionalFormValue(formData, "keywords");
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
@@ -160,7 +166,7 @@ export async function updatePublication(
       pages,
       doi,
       isbn,
-      url,
+    url: safeUrl,
       keywords,
       domain,
       abstract,
@@ -174,6 +180,7 @@ export async function updatePublication(
 
 export async function deletePublication(publicationId: string) {
   const user = await requireActiveUser("Log in to delete this publication.");
+  await enforceRateLimit({ namespace: "publication:delete", key: user.id, limit: 20, window: "10 m" });
 
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },

@@ -1,17 +1,19 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireActiveUser } from "@/lib/auth";
+import { requireActiveUser, requireCurrentUser } from "@/lib/auth";
 
 const notificationInclude = {
   actor: true,
 } as const;
 
 export async function getNotifications(
-  userId: string,
   limit = 10,
   cursor?: string,
 ) {
+  const currentUser = await requireCurrentUser("Please log in to view your notifications.");
+  const userId = currentUser.id;
+
   const notifications = await prisma.notification.findMany({
     where: { recipientId: userId },
     include: notificationInclude,

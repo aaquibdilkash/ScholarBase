@@ -6,8 +6,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 
 export async function getEvents(
@@ -129,6 +131,7 @@ export const getEvent = cache(async (id: string, userId?: string) => {
 
 export async function createResearchEvent(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
+  await enforceRateLimit({ namespace: "event:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const date = new Date(readFormValue(formData, "date"));
@@ -139,6 +142,8 @@ export async function createResearchEvent(formData: FormData) {
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -152,8 +157,8 @@ export async function createResearchEvent(formData: FormData) {
         location,
         description,
         deadline,
-        notificationLink,
-        applyLink,
+        notificationLink: safeNotificationLink,
+        applyLink: safeApplyLink,
         authorId: user.id,
       },
       include: {
@@ -208,6 +213,7 @@ export async function createResearchEvent(formData: FormData) {
 
 export async function updateResearchEvent(formData: FormData, eventId: string) {
   const user = await requireActiveUser("Log in to edit this event.");
+  await enforceRateLimit({ namespace: "event:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const date = new Date(readFormValue(formData, "date"));
@@ -218,6 +224,8 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -243,8 +251,8 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
       location,
       description,
       deadline,
-      notificationLink,
-      applyLink,
+      notificationLink: safeNotificationLink,
+      applyLink: safeApplyLink,
       editedAt: new Date(),
     },
   });
@@ -254,6 +262,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
 
 export async function deleteResearchEvent(eventId: string) {
   const user = await requireActiveUser("Log in to delete this event.");
+  await enforceRateLimit({ namespace: "event:delete", key: user.id, limit: 20, window: "10 m" });
 
   const event = await prisma.researchEvent.findUnique({
     where: { id: eventId },

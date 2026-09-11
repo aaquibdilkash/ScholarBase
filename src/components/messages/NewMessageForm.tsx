@@ -119,10 +119,7 @@ export function NewMessageForm({
 
   const handleSelectRecipient = async (recipient: Recipient) => {
     if (user) {
-      const conversationId = await findDirectConversation(
-        user.id,
-        recipient.id,
-      );
+      const conversationId = await findDirectConversation(recipient.id);
       if (conversationId) {
         clearDraft();
         router.push(`/messages/${conversationId}`);

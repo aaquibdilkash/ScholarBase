@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
@@ -143,6 +144,7 @@ export async function createHelpPost(formData: FormData) {
   const user = await requireActiveUser(
     "You must be logged in to create a post.",
   );
+  await enforceRateLimit({ namespace: "help:create", key: user.id, limit: 10, window: "10 m" });
   const title = formData.get("title") as string;
   const subject = formData.get("subject") as string;
   const category = formData.get("category") as string;
@@ -217,6 +219,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
   const user = await requireActiveUser(
     "You must be logged in to update a post.",
   );
+  await enforceRateLimit({ namespace: "help:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = formData.get("title") as string;
   const subject = formData.get("subject") as string;
@@ -250,6 +253,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 
 export async function deleteHelpPost(helpPostId: string) {
   const user = await requireActiveUser("Log in to delete this help post.");
+  await enforceRateLimit({ namespace: "help:delete", key: user.id, limit: 20, window: "10 m" });
 
   const post = await prisma.helpPost.findUnique({
     where: { id: helpPostId },

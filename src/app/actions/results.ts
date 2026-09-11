@@ -6,8 +6,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESULT_DESCRIPTION } from "@/lib/constants";
 
 export async function getResults(
@@ -133,6 +135,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
 
 export async function createResult(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
+  await enforceRateLimit({ namespace: "result:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
@@ -143,6 +146,8 @@ export async function createResult(formData: FormData) {
   const session = readOptionalFormValue(formData, "session");
   const notificationLink = readOptionalFormValue(formData, "notificationLink");
   const resultLink = readOptionalFormValue(formData, "resultLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeResultLink = validateExternalUrl(resultLink, "Result link");
 
   const result = await prisma.$transaction(async (tx) => {
     const newResult = await tx.result.create({
@@ -153,8 +158,8 @@ export async function createResult(formData: FormData) {
         category,
         conductingBody,
         session,
-        notificationLink,
-        resultLink,
+        notificationLink: safeNotificationLink,
+        resultLink: safeResultLink,
         authorId: user.id,
       },
       include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } }
@@ -191,6 +196,7 @@ export async function createResult(formData: FormData) {
 
 export async function updateResult(formData: FormData, resultId: string) {
   const user = await requireActiveUser("Log in to edit this result.");
+  await enforceRateLimit({ namespace: "result:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const description = readFormValue(formData, "description");
@@ -201,6 +207,8 @@ export async function updateResult(formData: FormData, resultId: string) {
   const session = readOptionalFormValue(formData, "session");
   const notificationLink = readOptionalFormValue(formData, "notificationLink");
   const resultLink = readOptionalFormValue(formData, "resultLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeResultLink = validateExternalUrl(resultLink, "Result link");
 
   const result = await prisma.result.findUnique({
     where: { id: resultId },
@@ -223,8 +231,8 @@ export async function updateResult(formData: FormData, resultId: string) {
       category,
       conductingBody,
       session,
-      notificationLink,
-      resultLink,
+      notificationLink: safeNotificationLink,
+      resultLink: safeResultLink,
       editedAt: new Date(),
     },
   });
@@ -234,6 +242,7 @@ export async function updateResult(formData: FormData, resultId: string) {
 
 export async function deleteResult(resultId: string) {
   const user = await requireActiveUser("Log in to delete this result.");
+  await enforceRateLimit({ namespace: "result:delete", key: user.id, limit: 20, window: "10 m" });
 
   const result = await prisma.result.findUnique({
     where: { id: resultId },

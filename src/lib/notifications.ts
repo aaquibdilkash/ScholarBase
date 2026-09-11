@@ -35,6 +35,7 @@ export async function notifyUserById(params: NotifyUserByIdParams) {
 }
 
 const MENTION_REGEX = /@(\w+)/g;
+const MAX_MENTIONS_PER_ITEM = 20;
 
 type NotifyMentionedUsersParams = {
   actorId: string;
@@ -44,32 +45,11 @@ type NotifyMentionedUsersParams = {
   targetId: string;
   titleFactory: (handle: string) => string;
   bodyFactory: (handle: string) => string;
-  mentions?: { id: string, handle: string }[];
+  mentions?: { id: string, handle: string | null }[];
 };
 
 export async function notifyMentionedUsers(params: NotifyMentionedUsersParams): Promise<{ id: string; handle: string | null }[]> {
-  let mentionedUsers: { id: string, handle: string | null }[] = [];
-
-  if (params.mentions) {
-    mentionedUsers = params.mentions;
-  } else {
-    const mentions = params.content.match(MENTION_REGEX);
-    if (!mentions) return [];
-
-    const mentionedHandles = mentions.map((mention) => mention.substring(1));
-
-    mentionedUsers = await prisma.user.findMany({
-        where: {
-            handle: {
-                in: mentionedHandles,
-            },
-        },
-        select: {
-            id: true,
-            handle: true,
-        },
-    });
-  }
+  const mentionedUsers = params.mentions ?? await resolveMentionedUsers(params.content);
 
   if (mentionedUsers.length === 0) return [];
 
@@ -103,6 +83,21 @@ export async function notifyMentionedUsers(params: NotifyMentionedUsersParams): 
     });
   }
   return mentionedUsers;
+}
+
+export async function resolveMentionedUsers(
+  content: string,
+): Promise<{ id: string; handle: string | null }[]> {
+  const handles = [...new Set(
+    Array.from(content.matchAll(MENTION_REGEX), ([, handle]) => handle),
+  )].slice(0, MAX_MENTIONS_PER_ITEM);
+
+  if (handles.length === 0) return [];
+
+  return prisma.user.findMany({
+    where: { handle: { in: handles } },
+    select: { id: true, handle: true },
+  });
 }
 
 type NotifyFollowersOfActivityParams = {

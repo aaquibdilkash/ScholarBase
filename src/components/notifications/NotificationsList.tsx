@@ -147,7 +147,7 @@ export function NotificationsList({
   const { data: notifications = [] } = useQuery({
     queryKey,
     queryFn: async () => {
-      const items = await getNotifications(userId, 10);
+      const items = await getNotifications(10);
       return items as NotificationWithActor[];
     },
     initialData: initialNotifications,
@@ -162,7 +162,7 @@ export function NotificationsList({
         notifications.length > 0
           ? notifications[notifications.length - 1].id
           : undefined;
-      const newItems = await getNotifications(userId, 10, lastItemId);
+      const newItems = await getNotifications(10, lastItemId);
 
       if (newItems.length === 10) {
         setHasMore(true);
@@ -182,7 +182,7 @@ export function NotificationsList({
     } finally {
       setLoadingMore(false);
     }
-  }, [notifications, userId, hasMore, loadingMore, queryClient, queryKey]);
+  }, [notifications, hasMore, loadingMore, queryClient, queryKey]);
 
   useEffect(() => {
     const handleRead = (event: Event) => {

@@ -24,6 +24,19 @@ const contactSchema = z.object({
   message: z.string().min(1, { message: "Message is required" }),
 });
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+    return entities[character];
+  });
+}
+
 export async function sendContactMessage(
   prevState: ContactFormState,
   formData: FormData,
@@ -70,6 +83,10 @@ export async function sendContactMessage(
 
   const { name, email, subject, message } = validatedFields.data;
   const replyToEmail = email;
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeSubject = escapeHtml(subject);
+  const safeMessage = escapeHtml(message);
 
   try {
     await resend.emails.send({
@@ -84,13 +101,13 @@ export async function sendContactMessage(
           <div class="sb-email-panel" style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
             <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">New Contact Form Submission</h2>
             <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-              <p style="margin: 8px 0; color: #374151;"><strong>From:</strong> ${name}</p>
-              <p style="margin: 8px 0; color: #374151;"><strong>Email:</strong> ${email}</p>
-              <p style="margin: 8px 0; color: #374151;"><strong>Subject:</strong> ${subject}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>From:</strong> ${safeName}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Email:</strong> ${safeEmail}</p>
+              <p style="margin: 8px 0; color: #374151;"><strong>Subject:</strong> ${safeSubject}</p>
             </div>
             <div style="background: #f9fafb; padding: 16px; border-radius: 8px;">
               <p style="margin: 8px 0; color: #374151;"><strong>Message:</strong></p>
-              <p style="margin: 8px 0; color: #374151; white-space: pre-wrap; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">${message}</p>
+              <p style="margin: 8px 0; color: #374151; white-space: pre-wrap; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">${safeMessage}</p>
             </div>
           </div>
           <div class="sb-email-footer" style="text-align: center; margin-top: 24px;">

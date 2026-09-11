@@ -6,12 +6,15 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 
 export async function createCourse(formData: FormData) {
   const user = await requireActiveUser("Please log in to share a course.");
+  await enforceRateLimit({ namespace: "course:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const provider = readFormValue(formData, "provider");
@@ -21,6 +24,7 @@ export async function createCourse(formData: FormData) {
   const price = readFormValue(formData, "price");
   const duration = readFormValue(formData, "duration");
   const link = readFormValue(formData, "link");
+  const safeLink = validateExternalUrl(link, "Course link");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
@@ -34,7 +38,7 @@ export async function createCourse(formData: FormData) {
         level: level || null,
         price: price || null,
         duration: duration || null,
-        link,
+    link: safeLink ?? "",
         description,
         authorId: user.id,
       },
@@ -73,6 +77,7 @@ export async function createCourse(formData: FormData) {
 
 export async function updateCourse(formData: FormData, courseId: string) {
   const user = await requireActiveUser("Log in to edit this course.");
+  await enforceRateLimit({ namespace: "course:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const provider = readFormValue(formData, "provider");
@@ -82,6 +87,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const price = readFormValue(formData, "price");
   const duration = readFormValue(formData, "duration");
   const link = readFormValue(formData, "link");
+  const safeLink = validateExternalUrl(link, "Course link");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
@@ -107,7 +113,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
       level: level || null,
       price: price || null,
       duration: duration || null,
-      link,
+      link: safeLink ?? "",
       description,
       editedAt: new Date(),
     },
@@ -118,6 +124,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
 
 export async function deleteCourse(courseId: string) {
   const user = await requireActiveUser("Log in to delete this course.");
+  await enforceRateLimit({ namespace: "course:delete", key: user.id, limit: 20, window: "10 m" });
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },

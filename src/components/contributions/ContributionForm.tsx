@@ -10,7 +10,7 @@ import {
 } from "@/app/actions/contributions";
 import {
   uploadImage,
-  deleteFromCloudinary,
+  deleteDraftImage,
 } from "@/app/actions/cloudinary";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useToast } from "@/components/ui/Toast";
@@ -186,14 +186,13 @@ export default function ContributionForm({
       const fd = new FormData();
       fd.append("file", file);
 
-      const data = await uploadImage(fd, "post");
+      const data = await uploadImage(fd, "contribution");
       const newUrl = data.url;
 
-      // Replacing an existing screenshot: delete the old one to avoid
-      // orphaned Cloudinary assets (only in create mode; edit mode deletes
-      // after successful server-side save).
-      if (screenshotUrl && screenshotUrl !== newUrl && mode === "create") {
-        await deleteFromCloudinary(screenshotUrl);
+      // Folder-prefixed check makes this a no-op for the currently published
+      // screenshot (which lives outside /draft/), so this is safe in edit mode.
+      if (screenshotUrl && screenshotUrl !== newUrl) {
+        await deleteDraftImage(screenshotUrl);
       }
 
       setScreenshotUrl(newUrl);
@@ -209,13 +208,17 @@ export default function ContributionForm({
 
   async function handleRemoveScreenshot() {
     if (!screenshotUrl) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
-    // In edit mode, don't delete immediately — the server action will delete
-    // the old screenshot only after a successful save (so the user can change
-    // their mind before submitting). In create mode, delete right away since
-    // the image isn't referenced anywhere yet.
     if (mode === "create") {
-      await deleteFromCloudinary(screenshotUrl);
+      const deleted = await deleteDraftImage(screenshotUrl);
+      if (!deleted) {
+        toast("Could not delete the draft image. Please try again.", "error");
+        return;
+      }
     }
 
     setScreenshotUrl("");

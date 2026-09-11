@@ -372,24 +372,22 @@ export async function handleVoteTransaction(
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
     const entityTitle = (entity[config.titleField] as string) || 'Untitled'
-    let totalVotes = entity.totalVotes
-
     if (currentVote === newVote) {
       await vote.delete({ where: voteWhere })
-      totalVotes = totalVotes + voteValue
     } else {
       await vote.upsert({
         where: voteWhere,
         create: { [config.parentFk]: entityId, userId, voteType: newVote },
         update: { voteType: newVote },
       })
-      totalVotes = totalVotes + voteValue
     }
 
-    await parent.update({
+    const updatedEntity = await parent.update({
       where: { id: entityId },
-      data: { totalVotes },
+      data: { totalVotes: { increment: voteValue } },
+      select: { totalVotes: true },
     })
+    const totalVotes = updatedEntity.totalVotes as number
 
     if (voteValue !== 0 && entity.authorId) {
       await tx.user.update({
@@ -475,24 +473,22 @@ export async function handleCommentVoteTransaction(
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
     const entityTitle = ((comment as any).content as string) || 'Untitled'
-    let totalVotes = comment.totalVotes
-
     if (currentVote === newVote) {
       await commentVote.delete({ where: voteWhere })
-      totalVotes = totalVotes + voteValue
     } else {
       await commentVote.upsert({
         where: voteWhere,
         create: { commentId, userId, voteType: newVote },
         update: { voteType: newVote },
       })
-      totalVotes = totalVotes + voteValue
     }
 
-    await commentModel.update({
+    const updatedComment = await commentModel.update({
       where: { id: commentId },
-      data: { totalVotes },
+      data: { totalVotes: { increment: voteValue } },
+      select: { totalVotes: true },
     })
+    const totalVotes = updatedComment.totalVotes as number
 
     if (voteValue !== 0 && comment.authorId) {
       await tx.user.update({

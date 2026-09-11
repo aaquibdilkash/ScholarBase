@@ -5,8 +5,12 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { requireActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { deleteFromCloudinary } from "@/app/actions/cloudinary";
+import {
+  deleteCloudinaryAsset,
+  promoteDraftCloudinaryAsset,
+} from "@/lib/cloudinary";
 import { MAX_PROFILE_BIO } from "@/lib/constants";
+import { validateExternalUrl } from "@/lib/external-url";
 import {
   PROFILE_SECTION_CONFIG,
   type ProfileSection,
@@ -371,6 +375,10 @@ export async function updateProfile(formData: FormData) {
     formData,
     "googleScholarUrl",
   );
+  const safeGithubUrl = validateExternalUrl(newGithubUrl ?? "", "GitHub URL");
+  const safeOrcidUrl = validateExternalUrl(newOrcidUrl ?? "", "ORCID URL");
+  const safeLinkedinUrl = validateExternalUrl(newLinkedinUrl ?? "", "LinkedIn URL");
+  const safeGoogleScholarUrl = validateExternalUrl(newGoogleScholarUrl ?? "", "Google Scholar URL");
 
   if (newHandle) {
     const handleAvailable = await isHandleAvailable(newHandle);
@@ -382,9 +390,18 @@ export async function updateProfile(formData: FormData) {
     }
   }
 
+  const finalAvatarUrl = newAvatarUrl
+    ? newAvatarUrl === user.avatarUrl
+      ? newAvatarUrl
+      : await promoteDraftCloudinaryAsset(newAvatarUrl, user.id, "avatar")
+    : null;
+  if (newAvatarUrl && !finalAvatarUrl) {
+    throw new Error("Invalid avatar image.");
+  }
+
   // Delete old avatar from Cloudinary if a new one is being set
-  if (newAvatarUrl && newAvatarUrl !== user.avatarUrl && user.avatarUrl) {
-    await deleteFromCloudinary(user.avatarUrl);
+  if (finalAvatarUrl && finalAvatarUrl !== user.avatarUrl && user.avatarUrl) {
+    await deleteCloudinaryAsset(user.avatarUrl);
   }
 
   await prisma.user.update({
@@ -393,11 +410,11 @@ export async function updateProfile(formData: FormData) {
       handle: newHandle ? normalizeHandle(newHandle) : user.handle,
       name: newName || user.name,
       bio: newBio,
-      avatarUrl: newAvatarUrl ?? user.avatarUrl,
-      githubUrl: newGithubUrl ?? user.githubUrl,
-      orcidUrl: newOrcidUrl ?? user.orcidUrl,
-      linkedinUrl: newLinkedinUrl ?? user.linkedinUrl,
-      googleScholarUrl: newGoogleScholarUrl ?? user.googleScholarUrl,
+      avatarUrl: finalAvatarUrl ?? user.avatarUrl,
+      githubUrl: safeGithubUrl ?? user.githubUrl,
+      orcidUrl: safeOrcidUrl ?? user.orcidUrl,
+      linkedinUrl: safeLinkedinUrl ?? user.linkedinUrl,
+      googleScholarUrl: safeGoogleScholarUrl ?? user.googleScholarUrl,
     },
   });
 

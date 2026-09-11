@@ -7,7 +7,7 @@ import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
 import {
   uploadImage,
-  deleteFromCloudinary,
+  deleteDraftImage,
 } from "@/app/actions/cloudinary";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
@@ -154,13 +154,11 @@ export function CreateSocialPostForm() {
       const fd = new FormData();
       fd.append("file", file);
 
-      const data = await uploadImage(fd, "post");
+      const data = await uploadImage(fd, "social");
       const newUrl = data.url;
 
-      // Replacing an existing image: the previous one is no longer referenced
-      // anywhere, so delete it from Cloudinary to avoid orphaned assets.
       if (imageUrl && imageUrl !== newUrl) {
-        await deleteFromCloudinary(imageUrl);
+        await deleteDraftImage(imageUrl);
       }
 
       setImageUrl(newUrl);
@@ -176,10 +174,16 @@ export function CreateSocialPostForm() {
 
   const handleRemoveImage = async () => {
     if (!imageUrl) return;
+    if (!user) {
+      openAuthModal();
+      return;
+    }
 
-    // Create form: the image isn't referenced anywhere yet, so it's safe to
-    // delete immediately when the user removes/replaces it.
-    await deleteFromCloudinary(imageUrl);
+    const deleted = await deleteDraftImage(imageUrl);
+    if (!deleted) {
+      toast("Could not delete the draft image. Please try again.", "error");
+      return;
+    }
 
     setImageUrl("");
     updateDraftField("imageUrl", "");

@@ -6,8 +6,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION } from "@/lib/constants";
 
 export async function getVacancies(
@@ -138,6 +140,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
 
 export async function createJobVacancy(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
+  await enforceRateLimit({ namespace: "vacancy:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
@@ -146,6 +149,8 @@ export async function createJobVacancy(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -158,8 +163,8 @@ export async function createJobVacancy(formData: FormData) {
         institution,
         deadline,
         description,
-        notificationLink,
-        applyLink,
+        notificationLink: safeNotificationLink,
+        applyLink: safeApplyLink,
         authorId: user.id,
       },
       select: {
@@ -219,6 +224,7 @@ export async function createJobVacancy(formData: FormData) {
 
 export async function updateJobVacancy(formData: FormData, vacancyId: string) {
   const user = await requireActiveUser("Log in to edit this vacancy.");
+  await enforceRateLimit({ namespace: "vacancy:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
@@ -227,6 +233,8 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
   assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -249,8 +257,8 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       institution,
       deadline,
       description,
-      notificationLink,
-      applyLink,
+      notificationLink: safeNotificationLink,
+      applyLink: safeApplyLink,
       editedAt: new Date(),
     },
     select: {
@@ -279,6 +287,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
 
 export async function deleteJobVacancy(vacancyId: string) {
   const user = await requireActiveUser("Log in to delete this vacancy.");
+  await enforceRateLimit({ namespace: "vacancy:delete", key: user.id, limit: 20, window: "10 m" });
 
   const vacancy = await prisma.jobVacancy.findUnique({
     where: { id: vacancyId },

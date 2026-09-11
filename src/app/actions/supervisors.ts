@@ -5,6 +5,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
 
@@ -236,6 +237,7 @@ export async function getSupervisorRecommendationMeta(
 
 export async function createSupervisor(formData: FormData) {
   const user = await requireActiveUser("Log in to add a supervisor entry.");
+  await enforceRateLimit({ namespace: "supervisor:create", key: user.id, limit: 10, window: "10 m" });
 
   const name = readFormValue(formData, "name");
   const university = readFormValue(formData, "university");
@@ -288,6 +290,7 @@ export async function updateSupervisor(
   supervisorId: string,
 ) {
   const user = await requireCurrentUser("Log in to edit this supervisor.");
+  await enforceRateLimit({ namespace: "supervisor:edit", key: user.id, limit: 20, window: "10 m" });
 
   const name = readFormValue(formData, "name");
   const university = readFormValue(formData, "university");
@@ -317,6 +320,7 @@ export async function updateSupervisor(
 
 export async function deleteSupervisor(supervisorId: string) {
   const user = await requireCurrentUser("Log in to delete this supervisor.");
+  await enforceRateLimit({ namespace: "supervisor:delete", key: user.id, limit: 20, window: "10 m" });
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },

@@ -15,6 +15,7 @@ import {
 } from "@/lib/email-domain-allowlist";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
 import { verifyInstitutionRequestTurnstile } from "@/lib/turnstile";
+import { validateExternalUrl } from "@/lib/external-url";
 import {
   checkRateLimit,
   getRequestFingerprint,
@@ -29,19 +30,6 @@ type InstitutionRequestResult =
 function readField(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-function normalizeWebsite(value: string): string | null {
-  if (!value) return null;
-  if (value.length > MAX_INSTITUTION_WEBSITE) return null;
-
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    return url.toString();
-  } catch {
-    return null;
-  }
 }
 
 export async function requestInstitutionDomain(
@@ -74,8 +62,14 @@ export async function requestInstitutionDomain(
     };
   }
 
-  const website = normalizeWebsite(websiteInput);
-  if (websiteInput && !website) {
+  let website: string | null;
+  try {
+    website = validateExternalUrl(
+      websiteInput,
+      "Institution website",
+      MAX_INSTITUTION_WEBSITE,
+    );
+  } catch {
     return { success: false, error: "Please enter a valid institution website." };
   }
 

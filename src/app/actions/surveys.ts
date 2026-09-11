@@ -7,6 +7,11 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma, SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
 import { getCurrentUser, requireActiveUser, isAuthorizedOrAdmin, isUserAdmin } from "@/lib/auth";
+import {
+  checkRateLimit,
+  enforceRateLimit,
+  RATE_LIMIT_ERROR,
+} from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE } from "@/lib/constants";
@@ -261,6 +266,7 @@ export async function getSurveyResponse(surveyId: string, userId: string) {
 
 export async function createSurvey(formData: FormData) {
   const user = await requireActiveUser("Please log in to create a survey.");
+  await enforceRateLimit({ namespace: "survey:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const description = readOptionalFormValue(formData, "description");
@@ -374,6 +380,7 @@ export async function createSurvey(formData: FormData) {
 
 export async function updateSurvey(formData: FormData, surveyId: string) {
   const user = await requireActiveUser("Log in to edit this survey.");
+  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -616,6 +623,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
 export async function deleteSurvey(surveyId: string) {
   const user = await requireActiveUser("Log in to delete this survey.");
+  await enforceRateLimit({ namespace: "survey:delete", key: user.id, limit: 20, window: "10 m" });
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -653,6 +661,7 @@ export async function deleteSurvey(surveyId: string) {
 
 export async function closeSurvey(surveyId: string) {
   const user = await requireActiveUser("Log in to close this survey.");
+  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -678,6 +687,7 @@ export async function closeSurvey(surveyId: string) {
 
 export async function reopenSurvey(surveyId: string) {
   const user = await requireActiveUser("Log in to reopen this survey.");
+  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -703,6 +713,7 @@ export async function reopenSurvey(surveyId: string) {
 
 export async function toggleShareData(surveyId: string) {
   const user = await requireActiveUser("Log in to manage this survey.");
+  await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
@@ -737,6 +748,14 @@ export async function submitSurveyResponse(
   } catch {
     return { error: "UNAUTHORIZED" };
   }
+
+  const responseRateLimit = await checkRateLimit({
+    namespace: "survey:response",
+    key: user.id,
+    limit: 30,
+    window: "10 m",
+  });
+  if (!responseRateLimit.allowed) return { error: RATE_LIMIT_ERROR };
 
   const isAnonymous = formData.get("isAnonymous") === "true";
 

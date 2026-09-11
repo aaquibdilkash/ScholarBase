@@ -6,6 +6,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
 
@@ -90,6 +91,7 @@ export async function createRecommendation(
   const user = await requireActiveUser(
     "Log in to share your recommendation and help other scholars!",
   );
+  await enforceRateLimit({ namespace: "recommendation:create", key: user.id, limit: 10, window: "10 m" });
 
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
@@ -221,6 +223,7 @@ export async function updateRecommendation(
   recommendationId: string,
 ) {
   const user = await requireActiveUser("Log in to edit this recommendation.");
+  await enforceRateLimit({ namespace: "recommendation:edit", key: user.id, limit: 20, window: "10 m" });
 
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
@@ -332,6 +335,7 @@ export async function deleteRecommendation(recommendationId: string) {
   const user = await requireActiveUser(
     "Log in to delete this recommendation.",
   );
+  await enforceRateLimit({ namespace: "recommendation:delete", key: user.id, limit: 20, window: "10 m" });
 
   const recommendation = await prisma.recommendation.findUnique({
     where: { id: recommendationId },

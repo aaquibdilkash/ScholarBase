@@ -148,7 +148,7 @@ export default async function RootLayout({
     }
 
     const [messageCount, notificationCount] = await Promise.all([
-      getUnreadMessageCount(user.id),
+      getUnreadMessageCount(),
       prisma.notification.count({
         where: { recipientId: user.id, readAt: null },
       }),

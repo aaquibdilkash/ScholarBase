@@ -6,15 +6,19 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESEARCH_TOOL_DESCRIPTION } from "@/lib/constants";
 
 export async function createResearchTool(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
+  await enforceRateLimit({ namespace: "research-tool:create", key: user.id, limit: 10, window: "10 m" });
 
   const name = readFormValue(formData, "name");
   const website = readFormValue(formData, "website");
+  const safeWebsite = validateExternalUrl(website, "Website");
   const use = readFormValue(formData, "use");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESEARCH_TOOL_DESCRIPTION, "Description");
@@ -23,7 +27,7 @@ export async function createResearchTool(formData: FormData) {
     const newTool = await tx.researchTool.create({
       data: {
         name,
-        website,
+        website: safeWebsite ?? "",
         use,
         description,
         authorId: user.id,
@@ -79,9 +83,11 @@ export async function createResearchTool(formData: FormData) {
 
 export async function updateResearchTool(formData: FormData, toolId: string) {
   const user = await requireActiveUser("Log in to edit this research tool.");
+  await enforceRateLimit({ namespace: "research-tool:edit", key: user.id, limit: 20, window: "10 m" });
 
   const name = readFormValue(formData, "name");
   const website = readFormValue(formData, "website");
+  const safeWebsite = validateExternalUrl(website, "Website");
   const use = readFormValue(formData, "use");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESEARCH_TOOL_DESCRIPTION, "Description");
@@ -100,7 +106,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 
   const updatedTool = await prisma.researchTool.update({
     where: { id: toolId },
-    data: { name, website, use, description, editedAt: new Date() },
+    data: { name, website: safeWebsite ?? "", use, description, editedAt: new Date() },
   });
 
   return { success: true, data: updatedTool };
@@ -108,6 +114,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 
 export async function deleteResearchTool(toolId: string) {
   const user = await requireActiveUser("Log in to delete this research tool.");
+  await enforceRateLimit({ namespace: "research-tool:delete", key: user.id, limit: 20, window: "10 m" });
 
   const tool = await prisma.researchTool.findUnique({
     where: { id: toolId },

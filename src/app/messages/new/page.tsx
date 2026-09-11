@@ -39,7 +39,7 @@ function NewConversationPageContent() {
       
       const checkConversation = async () => {
         setLoading(true);
-        const conversationId = await findDirectConversation(user.id, recipientId)
+        const conversationId = await findDirectConversation(recipientId)
         if (conversationId) {
           router.replace(`/messages/${conversationId}`)
         } else {

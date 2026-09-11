@@ -102,4 +102,9 @@ export async function checkRateLimit({
     }
 }
 
+export async function enforceRateLimit(config: RateLimitConfig): Promise<void> {
+    const result = await checkRateLimit(config)
+    if (!result.allowed) throw new Error(RATE_LIMIT_ERROR)
+}
+
 export const RATE_LIMIT_ERROR = 'Too many requests. Please slow down.'

@@ -142,7 +142,10 @@ export async function searchInbox(userId: string, query: string, limit = 30) {
   }));
 }
 
-export async function getUnreadMessageCount(userId: string) {
+export async function getUnreadMessageCount() {
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+  const userId = currentUser.id;
+
   const result = await prisma.$queryRaw<{ count: bigint }[]>`
     SELECT COUNT(*)::int AS count
     FROM "Message" m
@@ -154,13 +157,15 @@ export async function getUnreadMessageCount(userId: string) {
   return Number(result[0]?.count ?? 0);
 }
 
-export async function findDirectConversation(userIdA: string, userIdB: string) {
+export async function findDirectConversation(otherUserId: string) {
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+
   const conversation = await prisma.conversation.findFirst({
     where: {
       type: "DIRECT",
       AND: [
-        { participants: { some: { userId: userIdA } } },
-        { participants: { some: { userId: userIdB } } },
+        { participants: { some: { userId: currentUser.id } } },
+        { participants: { some: { userId: otherUserId } } },
       ],
     },
     select: { id: true },
@@ -168,7 +173,10 @@ export async function findDirectConversation(userIdA: string, userIdB: string) {
   return conversation?.id ?? null;
 }
 
-export async function getConversation(conversationId: string, userId: string) {
+export async function getConversation(conversationId: string) {
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+  const userId = currentUser.id;
+
   const conversation = await prisma.conversation.findFirst({
     where: {
       id: conversationId,

@@ -20,6 +20,10 @@ export async function sendCommentNotification({
     paperTitle,
     commentSnippet,
 }: CommentNotificationProps) {
+    const safeCommenterName = escapeHtml(commenterName);
+    const safePaperTitle = escapeHtml(paperTitle);
+    const safeCommentSnippet = escapeHtml(commentSnippet);
+
     try {
         const data = await resend.emails.send({
             from: 'ScholarBase <notifications@scholarbase.app>',
@@ -30,10 +34,10 @@ export async function sendCommentNotification({
         <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
           ${renderScholarBaseCompactHeader("New activity on ScholarBase")}
           <div class="sb-email-panel" style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
-            <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">New Comment on "${paperTitle}"</h2>
-            <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;"><strong>${commenterName}</strong> left a comment:</p>
+            <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">New Comment on "${safePaperTitle}"</h2>
+            <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;"><strong>${safeCommenterName}</strong> left a comment:</p>
             <blockquote class="sb-email-copy" style="border-left: 4px solid #0ea5e9; padding-left: 16px; color: #475569; background: #f8fafc; padding: 12px 0; margin: 16px 0; font-style: italic;">
-              "${commentSnippet}"
+              "${safeCommentSnippet}"
             </blockquote>
             <div style="text-align: center; margin: 32px 0;">
               <a class="sb-email-button" href="https://scholarbase.app" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">View Comment</a>
@@ -59,6 +63,10 @@ export async function sendScholarInviteEmail({
     message,
     inviteUrl,
 }: ScholarInviteProps) {
+    const safeInviterName = escapeHtml(inviterName);
+    const safeMessage = escapeHtml(message);
+    const safeInviteUrl = escapeHtml(inviteUrl);
+
     try {
         const { data, error } = await resend.emails.send({
             from: 'ScholarBase <invitations@scholarbase.app>',
@@ -70,10 +78,10 @@ export async function sendScholarInviteEmail({
           ${renderScholarBaseCompactHeader("Collaboration Invitation")}
           <div class="sb-email-panel" style="background-color: #ffffff; padding: 32px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-top: 4px solid #2563eb;">
             <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Collaboration Invitation</h2>
-            <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${inviterName} wants to collaborate with you on ScholarBase.</p>
-            <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6; white-space: pre-wrap; margin: 0 0 16px 0;">${message}</p>
+            <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${safeInviterName} wants to collaborate with you on ScholarBase.</p>
+            <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6; white-space: pre-wrap; margin: 0 0 16px 0;">${safeMessage}</p>
             <div style="text-align: center; margin: 32px 0;">
-              <a class="sb-email-button" href="${inviteUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Accept Invitation</a>
+              <a class="sb-email-button" href="${safeInviteUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Accept Invitation</a>
             </div>
             <p style="color: #64748b; font-size: 14px; margin-bottom: 0;">If you are not expecting this invitation, you can simply delete this email.</p>
           </div>

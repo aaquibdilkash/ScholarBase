@@ -3,6 +3,11 @@
 import { v2 as cloudinary } from "cloudinary";
 import { requireActiveUser } from "@/lib/auth";
 import {
+  deleteCloudinaryAsset,
+  getCloudinaryPublicId,
+  getUserImageFolder,
+} from "@/lib/cloudinary";
+import {
   POST_MAX_WIDTH,
   POST_MAX_HEIGHT,
   POST_QUALITY,
@@ -13,13 +18,7 @@ import {
   ALLOWED_IMAGE_TYPES,
 } from "@/lib/image-constants";
 
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-export type UploadKind = "post" | "avatar";
+export type UploadKind = "social" | "contribution" | "avatar";
 
 export type UploadResult = {
   url: string;
@@ -34,7 +33,7 @@ export async function uploadImage(
   formData: FormData,
   kind: UploadKind,
 ): Promise<UploadResult> {
-  await requireActiveUser();
+  const user = await requireActiveUser();
 
   try {
 
@@ -47,7 +46,7 @@ export async function uploadImage(
     throw new Error("Image must be under 5 MB");
   }
 
-  const folder = kind === "avatar" ? "avatars" : "contributions";
+  const folder = getUserImageFolder(user.id, kind, true);
   const transformation =
     kind === "avatar"
       ? [
@@ -111,34 +110,25 @@ export async function uploadImage(
   }
 }
 
-/**
- * Extracts the public_id from a Cloudinary URL and deletes the asset.
- * Cloudinary URL format: https://res.cloudinary.com/cloudname/image/upload/v123456/folder/publicid.ext
- * Returns true if deletion was successful or imageUrl is empty, false otherwise.
- */
-export async function deleteFromCloudinary(
+export async function deleteDraftImage(
   imageUrl: string | null | undefined,
 ): Promise<boolean> {
   if (!imageUrl) return true;
 
-  try {
-    const urlParts = imageUrl.split("/");
-    const versionIndex = urlParts.findIndex(
-      (part) => part.startsWith("v") && /^\d+$/.test(part.slice(1)),
+  const user = await requireActiveUser("Log in to delete draft images.");
+  const publicId = getCloudinaryPublicId(imageUrl);
+  const draftFolders = [
+    getUserImageFolder(user.id, "avatar", true),
+    getUserImageFolder(user.id, "social", true),
+    getUserImageFolder(user.id, "contribution", true),
+  ];
+  if (!publicId || !draftFolders.some((folder) => publicId.startsWith(`${folder}/`))) {
+    console.warn(
+      "[deleteDraftImage] Rejected URL outside the user's draft folders:",
+      { publicId, expectedFolders: draftFolders },
     );
-
-    if (versionIndex === -1) return false;
-
-    const publicIdParts = urlParts.slice(versionIndex + 1);
-    const publicIdWithExt = publicIdParts.join("/");
-    const publicId = publicIdWithExt.replace(/\.[^.]+$/, "");
-
-    if (!publicId) return false;
-
-    const result = await cloudinary.uploader.destroy(publicId);
-    return result.result === "ok";
-  } catch (error) {
-    console.error("Failed to delete from Cloudinary:", error);
     return false;
   }
+
+  return deleteCloudinaryAsset(imageUrl);
 }

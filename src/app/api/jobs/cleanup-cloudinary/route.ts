@@ -16,8 +16,8 @@ cloudinary.config({
  * Handles folder paths and strips transformation / versioning segments.
  *
  * Example:
- * https://res.cloudinary.com/demo/image/upload/v1612345678/posts/photo.png
- * -> "posts/photo"
+ * https://res.cloudinary.com/demo/image/upload/v1612345678/users/u123/social/photo.png
+ * -> "users/u123/social/photo"
  */
 function extractPublicId(url: string): string | null {
   try {

@@ -6,8 +6,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 
 export async function getAdmissions(
@@ -127,6 +129,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
 
 export async function createPhdAdmission(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
+  await enforceRateLimit({ namespace: "admission:create", key: user.id, limit: 10, window: "10 m" });
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
@@ -135,6 +138,8 @@ export async function createPhdAdmission(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -147,8 +152,8 @@ export async function createPhdAdmission(formData: FormData) {
         department,
         deadline,
         description,
-        notificationLink,
-        applyLink,
+        notificationLink: safeNotificationLink,
+        applyLink: safeApplyLink,
         authorId: user.id,
       },
       include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } },
@@ -189,6 +194,7 @@ export async function updatePhdAdmission(
   admissionId: string,
 ) {
   const user = await requireActiveUser("Log in to edit this admission.");
+  await enforceRateLimit({ namespace: "admission:edit", key: user.id, limit: 20, window: "10 m" });
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
@@ -197,6 +203,8 @@ export async function updatePhdAdmission(
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -221,8 +229,8 @@ export async function updatePhdAdmission(
       department,
       deadline,
       description,
-      notificationLink,
-      applyLink,
+      notificationLink: safeNotificationLink,
+      applyLink: safeApplyLink,
       editedAt: new Date(),
     },
   });
@@ -232,6 +240,7 @@ export async function updatePhdAdmission(
 
 export async function deletePhdAdmission(admissionId: string) {
   const user = await requireActiveUser("Log in to delete this admission.");
+  await enforceRateLimit({ namespace: "admission:delete", key: user.id, limit: 20, window: "10 m" });
 
   const admission = await prisma.phdAdmission.findUnique({
     where: { id: admissionId },

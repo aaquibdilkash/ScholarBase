@@ -221,7 +221,7 @@ export default function ConversationPage({
       if (isMounted) {
         setUser(user);
         if (user) {
-          const conv = await getConversation(conversationId, user.id);
+          const conv = await getConversation(conversationId);
           if (!conv) notFound();
           setConversation(conv as unknown as Conversation);
           // ⚡ ISSUE 5: Hydrate block state so the composer is disabled and the
@@ -335,7 +335,7 @@ export default function ConversationPage({
             blockedMe:
               payload.blockedId === userId ? false : state.blockedMe,
           }));
-          void getConversation(conversationId, userId).then((next) => {
+          void getConversation(conversationId).then((next) => {
             if (!next) return;
             const nextBlockState = next as { blockedByMe?: boolean; blockedMe?: boolean };
             setBlockState({

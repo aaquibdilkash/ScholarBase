@@ -1,6 +1,8 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 
+import { Prisma } from '@prisma/client'
+
 import prisma from '@/lib/db'
 import { normalizeEmail, validateEmailFormat } from '@/lib/email-normalizer'
 import {
@@ -119,20 +121,37 @@ export async function ensureUserProfile(user: SupabaseUser) {
     const isConfirmedInstitutionalEmail =
         Boolean(user.email_confirmed_at) && isInstitutionalEmailDomain(email)
 
-    return prisma.user.create({
-        data: {
-            id: user.id,
-            email,
-            institutionEmail: isConfirmedInstitutionalEmail ? email : null,
-            institutionDomain: isConfirmedInstitutionalEmail
-                ? getEmailDomain(email)
-                : null,
-            institutionVerifiedAt: isConfirmedInstitutionalEmail
-                ? new Date()
-                : null,
-            name,
-            handle,
-            avatarUrl: user.user_metadata.avatar_url || null,
-        },
-    })
+    try {
+        return await prisma.user.create({
+            data: {
+                id: user.id,
+                email,
+                institutionEmail: isConfirmedInstitutionalEmail ? email : null,
+                institutionDomain: isConfirmedInstitutionalEmail
+                    ? getEmailDomain(email)
+                    : null,
+                institutionVerifiedAt: isConfirmedInstitutionalEmail
+                    ? new Date()
+                    : null,
+                name,
+                handle,
+                avatarUrl: user.user_metadata.avatar_url || null,
+            },
+        })
+    } catch (error) {
+        // First-login renders race each other across parallel requests: two
+        // requests can both see the profile missing and attempt to create it.
+        // The unique-constraint loser re-reads the winner's row instead of
+        // surfacing a P2002 to the user.
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === 'P2002'
+        ) {
+            const raced =
+                (await prisma.user.findUnique({ where: { id: user.id } })) ??
+                (await prisma.user.findUnique({ where: { email } }))
+            if (raced) return raced
+        }
+        throw error
+    }
 }

@@ -4,7 +4,11 @@
 import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
-import { notifyMentionedUsers, notifyUserById } from "@/lib/notifications";
+import {
+  notifyMentionedUsers,
+  notifyUserById,
+  resolveMentionedUsers,
+} from "@/lib/notifications";
 import type {
   CommentWithAuthorAndVotes,
   CommentEntityType,
@@ -154,30 +158,18 @@ export async function createComment(
     return { success: false, error: "Invalid comment type" };
   }
 
-  const mentionsRaw = readFormValue(formData, "mentions");
-  let mentions: { id: string; handle: string | null }[] | undefined;
-  if (mentionsRaw) {
-    try {
-      mentions = JSON.parse(mentionsRaw);
-      const validMentions =
-        mentions?.filter((m): m is { id: string; handle: string } =>
-          Boolean(m.handle),
-        ) ?? [];
-      if (validMentions.length > 0) {
-        await notifyMentionedUsers({
-          actorId: user.id,
-          content,
-          type: "mention",
-          targetType: type,
-          targetId,
-          titleFactory: (handle) => `@${handle} was mentioned in a comment`,
-          bodyFactory: () => content,
-          mentions: validMentions,
-        });
-      }
-    } catch {
-      /* ignore invalid JSON */
-    }
+  const mentions = await resolveMentionedUsers(content);
+  if (mentions.length > 0) {
+    await notifyMentionedUsers({
+      actorId: user.id,
+      content,
+      type: "mention",
+      targetType: type,
+      targetId,
+      titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+      bodyFactory: () => content,
+      mentions,
+    });
   }
 
   const createdComment = await createCommentTransaction(

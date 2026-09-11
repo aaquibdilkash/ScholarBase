@@ -239,8 +239,14 @@ export function buildRawData(
 
 /** RFC 4180 CSV with UTF-8 BOM so Excel opens UTF-8 text correctly. */
 export function toCsv(rows: string[][]): string {
-  const escape = (cell: string) =>
-    /[",\n\r]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell;
+  const escape = (cell: string) => {
+    // Prevent spreadsheet applications from interpreting user-controlled text
+    // as a formula when the CSV is opened.
+    const safeCell = /^[=+\-@\t\r\n]/.test(cell) ? `'${cell}` : cell;
+    return /[",\n\r]/.test(safeCell)
+      ? `"${safeCell.replace(/"/g, '""')}"`
+      : safeCell;
+  };
   const body = rows.map((row) => row.map(escape).join(",")).join("\r\n");
   return `\uFEFF${body}\r\n`;
 }

@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import type {
@@ -15,9 +16,11 @@ import type {
   OpenAccessStatus,
 } from "@prisma/client";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_DESCRIPTION } from "@/lib/constants";
+import { validateExternalUrl } from "@/lib/external-url";
 
 export async function createJournal(formData: FormData) {
   const user = await requireActiveUser("Please log in to submit details.");
+  await enforceRateLimit({ namespace: "journal:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const issn = readOptionalFormValue(formData, "issn");
@@ -31,6 +34,7 @@ export async function createJournal(formData: FormData) {
   const citeScore = readOptionalFormValue(formData, "citeScore");
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
+  const safeWebsite = validateExternalUrl(website, "Website");
   const about = readOptionalFormValue(formData, "about");
   assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
@@ -53,7 +57,7 @@ export async function createJournal(formData: FormData) {
         sjrScore: sjrScore ? parseFloat(sjrScore) : null,
         citeScore: citeScore ? parseFloat(citeScore) : null,
         publisher,
-        website,
+        website: safeWebsite,
         about,
         subjectArea,
         frequency,
@@ -95,6 +99,7 @@ export async function createJournal(formData: FormData) {
 
 export async function updateJournal(formData: FormData, journalId: string) {
   const user = await requireActiveUser("Log in to edit this journal.");
+  await enforceRateLimit({ namespace: "journal:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const issn = readOptionalFormValue(formData, "issn");
@@ -108,6 +113,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
   const citeScore = readOptionalFormValue(formData, "citeScore");
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
+  const safeWebsite = validateExternalUrl(website, "Website");
   const about = readOptionalFormValue(formData, "about");
   assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
@@ -140,7 +146,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
       sjrScore: sjrScore ? parseFloat(sjrScore) : null,
       citeScore: citeScore ? parseFloat(citeScore) : null,
       publisher,
-      website,
+      website: safeWebsite,
       about,
       subjectArea,
       frequency,
@@ -154,6 +160,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
 
 export async function deleteJournal(journalId: string) {
   const user = await requireActiveUser("Log in to delete this journal.");
+  await enforceRateLimit({ namespace: "journal:delete", key: user.id, limit: 20, window: "10 m" });
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },

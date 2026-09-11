@@ -6,8 +6,10 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { validateExternalUrl } from "@/lib/external-url";
 import {
   COMMENT_PAGE_SIZE,
   MAX_RESEARCH_GRANT_DESCRIPTION,
@@ -17,6 +19,7 @@ export async function createResearchGrant(formData: FormData) {
   const user = await requireActiveUser(
     "Please log in to share a research grant.",
   );
+  await enforceRateLimit({ namespace: "grant:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const amount = readFormValue(formData, "amount");
@@ -24,6 +27,8 @@ export async function createResearchGrant(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
   const infoLink = readFormValue(formData, "infoLink");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  const safeInfoLink = validateExternalUrl(infoLink, "Information link");
 
   const grant = await prisma.$transaction(async (tx) => {
     const newGrant = await tx.researchGrant.create({
@@ -31,8 +36,8 @@ export async function createResearchGrant(formData: FormData) {
         title,
         amount: amount || null,
         description,
-        applyLink: applyLink || null,
-        infoLink: infoLink || null,
+        applyLink: safeApplyLink,
+        infoLink: safeInfoLink,
         authorId: user.id,
       },
       include: {
@@ -84,6 +89,7 @@ export async function createResearchGrant(formData: FormData) {
 
 export async function updateResearchGrant(formData: FormData, grantId: string) {
   const user = await requireActiveUser("Log in to edit this research grant.");
+  await enforceRateLimit({ namespace: "grant:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const amount = readFormValue(formData, "amount");
@@ -91,6 +97,8 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
   assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
   const infoLink = readFormValue(formData, "infoLink");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  const safeInfoLink = validateExternalUrl(infoLink, "Information link");
 
   const grant = await prisma.researchGrant.findUnique({
     where: { id: grantId },
@@ -110,8 +118,8 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
       title,
       amount: amount || null,
       description,
-      applyLink: applyLink || null,
-      infoLink: infoLink || null,
+      applyLink: safeApplyLink,
+      infoLink: safeInfoLink,
       editedAt: new Date(),
     },
   });
@@ -123,6 +131,7 @@ export async function deleteResearchGrant(grantId: string) {
   const user = await requireActiveUser(
     "Log in to delete this research grant.",
   );
+  await enforceRateLimit({ namespace: "grant:delete", key: user.id, limit: 20, window: "10 m" });
 
   const grant = await prisma.researchGrant.findUnique({
     where: { id: grantId },

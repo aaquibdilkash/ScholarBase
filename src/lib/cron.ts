@@ -1,4 +1,5 @@
 import { headers } from 'next/headers'
+import { timingSafeEqual } from 'node:crypto'
 
 export async function verifyCronSecret(): Promise<boolean> {
   const headersList = await headers()
@@ -9,5 +10,9 @@ export async function verifyCronSecret(): Promise<boolean> {
     return false
   }
 
-  return authHeader === `Bearer ${secret}`
+  const provided = authHeader?.replace(/^Bearer\s+/i, '') ?? ''
+  const expected = Buffer.from(secret)
+  const actual = Buffer.from(provided)
+
+  return expected.length === actual.length && timingSafeEqual(expected, actual)
 }

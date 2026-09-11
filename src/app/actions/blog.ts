@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, slugify, assertRichTextWithinLimit } from "@/lib/form";
 import {
   notifyFollowersOfActivity,
@@ -132,6 +133,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
 
 export async function createArticle(formData: FormData) {
   const user = await requireActiveUser("Log in to publish an article.");
+  await enforceRateLimit({ namespace: "article:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const content = readFormValue(formData, "content");
@@ -226,6 +228,7 @@ export async function createArticle(formData: FormData) {
 
 export async function updateArticle(formData: FormData, articleId: string) {
   const user = await requireActiveUser("Log in to edit this article.");
+  await enforceRateLimit({ namespace: "article:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const content = readFormValue(formData, "content");
@@ -277,6 +280,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
 
 export async function deleteArticle(articleId: string) {
   const user = await requireActiveUser("Log in to delete this article.");
+  await enforceRateLimit({ namespace: "article:delete", key: user.id, limit: 20, window: "10 m" });
 
   const article = await prisma.article.findUnique({
     where: { id: articleId },

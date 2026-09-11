@@ -5,9 +5,13 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { deleteFromCloudinary } from "@/app/actions/cloudinary";
+import {
+  deleteCloudinaryAsset,
+  promoteDraftCloudinaryAsset,
+} from "@/lib/cloudinary";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 
@@ -126,7 +130,11 @@ export const getContribution = cache(async (id: string, userId?: string) => {
   });
 });
 
-export async function getContributionForEdit(id: string, userId: string) {
+export async function getContributionForEdit(id: string) {
+  const currentUser = await requireCurrentUser(
+    "You must be logged in to edit this contribution.",
+  );
+
   const contribution = await prisma.contribution.findUnique({
     where: { id, isDeleted: false },
     select: {
@@ -143,7 +151,7 @@ export async function getContributionForEdit(id: string, userId: string) {
   });
 
   if (!contribution) return null;
-  if (!(await isAuthorizedOrAdmin(contribution.authorId, userId))) return null;
+  if (!(await isAuthorizedOrAdmin(contribution.authorId, currentUser.id))) return null;
 
   return contribution;
 }
@@ -152,6 +160,7 @@ export async function createContribution(formData: FormData) {
   const user = await requireActiveUser(
     "Please log in to submit a contribution.",
   );
+  await enforceRateLimit({ namespace: "contribution:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const message = readFormValue(formData, "message");
@@ -166,6 +175,13 @@ export async function createContribution(formData: FormData) {
   if (amount !== null && (isNaN(amount) || amount < 1))
     throw new Error("Amount must be at least ₹1.");
 
+  const publishedScreenshotUrl = screenshotUrl
+    ? await promoteDraftCloudinaryAsset(screenshotUrl, user.id, "contribution")
+    : null;
+  if (screenshotUrl && !publishedScreenshotUrl) {
+    throw new Error("Invalid contribution image.");
+  }
+
   const contribution = await prisma.$transaction(async (tx) => {
     const newContribution = await tx.contribution.create({
       data: {
@@ -174,7 +190,7 @@ export async function createContribution(formData: FormData) {
         amount,
         upiId,
         paymentMethod,
-        screenshotUrl,
+        screenshotUrl: publishedScreenshotUrl,
         status: "PENDING",
         authorId: user.id,
       },
@@ -227,6 +243,7 @@ export async function updateContribution(
   formData: FormData,
 ) {
   const user = await requireActiveUser("Log in to edit this contribution.");
+  await enforceRateLimit({ namespace: "contribution:edit", key: user.id, limit: 20, window: "10 m" });
 
   const existingContribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
@@ -258,7 +275,19 @@ export async function updateContribution(
   const amount = amountStr ? parseFloat(amountStr) : null;
 
   const oldScreenshot = existingContribution.screenshotUrl;
-  const newScreenshot = screenshotUrl || null;
+  const newScreenshot = screenshotUrl
+    ? screenshotUrl === oldScreenshot
+      ? screenshotUrl
+      : await promoteDraftCloudinaryAsset(
+          screenshotUrl,
+          user.id,
+          "contribution",
+        )
+    : null;
+
+  if (screenshotUrl && !newScreenshot) {
+    throw new Error("Invalid contribution image.");
+  }
 
   // If it was rejected, move it back to pending on edit
   const status =
@@ -272,14 +301,14 @@ export async function updateContribution(
       amount,
       upiId,
       paymentMethod,
-      screenshotUrl,
+      screenshotUrl: newScreenshot,
       editedAt: new Date(),
       ...(status && { status }),
     },
   });
 
   if (oldScreenshot && oldScreenshot !== newScreenshot) {
-    await deleteFromCloudinary(oldScreenshot);
+    await deleteCloudinaryAsset(oldScreenshot);
   }
 
   return { success: true, data: updatedContribution };
@@ -287,6 +316,7 @@ export async function updateContribution(
 
 export async function deleteContribution(contributionId: string) {
   const user = await requireActiveUser("Log in to delete this contribution.");
+  await enforceRateLimit({ namespace: "contribution:delete", key: user.id, limit: 20, window: "10 m" });
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
