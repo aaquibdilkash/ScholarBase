@@ -119,7 +119,7 @@ function NotificationCard({
       }`}
     >
       {link ? (
-        <Link href={link} className="flex-1 min-w-0">
+        <Link prefetch={false} href={link} className="flex-1 min-w-0">
           {content}
         </Link>
       ) : (

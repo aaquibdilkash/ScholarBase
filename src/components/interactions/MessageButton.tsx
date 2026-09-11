@@ -35,7 +35,7 @@ export function MessageButton({
   const href = `/messages/new?to=${recipientId}`;
 
   return (
-    <Link
+    <Link prefetch={false}
       href={href}
       className={baseClass}
       title={`Send a message to ${recipientName ?? "this scholar"}`}

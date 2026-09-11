@@ -18,7 +18,7 @@ export function AuthGuardAddButton({
 
   if (isAuthenticated) {
     return (
-      <Link href={href} className={buttonClass}>
+      <Link prefetch={false} href={href} className={buttonClass}>
         {label}
       </Link>
     );

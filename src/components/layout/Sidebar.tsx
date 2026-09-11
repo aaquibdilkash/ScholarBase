@@ -316,7 +316,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
         md:translate-x-0 ${desktopCollapsed ? "md:w-24 md:px-3" : "md:w-72 md:px-6"}`}
       >
         <div className={`flex w-full items-center transition-all duration-300 justify-between ${desktopCollapsed ? "md:justify-center" : ""}`}>
-          <Link
+          <Link prefetch={false}
             href="/"
             className={`overflow-hidden whitespace-nowrap text-2xl font-semibold tracking-tight text-slate-950 transition-all duration-300 ease-in-out dark:text-slate-50
             max-w-[200px] opacity-100 mr-2 pl-4 
@@ -357,7 +357,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
               const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               const badge = "badge" in item ? item.badge ?? 0 : 0;
               return (
-                <Link
+                <Link prefetch={false}
                   key={item.name}
                   href={item.href}
                   ref={(el) => { itemRefs.current[item.href] = el; }}
@@ -417,7 +417,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
           <div className="border-t border-slate-200/70 pt-3 dark:border-slate-800 flex flex-col gap-3">
             {user ? (
               <>
-                <Link
+                <Link prefetch={false}
                   href={profileHref}
                   className={`group flex items-center overflow-hidden rounded-2xl transition-all duration-300 ease-in-out
                     w-full border border-slate-200/70 bg-[var(--input-bg)] px-4 py-3 gap-3 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800
@@ -473,7 +473,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                 </SignOutButton>
               </>
             ) : !isOnLoginPage ? (
-              <Link
+              <Link prefetch={false}
                 href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
                 className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:bg-black dark:hover:bg-black
                   w-full rounded-2xl px-4 py-3

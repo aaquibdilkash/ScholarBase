@@ -80,7 +80,7 @@ export function RecommendButton({
   }
 
   return (
-    <Link
+    <Link prefetch={false}
       href={`/supervisor/${supervisorId}/recommendation/add`}
       className="sb-button-primary w-auto"
     >

@@ -5,6 +5,7 @@ import { getTrendingVacancies } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getVacancies } from "@/app/actions/vacancies";
 import { Metadata } from "next";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
 export const metadata: Metadata = {
   title: "Academic Vacancies - ScholarBase",
@@ -12,25 +13,15 @@ export const metadata: Metadata = {
     "Find the latest academic job openings, research positions, and faculty vacancies from institutions around the world.",
 };
 
+type TrendingItem = import("@/types/trending").TrendingItem;
+
 export default async function VacanciesPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const vacancies = isTrendingTab ? [] : await getVacancies(q, user?.id, pageSize);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingVacancies()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -42,13 +33,38 @@ export default async function VacanciesPage({
       enableTrending={true}
       allHref="/vacancies"
       trendingHref="/vacancies?tab=trending"
-      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      trending={
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingVacancies()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
+      }
       all={
-        <VacanciesList
-          vacancies={vacancies}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const vacancies = await getVacancies(q ?? "", user?.id, 10);
+            return { vacancies, userId: user?.id };
+          }}
+        >
+          {({ vacancies, userId }) => (
+            <VacanciesList
+              vacancies={vacancies}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

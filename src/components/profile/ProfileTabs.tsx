@@ -719,7 +719,7 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
             </span>{" "}
             {label}{" "}
             {href && item.entityTitle ? (
-              <Link
+              <Link prefetch={false}
                 href={href}
                 className="break-words font-semibold text-blue-600 hover:underline dark:text-blue-400"
               >

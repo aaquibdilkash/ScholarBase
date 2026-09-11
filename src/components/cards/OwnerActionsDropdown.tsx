@@ -117,7 +117,7 @@ export default function OwnerActionsDropdown({
             className="sb-menu absolute right-0 z-50 mt-2 w-40"
           >
             <div>
-              <Link
+              <Link prefetch={false}
                 role="menuitem"
                 href={editHref}
                 className="sb-menu-item"

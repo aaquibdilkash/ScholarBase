@@ -31,7 +31,7 @@ export interface AdminColumnsCtx {
 
 function renderTitle(item: AdminContentItem): ReactNode {
   return item.detailHref ? (
-    <Link
+    <Link prefetch={false}
       href={item.detailHref}
       className="font-medium text-slate-900 transition hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300"
     >

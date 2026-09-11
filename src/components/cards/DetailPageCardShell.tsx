@@ -92,7 +92,7 @@ export default function DetailPageCardShell({
         className,
       )}
     >
-      <Link
+      <Link prefetch={false}
         href={backHref}
         className="inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700 mb-8"
       >
@@ -112,7 +112,7 @@ export default function DetailPageCardShell({
         <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
             {authorHref ? (
-              <Link href={authorHref} className="shrink-0">
+              <Link prefetch={false} href={authorHref} className="shrink-0">
                 <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
                   {authorAvatarUrl ? (
                     <UserAvatar src={authorAvatarUrl} name={authorName} />
@@ -131,7 +131,7 @@ export default function DetailPageCardShell({
 
             <div>
               {authorHref ? (
-                <Link
+                <Link prefetch={false}
                   href={authorHref}
                   className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
                 >

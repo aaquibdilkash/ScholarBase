@@ -176,15 +176,15 @@ export default async function HomePage() {
 
             <div className="mt-7 sm:mt-8 flex flex-col gap-3 sm:flex-row">
               {user ? (
-                <Link href="/feed" className="sb-button-accent">
+                <Link prefetch={false} href="/feed" className="sb-button-accent">
                   Go to Your Feed
                 </Link>
               ) : (
                 <>
-                  <Link href="/login" className="sb-button-accent">
+                  <Link prefetch={false} href="/login" className="sb-button-accent">
                     Join the Community
                   </Link>
-                  <Link href="/blog" className="sb-button-soft">
+                  <Link prefetch={false} href="/blog" className="sb-button-soft">
                     Read Research Blogs
                   </Link>
                 </>
@@ -263,7 +263,7 @@ export default async function HomePage() {
         </h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {features.map((feature) => (
-            <Link
+            <Link prefetch={false}
               key={feature.title}
               href={feature.href}
               className="sb-card sb-card-hover group flex flex-col gap-4"
@@ -306,7 +306,7 @@ export default async function HomePage() {
             </p>
           </div>
           <div className="mt-7">
-            <Link
+            <Link prefetch={false}
               href="/about"
               className="inline-flex items-center gap-2 text-sm md:text-base font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
             >
@@ -387,7 +387,7 @@ export default async function HomePage() {
               ScholarBase is fully open-source with no revenue behind it — by design. So instead of a paycheck, we offer hands-on mentorship on a live platform used by scholars around the world. Your campaigns, curated listings, and bug reports are public, credited to you, and interview-ready.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
-              <Link href="/careers" className="sb-button-accent">
+              <Link prefetch={false} href="/careers" className="sb-button-accent">
                 See open tracks
               </Link>
               <a
@@ -451,10 +451,10 @@ export default async function HomePage() {
             discovering opportunities, and sharing your work.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/login" className="sb-button-accent">
+            <Link prefetch={false} href="/login" className="sb-button-accent">
               Create Your Account
             </Link>
-            <Link href="/feed" className="sb-button-soft">
+            <Link prefetch={false} href="/feed" className="sb-button-soft">
               Browse Public Feed
             </Link>
           </div>

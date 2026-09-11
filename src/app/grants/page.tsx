@@ -1,34 +1,30 @@
 import type { Metadata } from "next";
-import ListPageShell from "@/components/layout/ListPageShell";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Research Grants",
+  description:
+    "Discover and share research grants, research scholarships, funding calls, application links, and guidance for scholars.",
+  path: "/grants",
+  section: "Grants",
+});
 import { createClient } from "@/utils/supabase/server";
-import { getResearchGrants } from "@/app/actions/grants";
+import ListPageShell from "@/components/layout/ListPageShell";
+import { ResearchGrantsList } from "@/components/grants/ResearchGrantsList";
 import { getTrendingGrants } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { ResearchGrantsList } from "@/components/grants/ResearchGrantsList";
+import { getResearchGrants } from "@/app/actions/grants";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
-export const metadata: Metadata = {
-  title: "Research Grants",
-  description: "Discover and share research grants, research scholarships, funding calls, application links, and guidance for scholars.",
-  alternates: { canonical: "/grants" },
-};
+type TrendingItem = import("@/types/trending").TrendingItem;
 
 export default async function ResearchGrantsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const { q, tab } = await searchParams as { q?: string; tab?: string };
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const grants = isTrendingTab ? [] : await getResearchGrants(q, user?.id, pageSize);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingGrants()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  const { q, tab } = await searchParams;
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -40,13 +36,38 @@ export default async function ResearchGrantsPage({
       enableTrending={true}
       allHref="/grants"
       trendingHref="/grants?tab=trending"
-      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      trending={
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingGrants()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
+      }
       all={
-        <ResearchGrantsList
-          grants={grants}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const grants = await getResearchGrants(q ?? "", user?.id, 10);
+            return { grants, userId: user?.id };
+          }}
+        >
+          {({ grants, userId }) => (
+            <ResearchGrantsList
+              grants={grants}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

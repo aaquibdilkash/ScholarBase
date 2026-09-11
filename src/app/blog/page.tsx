@@ -13,27 +13,17 @@ import { TrendingList } from "@/components/feed/TrendingList";
 import { createClient } from "@/utils/supabase/server";
 import { ArticleList } from "@/components/blog/ArticleList";
 import { getArticles } from "@/app/actions/blog";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
+
+type TrendingItem = import("@/types/trending").TrendingItem;
 
 export default async function BlogIndex({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab, q } = await searchParams as { tab?: string; q?: string };
-  const pageSize = 10;
-
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const articles = isTrendingTab ? [] : await getArticles(q, user?.id, pageSize);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingArticles()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  const { tab, q } = await searchParams;
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -45,14 +35,39 @@ export default async function BlogIndex({
       enableTrending={true}
       allHref="/blog"
       trendingHref="/blog?tab=trending"
-      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      trending={
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingArticles()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
+      }
       all={
-          <ArticleList
-            articles={articles}
-            currentUserId={user?.id}
-            initialQuery={q ?? ""}
-          />
-        }
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const articles = await getArticles(q ?? "", user?.id, 10);
+            return { articles, userId: user?.id };
+          }}
+        >
+          {({ articles, userId }) => (
+            <ArticleList
+              articles={articles}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
+      }
     />
   );
 }

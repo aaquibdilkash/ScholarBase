@@ -58,7 +58,7 @@ export default function ListPageShell({
         </div>
 
         {addAction ? addAction : addHref && addLabel ? (
-          <Link href={addHref} className="sb-button-accent w-full whitespace-nowrap sm:w-auto">
+          <Link prefetch={false} href={addHref} className="sb-button-accent w-full whitespace-nowrap sm:w-auto">
             {addLabel}
           </Link>
         ) : null}
@@ -66,7 +66,7 @@ export default function ListPageShell({
 
       {enableTrending && trendingHref ? (
         <div className="mb-8 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:inline-flex sm:w-auto sm:gap-0">
-          <Link
+          <Link prefetch={false}
             href={allHref}
             className={clsx(
               "rounded-xl px-6 py-2 font-semibold transition-all",
@@ -77,7 +77,7 @@ export default function ListPageShell({
           >
             All
           </Link>
-          <Link
+          <Link prefetch={false}
             href={trendingHref}
             className={clsx(
               "rounded-xl px-6 py-2 font-semibold transition-all",

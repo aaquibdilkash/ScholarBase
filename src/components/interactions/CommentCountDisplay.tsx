@@ -14,7 +14,7 @@ export default function CommentCountDisplay({
   const count = useCommentCount(initialCount);
 
   return (
-    <Link
+    <Link prefetch={false}
       href={href}
       className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
     >

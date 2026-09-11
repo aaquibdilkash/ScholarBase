@@ -295,8 +295,8 @@ export function SocialPostCard({
         <button
           type="button"
           onClick={(e) => {
-            // This button sits OUTSIDE the <Link>, so it never navigates; this
-            // also guards against any parent <Link>/wrapper bubbling.
+            // This button sits OUTSIDE the <Link prefetch={false}>, so it never navigates; this
+            // also guards against any parent <Link prefetch={false}>/wrapper bubbling.
             e.preventDefault();
             e.stopPropagation();
             setIsExpanded((current) => !current);

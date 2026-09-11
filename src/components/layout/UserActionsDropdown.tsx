@@ -106,7 +106,7 @@ export default function UserActionsDropdown({
         >
           <ul className="m-0 list-none p-0">
             <li>
-              <Link
+              <Link prefetch={false}
                 role="menuitem"
                 href={`/scholars/${user.id}`}
                 className="sb-menu-item flex items-center px-4"
@@ -116,7 +116,7 @@ export default function UserActionsDropdown({
               </Link>
             </li>
             <li>
-              <Link
+              <Link prefetch={false}
                 role="menuitem"
                 href="/notifications"
                 className="sb-menu-item flex items-center gap-2 px-4"

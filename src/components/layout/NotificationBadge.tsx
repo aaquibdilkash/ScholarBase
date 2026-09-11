@@ -36,7 +36,7 @@ export default function NotificationBadge({
   }, []);
 
   return (
-    <Link
+    <Link prefetch={false}
       href="/notifications"
       className="sb-button-primary relative p-2"
       aria-label="Notifications"

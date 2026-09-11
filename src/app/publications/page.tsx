@@ -13,29 +13,17 @@ import { getPublications } from "../actions/publications";
 import { PublicationsList } from "@/components/publications/PublicationsList";
 import { getTrendingPublications } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
+
+type TrendingItem = import("@/types/trending").TrendingItem;
 
 export default async function PublicationsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const { q, tab } = await searchParams as { q?: string; tab?: string };
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const publications = isTrendingTab ? [] : await getPublications(q, user?.id, pageSize);
-
-  const trendingItems = isTrendingTab
-    ? await getTrendingPublications()
-    : [];
-
-  const typedTrendingItems =
-    trendingItems as import("@/types/trending").TrendingItem[];
+  const { q, tab } = await searchParams;
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -48,17 +36,37 @@ export default async function PublicationsPage({
       allHref="/publications"
       trendingHref="/publications?tab=trending"
       trending={
-        <TrendingList
-          items={typedTrendingItems}
-          currentUserId={user?.id ?? ""}
-        />
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingPublications()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
       }
       all={
-        <PublicationsList
-          publications={publications}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const publications = await getPublications(q ?? "", user?.id, 10);
+            return { publications, userId: user?.id };
+          }}
+        >
+          {({ publications, userId }) => (
+            <PublicationsList
+              publications={publications}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

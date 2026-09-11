@@ -238,7 +238,7 @@ export function LoginForm({
             <p className="text-slate-700 dark:text-slate-300">
               Is this an institutional or research-lab email?
             </p>
-            <Link
+            <Link prefetch={false}
               href={
                 email.trim()
                   ? `/request-institution?email=${encodeURIComponent(email.trim())}`
@@ -253,7 +253,7 @@ export function LoginForm({
         {!showDomainRequest && (
           <p className="text-center text-sm text-slate-600 dark:text-slate-400">
             Institution not listed?{" "}
-            <Link
+            <Link prefetch={false}
               href={
                 email.trim()
                   ? `/request-institution?email=${encodeURIComponent(email.trim())}`

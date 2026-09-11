@@ -139,11 +139,11 @@ export default function AboutPage() {
               Whether you&apos;re a PhD aspirant, a professor, a journal editor, or simply curious — there&apos;s a place for you here.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-blue-700">
+              <Link prefetch={false} href="/" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-blue-700">
                 Explore ScholarBase
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/contact" className="inline-flex items-center gap-2 rounded-xl border sb-soft px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-[var(--surface-strong)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+              <Link prefetch={false} href="/contact" className="inline-flex items-center gap-2 rounded-xl border sb-soft px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-[var(--surface-strong)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
                 Get in Touch
               </Link>
             </div>

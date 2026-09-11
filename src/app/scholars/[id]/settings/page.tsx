@@ -74,7 +74,7 @@ export default async function ScholarSettingsPage({
                 Manage your password, email, and institutional verification.
               </p>
             </div>
-            <Link href="/auth/update-password" className="sb-button-primary gap-2">
+            <Link prefetch={false} href="/auth/update-password" className="sb-button-primary gap-2">
               <Lock className="h-4 w-4" aria-hidden="true" />
               Update Password
             </Link>

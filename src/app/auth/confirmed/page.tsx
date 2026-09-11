@@ -23,7 +23,7 @@ export default function EmailConfirmedPage() {
             ScholarBase with your new account.
           </p>
         </div>
-        <Link href="/" className="sb-button-primary w-full">
+        <Link prefetch={false} href="/" className="sb-button-primary w-full">
           Continue to ScholarBase
         </Link>
       </section>

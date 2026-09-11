@@ -312,7 +312,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
         {isSidebarOpen && <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Conversations</h2>}
         <div className="flex items-center gap-2">
           {isSidebarOpen && ( 
-            <Link href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black">New</Link>
+            <Link prefetch={false} href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black">New</Link>
           )}
           <button onClick={() => setIsSidebarOpen((prev) => !prev)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
             {isSidebarOpen ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />}
@@ -358,7 +358,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
                 const isOtherUserOnline = !otherParticipant?.isFrozen && onlineUserIds.has(otherParticipant?.id || "");
 
                 return (
-                  <Link
+                  <Link prefetch={false}
                     key={conversation.id}
                     href={`/messages/${conversation.id}`}
                     onClick={() => {

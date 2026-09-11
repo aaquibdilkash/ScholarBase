@@ -17,7 +17,7 @@ export default function NotFound() {
           have been moved, deleted, or it never existed.
         </p>
 
-        <Link
+        <Link prefetch={false}
           href="/"
           className="rounded-xl bg-slate-950 px-8 py-3.5 font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:ring-4 hover:ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:hover:ring-slate-700"
         >

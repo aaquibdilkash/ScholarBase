@@ -185,7 +185,7 @@ const SurveyDetailPage = async ({
           {survey.questions.length !== 1 ? "s" : ""}
         </div>
         {survey.shareData && (
-          <Link
+          <Link prefetch={false}
             href={`/surveys/${survey.id}/results`}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors dark:text-blue-400 dark:hover:text-blue-200"
           >
@@ -232,7 +232,7 @@ const SurveyDetailPage = async ({
             This survey is closed for responses.
           </p>
           {survey.shareData && (
-            <Link
+            <Link prefetch={false}
               href={`/surveys/${survey.id}/results`}
               className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:text-blue-800"
             >

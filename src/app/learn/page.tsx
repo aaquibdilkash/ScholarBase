@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
-import ListPageShell from "@/components/layout/ListPageShell";
 import { createClient } from "@/utils/supabase/server";
+import ListPageShell from "@/components/layout/ListPageShell";
+import { CoursesList } from "@/components/courses/CoursesList";
 import { getCourses } from "@/app/actions/courses";
 import { getTrendingCourses } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { CoursesList } from "@/components/courses/CoursesList";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Courses",
@@ -12,19 +13,15 @@ export const metadata: Metadata = {
   alternates: { canonical: "/learn" },
 };
 
-export default async function CoursesPage({ searchParams }: { searchParams: Promise<{ q?: string; tab?: string }> }) {
+type TrendingItem = import("@/types/trending").TrendingItem;
+
+export default async function CoursesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; tab?: string }>;
+}) {
   const { q, tab } = await searchParams;
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const courses = isTrendingTab ? [] : await getCourses(q, user?.id, pageSize);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingCourses()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -36,13 +33,38 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
       enableTrending={true}
       allHref="/learn"
       trendingHref="/learn?tab=trending"
-      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      trending={
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingCourses()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
+      }
       all={
-        <CoursesList
-          courses={courses}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const courses = await getCourses(q ?? "", user?.id, 10);
+            return { courses, userId: user?.id };
+          }}
+        >
+          {({ courses, userId }) => (
+            <CoursesList
+              courses={courses}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

@@ -38,7 +38,7 @@ export default function CreateOrEditPageShell({
       )}
     >
       <div className="mb-8">
-        <Link
+        <Link prefetch={false}
           href={backHref}
           className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
         >

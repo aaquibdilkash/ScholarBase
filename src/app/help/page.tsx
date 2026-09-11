@@ -5,6 +5,7 @@ import { TrendingList } from "@/components/feed/TrendingList";
 import { getHelpPosts } from "@/app/actions/help";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { Metadata } from "next";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
 export const metadata: Metadata = {
   title: "Scholar Suggest - ScholarBase",
@@ -12,25 +13,15 @@ export const metadata: Metadata = {
     "Share suggestions, bug reports, or new feature request for ScholarBase with the community.",
 };
 
+type TrendingItem = import("@/types/trending").TrendingItem;
+
 export default async function HelpPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const posts = isTrendingTab ? [] : await getHelpPosts(q, user?.id, pageSize);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingHelpPosts()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -42,13 +33,38 @@ export default async function HelpPage({
       enableTrending={true}
       allHref="/help"
       trendingHref="/help?tab=trending"
-      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      trending={
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingHelpPosts()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
+      }
       all={
-        <HelpPostList
-          posts={posts}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const posts = await getHelpPosts(q ?? "", user?.id, 10);
+            return { posts, userId: user?.id };
+          }}
+        >
+          {({ posts, userId }) => (
+            <HelpPostList
+              posts={posts}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

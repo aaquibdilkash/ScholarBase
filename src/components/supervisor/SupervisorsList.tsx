@@ -90,7 +90,7 @@ export function SupervisorsList({
             <p className="mb-6 text-lg font-medium text-slate-600">
               Couldn&apos;t find the supervisor you&apos;re looking for?
             </p>
-            <Link
+            <Link prefetch={false}
               href="/supervisor/add"
               className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-6 py-3 font-semibold text-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300"
             >

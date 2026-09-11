@@ -103,7 +103,7 @@ export function InstitutionVerificationForm({
           </button>
         </div>
         <div className="space-y-3">
-          <Link
+          <Link prefetch={false}
             href={
               institutionEmail.trim()
                 ? `/request-institution?email=${encodeURIComponent(institutionEmail.trim())}`

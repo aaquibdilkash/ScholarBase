@@ -574,7 +574,7 @@ export default function ConversationPage({
           <ChevronsRight className="h-6 w-6" />
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
+          <Link prefetch={false}
             href={otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
             className="flex shrink-0 items-center gap-3"
           >

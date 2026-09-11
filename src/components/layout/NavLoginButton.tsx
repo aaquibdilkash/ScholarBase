@@ -11,7 +11,7 @@ export default function NavLoginButton() {
 
   const callbackUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
   return (
-    <Link href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="sb-button-primary">
+    <Link prefetch={false} href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`} className="sb-button-primary">
       Sign In
     </Link>
   );

@@ -51,7 +51,7 @@ export type ListPageCardShellProps = {
   createdLabel?: string;
   editedLabel?: string;
 
-  // When true, children will NOT be wrapped in a <Link> (use case: children contain <a> tags)
+  // When true, children will NOT be wrapped in a <Link prefetch={false}> (use case: children contain <a> tags)
   noBodyLink?: boolean;
 
   // When false, the middle body is rendered without the generic line-clamp /

@@ -250,7 +250,7 @@ export default function CareersPage() {
               Send Your CV
             </a>
             <p className="mt-6 text-base text-slate-500 dark:text-slate-400">
-              Want to learn more about the platform first? <Link href="/about" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Read our story</Link>.
+              Want to learn more about the platform first? <Link prefetch={false} href="/about" className="font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Read our story</Link>.
             </p>
           </section>
 

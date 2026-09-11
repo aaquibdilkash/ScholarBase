@@ -15,6 +15,7 @@ import { getTrendingSocialPosts } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { FeedList } from "@/components/feed/FeedList";
 import { CreateSocialPostFormWrapper } from "@/components/feed/CreateSocialPostFormWrapper";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 
@@ -25,22 +26,8 @@ export default async function FeedPage({
 }) {
   const { tab, q } = await searchParams as { tab?: string; q?: string };
   const pageSize = 10;
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const isTrendingTab = tab === "trending";
-
-  const posts = isTrendingTab ? [] : await getFeed(user?.id, tab, q, pageSize);
-
-  let trendingItems: TrendingItem[] = [];
-  if (isTrendingTab) {
-    trendingItems = (await getTrendingSocialPosts().catch(
-      () => [],
-    )) as TrendingItem[];
-  }
+  // Auth resolved lazily so the shell heading/tabs render instantly.
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -51,24 +38,43 @@ export default async function FeedPage({
       allHref="/feed"
       trendingHref="/feed?tab=trending"
       trending={
-        <TrendingList
-          key="trending"
-          items={trendingItems}
-          currentUserId={user?.id}
-        />
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingSocialPosts().catch(
+              () => [],
+            )) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
       }
       all={
-        <>
-          {!isTrendingTab && (
-            <CreateSocialPostFormWrapper />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const posts = await getFeed(user?.id, tab, q, pageSize);
+            return { posts, userId: user?.id };
+          }}
+        >
+          {({ posts, userId }) => (
+            <>
+              <CreateSocialPostFormWrapper />
+              <FeedList
+                posts={posts}
+                currentUserId={userId}
+                initialQuery={q ?? ""}
+                loadMoreParams={{ q, tab }}
+              />
+            </>
           )}
-          <FeedList
-            posts={posts}
-            currentUserId={user?.id}
-            initialQuery={q ?? ""}
-            loadMoreParams={!isTrendingTab ? { q, tab } : undefined}
-          />
-        </>
+        </AsyncListRegion>
       }
     />
   );

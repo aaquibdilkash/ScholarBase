@@ -116,7 +116,7 @@ export default async function ScholarProfile({
         <div className="flex w-full justify-end lg:w-auto lg:justify-self-end">
           {isOwnProfile ? (
             <div className="flex w-full justify-end sm:w-auto">
-              <Link
+              <Link prefetch={false}
                 href={`/scholars/${profile.id}/settings`}
                 className="sb-button-soft w-full justify-center sm:w-auto"
               >

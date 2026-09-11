@@ -13,6 +13,7 @@ import { SupervisorsList } from "@/components/supervisor/SupervisorsList";
 import { getCurrentUser } from "@/lib/auth";
 import { getTrendingSupervisors } from "@/lib/trending";
 import { getSupervisors } from "@/app/actions/supervisors";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
 export default async function SupervisorDirectory({
   searchParams,
@@ -20,15 +21,8 @@ export default async function SupervisorDirectory({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
-  const isTrendingTab = tab === "trending";
-
-  const user = await getCurrentUser();
-
-  const supervisors = isTrendingTab ? [] : await getSupervisors(q, user?.id);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingSupervisors()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  // Auth resolved lazily so the shell heading/tabs render instantly.
+  const userPromise = getCurrentUser();
 
   return (
     <ListPageShell
@@ -40,15 +34,36 @@ export default async function SupervisorDirectory({
       enableTrending={true}
       allHref="/supervisor"
       trendingHref="/supervisor?tab=trending"
-      trending={<TrendingList items={trendingItems} currentUserId={user?.id} />}
+      trending={
+        <AsyncListRegion
+          fetcher={async () => {
+            const user = await userPromise;
+            const items = (await getTrendingSupervisors()) as unknown as import("@/types/trending").TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
+      }
       all={
-        !isTrendingTab ? (
-          <SupervisorsList
-            supervisors={supervisors}
-            currentUserId={user?.id}
-            initialQuery={q ?? ""}
-          />
-        ) : null
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const user = await userPromise;
+            const supervisors = await getSupervisors(q, user?.id);
+            return { supervisors, userId: user?.id };
+          }}
+        >
+          {({ supervisors, userId }) => (
+            <SupervisorsList
+              supervisors={supervisors}
+              currentUserId={userId ?? ""}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

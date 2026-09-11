@@ -27,7 +27,7 @@ export default async function SurveyResultsPage({
   if (!canView) {
     return (
       <main className="mx-auto max-w-3xl py-6 sm:py-12">
-        <Link
+        <Link prefetch={false}
           href={`/surveys/${id}`}
           className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
         >
@@ -79,7 +79,7 @@ export default async function SurveyResultsPage({
 
   return (
     <main className="mx-auto max-w-3xl py-6 sm:py-12">
-      <Link
+      <Link prefetch={false}
         href={`/surveys/${id}`}
         className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
       >

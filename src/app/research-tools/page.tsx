@@ -13,30 +13,17 @@ import { getResearchTools } from "../actions/researchTools";
 import { ResearchToolsList } from "@/components/research-tools/ResearchToolsList";
 import { getTrendingResearchTools } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
-export default async function ResearchPage({
+type TrendingItem = import("@/types/trending").TrendingItem;
+
+export default async function ResearchToolsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
-  const { q, tab } = await searchParams as { q?: string; tab?: string };
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const tools = isTrendingTab ? [] : await getResearchTools(q, user?.id, pageSize);
-
-  const trendingItems = isTrendingTab
-    ? await getTrendingResearchTools()
-    : [];
-
-  // TypeScript can't infer the tagged union produced inside `getTrending(...)`.
-  const typedTrendingItems =
-    trendingItems as import("@/types/trending").TrendingItem[];
+  const { q, tab } = await searchParams;
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -49,17 +36,37 @@ export default async function ResearchPage({
       allHref="/research-tools"
       trendingHref="/research-tools?tab=trending"
       trending={
-        <TrendingList
-          items={typedTrendingItems}
-          currentUserId={user?.id ?? ""}
-        />
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingResearchTools()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
       }
       all={
-        <ResearchToolsList
-          tools={tools}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const tools = await getResearchTools(q ?? "", user?.id, 10);
+            return { tools, userId: user?.id };
+          }}
+        >
+          {({ tools, userId }) => (
+            <ResearchToolsList
+              tools={tools}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );
