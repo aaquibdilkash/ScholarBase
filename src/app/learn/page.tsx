@@ -42,7 +42,6 @@ export default async function CoursesPage({ searchParams }: { searchParams: Prom
           courses={courses}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

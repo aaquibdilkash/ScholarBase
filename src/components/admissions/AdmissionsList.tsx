@@ -12,12 +12,10 @@ export function AdmissionsList({
   admissions,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   admissions: AdmissionWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
 
@@ -44,8 +42,7 @@ export function AdmissionsList({
       </form>
       <AppendMoreList
         initialItems={admissionsData}
-        resource="admissions"
-        params={{ q: query, ...loadMoreParams }}
+        loadMore={(cursor) => getAdmissions(query, currentUserId, 10, cursor)}
         renderItem={(item) => (
           <AdmissionCard
             key={(item as AdmissionWithAuthor).id}

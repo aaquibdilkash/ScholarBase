@@ -8,9 +8,13 @@ import { Share } from "lucide-react";
 export function ShareButton({
   href,
   label = "Share",
+  variant = "default",
+  copySuccessMessage = "Link copied!",
 }: {
   href?: string;
   label?: string;
+  variant?: "default" | "primary";
+  copySuccessMessage?: string;
 }) {
   const pathname = usePathname();
   const { toast } = useToast();
@@ -32,24 +36,30 @@ export function ShareButton({
 
         if (typeof navigator !== "undefined" && nav.clipboard?.writeText) {
           await nav.clipboard.writeText(shareUrl);
-          toast("Link copied!");
+          toast(copySuccessMessage);
         }
       }
     } catch {
       // ignore (user canceled or clipboard denied)
     }
-  }, [href, pathname, toast]);
+  }, [copySuccessMessage, href, pathname, toast]);
+
+  const isPrimary = variant === "primary";
 
   return (
     <button
       type="button"
       onClick={onShare}
-      className="inline-flex h-8 min-w-8 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium transition hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-800"
+      className={
+        isPrimary
+          ? "sb-button-primary w-full gap-2 whitespace-nowrap sm:w-auto"
+          : "inline-flex h-8 min-w-8 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium transition hover:text-blue-600 dark:hover:text-blue-300"
+      }
       aria-label={label}
       title={label}
     >
-      <Share className="w-5 h-5" />
-      <span className="hidden sm:inline">{label}</span>
+      <Share className={isPrimary ? "h-4 w-4" : "h-5 w-5"} />
+      <span className={isPrimary ? undefined : "hidden sm:inline"}>{label}</span>
     </button>
   );
 }

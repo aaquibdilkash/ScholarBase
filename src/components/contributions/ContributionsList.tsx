@@ -13,12 +13,10 @@ export function ContributionsList({
   contributions,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   contributions: ContributionWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function ContributionsList({
       </form>
       <AppendMoreList
         initialItems={contributionsData}
-        resource="contributions"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getContributions(q, currentUserId, 10, cursor)}
         renderItem={(contribution) => (
           <ContributionCard
             key={(contribution as ContributionWithAuthor).id}

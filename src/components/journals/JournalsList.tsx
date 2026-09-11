@@ -13,12 +13,10 @@ export function JournalsList({
   journals,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   journals: JournalWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function JournalsList({
       </form>
       <AppendMoreList
         initialItems={journalsData}
-        resource="journals"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getJournals(q, currentUserId, 10, cursor)}
         renderItem={(journal) => (
           <JournalCard
             key={(journal as JournalWithAuthor).id}

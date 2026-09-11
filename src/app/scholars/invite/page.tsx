@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
-import { InviteScholarForm } from "@/components/scholars/InviteScholarForm";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Invite Scholar",
@@ -10,15 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function InviteScholarPage() {
-  return (
-    <CreateOrEditPageShell
-      title="Invite Scholar"
-      description="Send a collaboration invite to a scholar who is not on ScholarBase yet."
-      backHref="/scholars"
-      backLabel="← Back to Scholars"
-      maxWidth="sm"
-    >
-      <InviteScholarForm />
-    </CreateOrEditPageShell>
-  );
+  redirect("/scholars");
 }

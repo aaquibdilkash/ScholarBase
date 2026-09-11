@@ -13,12 +13,10 @@ export function ResultsList({
   results,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   results: ResultWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function ResultsList({
       </form>
       <AppendMoreList
         initialItems={resultsData}
-        resource="results"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getResults(q, currentUserId, 10, cursor)}
         renderItem={(item) => (
           <ResultCard
             key={(item as ResultWithAuthor).id}

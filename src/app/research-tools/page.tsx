@@ -59,7 +59,6 @@ export default async function ResearchPage({
           tools={tools}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

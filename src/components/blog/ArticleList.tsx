@@ -13,12 +13,10 @@ export function ArticleList({
   articles,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   articles: ArticleWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const { data: articlesData, refetch } = useQuery({
@@ -44,8 +42,7 @@ export function ArticleList({
       </form>
       <AppendMoreList
         initialItems={articlesData}
-        resource="blog"
-        params={{ q: query, ...loadMoreParams }}
+        loadMore={(cursor) => getArticles(query, currentUserId, 10, cursor)}
         renderItem={(article) => (
           <ArticleCard
             key={(article as ArticleWithAuthor).id}

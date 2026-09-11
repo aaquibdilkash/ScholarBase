@@ -13,12 +13,10 @@ export function SurveysList({
   surveys,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   surveys: SurveyWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function SurveysList({
       </form>
       <AppendMoreList
         initialItems={surveysData}
-        resource="surveys"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getSurveys(q, currentUserId, 10, cursor)}
         renderItem={(item) => (
           <SurveyCard
             key={(item as SurveyWithAuthor).id}

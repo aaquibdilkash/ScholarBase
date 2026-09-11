@@ -6,6 +6,7 @@ import { ScholarsList } from '@/components/scholars/ScholarsList'
 import { getTrendingScholars } from '@/lib/trending'
 import { TrendingList } from '@/components/feed/TrendingList'
 import { TrendingItem } from '@/types/trending'
+import { ShareButton } from '@/components/interactions/ShareButton'
 
 export const metadata: Metadata = {
   title: 'Scholars',
@@ -41,8 +42,14 @@ export default async function ScholarsPage({
     <ListPageShell
       title="Find Scholars"
       description="Search researchers, collaborators, and peers across the community."
-      addHref="/scholars/invite"
-      addLabel="Invite scholar"
+      addAction={
+        <ShareButton
+          href="/"
+          label="Share ScholarBase"
+          variant="primary"
+          copySuccessMessage="ScholarBase link copied"
+        />
+      }
       tab={tab}
       enableTrending={true}
       allHref="/scholars"

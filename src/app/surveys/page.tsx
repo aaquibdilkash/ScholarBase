@@ -50,7 +50,6 @@ export default async function SurveysPage({
           surveys={surveys}
           initialQuery={q ?? ""}
           currentUserId={user?.id}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

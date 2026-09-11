@@ -13,12 +13,10 @@ export function HelpPostList({
   posts,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   posts: HelpPostWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function HelpPostList({
       </form>
       <AppendMoreList
         initialItems={helpPostsData}
-        resource="help"
-        params={{ q: query, ...loadMoreParams }}
+        loadMore={(cursor) => getHelpPosts(query, currentUserId, 10, cursor)}
         renderItem={(post) => (
           <HelpPostCard
             key={(post as HelpPostWithAuthor).id}

@@ -13,12 +13,10 @@ export function ResearchGrantsList({
   grants,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   grants: ResearchGrantWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function ResearchGrantsList({
       </form>
       <AppendMoreList
         initialItems={grantsData}
-        resource="grants"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getResearchGrants(q, currentUserId, 10, cursor)}
         renderItem={(grant) => (
           <ResearchGrantCard
             key={(grant as ResearchGrantWithAuthor).id}

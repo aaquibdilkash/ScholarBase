@@ -13,12 +13,10 @@ export function ResearchToolsList({
   tools,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   tools: ResearchToolWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function ResearchToolsList({
       </form>
       <AppendMoreList
         initialItems={toolsData}
-        resource="research-tools"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getResearchTools(q, currentUserId, 10, cursor)}
         renderItem={(tool) => (
           <ResearchToolCard
             key={(tool as ResearchToolWithAuthor).id}

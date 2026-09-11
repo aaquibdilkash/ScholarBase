@@ -52,7 +52,6 @@ export default async function ContributionsPage({
           contributions={contributions}
           initialQuery={q ?? ""}
           currentUserId={user?.id}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

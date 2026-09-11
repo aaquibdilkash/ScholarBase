@@ -50,7 +50,6 @@ export default async function ResultsPage({
           results={results}
           initialQuery={q ?? ""}
           currentUserId={user?.id}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

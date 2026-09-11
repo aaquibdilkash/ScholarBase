@@ -13,12 +13,10 @@ export function CoursesList({
   courses,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   courses: CourseWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function CoursesList({
       </form>
       <AppendMoreList
         initialItems={coursesData}
-        resource="courses"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getCourses(q, currentUserId, 10, cursor)}
         renderItem={(course) => (
           <CourseCard
             key={(course as CourseWithAuthor).id}

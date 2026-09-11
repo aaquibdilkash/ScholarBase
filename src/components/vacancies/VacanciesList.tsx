@@ -13,12 +13,10 @@ export function VacanciesList({
   vacancies,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   vacancies: VacancyWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function VacanciesList({
       </form>
       <AppendMoreList
         initialItems={vacancyData}
-        resource="vacancies"
-        params={loadMoreParams}
+        loadMore={(cursor) => getVacancies(q, currentUserId, 10, cursor)}
         renderItem={(job) => (
           <VacancyCard
             key={(job as VacancyWithAuthor).id}

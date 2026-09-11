@@ -58,7 +58,6 @@ export default async function PublicationsPage({
           publications={publications}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

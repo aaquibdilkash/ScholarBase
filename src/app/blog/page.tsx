@@ -51,7 +51,6 @@ export default async function BlogIndex({
             articles={articles}
             currentUserId={user?.id}
             initialQuery={q ?? ""}
-            loadMoreParams={!isTrendingTab ? { q, tab } : undefined}
           />
         }
     />

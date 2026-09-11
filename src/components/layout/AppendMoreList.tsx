@@ -4,22 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 
-type LoadMoreParams = Record<string, string | undefined>;
-
 export function AppendMoreList<T>({
   initialItems,
-  resource,
+  loadMore: loadMoreItems,
   renderItem,
-  params,
   chunkSize = 10,
   className,
   emptyMessage,
   emptyState,
 }: {
   initialItems: T[];
-  resource: string;
+  loadMore: (cursor?: string) => Promise<T[]>;
   renderItem: (item: T) => ReactNode;
-  params?: LoadMoreParams;
   chunkSize?: number;
   className?: string;
   emptyMessage?: string;
@@ -33,29 +29,29 @@ export function AppendMoreList<T>({
 
   useEffect(() => {
     setItems(initialItems);
-        setCursor(initialItems.length === chunkSize ? (initialItems[initialItems.length - 1] as unknown as { id?: string })?.id ?? null : null);
+    setCursor(
+      initialItems.length === chunkSize
+        ? (initialItems[initialItems.length - 1] as unknown as { id?: string })?.id ?? null
+        : null,
+    );
     setHasMore(initialItems.length === chunkSize);
   }, [initialItems, chunkSize]);
 
   const loadMore = useCallback(async () => {
-      if (loading || !hasMore) return;
-      setLoading(true);
+    if (loading || !hasMore) return;
+    setLoading(true);
     try {
-      const search = new URLSearchParams();
-      if (cursor) search.set("cursor", cursor);
-      Object.entries(params ?? {}).forEach(([key, value]) => {
-        if (value) search.set(key, value);
-      });
-      const response = await fetch(`/api/load-more/${resource}?${search.toString()}`);
-      if (!response.ok) return;
-      const data = (await response.json()) as { items: T[]; hasMore: boolean; nextCursor: string | null };
-      setItems((current) => [...current, ...data.items]);
-      setCursor(data.nextCursor);
-      setHasMore(data.hasMore);
+      const newItems = await loadMoreItems(cursor ?? undefined);
+      setItems((current) => [...current, ...newItems]);
+      const hasNextPage = newItems.length === chunkSize;
+      setCursor(hasNextPage ? (newItems[newItems.length - 1] as unknown as { id?: string })?.id ?? null : null);
+      setHasMore(hasNextPage);
+    } catch {
+      setHasMore(false);
     } finally {
       setLoading(false);
     }
-    }, [cursor, hasMore, loading, params, resource]);
+  }, [chunkSize, cursor, hasMore, loadMoreItems, loading]);
 
   return (
     <div className={className}>

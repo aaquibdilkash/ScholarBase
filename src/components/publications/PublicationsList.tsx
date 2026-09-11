@@ -13,12 +13,10 @@ export function PublicationsList({
   publications,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   publications: PublicationWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function PublicationsList({
       </form>
       <AppendMoreList
         initialItems={publicationsData}
-        resource="publications"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getPublications(q, currentUserId, 10, cursor)}
         renderItem={(pub) => (
           <PublicationCard
             key={(pub as PublicationWithAuthor).id}

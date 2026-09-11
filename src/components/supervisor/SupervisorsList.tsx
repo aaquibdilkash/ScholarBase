@@ -38,12 +38,10 @@ export function SupervisorsList({
   supervisors,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   supervisors: SupervisorWithDetails[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -75,8 +73,7 @@ export function SupervisorsList({
       </form>
       <AppendMoreList
         initialItems={supervisorsData}
-        resource="supervisors"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getSupervisors(q, currentUserId, 10, cursor)}
         renderItem={(s) => (
           <SupervisorCard
             key={(s as SupervisorWithDetails).id}

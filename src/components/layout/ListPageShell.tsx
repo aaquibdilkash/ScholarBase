@@ -10,6 +10,7 @@ export type ListPageShellProps = {
 
   addHref?: string;
   addLabel?: string; // include leading "+" if desired
+  addAction?: ReactNode;
 
   /** Current tab from searchParams */
   tab?: string;
@@ -31,6 +32,7 @@ export default function ListPageShell({
   description,
   addHref,
   addLabel,
+  addAction,
   tab,
   enableTrending = true,
   allHref,
@@ -55,7 +57,7 @@ export default function ListPageShell({
           ) : null}
         </div>
 
-        {addHref && addLabel ? (
+        {addAction ? addAction : addHref && addLabel ? (
           <Link href={addHref} className="sb-button-accent w-full whitespace-nowrap sm:w-auto">
             {addLabel}
           </Link>

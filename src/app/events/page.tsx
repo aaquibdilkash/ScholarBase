@@ -50,7 +50,6 @@ export default async function EventsPage({
           events={events}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

@@ -13,12 +13,10 @@ export function EventsList({
   events,
   currentUserId,
   initialQuery,
-  loadMoreParams,
 }: {
   events: EventWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
-  loadMoreParams?: Record<string, string | undefined>;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const router = useRouter();
@@ -50,8 +48,7 @@ export function EventsList({
       </form>
       <AppendMoreList
         initialItems={eventsData}
-        resource="events"
-        params={{ q, ...loadMoreParams }}
+        loadMore={(cursor) => getEvents(q, currentUserId, 10, cursor)}
         renderItem={(event) => (
           <EventCard
             key={(event as EventWithAuthor).id}

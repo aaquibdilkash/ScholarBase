@@ -46,7 +46,6 @@ export default async function ResearchGrantsPage({
           grants={grants}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />

@@ -6,6 +6,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { ScholarCard } from "./ScholarCard";
 import type { Scholar } from "@/types/scholar";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { getScholars } from "@/app/actions/scholars";
 
 export function ScholarsList({
   scholars,
@@ -40,8 +41,15 @@ export function ScholarsList({
       </form>
       <AppendMoreList
         initialItems={scholars}
-        resource="scholars"
-        params={loadMoreParams}
+        loadMore={(cursor) =>
+          getScholars(
+            initialQuery,
+            loadMoreParams?.sort === "reputation" ? "reputation" : "latest",
+            currentUserId,
+            10,
+            cursor,
+          )
+        }
         renderItem={(item) => (
           <ScholarCard
             key={(item as Scholar).id}

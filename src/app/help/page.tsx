@@ -48,7 +48,6 @@ export default async function HelpPage({
           posts={posts}
           currentUserId={user?.id}
           initialQuery={q ?? ""}
-          loadMoreParams={!isTrendingTab ? { q } : undefined}
         />
       }
     />
