@@ -1,3 +1,12 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Courses",
+  description: "Find and share research learning courses from YouTube, Udemy, universities, and other learning platforms.",
+  path: "/learn",
+  section: "Courses",
+});
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { CoursesList } from "@/components/courses/CoursesList";
@@ -5,13 +14,6 @@ import { getCourses } from "@/app/actions/courses";
 import { getTrendingCourses } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
-import { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Courses",
-  description: "Find and share research learning courses from YouTube, Udemy, universities, and other learning platforms.",
-  alternates: { canonical: "/learn" },
-};
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 

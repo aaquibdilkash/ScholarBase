@@ -15,6 +15,7 @@ import CommentActionsDropdown from "@/components/interactions/CommentActionsDrop
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { SubmitBtn } from "@/components/ui/SubmitBtn";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -445,6 +446,9 @@ function CommentCard({
                 >
                   {comment.author?.name || "Scholar"}
                 </Link>
+                {comment.author?.institutionVerifiedAt ? (
+                  <VerifiedBadge className="h-3.5 w-3.5" />
+                ) : null}
                 {postAuthorId && comment.author?.id === postAuthorId && (
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 md:text-[10px]">
                     Author

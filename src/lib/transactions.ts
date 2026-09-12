@@ -571,7 +571,7 @@ export async function createCommentTransaction(
 
     const author = await tx.user.findUnique({
       where: { id: authorId },
-      select: { id: true, name: true, handle: true, avatarUrl: true },
+      select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
     })
 
     return {

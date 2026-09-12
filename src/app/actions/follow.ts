@@ -84,7 +84,7 @@ export async function getFollowers(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: currentUserId
             ? {
               where: { followerId: currentUserId },
@@ -125,7 +125,7 @@ export async function getFollowersWithCursor(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: currentUserId
             ? {
               where: { followerId: currentUserId },
@@ -172,7 +172,7 @@ export async function getFollowing(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: currentUserId
             ? {
               where: { followerId: currentUserId },
@@ -213,7 +213,7 @@ export async function getFollowingWithCursor(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: currentUserId
             ? {
               where: { followerId: currentUserId },

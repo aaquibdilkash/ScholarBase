@@ -1,4 +1,12 @@
 import type { Metadata } from 'next'
+import { buildMetadata } from '@/lib/seo'
+
+export const metadata: Metadata = buildMetadata({
+  title: 'Scholars',
+  description: 'Discover, search, and connect with scholars by reputation, expertise, and activity.',
+  path: '/scholars',
+  section: 'Scholars',
+})
 import ListPageShell from '@/components/layout/ListPageShell'
 import { getCurrentUser } from '@/lib/auth'
 import { getScholars } from '@/app/actions/scholars'
@@ -7,15 +15,6 @@ import { getTrendingScholars } from '@/lib/trending'
 import { TrendingList } from '@/components/feed/TrendingList'
 import { ShareButton } from '@/components/interactions/ShareButton'
 import { AsyncListRegion } from '@/components/cards/AsyncListRegion'
-
-export const metadata: Metadata = {
-  title: 'Scholars',
-  description: 'Discover, search, and connect with scholars by reputation, expertise, and activity.',
-  alternates: {
-    canonical: 'https://scholarbase.app/scholars',
-  },
-  robots: { index: true, follow: true },
-}
 
 export default async function ScholarsPage({
   searchParams,

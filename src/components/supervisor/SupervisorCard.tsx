@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
@@ -36,7 +37,7 @@ export function SupervisorCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={supervisor.author?.handle || undefined}
-      authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
+      authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
       detailPageHref={`/supervisor/${supervisor.id}`}
       managementControls={
         isOwner && (
@@ -94,36 +95,39 @@ export function SupervisorCard({
           hasActiveAppeal={supervisor.hasActiveAppeal ?? false}
         />
       }
+      noBodyLink={true}
     >
-      <div className="min-w-0 w-full">
-      <h3 className="max-w-full break-words text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight mb-2">
-        {supervisor.name}
-      </h3>
-      <p className="mb-2 whitespace-normal break-words text-sm font-medium text-slate-600">
-        {supervisor.university}
-      </p>
-      {supervisor.department && (
-        <p className="mb-4 whitespace-normal break-words text-sm text-slate-500">{supervisor.department}</p>
-      )}
+      <Link href={`/supervisor/${supervisor.id}`} prefetch={false} className="block group">
+        <div className="min-w-0 w-full">
+          <h3 className="max-w-full break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300 mb-2">
+            {supervisor.name}
+          </h3>
+          <p className="mb-2 whitespace-normal break-words text-sm font-medium text-slate-600 dark:text-slate-300">
+            {supervisor.university}
+          </p>
+          {supervisor.department && (
+            <p className="mb-4 whitespace-normal break-words text-sm text-slate-500 dark:text-slate-400">{supervisor.department}</p>
+          )}
 
-      {recommendationCount > 0 ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3">
-          <StarRating rating={avgRating} size="sm" />
-          <div className="text-sm">
-            <span className="font-semibold">{avgRating.toFixed(1)}</span>
-            <span className="text-slate-500"> / 5</span>
+        {recommendationCount > 0 ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <StarRating rating={avgRating} size="sm" />
+            <div className="text-sm">
+              <span className="font-semibold">{avgRating.toFixed(1)}</span>
+              <span className="text-slate-500"> / 5</span>
+            </div>
+            <span className="text-slate-500 text-xs">
+              ({recommendationCount} recommendation
+              {recommendationCount !== 1 ? "s" : ""})
+            </span>
           </div>
-          <span className="text-slate-500 text-xs">
-            ({recommendationCount} recommendation
-            {recommendationCount !== 1 ? "s" : ""})
-          </span>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+            No recommendations yet.
+          </div>
+        )}
         </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500">
-          No recommendations yet.
-        </div>
-      )}
-      </div>
+      </Link>
     </ListPageCardShell>
   );
 }

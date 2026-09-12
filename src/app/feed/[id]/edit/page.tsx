@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useRouter, useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { updateSocialPost, getPostEditData } from "@/app/actions/feed";
 import type { SocialPostWithAuthor } from "@/types/cards";
 import { Loader2 } from "lucide-react";
@@ -14,12 +14,9 @@ import { MentionComposer, type MentionUser } from "@/components/interactions/Men
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
-export default function EditPostPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const [postId, setPostId] = useState<string | null>(null);
+export default function EditPostPage() {
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -28,31 +25,46 @@ export default function EditPostPage({
   const [imageUrl, setImageUrl] = useState<string>("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
   const [imageBusy, setImageBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    async function init() {
-      const { id } = await params;
-      setPostId(id);
+  // Fetch the post via React Query instead of a manual useEffect + loading
+  // flag. React Query dedupes concurrent / StrictMode mount invokes, so the
+  // server action runs exactly once even in dev (previously StrictMode fired
+  // it twice), and the cached result is reused when navigating back into the
+  // page. (Previously three "post detail" requests appeared because the source
+  // /feed/[id] page also calls the heavy cached getPost in both
+  // generateMetadata and the page component while this page re-fetched.)
+  const {
+    data: postData,
+    isPending: loading,
+    isError,
+  } = useQuery({
+    queryKey: ["postEdit", id],
+    queryFn: () => getPostEditData(id as string),
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
-      try {
-        const data = await getPostEditData(id);
-        setContent(data.content || "");
-        setImageUrl(data.imageUrl || "");
-        // Restore mentions from JSON data
-        if (data.mentions && Array.isArray(data.mentions)) {
-          setMentionedUsers(data.mentions as MentionUser[]);
-        }
-      } catch (error) {
-        toast((error as Error).message || "Failed to load post.", "error");
-        router.push("/feed");
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    if (isError) {
+      toast("Failed to load post.", "error");
+      router.push("/feed");
+    }
+  }, [isError, router, toast]);
+
+  useEffect(() => {
+    if (postData) {
+      setContent(postData.content || "");
+      setImageUrl(postData.imageUrl || "");
+      if (postData.mentions && Array.isArray(postData.mentions)) {
+        setMentionedUsers(postData.mentions as MentionUser[]);
       }
     }
-    init();
-  }, [params, router, toast]);
+  }, [postData]);
+
+  if (!id) return null;
+  if (isError) return null;
 
 
   if (loading) {
@@ -67,7 +79,7 @@ export default function EditPostPage({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postId) return;
+    if (!id) return;
 
     if (imageBusy) {
       toast("Please wait for images to finish uploading.", "error");
@@ -89,7 +101,7 @@ export default function EditPostPage({
         JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))),
       );
 
-      const result = await updateSocialPost(formData, postId);
+      const result = await updateSocialPost(formData, id);
       if (result.success && result.data) {
         queryClient.setQueriesData(
           { queryKey: ["feed"] },

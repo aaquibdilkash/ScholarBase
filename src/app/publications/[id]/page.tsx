@@ -83,7 +83,7 @@ const PublicationDetailPage = async ({
       authorHref={`/scholars/${p.author?.id}`}
       authorName={p.author?.name || "Scholar"}
       authorHandle={p.author?.handle || undefined}
-      authorAvatarUrl={p.author?.avatarUrl || undefined}
+      authorAvatarUrl={p.author?.avatarUrl || undefined} authorVerified={!!(p.author?.institutionVerifiedAt)}
       authorId={p.author?.id}
       isFollowing={!!p.author?.followers?.length}
       currentUserId={user?.id}

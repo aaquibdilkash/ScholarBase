@@ -54,27 +54,27 @@ export default async function FeedPage({
         </AsyncListRegion>
       }
       all={
-        <AsyncListRegion
-          key={q}
-          fetcher={async () => {
-            const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const posts = await getFeed(user?.id, tab, q, pageSize);
-            return { posts, userId: user?.id };
-          }}
-        >
-          {({ posts, userId }) => (
-            <>
-              <CreateSocialPostFormWrapper />
+        <>
+          <CreateSocialPostFormWrapper />
+          <AsyncListRegion
+            key={q}
+            fetcher={async () => {
+              const supabase = await supabasePromise;
+              const { data: { user } } = await supabase.auth.getUser();
+              const posts = await getFeed(user?.id, tab, q, pageSize);
+              return { posts, userId: user?.id };
+            }}
+          >
+            {({ posts, userId }) => (
               <FeedList
                 posts={posts}
                 currentUserId={userId}
                 initialQuery={q ?? ""}
                 loadMoreParams={{ q, tab }}
               />
-            </>
-          )}
-        </AsyncListRegion>
+            )}
+          </AsyncListRegion>
+        </>
       }
     />
   );

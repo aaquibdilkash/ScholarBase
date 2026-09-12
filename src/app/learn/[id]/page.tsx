@@ -78,7 +78,7 @@ export default async function CourseDetailPage({
       authorHref={`/scholars/${course.author?.id}`}
       authorName={course.author?.name || "Scholar"}
       authorHandle={course.author?.handle || undefined}
-      authorAvatarUrl={course.author?.avatarUrl || undefined}
+      authorAvatarUrl={course.author?.avatarUrl || undefined} authorVerified={!!(course.author?.institutionVerifiedAt)}
       authorId={course.author?.id}
       isFollowing={!!course.author?.followers?.length}
       currentUserId={user?.id}

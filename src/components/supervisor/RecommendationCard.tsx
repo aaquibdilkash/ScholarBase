@@ -9,6 +9,7 @@ import { deleteRecommendation } from "@/app/actions/recommendations";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import { decrementRecommendation } from "./recommendationCount";
+import Link from "next/link";
 import { StarRating } from "@/components/ui/StarRating";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
@@ -102,9 +103,9 @@ export function RecommendationCard({
         recommendation.isAnonymous
           ? null
           : recommendation.author?.avatarUrl || undefined
-      }
+      } authorVerified={!recommendation.isAnonymous && !!(recommendation.author?.institutionVerifiedAt)}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
-      noBodyLink={false}
+      noBodyLink={true}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
@@ -146,46 +147,51 @@ export function RecommendationCard({
         />
       }
     >
-      <div className="space-y-3 mb-4">
-        <p className="text-sm font-semibold text-slate-700 mb-2">
-          {recommendation.isAnonymous
-            ? "Anonymous recommendation for "
-            : "Recommendation for "}
-          {!recommendation.isAnonymous && supervisor.id && (
-            <span
-              role="link"
-              tabIndex={0}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.nativeEvent?.stopImmediatePropagation();
-                openSupervisorPage();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
+      <Link
+        href={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
+        prefetch={false}
+        className="block group"
+      >
+        <div className="space-y-3 mb-4">
+          <p className="text-sm font-semibold text-slate-700 mb-2 dark:text-slate-200">
+            {recommendation.isAnonymous
+              ? "Anonymous recommendation for "
+              : "Recommendation for "}
+            {!recommendation.isAnonymous && supervisor.id && (
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  e.nativeEvent?.stopImmediatePropagation();
                   openSupervisorPage();
-                }
-              }}
-              className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
-            >
-              {supervisor.name}
-            </span>
-          )}
-          {recommendation.isAnonymous && supervisor.name}
-        </p>
-      </div>
-      <div className="space-y-3 mb-4">
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openSupervisorPage();
+                  }
+                }}
+                className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+              >
+                {supervisor.name}
+              </span>
+            )}
+            {recommendation.isAnonymous && supervisor.name}
+          </p>
+        </div>
+        <div className="space-y-3 mb-4">
           <div>
-            <p className="text-xs font-semibold text-slate-700 mb-1">
+            <p className="text-xs font-semibold text-slate-700 mb-1 dark:text-slate-200">
               Overall Mentorship Rating
             </p>
             <StarRating rating={recommendation.rating} size="md" />
           </div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="col-span-2 sm:col-span-1">
-              <p className="text-xs font-semibold text-slate-600 mb-1">
+              <p className="text-xs font-semibold text-slate-600 mb-1 dark:text-slate-300">
                 Responsiveness
               </p>
               <StarRating
@@ -194,16 +200,16 @@ export function RecommendationCard({
               />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-1">
+              <p className="text-xs font-semibold text-slate-600 mb-1 dark:text-slate-300">
                 Guidance
               </p>
               <StarRating rating={recommendation.guidanceScore} size="sm" />
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-1">
+              <p className="text-xs font-semibold text-slate-600 mb-1 dark:text-slate-300">
                 Turnaround
               </p>
-              <p className="text-sm font-bold text-slate-800">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
                 {recommendation.turnaroundTimeDays}d
               </p>
             </div>
@@ -211,14 +217,15 @@ export function RecommendationCard({
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-slate-700 mb-2">
+          <p className="text-sm font-semibold text-slate-700 mb-2 dark:text-slate-200">
             Mentorship Feedback
           </p>
           <RichContent
             content={recommendation.feedback}
-            className="text-sm leading-relaxed text-slate-600 line-clamp-4"
+            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
           />
         </div>
+      </Link>
     </ListPageCardShell>
   );
 }

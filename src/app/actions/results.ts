@@ -53,7 +53,7 @@ export async function getResults(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -90,7 +90,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -119,7 +119,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
           parentId: true,
           authorId: true,
           author: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+            select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
           },
           totalVotes: true,
           totalReplies: true,
@@ -162,7 +162,7 @@ export async function createResult(formData: FormData) {
         resultLink: safeResultLink,
         authorId: user.id,
       },
-      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } }
+      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } }
     });
 
     await tx.userActivity.create({

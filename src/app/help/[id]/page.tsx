@@ -63,7 +63,7 @@ export default async function HelpPostPage({
       authorHref={`/scholars/${post.author?.id}`}
       authorName={post.author?.name || "Scholar"}
       authorHandle={post.author?.handle || undefined}
-      authorAvatarUrl={post.author?.avatarUrl || undefined}
+      authorAvatarUrl={post.author?.avatarUrl || undefined} authorVerified={!!(post.author?.institutionVerifiedAt)}
       authorId={post.author?.id}
       isFollowing={!!post.author?.followers?.length}
       currentUserId={user?.id}

@@ -65,7 +65,7 @@ const AdmissionDetailPage = async ({
       authorHref={`/scholars/${admission.author?.id}`}
       authorName={admission.author?.name || "Scholar"}
       authorHandle={admission.author?.handle || undefined}
-      authorAvatarUrl={admission.author?.avatarUrl || undefined}
+      authorAvatarUrl={admission.author?.avatarUrl || undefined} authorVerified={!!(admission.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === admission.author?.id ? (
           <OwnerActionsDropdown

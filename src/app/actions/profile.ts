@@ -75,7 +75,7 @@ function getProfileAuthorInclude(currentUserId?: string) {
       id: true,
       name: true,
       handle: true,
-      avatarUrl: true,
+      avatarUrl: true, institutionVerifiedAt: true,
       createdAt: true,
       email: true,
       bio: true,

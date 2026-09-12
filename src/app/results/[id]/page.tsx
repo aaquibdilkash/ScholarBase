@@ -65,7 +65,7 @@ const ResultDetailPage = async ({
       authorHref={`/scholars/${result.author?.id}`}
       authorName={result.author?.name || "Scholar"}
       authorHandle={result.author?.handle || undefined}
-      authorAvatarUrl={result.author?.avatarUrl || undefined}
+      authorAvatarUrl={result.author?.avatarUrl || undefined} authorVerified={!!(result.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === result.author?.id ? (
           <OwnerActionsDropdown

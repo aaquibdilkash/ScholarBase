@@ -9,7 +9,7 @@ import prisma from '@/lib/db'
  * the materialized `totalVotes`/`totalComments` columns are returned directly.
  */
 
-const AUTHOR_SELECT = { id: true, name: true, handle: true, avatarUrl: true }
+const AUTHOR_SELECT = { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true }
 
 async function getTrending<T extends { id: string; createdAt: Date }>(
   fetcher: () => Promise<T[]>,
@@ -206,7 +206,7 @@ export async function getTrendingScholars(userId?: string) {
       id: true,
       name: true,
       handle: true,
-      avatarUrl: true,
+      avatarUrl: true, institutionVerifiedAt: true,
       bio: true,
       reputation: true,
       trendingScore: true,

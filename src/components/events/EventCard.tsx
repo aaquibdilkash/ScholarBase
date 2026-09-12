@@ -44,7 +44,7 @@ export function EventCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={event.author?.handle || undefined}
-      authorAvatarUrl={event.author?.avatarUrl || undefined}
+      authorAvatarUrl={event.author?.avatarUrl || undefined} authorVerified={!!(event.author?.institutionVerifiedAt)}
       detailPageHref={`/events/${event.id}`}
       managementControls={
         isOwner && (
@@ -141,23 +141,23 @@ export function EventCard({
           )}
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {event.title}
         </h2>
 
         <div className="mb-3 space-y-1.5">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="font-medium">{formatDate(event.date)}</span>
           </div>
           {event.location && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
               <span>{event.location}</span>
             </div>
           )}
           {event.deadline && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <Clock className="h-4 w-4 shrink-0 text-slate-400" />
               <span>
                 Deadline:{" "}
@@ -175,7 +175,7 @@ export function EventCard({
 
         <RichContent
           content={event.description}
-          className="text-sm leading-relaxed text-slate-600"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>
     </ListPageCardShell>

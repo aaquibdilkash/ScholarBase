@@ -35,6 +35,7 @@ export interface AuthorWithFollowers {
     name: string | null;
     handle: string | null;
     avatarUrl: string | null;
+    institutionVerifiedAt?: Date | string | null;
     email?: string | null;
     bio?: string | null;
     createdAt?: Date;

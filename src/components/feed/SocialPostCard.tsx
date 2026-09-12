@@ -151,7 +151,7 @@ export function SocialPostCard({
       authorHref={`/scholars/${post.authorId}`}
       authorName={post.author?.name || "Scholar"}
       authorHandle={post.author?.handle || undefined}
-      authorAvatarUrl={post.author?.avatarUrl || undefined}
+      authorAvatarUrl={post.author?.avatarUrl || undefined} authorVerified={!!(post.author?.institutionVerifiedAt)}
       detailPageHref={`/feed/${post.id}`}
       managementControls={
         isOwner && (

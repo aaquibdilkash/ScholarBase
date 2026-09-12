@@ -46,7 +46,7 @@ export async function createResearchGrant(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: {
               where: { followerId: user.id },
               select: { followerId: true },
@@ -206,7 +206,7 @@ export async function getResearchGrants(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -243,7 +243,7 @@ export const getResearchGrantById = cache(
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: userId
               ? { where: { followerId: userId }, select: { followerId: true } }
               : false,
@@ -278,7 +278,7 @@ export const getResearchGrantById = cache(
                 id: true,
                 name: true,
                 handle: true,
-                avatarUrl: true,
+                avatarUrl: true, institutionVerifiedAt: true,
               },
             },
             totalVotes: true,

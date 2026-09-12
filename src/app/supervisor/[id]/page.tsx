@@ -2,9 +2,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 
-import { RecommendButton } from "@/components/supervisor/RecommendButton";
 import { RecommendationsSection } from "@/components/supervisor/RecommendationsSection";
 import { OverallRatingSection } from "@/components/supervisor/OverallRatingSection";
+import { SupervisorHeaderActions } from "@/components/supervisor/SupervisorHeaderActions";
 import {
   deleteSupervisor,
   getSupervisor,
@@ -12,7 +12,6 @@ import {
 } from "@/app/actions/supervisors";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
-import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata } from "@/lib/seo";
@@ -71,7 +70,9 @@ export default async function SupervisorPage({
 
   const userVote =
     (supervisor.votes?.find((v) => v.userId === user?.id)?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+      | "UPVOTE"
+      | "DOWNVOTE"
+      | null) ?? null;
 
   const hasUserRecommendation = recMeta.hasUserRecommendation;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
@@ -91,7 +92,7 @@ export default async function SupervisorPage({
       authorHref={`/scholars/${supervisor.authorId}`}
       authorName={supervisor.author?.name || "Scholar"}
       authorHandle={supervisor.author?.handle || undefined}
-      authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
+      authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
       createdDate={supervisor.createdAt}
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
@@ -128,45 +129,40 @@ export default async function SupervisorPage({
       }
     >
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">
-        <div className="flex min-w-0 w-full flex-1 flex-row items-start justify-between gap-4 sm:gap-6">
-          <div className="min-w-0 w-full flex-1">
-            <h1 className="max-w-full break-words text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-1.5 sm:mb-2">
-              {supervisor.name}
-            </h1>
-            <p className="text-base sm:text-lg text-slate-500 font-medium break-words">
-              {supervisor.university}
-            </p>
-            {supervisor.department && (
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 break-words">
-                {supervisor.department}
+        <div className="min-w-0 w-full">
+          <div className="flex min-w-0 w-full flex-row items-start justify-between gap-4 sm:gap-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="max-w-full break-words text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-1.5 sm:mb-2">
+                {supervisor.name}
+              </h1>
+              <p className="text-base sm:text-lg text-slate-500 font-medium break-words">
+                {supervisor.university}
               </p>
-            )}
-            {supervisor.about && (
-              <RichContent
-                content={supervisor.about}
-                className="mt-3 sm:mt-4 text-xs sm:text-sm leading-6 text-slate-700"
-              />
-            )}
-          </div>
-
-          <div className="flex w-auto shrink-0 justify-end">
-            <div className="flex items-center gap-3">
-              {user?.id === supervisor.authorId && (
-                <OwnerActionsDropdown
-                  editHref={`/supervisor/${supervisor.id}/edit`}
-                  onDelete={handleDelete}
-                  isOwner={true}
-                  editLabel="Edit Profile"
-                  deleteLabel="Delete"
-                />
+              {supervisor.department && (
+                <p className="text-xs sm:text-sm text-slate-400 mt-1 break-words">
+                  {supervisor.department}
+                </p>
               )}
-              <RecommendButton
-                supervisorId={supervisor.id}
-                initialHasRecommendation={hasUserRecommendation}
-                initialUserRecommendationId={recMeta.userRecommendationId}
-              />
+            </div>
+
+            <div className="flex w-auto shrink-0 justify-end pt-1">
+              <SupervisorHeaderActions
+              supervisorId={supervisor.id}
+              isSupervisorOwner={user?.id === supervisor.authorId}
+              supervisorEditHref={`/supervisor/${supervisor.id}/edit`}
+              onDeleteSupervisor={handleDelete}
+              initialHasRecommendation={hasUserRecommendation}
+              initialUserRecommendationId={recMeta.userRecommendationId}
+            />
             </div>
           </div>
+
+          {supervisor.about && (
+            <RichContent
+              content={supervisor.about}
+              className="mt-3 sm:mt-4 w-full max-w-full text-xs sm:text-sm leading-6 text-slate-700 break-words overflow-wrap-anywhere [&_*]:max-w-full [&_*]:break-words [&_*]:overflow-wrap-anywhere"
+            />
+          )}
         </div>
       </div>
 

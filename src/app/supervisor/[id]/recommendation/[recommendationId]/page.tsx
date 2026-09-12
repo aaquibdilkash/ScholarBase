@@ -84,7 +84,7 @@ export default async function RecommendationDetailPage({
         recommendation.isAnonymous
           ? null
           : recommendation.author?.avatarUrl || undefined
-      }
+      } authorVerified={!recommendation.isAnonymous && !!(recommendation.author?.institutionVerifiedAt)}
       authorId={
         recommendation.isAnonymous ? undefined : recommendation.authorId
       }

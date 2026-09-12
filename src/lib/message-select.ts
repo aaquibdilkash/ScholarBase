@@ -21,7 +21,7 @@ export const messageSelect = {
       id: true,
       name: true,
       handle: true,
-      avatarUrl: true,
+      avatarUrl: true, institutionVerifiedAt: true,
     },
   },
   replyTo: {

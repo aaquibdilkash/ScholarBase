@@ -147,7 +147,7 @@ export async function getSurveys(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? {
                 where: { followerId: userId },
@@ -189,7 +189,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? {
                 where: { followerId: userId },
@@ -234,7 +234,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
             },
           },
           votes: userId
@@ -996,7 +996,7 @@ export async function getSurveyResponses(surveyId: string, userId?: string) {
     where: { surveyId },
     include: {
       respondent: {
-        select: { id: true, name: true, handle: true, avatarUrl: true },
+        select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
       },
       answers: {
         include: {

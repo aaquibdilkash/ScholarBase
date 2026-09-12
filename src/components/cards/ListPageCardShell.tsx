@@ -1,5 +1,6 @@
 import { MessageCircle } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton"; // client component
@@ -18,6 +19,7 @@ export type ListPageCardShellProps = {
   authorName: string;
   authorHandle?: string;
   authorAvatarUrl?: string | null;
+  authorVerified?: boolean;
 
   // Common header management (3 dots)
   managementControls?: ReactNode;
@@ -66,6 +68,7 @@ export default function ListPageCardShell({
   authorName,
   authorHandle,
   authorAvatarUrl,
+  authorVerified,
   authorId,
   isFollowing,
   currentUserId,
@@ -117,11 +120,17 @@ export default function ListPageCardShell({
                 prefetch={false}
                 className="block max-w-full truncate font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
               >
-                {authorName || "Scholar"}
+                <span className="inline-flex max-w-full items-center gap-1">
+                  <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                  {authorVerified ? <VerifiedBadge /> : null}
+                </span>
               </Link>
             ) : (
               <span className="font-semibold italic text-slate-500 dark:text-slate-400">
-                {authorName || "Scholar"}
+                <span className="inline-flex max-w-full items-center gap-1">
+                  <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                  {authorVerified ? <VerifiedBadge /> : null}
+                </span>
               </span>
             )}
             {authorHandle ? (

@@ -33,7 +33,7 @@ export function ResearchToolCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={tool.author?.handle || undefined}
-      authorAvatarUrl={tool.author?.avatarUrl || undefined}
+      authorAvatarUrl={tool.author?.avatarUrl || undefined} authorVerified={!!(tool.author?.institutionVerifiedAt)}
       detailPageHref={`/research-tools/${tool.id}`}
       managementControls={
         isOwner && (
@@ -104,7 +104,7 @@ export function ResearchToolCard({
       }
     >
       <Link href={`/research-tools/${tool.id}`} prefetch={false} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {tool.name}
         </h2>
         {tool.use && (
@@ -117,7 +117,7 @@ export function ResearchToolCard({
         )}
         <RichContent
           content={tool.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>
     </ListPageCardShell>

@@ -36,7 +36,7 @@ export function VacancyCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={vacancy.author?.handle || undefined}
-      authorAvatarUrl={vacancy.author?.avatarUrl || undefined}
+      authorAvatarUrl={vacancy.author?.avatarUrl || undefined} authorVerified={!!(vacancy.author?.institutionVerifiedAt)}
       detailPageHref={`/vacancies/${vacancy.id}`}
       managementControls={
         isOwner && (
@@ -133,14 +133,14 @@ export function VacancyCard({
             </span>
           )}
         </div>
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {vacancy.title}
         </h2>
-        <p className="mb-2 text-sm font-medium text-slate-600">
+        <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">
           {vacancy.institution}
         </p>
 
-        <div className="mb-2 flex items-center gap-2 text-sm text-slate-600">
+        <div className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
           <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
           <span>
             Last Date:{" "}
@@ -156,7 +156,7 @@ export function VacancyCard({
 
         <RichContent
           content={vacancy.description}
-          className="text-sm leading-relaxed text-slate-600"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>
     </ListPageCardShell>

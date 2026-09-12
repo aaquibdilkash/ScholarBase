@@ -66,7 +66,7 @@ export default async function SinglePostPage({
       authorHref={`/scholars/${p.author?.id}`}
       authorName={p.author?.name || "Scholar"}
       authorHandle={p.author?.handle || undefined}
-      authorAvatarUrl={p.author?.avatarUrl || undefined}
+      authorAvatarUrl={p.author?.avatarUrl || undefined} authorVerified={!!(p.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === p.authorId ? (
           <OwnerActionsDropdown

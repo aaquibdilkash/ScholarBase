@@ -44,7 +44,7 @@ export function AdmissionCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={admission.author?.handle || undefined}
-      authorAvatarUrl={admission.author?.avatarUrl || undefined}
+      authorAvatarUrl={admission.author?.avatarUrl || undefined} authorVerified={!!(admission.author?.institutionVerifiedAt)}
       detailPageHref={`/admissions/${admission.id}`}
       managementControls={
         isOwner && (
@@ -131,15 +131,15 @@ export function AdmissionCard({
           )}
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {admission.university}
         </h2>
 
         <div className="mb-3 space-y-1.5">
-          <p className="text-sm font-semibold text-slate-950">
+          <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
             {admission.department}
           </p>
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <Clock className="h-4 w-4 shrink-0 text-slate-400" />
             <span>
               Deadline:{" "}
@@ -152,7 +152,7 @@ export function AdmissionCard({
 
         <RichContent
           content={admission.description}
-          className="text-sm leading-relaxed text-slate-600"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>
     </ListPageCardShell>

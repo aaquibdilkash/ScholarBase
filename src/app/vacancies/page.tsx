@@ -1,17 +1,20 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Academic Vacancies - ScholarBase",
+  description:
+    "Find the latest academic job openings, research positions, and faculty vacancies from institutions around the world.",
+  path: "/vacancies",
+  section: "Academic Vacancies",
+});
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { VacanciesList } from "@/components/vacancies/VacanciesList";
 import { getTrendingVacancies } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getVacancies } from "@/app/actions/vacancies";
-import { Metadata } from "next";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
-
-export const metadata: Metadata = {
-  title: "Academic Vacancies - ScholarBase",
-  description:
-    "Find the latest academic job openings, research positions, and faculty vacancies from institutions around the world.",
-};
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 

@@ -34,7 +34,7 @@ export async function getSupervisors(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -70,7 +70,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -102,7 +102,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
               followers: userId
                 ? {
                     where: { followerId: userId },
@@ -137,7 +137,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
           parentId: true,
           authorId: true,
           author: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+            select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
           },
           totalVotes: true,
           totalReplies: true,
@@ -183,7 +183,7 @@ export async function getSupervisorRecommendations(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -260,7 +260,7 @@ export async function createSupervisor(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: {
               where: { followerId: user.id },
               select: { followerId: true },

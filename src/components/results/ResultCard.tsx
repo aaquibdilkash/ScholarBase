@@ -41,7 +41,7 @@ export function ResultCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={result.author?.handle || undefined}
-      authorAvatarUrl={result.author?.avatarUrl || undefined}
+      authorAvatarUrl={result.author?.avatarUrl || undefined} authorVerified={!!(result.author?.institutionVerifiedAt)}
       detailPageHref={`/results/${result.id}`}
       managementControls={
         isOwner && (
@@ -128,7 +128,7 @@ export function ResultCard({
       }
     >
       <Link href={`/results/${result.id}`} prefetch={false} className="block group">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
             {TYPE_LABELS[result.type] || result.type}
           </span>
@@ -139,13 +139,13 @@ export function ResultCard({
           )}
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {result.title}
         </h2>
 
         <RichContent
           content={result.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
 
         {(result.conductingBody || result.session) && (

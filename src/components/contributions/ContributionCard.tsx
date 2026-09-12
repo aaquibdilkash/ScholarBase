@@ -5,6 +5,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import Link from "next/link";
 import { deleteContribution } from "@/app/actions/contributions";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
@@ -33,7 +34,7 @@ export function ContributionCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={contribution.author?.handle || undefined}
-      authorAvatarUrl={contribution.author?.avatarUrl || undefined}
+      authorAvatarUrl={contribution.author?.avatarUrl || undefined} authorVerified={!!(contribution.author?.institutionVerifiedAt)}
       detailPageHref={`/contributions/${contribution.id}`}
       managementControls={
         isOwner && (
@@ -93,34 +94,37 @@ export function ContributionCard({
           hasActiveAppeal={contribution.hasActiveAppeal ?? false}
         />
       }
+      noBodyLink={true}
     >
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            contribution.status === "APPROVED"
-              ? "bg-green-100 text-green-700"
-              : contribution.status === "PENDING"
-                ? "bg-amber-100 text-amber-700"
-                : "bg-red-100 text-red-700"
-          }`}
-        >
-          {contribution.status}
-        </span>
-        {contribution.amount && (
-          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-            ₹{contribution.amount}
+      <Link href={`/contributions/${contribution.id}`} prefetch={false} className="block group">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              contribution.status === "APPROVED"
+                ? "bg-green-100 text-green-700"
+                : contribution.status === "PENDING"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-red-100 text-red-700"
+            }`}
+          >
+            {contribution.status}
           </span>
-        )}
-      </div>
+          {contribution.amount && (
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+              ₹{contribution.amount}
+            </span>
+          )}
+        </div>
 
-      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
+      <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
         {contribution.title}
       </h2>
 
       <RichContent
         content={contribution.message}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+        className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
       />
+      </Link>
     </ListPageCardShell>
   );
 }

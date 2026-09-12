@@ -22,7 +22,7 @@ type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
         id: true;
         name: true;
         handle: true;
-        avatarUrl: true;
+        avatarUrl: true, institutionVerifiedAt: true;
         followers: { select: { followerId: true } };
       };
     };

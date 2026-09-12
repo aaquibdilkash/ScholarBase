@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { GraduationCap, Loader2, MessageSquare, Reply, ThumbsUp } from "lucide-react";
+import {
+  FileText,
+  GraduationCap,
+  Loader2,
+  MessageSquare,
+  Reply,
+  ThumbsUp,
+} from "lucide-react";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
@@ -291,7 +298,9 @@ export default function ProfileTabs({
   const [sections, setSections] = useState<SectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
-  const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>({});
+  const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>(
+    {},
+  );
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
   const [activityLoadingMore, setActivityLoadingMore] = useState(false);
@@ -382,42 +391,46 @@ export default function ProfileTabs({
     setActiveTab(tab);
   };
 
-  const loadMore = useCallback(async (sectionKey: SectionKey) => {
-    const currentLoadingKey = loadingMore;
-    if (currentLoadingKey) return;
+  const loadMore = useCallback(
+    async (sectionKey: SectionKey) => {
+      const currentLoadingKey = loadingMore;
+      if (currentLoadingKey) return;
 
-    setLoadingMore(sectionKey);
-    try {
-      const currentItems = sections?.[sectionKey] ?? [];
-      const totalCount = sections?.counts?.[sectionKey] ?? currentItems.length;
+      setLoadingMore(sectionKey);
+      try {
+        const currentItems = sections?.[sectionKey] ?? [];
+        const totalCount =
+          sections?.counts?.[sectionKey] ?? currentItems.length;
 
-      if (currentItems.length >= totalCount) {
-        setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
-        return;
+        if (currentItems.length >= totalCount) {
+          setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
+          return;
+        }
+
+        const result = await getProfileSection(
+          profileId,
+          sectionKey,
+          currentUserId,
+          currentItems.length,
+          1,
+        );
+
+        if (result.length > 0) {
+          setSections((prevSections) => ({
+            ...(prevSections as NonNullable<SectionData>),
+            [sectionKey]: [...currentItems, ...result],
+          }));
+        } else {
+          setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
+        }
+      } catch (err) {
+        console.error(`Failed to load more ${sectionKey}:`, err);
+      } finally {
+        setLoadingMore(null);
       }
-
-      const result = await getProfileSection(
-        profileId,
-        sectionKey,
-        currentUserId,
-        currentItems.length,
-        1,
-      );
-
-      if (result.length > 0) {
-        setSections((prevSections) => ({
-          ...(prevSections as NonNullable<SectionData>),
-          [sectionKey]: [...currentItems, ...result],
-        }));
-      } else {
-        setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
-      }
-    } catch (err) {
-      console.error(`Failed to load more ${sectionKey}:`, err);
-    } finally {
-      setLoadingMore(null);
-    }
-  }, [sections, profileId, currentUserId, loadingMore]);
+    },
+    [sections, profileId, currentUserId, loadingMore],
+  );
 
   const handleContentTabClick = () => {
     setTab("content");
@@ -564,7 +577,8 @@ export default function ProfileTabs({
             SECTIONS.map((section) => {
               const items = sections[section.key] ?? [];
               const count = sections.counts?.[section.key] ?? items.length;
-              const sectionHasMoreItems = sectionHasMore[section.key] !== false && items.length < count;
+              const sectionHasMoreItems =
+                sectionHasMore[section.key] !== false && items.length < count;
 
               return (
                 <section key={section.key}>
@@ -575,7 +589,9 @@ export default function ProfileTabs({
                     <div className="relative px-1">
                       <Carousel
                         onLoadMore={
-                          sectionHasMoreItems ? () => loadMore(section.key) : undefined
+                          sectionHasMoreItems
+                            ? () => loadMore(section.key)
+                            : undefined
                         }
                         hasMore={sectionHasMoreItems}
                       >
@@ -656,7 +672,10 @@ const ACTIVITY_META: Record<
   ARTICLE: { label: "article", href: (id) => `/blog/${id}` },
   PUBLICATION: { label: "publication", href: (id) => `/publications/${id}` },
   JOURNAL: { label: "journal", href: (id) => `/journals/${id}` },
-  RESEARCH_TOOL: { label: "research tool", href: (id) => `/research-tools/${id}` },
+  RESEARCH_TOOL: {
+    label: "research tool",
+    href: (id) => `/research-tools/${id}`,
+  },
   PHD_ADMISSION: { label: "PhD admission", href: (id) => `/admissions/${id}` },
   RESEARCH_EVENT: { label: "research event", href: (id) => `/events/${id}` },
   JOB_VACANCY: { label: "job vacancy", href: (id) => `/vacancies/${id}` },
@@ -667,7 +686,7 @@ const ACTIVITY_META: Record<
   RECOMMENDATION: { label: "recommendation", href: () => undefined },
   RESEARCH_SURVEY: { label: "survey", href: (id) => `/surveys/${id}` },
   COURSE: { label: "course", href: (id) => `/learn/${id}` },
-   RESEARCH_GRANT: { label: "research grant", href: (id) => `/grants/${id}` },
+  RESEARCH_GRANT: { label: "research grant", href: (id) => `/grants/${id}` },
   USER: { label: "scholar", href: () => undefined },
   SOCIAL_POST_COMMENT: { label: "comment" },
   ARTICLE_COMMENT: { label: "comment" },
@@ -706,7 +725,9 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
       ? MessageSquare
       : item.action === "REPLIED"
         ? Reply
-        : ThumbsUp;
+        : item.action === "PUBLISHED"
+          ? FileText
+          : ThumbsUp;
 
   return (
     <div className="sb-card p-4">
@@ -719,7 +740,8 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
             </span>{" "}
             {label}{" "}
             {href && item.entityTitle ? (
-              <Link prefetch={false}
+              <Link
+                prefetch={false}
                 href={href}
                 className="break-words font-semibold text-blue-600 hover:underline dark:text-blue-400"
               >

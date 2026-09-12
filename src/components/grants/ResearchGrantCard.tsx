@@ -33,7 +33,7 @@ export function ResearchGrantCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={grant.author?.handle || undefined}
-      authorAvatarUrl={grant.author?.avatarUrl || undefined}
+      authorAvatarUrl={grant.author?.avatarUrl || undefined} authorVerified={!!(grant.author?.institutionVerifiedAt)}
       detailPageHref={`/grants/${grant.id}`}
       managementControls={
         isOwner && (
@@ -131,7 +131,7 @@ export function ResearchGrantCard({
         )}
         <RichContent
           content={grant.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>
     </ListPageCardShell>

@@ -47,7 +47,7 @@ export async function getAdmissions(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -80,7 +80,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -112,7 +112,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
             },
           },
           totalVotes: true,
@@ -156,7 +156,7 @@ export async function createPhdAdmission(formData: FormData) {
         applyLink: safeApplyLink,
         authorId: user.id,
       },
-      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } },
+      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } },
     });
 
     await tx.userActivity.create({
@@ -299,7 +299,7 @@ export async function getLatestAdmissions(count: number, userId?: string) {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,

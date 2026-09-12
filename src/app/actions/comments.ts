@@ -47,7 +47,7 @@ function commentPageSelect(currentUserId: string | null) {
     totalVotes: true,
     totalReplies: true,
     author: {
-      select: { id: true, name: true, handle: true, avatarUrl: true },
+      select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
     },
     // RULE 2: resolve the viewer's vote state directly in this query (N+1 fix)
     votes: currentUserId

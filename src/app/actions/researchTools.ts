@@ -38,7 +38,7 @@ export async function createResearchTool(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: {
               where: { followerId: user.id },
               select: { followerId: true },
@@ -189,7 +189,7 @@ export async function getResearchTools(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -225,7 +225,7 @@ export const getResearchToolById = cache(
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: userId
               ? { where: { followerId: userId }, select: { followerId: true } }
               : false,
@@ -256,7 +256,7 @@ export const getResearchToolById = cache(
             parentId: true,
             authorId: true,
             author: {
-              select: { id: true, name: true, handle: true, avatarUrl: true },
+              select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
             },
             totalVotes: true,
             totalReplies: true,

@@ -61,7 +61,7 @@ const EventDetailPage = async ({
       authorHref={`/scholars/${event.author?.id}`}
       authorName={event.author?.name || "Scholar"}
       authorHandle={event.author?.handle || undefined}
-      authorAvatarUrl={event.author?.avatarUrl || undefined}
+      authorAvatarUrl={event.author?.avatarUrl || undefined} authorVerified={!!(event.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === event.author?.id ? (
           <OwnerActionsDropdown

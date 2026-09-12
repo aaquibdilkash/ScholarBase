@@ -52,7 +52,7 @@ export async function getArticles(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -88,7 +88,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -117,7 +117,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
             parentId: true,
             authorId: true,
             author: {
-              select: { id: true, name: true, handle: true, avatarUrl: true },
+              select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
             },
             totalVotes: true,
             totalReplies: true,
@@ -171,7 +171,7 @@ export async function createArticle(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: {
               where: { followerId: user.id },
               select: { followerId: true },
@@ -334,7 +334,7 @@ export async function getLatestArticles(count: number, userId?: string) {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,

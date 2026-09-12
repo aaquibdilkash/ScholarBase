@@ -58,7 +58,7 @@ export default async function ArticlePage({
       authorHref={`/scholars/${a.author?.id}`}
       authorName={a.author?.name || "Scholar"}
       authorHandle={a.author?.handle || undefined}
-      authorAvatarUrl={a.author?.avatarUrl || undefined}
+      authorAvatarUrl={a.author?.avatarUrl || undefined} authorVerified={!!(a.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === a.authorId ? (
           <OwnerActionsDropdown

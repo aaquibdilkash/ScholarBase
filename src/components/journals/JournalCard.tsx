@@ -33,7 +33,7 @@ export function JournalCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={journal.author?.handle || undefined}
-      authorAvatarUrl={journal.author?.avatarUrl || undefined}
+      authorAvatarUrl={journal.author?.avatarUrl || undefined} authorVerified={!!(journal.author?.institutionVerifiedAt)}
       detailPageHref={`/journals/${journal.id}`}
       noBodyLink={true}
       managementControls={
@@ -111,13 +111,13 @@ export function JournalCard({
       }
     >
       <Link href={`/journals/${journal.id}`} prefetch={false} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {journal.title}
         </h2>
 
         <RichContent
           content={journal.about}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">

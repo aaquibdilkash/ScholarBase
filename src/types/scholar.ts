@@ -7,6 +7,7 @@ export interface Scholar {
   name: string | null;
   handle: string | null;
   avatarUrl: string | null;
+  institutionVerifiedAt?: Date | string | null;
   bio: string | null;
   reputation: number;
   createdAt: Date;

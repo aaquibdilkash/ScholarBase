@@ -19,7 +19,7 @@ const directConversationSelect = {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           isFrozen: true,
           isDeleted: true,
           bio: true,
@@ -192,7 +192,7 @@ export async function getConversation(conversationId: string) {
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
               isFrozen: true,
               isDeleted: true,
               bio: true,
@@ -572,7 +572,7 @@ export async function editMessage(
       conversationId: true,
       replyToId: true,
       sender: {
-        select: { id: true, name: true, handle: true, avatarUrl: true },
+        select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
       },
       replyTo: {
         select: {

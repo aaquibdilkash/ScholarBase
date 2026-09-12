@@ -24,7 +24,7 @@ type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
         id: true;
         name: true;
         handle: true;
-        avatarUrl: true;
+        avatarUrl: true, institutionVerifiedAt: true;
         followers: { select: { followerId: true } } | false;
       };
     };

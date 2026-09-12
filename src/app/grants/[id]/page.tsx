@@ -70,7 +70,7 @@ export default async function ResearchGrantDetailPage({
       authorHref={`/scholars/${grant.author?.id}`}
       authorName={grant.author?.name || "Scholar"}
       authorHandle={grant.author?.handle || undefined}
-      authorAvatarUrl={grant.author?.avatarUrl || undefined}
+      authorAvatarUrl={grant.author?.avatarUrl || undefined} authorVerified={!!(grant.author?.institutionVerifiedAt)}
       authorId={grant.author?.id}
       isFollowing={!!grant.author?.followers?.length}
       currentUserId={user?.id}

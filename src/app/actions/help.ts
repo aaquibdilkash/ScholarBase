@@ -52,7 +52,7 @@ export async function getHelpPosts(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -92,7 +92,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -124,7 +124,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
             },
           },
           totalVotes: true,
@@ -170,7 +170,7 @@ export async function createHelpPost(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: {
               where: { followerId: user.id },
               select: { followerId: true },

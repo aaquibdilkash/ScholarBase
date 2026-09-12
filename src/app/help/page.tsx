@@ -1,17 +1,20 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "Scholar Suggest - ScholarBase",
+  description:
+    "Share suggestions, bug reports, or new feature request for ScholarBase with the community.",
+  path: "/help",
+  section: "Help & Support",
+});
 import { createClient } from "@/utils/supabase/server";
+import ListPageShell from "@/components/layout/ListPageShell";
 import { HelpPostList } from "@/components/help/HelpPostList";
 import { getTrendingHelpPosts } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getHelpPosts } from "@/app/actions/help";
-import ListPageShell from "@/components/layout/ListPageShell";
-import { Metadata } from "next";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
-
-export const metadata: Metadata = {
-  title: "Scholar Suggest - ScholarBase",
-  description:
-    "Share suggestions, bug reports, or new feature request for ScholarBase with the community.",
-};
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 

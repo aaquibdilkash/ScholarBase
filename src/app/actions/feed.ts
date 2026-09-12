@@ -38,7 +38,7 @@ const socialPostInclude = {
       id: true,
       name: true,
       handle: true,
-      avatarUrl: true,
+      avatarUrl: true, institutionVerifiedAt: true,
     },
   },
   votes: {
@@ -128,7 +128,7 @@ const getFeed = async (
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -173,7 +173,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -206,7 +206,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
             },
           },
           totalVotes: true,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { cloneElement, isValidElement, type ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
@@ -19,6 +20,7 @@ export type DetailPageCardShellProps = {
   authorName: string;
   authorHandle?: string;
   authorAvatarUrl?: string | null;
+  authorVerified?: boolean;
 
   // Common header management (3 dots)
   managementControls?: ReactNode;
@@ -65,6 +67,7 @@ export default function DetailPageCardShell({
   authorName,
   authorHandle,
   authorAvatarUrl,
+  authorVerified,
   authorId,
   isFollowing,
   currentUserId,
@@ -135,11 +138,17 @@ export default function DetailPageCardShell({
                   href={authorHref}
                   className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
                 >
-                  {authorName || "Scholar"}
+                  <span className="inline-flex max-w-full items-center gap-1">
+                    <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                    {authorVerified ? <VerifiedBadge /> : null}
+                  </span>
                 </Link>
               ) : (
                 <span className="font-semibold italic text-slate-500 dark:text-slate-400">
-                  {authorName || "Scholar"}
+                  <span className="inline-flex max-w-full items-center gap-1">
+                    <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                    {authorVerified ? <VerifiedBadge /> : null}
+                  </span>
                 </span>
               )}
               {authorHandle ? (

@@ -44,7 +44,7 @@ export function SurveyCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={survey.author?.handle || undefined}
-      authorAvatarUrl={survey.author?.avatarUrl || undefined}
+      authorAvatarUrl={survey.author?.avatarUrl || undefined} authorVerified={!!(survey.author?.institutionVerifiedAt)}
       detailPageHref={`/surveys/${survey.id}`}
       noBodyLink={true}
       managementControls={
@@ -105,7 +105,7 @@ export function SurveyCard({
       }
     >
       <Link href={`/surveys/${survey.id}`} prefetch={false} className="block group">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               STATUS_BADGES[survey.status] || "bg-slate-100 text-slate-600"
@@ -122,14 +122,14 @@ export function SurveyCard({
           </span>
         </div>
 
-        <h2 className="mb-2 break-words break-all text-lg font-semibold leading-tight text-slate-950">
+        <h2 className="mb-2 break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {survey.title}
         </h2>
 
         {survey.description && (
           <RichContent
             content={survey.description}
-            className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+            className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
           />
         )}
       </Link>

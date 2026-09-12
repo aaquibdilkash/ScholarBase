@@ -70,7 +70,7 @@ export async function createPublication(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: { where: { followerId: user.id }, select: { followerId: true } },
           },
         },
@@ -265,7 +265,7 @@ export async function getPublications(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? { where: { followerId: userId }, select: { followerId: true } }
             : false,
@@ -314,7 +314,7 @@ export const getPublicationById = cache(
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: userId
               ? {
                   where: { followerId: userId },
@@ -352,7 +352,7 @@ export const getPublicationById = cache(
                 id: true,
                 name: true,
                 handle: true,
-                avatarUrl: true,
+                avatarUrl: true, institutionVerifiedAt: true,
               },
             },
             totalVotes: true,

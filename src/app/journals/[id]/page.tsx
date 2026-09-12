@@ -68,7 +68,7 @@ const JournalDetailPage = async ({
       authorHref={`/scholars/${j.author?.id}`}
       authorName={j.author?.name || "Scholar"}
       authorHandle={j.author?.handle || undefined}
-      authorAvatarUrl={j.author?.avatarUrl || undefined}
+      authorAvatarUrl={j.author?.avatarUrl || undefined} authorVerified={!!(j.author?.institutionVerifiedAt)}
       authorId={j.author?.id}
       isFollowing={!!j.author?.followers?.length}
       currentUserId={user?.id}

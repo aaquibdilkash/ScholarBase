@@ -37,7 +37,7 @@ export const getRecommendation = cache(
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
           },
         },
         supervisor: { select: { id: true, name: true } },
@@ -70,7 +70,7 @@ export const getRecommendation = cache(
                 id: true,
                 name: true,
                 handle: true,
-                avatarUrl: true,
+                avatarUrl: true, institutionVerifiedAt: true,
               },
             },
             mentions: true,
@@ -156,7 +156,7 @@ export async function createRecommendation(
               id: true,
               name: true,
               handle: true,
-              avatarUrl: true,
+              avatarUrl: true, institutionVerifiedAt: true,
               followers: {
                 where: { followerId: user.id },
                 select: { followerId: true },
@@ -279,7 +279,7 @@ export async function updateRecommendation(
         include: {
           // Include relations so client caches render owner/header correctly
           author: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+            select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
           },
           supervisor: { select: { id: true, name: true } },
         },

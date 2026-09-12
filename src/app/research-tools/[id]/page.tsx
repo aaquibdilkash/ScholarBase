@@ -63,7 +63,7 @@ const ResearchToolDetailPage = async ({
       authorHref={`/scholars/${tool.author?.id}`}
       authorName={tool.author?.name || "Scholar"}
       authorHandle={tool.author?.handle || undefined}
-      authorAvatarUrl={tool.author?.avatarUrl || undefined}
+      authorAvatarUrl={tool.author?.avatarUrl || undefined} authorVerified={!!(tool.author?.institutionVerifiedAt)}
       authorId={tool.author?.id}
       isFollowing={!!tool.author?.followers?.length}
       currentUserId={user?.id}

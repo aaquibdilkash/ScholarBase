@@ -13,6 +13,7 @@ type ScholarCardProps = {
     bio: string | null;
     reputation: number;
     createdAt: Date;
+    institutionVerifiedAt?: Date | string | null;
     followers?: { followerId: string }[];
     // RULE 6: materialized counters maintained in transactions.ts (handleFollow).
     followersCount: number;
@@ -29,7 +30,7 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
       authorHref={`/scholars/${scholar.id}`}
       authorName={scholar.name || "Scholar"}
       authorHandle={scholar.handle || undefined}
-      authorAvatarUrl={scholar.avatarUrl || undefined}
+      authorAvatarUrl={scholar.avatarUrl || undefined} authorVerified={!!(scholar?.institutionVerifiedAt)}
       authorId={scholar.id}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
@@ -85,7 +86,7 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
             {scholar.bio ? (
               <RichContent
                 content={scholar.bio}
-                className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300"
+                className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300"
               />
             ) : (
               <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">

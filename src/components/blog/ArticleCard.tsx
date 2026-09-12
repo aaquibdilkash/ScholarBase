@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -30,7 +31,7 @@ export function ArticleCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={article.author?.handle || undefined}
-      authorAvatarUrl={article.author?.avatarUrl || undefined}
+      authorAvatarUrl={article.author?.avatarUrl || undefined} authorVerified={!!(article.author?.institutionVerifiedAt)}
       detailPageHref={`/blog/${article.slug}`}
       managementControls={
         isOwner && (
@@ -88,13 +89,16 @@ export function ArticleCard({
       editedDate={
         article.editedAt && article.editedAt > article.createdAt ? article.editedAt : undefined
       }
+      noBodyLink={true}
     >
-      <h2 className="mb-2 text-xl font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors dark:text-white dark:group-hover:text-blue-300">
-        {article.title}
-      </h2>
-      <p className="text-sm break-words leading-relaxed text-slate-900 dark:text-white line-clamp-3">
-        {article.excerpt}
-      </p>
+      <Link href={`/blog/${article.slug}`} prefetch={false} className="block group">
+        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+          {article.title}
+        </h2>
+        <p className="text-sm break-words leading-relaxed text-slate-600 dark:text-slate-300">
+          {article.excerpt}
+        </p>
+      </Link>
     </ListPageCardShell>
   );
 }

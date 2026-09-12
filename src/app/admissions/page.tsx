@@ -1,17 +1,22 @@
+import type { Metadata } from "next";
+import { buildMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildMetadata({
+  title: "PhD Admissions - ScholarBase",
+  description:
+    "Find and share PhD admission notifications from universities and research institutions worldwide.",
+  path: "/admissions",
+  section: "PhD Admissions",
+});
 import { createClient } from "@/utils/supabase/server";
-import { Metadata } from "next";
 import ListPageShell from "@/components/layout/ListPageShell";
 import { AdmissionsList } from "@/components/admissions/AdmissionsList";
 import { getTrendingAdmissions } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { TrendingItem } from "@/types/trending";
 import { getAdmissions } from "@/app/actions/admissions";
+import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
-export const metadata: Metadata = {
-  title: "PhD Admissions - ScholarBase",
-  description:
-    "Find and share PhD admission notifications from universities and research institutions worldwide.",
-};
+type TrendingItem = import("@/types/trending").TrendingItem;
 
 export default async function AdmissionsPage({
   searchParams,
@@ -19,19 +24,9 @@ export default async function AdmissionsPage({
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
   const { q, tab } = await searchParams;
-  const pageSize = 10;
-  const isTrendingTab = tab === "trending";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const admissions = isTrendingTab ? [] : await getAdmissions(q, user?.id, pageSize);
-
-  const trendingItems = (isTrendingTab
-    ? await getTrendingAdmissions()
-    : []) as unknown as import("@/types/trending").TrendingItem[];
+  // Auth is resolved lazily (no top-level await) so the ListPageShell
+  // heading/tabs render instantly while the AsyncListRegion fetchers suspend.
+  const supabasePromise = createClient();
 
   return (
     <ListPageShell
@@ -44,17 +39,37 @@ export default async function AdmissionsPage({
       allHref="/admissions"
       trendingHref="/admissions?tab=trending"
       trending={
-        <TrendingList
-          items={trendingItems as TrendingItem[]}
-          currentUserId={user?.id}
-        />
+        <AsyncListRegion
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const items = (await getTrendingAdmissions()) as unknown as TrendingItem[];
+            return { items, userId: user?.id };
+          }}
+        >
+          {({ items, userId }) => (
+            <TrendingList items={items} currentUserId={userId ?? ""} />
+          )}
+        </AsyncListRegion>
       }
       all={
-        <AdmissionsList
-          admissions={admissions}
-          currentUserId={user?.id}
-          initialQuery={q ?? ""}
-        />
+        <AsyncListRegion
+          key={q}
+          fetcher={async () => {
+            const supabase = await supabasePromise;
+            const { data: { user } } = await supabase.auth.getUser();
+            const admissions = await getAdmissions(q ?? "", user?.id, 10);
+            return { admissions, userId: user?.id };
+          }}
+        >
+          {({ admissions, userId }) => (
+            <AdmissionsList
+              admissions={admissions}
+              currentUserId={userId}
+              initialQuery={q ?? ""}
+            />
+          )}
+        </AsyncListRegion>
       }
     />
   );

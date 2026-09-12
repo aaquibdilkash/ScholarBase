@@ -57,7 +57,7 @@ export async function getVacancies(
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           ...(userId
             ? {
                 followers: {
@@ -97,7 +97,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           followers: userId
             ? {
                 where: { followerId: userId },
@@ -124,7 +124,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
           totalVotes: true,
           totalReplies: true,
           author: {
-            select: { id: true, name: true, handle: true, avatarUrl: true },
+            select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
           },
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
@@ -188,7 +188,7 @@ export async function createJobVacancy(formData: FormData) {
             id: true,
             name: true,
             handle: true,
-            avatarUrl: true,
+            avatarUrl: true, institutionVerifiedAt: true,
             followers: {
               where: { followerId: user.id },
               select: { followerId: true },
@@ -277,7 +277,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       hasActiveAppeal: true,
       totalComments: true,
       author: {
-        select: { id: true, name: true, handle: true, avatarUrl: true },
+        select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true },
       },
     },
   });
@@ -352,7 +352,7 @@ export async function getLatestVacancies(count: number, userId?: string) {
           id: true,
           name: true,
           handle: true,
-          avatarUrl: true,
+          avatarUrl: true, institutionVerifiedAt: true,
           ...(userId
             ? {
                 followers: {

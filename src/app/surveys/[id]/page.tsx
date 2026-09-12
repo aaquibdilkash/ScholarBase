@@ -87,7 +87,7 @@ const SurveyDetailPage = async ({
       authorHref={`/scholars/${survey.author?.id}`}
       authorName={survey.author?.name || "Scholar"}
       authorHandle={survey.author?.handle || undefined}
-      authorAvatarUrl={survey.author?.avatarUrl || undefined}
+      authorAvatarUrl={survey.author?.avatarUrl || undefined} authorVerified={!!(survey.author?.institutionVerifiedAt)}
       managementControls={
         isOwner ? (
           <OwnerActionsDropdown

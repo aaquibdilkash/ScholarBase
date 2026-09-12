@@ -72,7 +72,7 @@ const ContributionDetailPage = async ({
       authorHref={`/scholars/${contribution.author?.id}`}
       authorName={contribution.author?.name || "Scholar"}
       authorHandle={contribution.author?.handle || undefined}
-      authorAvatarUrl={contribution.author?.avatarUrl || undefined}
+      authorAvatarUrl={contribution.author?.avatarUrl || undefined} authorVerified={!!(contribution.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === contribution.author?.id ? (
           <OwnerActionsDropdown

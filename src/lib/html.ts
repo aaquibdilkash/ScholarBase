@@ -8,9 +8,11 @@ export function stripHtmlTags(html: string): string {
   if (!html) return "";
 
   return html
-    // Preserve line structure from block elements
+    // Preserve line structure from block elements (double newline matches
+    // TipTap's default blockSeparator so multi-paragraph counts agree with
+    // the Editor's editor.getText().length counter)
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/(p|div|li|h[1-6]|blockquote|pre)>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6]|blockquote|pre)>/gi, "\n\n")
     // Drop every remaining tag (opening, closing, self-closing)
     .replace(/<[^>]*>/g, "")
     // Decode common HTML entities so they count as their real characters
@@ -21,7 +23,12 @@ export function stripHtmlTags(html: string): string {
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     // Remove any leftover entity fragments (prevents the phantom "&" bug)
-    .replace(/&[a-zA-Z]+;|&#\d+;/g, "");
+    .replace(/&[a-zA-Z]+;|&#\d+;/g, "")
+    // Structural newlines from closing block tags (e.g. "<p>a</p>" -> "a\n")
+    // must not count toward the limit, and empty content ("<p></p>" -> "\n")
+    // must measure as 0. Trim so plain-text length matches TipTap's
+    // editor.getText() for the same visible content.
+    .trim();
 }
 
 export function getRichTextLength(html: string): number {

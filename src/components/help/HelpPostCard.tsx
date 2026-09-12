@@ -6,6 +6,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
+import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
 import { useToast } from "@/components/ui/Toast";
@@ -32,7 +33,7 @@ export function HelpPostCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={helpPost.author?.handle || undefined}
-      authorAvatarUrl={helpPost.author?.avatarUrl || undefined}
+      authorAvatarUrl={helpPost.author?.avatarUrl || undefined} authorVerified={!!(helpPost.author?.institutionVerifiedAt)}
       detailPageHref={`/help/${helpPost.id}`}
       managementControls={
         isOwner && (
@@ -90,16 +91,18 @@ export function HelpPostCard({
           hasActiveAppeal={helpPost.hasActiveAppeal ?? false}
         />
       }
+      noBodyLink={true}
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-          {helpPost.category}
-        </span>
-      </div>
-      <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 group-hover:text-blue-700 transition-colors">
-        {helpPost.title}
-      </h2>
-      {helpPost.subject && (
+      <Link href={`/help/${helpPost.id}`} prefetch={false} className="block group">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+            {helpPost.category}
+          </span>
+        </div>
+        <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+          {helpPost.title}
+        </h2>
+        {helpPost.subject && (
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               Subject:
@@ -108,10 +111,11 @@ export function HelpPostCard({
           </p>
         )}
 
-      <RichContent
-        content={helpPost.message}
-        className="text-sm leading-relaxed text-slate-600 line-clamp-4"
-      />
+        <RichContent
+          content={helpPost.message}
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+        />
+      </Link>
     </ListPageCardShell>
   );
 }

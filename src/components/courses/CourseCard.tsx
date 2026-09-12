@@ -41,7 +41,7 @@ export function CourseCard({
       isFollowing={isFollowing}
       currentUserId={currentUserId}
       authorHandle={course.author?.handle || undefined}
-      authorAvatarUrl={course.author?.avatarUrl || undefined}
+      authorAvatarUrl={course.author?.avatarUrl || undefined} authorVerified={!!(course.author?.institutionVerifiedAt)}
       detailPageHref={`/learn/${course.id}`}
       managementControls={
         isOwner && (
@@ -122,7 +122,7 @@ export function CourseCard({
         )}
         <RichContent
           content={course.description}
-          className="text-sm leading-relaxed text-slate-600 line-clamp-3"
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>
     </ListPageCardShell>

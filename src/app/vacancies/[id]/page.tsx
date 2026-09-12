@@ -60,7 +60,7 @@ const VacancyDetailPage = async ({
       authorHref={`/scholars/${vacancy.author?.id}`}
       authorName={vacancy.author?.name || "Scholar"}
       authorHandle={vacancy.author?.handle || undefined}
-      authorAvatarUrl={vacancy.author?.avatarUrl || undefined}
+      authorAvatarUrl={vacancy.author?.avatarUrl || undefined} authorVerified={!!(vacancy.author?.institutionVerifiedAt)}
       managementControls={
         user?.id === vacancy.author?.id ? (
           <OwnerActionsDropdown
