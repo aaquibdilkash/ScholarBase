@@ -7,6 +7,19 @@ const notificationInclude = {
   actor: true,
 } as const;
 
+export async function getUnreadNotificationCount() {
+  const currentUser = await requireCurrentUser("Please log in to view notifications.");
+  const userId = currentUser.id;
+
+  const result = await prisma.$queryRaw<{ count: bigint }[]>`
+    SELECT COUNT(*)::int AS count
+    FROM "Notification"
+    WHERE "recipientId" = ${userId}
+      AND "readAt" IS NULL
+  `;
+  return Number(result[0]?.count ?? 0);
+}
+
 export async function getNotifications(
   limit = 10,
   cursor?: string,

@@ -11,6 +11,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/components/interactions/AppProviders";
 import { getUnreadMessageCount } from "@/app/actions/messages";
+import { getUnreadNotificationCount } from "@/app/actions/notifications";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -121,7 +122,21 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  // Defer auth resolution so the Navbar/Sidebar render immediately with a
+  // logged-out shell while Supabase auth resolves in the background. This
+  // keeps the page responsive on slow mobile connections instead of blocking
+  // the entire render behind `getCurrentUser()`.
+  const userPromise = getCurrentUser();
+
+  const cookieStore = await cookies();
+  const isSidebarCollapsed =
+    cookieStore.get("sb-main-sidebar-collapsed")?.value === "true";
+  const themeCookie = cookieStore.get("sb-theme")?.value;
+  const isDark = themeCookie !== "light";
+
+  // Resolve user + profile in parallel; if the account is deleted we must
+  // redirect synchronously, so we await here (not in a stream).
+  const user = await userPromise;
 
   let isAdmin = false;
   let isFrozen = false;
@@ -149,9 +164,7 @@ export default async function RootLayout({
 
     const [messageCount, notificationCount] = await Promise.all([
       getUnreadMessageCount(),
-      prisma.notification.count({
-        where: { recipientId: user.id, readAt: null },
-      }),
+      getUnreadNotificationCount(),
     ]);
 
     isAdmin = dbUser?.isAdmin ?? false;
@@ -164,12 +177,6 @@ export default async function RootLayout({
   const sidebarUser = user
     ? { id: user.id, email: user.email, isAdmin, unreadMessages, avatarUrl }
     : null;
-
-  const cookieStore = await cookies();
-  const isSidebarCollapsed =
-    cookieStore.get("sb-main-sidebar-collapsed")?.value === "true";
-  const themeCookie = cookieStore.get("sb-theme")?.value;
-  const isDark = themeCookie !== "light";
 
   return (
     <html
