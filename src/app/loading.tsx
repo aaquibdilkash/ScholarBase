@@ -29,7 +29,7 @@ export default function Loading() {
           <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-600 sm:mt-2 sm:w-2/3" />
         </div>
         {/* Add button skeleton */}
-        <div className="h-10 w-full animate-pulse rounded-xl bg-slate-950 dark:bg-slate-100 sm:w-auto sm:max-w-[160px]" />
+        <div className="h-10 w-full animate-pulse rounded-xl bg-slate-950 dark:bg-slate-950 sm:w-auto sm:max-w-[160px]" />
       </div>
 
       {/* ── Tabs skeleton ── */}

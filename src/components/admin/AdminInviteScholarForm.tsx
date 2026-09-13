@@ -266,7 +266,7 @@ export function AdminInviteScholarForm() {
 
             <label className="block space-y-2"><FieldHeader label="Subject line" showDefault onUseDefault={() => applyVariantField("subject")} /><input type="text" value={draft.subject} onChange={(event) => updateField("subject", event.target.value)} placeholder="A note from ScholarBase" maxLength={150} className={inputClassName} /></label>
 
-            <div className="grid gap-4 sm:grid-cols-[110px_1fr]">
+            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
               <label className="space-y-2"><FieldHeader label="Greeting" showDefault onUseDefault={() => applyVariantField("greeting")} /><input type="text" value={draft.greeting} onChange={(event) => updateField("greeting", event.target.value)} placeholder="Hello" maxLength={50} className={inputClassName} /></label>
               <label className="space-y-2"><FieldHeader label="Email headline" showDefault onUseDefault={() => applyVariantField("headline")} /><input type="text" value={draft.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="I wanted to introduce ScholarBase" maxLength={150} className={inputClassName} /></label>
             </div>
