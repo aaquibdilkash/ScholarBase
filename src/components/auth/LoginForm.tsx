@@ -72,6 +72,16 @@ export function LoginForm({
           </p>
         )}
 
+        {initialError === "account-deleted-by-admin" && (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+          >
+            Your account has been deleted. Contact an administrator for more
+            information.
+          </p>
+        )}
+
         {initialError === "account-recovery-expired" && (
           <p
             role="alert"

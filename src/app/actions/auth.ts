@@ -144,6 +144,13 @@ export async function login(formData: FormData): Promise<AuthResult> {
           "This account’s 30-day recovery period has expired. Please contact support.",
       };
     }
+    if (recovery === "admin-deleted") {
+      await supabase.auth.signOut();
+      return {
+        success: false,
+        error: "Your account has been deleted. Contact an administrator for more information.",
+      };
+    }
 
     if (recovery === "recovered") {
       return {

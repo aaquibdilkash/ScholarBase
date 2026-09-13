@@ -96,6 +96,17 @@ export async function GET(request: NextRequest) {
         );
         return response;
       }
+      if (recovery === "admin-deleted") {
+        await supabase.auth.signOut();
+        response.headers.set(
+          "Location",
+          new URL(
+            "/login?error=account-deleted-by-admin",
+            publicOrigin,
+          ).toString(),
+        );
+        return response;
+      }
     }
 
     if (existingProfile === null && !isAllowedEmailDomain(data.user.email ?? "")) {

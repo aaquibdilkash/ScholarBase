@@ -767,6 +767,8 @@ model User {
   followersCount Int            @default(0)
   followingCount Int            @default(0)
   isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
   reportCount    Int            @default(0)
   activities     UserActivity[]
   institutionDomainRequestsReviewed InstitutionDomainRequest[] @relation("InstitutionDomainRequestReviewer")

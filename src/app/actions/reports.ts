@@ -1089,9 +1089,8 @@ export async function moderateContent(
           data: {
             isDeleted: true,
             isFrozen: true,
-            ...(contentType !== "SCHOLAR_PROFILE"
-              ? { deletedByType: "ADMIN", deletedById: user.id }
-              : {}),
+            deletedByType: "ADMIN",
+            deletedById: user.id,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.report.updateMany({
@@ -1163,9 +1162,8 @@ export async function moderateContent(
             isDeleted: false,
             isFrozen: false,
             hasActiveAppeal: false,
-            ...(contentType !== "SCHOLAR_PROFILE"
-              ? { deletedByType: null, deletedById: null }
-              : {}),
+            deletedByType: null,
+            deletedById: null,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.appeal.updateMany({

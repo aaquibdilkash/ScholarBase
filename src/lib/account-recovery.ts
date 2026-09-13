@@ -7,6 +7,7 @@ const ACCOUNT_RECOVERY_WINDOW_MS =
 export type AccountRecoveryResult =
   | "recovered"
   | "not-deleted"
+  | "admin-deleted"
   | "expired"
   | "not-found";
 
@@ -23,11 +24,14 @@ export async function recoverDeletedAccount(
     where: {
       id: userId,
       isDeleted: true,
+      deletedByType: "AUTHOR",
       updatedAt: { gt: cutoff },
     },
     data: {
       isDeleted: false,
       isFrozen: false,
+      deletedByType: null,
+      deletedById: null,
     },
   });
 
@@ -35,10 +39,11 @@ export async function recoverDeletedAccount(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isDeleted: true, updatedAt: true },
+    select: { isDeleted: true, deletedByType: true, updatedAt: true },
   });
 
   if (!user) return "not-found";
   if (!user.isDeleted) return "not-deleted";
+  if (user.deletedByType === "ADMIN") return "admin-deleted";
   return user.updatedAt > cutoff ? "not-deleted" : "expired";
 }

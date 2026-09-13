@@ -32,6 +32,8 @@ export async function deleteAccount(
       data: {
         isDeleted: true,
         isFrozen: true,
+        deletedByType: "AUTHOR",
+        deletedById: user.id,
         institutionEmail: null,
         institutionDomain: null,
         institutionVerifiedAt: null,

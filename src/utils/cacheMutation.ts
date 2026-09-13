@@ -17,7 +17,7 @@ export function upsertToList<T extends { id: string }>(
 ): void {
   queryClient.setQueriesData({ queryKey: key }, (oldData: T[] = []) => {
     if (mode === "create") return [item, ...oldData];
-    return oldData.map((x) => (x.id === item.id ? item : x));
+    return oldData.map((x) => (x.id === item.id ? { ...x, ...item } : x));
   });
 }
 

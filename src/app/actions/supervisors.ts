@@ -314,6 +314,25 @@ export async function updateSupervisor(
   const updatedSupervisor = await prisma.supervisor.update({
     where: { id: supervisorId },
     data: { name, university, department, about, editedAt: new Date() },
+    include: {
+      author: {
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          institutionVerifiedAt: true,
+          followers: {
+            where: { followerId: user.id },
+            select: { followerId: true },
+          },
+        },
+      },
+      votes: {
+        where: { userId: user.id },
+        select: { voteType: true },
+      },
+    },
   });
 
   return { success: true, data: updatedSupervisor };

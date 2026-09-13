@@ -24,6 +24,7 @@ import {
 } from "@/lib/rate-limit";
 
 const VERIFICATION_TTL_MS = 20 * 60 * 1000;
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 
 type InstitutionVerificationResult =
   | { success: true; message: string }
@@ -61,6 +62,61 @@ export async function requestInstitutionVerification(
     };
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: supabaseUser.id },
+    select: {
+      name: true,
+      institutionEmail: true,
+      institutionVerifiedAt: true,
+      pendingInstitutionEmail: true,
+      institutionVerificationExpiresAt: true,
+    },
+  });
+
+  if (!user) {
+    return { success: false, error: "Your ScholarBase profile was not found." };
+  }
+
+  if (
+    user.institutionVerifiedAt &&
+    user.institutionEmail === institutionEmail
+  ) {
+    return {
+      success: true,
+      message: "This institutional email is already verified.",
+    };
+  }
+
+  if (
+    user.pendingInstitutionEmail === institutionEmail &&
+    user.institutionVerificationExpiresAt &&
+    user.institutionVerificationExpiresAt > new Date()
+  ) {
+    const sentAt =
+      user.institutionVerificationExpiresAt.getTime() - VERIFICATION_TTL_MS;
+    const resendAt = sentAt + VERIFICATION_RESEND_COOLDOWN_MS;
+    const secondsRemaining = Math.ceil((resendAt - Date.now()) / 1000);
+
+    if (secondsRemaining > 0) {
+      return {
+        success: true,
+        message: `Verification email was sent recently. Check your inbox and spam folder, or try again in ${secondsRemaining} seconds.`,
+      };
+    }
+  }
+
+  const existingOwner = await prisma.user.findUnique({
+    where: { institutionEmail },
+    select: { id: true },
+  });
+
+  if (existingOwner && existingOwner.id !== supabaseUser.id) {
+    return {
+      success: false,
+      error: "This institutional email has already been verified on another account.",
+    };
+  }
+
   const headersList = await headers();
   const [userRateLimit, ipRateLimit] = await Promise.all([
     checkRateLimit({
@@ -79,41 +135,6 @@ export async function requestInstitutionVerification(
 
   if (!userRateLimit.allowed || !ipRateLimit.allowed) {
     return { success: false, error: RATE_LIMIT_ERROR };
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: supabaseUser.id },
-    select: {
-      name: true,
-      institutionEmail: true,
-      institutionVerifiedAt: true,
-    },
-  });
-
-  if (!user) {
-    return { success: false, error: "Your ScholarBase profile was not found." };
-  }
-
-  if (
-    user.institutionVerifiedAt &&
-    user.institutionEmail === institutionEmail
-  ) {
-    return {
-      success: true,
-      message: "This institutional email is already verified.",
-    };
-  }
-
-  const existingOwner = await prisma.user.findUnique({
-    where: { institutionEmail },
-    select: { id: true },
-  });
-
-  if (existingOwner && existingOwner.id !== supabaseUser.id) {
-    return {
-      success: false,
-      error: "This institutional email has already been verified on another account.",
-    };
   }
 
   const token = randomBytes(32).toString("hex");
@@ -160,7 +181,8 @@ export async function requestInstitutionVerification(
 
     return {
       success: true,
-      message: "Verification email sent. The link expires in 20 minutes.",
+      message:
+        "Verification email sent. The link expires in 20 minutes. Check your inbox and spam folder.",
     };
   } catch (error) {
     if (

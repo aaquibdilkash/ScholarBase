@@ -153,12 +153,16 @@ export default async function RootLayout({
         avatarUrl: true,
         isFrozen: true,
         isDeleted: true,
+        deletedByType: true,
       },
     });
 
     if (dbUser?.isDeleted) {
       const supabase = await createClient();
       await supabase.auth.signOut();
+      if (dbUser.deletedByType === "ADMIN") {
+        redirect("/login?error=account-deleted-by-admin");
+      }
       redirect("/login?error=account-deleted");
     }
 

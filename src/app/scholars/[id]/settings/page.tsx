@@ -84,6 +84,9 @@ export default async function ScholarSettingsPage({
             institutionEmail={profile.institutionEmail}
             institutionVerifiedAt={profile.institutionVerifiedAt}
             pendingInstitutionEmail={profile.pendingInstitutionEmail}
+            institutionVerificationExpiresAt={
+              profile.institutionVerificationExpiresAt
+            }
           />
           <DeleteAccountForm />
         </section>

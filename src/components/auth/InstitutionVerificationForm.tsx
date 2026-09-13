@@ -1,26 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { requestInstitutionVerification } from "@/app/actions/institution-verification";
 import { MAX_INSTITUTION_VERIFICATION_EMAIL } from "@/lib/constants";
+
+const VERIFICATION_TTL_MS = 20 * 60 * 1000;
+const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 
 type InstitutionVerificationFormProps = {
   institutionEmail: string | null;
   institutionVerifiedAt: Date | null;
   pendingInstitutionEmail: string | null;
+  institutionVerificationExpiresAt: Date | null;
 };
 
 export function InstitutionVerificationForm({
   institutionEmail: verifiedInstitutionEmail,
   institutionVerifiedAt,
   pendingInstitutionEmail,
+  institutionVerificationExpiresAt,
 }: InstitutionVerificationFormProps) {
-  const [institutionEmail, setInstitutionEmail] = useState("");
+  const [institutionEmail, setInstitutionEmail] = useState(
+    pendingInstitutionEmail ?? "",
+  );
+  const initialResendAt = useMemo(() => {
+    if (!pendingInstitutionEmail || !institutionVerificationExpiresAt) return null;
+    return (
+      institutionVerificationExpiresAt.getTime() -
+      VERIFICATION_TTL_MS +
+      VERIFICATION_RESEND_COOLDOWN_MS
+    );
+  }, [institutionVerificationExpiresAt, pendingInstitutionEmail]);
+  const [pendingEmail, setPendingEmail] = useState(pendingInstitutionEmail);
+  const [resendAt, setResendAt] = useState<number | null>(initialResendAt);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const resendSecondsRemaining = resendAt
+    ? Math.max(0, Math.ceil((resendAt - now) / 1000))
+    : 0;
+  const isPendingEmailSelected =
+    pendingEmail !== null &&
+    institutionEmail.trim().toLowerCase() === pendingEmail;
+  const isResendCoolingDown =
+    !institutionVerifiedAt && isPendingEmailSelected && resendSecondsRemaining > 0;
+
+  useEffect(() => {
+    setPendingEmail(pendingInstitutionEmail);
+    setResendAt(initialResendAt);
+  }, [initialResendAt, pendingInstitutionEmail]);
+
+  useEffect(() => {
+    if (!resendAt || resendAt <= Date.now()) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendAt]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,6 +72,12 @@ export function InstitutionVerificationForm({
 
       if (result.success) {
         setMessage(result.message);
+        const submittedEmail = institutionEmail.trim().toLowerCase();
+        if (submittedEmail && result.message.startsWith("Verification email")) {
+          setPendingEmail(submittedEmail);
+          setResendAt(Date.now() + VERIFICATION_RESEND_COOLDOWN_MS);
+          setNow(Date.now());
+        }
       } else {
         setError(result.error);
       }
@@ -65,7 +108,7 @@ export function InstitutionVerificationForm({
       {pendingInstitutionEmail && !institutionVerifiedAt && (
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
           Verification is pending for <strong>{pendingInstitutionEmail}</strong>.
-          Check that inbox or enter another institutional email below.
+          Check that inbox and spam folder, or resend after 60 seconds.
         </p>
       )}
 
@@ -96,10 +139,20 @@ export function InstitutionVerificationForm({
           </div>
           <button
             type="submit"
-            disabled={submitting || institutionEmail.trim().length === 0}
+            disabled={
+              submitting ||
+              institutionEmail.trim().length === 0 ||
+              isResendCoolingDown
+            }
             className="sb-button-primary w-full shrink-0 sm:w-auto"
           >
-            {submitting ? "Sending..." : "Send verification email"}
+            {submitting
+              ? "Sending..."
+              : isResendCoolingDown
+                ? `Resend in ${resendSecondsRemaining}s`
+                : isPendingEmailSelected
+                  ? "Resend verification email"
+                  : "Send verification email"}
           </button>
         </div>
         <div className="space-y-3">
