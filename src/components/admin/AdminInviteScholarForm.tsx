@@ -170,6 +170,7 @@ export function AdminInviteScholarForm() {
         senderName: draft.senderName.trim() || INITIAL_DRAFT.senderName,
         senderRole: draft.senderRole.trim() || INITIAL_DRAFT.senderRole,
         footerText: draft.footerText.trim() || INITIAL_DRAFT.footerText,
+        unsubscribeUrl: `${previewUrl}/api/email/outreach-unsubscribe`,
       }),
     [draft],
   );

@@ -9,6 +9,7 @@ export interface ScholarInviteEmailProps {
   senderName: string;
   senderRole: string;
   footerText: string;
+  unsubscribeUrl?: string;
 }
 
 export type OutreachVariant = Pick<
@@ -299,9 +300,13 @@ export function generateScholarInvitePlainText({
   senderName,
   senderRole,
   footerText,
+  unsubscribeUrl,
 }: ScholarInviteEmailProps): string {
   const displayName = scholarName.trim() || "Scholar";
   const normalizedFooter = normalizeFooter(footerText);
+  const unsubscribeLine = unsubscribeUrl
+    ? `\n\nUnsubscribe: ${unsubscribeUrl}`
+    : "";
 
   return `${greeting} ${displayName},
 
@@ -317,7 +322,7 @@ ${senderName}
 ${senderRole}
 invitations@scholarbase.app
 
-${normalizedFooter}`;
+${normalizedFooter}${unsubscribeLine}`;
 }
 
 export function generateScholarInviteHtml({
@@ -331,6 +336,7 @@ export function generateScholarInviteHtml({
   senderName,
   senderRole,
   footerText,
+  unsubscribeUrl,
 }: ScholarInviteEmailProps): string {
   const displayName = scholarName.trim() || "Scholar";
   const safeSubject = escapeHtml(subject);
@@ -343,6 +349,7 @@ export function generateScholarInviteHtml({
   const safeSenderName = escapeHtml(senderName);
   const safeSenderRole = escapeHtml(senderRole);
   const safeFooterText = formatBody(normalizeFooter(footerText));
+  const safeUnsubscribeUrl = unsubscribeUrl ? escapeHtml(unsubscribeUrl) : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -363,6 +370,7 @@ export function generateScholarInviteHtml({
       <p style="margin:0;">${safeSenderName}</p>
       <p style="margin:0 0 24px;">${safeSenderRole}<br /><a href="mailto:invitations@scholarbase.app" style="color:#1d4ed8;text-decoration:none;">invitations@scholarbase.app</a></p>
       <p style="margin:0;border-top:1px solid #e5e7eb;padding-top:14px;font-size:12px;color:#6b7280;">${safeFooterText}</p>
+      ${safeUnsubscribeUrl ? `<p style="margin:8px 0 0;font-size:12px;color:#6b7280;"><a href="${safeUnsubscribeUrl}" target="_blank" rel="noreferrer" style="color:#6b7280;text-decoration:underline;">Unsubscribe from ScholarBase outreach</a></p>` : ""}
     </div>
   </body>
 </html>`;

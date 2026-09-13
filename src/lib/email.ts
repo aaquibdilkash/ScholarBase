@@ -123,10 +123,10 @@ export async function sendScholarOutreachEmail({
             subject: isTestSend
                 ? `[TEST] ${emailProps.subject}`
                 : emailProps.subject,
-            html: generateScholarInviteHtml(emailProps),
-            text: generateScholarInvitePlainText(emailProps),
+            html: generateScholarInviteHtml({ ...emailProps, unsubscribeUrl }),
+            text: generateScholarInvitePlainText({ ...emailProps, unsubscribeUrl }),
             headers: {
-                'List-Unsubscribe': `<${unsubscribeUrl}>`,
+                'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:invitations@scholarbase.app?subject=Unsubscribe>`,
                 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
             },
         });
