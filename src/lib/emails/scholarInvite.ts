@@ -1,8 +1,3 @@
-import {
-  renderScholarBaseHero,
-  renderScholarBaseResponsiveStyles,
-} from "@/lib/emails/brand";
-
 export interface ScholarInviteEmailProps {
   scholarName: string;
   subject: string;
@@ -34,6 +29,16 @@ function formatBody(value: string): string {
   return escapeHtml(value).replace(/\r?\n/g, "<br />");
 }
 
+function normalizeFooter(value: string): string {
+  const trimmed = value.trim();
+  const rightsText = "(c) 2026 ScholarBase. All rights reserved.";
+
+  if (!trimmed) return rightsText;
+  if (trimmed.toLowerCase().includes("all rights reserved")) return trimmed;
+
+  return `${trimmed}\n\n${rightsText}`;
+}
+
 export function getScholarInvitationContextLine({
   university,
   department,
@@ -52,7 +57,7 @@ export function getScholarInvitationContextLine({
       ? `from ${cleanUniversity}`
       : `in ${cleanDepartment}`;
 
-  return `At the moment, we’re inviting only PhD scholars ${target}.`;
+  return `At the moment, we're inviting only PhD scholars ${target}.`;
 }
 
 export function buildScholarOutreachBody({
@@ -80,6 +85,7 @@ export function generateScholarInvitePlainText({
   footerText,
 }: ScholarInviteEmailProps): string {
   const displayName = scholarName.trim() || "Scholar";
+  const normalizedFooter = normalizeFooter(footerText);
 
   return `${greeting} ${displayName},
 
@@ -93,9 +99,9 @@ Best regards,
 
 ${senderName}
 ${senderRole}
-connect@scholarbase.app
+invitations@scholarbase.app
 
-${footerText}`;
+${normalizedFooter}`;
 }
 
 export function generateScholarInviteHtml({
@@ -120,7 +126,7 @@ export function generateScholarInviteHtml({
   const safeInviteUrl = escapeHtml(inviteUrl);
   const safeSenderName = escapeHtml(senderName);
   const safeSenderRole = escapeHtml(senderRole);
-  const safeFooterText = escapeHtml(footerText);
+  const safeFooterText = formatBody(normalizeFooter(footerText));
 
   return `<!doctype html>
 <html lang="en">
@@ -130,42 +136,18 @@ export function generateScholarInviteHtml({
     <meta name="color-scheme" content="light" />
     <meta name="supported-color-schemes" content="light" />
     <title>${safeSubject}</title>
-    ${renderScholarBaseResponsiveStyles()}
   </head>
-  <body class="sb-email-body" style="margin:0;padding:24px;background:#e1e6ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c2330;line-height:1.6;">
-    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
-      <tr>
-        <td align="center">
-          <table class="sb-email-card" role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #cbd5e1;border-top:4px solid #3b82f6;border-radius:16px;overflow:hidden;">
-            <tr>
-              <td class="sb-email-hero" style="padding:34px 32px 36px;background:#0f172a;text-align:center;">
-                ${renderScholarBaseHero({ headline: safeHeadline })}
-              </td>
-            </tr>
-            <tr>
-              <td class="sb-email-content" style="padding:34px 40px 38px;">
-                <p style="margin:0 0 18px;font-size:16px;color:#334155;">${safeGreeting} <strong>${safeName}</strong>,</p>
-                <div class="sb-email-copy" style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#475569;">${safeBody}</div>
-                <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 auto 28px;">
-                  <tr>
-            <td style="border-radius:7px;background:#020617;">
-                      <a class="sb-email-cta" href="${safeInviteUrl}" target="_blank" rel="noreferrer" style="display:inline-block;padding:13px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;">${safeCtaLabel}</a>
-                    </td>
-                  </tr>
-                </table>
-                <p style="margin:0;font-size:12px;color:#5b6577;text-align:center;">You can also visit <a href="${safeInviteUrl}" style="color:#2563eb;word-break:break-all;">${safeInviteUrl}</a>.</p>
-                <hr style="border:0;border-top:1px solid #eef0f4;margin:30px 0 20px;" />
-                <p style="margin:0;font-size:15px;font-weight:600;color:#334155;">${safeSenderName}</p>
-                <p style="margin:3px 0 0;font-size:13px;color:#64748b;">${safeSenderRole} · <a href="mailto:connect@scholarbase.app" style="color:#64748b;text-decoration:none;">connect@scholarbase.app</a></p>
-              </td>
-            </tr>
-            <tr>
-              <td class="sb-email-footer" style="padding:18px 32px;background:#f3f5f8;text-align:center;font-size:11px;color:#5b6577;">${safeFooterText}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+  <body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#111827;line-height:1.6;">
+    <div style="max-width:640px;margin:0 auto;padding:24px 20px;font-size:15px;">
+      <p style="margin:0 0 16px;">${safeGreeting} ${safeName},</p>
+      <p style="margin:0 0 16px;"><strong>${safeHeadline}</strong></p>
+      <div style="margin:0 0 18px;">${safeBody}</div>
+      <p style="margin:0 0 18px;">${safeCtaLabel}: <a href="${safeInviteUrl}" target="_blank" rel="noreferrer" style="color:#1d4ed8;word-break:break-all;">${safeInviteUrl}</a></p>
+      <p style="margin:0 0 2px;">Best regards,</p>
+      <p style="margin:0;">${safeSenderName}</p>
+      <p style="margin:0 0 24px;">${safeSenderRole}<br /><a href="mailto:invitations@scholarbase.app" style="color:#1d4ed8;text-decoration:none;">invitations@scholarbase.app</a></p>
+      <p style="margin:0;border-top:1px solid #e5e7eb;padding-top:14px;font-size:12px;color:#6b7280;">${safeFooterText}</p>
+    </div>
   </body>
 </html>`;
 }

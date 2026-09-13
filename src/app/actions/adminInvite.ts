@@ -107,6 +107,18 @@ export async function sendAdminScholarInviteAction(
   }
 
   if (!isTestSend) {
+    const unsubscribed = await prisma.outreachEmailUnsubscribe.findUnique({
+      where: { email: scholarEmail },
+      select: { id: true },
+    });
+
+    if (unsubscribed) {
+      return {
+        success: false,
+        error: "This scholar has opted out of ScholarBase outreach emails.",
+      };
+    }
+
     const existingUser = await prisma.user.findFirst({
       where: { email: scholarEmail, isDeleted: false },
       select: { handle: true },

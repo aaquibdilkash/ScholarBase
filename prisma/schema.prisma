@@ -122,18 +122,18 @@ enum DigestPreference {
 }
 
 model Article {
-  id        String    @id @default(cuid())
-  title     String
-  slug      String    @unique
-  excerpt   String?
-  content   String
-  published Boolean   @default(false)
-  isFrozen  Boolean   @default(false)
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  excerpt         String?
+  content         String
+  published       Boolean   @default(false)
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
-  authorId  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  editedAt  DateTime?
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -154,15 +154,15 @@ model Article {
 }
 
 model Supervisor {
-  id         String    @id @default(cuid())
-  name       String
-  university String
-  department String
-  about      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  editedAt   DateTime?
-  isFrozen   Boolean   @default(false)
+  id              String    @id @default(cuid())
+  name            String
+  university      String
+  department      String
+  about           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   // Creator/owner of this supervisor profile
@@ -192,15 +192,15 @@ model Supervisor {
 }
 
 model SocialPost {
-  id        String    @id @default(cuid())
-  content   String
-  imageUrl  String?
-  imageUrls String[]
-  authorId  String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  editedAt  DateTime?
-  isFrozen  Boolean   @default(false)
+  id              String    @id @default(cuid())
+  content         String
+  imageUrl        String?
+  imageUrls       String[]
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -233,18 +233,18 @@ model ArticleComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   article  Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  author   User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent   ArticleComment?      @relation("ArticleReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  ArticleComment[]     @relation("ArticleReplies")
   votes    ArticleCommentVote[]
@@ -275,17 +275,17 @@ model SocialComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
-  author     User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author     User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent     SocialComment?      @relation("SocialReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies    SocialComment[]     @relation("SocialReplies")
   socialPost SocialPost          @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
@@ -389,29 +389,29 @@ model InstitutionDomainRequest {
 }
 
 model Appeal {
-  id          String       @id @default(cuid())
-  entityId    String
+  id           String       @id @default(cuid())
+  entityId     String
   // Coarse entity category ("feed", "blog", "socialComment", ...) — matches the
   // contentType string used by resolveDelegate / MODULE_TO_CONTENT_TYPE.
-  entityType  String
+  entityType   String
   // Where the appeal originated (same module values as Report).
-  module      String
+  module       String
   // Structured appeal category selected by the author — mirrors the
   // APPEAL_CATEGORIES list in src/lib/constants.ts (symmetric with
   // Report.category: ReportReason).
-  category    AppealReason @default(OTHER)
+  category     AppealReason @default(OTHER)
   // Optional free-text elaboration (symmetric with Report.details).
-  details     String?      @db.Text
-  status      AppealStatus @default(PENDING)
-  ownerId     String
+  details      String?      @db.Text
+  status       AppealStatus @default(PENDING)
+  ownerId      String
   // Admin who reviewed the appeal — set on DISMISS / ACTIONED.
   reviewedById String?
-  reviewedAt  DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  owner       User         @relation("AppealOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  reviewedBy  User?        @relation("AppealReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  owner      User  @relation("AppealOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("AppealReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([entityId, status])
   @@index([status])
@@ -449,16 +449,16 @@ model Report {
 }
 
 model HelpPost {
-  id        String    @id @default(cuid())
-  title     String
-  subject   String
-  category  String
-  message   String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  editedAt  DateTime?
-  authorId  String
-  isFrozen  Boolean   @default(false)
+  id              String    @id @default(cuid())
+  title           String
+  subject         String
+  category        String
+  message         String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  authorId        String
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -503,18 +503,18 @@ model HelpPostComment {
   editedAt   DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
-  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  HelpPostComment?  @relation("HelpPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies HelpPostComment[] @relation("HelpPostReplies")
@@ -553,7 +553,7 @@ model Contribution {
   updatedAt       DateTime           @updatedAt
   editedAt        DateTime?
   isFrozen        Boolean            @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal Boolean            @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -597,18 +597,18 @@ model ContributionComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   contribution Contribution              @relation(fields: [contributionId], references: [id], onDelete: Cascade)
-  author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent       ContributionComment?      @relation("ContributionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      ContributionComment[]     @relation("ContributionReplies")
   votes        ContributionCommentVote[]
@@ -648,7 +648,7 @@ model Publication {
   abstract            String?
   isUserAuthor        Boolean         @default(false)
   isFrozen            Boolean         @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal     Boolean         @default(false)
   authorId            String
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
@@ -694,18 +694,18 @@ model PublicationComment {
   editedAt      DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  author      User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author      User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent      PublicationComment?      @relation("PublicationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies     PublicationComment[]     @relation("PublicationReplies")
   votes       PublicationCommentVote[]
@@ -739,57 +739,57 @@ model User {
   helpPostComments     HelpPostComment[]
   helpPostCommentVotes HelpPostCommentVote[]
 
-  email            String    @unique
-  institutionEmail String?   @unique
-  institutionDomain String?
-  institutionVerifiedAt DateTime?
-  pendingInstitutionEmail String?
-  pendingInstitutionDomain String?
-  institutionVerificationTokenHash String? @unique
+  email                            String    @unique
+  institutionEmail                 String?   @unique
+  institutionDomain                String?
+  institutionVerifiedAt            DateTime?
+  pendingInstitutionEmail          String?
+  pendingInstitutionDomain         String?
+  institutionVerificationTokenHash String?   @unique
   institutionVerificationExpiresAt DateTime?
-  name             String?
-  avatarUrl        String?
-  handle           String?   @unique
-  bio              String?
-  githubUrl        String?
-  orcidUrl         String?
-  linkedinUrl      String?
-  googleScholarUrl String?
-  reputation       Int       @default(0)
-  isAdmin          Boolean   @default(false)
-  isFrozen         Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  editedAt         DateTime?
+  name                             String?
+  avatarUrl                        String?
+  handle                           String?   @unique
+  bio                              String?
+  githubUrl                        String?
+  orcidUrl                         String?
+  linkedinUrl                      String?
+  googleScholarUrl                 String?
+  reputation                       Int       @default(0)
+  isAdmin                          Boolean   @default(false)
+  isFrozen                         Boolean   @default(false)
+  hasActiveAppeal                  Boolean   @default(false)
+  createdAt                        DateTime  @default(now())
+  updatedAt                        DateTime  @updatedAt
+  editedAt                         DateTime?
 
   // ZERO-COMPUTE COUNTERS & LOG
-  followersCount Int            @default(0)
-  followingCount Int            @default(0)
-  isDeleted      Boolean        @default(false)
-  deletedByType  DeletedByType?
-  deletedById    String?
-  reportCount    Int            @default(0)
-  activities     UserActivity[]
+  followersCount                    Int                        @default(0)
+  followingCount                    Int                        @default(0)
+  isDeleted                         Boolean                    @default(false)
+  deletedByType                     DeletedByType?
+  deletedById                       String?
+  reportCount                       Int                        @default(0)
+  activities                        UserActivity[]
   institutionDomainRequestsReviewed InstitutionDomainRequest[] @relation("InstitutionDomainRequestReviewer")
 
-  articleCount        Int @default(0)
-  socialPostCount     Int @default(0)
-  jobVacancyCount     Int @default(0)
-  phdAdmissionCount   Int @default(0)
-  researchEventCount  Int @default(0)
-  helpPostCount       Int @default(0)
-  journalCount        Int @default(0)
-  researchToolCount   Int @default(0)
-  recommendationCount Int @default(0)
-  supervisorCount     Int @default(0)
-  resultCount         Int @default(0)
-  contributionCount   Int @default(0)
-  publicationCount    Int @default(0)
-   surveyCount         Int @default(0)
+  articleCount             Int @default(0)
+  socialPostCount          Int @default(0)
+  jobVacancyCount          Int @default(0)
+  phdAdmissionCount        Int @default(0)
+  researchEventCount       Int @default(0)
+  helpPostCount            Int @default(0)
+  journalCount             Int @default(0)
+  researchToolCount        Int @default(0)
+  recommendationCount      Int @default(0)
+  supervisorCount          Int @default(0)
+  resultCount              Int @default(0)
+  contributionCount        Int @default(0)
+  publicationCount         Int @default(0)
+  surveyCount              Int @default(0)
   surveyParticipationCount Int @default(0)
-  researchGrantCount  Int @default(0)
-  courseCount         Int @default(0)
+  researchGrantCount       Int @default(0)
+  courseCount              Int @default(0)
 
   articles            Article[]
   articleComments     ArticleComment[]
@@ -880,8 +880,8 @@ model User {
   messagesSent             Message[]
 
   // Appeals — owner-filed appeals on their frozen/deleted content
-  appeals          Appeal[] @relation("AppealOwner")
-  appealsReviewed  Appeal[] @relation("AppealReviewer")
+  appeals         Appeal[] @relation("AppealOwner")
+  appealsReviewed Appeal[] @relation("AppealReviewer")
 
   trendingScore Float @default(0)
 
@@ -890,6 +890,15 @@ model User {
   // indexes on these columns, so every listing triggered a full-table filesort.
   @@index([trendingScore(sort: Desc)])
   @@index([reputation(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+model OutreachEmailUnsubscribe {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([createdAt(sort: Desc)])
 }
 
@@ -951,23 +960,23 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String        @id @default(cuid())
+  id             String    @id @default(cuid())
   conversationId String
   senderId       String
   body           String
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   editedAt       DateTime?
   isDeleted      Boolean?
   readAt         DateTime?
 
   // QUOTE / REPLY RELATION
-  replyToId      String?
-  replyTo        Message?      @relation("MessageQuotes", fields: [replyToId], references: [id], onDelete: SetNull)
-  replies        Message[]     @relation("MessageQuotes")
+  replyToId String?
+  replyTo   Message?  @relation("MessageQuotes", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   Message[] @relation("MessageQuotes")
 
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt(sort: Desc)])
   @@index([senderId, createdAt])
@@ -976,16 +985,16 @@ model Message {
 }
 
 model ResearchTool {
-  id          String    @id @default(cuid())
-  name        String
-  website     String
-  use         String
-  description String
-  authorId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  editedAt    DateTime?
-  isFrozen    Boolean   @default(false)
+  id              String    @id @default(cuid())
+  name            String
+  website         String
+  use             String
+  description     String
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -1028,18 +1037,18 @@ model ResearchToolComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   researchTool ResearchTool              @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
-  author       User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent       ResearchToolComment?      @relation("ResearchToolReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies      ResearchToolComment[]     @relation("ResearchToolReplies")
   votes        ResearchToolCommentVote[]
@@ -1061,17 +1070,17 @@ model ResearchToolCommentVote {
 }
 
 model ResearchGrant {
-  id          String    @id @default(cuid())
-  title       String
-  amount      String?
-  description String
-  applyLink   String?
-  infoLink    String?
-  authorId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  editedAt    DateTime?
-  isFrozen    Boolean   @default(false)
+  id              String    @id @default(cuid())
+  title           String
+  amount          String?
+  description     String
+  applyLink       String?
+  infoLink        String?
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -1114,18 +1123,18 @@ model ResearchGrantComment {
   editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   researchGrant ResearchGrant              @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
-  author        User                      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author        User                       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent        ResearchGrantComment?      @relation("ResearchGrantReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies       ResearchGrantComment[]     @relation("ResearchGrantReplies")
   votes         ResearchGrantCommentVote[]
@@ -1147,21 +1156,21 @@ model ResearchGrantCommentVote {
 }
 
 model Course {
-  id          String    @id @default(cuid())
-  title       String
-  provider    String?
-  instructor  String?
-  format      String?
-  level       String?
-  price       String?
-  duration    String?
-  link        String
-  description String
-  authorId    String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  editedAt    DateTime?
-  isFrozen    Boolean   @default(false)
+  id              String    @id @default(cuid())
+  title           String
+  provider        String?
+  instructor      String?
+  format          String?
+  level           String?
+  price           String?
+  duration        String?
+  link            String
+  description     String
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
@@ -1204,18 +1213,18 @@ model CourseComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   course   Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  author   User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent   CourseComment?      @relation("CourseReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  CourseComment[]     @relation("CourseReplies")
   votes    CourseCommentVote[]
@@ -1237,24 +1246,24 @@ model CourseCommentVote {
 }
 
 model Journal {
-  id             String    @id @default(cuid())
-  title          String
-  issn           String?
-  impactFactor   Float?
-  scopusQuartile Quartile  @default(NONE)
-  abdcRanking    AbdcTier  @default(NONE)
-  wosIndex       WosIndex  @default(NONE)
-  wosQuartile    Quartile  @default(NONE)
-  sjrQuartile    Quartile  @default(NONE)
-  sjrScore       Float?
-  citeScore      Float?
-  publisher      String?
-  website        String?
-  authorId       String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  editedAt       DateTime?
-  isFrozen       Boolean   @default(false)
+  id              String    @id @default(cuid())
+  title           String
+  issn            String?
+  impactFactor    Float?
+  scopusQuartile  Quartile  @default(NONE)
+  abdcRanking     AbdcTier  @default(NONE)
+  wosIndex        WosIndex  @default(NONE)
+  wosQuartile     Quartile  @default(NONE)
+  sjrQuartile     Quartile  @default(NONE)
+  sjrScore        Float?
+  citeScore       Float?
+  publisher       String?
+  website         String?
+  authorId        String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
 
   subjectArea String?
@@ -1302,18 +1311,18 @@ model JournalComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   journal  Journal              @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  author   User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent   JournalComment?      @relation("JournalReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  JournalComment[]     @relation("JournalReplies")
   votes    JournalCommentVote[]
@@ -1349,7 +1358,7 @@ model Result {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1392,18 +1401,18 @@ model ResultComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
-  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  ResultComment?  @relation("ResultReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResultComment[] @relation("ResultReplies")
@@ -1427,18 +1436,18 @@ model ResultCommentVote {
 }
 
 model ResearchSurvey {
-  id          String        @id @default(cuid())
-  title       String
-  description String?
-  privacy     SurveyPrivacy @default(HYBRID)
-  status      SurveyStatus  @default(OPEN)
-  shareData   Boolean       @default(false)
-  authorId    String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  editedAt    DateTime?
-  isFrozen    Boolean       @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  privacy         SurveyPrivacy @default(HYBRID)
+  status          SurveyStatus  @default(OPEN)
+  shareData       Boolean       @default(false)
+  authorId        String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  editedAt        DateTime?
+  isFrozen        Boolean       @default(false)
+  hasActiveAppeal Boolean       @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int            @default(0)
@@ -1453,7 +1462,7 @@ model ResearchSurvey {
   // IRB CONSENT GATE: when required, respondents must accept the terms
   // before the first question is shown. The accepted timestamp is stored on
   // SurveyResponse.consentedAt as the auditable record.
-  consentRequired Boolean      @default(false)
+  consentRequired Boolean @default(false)
   consentText     String?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -1470,32 +1479,32 @@ model ResearchSurvey {
 }
 
 model SurveyBlock {
-  id            String  @id @default(cuid())
-  surveyId      String
-  title         String
-  order         Int
+  id             String   @id @default(cuid())
+  surveyId       String
+  title          String
+  order          Int
   // Randomize question order within this block per respondent.
-  randomizeOrder Boolean @default(false)
-  createdAt     DateTime @default(now())
+  randomizeOrder Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  survey    ResearchSurvey  @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  survey    ResearchSurvey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   questions SurveyQuestion[]
 
   @@index([surveyId, order(sort: Asc)])
 }
 
 model SurveyQuestion {
-  id         String                 @id @default(cuid())
+  id         String             @id @default(cuid())
   surveyId   String
   type       SurveyQuestionType
   title      String
-  required   Boolean                @default(false)
+  required   Boolean            @default(false)
   order      Int
   minValue   Int?
   maxValue   Int?
   archivedAt DateTime?
-  createdAt  DateTime               @default(now())
-  updatedAt  DateTime               @updatedAt
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
   editedAt   DateTime?
 
   // ORDER-BIAS CONTROL: shuffle choice options per respondent (seed stored
@@ -1515,10 +1524,10 @@ model SurveyQuestion {
   columnLabels Json?
 
   blockId String?
-  block   SurveyBlock? @relation(fields: [blockId], references: [id], onDelete: SetNull)
-  survey     ResearchSurvey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  options    SurveyQuestionOption[]
-  answers    SurveyAnswer[]
+  block   SurveyBlock?           @relation(fields: [blockId], references: [id], onDelete: SetNull)
+  survey  ResearchSurvey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  options SurveyQuestionOption[]
+  answers SurveyAnswer[]
 
   // ZERO-COMPUTE FIELDS
   totalAnswers Int @default(0)
@@ -1542,12 +1551,12 @@ model SurveyQuestionOption {
 }
 
 model SurveyResponse {
-  id           String         @id @default(cuid())
+  id           String    @id @default(cuid())
   surveyId     String
   respondentId String?
-  isAnonymous  Boolean        @default(false)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  isAnonymous  Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
   editedAt     DateTime?
 
   // IRB AUDIT TRAIL: when the survey has a consent gate, the moment the
@@ -1557,15 +1566,15 @@ model SurveyResponse {
   // RESPONSE QUALITY METADATA: startedAt defaults to creation; completedAt
   // is stamped on submit so completion duration is derivable for screening
   // careless responses.
-  startedAt   DateTime   @default(now())
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
 
   // Seed used for option/block shuffling so the exact order a respondent
   // saw is reconstructible at analysis time.
   randomizationSeed Int?
-  survey       ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  respondent   User?          @relation(fields: [respondentId], references: [id], onDelete: Cascade)
-  answers      SurveyAnswer[]
+  survey            ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  respondent        User?          @relation(fields: [respondentId], references: [id], onDelete: Cascade)
+  answers           SurveyAnswer[]
 
   // INDEX: hasUserResponded + submitSurveyResponse duplicate guard
   @@index([surveyId, respondentId])
@@ -1607,18 +1616,18 @@ model SurveyComment {
   editedAt  DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   survey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
-  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  SurveyComment?  @relation("SurveyReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies SurveyComment[] @relation("SurveyReplies")
@@ -1681,7 +1690,7 @@ model ResearchEvent {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1724,18 +1733,18 @@ model ResearchEventComment {
   editedAt        DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  author        User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  ResearchEventComment?  @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies ResearchEventComment[] @relation("ResearchEventReplies")
@@ -1771,7 +1780,7 @@ model PhdAdmission {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1814,18 +1823,18 @@ model PhdAdmissionComment {
   editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  author       User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  PhdAdmissionComment?  @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
@@ -1861,7 +1870,7 @@ model JobVacancy {
   editedAt         DateTime?
   authorId         String
   isFrozen         Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -1904,18 +1913,18 @@ model JobVacancyComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   parent  JobVacancyComment?  @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies JobVacancyComment[] @relation("JobVacancyReplies")
@@ -1960,18 +1969,18 @@ model SupervisorComment {
   editedAt     DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author     User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author     User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent     SupervisorComment?      @relation("SupervisorReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies    SupervisorComment[]     @relation("SupervisorReplies")
   votes      SupervisorCommentVote[]
@@ -2006,7 +2015,7 @@ model Recommendation {
   updatedAt           DateTime  @updatedAt
   editedAt            DateTime?
   isFrozen            Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  hasActiveAppeal     Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes    Int            @default(0)
@@ -2058,18 +2067,18 @@ model RecommendationComment {
   editedAt         DateTime?
 
   // TOMBSTONING & COUNTERS
-  authorId      String
-  totalVotes    Int            @default(0)
-  totalReplies  Int            @default(0)
-  reportCount   Int            @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  isFrozen      Boolean        @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
 
   recommendation Recommendation              @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
-  author         User                       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author         User                        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parent         RecommendationComment?      @relation("RecommendationReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies        RecommendationComment[]     @relation("RecommendationReplies")
   votes          RecommendationCommentVote[]
@@ -2089,7 +2098,6 @@ model RecommendationCommentVote {
 
   @@unique([commentId, userId])
 }
-
 
 model OrphanedAsset {
   id        String   @id @default(cuid())

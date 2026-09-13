@@ -45,14 +45,14 @@ const INITIAL_DRAFT: InviteDraft = {
   scholarEmail: "",
   university: "",
   department: "",
-  subject: "Only For Scholars: A Transparent Introduction to ScholarBase",
-  greeting: "Greetings",
-  headline: "A Quiet Workspace for the Noisy Academic Life",
-  body: "We're writing to introduce ScholarBase, an academic community we’re building for doctoral researchers and faculty.\n\nIt includes research surveys designed specifically for scholars, spaces to discuss research and supervisor experiences, and a growing collection of research tools and academic resources. If that sounds relevant to your work, you’re welcome to take a look.",
-  ctaLabel: "Visit ScholarBase",
-  senderName: "ScholarBase",
-  senderRole: "ScholarBase Team",
-  footerText: "If you would prefer not to receive further notes, simply reply and let us know.",
+  subject: "A note from ScholarBase",
+  greeting: "Hello",
+  headline: "I wanted to introduce ScholarBase",
+  body: "I'm writing to introduce ScholarBase, an academic community we're building for doctoral researchers and faculty.\n\nIt includes research surveys designed specifically for scholars, spaces to discuss research and supervisor experiences, and a growing collection of research tools and academic resources. If that sounds relevant to your work, you're welcome to take a look.",
+  ctaLabel: "ScholarBase",
+  senderName: "Outreach Team",
+  senderRole: "ScholarBase",
+  footerText: "If you would prefer not to receive further notes from ScholarBase, simply reply or use the unsubscribe option in your email app.",
 };
 
 const previewUrl = (
@@ -237,11 +237,11 @@ export function AdminInviteScholarForm() {
               <label className="space-y-2"><FieldLabel optional>Department</FieldLabel><input type="text" value={draft.department} onChange={(event) => updateField("department", event.target.value)} placeholder="e.g. PhD Research" maxLength={200} className={inputClassName} /></label>
             </div>
 
-            <label className="block space-y-2"><FieldHeader label="Subject line" showDefault={!draft.subject.trim()} onUseDefault={() => applyDefault("subject")} /><input type="text" value={draft.subject} onChange={(event) => updateField("subject", event.target.value)} placeholder="A Quiet Workspace for the Noisy Academic Life" maxLength={150} className={inputClassName} /></label>
+            <label className="block space-y-2"><FieldHeader label="Subject line" showDefault={!draft.subject.trim()} onUseDefault={() => applyDefault("subject")} /><input type="text" value={draft.subject} onChange={(event) => updateField("subject", event.target.value)} placeholder="A note from ScholarBase" maxLength={150} className={inputClassName} /></label>
 
             <div className="grid gap-4 sm:grid-cols-[110px_1fr]">
               <label className="space-y-2"><FieldHeader label="Greeting" showDefault={!draft.greeting.trim()} onUseDefault={() => applyDefault("greeting")} /><input type="text" value={draft.greeting} onChange={(event) => updateField("greeting", event.target.value)} placeholder="Hello" maxLength={50} className={inputClassName} /></label>
-              <label className="space-y-2"><FieldHeader label="Email headline" showDefault={!draft.headline.trim()} onUseDefault={() => applyDefault("headline")} /><input type="text" value={draft.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="A Quiet Workspace for the Noisy Academic Life" maxLength={150} className={inputClassName} /></label>
+              <label className="space-y-2"><FieldHeader label="Email headline" showDefault={!draft.headline.trim()} onUseDefault={() => applyDefault("headline")} /><input type="text" value={draft.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="I wanted to introduce ScholarBase" maxLength={150} className={inputClassName} /></label>
             </div>
 
             <label className="block space-y-2"><div className="flex items-center justify-between gap-3"><FieldHeader label="Email body" showDefault={!draft.body.trim()} onUseDefault={() => applyDefault("body")} /><span className="text-[11px] text-slate-400">{draft.body.length}/8,000</span></div><textarea rows={9} value={draft.body} onChange={(event) => updateField("body", event.target.value)} placeholder="Write the complete message here..." maxLength={8000} className={`${inputClassName} resize-y leading-6`} /></label>
@@ -267,7 +267,7 @@ export function AdminInviteScholarForm() {
 
         <section className={`${activeTab === "compose" ? "hidden lg:flex" : "flex"} h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6"><div><h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Live email preview</h3><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Review the exact email before it leaves ScholarBase.</p></div><span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400 sm:inline-flex">Gmail-style</span></div>
-          <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs dark:border-slate-800 dark:bg-slate-950/70 sm:px-6"><div className="space-y-1"><div><span className="text-slate-400">From:</span> <span className="font-medium text-slate-700 dark:text-slate-200">ScholarBase &lt;connect@scholarbase.app&gt;</span></div><div><span className="text-slate-400">To:</span> <span className="font-medium text-slate-700 dark:text-slate-200">{draft.scholarEmail || "recipient@university.edu"}</span></div><div><span className="text-slate-400">Subject:</span> <span className="font-medium text-slate-700 dark:text-slate-200">{draft.subject || "Only For Scholars: A Transparent Introduction to ScholarBase"}</span></div></div></div>
+          <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs dark:border-slate-800 dark:bg-slate-950/70 sm:px-6"><div className="space-y-1"><div><span className="text-slate-400">From:</span> <span className="font-medium text-slate-700 dark:text-slate-200">ScholarBase &lt;invitations@scholarbase.app&gt;</span></div><div><span className="text-slate-400">To:</span> <span className="font-medium text-slate-700 dark:text-slate-200">{draft.scholarEmail || "recipient@university.edu"}</span></div><div><span className="text-slate-400">Subject:</span> <span className="font-medium text-slate-700 dark:text-slate-200">{draft.subject || "A note from ScholarBase"}</span></div></div></div>
           <div className="min-h-[740px] flex-1 bg-slate-100 p-2 dark:bg-slate-950 sm:p-4"><iframe title="ScholarBase outreach email preview" srcDoc={previewHtml} sandbox="" className="h-full min-h-[724px] w-full rounded-lg border-0 bg-white shadow-sm" /></div>
         </section>
       </div>

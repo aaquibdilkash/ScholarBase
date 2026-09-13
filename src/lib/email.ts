@@ -9,6 +9,7 @@ import {
     generateScholarInvitePlainText,
     type ScholarInviteEmailProps,
 } from '@/lib/emails/scholarInvite';
+import { getOutreachUnsubscribeUrl } from '@/lib/emails/outreachUnsubscribe';
 import {
     renderScholarBaseCompactHeader,
     renderScholarBaseResponsiveStyles,
@@ -112,15 +113,22 @@ export async function sendScholarOutreachEmail({
     recipientEmail: string;
     isTestSend?: boolean;
 }) {
+    const unsubscribeUrl = getOutreachUnsubscribeUrl(recipientEmail);
+
     try {
         const { data, error } = await resend.emails.send({
             from: 'ScholarBase <invitations@scholarbase.app>',
             to: [recipientEmail],
+            replyTo: 'invitations@scholarbase.app',
             subject: isTestSend
                 ? `[TEST] ${emailProps.subject}`
                 : emailProps.subject,
             html: generateScholarInviteHtml(emailProps),
             text: generateScholarInvitePlainText(emailProps),
+            headers: {
+                'List-Unsubscribe': `<${unsubscribeUrl}>`,
+                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
         });
 
         if (error) {
