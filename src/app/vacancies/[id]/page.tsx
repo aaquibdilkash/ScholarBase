@@ -49,7 +49,7 @@ const VacancyDetailPage = async ({
   }
 
   const userVote =
-    (vacancy.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (vacancy.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (

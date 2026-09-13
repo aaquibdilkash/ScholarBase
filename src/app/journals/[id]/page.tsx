@@ -51,7 +51,7 @@ const JournalDetailPage = async ({
 
   const j = journal;
   const userVote =
-    (j.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (j.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {

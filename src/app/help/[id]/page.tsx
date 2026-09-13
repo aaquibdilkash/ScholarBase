@@ -45,7 +45,7 @@ export default async function HelpPostPage({
   }
 
   const userVote =
-    (post.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (post.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   // Define the delete action outside the JSX

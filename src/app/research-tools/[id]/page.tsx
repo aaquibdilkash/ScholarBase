@@ -45,7 +45,7 @@ const ResearchToolDetailPage = async ({
   }
 
   const userVote =
-    (tool.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (tool.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   // Define the delete action outside of the JSX

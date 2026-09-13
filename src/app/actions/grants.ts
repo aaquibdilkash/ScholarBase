@@ -14,6 +14,7 @@ import {
   COMMENT_PAGE_SIZE,
   MAX_RESEARCH_GRANT_DESCRIPTION,
 } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function createResearchGrant(formData: FormData) {
   const user = await requireActiveUser(
@@ -257,7 +258,7 @@ export const getResearchGrantById = cache(
           ? { where: { userId }, select: { voteType: true } }
           : false,
         comments: {
-          where: { parentId: null, isDeleted: false },
+          where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
           take: COMMENT_PAGE_SIZE + 1,

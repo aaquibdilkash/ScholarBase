@@ -66,7 +66,7 @@ const PublicationDetailPage = async ({
 
   const p = publication;
   const userVote =
-    (p.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (p.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {

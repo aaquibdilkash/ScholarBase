@@ -8,6 +8,7 @@ import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin } from "@/li
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function getSupervisors(
   q?: string,
@@ -121,7 +122,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
         },
       },
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,
         select: {

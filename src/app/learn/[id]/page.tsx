@@ -54,7 +54,7 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const userVote =
-    course.votes?.find((v) => v.userId === user?.id)?.voteType ?? null;
+    course.votes?.[0]?.voteType ?? null;
   const details = [
     ["Provider", course.provider],
     ["Instructor", course.instructor],

@@ -26,7 +26,7 @@ export function SupervisorCard({
     recommendationCount > 0 ? (supervisor.ratingSum ?? 0) / recommendationCount : 0;
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    (supervisor.votes || []).find((v: { userId?: string; voteType?: string }) => v.userId === currentUserId)?.voteType ?? null;
+    (supervisor.votes || [])[0]?.voteType ?? null;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
 
   return (

@@ -54,7 +54,7 @@ const ResultDetailPage = async ({
   };
 
   const userVote =
-    (result.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (result.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (

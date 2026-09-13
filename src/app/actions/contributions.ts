@@ -14,6 +14,7 @@ import {
 } from "@/lib/cloudinary";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function getContributions(
   q?: string,
@@ -99,7 +100,7 @@ export const getContribution = cache(async (id: string, userId?: string) => {
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,

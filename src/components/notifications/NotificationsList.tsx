@@ -26,14 +26,18 @@ type NotificationWithActor = Notification & {
 function typeLabel(type: string) {
   switch (type) {
     case "content-upvoted":
+    case "NEW_VOTE":
       return "Upvote";
     case "content-published":
       return "New post";
     case "comment-created":
+    case "NEW_COMMENT":
       return "Comment";
     case "reply-created":
+    case "NEW_REPLY":
       return "Reply";
     case "follow":
+    case "NEW_FOLLOWER":
       return "Follow";
     case "mention":
       return "Mention";

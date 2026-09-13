@@ -50,7 +50,7 @@ const EventDetailPage = async ({
   }
 
   const userVote =
-    (event.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (event.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (

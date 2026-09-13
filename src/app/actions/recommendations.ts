@@ -9,6 +9,7 @@ import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -47,7 +48,7 @@ export const getRecommendation = cache(
           ? { where: { userId }, select: { voteType: true } }
           : false,
         comments: {
-          where: { parentId: null, isDeleted: false },
+          where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
           orderBy: { createdAt: "desc" },
           take: COMMENT_PAGE_SIZE + 1,

@@ -26,7 +26,7 @@ export default function Loading() {
           {/* Title skeleton */}
           <div className="h-9 w-48 animate-pulse rounded bg-slate-200 dark:bg-slate-700 sm:h-10 sm:w-56" />
           {/* Description skeleton */}
-          <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-700 sm:mt-2 sm:w-2/3" />
+          <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-600 sm:mt-2 sm:w-2/3" />
         </div>
         {/* Add button skeleton */}
         <div className="h-10 w-full animate-pulse rounded-xl bg-slate-950 dark:bg-slate-100 sm:w-auto sm:max-w-[160px]" />
@@ -34,8 +34,10 @@ export default function Loading() {
 
       {/* ── Tabs skeleton ── */}
       <div className="mb-8 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:inline-flex sm:w-auto sm:gap-0">
+        {/* Active tab skeleton */}
         <div className="h-9 w-20 animate-pulse rounded-xl bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950 sm:border-sm" />
-        <div className="h-9 w-20 animate-pulse rounded-xl bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 sm:border-sm" />
+        {/* Inactive tab skeleton */}
+        <div className="h-9 w-20 animate-pulse rounded-xl bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-slate-100 sm:border-sm" />
       </div>
 
       {/* ── Card list skeleton ── */}

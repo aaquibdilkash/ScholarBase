@@ -49,7 +49,7 @@ export default async function SinglePostPage({
 
   const p = post;
   const userVote =
-    (p.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (p.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {

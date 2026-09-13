@@ -13,6 +13,7 @@ import {
   notifyMentionedUsers,
 } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function getArticles(
   q?: string,
@@ -100,7 +101,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         orderBy: { createdAt: "desc" },
         take: COMMENT_PAGE_SIZE + 1,

@@ -23,7 +23,7 @@ export function ResearchToolCard({
   const isOwner = currentUserId === tool.authorId;
   const isFollowing = (tool.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    ((tool.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
+    (tool.votes || [])[0]?.voteType ?? null;
 
   return (
     <ListPageCardShell

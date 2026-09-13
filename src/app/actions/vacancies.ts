@@ -11,6 +11,7 @@ import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function getVacancies(
   q?: string,
@@ -107,7 +108,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
         },
       },
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {

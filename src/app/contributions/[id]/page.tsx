@@ -55,7 +55,7 @@ const ContributionDetailPage = async ({
   }
 
   const userVote =
-    (contribution.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (contribution.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const handleDelete = async () => {

@@ -10,6 +10,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function getHelpPosts(
   q?: string,
@@ -104,7 +105,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {

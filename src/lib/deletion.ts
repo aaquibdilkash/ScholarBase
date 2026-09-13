@@ -5,12 +5,12 @@ import { isUserAdmin } from "@/lib/auth";
 // Permission resolution for soft deletes (deletedByType tracking).
 //
 // Hierarchy:
-//   1. ADMIN                 — moderators can delete anything
-//   2. AUTHOR                — the original author deletes their own content
-//   3. POST_AUTHOR           — the root post author deletes any comment/reply
+//   1. AUTHOR                — the original author deletes their own content
+//   2. POST_AUTHOR           — the root post author deletes any comment/reply
 //                              on their post
-//   4. PARENT_COMMENT_AUTHOR — the parent comment author deletes a child
+//   3. PARENT_COMMENT_AUTHOR — the parent comment author deletes a child
 //                              reply nested under their comment
+//   4. ADMIN                 — moderators can delete anything else
 // Everything else is unauthorized.
 // ============================================================================
 
@@ -18,8 +18,8 @@ export async function resolvePostDeletePermission(
   userId: string,
   authorId: string | null,
 ): Promise<DeletedByType> {
-  if (await isUserAdmin(userId)) return DeletedByType.ADMIN;
   if (authorId !== null && userId === authorId) return DeletedByType.AUTHOR;
+  if (await isUserAdmin(userId)) return DeletedByType.ADMIN;
   throw new Error("You do not have permission to delete this post.");
 }
 
@@ -39,8 +39,6 @@ export async function resolveCommentDeletePermission(
   // compatible for any external caller).
   isAdminOverride?: boolean,
 ): Promise<DeletedByType> {
-  const isAdmin = isAdminOverride ?? (await isUserAdmin(userId));
-  if (isAdmin) return DeletedByType.ADMIN;
   if (opts.commentAuthorId !== null && userId === opts.commentAuthorId) {
     return DeletedByType.AUTHOR;
   }
@@ -50,5 +48,7 @@ export async function resolveCommentDeletePermission(
   if (opts.isReply && userId === opts.parentCommentAuthorId) {
     return DeletedByType.PARENT_COMMENT_AUTHOR;
   }
+  const isAdmin = isAdminOverride ?? (await isUserAdmin(userId));
+  if (isAdmin) return DeletedByType.ADMIN;
   throw new Error("You do not have permission to delete this comment.");
 }

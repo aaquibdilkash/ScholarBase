@@ -23,7 +23,7 @@ export function ResearchGrantCard({
   const isOwner = currentUserId === grant.authorId;
   const isFollowing = (grant.author?.followers?.length ?? 0) > 0;
   const userVote =
-    ((grant.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
+    (grant.votes || [])[0]?.voteType ?? null;
 
   return (
     <ListPageCardShell

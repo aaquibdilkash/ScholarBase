@@ -69,7 +69,7 @@ export default async function SupervisorPage({
   }
 
   const userVote =
-    (supervisor.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (supervisor.votes?.[0]?.voteType as
       | "UPVOTE"
       | "DOWNVOTE"
       | null) ?? null;

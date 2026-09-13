@@ -11,6 +11,7 @@ import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from 
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function createPublication(formData: FormData) {
   const user = await requireActiveUser(
@@ -331,7 +332,7 @@ export const getPublicationById = cache(
           ? { where: { userId }, select: { voteType: true } }
           : false,
         comments: {
-          where: { parentId: null, isDeleted: false },
+          where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
           take: COMMENT_PAGE_SIZE + 1,

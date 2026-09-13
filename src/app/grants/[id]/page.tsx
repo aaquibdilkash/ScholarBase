@@ -54,7 +54,7 @@ export default async function ResearchGrantDetailPage({
   if (!grant) notFound();
 
   const userVote =
-    grant.votes?.find((v) => v.userId === user?.id)?.voteType ?? null;
+    grant.votes?.[0]?.voteType ?? null;
 
   async function handleDelete() {
     "use server";

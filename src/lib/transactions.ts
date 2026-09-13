@@ -20,6 +20,14 @@ type AnyDelegate = {
   updateMany: (args: any) => Promise<any>
 }
 
+function formatCommentActivityTitle(entityTitle: string, content: string) {
+  const title = entityTitle.replace(/\s+/g, ' ').trim() || 'Untitled'
+  const snippet = content.replace(/\s+/g, ' ').trim()
+
+  if (!snippet) return title
+  return `${title} - ${snippet}`
+}
+
 // Transaction options to avoid serverless latency timeouts
 export const TRANSACTION_OPTIONS = {
   maxWait: 5000,
@@ -565,7 +573,7 @@ export async function createCommentTransaction(
         action: parentId ? 'REPLIED' : 'COMMENTED',
         moduleType: moduleName,
         entityId,
-        entityTitle,
+        entityTitle: formatCommentActivityTitle(entityTitle, content),
       },
     })
 
@@ -608,7 +616,7 @@ export async function deleteCommentTransaction(
 
     const comment = await commentModel.findUnique({
       where: { id: commentId },
-      select: { authorId: true, parentId: true, isDeleted: true, [config.parentFk]: true, totalVotes: true },
+      select: { authorId: true, parentId: true, isDeleted: true, [config.parentFk]: true, totalVotes: true, totalReplies: true },
     })
 
     if (!comment) throw new Error('Comment not found.')
@@ -661,7 +669,9 @@ export async function deleteCommentTransaction(
       })
     }
 
-    return { wasTombstoned: true, parentId: comment.parentId, deletedByType }
+    const showTombstone = comment.parentId === null && comment.totalReplies > 0
+
+    return { showTombstone, parentId: comment.parentId, deletedByType }
   }, TRANSACTION_OPTIONS)
 }
 

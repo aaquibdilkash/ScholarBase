@@ -29,9 +29,7 @@ export function RecommendationCard({
   const openSupervisorPage = () => router.push(`/supervisor/${supervisor.id}`);
 
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    (recommendation.votes || []).find(
-      (v: { userId?: string; voteType?: string }) => v.userId === currentUserId,
-    )?.voteType ?? null;
+    (recommendation.votes || [])[0]?.voteType ?? null;
 
   const ownerId = recommendation.authorId ?? recommendation.author?.id;
   const isOwner = !!currentUserId && ownerId === currentUserId;

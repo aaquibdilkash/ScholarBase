@@ -15,6 +15,7 @@ import {
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import type { SurveyBlockInput } from "@/types/survey";
 
@@ -212,7 +213,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
         orderBy: { order: "asc" },
       },
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
         take: COMMENT_PAGE_SIZE + 1,
         select: {

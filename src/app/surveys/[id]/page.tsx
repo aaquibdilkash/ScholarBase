@@ -66,7 +66,7 @@ const SurveyDetailPage = async ({
   const hasResponded = !!response;
 
   const userVote =
-    (survey.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (survey.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const isOwner = user?.id === survey.author?.id;

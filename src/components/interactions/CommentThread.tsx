@@ -29,11 +29,10 @@ import type {
 } from "@/types/comments";
 import type { ReportModule } from "@/types/reports";
 import { COMMENT_CONTENT_TIP } from "@/constants/tooltips";
-import { MAX_COMMENT_BODY } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_COMMENT_BODY } from "@/lib/constants";
 import { useIsFrozen } from "./FrozenUserProvider";
 
-export { type MentionUser, renderMentionContent as renderCommentContent };
-export type { MentionUser as MentionUserType };
+export { type MentionUser };
 
 type ToastFn = (options: {
   title: string;
@@ -602,25 +601,47 @@ export function CommentThread({
   const [replies, setReplies] = useState<CommentWithAuthorAndVotes[]>(
     initialComment.replies ?? [],
   );
+  const [replySkip, setReplySkip] = useState(initialComment.replies?.length ?? 0);
+  const [pagedReplyIds, setPagedReplyIds] = useState(
+    () => new Set((initialComment.replies ?? []).map((reply) => reply.id)),
+  );
+  const [replyPagesExhausted, setReplyPagesExhausted] = useState(false);
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Materialized counter decides button visibility — zero extra queries.
-  const hasMoreReplies = (comment.totalReplies ?? 0) > replies.length;
+  const hasMoreReplies =
+    !replyPagesExhausted && (comment.totalReplies ?? 0) > replies.length;
 
   const loadMoreReplies = async () => {
     if (loadingReplies || !hasMoreReplies) return;
     setLoadingReplies(true);
     try {
-      // Offset pagination: skip exactly what this thread already holds locally.
+      // Offset pagination tracks server-loaded rows only; optimistic replies
+      // already visible locally should not move the server cursor.
       const next = await fetchReplies(
         module,
         comment.id,
-        replies.length,
+        replySkip,
         currentUserId,
       );
-      setReplies((prev) => [...prev, ...(next ?? [])]);
+      const fetchedReplies = next ?? [];
+      setReplySkip((skip) => skip + fetchedReplies.length);
+      setReplyPagesExhausted(fetchedReplies.length < COMMENT_PAGE_SIZE);
+      setPagedReplyIds((prev) => {
+        const ids = new Set(prev);
+        fetchedReplies.forEach((reply) => ids.add(reply.id));
+        return ids;
+      });
+      setReplies((prev) => {
+        const uniqueReplies = new Map(prev.map((reply) => [reply.id, reply]));
+        fetchedReplies.forEach((reply) => uniqueReplies.set(reply.id, reply));
+        return [...uniqueReplies.values()].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+      });
     } catch (error) {
       console.error(error);
       toast({
@@ -636,8 +657,29 @@ export function CommentThread({
   const handleReplyPosted = (reply: CommentWithAuthorAndVotes) => {
     setReplies((prev) => [...prev, reply]);
     setComment((c) => ({ ...c, totalReplies: (c.totalReplies ?? 0) + 1 }));
+    setReplyPagesExhausted(false);
     onCountDelta(1);
     setActiveReplyId(null);
+  };
+
+  const handleReplyRemoved = (replyId: string) => {
+    const wasServerPaged = pagedReplyIds.has(replyId);
+
+    setReplies((prev) => {
+      if (!prev.some((reply) => reply.id === replyId)) return prev;
+      return prev.filter((reply) => reply.id !== replyId);
+    });
+    setComment((c) => ({
+      ...c,
+      totalReplies: Math.max(0, (c.totalReplies ?? 0) - 1),
+    }));
+    if (!wasServerPaged) return;
+    setReplySkip((skip) => Math.max(0, skip - 1));
+    setPagedReplyIds((prev) => {
+      const ids = new Set(prev);
+      ids.delete(replyId);
+      return ids;
+    });
   };
 
   return (
@@ -705,16 +747,8 @@ export function CommentThread({
                     prev.map((r) => (r.id === next.id ? next : r)),
                   )
                 }
-                onTombstoned={() =>
-                  setReplies((prev) =>
-                    prev.map((r) =>
-                      r.id === reply.id ? { ...r, isDeleted: true } : r,
-                    ),
-                  )
-                }
-                onHardDeleted={() =>
-                  setReplies((prev) => prev.filter((r) => r.id !== reply.id))
-                }
+                onTombstoned={() => handleReplyRemoved(reply.id)}
+                onHardDeleted={() => handleReplyRemoved(reply.id)}
                 onCountDelta={onCountDelta}
                 editingId={editingId}
                 setEditingId={setEditingId}

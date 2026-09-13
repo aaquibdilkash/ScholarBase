@@ -48,7 +48,7 @@ const AdmissionDetailPage = async ({
   }
 
   const userVote =
-    (admission.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (admission.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {

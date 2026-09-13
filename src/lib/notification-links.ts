@@ -47,12 +47,42 @@ const moduleLabels: Record<string, string> = {
   survey: "Research Survey",
 };
 
+const targetTypeAliases: Record<string, string> = {
+  article: "article",
+  post: "post",
+  socialpost: "socialPost",
+  event: "event",
+  researchevent: "event",
+  vacancy: "vacancy",
+  jobvacancy: "vacancy",
+  admission: "admission",
+  phdadmission: "admission",
+  recommendation: "recommendation",
+  help: "help",
+  helppost: "help",
+  journal: "journal",
+  researchtool: "researchTool",
+  researchgrant: "researchGrant",
+  course: "course",
+  result: "result",
+  contribution: "contribution",
+  publication: "publication",
+  survey: "survey",
+  researchsurvey: "survey",
+  supervisor: "supervisor",
+  profile: "profile",
+};
+
+function normalizeTargetType(targetType: string) {
+  return targetTypeAliases[targetType.toLowerCase()] ?? targetType;
+}
+
 export function getNotificationLink(notification: Notification) {
   if (!notification.targetType || !notification.targetId) {
     return null;
   }
 
-  const targetType = notification.targetType.toLowerCase();
+  const targetType = normalizeTargetType(notification.targetType);
 
   switch (notification.type) {
     case "follow":
@@ -63,6 +93,9 @@ export function getNotificationLink(notification: Notification) {
       return targetLinks[targetType]?.(notification.targetId) ?? null;
     case "mention":
       // Comment mention: link to the entity page scrolled to comments
+      return targetLinks[targetType]?.(notification.targetId)?.concat("#comments") ?? null;
+    case "NEW_COMMENT":
+    case "NEW_REPLY":
       return targetLinks[targetType]?.(notification.targetId)?.concat("#comments") ?? null;
     case "message-received":
       return `/messages/${notification.targetId}`;

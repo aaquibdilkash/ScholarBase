@@ -9,6 +9,7 @@ import { readFormValue } from "@/lib/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import {
   handleVoteTransaction,
   createCommentTransaction,
@@ -188,7 +189,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
       // LAZY PAGINATION: ship only the first page of parent comments.
       // Replies are fetched on demand by CommentThread via fetchReplies().
       comments: {
-        where: { parentId: null, isDeleted: false },
+        where: VISIBLE_PARENT_COMMENT_WHERE,
         select: {
           id: true,
           content: true,

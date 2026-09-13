@@ -41,7 +41,7 @@ export default async function ArticlePage({
   const a = article;
 
   const userVote =
-    (a.votes?.find((v) => v.userId === user?.id)?.voteType as
+    (a.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {

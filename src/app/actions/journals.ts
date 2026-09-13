@@ -16,6 +16,7 @@ import type {
   OpenAccessStatus,
 } from "@prisma/client";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_DESCRIPTION } from "@/lib/constants";
+import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { validateExternalUrl } from "@/lib/external-url";
 
 export async function createJournal(formData: FormData) {
@@ -305,7 +306,7 @@ export const getJournalById = cache(
           ? { where: { userId }, select: { voteType: true } }
           : false,
         comments: {
-          where: { parentId: null, isDeleted: false },
+          where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: first page of parents only; replies load on demand.
           orderBy: { createdAt: "desc" },
           take: COMMENT_PAGE_SIZE + 1,

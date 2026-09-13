@@ -40,9 +40,8 @@ Any code generated for this project MUST strictly adhere to the following archit
 5. **Timestamp Integrity:** Never assume `updatedAt` means the user edited a post. `updatedAt` updates on every vote/comment counter increment. Use the manual `editedAt DateTime?` field to track actual content changes.
 
 ## RULE 4: Data Deletion Mechanics
-1. **Tombstone Pattern:** For nested entities like Comments, NEVER hard-delete if `totalReplies > 0`. Instead, update the row: `content: "[This comment was deleted by author]"`, `authorId: null`. 
-2. **Hard Deletes:** Only execute a `.delete()` on a comment if `totalReplies === 0`.
-3. **Soft Deletes:** Main content feeds (`SocialPost`, `Article`) use soft deletes (`isDeleted: true`) to preserve historical integrity while hiding the content from the feed.
+1. **Tombstone Pattern:** For all entities like Comments, replies NEVER hard-delete and show deleted comments as tombstone if `totalReplies > 0` and show the option to see their replies but don't show isDeleted COmments with "Deleted by [whoever (admin/ post author/ comment author or reply author as already wired in the codebase)] if the totalReplies == 0. 
+2. **Soft Deletes:** Main content feeds (`SocialPost`, `Article`) use soft deletes (`isDeleted: true`) to preserve historical integrity while hiding the content from the feed.
 
 ## RULE 5: Indexing Strategy
 Ensure Prisma schema utilizes strategic B-Tree indexing to prevent CPU spikes:

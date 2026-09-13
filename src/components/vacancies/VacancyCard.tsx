@@ -25,7 +25,7 @@ export function VacancyCard({
   const isOwner = currentUserId === vacancy.authorId;
   const isFollowing = (vacancy.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    ((vacancy.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
+    (vacancy.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(vacancy.deadline);
 
   return (

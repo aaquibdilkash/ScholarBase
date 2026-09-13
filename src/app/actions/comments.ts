@@ -20,6 +20,7 @@ import {
   ENTITY_CONFIG,
 } from "@/lib/transactions";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { visibleParentCommentWhere } from "@/lib/comment-visibility";
 
 // ============================================
 // LAZY PAGINATION (Zero-Compute Reads)
@@ -70,7 +71,7 @@ export async function fetchParentComments(
   const commentModel = config.comment as any;
 
   return (await commentModel.findMany({
-    where: { parentId: null, isDeleted: false, [config.commentFk]: postId },
+    where: visibleParentCommentWhere(config.commentFk, postId),
     select: commentPageSelect(currentUserId),
     // Must match the seed order (createdAt desc) used by every detail-page
     // loader so offset pagination continues from where the first page ended.
@@ -198,8 +199,7 @@ export async function createComment(
       actorId: user.id,
       type: parentId ? "reply-created" : "comment-created",
       targetType: type,
-      // Replies roll up per comment; top-level comments roll up per content.
-      targetId: parentId ?? targetId,
+      targetId,
       title: parentId
         ? `${actorName} replied to your comment`
         : `${actorName} commented on your post`,
@@ -292,7 +292,7 @@ export async function deleteComment(
     data: {
       id: commentId,
       parentId: comment?.parentId,
-      wasTombstoned: result.wasTombstoned,
+      wasTombstoned: result.showTombstone,
     },
   };
 }

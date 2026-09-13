@@ -39,7 +39,12 @@ export async function queueNotification(payload: NotificationPayload) {
   }
 
   if (["localhost", "127.0.0.1", "::1"].includes(destination.hostname)) {
-    if (process.env.NODE_ENV === "development") return;
+    if (process.env.NODE_ENV === "development") {
+      const { processNotificationPayload } = await import(
+        "@/lib/notification-processor"
+      );
+      return processNotificationPayload(payload);
+    }
     throw new Error("QStash destination must be publicly reachable in production.");
   }
 

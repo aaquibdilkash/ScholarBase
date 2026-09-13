@@ -23,7 +23,7 @@ export function CourseCard({
   const isOwner = currentUserId === course.authorId;
   const isFollowing = (course.author?.followers?.length ?? 0) > 0;
   const userVote =
-    ((course.votes || []) as { userId: string; voteType: "UPVOTE" | "DOWNVOTE" }[]).find((v) => v.userId === currentUserId)?.voteType ?? null;
+    (course.votes || [])[0]?.voteType ?? null;
   const details = [
     course.provider,
     course.instructor,
