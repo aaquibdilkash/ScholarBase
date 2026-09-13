@@ -20,8 +20,12 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { sendAdminScholarInviteAction } from "@/app/actions/adminInvite";
 import {
   buildScholarOutreachBody,
+  DEFAULT_SCHOLAR_OUTREACH_VARIANT,
   generateScholarInviteHtml,
+  getNextScholarOutreachFieldValue,
+  getNextScholarOutreachVariant,
   getScholarInvitationContextLine,
+  type OutreachVariantField,
 } from "@/lib/emails/scholarInvite";
 
 interface InviteDraft {
@@ -45,14 +49,14 @@ const INITIAL_DRAFT: InviteDraft = {
   scholarEmail: "",
   university: "",
   department: "",
-  subject: "A note from ScholarBase",
-  greeting: "Hello",
-  headline: "I wanted to introduce ScholarBase",
-  body: "I'm writing to introduce ScholarBase, an academic community we're building for doctoral researchers and faculty.\n\nIt includes research surveys designed specifically for scholars, spaces to discuss research and supervisor experiences, and a growing collection of research tools and academic resources. If that sounds relevant to your work, you're welcome to take a look.",
-  ctaLabel: "ScholarBase",
+  subject: DEFAULT_SCHOLAR_OUTREACH_VARIANT.subject,
+  greeting: DEFAULT_SCHOLAR_OUTREACH_VARIANT.greeting,
+  headline: DEFAULT_SCHOLAR_OUTREACH_VARIANT.headline,
+  body: DEFAULT_SCHOLAR_OUTREACH_VARIANT.body,
+  ctaLabel: DEFAULT_SCHOLAR_OUTREACH_VARIANT.ctaLabel,
   senderName: "Outreach Team",
   senderRole: "ScholarBase",
-  footerText: "If you would prefer not to receive further notes from ScholarBase, simply reply or use the unsubscribe option in your email app.",
+  footerText: DEFAULT_SCHOLAR_OUTREACH_VARIANT.footerText,
 };
 
 const previewUrl = (
@@ -122,10 +126,31 @@ export function AdminInviteScholarForm() {
     updateDraftField(field, value);
   };
 
+  const applyVariantField = (field: OutreachVariantField) => {
+    updateField(field, getNextScholarOutreachFieldValue(field, draft[field]));
+  };
+
   const applyDefault = (
-    field: Exclude<Extract<keyof InviteDraft, string>, "scholarName" | "scholarEmail" | "university" | "department">,
+    field: Exclude<
+      Extract<keyof InviteDraft, string>,
+      | "scholarName"
+      | "scholarEmail"
+      | "university"
+      | "department"
+      | OutreachVariantField
+    >,
   ) => {
     updateField(field, INITIAL_DRAFT[field]);
+  };
+
+  const applyNextVariant = () => {
+    const variant = getNextScholarOutreachVariant(draft.subject);
+    updateField("subject", variant.subject);
+    updateField("greeting", variant.greeting);
+    updateField("headline", variant.headline);
+    updateField("body", variant.body);
+    updateField("ctaLabel", variant.ctaLabel);
+    updateField("footerText", variant.footerText);
   };
 
   const previewHtml = useMemo(
@@ -173,6 +198,7 @@ export function AdminInviteScholarForm() {
 
       if (result.success) {
         toast(result.message, "success");
+        applyNextVariant();
       } else {
         toast(result.error, "error");
       }
@@ -237,24 +263,24 @@ export function AdminInviteScholarForm() {
               <label className="space-y-2"><FieldLabel optional>Department</FieldLabel><input type="text" value={draft.department} onChange={(event) => updateField("department", event.target.value)} placeholder="e.g. PhD Research" maxLength={200} className={inputClassName} /></label>
             </div>
 
-            <label className="block space-y-2"><FieldHeader label="Subject line" showDefault={!draft.subject.trim()} onUseDefault={() => applyDefault("subject")} /><input type="text" value={draft.subject} onChange={(event) => updateField("subject", event.target.value)} placeholder="A note from ScholarBase" maxLength={150} className={inputClassName} /></label>
+            <label className="block space-y-2"><FieldHeader label="Subject line" showDefault onUseDefault={() => applyVariantField("subject")} /><input type="text" value={draft.subject} onChange={(event) => updateField("subject", event.target.value)} placeholder="A note from ScholarBase" maxLength={150} className={inputClassName} /></label>
 
             <div className="grid gap-4 sm:grid-cols-[110px_1fr]">
-              <label className="space-y-2"><FieldHeader label="Greeting" showDefault={!draft.greeting.trim()} onUseDefault={() => applyDefault("greeting")} /><input type="text" value={draft.greeting} onChange={(event) => updateField("greeting", event.target.value)} placeholder="Hello" maxLength={50} className={inputClassName} /></label>
-              <label className="space-y-2"><FieldHeader label="Email headline" showDefault={!draft.headline.trim()} onUseDefault={() => applyDefault("headline")} /><input type="text" value={draft.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="I wanted to introduce ScholarBase" maxLength={150} className={inputClassName} /></label>
+              <label className="space-y-2"><FieldHeader label="Greeting" showDefault onUseDefault={() => applyVariantField("greeting")} /><input type="text" value={draft.greeting} onChange={(event) => updateField("greeting", event.target.value)} placeholder="Hello" maxLength={50} className={inputClassName} /></label>
+              <label className="space-y-2"><FieldHeader label="Email headline" showDefault onUseDefault={() => applyVariantField("headline")} /><input type="text" value={draft.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="I wanted to introduce ScholarBase" maxLength={150} className={inputClassName} /></label>
             </div>
 
-            <label className="block space-y-2"><div className="flex items-center justify-between gap-3"><FieldHeader label="Email body" showDefault={!draft.body.trim()} onUseDefault={() => applyDefault("body")} /><span className="text-[11px] text-slate-400">{draft.body.length}/8,000</span></div><textarea rows={9} value={draft.body} onChange={(event) => updateField("body", event.target.value)} placeholder="Write the complete message here..." maxLength={8000} className={`${inputClassName} resize-y leading-6`} /></label>
+            <label className="block space-y-2"><div className="flex items-center justify-between gap-3"><FieldHeader label="Email body" showDefault onUseDefault={() => applyVariantField("body")} /><span className="text-[11px] text-slate-400">{draft.body.length}/8,000</span></div><textarea rows={9} value={draft.body} onChange={(event) => updateField("body", event.target.value)} placeholder="Write the complete message here..." maxLength={8000} className={`${inputClassName} resize-y leading-6`} /></label>
 
             {contextLine && <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-xs leading-5 text-violet-900 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-100"><span className="font-semibold">Automatically added:</span> {contextLine}</div>}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><FieldHeader label="Button text" showDefault={!draft.ctaLabel.trim()} onUseDefault={() => applyDefault("ctaLabel")} /><input type="text" value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} placeholder="Visit ScholarBase" maxLength={80} className={inputClassName} /></label>
+              <label className="space-y-2"><FieldHeader label="Button text" showDefault onUseDefault={() => applyVariantField("ctaLabel")} /><input type="text" value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} placeholder="Visit ScholarBase" maxLength={80} className={inputClassName} /></label>
               <label className="space-y-2"><FieldHeader label="Signature name" showDefault={!draft.senderName.trim()} onUseDefault={() => applyDefault("senderName")} /><input type="text" value={draft.senderName} onChange={(event) => updateField("senderName", event.target.value)} placeholder="ScholarBase" maxLength={120} className={inputClassName} /></label>
             </div>
 
             <label className="block space-y-2"><FieldHeader label="Signature role" showDefault={!draft.senderRole.trim()} onUseDefault={() => applyDefault("senderRole")} /><input type="text" value={draft.senderRole} onChange={(event) => updateField("senderRole", event.target.value)} placeholder="Founder, ScholarBase" maxLength={160} className={inputClassName} /></label>
-            <label className="block space-y-2"><FieldHeader label="Footer / opt-out note" optional showDefault={!draft.footerText.trim()} onUseDefault={() => applyDefault("footerText")} /><input type="text" value={draft.footerText} onChange={(event) => updateField("footerText", event.target.value)} placeholder="If you would prefer not to receive further notes, simply reply and let us know." maxLength={300} className={inputClassName} /></label>
+            <label className="block space-y-2"><FieldHeader label="Footer / opt-out note" optional showDefault onUseDefault={() => applyVariantField("footerText")} /><input type="text" value={draft.footerText} onChange={(event) => updateField("footerText", event.target.value)} placeholder="If you would prefer not to receive further notes, simply reply and let us know." maxLength={300} className={inputClassName} /></label>
 
             <div className="flex gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs leading-5 text-blue-900 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-100"><Info className="mt-0.5 h-4 w-4 shrink-0" /><p>The visible email copy is editable. The verified sender address and ScholarBase destination link stay fixed for trust and deliverability.</p></div>
 
