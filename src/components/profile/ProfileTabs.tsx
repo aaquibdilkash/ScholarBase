@@ -687,7 +687,7 @@ const ACTIVITY_META: Record<
   RESEARCH_SURVEY: { label: "survey", href: (id) => `/surveys/${id}` },
   COURSE: { label: "course", href: (id) => `/learn/${id}` },
   RESEARCH_GRANT: { label: "research grant", href: (id) => `/grants/${id}` },
-  USER: { label: "scholar", href: () => undefined },
+  USER: { label: "scholar", href: (id) => `/scholars/${id}` },
   SOCIAL_POST_COMMENT: { label: "comment" },
   ARTICLE_COMMENT: { label: "comment" },
   JOB_VACANCY_COMMENT: { label: "comment" },
@@ -708,17 +708,24 @@ const ACTIVITY_META: Record<
 
 const ACTIVITY_ACTION: Record<string, string> = {
   VOTED: "voted on",
-  COMMENTED: "commented on",
-  REPLIED: "replied to",
+  COMMENTED: "commented",
+  REPLIED: "replied",
   FOLLOWED: "followed",
   PUBLISHED: "published",
 };
 
 function ActivityItemCard({ item }: { item: ActivityItem }) {
   const meta = ACTIVITY_META[item.moduleType] ?? { label: "content" };
-  const href = meta.href?.(item.entityId);
-  const actionText = ACTIVITY_ACTION[item.action] ?? "interacted with";
   const label = meta.label;
+
+  // Comments/replies jump straight to the post's comment section. The base
+  // href comes from ACTIVITY_META; we append the `#comments` anchor the post
+  // pages already expose (see DetailPageCardShell footerCommentsHref).
+  const baseHref = meta.href?.(item.entityId);
+  const href =
+    (item.action === "COMMENTED" || item.action === "REPLIED") && baseHref
+      ? `${baseHref}#comments`
+      : baseHref;
 
   const Icon =
     item.action === "COMMENTED"
@@ -729,29 +736,132 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
           ? FileText
           : ThumbsUp;
 
+  // Structured entityTitle delimiter used by formatCommentActivityTitle
+  // (transactions.ts) and the recommendation activity builder
+  // (actions/recommendations.ts). Keep in sync with those.
+  const DELIM = "|||";
+  const parts = item.entityTitle.split(DELIM);
+
+  // Publish + Recommendation is rendered as "recommended ..." instead of "published".
+  const actionText =
+    item.action === "PUBLISHED" && item.moduleType === "RECOMMENDATION"
+      ? "recommended"
+      : ACTIVITY_ACTION[item.action] ?? "interacted with";
+
+  const linkCls =
+    "break-words overflow-wrap-anywhere font-semibold text-blue-600 hover:underline dark:text-blue-400";
+  const plainCls =
+    "break-words overflow-wrap-anywhere font-semibold text-slate-700";
+  const boldCls = "font-semibold text-slate-800 dark:text-slate-100";
+
+  // Render the main related-entity title as a link (when a route exists) or plain bold text.
+  const renderEntityTitle = (title: string) =>
+    title ? (
+      href ? (
+        <Link prefetch={false} href={href} className={linkCls}>
+          &ldquo;{title}&rdquo;
+        </Link>
+      ) : (
+        <span className={plainCls}>&ldquo;{title}&rdquo;</span>
+      )
+    ) : null;
+
+  // Render user-supplied content (comments, replies, recommendation feedback) prominently.
+  const renderSnippet = (text: string) =>
+    text ? <span className={plainCls}>&ldquo;{text}&rdquo;</span> : null;
+
+  const renderDescription = () => {
+    switch (item.action) {
+      case "COMMENTED": {
+        // Format: postTitle ||| commentContent
+        const [postTitle, commentContent] = parts;
+        return (
+          <>
+            {" "}
+            {renderSnippet(commentContent)}
+            {" "}on the <span className={boldCls}>{label}</span>{" "}
+            {renderEntityTitle(postTitle || item.entityTitle)}
+          </>
+        );
+      }
+      case "REPLIED": {
+        // Format: postTitle ||| replyContent ||| parentCommentContent
+        const [postTitle, replyContent, parentCommentContent] = parts;
+        if (parentCommentContent) {
+          return (
+            <>
+              {" "}
+              {renderSnippet(replyContent)}
+              {" "}on the comment {renderSnippet(parentCommentContent)}
+              {" "}for the <span className={boldCls}>{label}</span>{" "}
+              {renderEntityTitle(postTitle || item.entityTitle)}
+            </>
+          );
+        }
+        // Fallback when the parent comment isn't present (legacy data).
+        return (
+          <>
+            {" "}
+            {renderSnippet(replyContent)}
+            {" "}on the <span className={boldCls}>{label}</span>{" "}
+            {renderEntityTitle(postTitle || item.entityTitle)}
+          </>
+        );
+      }
+      case "VOTED":
+        return (
+          <>
+            {" "}the <span className={boldCls}>{label}</span>{" "}
+            {renderEntityTitle(item.entityTitle)}
+          </>
+        );
+      case "FOLLOWED":
+        return (
+          <>
+            {" "}
+            {renderEntityTitle(item.entityTitle) ?? (
+              <span className={plainCls}>a scholar</span>
+            )}
+          </>
+        );
+      case "PUBLISHED": {
+        if (item.moduleType === "RECOMMENDATION") {
+          // Format: supervisorName ||| feedback
+          const [supervisorName, feedback] = parts;
+          return (
+            <>
+              {" "}
+              {renderSnippet(feedback || item.entityTitle)}
+              {" "}for supervisor{" "}
+              <span className={boldCls}>{supervisorName || "scholar"}</span>
+            </>
+          );
+        }
+        return (
+          <>
+            {" "}
+            {renderEntityTitle(item.entityTitle)}
+          </>
+        );
+      }
+      default:
+        return (
+          <>
+            {" "}
+            {renderEntityTitle(item.entityTitle)}
+          </>
+        );
+    }
+  };
+
   return (
     <div className="sb-card p-4">
       <div className="flex items-start gap-3">
         <Icon className="mt-1 h-5 w-5 flex-shrink-0 text-slate-400" />
-        <div className="flex-1">
-          <p className="text-slate-600 dark:text-slate-300">
-            <span className="font-semibold text-slate-800 dark:text-slate-100">
-              {actionText}
-            </span>{" "}
-            {label}{" "}
-            {href && item.entityTitle ? (
-              <Link
-                prefetch={false}
-                href={href}
-                className="break-words font-semibold text-blue-600 hover:underline dark:text-blue-400"
-              >
-                &ldquo;{item.entityTitle}&rdquo;
-              </Link>
-            ) : item.entityTitle ? (
-              <span className="break-words font-semibold text-slate-700">
-                &ldquo;{item.entityTitle}&rdquo;
-              </span>
-            ) : null}
+        <div className="flex-1 min-w-0">
+          <p className="text-slate-600 dark:text-slate-300 min-w-0 w-full">
+            <span className={boldCls}>{actionText}</span>
+            {renderDescription()}
           </p>
           <p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">
             {formatTimeAgo(new Date(item.createdAt))}

@@ -23,3 +23,18 @@ export const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
   "image/avif",
 ]);
+
+/**
+ * Type guard: true when `url` is a non-empty string that parses as an absolute
+ * http(s) URL. Feed components use it to filter out local paths like
+ * "image.png" before rendering <Image>/lightbox assets.
+ */
+export function isValidImageUrl(url: string | null | undefined): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}

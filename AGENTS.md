@@ -24,9 +24,9 @@ Any code generated for this project MUST strictly adhere to the following archit
 
 ## RULE 2: Database Read Optimizations (Zero-Compute)
 **NEVER use dynamic `_count`, full-table scans, or `Promise.all` waterfalls for feeds.**
-1. **Materialized Counters:** Always rely on static integer fields (`totalVotes`, `totalComments`, `totalAnswers`) instead of dynamic relation counting.
+1. **Materialized Counters:** Always rely on static integer fields (`totalVotes`, `totalComments`) instead of dynamic relation counting. Comments also carry `totalReplies`. (`totalAnswers` exists only on `SurveyQuestion` for survey answer counts, not as a standard entity counter.)
 2. **Filtered Selects:** Resolve the N+1 problem by fetching the current user's state directly in the main query: `votes: { where: { userId: currentUserId }, select: { voteType: true } }`.
-3. **Unread Badges:** Never fetch arrays into memory to count them. Use indexed counts: `await prisma.message.count({ where: { receiverId: userId, readAt: null } })`.
+3. **Unread Badges:** Never fetch arrays into memory to count them. Use indexed counts: `await prisma.notification.count({ where: { recipientId: userId, readAt: null } })`. For messages, unread counts are computed via a single indexed raw SQL join between `Message` and `ConversationParticipant` (see `getUnreadMessageCount`), avoiding per-conversation count queries.
 4. **Dashboard Stats:** Use raw SQL (`prisma.$queryRaw`) against the `pg_class` system catalog for global row counts.
 
 ## RULE 3: Database Write Optimizations & Voting Rules
@@ -40,18 +40,19 @@ Any code generated for this project MUST strictly adhere to the following archit
 5. **Timestamp Integrity:** Never assume `updatedAt` means the user edited a post. `updatedAt` updates on every vote/comment counter increment. Use the manual `editedAt DateTime?` field to track actual content changes.
 
 ## RULE 4: Data Deletion Mechanics
-1. **Tombstone Pattern:** For all entities like Comments, replies NEVER hard-delete and show deleted comments as tombstone if `totalReplies > 0` and show the option to see their replies but don't show isDeleted COmments with "Deleted by [whoever (admin/ post author/ comment author or reply author as already wired in the codebase)] if the totalReplies == 0. 
-2. **Soft Deletes:** Main content feeds (`SocialPost`, `Article`) use soft deletes (`isDeleted: true`) to preserve historical integrity while hiding the content from the feed.
+1. **Tombstone Pattern:** For all entities like Comments and Replies, NEVER hard-delete. Show deleted comments as tombstones if `totalReplies > 0` (with an option to expand and see their replies). If `totalReplies == 0`, hide the deleted comment entirely. Tombstones display "Deleted by [admin / post author / comment author / reply author]" depending on who performed the deletion (as wired in the codebase).
+2. **Soft Deletes:** Main content feeds (`SocialPost`, `Article`, etc.) use soft deletes (`isDeleted: true`) to preserve historical integrity while hiding the content from the feed. Hard deletion of soft-deleted rows is handled by a background cron (`trim-soft-deleted-posts`).
 
 ## RULE 5: Indexing Strategy
 Ensure Prisma schema utilizes strategic B-Tree indexing to prevent CPU spikes:
 1. **Top-Level Feeds:** `@@index([createdAt(sort: Desc)])`
 2. **Trending Feeds:** `@@index([trendingScore(sort: Desc)])`
 3. **Nested Comments:** `@@index([socialPostId, createdAt(sort: Desc)])`
-4. **Unread Badges:** `@@index([recipientId, readAt])` (crucial for Notifications/Messages).
+4. **Unread Badges:** `@@index([recipientId, readAt, createdAt(sort: Desc)])` on the `Notification` model (crucial for unread count queries).
+5. **User Directory:** `@@index([trendingScore(sort: Desc)])` and `@@index([reputation(sort: Desc)])` on the `User` model (powers the scholar directory and trending scholar queries).
 
 ## RULE 6: Background Processing & Security
-1. **Cron Jobs:** Background tasks (Trending math, conversation clearing, deadline cleanup) are handled via Vercel Serverless Cron Jobs calling `prisma.$executeRawUnsafe`. They must be protected by a `CRON_SECRET` authorization header.
+1. **Cron Jobs:** Background tasks are handled via Vercel Serverless Cron Jobs calling `prisma.$executeRawUnsafe`. They must be protected by a `CRON_SECRET` authorization header. The cron suite includes: Trending math (`update-trending`), conversation trimming (`trim-maintenance`), deadline cleanup (`cleanup-deadlines`), soft-deleted post purging (`trim-soft-deleted-posts`), and digest email dispatch (`daily-digest`, `weekly-digest`).
 2. **Link Masking:** Protect user privacy and track outbound clicks. Replace external `<a href="https://...">` tags with internal routes: `<a href="/api/outbound?url=[encoded_url]">`.
 3. **File Tracking:** Avoid unused imports, clean up unneeded dependencies, and resolve all TypeScript/ESLint warnings before marking a feature complete.
 

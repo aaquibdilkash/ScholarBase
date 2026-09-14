@@ -237,7 +237,14 @@ export async function editComment(
 
   const comment = await commentModel.findUnique({
     where: { id: commentId },
-    select: { authorId: true },
+    select: {
+      authorId: true,
+      parentId: true,
+      mentions: true,
+      // The FK to the parent entity (e.g. socialPostId) is used as the
+      // notification targetId so mention links point at the parent post.
+      [ENTITY_CONFIG[moduleKey].parentFk]: true,
+    },
   });
 
   if (!comment) {
@@ -247,9 +254,41 @@ export async function editComment(
     throw new Error("Not authorized.");
   }
 
+  // Re-resolve @mentions from the edited text so the comment's `mentions` JSON
+  // column stays in sync and renderMentionContent keeps them clickable.
+  // createComment already does this; editComment previously only updated
+  // content/editedAt and left mentions stale (so edited mentions never worked).
+  const mentions = await resolveMentionedUsers(content);
+
+  // Only notify users who are newly mentioned in this edit; re-saving the same
+  // text (or a pre-existing mention) must not re-notify / spam them.
+  const previousMentionIds = new Set(
+    (Array.isArray(comment.mentions) ? (comment.mentions as any[]) : []).map(
+      (m) => m.id,
+    ),
+  );
+  const newMentions = mentions.filter(
+    (m) => !previousMentionIds.has(m.id),
+  );
+
+  const targetId = (comment as any)[ENTITY_CONFIG[moduleKey].parentFk] as string;
+
+  if (newMentions.length > 0) {
+    await notifyMentionedUsers({
+      actorId: user.id,
+      content,
+      type: "mention",
+      targetType: type,
+      targetId,
+      titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+      bodyFactory: () => content,
+      mentions: newMentions,
+    });
+  }
+
   const updatedComment = await commentModel.update({
     where: { id: commentId },
-    data: { content, editedAt: new Date() },
+    data: { content, editedAt: new Date(), mentions },
   });
 
   return { success: true, data: updatedComment };

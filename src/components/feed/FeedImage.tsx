@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { isValidImageUrl } from "@/lib/image-constants";
 
 /**
  * FeedImage
@@ -29,7 +30,7 @@ export function FeedImage({
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!src) return null;
+  if (!src || !isValidImageUrl(src)) return null;
 
   return (
     <>

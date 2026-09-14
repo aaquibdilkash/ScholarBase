@@ -325,6 +325,7 @@ function CommentCard({
         ...comment,
         content: response.data.content,
         editedAt: response.data.editedAt,
+        mentions: response.data.mentions,
       });
       toast({ title: "Success", description: "Comment updated!" });
       setEditingId(null);

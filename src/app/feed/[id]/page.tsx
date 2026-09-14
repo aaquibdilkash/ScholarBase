@@ -8,6 +8,7 @@ import { FeedImage } from "@/components/feed/FeedImage";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
+import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 import { buildMetadata } from "@/lib/seo";
@@ -124,7 +125,7 @@ export default async function SinglePostPage({
     >
       <PostContent content={p.content} mentions={p.mentions} />
 
-      {p.imageUrl && (
+      {isValidImageUrl(p.imageUrl) && (
         <div className="mt-4 sm:mt-6">
           <FeedImage
             src={p.imageUrl}

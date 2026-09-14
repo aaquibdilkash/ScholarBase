@@ -179,7 +179,7 @@ export async function createRecommendation(
           moduleType: "RECOMMENDATION",
           entityId: newRecommendation.id,
           entityTitle:
-            `Recommendation for supervisor ${supervisorId}`.substring(0, 100),
+            `${newRecommendation.supervisor.name}|||${feedback.substring(0, 512)}`,
         },
       });
 

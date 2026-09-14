@@ -14,6 +14,7 @@ import { deleteSocialPost } from "@/app/actions/feed";
 import { renderMentionContent } from "@/components/interactions/MentionComposer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
+import { isValidImageUrl } from "@/lib/image-constants";
 
 // Native CSS line clamp: clips only at whole lines so text is never sliced
 // mid-line by a rigid pixel-height `overflow: hidden` container.
@@ -68,9 +69,7 @@ export function SocialPostCard({
 
   // A single image uses the legacy `imageUrl`; future multi-image posts can
   // prepend `imageUrls` here and the lightbox renders a navigable gallery.
-  const lightboxImages = [post.imageUrl].filter(
-    (url): url is string => Boolean(url),
-  );
+  const lightboxImages = [post.imageUrl].filter(isValidImageUrl);
 
   const renderedContent = renderMentionContent(
     post.content ?? "",
@@ -213,7 +212,7 @@ export function SocialPostCard({
       <Link
         href={`/feed/${post.id}`}
         prefetch={false}
-        className={`flex min-w-0 gap-4 ${post.imageUrl ? "items-start" : ""} ${isExpanded ? "flex-col md:flex-row" : ""}`}
+        className={`flex min-w-0 gap-4 ${isValidImageUrl(post.imageUrl) ? "items-start" : ""} ${isExpanded ? "flex-col md:flex-row" : ""}`}
         style={
           isExpanded
             ? undefined
@@ -222,7 +221,7 @@ export function SocialPostCard({
       >
         <div
           className={
-            post.imageUrl
+            isValidImageUrl(post.imageUrl)
               ? isExpanded
                 ? "w-full md:w-1/2 min-w-0"
                 : "w-1/2 min-w-0"
@@ -240,8 +239,8 @@ export function SocialPostCard({
               {renderedContent}
             </p>
             {/* Hidden, non-clamped copy used purely for truncation measurement. It must
-                  share the body's exact text-layout classes so it wraps/breaks
-                  identically and gives an accurate height comparison. */}
+                share the body's exact text-layout classes so it wraps/breaks
+                identically and gives an accurate height comparison. */}
             <p
               ref={measureRef}
               inert
@@ -253,7 +252,7 @@ export function SocialPostCard({
             </p>
           </div>
         </div>
-        {post.imageUrl && (
+        {isValidImageUrl(post.imageUrl) && (
           <button
             ref={imageButtonRef}
             type="button"

@@ -20,12 +20,20 @@ type AnyDelegate = {
   updateMany: (args: any) => Promise<any>
 }
 
-function formatCommentActivityTitle(entityTitle: string, content: string) {
+function formatCommentActivityTitle(
+  entityTitle: string,
+  content: string,
+  parentCommentContent?: string,
+) {
   const title = entityTitle.replace(/\s+/g, ' ').trim() || 'Untitled'
   const snippet = content.replace(/\s+/g, ' ').trim()
 
+  if (parentCommentContent) {
+    const parentSnippet = parentCommentContent.replace(/\s+/g, ' ').trim()
+    return `${title}|||${snippet}|||${parentSnippet}`
+  }
   if (!snippet) return title
-  return `${title} - ${snippet}`
+  return `${title}|||${snippet}`
 }
 
 // Transaction options to avoid serverless latency timeouts
@@ -332,13 +340,17 @@ export async function handleFollowTransaction(followerId: string, followingId: s
       where: { id: followingId },
       data: { followersCount: { increment: 1 } },
     })
+    const followedUser = await tx.user.findUnique({
+      where: { id: followingId },
+      select: { name: true },
+    })
     await tx.userActivity.create({
       data: {
         userId: followerId,
         action: 'FOLLOWED',
         moduleType: 'USER',
         entityId: followingId,
-        entityTitle: '',
+        entityTitle: followedUser?.name ?? '',
       },
     })
     return { wasFollowing: false }
@@ -553,10 +565,11 @@ export async function createCommentTransaction(
       data: { totalComments: { increment: 1 } },
     })
 
+    let parentCommentContent: string | undefined
     if (parentId) {
       const parentComment = await commentModel.findUnique({
         where: { id: parentId },
-        select: { isFrozen: true, isDeleted: true },
+        select: { isFrozen: true, isDeleted: true, content: true },
       })
       if (!parentComment || parentComment.isDeleted) throw new Error('The comment you are replying to no longer exists.')
       if (parentComment.isFrozen) throw new Error('This comment is frozen by moderators and cannot be replied to.')
@@ -565,6 +578,7 @@ export async function createCommentTransaction(
         where: { id: parentId },
         data: { totalReplies: { increment: 1 } },
       })
+      parentCommentContent = parentComment.content
     }
 
     await tx.userActivity.create({
@@ -573,7 +587,7 @@ export async function createCommentTransaction(
         action: parentId ? 'REPLIED' : 'COMMENTED',
         moduleType: moduleName,
         entityId,
-        entityTitle: formatCommentActivityTitle(entityTitle, content),
+        entityTitle: formatCommentActivityTitle(entityTitle, content, parentCommentContent),
       },
     })
 
