@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
@@ -30,14 +30,23 @@ const Editor = ({
   maxLength,
   showCharCount = true,
 }: EditorProps) => {
+  const [pendingStates, setPendingStates] = useState({
+    bold: false,
+    italic: false,
+    strike: false,
+    heading1: false,
+    heading2: false,
+    heading3: false,
+    bulletList: false,
+    orderedList: false,
+    blockquote: false,
+    codeBlock: false,
+  });
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
     onUpdate: ({ editor }) => {
-      // RULE (rich text): never slice the HTML string — slicing cuts through
-      // tags/entities and corrupts the DOM (the phantom "&" bug). Save the
-      // full HTML; the limit is communicated via the counter below and
-      // validated on the server against the plain-text length.
       onChange(editor.getHTML());
     },
     editorProps: {
@@ -55,8 +64,55 @@ const Editor = ({
 
     if (value !== editor.getHTML()) {
       editor.commands.setContent(value);
+      
+      const text = editor.getText();
+      if (text.length > 0) {
+        setPendingStates({
+          bold: editor.isActive("bold"),
+          italic: editor.isActive("italic"),
+          strike: editor.isActive("strike"),
+          heading1: editor.isActive("heading", { level: 1 }),
+          heading2: editor.isActive("heading", { level: 2 }),
+          heading3: editor.isActive("heading", { level: 3 }),
+          bulletList: editor.isActive("bulletList"),
+          orderedList: editor.isActive("orderedList"),
+          blockquote: editor.isActive("blockquote"),
+          codeBlock: editor.isActive("codeBlock"),
+        });
+      }
     }
   }, [editor, value]);
+
+  const toggleFormat = (key: keyof typeof pendingStates) => {
+    if (!editor) return;
+    
+    setPendingStates((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+    
+    const command = key === "bold"
+      ? () => editor.chain().focus().toggleBold().run()
+      : key === "italic"
+      ? () => editor.chain().focus().toggleItalic().run()
+      : key === "strike"
+      ? () => editor.chain().focus().toggleStrike().run()
+      : key === "heading1"
+      ? () => editor.chain().focus().toggleHeading({ level: 1 }).run()
+      : key === "heading2"
+      ? () => editor.chain().focus().toggleHeading({ level: 2 }).run()
+      : key === "heading3"
+      ? () => editor.chain().focus().toggleHeading({ level: 3 }).run()
+      : key === "bulletList"
+      ? () => editor.chain().focus().toggleBulletList().run()
+      : key === "orderedList"
+      ? () => editor.chain().focus().toggleOrderedList().run()
+      : key === "blockquote"
+      ? () => editor.chain().focus().toggleBlockquote().run()
+      : () => editor.chain().focus().toggleCodeBlock().run();
+    
+    command();
+  };
 
   const charCount = editor ? editor.getText().length : 0;
   const isOverLimit = Boolean(maxLength) && charCount > (maxLength ?? 0);
@@ -69,79 +125,73 @@ const Editor = ({
     <div className="border border-slate-200 dark:border-slate-800 rounded-lg">
       <div className="p-2 border-b border-slate-200 dark:border-slate-800 flex items-center flex-wrap gap-2">
         <button type="button"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 rounded-lg ${editor.isActive("bold") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("bold")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.bold ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Bold"
         >
           <Bold className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 rounded-lg ${editor.isActive("italic") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("italic")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.italic ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Italic"
         >
           <Italic className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`p-2 rounded-lg ${editor.isActive("strike") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("strike")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.strike ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Strikethrough"
         >
           <Strikethrough className="h-4 w-4" />
         </button>
         <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
         <button type="button"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
-          }
-          className={`p-2 rounded-lg ${editor.isActive("heading", { level: 1 }) ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("heading1")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.heading1 ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Heading 1"
         >
           <Heading1 className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
-          }
-          className={`p-2 rounded-lg ${editor.isActive("heading", { level: 2 }) ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("heading2")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.heading2 ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Heading 2"
         >
           <Heading2 className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
-          }
-          className={`p-2 rounded-lg ${editor.isActive("heading", { level: 3 }) ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("heading3")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.heading3 ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Heading 3"
         >
           <Heading3 className="h-4 w-4" />
         </button>
         <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
         <button type="button"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 rounded-lg ${editor.isActive("bulletList") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("bulletList")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.bulletList ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Bullet List"
         >
           <List className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 rounded-lg ${editor.isActive("orderedList") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("orderedList")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.orderedList ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Ordered List"
         >
           <ListOrdered className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-2 rounded-lg ${editor.isActive("blockquote") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("blockquote")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.blockquote ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Blockquote"
         >
           <Quote className="h-4 w-4" />
         </button>
         <button type="button"
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-2 rounded-lg ${editor.isActive("codeBlock") ? "bg-slate-200 dark:bg-slate-800" : ""}`}
+          onClick={() => toggleFormat("codeBlock")}
+          className={`p-2 rounded-lg transition-all ${pendingStates.codeBlock ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
           aria-label="Code Block"
         >
           <Code className="h-4 w-4" />
@@ -149,7 +199,7 @@ const Editor = ({
         <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
         <button type="button"
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className="p-2 rounded-lg"
+          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300"
           aria-label="Horizontal Rule"
         >
           <Minus className="h-4 w-4" />
@@ -157,8 +207,6 @@ const Editor = ({
       </div>
       <EditorContent editor={editor} />
       {showCharCount && (
-        // Single, clean plain-text counter (maxLength counts visible text,
-        // never the raw HTML payload).
         <div
           className={`px-2 py-1 text-xs ${
             isOverLimit

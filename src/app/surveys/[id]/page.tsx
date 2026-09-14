@@ -113,7 +113,7 @@ const SurveyDetailPage = async ({
       currentUserId={user?.id}
       createdDate={survey.createdAt}
       editedDate={
-        survey.updatedAt > survey.createdAt ? survey.updatedAt : undefined
+        survey.editedAt && survey.editedAt > survey.createdAt ? survey.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton

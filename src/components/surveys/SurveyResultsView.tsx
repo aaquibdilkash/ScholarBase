@@ -199,9 +199,9 @@ export function SurveyResultsView({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 flex items-center justify-between dark:bg-slate-900 dark:border-slate-700">
-        <div>
-          <h2 className="mb-2 break-words break-all text-lg font-semibold text-slate-800 dark:text-white">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 flex min-w-0 max-w-full flex-col gap-4 overflow-hidden lg:flex-row lg:items-center lg:justify-between dark:bg-slate-900 dark:border-slate-700">
+        <div className="min-w-0 max-w-full flex-1">
+          <h2 className="mb-2 break-words text-lg font-semibold text-slate-800 dark:text-white">
             {survey.title}
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-300">
@@ -211,35 +211,57 @@ export function SurveyResultsView({
             </strong>
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full max-w-full min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap lg:w-auto lg:max-w-none lg:shrink-0 lg:flex-nowrap">
           {isOwner && surveyId && (
             <>
               <button
                 type="button"
                 onClick={() => handleDownload("xlsx")}
                 disabled={!!exportingFormat}
-                className="sb-button-soft text-sm inline-flex items-center gap-2 disabled:opacity-50"
+                className="sb-button-soft text-sm inline-flex w-full min-w-0 max-w-full items-center justify-center gap-2.5 text-center disabled:opacity-50 min-[420px]:w-auto min-[420px]:min-w-[180px] min-[420px]:flex-1 lg:w-auto lg:min-w-0 lg:max-w-none lg:flex-none lg:whitespace-nowrap"
               >
                 {exportingFormat === "xlsx" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-8 w-8 shrink-0 animate-spin" />
                 ) : (
-                  <Download className="w-4 h-4" />
+                  <Download className="h-8 w-8 shrink-0" />
                 )}
-                {exportingFormat === "xlsx" ? "Generating XLSX..." : "XLSX (Codebook + Data)"}
+                <span className="flex min-w-0 flex-col items-center leading-tight">
+                  {exportingFormat === "xlsx" ? (
+                    <span className="font-medium">Generating XLSX...</span>
+                  ) : (
+                    <>
+                      <span className="font-semibold">XLSX</span>
+                      <span className="text-[11px] font-normal break-words opacity-80">
+                        (Codebook + Data)
+                      </span>
+                    </>
+                  )}
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleDownload("csv")}
                 disabled={!!exportingFormat}
-                className="sb-button-soft text-sm inline-flex items-center gap-2 disabled:opacity-50"
+                className="sb-button-soft text-sm inline-flex w-full min-w-0 max-w-full items-center justify-center gap-2.5 text-center disabled:opacity-50 min-[420px]:w-auto min-[420px]:min-w-[180px] min-[420px]:flex-1 lg:w-auto lg:min-w-0 lg:max-w-none lg:flex-none lg:whitespace-nowrap"
               >
                 {exportingFormat === "csv" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-8 w-8 shrink-0 animate-spin" />
                 ) : (
-                  <Download className="w-4 h-4" />
+                  <Download className="h-8 w-8 shrink-0" />
                 )}
-                {exportingFormat === "csv" ? "Generating CSV..." : "CSV (R / Python / Stata)"}
+                <span className="flex min-w-0 flex-col items-center leading-tight">
+                  {exportingFormat === "csv" ? (
+                    <span className="font-medium">Generating CSV...</span>
+                  ) : (
+                    <>
+                      <span className="font-semibold">CSV</span>
+                      <span className="text-[11px] font-normal break-words opacity-80">
+                        (R / Python / Stata)
+                      </span>
+                    </>
+                  )}
+                </span>
               </button>
             </>
           )}
