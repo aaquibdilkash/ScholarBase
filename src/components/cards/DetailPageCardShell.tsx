@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { cloneElement, isValidElement, type ReactNode } from "react";
@@ -97,9 +98,10 @@ export default function DetailPageCardShell({
     >
       <Link prefetch={false}
         href={backHref}
-        className="inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700 mb-8"
+        className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 mb-8"
       >
-        ← {backLabel}
+        <ChevronLeft className="h-4 w-4" />
+        {backLabel}
       </Link>
 
       <div className={clsx(bodyClassName ?? "sb-card p-6 sm:p-6 md:p-8")}>
