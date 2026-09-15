@@ -1,10 +1,10 @@
-const CACHE_NAME = "scholarbase-v2";
+const CACHE_NAME = "scholarbase-v3";
 const urlsToCache = [
   "/",
   "/manifest.json",
   "/logo.png",
   "/favicon.ico",
-  "/api/og-image",
+  "/favicon.svg",
 ];
 
 self.addEventListener("install", (event) => {

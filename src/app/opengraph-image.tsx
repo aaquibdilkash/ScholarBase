@@ -2,8 +2,8 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-// Image metadata for Next.js conventions (if used as apple-touch-icon.tsx)
-export const size = { width: 512, height: 512 };
+export const alt = "ScholarBase";
+export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
@@ -24,12 +24,12 @@ export default async function Image() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 240, // Mathematically scaled from the 48px favicon
+            fontSize: 300, // Proportional scale for 1200x630
             color: "white",
-            fontWeight: 900, // Maximum valid CSS font weight
+            fontWeight: 900,
             fontFamily: "system-ui, sans-serif",
             lineHeight: 1,
-            letterSpacing: "-10px", // Scaled negative tracking to pull S and B together
+            letterSpacing: "-12px",
           }}
         >
           <span>S</span>

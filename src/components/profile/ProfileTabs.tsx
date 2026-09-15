@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
+import { stripHtmlTags } from "@/lib/html";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 import {
   getProfileSections,
@@ -763,26 +764,78 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
   const boldCls = "font-semibold text-slate-800 dark:text-slate-100";
 
   // Render the main related-entity title as a link (when a route exists) or plain bold text.
-  const renderEntityTitle = (title: string) =>
-    title ? (
+  // Titles are plain text (post titles, names) — strip any HTML so tags never leak.
+  // (Recommendation feedback is rich HTML and gets its own RichContent branch below.)
+  const renderEntityTitle = (title: string) => {
+    const plain = stripHtmlTags(title ?? "");
+    return plain ? (
       href ? (
         <Link prefetch={false} href={href} className={linkCls}>
-          &ldquo;{title}&rdquo;
+          &ldquo;{plain}&rdquo;
         </Link>
       ) : (
-        <span className={plainCls}>&ldquo;{title}&rdquo;</span>
+        <span className={plainCls}>&ldquo;{plain}&rdquo;</span>
       )
     ) : null;
+  };
 
-  // Render user-supplied content (comments, replies, recommendation feedback) prominently.
-  const renderSnippet = (text: string) =>
-    text ? <span className={plainCls}>&ldquo;{text}&rdquo;</span> : null;
+  // Render user-supplied content (comments, replies) prominently.
+  // Comments/replies are plain text — strip any HTML so tags never leak.
+  const renderSnippet = (text: string) => {
+    const plain = stripHtmlTags(text ?? "");
+    return plain ? <span className={plainCls}>&ldquo;{plain}&rdquo;</span> : null;
+  };
+
+  // Render rich-text HTML (recommendation feedback) with full formatting,
+  // exactly like RecommendationCard does — never as raw tag soup.
+  // NOTE: must be a <div> (not <span>/<p>): RichContent itself renders a
+  // <div>, and <div> cannot be a descendant of <p> or <span> — that breaks
+  // hydration ("In HTML, <div> cannot be a descendant of <p>").
+  const renderRichSnippet = (html: string | undefined) =>
+    html?.trim() ? (
+      <div className="mt-2 font-normal">
+        <RichContent
+          content={html}
+          className="text-slate-600 dark:text-slate-300 text-sm [&_p]:my-0"
+        />
+      </div>
+    ) : null;
 
   const renderDescription = () => {
+    // Recommendation feedback is rich-text HTML, so it needs special handling
+    // everywhere it can surface (publish, vote, comment, reply).
+    const isRecommendation =
+      item.moduleType === "RECOMMENDATION" ||
+      item.moduleType === "RECOMMENDATION_COMMENT";
     switch (item.action) {
       case "COMMENTED": {
         // Format: postTitle ||| commentContent
         const [postTitle, commentContent] = parts;
+        // On a recommendation, postTitle is rich-text feedback HTML — link a
+        // plain-text excerpt so tags never leak (feedback itself lives on the
+        // recommendation page behind the link).
+        if (isRecommendation) {
+          const plainTitle = stripHtmlTags(postTitle || item.entityTitle);
+          const excerpt = plainTitle
+            ? plainTitle.substring(0, 120)
+            : "";
+          return (
+            <>
+              {" "}
+              {renderSnippet(commentContent)}
+              {" "}on the <span className={boldCls}>{label}</span>{" "}
+              {excerpt ? (
+                href ? (
+                  <Link prefetch={false} href={href} className={linkCls}>
+                    &ldquo;{excerpt}&rdquo;
+                  </Link>
+                ) : (
+                  <span className={plainCls}>&ldquo;{excerpt}&rdquo;</span>
+                )
+              ) : null}
+            </>
+          );
+        }
         return (
           <>
             {" "}
@@ -795,6 +848,41 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
       case "REPLIED": {
         // Format: postTitle ||| replyContent ||| parentCommentContent
         const [postTitle, replyContent, parentCommentContent] = parts;
+        if (isRecommendation) {
+          const plainTitle = stripHtmlTags(postTitle || item.entityTitle);
+          const excerpt = plainTitle
+            ? plainTitle.substring(0, 120)
+            : "";
+          const titleNode = excerpt ? (
+            href ? (
+              <Link prefetch={false} href={href} className={linkCls}>
+                &ldquo;{excerpt}&rdquo;
+              </Link>
+            ) : (
+              <span className={plainCls}>&ldquo;{excerpt}&rdquo;</span>
+            )
+          ) : null;
+          if (parentCommentContent) {
+            return (
+              <>
+                {" "}
+                {renderSnippet(replyContent)}
+                {" "}on the comment {renderSnippet(parentCommentContent)}
+                {" "}for the <span className={boldCls}>{label}</span>{" "}
+                {titleNode}
+              </>
+            );
+          }
+          // Fallback when the parent comment isn't present (legacy data).
+          return (
+            <>
+              {" "}
+              {renderSnippet(replyContent)}
+              {" "}on the <span className={boldCls}>{label}</span>{" "}
+              {titleNode}
+            </>
+          );
+        }
         if (parentCommentContent) {
           return (
             <>
@@ -817,6 +905,23 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
         );
       }
       case "VOTED":
+        // A vote on a recommendation stores the rich-text feedback HTML as the
+        // title — the formatted body renders as a sibling block below (see
+        // renderRichBlock), never nested inside this inline headline.
+        if (item.moduleType === "RECOMMENDATION") {
+          return (
+            <>
+              {" "}the <span className={boldCls}>{label}</span>{" "}
+              {href ? (
+                <Link prefetch={false} href={href} className={linkCls}>
+                  view recommendation
+                </Link>
+              ) : (
+                <span className={boldCls}>recommendation</span>
+              )}
+            </>
+          );
+        }
         return (
           <>
             {" "}the <span className={boldCls}>{label}</span>{" "}
@@ -834,13 +939,14 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
         );
       case "PUBLISHED": {
         if (item.moduleType === "RECOMMENDATION") {
-          // Format: supervisorName ||| feedback
-          const [supervisorName, feedback] = parts;
+          // Format: supervisorName ||| feedback (rich-text HTML) — the
+          // formatted body renders as a sibling block below (see
+          // renderRichBlock), never nested inside this inline headline.
+          const [supervisorName] = parts;
           return (
             <>
               {" "}
-              {renderSnippet(feedback || item.entityTitle)}
-              {" "}for supervisor{" "}
+              <span className={boldCls}>a recommendation</span> for supervisor{" "}
               {href ? (
                 <Link prefetch={false} href={href} className={linkCls}>
                   {supervisorName || "scholar"}
@@ -868,6 +974,20 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
     }
   };
 
+  // Sibling block for rich-text bodies (recommendation feedback HTML).
+  // Rendered OUTSIDE the inline headline <p> — RichContent renders a <div>
+  // and <div> cannot be a descendant of <p> (hydration error).
+  const renderRichBlock = () => {
+    if (item.moduleType !== "RECOMMENDATION") return null;
+    const html =
+      item.action === "PUBLISHED"
+        ? parts[1] || item.entityTitle
+        : item.action === "VOTED"
+          ? item.entityTitle
+          : null;
+    return renderRichSnippet(html ?? undefined);
+  };
+
   return (
     <div className="sb-card p-4">
       <div className="flex items-start gap-3">
@@ -877,6 +997,7 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
             <span className={boldCls}>{actionText}</span>
             {renderDescription()}
           </p>
+          {renderRichBlock()}
           <p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">
             {formatTimeAgo(new Date(item.createdAt))}
           </p>
