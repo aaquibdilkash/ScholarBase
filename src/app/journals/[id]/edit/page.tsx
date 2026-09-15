@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Journal - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Journal - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -54,7 +56,7 @@ export default async function EditJournalPage({
       title="Edit Journal Details"
       description="Update metrics, descriptions, or links for this journal."
       backHref={`/journals/${journal.id}`}
-      backLabel="← Cancel and Back to Journal"
+      backLabel="Cancel and Back to Journal"
     >
       <JournalForm
         mode="edit"

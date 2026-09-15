@@ -385,7 +385,15 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
-    select: { authorId: true },
+    select: {
+      authorId: true,
+      title: true,
+      description: true,
+      privacy: true,
+      shareData: true,
+      consentRequired: true,
+      consentText: true,
+    },
   });
   if (!survey) {
     throw new Error("Survey not found.");
@@ -393,6 +401,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
   if (!(await isAuthorizedOrAdmin(survey.authorId, user.id)))
     throw new Error("Not authorized to edit this survey.");
 
+  try {
   const title = readFormValue(formData, "title");
   const description = readOptionalFormValue(formData, "description");
   const privacy = readFormValue(formData, "privacy") as
@@ -427,6 +436,14 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         id: true,
         title: true,
         type: true,
+        required: true,
+        order: true,
+        minValue: true,
+        maxValue: true,
+        shuffleOptions: true,
+        skipLogic: true,
+        columnLabels: true,
+        blockId: true,
         options: { where: { archivedAt: null } },
         totalAnswers: true,
       },
@@ -439,7 +456,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     // carry no response data; questions detach via onDelete: SetNull).
     const existingBlocks = await tx.surveyBlock.findMany({
       where: { surveyId },
-      select: { id: true },
+      select: { id: true, title: true, order: true, randomizeOrder: true },
     });
     const existingBlockIds = new Set(existingBlocks.map((b) => b.id));
     const submittedBlockIds = new Set(
@@ -603,6 +620,85 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
       }
     }
 
+    // Timestamp integrity (Rule 3.5): only stamp `editedAt` when the submitted
+    // content actually differs from what is stored. Resubmitting an unchanged
+    // survey (e.g. after a failed attempt) must not mark it as "Edited".
+    const stableJson = (value: unknown) => JSON.stringify(value ?? null);
+    const byOrder = <T extends { order: number }>(a: T, b: T) => a.order - b.order;
+
+    const submittedQuestionSignatures = new Map(
+      [...questions]
+        .sort(byOrder)
+        .map((q) => [
+          q.id ?? `new:${q.order}`,
+          stableJson({
+            type: q.type,
+            title: q.title,
+            required: q.required,
+            order: q.order,
+            minValue: q.minValue ?? null,
+            maxValue: q.maxValue ?? null,
+            shuffleOptions: q.shuffleOptions === true,
+            blockId: q.blockId ? (blockIdMap.get(q.blockId) ?? null) : null,
+            skipLogic: stableJson(sanitizeSkipLogic(q.skipLogic)),
+            columnLabels: stableJson(sanitizeColumnLabels(q.columnLabels)),
+            options: [...(q.options ?? [])]
+              .sort(byOrder)
+              .map((o) => [o.value, o.label, o.order]),
+          }),
+        ]),
+    );
+    const existingQuestionSignatures = new Map(
+      [...existingQuestions]
+        .sort(byOrder)
+        .map((q) => [
+          q.id,
+          stableJson({
+            type: q.type,
+            title: q.title,
+            required: q.required,
+            order: q.order,
+            minValue: q.minValue ?? null,
+            maxValue: q.maxValue ?? null,
+            shuffleOptions: q.shuffleOptions === true,
+            blockId: q.blockId ?? null,
+            skipLogic: stableJson(sanitizeSkipLogic(q.skipLogic)),
+            columnLabels: stableJson(sanitizeColumnLabels(q.columnLabels)),
+            options: [...q.options]
+              .sort(byOrder)
+              .map((o) => [o.value, o.label, o.order]),
+          }),
+        ]),
+    );
+    const questionsChanged =
+      submittedQuestionSignatures.size !== existingQuestionSignatures.size ||
+      [...submittedQuestionSignatures].some(
+        ([id, signature]) => existingQuestionSignatures.get(id) !== signature,
+      );
+
+    const blocksChanged =
+      blocks.length !== existingBlocks.length ||
+      blocks.some((b) => {
+        const existing = b.id ? existingBlocks.find((e) => e.id === b.id) : undefined;
+        return (
+          !existing ||
+          existing.title !== b.title ||
+          existing.order !== b.order ||
+          existing.randomizeOrder !== b.randomizeOrder
+        );
+      });
+
+    const sanitizedConsent = sanitizeConsentText(consentText);
+    const metaChanged =
+      title !== survey.title ||
+      (description ?? null) !== (survey.description ?? null) ||
+      (privacy || "HYBRID") !== survey.privacy ||
+      shareData !== survey.shareData ||
+      consentRequired !== survey.consentRequired ||
+      (sanitizedConsent ?? null) !== (survey.consentText ?? null);
+
+    const contentChanged = questionsChanged || blocksChanged || metaChanged;
+
     await tx.researchSurvey.update({
       where: { id: surveyId },
       data: {
@@ -612,10 +708,19 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         shareData,
         consentRequired,
         consentText,
-        editedAt: new Date(),
+        ...(contentChanged ? { editedAt: new Date() } : {}),
       },
     });
   });
+  } catch (err) {
+    // Surface the real validation message (e.g. "Cannot change the type of X
+    // because it already has responses.") — thrown action errors are stripped
+    // to a generic digest in production builds.
+    return {
+      success: false as const,
+      error: err instanceof Error ? err.message : "Failed to update survey.",
+    };
+  }
 
   const updatedSurvey = await getSurvey(surveyId, user.id);
 
@@ -870,64 +975,69 @@ export async function submitSurveyResponse(
   });
 
   if (existingResponse) {
-    // Retain answers to archived questions as historical data, while
-    // replacing responses to questions that remain active in the form.
-    const deletedAnswers = await prisma.surveyAnswer.findMany({
-      where: {
-        responseId: existingResponse.id,
-        question: { archivedAt: null },
-      },
-      select: { questionId: true },
-    });
-    await prisma.surveyAnswer.deleteMany({
-      where: {
-        responseId: existingResponse.id,
-        question: { archivedAt: null },
-      },
-    });
-    const updatedResponse = await prisma.surveyResponse.update({
-      where: { id: existingResponse.id },
-      data: {
-        isAnonymous,
-        ...(surveyForValidation.consentRequired && consented
-          ? { consentedAt: completedAt }
-          : {}),
-        startedAt,
-        completedAt,
-        randomizationSeed,
-        answers: {
-          create: answers.map((a) => ({
-            question: { connect: { id: a.questionId } },
-            value: a.value,
-          })),
+    const updatedResponse = await prisma.$transaction(async (tx) => {
+      // Retain answers to archived questions as historical data, while
+      // replacing responses to questions that remain active in the form.
+      const deletedAnswers = await tx.surveyAnswer.findMany({
+        where: {
+          responseId: existingResponse.id,
+          question: { archivedAt: null },
         },
-      },
-      include: { answers: true },
+        select: { questionId: true },
+      });
+      await tx.surveyAnswer.deleteMany({
+        where: {
+          responseId: existingResponse.id,
+          question: { archivedAt: null },
+        },
+      });
+      const response = await tx.surveyResponse.update({
+        where: { id: existingResponse.id },
+        data: {
+          isAnonymous,
+          ...(surveyForValidation.consentRequired &&
+          consented &&
+          existingResponse.consentedAt === null
+            ? { consentedAt: completedAt }
+            : {}),
+          editedAt: completedAt,
+          randomizationSeed,
+          answers: {
+            create: answers.map((a) => ({
+              question: { connect: { id: a.questionId } },
+              value: a.value,
+            })),
+          },
+        },
+        include: { answers: true },
+      });
+
+      const newQuestionIds = [...new Set(answers.map((a) => a.questionId))];
+      const deletedQuestionIds = [
+        ...new Set(deletedAnswers.map((a) => a.questionId)),
+      ];
+      const questionsToDecrement = deletedQuestionIds.filter(
+        (id) => !newQuestionIds.includes(id),
+      );
+      const questionsToIncrement = newQuestionIds.filter(
+        (id) => !deletedQuestionIds.includes(id),
+      );
+
+      if (questionsToIncrement.length > 0) {
+        await tx.surveyQuestion.updateMany({
+          where: { id: { in: questionsToIncrement } },
+          data: { totalAnswers: { increment: 1 } },
+        });
+      }
+      if (questionsToDecrement.length > 0) {
+        await tx.surveyQuestion.updateMany({
+          where: { id: { in: questionsToDecrement } },
+          data: { totalAnswers: { decrement: 1 } },
+        });
+      }
+
+      return response;
     });
-
-    const newQuestionIds = [...new Set(answers.map((a) => a.questionId))];
-    const deletedQuestionIds = [
-      ...new Set(deletedAnswers.map((a) => a.questionId)),
-    ];
-    const questionsToDecrement = deletedQuestionIds.filter(
-      (id) => !newQuestionIds.includes(id),
-    );
-    const questionsToIncrement = newQuestionIds.filter(
-      (id) => !deletedQuestionIds.includes(id),
-    );
-
-    if (questionsToIncrement.length > 0) {
-      await prisma.surveyQuestion.updateMany({
-        where: { id: { in: questionsToIncrement } },
-        data: { totalAnswers: { increment: 1 } },
-      });
-    }
-    if (questionsToDecrement.length > 0) {
-      await prisma.surveyQuestion.updateMany({
-        where: { id: { in: questionsToDecrement } },
-        data: { totalAnswers: { decrement: 1 } },
-      });
-    }
 
     return { success: true, data: updatedResponse };
   }

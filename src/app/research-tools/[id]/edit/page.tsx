@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Research Tool - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Research Tool - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -45,7 +47,7 @@ export default async function EditResearchToolPage({
       title="Edit Research Tool"
       description="Update the description, use case, or website link for this tool."
       backHref={`/research-tools/${tool.id}`}
-      backLabel="← Cancel and Back to Research Tool"
+      backLabel="Cancel and Back to Research Tool"
     >
       <ResearchToolForm
         mode="edit"

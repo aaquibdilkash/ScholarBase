@@ -27,7 +27,7 @@ export default async function RequestInstitutionPage({
       title="Request institution access"
       description="If your institution or research lab is not in our approved directory, send us its details for review."
       backHref="/login"
-      backLabel="← Back to sign in"
+      backLabel="Back to sign in"
       maxWidth="sm"
       className="flex min-h-[calc(100dvh-8rem)] flex-col justify-center"
     >

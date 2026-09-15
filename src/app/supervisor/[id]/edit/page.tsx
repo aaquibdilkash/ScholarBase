@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Supervisor - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Supervisor - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import SupervisorForm from "@/components/supervisor/SupervisorForm";
@@ -34,7 +36,7 @@ export default async function EditSupervisorPage({
       title="Edit Supervisor"
       description={`Update the profile details for ${supervisor.name}.`}
       backHref={`/supervisor/${supervisor.id}`}
-      backLabel="← Cancel and Back to Supervisor"
+      backLabel="Cancel and Back to Supervisor"
     >
       <SupervisorForm
         mode="edit"

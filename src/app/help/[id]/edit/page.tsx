@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Help Post - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Help Post - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -45,7 +47,7 @@ export default async function EditHelpPostPage({
       title="Edit Help Post"
       description="Update your question, category, or message details."
       backHref={`/help/${post.id}`}
-      backLabel="← Cancel and Back to Post"
+      backLabel="Cancel and Back to Post"
     >
       <HelpPostForm
         mode="edit"

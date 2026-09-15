@@ -14,7 +14,7 @@ export default function NewContributionPage() {
       title="Make a Contribution"
       description="Support ScholarBase development by making a contribution."
       backHref="/contributions"
-      backLabel="← Back to Contributions"
+      backLabel="Back to Contributions"
     >
       <ContributionForm mode="create" />
     </CreateOrEditPageShell>

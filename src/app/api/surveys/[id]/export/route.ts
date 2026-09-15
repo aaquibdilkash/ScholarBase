@@ -57,6 +57,7 @@ export async function GET(
     select: {
       id: true,
       createdAt: true,
+      editedAt: true,
       startedAt: true,
       completedAt: true,
       consentedAt: true,
@@ -119,7 +120,15 @@ export async function GET(
   XLSX.utils.book_append_sheet(workbook, codebookSheet, "Codebook");
   XLSX.utils.book_append_sheet(workbook, rawDataSheet, "Raw Data");
 
-  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  // bookSST is required: the SheetJS default writes string cells as t="str"
+  // (formula-result type) with no sharedStrings part, which Google Sheets and
+  // some Excel versions render as EMPTY cells. t="s" + sharedStrings.xml is
+  // the standard encoding every spreadsheet parser understands.
+  const buffer = XLSX.write(workbook, {
+    type: "buffer",
+    bookType: "xlsx",
+    bookSST: true,
+  }) as Buffer;
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type":

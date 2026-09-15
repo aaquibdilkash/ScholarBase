@@ -1,5 +1,6 @@
 import { FileSearch } from "lucide-react";
 import Link from "next/link";
+import { BackButton } from "@/components/navigation/BackButton";
 
 export default function NotFound() {
   return (
@@ -17,12 +18,17 @@ export default function NotFound() {
           have been moved, deleted, or it never existed.
         </p>
 
-        <Link prefetch={false}
-          href="/"
-          className="rounded-xl bg-slate-950 px-8 py-3.5 font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:ring-4 hover:ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:hover:ring-slate-700"
-        >
-          Return to Home
-        </Link>
+        <div className="flex flex-wrap justify-center gap-3">
+          <BackButton className="rounded-xl border border-slate-200 bg-white px-8 py-3.5 font-semibold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">
+            Go Back
+          </BackButton>
+          <Link prefetch={false}
+            href="/"
+            className="rounded-xl bg-slate-950 px-8 py-3.5 font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:ring-4 hover:ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 dark:hover:ring-slate-700"
+          >
+            Return to Home
+          </Link>
+        </div>
       </div>
     </main>
   );

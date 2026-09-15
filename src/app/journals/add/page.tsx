@@ -14,7 +14,7 @@ export default function NewJournalPage() {
       title="Add Journal"
       description="Add an academic journal with its rankings and impact factor."
       backHref="/journals"
-      backLabel="← Back to Journals"
+      backLabel="Back to Journals"
     >
       <JournalForm mode="create" />
     </CreateOrEditPageShell>

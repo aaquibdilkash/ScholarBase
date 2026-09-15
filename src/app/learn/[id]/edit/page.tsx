@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Course - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Course - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import CourseForm from "@/components/courses/CourseForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
-export default async function EditCoursePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditCoursePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
-  const user = await requireCurrentUser("You must be logged in to edit this course.");
+  const user = await requireCurrentUser(
+    "You must be logged in to edit this course.",
+  );
 
   const course = await prisma.course.findUnique({
     where: { id },
@@ -30,14 +38,15 @@ export default async function EditCoursePage({ params }: { params: Promise<{ id:
   });
 
   if (!course) notFound();
-  if (course.authorId !== user.id) throw new Error("You are not authorized to edit this course.");
+  if (course.authorId !== user.id)
+    throw new Error("You are not authorized to edit this course.");
 
   return (
     <CreateOrEditPageShell
       title="Edit Course"
       description="Update the course details, learning outcomes, or link."
       backHref={`/learn/${course.id}`}
-      backLabel="← Cancel and Back to Course"
+      backLabel="Cancel and Back to Course"
     >
       <CourseForm
         mode="edit"

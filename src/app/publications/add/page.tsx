@@ -15,7 +15,7 @@ export default function NewPublicationPage() {
       title="Add Publication"
       description="Add your research publication, paper, or academic work to your profile."
       backHref="/publications"
-      backLabel="← Back to Publications"
+      backLabel="Back to Publications"
     >
       <PublicationForm mode="create" />
     </CreateOrEditPageShell>

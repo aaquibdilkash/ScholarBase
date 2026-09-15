@@ -10,7 +10,10 @@ import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { useToast } from "@/components/ui/Toast";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
-import { MentionComposer, type MentionUser } from "@/components/interactions/MentionComposer";
+import {
+  MentionComposer,
+  type MentionUser,
+} from "@/components/interactions/MentionComposer";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
@@ -66,7 +69,6 @@ export default function EditPostPage() {
   if (!id) return null;
   if (isError) return null;
 
-
   if (loading) {
     return (
       <main className="mx-auto max-w-2xl px-2 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -98,7 +100,9 @@ export default function EditPostPage() {
       if (imageUrl) formData.append("imageUrl", imageUrl);
       formData.append(
         "mentions",
-        JSON.stringify(mentionedUsers.map((u) => ({ id: u.id, handle: u.handle }))),
+        JSON.stringify(
+          mentionedUsers.map((u) => ({ id: u.id, handle: u.handle })),
+        ),
       );
 
       const result = await updateSocialPost(formData, id);
@@ -129,7 +133,7 @@ export default function EditPostPage() {
       title="Edit Post"
       description="Edit your social post."
       backHref={`/feed`}
-      backLabel="← Back to Feed"
+      backLabel="Back to Feed"
       maxWidth="lg"
     >
       <form

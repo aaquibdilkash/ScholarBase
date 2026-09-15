@@ -15,7 +15,7 @@ export default function NewHelpPage() {
       title="Post Help / Feedback"
       description="Report bugs, request features, or provide feedback to improve ScholarBase."
       backHref="/help"
-      backLabel="← Back to Help"
+      backLabel="Back to Help"
     >
       <HelpPostForm mode="create" />
     </CreateOrEditPageShell>

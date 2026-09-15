@@ -15,7 +15,7 @@ export default function NewResultPage() {
       title="Add Result Information"
       description="Share exam results, admission outcomes, vacancy results, and other important notifications for the research community."
       backHref="/results"
-      backLabel="← Back to Results"
+      backLabel="Back to Results"
     >
       <ResultForm mode="create" />
     </CreateOrEditPageShell>

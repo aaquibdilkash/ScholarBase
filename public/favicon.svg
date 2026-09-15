@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <rect width="48" height="48" fill="#020617"/>
+  <text
+    x="24"
+    y="24"
+    dy="-0.5"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+    font-weight="900"
+    font-size="22"
+    letter-spacing="-0.5"
+  >
+    <tspan fill="#ffffff">S</tspan><tspan fill="#3b82f6">B</tspan>
+  </text>
+</svg>

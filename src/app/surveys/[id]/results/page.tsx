@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Survey Results - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Survey Results - ScholarBase",
+);
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
@@ -27,11 +29,12 @@ export default async function SurveyResultsPage({
   if (!canView) {
     return (
       <main className="mx-auto max-w-3xl py-6 sm:py-12">
-        <Link prefetch={false}
+        <Link
+          prefetch={false}
           href={`/surveys/${id}`}
           className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
         >
-          ← Back to Survey
+          Back to Survey
         </Link>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
           <h2 className="text-lg font-semibold text-amber-800 mb-2">
@@ -79,11 +82,12 @@ export default async function SurveyResultsPage({
 
   return (
     <main className="mx-auto max-w-3xl py-6 sm:py-12">
-      <Link prefetch={false}
+      <Link
+        prefetch={false}
         href={`/surveys/${id}`}
         className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
       >
-        ← Back to Survey
+        Back to Survey
       </Link>
       <h1 className="text-2xl font-semibold text-slate-950 mb-6">
         Survey Results

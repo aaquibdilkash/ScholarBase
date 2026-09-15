@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Result - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Result - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -49,7 +51,7 @@ export default async function EditResultPage({
       title="Edit Result Information"
       description="Update the result details, links, or description."
       backHref={`/results/${result.id}`}
-      backLabel="← Cancel and Back to Result"
+      backLabel="Cancel and Back to Result"
     >
       <ResultForm
         mode="edit"

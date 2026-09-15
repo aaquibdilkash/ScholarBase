@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Survey - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Survey - ScholarBase",
+);
 import { notFound } from "next/navigation";
 import SurveyForm from "@/components/surveys/SurveyForm";
 import { createClient } from "@/utils/supabase/server";
@@ -49,7 +51,7 @@ export default async function EditSurveyPage({
       title="Edit Research Survey"
       description="Update your survey questions and settings."
       backHref={`/surveys/${id}`}
-      backLabel="← Back to Survey"
+      backLabel="Back to Survey"
     >
       <SurveyForm mode="edit" initialData={serializedSurvey} />
     </CreateOrEditPageShell>

@@ -7,8 +7,7 @@ export default function Icon() {
   return new ImageResponse(
     <div
       style={{
-        // Reduced to 16 to create padding inside Google's circular mask
-        fontSize: 18, 
+        fontSize: 22, // Safe margin inside Google's circular mask
         background: "#020617",
         width: "100%",
         height: "100%",
@@ -16,9 +15,10 @@ export default function Icon() {
         alignItems: "center",
         justifyContent: "center",
         color: "white",
-        fontWeight: 900, 
+        fontWeight: 900,
         fontFamily: "system-ui, sans-serif",
-        lineHeight: 1, 
+        lineHeight: 1,
+        letterSpacing: "-0.5px", // Keeps S and B neatly tucked together
       }}
     >
       <span>S</span>

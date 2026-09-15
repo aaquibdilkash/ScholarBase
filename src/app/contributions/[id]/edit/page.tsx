@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Contribution - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Contribution - ScholarBase",
+);
 import { notFound } from "next/navigation";
 import { getContributionForEdit } from "@/app/actions/contributions";
 import ContributionForm from "@/components/contributions/ContributionForm";
@@ -24,7 +26,7 @@ export default async function EditContributionPage({
       title="Edit Contribution"
       description="Update your contribution details."
       backHref={`/contributions/${contribution.id}`}
-      backLabel="← Cancel and Back to Contribution"
+      backLabel="Cancel and Back to Contribution"
     >
       <ContributionForm
         mode="edit"

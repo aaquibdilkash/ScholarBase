@@ -14,7 +14,7 @@ export default function NewBlogPage() {
       title="Write New Article"
       description="Write and publish a new article on ScholarBase blog."
       backHref="/blog"
-      backLabel="← Back to Blog"
+      backLabel="Back to Blog"
       maxWidth="lg"
     >
       <ArticleComposer mode="create" slug={undefined} />

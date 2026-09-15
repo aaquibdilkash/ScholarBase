@@ -14,7 +14,7 @@ export default function NewSupervisorPage() {
       title="Add Supervisor"
       description="Add a PhD supervisor or mentor to help fellow researchers."
       backHref="/supervisor"
-      backLabel="← Back to Supervisors"
+      backLabel="Back to Supervisors"
     >
       <SupervisorForm mode="create" />
     </CreateOrEditPageShell>

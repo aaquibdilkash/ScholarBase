@@ -46,6 +46,13 @@ type Question = {
 
 type SurveyPrivacy = "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
 
+type SurveyPage = {
+  title: string | null;
+  questions: Question[];
+  sectionIndex: number | null;
+  sectionCount: number;
+};
+
 export function SurveyResponseForm({
   surveyId,
   questions,
@@ -170,16 +177,77 @@ export function SurveyResponseForm({
     [orderedQuestions, skippedQuestionIds],
   );
 
-  // Pagination over visible questions (like SurveyPreview)
-  const contentPages: Question[][] = [];
-  for (let i = 0; i < visibleQuestions.length; i += QUESTIONS_PER_PAGE) {
-    contentPages.push(visibleQuestions.slice(i, i + QUESTIONS_PER_PAGE));
-  }
+  const contentPages: SurveyPage[] = useMemo(() => {
+    const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
+    if (sortedBlocks.length === 0) {
+      const fallbackPages: SurveyPage[] = [];
+      for (let i = 0; i < visibleQuestions.length; i += QUESTIONS_PER_PAGE) {
+        fallbackPages.push({
+          title: null,
+          questions: visibleQuestions.slice(i, i + QUESTIONS_PER_PAGE),
+          sectionIndex: null,
+          sectionCount: 0,
+        });
+      }
+      return fallbackPages;
+    }
+
+    const blockById = new Map(sortedBlocks.map((block, index) => [block.id, { block, index }]));
+    const pages: SurveyPage[] = [];
+
+    for (const question of visibleQuestions) {
+      const section = question.blockId ? blockById.get(question.blockId) : undefined;
+      const lastPage = pages[pages.length - 1];
+
+      if (section) {
+        if (lastPage?.title === section.block.title) {
+          lastPage.questions.push(question);
+        } else {
+          pages.push({
+            title: section.block.title,
+            questions: [question],
+            sectionIndex: section.index + 1,
+            sectionCount: sortedBlocks.length,
+          });
+        }
+        continue;
+      }
+
+      if (
+        lastPage?.title === "General questions" &&
+        lastPage.questions.length < QUESTIONS_PER_PAGE
+      ) {
+        lastPage.questions.push(question);
+      } else {
+        pages.push({
+          title: "General questions",
+          questions: [question],
+          sectionIndex: null,
+          sectionCount: sortedBlocks.length,
+        });
+      }
+    }
+
+    if (pages.length > 0) {
+      return pages;
+    }
+
+    return [];
+  }, [blocks, visibleQuestions]);
   const hasConsentPage = consentRequired;
   const pageCount = contentPages.length + (hasConsentPage ? 1 : 0);
   const isConsentPage = hasConsentPage && page === 0;
   const contentPageIndex = page - (hasConsentPage ? 1 : 0);
   const [consentError, setConsentError] = useState(false);
+  const currentPage = isConsentPage ? null : contentPages[contentPageIndex] ?? null;
+
+  useEffect(() => {
+    if (pageCount === 0) {
+      if (page !== 0) setPage(0);
+      return;
+    }
+    if (page >= pageCount) setPage(pageCount - 1);
+  }, [page, pageCount]);
 
   const pageComplete = (qs: Question[]) =>
     qs.every((q) => {
@@ -203,7 +271,7 @@ export function SurveyResponseForm({
       setPage(1);
       return;
     }
-    const currentQ = contentPages[contentPageIndex];
+    const currentQ = contentPages[contentPageIndex]?.questions;
     if (!currentQ || !pageComplete(currentQ)) return;
     if (contentPageIndex === contentPages.length - 1) {
       // Last page - submit will handle validation
@@ -217,7 +285,7 @@ export function SurveyResponseForm({
   };
 
   const currentQuestions =
-    isConsentPage ? [] : contentPages[contentPageIndex] ?? [];
+    isConsentPage ? [] : currentPage?.questions ?? [];
 
   // Hydrate form state from the saved response (DB) or the local draft.
   // Mark hydration complete so the save effect below does not clobber the
@@ -389,7 +457,7 @@ export function SurveyResponseForm({
 
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} noValidate className="space-y-8">
       {/* Status banner: editing previous response / draft restored */}
       {response ? (
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 flex items-start gap-3 dark:border-blue-500/30 dark:bg-blue-500/10">
@@ -508,6 +576,19 @@ export function SurveyResponseForm({
         </p>
       )}
 
+      {!isConsentPage && currentPage?.title && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+            {currentPage.sectionIndex
+              ? `Section ${currentPage.sectionIndex} of ${currentPage.sectionCount}`
+              : "Section"}
+          </p>
+          <h3 className="mt-1 break-words text-base font-bold text-slate-900 dark:text-slate-100">
+            {currentPage.title}
+          </h3>
+        </div>
+      )}
+
       {/* IRB CONSENT GATE: shown as first page when required and not yet consented */}
       {isConsentPage && (
         <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-500/30 dark:bg-indigo-500/10">
@@ -554,14 +635,14 @@ export function SurveyResponseForm({
       )}
 
       {/* Questions (paginated, visible only — skip logic hides non-applicable ones) */}
-      {!isConsentPage && currentQuestions.map((q, idx) => (
+      {!isConsentPage && currentQuestions.map((q) => (
         <div
           key={q.id}
           className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30"
         >
           <div className="mb-4 flex items-start gap-2">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-              {contentPageIndex * QUESTIONS_PER_PAGE + idx + 1}
+              {visibleQuestions.findIndex((question) => question.id === q.id) + 1}
             </span>
             <div className="min-w-0">
               <h3 className="break-words break-all whitespace-pre-wrap min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -602,13 +683,25 @@ export function SurveyResponseForm({
             Back
           </button>
           <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-            <span>
-              Question {contentPageIndex * QUESTIONS_PER_PAGE + 1}–{" "}
-              {Math.min(
-                contentPageIndex * QUESTIONS_PER_PAGE + currentQuestions.length,
-                visibleQuestions.length
-              )} of {visibleQuestions.length}
-            </span>
+            {currentQuestions.length > 0 && (
+              <span>
+                Question{" "}
+                {Math.min(
+                  ...currentQuestions.map(
+                    (question) =>
+                      visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
+                  ),
+                )}
+                –{" "}
+                {Math.max(
+                  ...currentQuestions.map(
+                    (question) =>
+                      visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
+                  ),
+                )}{" "}
+                of {visibleQuestions.length}
+              </span>
+            )}
           </div>
           {contentPageIndex === contentPages.length - 1 ? (
             <button

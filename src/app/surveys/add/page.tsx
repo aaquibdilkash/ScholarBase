@@ -15,7 +15,7 @@ export default function NewSurveyPage() {
       title="Create Survey"
       description="Create a new survey to collect responses from the academic community."
       backHref="/surveys"
-      backLabel="← Back to Surveys"
+      backLabel="Back to Surveys"
     >
       <SurveyForm mode="create" />
     </CreateOrEditPageShell>

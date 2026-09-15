@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Admission - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Admission - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -47,7 +49,7 @@ export default async function EditAdmissionPage({
       title="Edit PhD Admission Notification"
       description="Update the admission criteria, deadlines, or seat matrix requirements."
       backHref={`/admissions/${admission.id}`}
-      backLabel="← Cancel and Back to Detail"
+      backLabel="Cancel and Back to Detail"
     >
       <AdmissionForm
         mode="edit"

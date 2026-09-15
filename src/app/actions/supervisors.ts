@@ -280,6 +280,16 @@ export async function createSupervisor(formData: FormData) {
       data: { supervisorCount: { increment: 1 }, reputation: { increment: 1 } },
     });
 
+    await tx.userActivity.create({
+      data: {
+        userId: user.id,
+        action: "PUBLISHED",
+        moduleType: "SUPERVISOR",
+        entityId: newSupervisor.id,
+        entityTitle: newSupervisor.name,
+      },
+    });
+
     return newSupervisor;
   });
 

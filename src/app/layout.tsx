@@ -76,19 +76,13 @@ export const metadata: Metadata = {
     title: "ScholarBase",
     capable: true,
   },
-  icons: [
-    {
-      rel: "icon",
-      type: "image/png",
-      sizes: "32x32",
-      url: "/logo.png",
-    },
-    {
-      rel: "apple-touch-icon",
-      sizes: "180x180",
-      url: "/logo.png",
-    },
-  ],
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/logo.png", sizes: "180x180", type: "image/png" }],
+  },
   robots: isDev
     ? {
         index: false,

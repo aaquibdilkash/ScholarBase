@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Publication - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Publication - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -55,7 +57,7 @@ export default async function EditPublicationPage({
       title="Edit Publication"
       description="Update the publication details, metadata, or abstract."
       backHref={`/publications/${publication.id}`}
-      backLabel="← Cancel and Back to Publication"
+      backLabel="Cancel and Back to Publication"
     >
       <PublicationForm
         mode="edit"

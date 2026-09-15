@@ -26,6 +26,7 @@ export interface ExportQuestion {
 export interface ExportResponse {
   id: string;
   createdAt: Date;
+  editedAt: Date | null;
   startedAt: Date;
   completedAt: Date | null;
   consentedAt: Date | null;
@@ -164,7 +165,7 @@ export function buildRawData(
     }
   }
 
-  const metaHeaders = ["response_id", "submitted_at", "duration_seconds"];
+  const metaHeaders = ["response_id", "submitted_at", "updated_at", "duration_seconds"];
   if (survey.privacy !== "ANONYMOUS") metaHeaders.push("consented_at");
   if (includeIdentity) metaHeaders.push("is_anonymous", "respondent_handle");
 
@@ -212,6 +213,7 @@ export function buildRawData(
     const meta: string[] = [
       response.id,
       response.createdAt.toISOString(),
+      response.editedAt ? response.editedAt.toISOString() : "",
       String(durationSeconds),
     ];
     if (survey.privacy !== "ANONYMOUS") {

@@ -742,3 +742,49 @@ html[data-theme="dark"] {
   word-break: break-word;
   white-space: normal;
 }
+
+/* ============================================================
+   Global button cursors (unlayered so it beats Tailwind layers):
+   - enabled buttons → hand (pointer) on hover
+   - disabled buttons → prohibited circle (not-allowed) on hover
+   Covers native <button>, <input type="button|submit">, and
+   [role="button"], including `disabled` attr, `aria-disabled`,
+   and `.disabled` class patterns.
+   ============================================================ */
+button:not(:disabled):not([aria-disabled="true"]):not(.disabled),
+input[type="button"]:not(:disabled):not([aria-disabled="true"]):not(.disabled),
+input[type="submit"]:not(:disabled):not([aria-disabled="true"]):not(.disabled),
+[role="button"]:not([aria-disabled="true"]):not(.disabled):not(:disabled) {
+  cursor: pointer;
+}
+
+button:not(:disabled):not([aria-disabled="true"]):not(.disabled):hover,
+input[type="button"]:not(:disabled):not([aria-disabled="true"]):not(.disabled):hover,
+input[type="submit"]:not(:disabled):not([aria-disabled="true"]):not(.disabled):hover,
+[role="button"]:not([aria-disabled="true"]):not(.disabled):not(:disabled):hover {
+  cursor: pointer;
+}
+
+button:disabled,
+button[aria-disabled="true"],
+button.disabled,
+input[type="button"]:disabled,
+input[type="button"][aria-disabled="true"],
+input[type="submit"]:disabled,
+input[type="submit"][aria-disabled="true"],
+[role="button"][aria-disabled="true"],
+[role="button"].disabled {
+  cursor: not-allowed;
+}
+
+button:disabled:hover,
+button[aria-disabled="true"]:hover,
+button.disabled:hover,
+input[type="button"]:disabled:hover,
+input[type="button"][aria-disabled="true"]:hover,
+input[type="submit"]:disabled:hover,
+input[type="submit"][aria-disabled="true"]:hover,
+[role="button"][aria-disabled="true"]:hover,
+[role="button"].disabled:hover {
+  cursor: not-allowed;
+}

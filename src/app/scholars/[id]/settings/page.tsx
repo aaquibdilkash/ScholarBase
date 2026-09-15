@@ -48,7 +48,7 @@ export default async function ScholarSettingsPage({
       title="Account Settings"
       description="Manage your profile and account security."
       backHref={`/scholars/${id}`}
-      backLabel="← Back to Profile"
+      backLabel="Back to Profile"
       maxWidth="lg"
     >
       <div className="mb-8 space-y-6">
@@ -74,7 +74,11 @@ export default async function ScholarSettingsPage({
                 Manage your password, email, and institutional verification.
               </p>
             </div>
-            <Link prefetch={false} href="/auth/update-password" className="sb-button-primary gap-2">
+            <Link
+              prefetch={false}
+              href="/auth/update-password"
+              className="sb-button-primary gap-2"
+            >
               <Lock className="h-4 w-4" aria-hidden="true" />
               Update Password
             </Link>

@@ -1,3 +1,4 @@
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -8,7 +9,7 @@ export type CreateOrEditPageShellProps = {
   title: string;
   description?: string;
   backHref: string;
-  backLabel?: string; // includes leading "← " if desired
+  backLabel?: string; // includes leading "" if desired
   maxWidth?: "sm" | "md" | "lg" | "xl";
   className?: string;
   children: ReactNode;
@@ -18,7 +19,7 @@ export default function CreateOrEditPageShell({
   title,
   description,
   backHref,
-  backLabel,
+  backLabel = "Back",
   maxWidth = "md",
   className,
   children,
@@ -38,11 +39,13 @@ export default function CreateOrEditPageShell({
       )}
     >
       <div className="mb-8">
-        <Link prefetch={false}
+        <Link
+          prefetch={false}
           href={backHref}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 mb-8"
         >
-          {backLabel ?? "← Back"}
+          <ChevronLeft className="h-4 w-4" />
+          {backLabel}
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
           {title}

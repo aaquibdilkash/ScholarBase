@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Event - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Event - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -48,7 +50,7 @@ export default async function EditEventPage({
       title="Edit Research Event"
       description="Update the conference dates, links, or description."
       backHref={`/events/${event.id}`}
-      backLabel="← Cancel and Back to Event"
+      backLabel="Cancel and Back to Event"
     >
       <EventForm
         mode="edit"

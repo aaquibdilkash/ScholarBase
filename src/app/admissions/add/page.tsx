@@ -15,7 +15,7 @@ export default function NewAdmissionPage() {
       title="Post PhD Admission Notification"
       description="Share PhD admissions, call for applications, and academic intake notifications."
       backHref="/admissions"
-      backLabel="← Back to Admissions"
+      backLabel="Back to Admissions"
     >
       <AdmissionForm mode="create" />
     </CreateOrEditPageShell>

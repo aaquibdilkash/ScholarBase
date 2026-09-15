@@ -683,7 +683,15 @@ const ACTIVITY_META: Record<
   RESULT: { label: "result", href: (id) => `/results/${id}` },
   CONTRIBUTION: { label: "contribution", href: (id) => `/contributions/${id}` },
   SUPERVISOR: { label: "supervisor", href: (id) => `/supervisor/${id}` },
-  RECOMMENDATION: { label: "recommendation", href: () => undefined },
+  RECOMMENDATION: {
+    label: "recommendation",
+    href: (id) => {
+      const [supervisorId, recommendationId] = id.split("/");
+      return supervisorId && recommendationId
+        ? `/supervisor/${supervisorId}/recommendation/${recommendationId}`
+        : undefined;
+    },
+  },
   RESEARCH_SURVEY: { label: "survey", href: (id) => `/surveys/${id}` },
   COURSE: { label: "course", href: (id) => `/learn/${id}` },
   RESEARCH_GRANT: { label: "research grant", href: (id) => `/grants/${id}` },
@@ -833,7 +841,13 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
               {" "}
               {renderSnippet(feedback || item.entityTitle)}
               {" "}for supervisor{" "}
-              <span className={boldCls}>{supervisorName || "scholar"}</span>
+              {href ? (
+                <Link prefetch={false} href={href} className={linkCls}>
+                  {supervisorName || "scholar"}
+                </Link>
+              ) : (
+                <span className={boldCls}>{supervisorName || "scholar"}</span>
+              )}
             </>
           );
         }

@@ -172,16 +172,18 @@ export async function createRecommendation(
         },
       });
 
-      await tx.userActivity.create({
-        data: {
-          userId: user.id,
-          action: "PUBLISHED",
-          moduleType: "RECOMMENDATION",
-          entityId: newRecommendation.id,
-          entityTitle:
-            `${newRecommendation.supervisor.name}|||${feedback.substring(0, 512)}`,
-        },
-      });
+      if (!isAnonymous) {
+        await tx.userActivity.create({
+          data: {
+            userId: user.id,
+            action: "PUBLISHED",
+            moduleType: "RECOMMENDATION",
+            entityId: `${supervisorId}/${newRecommendation.id}`,
+            entityTitle:
+              `${newRecommendation.supervisor.name}|||${feedback.substring(0, 512)}`,
+          },
+        });
+      }
 
        await tx.user.update({
          where: { id: user.id },
@@ -292,10 +294,30 @@ export async function updateRecommendation(
           where: { id: recommendation.authorId },
           data: { recommendationCount: { decrement: 1 } },
         });
+        await tx.userActivity.deleteMany({
+          where: {
+            userId: recommendation.authorId,
+            action: "PUBLISHED",
+            moduleType: "RECOMMENDATION",
+            OR: [
+              { entityId: recommendationId },
+              { entityId: `${recommendation.supervisorId}/${recommendationId}` },
+            ],
+          },
+        });
       } else if (recommendation.isAnonymous && !isAnonymous) {
         await tx.user.update({
           where: { id: recommendation.authorId },
           data: { recommendationCount: { increment: 1 } },
+        });
+        await tx.userActivity.create({
+          data: {
+            userId: recommendation.authorId,
+            action: "PUBLISHED",
+            moduleType: "RECOMMENDATION",
+            entityId: `${recommendation.supervisorId}/${recommendationId}`,
+            entityTitle: `${updated.supervisor.name}|||${feedback.substring(0, 512)}`,
+          },
         });
       }
 

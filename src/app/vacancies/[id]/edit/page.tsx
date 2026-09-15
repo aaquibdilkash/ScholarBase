@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Vacancy - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Vacancy - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -46,7 +48,7 @@ export default async function EditVacancyPage({
       title="Edit Academic Vacancy"
       description="Update the job details, application deadlines, or links."
       backHref={`/vacancies/${vacancy.id}`}
-      backLabel="← Cancel and Back to Vacancy"
+      backLabel="Cancel and Back to Vacancy"
     >
       <VacancyForm
         mode="edit"

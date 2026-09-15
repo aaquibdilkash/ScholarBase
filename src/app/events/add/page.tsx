@@ -15,7 +15,7 @@ export default function NewEventPage() {
       title="List a Research Event / Conference"
       description="Add conferences, calls, and events that matter to researchers."
       backHref="/events"
-      backLabel="← Back to Events"
+      backLabel="Back to Events"
     >
       <EventForm mode="create" />
     </CreateOrEditPageShell>

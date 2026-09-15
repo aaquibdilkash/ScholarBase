@@ -33,7 +33,7 @@ export function useFormSubmit(
     } = options;
 
     const submit = useCallback(
-        async (action: () => Promise<void | SubmitResult>) => {
+        async (action: () => Promise<void | SubmitResult>): Promise<boolean> => {
             setSubmitting(true);
             try {
                 const result = await action();
@@ -61,6 +61,7 @@ export function useFormSubmit(
                         } else {
                             toast(successMessage);
                         }
+                        return true;
                     } else {
                         // Server returned error
                         toast(r.error || errorMessage, "error");
@@ -75,6 +76,7 @@ export function useFormSubmit(
             } finally {
                 setSubmitting(false);
             }
+            return false;
         },
         [resetDraft, resetOnSuccess, router, toast, successMessage, errorMessage, onSuccess],
     );

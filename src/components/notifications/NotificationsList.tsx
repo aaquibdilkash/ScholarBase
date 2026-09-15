@@ -3,7 +3,10 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Notification } from "@prisma/client";
-import { getNotifications } from "@/app/actions/notifications";
+import {
+  getNotifications,
+  markNotificationRead,
+} from "@/app/actions/notifications";
 import { getNotificationLink } from "@/lib/notification-links";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
@@ -75,6 +78,17 @@ function NotificationCard({
   notification: NotificationWithActor;
 }) {
   const link = getNotificationLink(notification);
+  const markReadOnOpen = () => {
+    if (notification.readAt) return;
+    window.dispatchEvent(
+      new CustomEvent("notification-read", {
+        detail: { delta: 1, notificationId: notification.id },
+      }),
+    );
+    void markNotificationRead(notification.id).catch((error) => {
+      console.error("Failed to mark notification read on open:", error);
+    });
+  };
   const content = (
     <div className="flex items-start gap-4">
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white dark:bg-slate-800 dark:text-slate-200">
@@ -123,7 +137,12 @@ function NotificationCard({
       }`}
     >
       {link ? (
-        <Link prefetch={false} href={link} className="flex-1 min-w-0">
+        <Link
+          prefetch={false}
+          href={link}
+          onClick={markReadOnOpen}
+          className="flex-1 min-w-0"
+        >
           {content}
         </Link>
       ) : (

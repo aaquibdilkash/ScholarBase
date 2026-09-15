@@ -15,7 +15,7 @@ export default function NewVacancyPage() {
       title="Post an Academic Vacancy"
       description="Share trustworthy openings for the academic community."
       backHref="/vacancies"
-      backLabel="← Back to Vacancies"
+      backLabel="Back to Vacancies"
     >
       <VacancyForm mode="create" />
     </CreateOrEditPageShell>

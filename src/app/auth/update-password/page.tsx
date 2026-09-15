@@ -14,7 +14,7 @@ export default function UpdatePasswordPage() {
       title="Set a New Password"
       description="Whether you forgot your password or are setting one for the first time, enter your new password below."
       backHref="/login"
-      backLabel="← Back to sign in"
+      backLabel="Back to sign in"
       maxWidth="sm"
       className="flex min-h-[calc(100dvh-8rem)] flex-col justify-center"
     >

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Edit Recommendation - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(
+  "Edit Recommendation - ScholarBase",
+);
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
@@ -20,17 +22,17 @@ export default async function EditRecommendationPage({
 
   const recommendation = await prisma.recommendation.findUnique({
     where: { id: recommendationId },
-      select: {
-        id: true,
-        rating: true,
-        turnaroundTimeDays: true,
-        responsivenessScore: true,
-        guidanceScore: true,
-        feedback: true,
-        isAnonymous: true,
-        authorId: true,
-        supervisorId: true,
-      },
+    select: {
+      id: true,
+      rating: true,
+      turnaroundTimeDays: true,
+      responsivenessScore: true,
+      guidanceScore: true,
+      feedback: true,
+      isAnonymous: true,
+      authorId: true,
+      supervisorId: true,
+    },
   });
 
   if (!recommendation || recommendation.supervisorId !== id) {
@@ -47,7 +49,7 @@ export default async function EditRecommendationPage({
       title="Edit your Recommendation"
       description="Update your mentorship feedback for this supervisor."
       backHref={`/supervisor/${id}/recommendation/${recommendationId}`}
-      backLabel="← Cancel and Back to Recommendation"
+      backLabel="Cancel and Back to Recommendation"
       maxWidth="sm"
     >
       <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 p-8 md:p-10 dark:bg-slate-900 dark:border-slate-800">

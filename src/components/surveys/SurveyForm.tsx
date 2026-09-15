@@ -285,10 +285,12 @@ export default function SurveyForm({
 
     const editingId = mode === "edit" ? initialData?.id : undefined;
     if (editingId) {
-      // Edit mode: updateSurvey returns { success, redirect } so submit() handles
-      // the client-side redirect (avoids the NEXT_REDIRECT server error).
-      await submit(() => updateSurvey(formData, editingId));
-      resetDraft();
+      // Edit mode: updateSurvey returns { success, data } or { success: false,
+      // error }. Only reset the draft on success — resetting after a failed
+      // submit would silently revert the user's edits and cause the next
+      // submit to overwrite the survey with its original content.
+      const succeeded = await submit(() => updateSurvey(formData, editingId));
+      if (succeeded) resetDraft();
     } else {
       await submit(() => createSurvey(formData));
     }
