@@ -493,7 +493,7 @@ export default function MessagesClientLayout({
 
   return (
     <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-       <div className="sb-messages-page relative flex h-[calc(100vh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden">
+       <div className="sb-messages-page relative flex h-[calc(100vh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden md:h-full md:min-h-0 md:flex-1">
          {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
           <div className={`fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-50 h-[calc(100vh-var(--sb-navbar-h,3.5rem))] shrink-0 md:static md:h-auto md:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 translate-x-0" : "w-16 -translate-x-full sm:translate-x-0"}`}>
           <Suspense fallback={

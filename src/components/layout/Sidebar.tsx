@@ -311,7 +311,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       <aside 
         className={`fixed inset-y-0 left-0 z-[60] flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
 
-        md:sticky md:top-0 md:z-20 md:h-screen md:gap-4 md:py-6 md:backdrop-blur-xl md:shadow-sm 
+        md:sticky md:top-0 md:z-20 md:h-dvh md:shrink-0 md:gap-4 md:py-6 md:backdrop-blur-xl md:shadow-sm 
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"} w-72 px-6 
         md:translate-x-0 ${desktopCollapsed ? "md:w-24 md:px-3" : "md:w-72 md:px-6"}`}
       >

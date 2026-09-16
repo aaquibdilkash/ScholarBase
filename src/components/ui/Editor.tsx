@@ -22,6 +22,10 @@ interface EditorProps {
   onChange: (value: string) => void;
   maxLength?: number;
   showCharCount?: boolean;
+  /** Extra classes for the outer shell. Pass e.g. `h-[420px] lg:h-[520px]`
+      when the parent wants the editor pinned to a fixed height; by default
+      the editor grows naturally with its content (other forms rely on this). */
+  className?: string;
 }
 
 const Editor = ({
@@ -29,6 +33,7 @@ const Editor = ({
   onChange,
   maxLength,
   showCharCount = true,
+  className,
 }: EditorProps) => {
   const [pendingStates, setPendingStates] = useState({
     bold: false,
@@ -51,7 +56,8 @@ const Editor = ({
     },
     editorProps: {
       attributes: {
-        class: "prose dark:prose-invert m-5 focus:outline-none",
+        class:
+          "prose prose-slate dark:prose-invert prose-sm sm:prose-base max-w-none min-h-[120px] focus:outline-none prose-ol:list-decimal prose-ul:list-disc prose-headings:font-bold",
       },
     },
     immediatelyRender: true,
@@ -121,9 +127,17 @@ const Editor = ({
     return null;
   }
 
+  const isFixedHeight = Boolean(className && /h-\[|h-\d|max-h-/.test(className));
+
   return (
-    <div className="border border-slate-200 dark:border-slate-800 rounded-lg">
-      <div className="p-2 border-b border-slate-200 dark:border-slate-800 flex items-center flex-wrap gap-2">
+    <div
+      className={`flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 ${
+        isFixedHeight
+          ? "h-full min-h-0 flex-col"
+          : "min-h-[180px] flex-col"
+      } ${className ?? ""}`}
+    >
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 p-2 dark:border-slate-800">
         <button type="button"
           onClick={() => toggleFormat("bold")}
           className={`p-2 rounded-lg transition-all ${pendingStates.bold ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"}`}
@@ -205,10 +219,17 @@ const Editor = ({
           <Minus className="h-4 w-4" />
         </button>
       </div>
-      <EditorContent editor={editor} />
+      <EditorContent
+        editor={editor}
+        className={
+          isFixedHeight
+            ? "min-h-0 flex-1 overflow-y-auto px-5 py-4 [&_.tiptap]:min-h-[120px] [&_.tiptap]:focus:outline-none"
+            : "px-5 py-4 [&_.tiptap]:min-h-[120px] [&_.tiptap]:focus:outline-none"
+        }
+      />
       {showCharCount && (
         <div
-          className={`px-2 py-1 text-xs ${
+          className={`shrink-0 border-t border-slate-200 px-2 py-1 text-xs dark:border-slate-800 ${
             isOverLimit
               ? "text-red-600 dark:text-red-400"
               : "text-muted-foreground"

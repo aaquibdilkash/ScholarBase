@@ -129,7 +129,9 @@ export default async function ArticlePage({
         </span>
       </div>
 
-      <div className="prose prose-slate dark:prose-invert prose-lg max-w-none mb-10 prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
+      {/* RichContent already renders its own single `prose` wrapper — do not nest
+          another one here or typography sizes compound (double-prose bug). */}
+      <div className="mb-10">
         <RichContent content={article.content} />
       </div>
     </DetailPageCardShell>

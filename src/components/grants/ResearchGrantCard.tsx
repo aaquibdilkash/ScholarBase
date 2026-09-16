@@ -124,6 +124,7 @@ export function ResearchGrantCard({
         )}
         <RichContent
           content={grant.description}
+          compact
           className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>

@@ -8,7 +8,7 @@ export default function ConditionalFooter() {
   const isMessagesRoute = pathname?.startsWith("/messages");
 
   return (
-    <div className={isMessagesRoute ? "hidden" : undefined}>
+    <div className={isMessagesRoute ? "hidden" : "md:shrink-0"}>
       <Footer />
     </div>
   );

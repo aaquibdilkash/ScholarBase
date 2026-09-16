@@ -59,6 +59,16 @@ html[data-theme="dark"] {
     padding-right: 0 !important;
   }
 
+  /* Desktop inner-scroll shell: the /messages page manages its own internal
+     scroll regions, so the root <main> must not add a second scrollbar. */
+  @media (min-width: 768px) {
+    body:has(main .sb-messages-page) main#sb-main-scroll {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
   body {
     background:
       radial-gradient(
@@ -729,7 +739,11 @@ html[data-theme="dark"] {
 }
 
 /* ============================================================
-   Global text-overflow prevention for user-generated content
+   Rich-text display parity with Tiptap StarterKit (unlayered so it
+   beats Tailwind v4 preflight which resets h1-h6/ol/ul/blockquote).
+   The Editor renders inside `prose`; RichContent now also uses
+   `prose`, and these rules are the compact fallback + guarantee
+   for numbers/bullets/headings on cards and detail pages.
    ============================================================ */
 .sb-rich-content,
 .sb-rich-content * {
@@ -737,10 +751,114 @@ html[data-theme="dark"] {
   word-wrap: break-word;
 }
 
+.sb-rich-content p {
+  margin: 0.5em 0;
+}
+.sb-rich-content p:first-child {
+  margin-top: 0;
+}
+.sb-rich-content p:last-child {
+  margin-bottom: 0;
+}
+
+.sb-rich-content h1,
+.sb-rich-content h2,
+.sb-rich-content h3,
+.sb-rich-content h4,
+.sb-rich-content h5,
+.sb-rich-content h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0.75em 0 0.375em;
+}
+.sb-rich-content h1 { font-size: 1.35em; }
+.sb-rich-content h2 { font-size: 1.2em; }
+.sb-rich-content h3 { font-size: 1.1em; }
+.sb-rich-content h4,
+.sb-rich-content h5,
+.sb-rich-content h6 { font-size: 1em; }
+
+.sb-rich-content strong,
+.sb-rich-content b {
+  font-weight: 700;
+}
+.sb-rich-content em,
+.sb-rich-content i {
+  font-style: italic;
+}
+.sb-rich-content u {
+  text-decoration: underline;
+}
+.sb-rich-content s,
+.sb-rich-content strike {
+  text-decoration: line-through;
+}
+
+.sb-rich-content ol {
+  list-style: decimal;
+  list-style-position: outside;
+  margin: 0.5em 0;
+  padding-left: 1.5rem;
+}
+.sb-rich-content ul {
+  list-style: disc;
+  list-style-position: outside;
+  margin: 0.5em 0;
+  padding-left: 1.5rem;
+}
+.sb-rich-content li {
+  display: list-item;
+  margin: 0.25em 0;
+}
+.sb-rich-content li > p {
+  margin: 0;
+  display: inline;
+}
+
+.sb-rich-content blockquote {
+  border-left: 3px solid rgba(100, 116, 139, 0.4);
+  padding-left: 0.9rem;
+  margin: 0.6em 0;
+  font-style: italic;
+  opacity: 0.95;
+}
+
+.sb-rich-content pre {
+  background: rgba(100, 116, 139, 0.12);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  margin: 0.6em 0;
+}
+.sb-rich-content code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: rgba(100, 116, 139, 0.12);
+  border-radius: 0.3rem;
+  padding: 0.1em 0.35em;
+}
+.sb-rich-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.sb-rich-content hr {
+  border: none;
+  border-top: 1px solid rgba(100, 116, 139, 0.35);
+  margin: 0.9em 0;
+}
+
 .sb-rich-content a {
   overflow-wrap: anywhere;
   word-break: break-word;
   white-space: normal;
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+html.dark .sb-rich-content a,
+html[data-theme="dark"] .sb-rich-content a {
+  color: #93c5fd;
 }
 
 /* ============================================================

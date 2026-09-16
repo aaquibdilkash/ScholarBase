@@ -153,12 +153,12 @@ export async function deleteResearchGrant(grantId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-     await tx.user.update({
-       where: { id: grant.authorId },
-       data: { researchGrantCount: { decrement: 1 }, reputation: { decrement: 1 } },
-     });
+    await tx.user.update({
+      where: { id: grant.authorId },
+      data: { researchGrantCount: { decrement: 1 }, reputation: { decrement: 1 } },
+    });
 
-     if (grant.totalVotes !== 0) {
+    if (grant.totalVotes !== 0) {
       await tx.user.update({
         where: { id: grant.authorId },
         data: { reputation: { decrement: grant.totalVotes } },
@@ -198,6 +198,8 @@ export async function getResearchGrants(
       title: true,
       amount: true,
       description: true,
+      applyLink: true,
+      infoLink: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,

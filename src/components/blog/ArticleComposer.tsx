@@ -139,8 +139,8 @@ export function ArticleComposer({
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
-      <form onSubmit={onSubmit} className="flex flex-col gap-6">
+    <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:items-stretch lg:gap-8">
+      <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-6">
         <CautionNote />
          <div>
            <label className="sb-label inline-flex items-center gap-1.5">
@@ -193,11 +193,12 @@ export function ArticleComposer({
             </span>
           </div>
 
-          <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+          <div className="flex h-[420px] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:h-[520px]">
             <Editor
               maxLength={MAX_ARTICLE_CONTENT}
               value={draftFields.content}
               onChange={(value: string) => updateDraftField("content", value)}
+              className="h-full min-h-0"
             />
             <input type="hidden" name="content" value={draftFields.content} />
           </div>
@@ -217,24 +218,26 @@ export function ArticleComposer({
         </div>
       </form>
 
-      {/* Preview Section */}
-      <section className="sb-surface-strong overflow-hidden border border-slate-200/70">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+      {/* Live preview: equal height to the whole form (grid stretch on desktop).
+          The form itself never scrolls internally — only the preview body
+          below the header does, on desktop and mobile. */}
+      <section className="sb-surface-strong flex h-[560px] min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200/70 sm:h-[620px] lg:h-auto lg:min-h-0">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
               Live Preview
             </p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-950">
+            <h2 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
               {draftFields.title || "Your article"}
             </h2>
           </div>
-          <div className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+          <div className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300">
             {mode === "edit" ? "Editing" : "Draft"}
           </div>
         </div>
 
-        <div className="space-y-5 p-6">
-          <p className="break-words text-sm leading-relaxed text-slate-600">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
+          <p className="break-words text-sm leading-relaxed text-slate-600 dark:text-slate-400">
             {draftFields.excerpt || "Your short description will appear here."}
           </p>
 
