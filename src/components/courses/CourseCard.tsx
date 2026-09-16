@@ -9,6 +9,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteCourse } from "@/app/actions/courses";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { CourseWithAuthor } from "@/types/cards";
 
 export function CourseCard({
@@ -101,14 +102,12 @@ export function CourseCard({
       }
       noBodyLink={true}
       bodyBottomContent={
-        <a
-          href={course.link}
-          target="_blank"
-          rel="noopener noreferrer"
+        <SafeExternalLink
+          url={course.link}
           className="mt-6 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
         >
           Open Course
-        </a>
+        </SafeExternalLink>
       }
     >
       <Link href={`/learn/${course.id}`} prefetch={false} className="block group">

@@ -8,6 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getJournalById } from "../../actions/journals";
 import { deleteJournal } from "@/app/actions/journals";
 import { RichContent } from "@/components/content/RichContent";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -236,16 +237,12 @@ const JournalDetailPage = async ({
       )}
 
       <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">
-        {j.website && (
-          <a
-            href={j.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            View Website
-          </a>
-        )}
+        <SafeExternalLink
+          url={j.website}
+          className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+        >
+          View Website
+        </SafeExternalLink>
       </div>
     </DetailPageCardShell>
   );

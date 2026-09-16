@@ -7,6 +7,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Calendar, Clock, MapPin } from "lucide-react";
@@ -106,26 +107,18 @@ export function EventCard({
       constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          {event.notificationLink && (
-            <a
-              href={event.notificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
-            >
-              View Brochure
-            </a>
-          )}
-          {event.applyLink && (
-            <a
-              href={event.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-            >
-              Register Now
-            </a>
-          )}
+          <SafeExternalLink
+            url={event.notificationLink}
+            className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
+          >
+            View Brochure
+          </SafeExternalLink>
+          <SafeExternalLink
+            url={event.applyLink}
+            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+          >
+            Register Now
+          </SafeExternalLink>
         </div>
       }
     >

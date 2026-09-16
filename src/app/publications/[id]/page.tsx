@@ -8,6 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getPublicationById } from "../../actions/publications";
 import { deletePublication } from "@/app/actions/publications";
 import { RichContent } from "@/components/content/RichContent";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 const PUBLICATION_TYPE_LABELS: Record<string, string> = {
   RESEARCH_PAPER: "Research Paper",
@@ -234,14 +235,12 @@ const PublicationDetailPage = async ({
       {p.doi && (
         <div className="mb-2">
           <span className="text-sm font-medium text-slate-500">DOI: </span>
-          <a
-            href={`https://doi.org/${p.doi}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <SafeExternalLink
+            url={`https://doi.org/${p.doi}`}
             className="text-sm text-blue-600 hover:text-blue-800 underline"
           >
             {p.doi}
-          </a>
+          </SafeExternalLink>
         </div>
       )}
 
@@ -276,14 +275,12 @@ const PublicationDetailPage = async ({
 
       {p.url && (
         <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8 mt-4 sm:mt-6">
-          <a
-            href={p.url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <SafeExternalLink
+            url={p.url}
             className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
           >
             View Publication
-          </a>
+          </SafeExternalLink>
         </div>
       )}
     </DetailPageCardShell>

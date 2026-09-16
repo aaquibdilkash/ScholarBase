@@ -9,6 +9,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { Building2, Calendar } from "lucide-react";
 import { RichContent } from "@/components/content/RichContent";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 
@@ -165,26 +166,12 @@ const ResultDetailPage = async ({
       )}
 
       <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8">
-        {result.notificationLink && (
-          <a
-            href={result.notificationLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 sb-button-soft"
-          >
-            View Notification
-          </a>
-        )}
-        {result.resultLink && (
-          <a
-            href={result.resultLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 sb-button-primary"
-          >
-            Check Results
-          </a>
-        )}
+        <SafeExternalLink url={result.notificationLink} className="flex-1 sb-button-soft">
+          View Notification
+        </SafeExternalLink>
+        <SafeExternalLink url={result.resultLink} className="flex-1 sb-button-primary">
+          Check Results
+        </SafeExternalLink>
       </div>
     </DetailPageCardShell>
   );

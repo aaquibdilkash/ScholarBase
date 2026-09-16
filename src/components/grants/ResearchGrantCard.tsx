@@ -9,6 +9,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchGrant } from "@/app/actions/grants";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
 
 export function ResearchGrantCard({
@@ -94,26 +95,18 @@ export function ResearchGrantCard({
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          {grant.applyLink && (
-            <a
-              href={grant.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
-            >
-              Apply
-            </a>
-          )}
-          {grant.infoLink && (
-            <a
-              href={grant.infoLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
-            >
-              More Info
-            </a>
-          )}
+          <SafeExternalLink
+            url={grant.applyLink}
+            className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
+          >
+            Apply
+          </SafeExternalLink>
+          <SafeExternalLink
+            url={grant.infoLink}
+            className="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
+          >
+            More Info
+          </SafeExternalLink>
         </div>
       }
     >

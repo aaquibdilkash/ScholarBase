@@ -12,6 +12,7 @@ import { Clock } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -96,26 +97,18 @@ export function AdmissionCard({
       constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          {admission.notificationLink && (
-            <a
-              href={admission.notificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
-            >
-              View Circular
-            </a>
-          )}
-          {admission.applyLink && (
-            <a
-              href={admission.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-            >
-              Go to Portal
-            </a>
-          )}
+          <SafeExternalLink
+            url={admission.notificationLink}
+            className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
+          >
+            View Circular
+          </SafeExternalLink>
+          <SafeExternalLink
+            url={admission.applyLink}
+            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+          >
+            Go to Portal
+          </SafeExternalLink>
         </div>
       }
     >

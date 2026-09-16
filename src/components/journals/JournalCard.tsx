@@ -9,6 +9,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteJournal } from "@/app/actions/journals";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { JournalWithAuthor } from "@/types/cards";
 
 export function JournalCard({
@@ -94,19 +95,15 @@ export function JournalCard({
       }
       bodyBottomContent={
         <>
-          {journal.website && (
-            <div className="mt-4 flex gap-3">
-              <a
-                href={journal.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-              >
-                View Website
-              </a>
-            </div>
-          )}
+          <div className="mt-4 flex gap-3">
+            <SafeExternalLink
+              url={journal.website}
+              onClick={(e) => e.stopPropagation()}
+              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+            >
+              View Website
+            </SafeExternalLink>
+          </div>
         </>
       }
     >

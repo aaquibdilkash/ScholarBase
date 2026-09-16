@@ -41,6 +41,8 @@ export async function getAdmissions(
       department: true,
       deadline: true,
       description: true,
+      notificationLink: true,
+      applyLink: true,
       createdAt: true,
       authorId: true,
       author: {

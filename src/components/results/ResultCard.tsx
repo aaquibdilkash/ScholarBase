@@ -9,6 +9,7 @@ import { deleteResult } from "@/app/actions/results";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { ResultWithAuthor } from "@/types/cards";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -102,28 +103,20 @@ export function ResultCard({
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          {result.notificationLink && (
-            <a
-              href={result.notificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
-            >
-              View Notification
-            </a>
-          )}
-          {result.resultLink && (
-            <a
-              href={result.resultLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-            >
-              Check Results
-            </a>
-          )}
+          <SafeExternalLink
+            url={result.notificationLink}
+            onClick={(e) => e.stopPropagation()}
+            className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
+          >
+            View Notification
+          </SafeExternalLink>
+          <SafeExternalLink
+            url={result.resultLink}
+            onClick={(e) => e.stopPropagation()}
+            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+          >
+            Check Results
+          </SafeExternalLink>
         </div>
       }
     >

@@ -8,6 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 export async function generateMetadata({
   params,
@@ -152,14 +153,12 @@ export default async function CourseDetailPage({
         </dl>
       )}
       <RichContent content={course.description} />
-      <a
-        href={course.link}
-        target="_blank"
-        rel="noopener noreferrer"
+      <SafeExternalLink
+        url={course.link}
         className="mt-4 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800 sm:text-sm"
       >
         Open Course
-      </a>
+      </SafeExternalLink>
     </DetailPageCardShell>
   );
 }

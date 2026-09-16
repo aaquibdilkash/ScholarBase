@@ -9,6 +9,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { Clock } from "lucide-react";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -113,26 +114,18 @@ const VacancyDetailPage = async ({
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
-          {vacancy.notificationLink && (
-            <a
-              href={vacancy.notificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 sb-button-soft"
-            >
-              View Details
-            </a>
-          )}
-          {vacancy.applyLink && (
-            <a
-              href={vacancy.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 sb-button-primary"
-            >
-              Apply Now
-            </a>
-          )}
+          <SafeExternalLink
+            url={vacancy.notificationLink}
+            className="flex-1 sb-button-soft"
+          >
+            View Details
+          </SafeExternalLink>
+          <SafeExternalLink
+            url={vacancy.applyLink}
+            className="flex-1 sb-button-primary"
+          >
+            Apply Now
+          </SafeExternalLink>
         </div>
       }
       discussion={

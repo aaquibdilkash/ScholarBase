@@ -11,6 +11,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import Link from "next/link";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { RichContent } from "@/components/content/RichContent";
 import { stripHtmlTags } from "@/lib/html";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
@@ -505,52 +506,36 @@ export default function ProfileTabs({
               Links &amp; Identity
             </h2>
             <div className="flex flex-wrap gap-3">
-              {profile.githubUrl && (
-                <a
-                  href={profile.githubUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-                >
-                  <GithubIcon className="h-4 w-4" />
-                  GitHub
-                </a>
-              )}
-              {profile.orcidUrl && (
-                <a
-                  href={profile.orcidUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-                >
-                  <OrcidIcon />
-                  ORCID
-                </a>
-              )}
-              {profile.linkedinUrl && (
-                <a
-                  href={profile.linkedinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-                >
-                  <LinkedinIcon className="h-4 w-4" />
-                  LinkedIn
-                </a>
-              )}
-              {profile.googleScholarUrl && (
-                <a
-                  href={profile.googleScholarUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
-                >
-                  <span className="flex h-4 w-4 items-center justify-center">
-                    <GraduationCap className="h-4 w-4" />
-                  </span>
-                  Google Scholar
-                </a>
-              )}
+              <SafeExternalLink
+                url={profile.githubUrl}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+              >
+                <GithubIcon className="h-4 w-4" />
+                GitHub
+              </SafeExternalLink>
+              <SafeExternalLink
+                url={profile.orcidUrl}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+              >
+                <OrcidIcon />
+                ORCID
+              </SafeExternalLink>
+              <SafeExternalLink
+                url={profile.linkedinUrl}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+              >
+                <LinkedinIcon className="h-4 w-4" />
+                LinkedIn
+              </SafeExternalLink>
+              <SafeExternalLink
+                url={profile.googleScholarUrl}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600"
+              >
+                <span className="flex h-4 w-4 items-center justify-center">
+                  <GraduationCap className="h-4 w-4" />
+                </span>
+                Google Scholar
+              </SafeExternalLink>
               {!profile.githubUrl &&
                 !profile.orcidUrl &&
                 !profile.linkedinUrl &&

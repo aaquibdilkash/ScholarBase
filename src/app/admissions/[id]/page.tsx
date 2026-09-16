@@ -8,6 +8,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { Clock } from "lucide-react";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -110,26 +111,18 @@ const AdmissionDetailPage = async ({
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
-          {admission.notificationLink && (
-            <a
-              href={admission.notificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 sb-button-soft"
-            >
-              View Circular
-            </a>
-          )}
-          {admission.applyLink && (
-            <a
-              href={admission.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 sb-button-primary"
-            >
-              Go to Portal
-            </a>
-          )}
+          <SafeExternalLink
+            url={admission.notificationLink}
+            className="flex-1 sb-button-soft"
+          >
+            View Circular
+          </SafeExternalLink>
+          <SafeExternalLink
+            url={admission.applyLink}
+            className="flex-1 sb-button-primary"
+          >
+            Go to Portal
+          </SafeExternalLink>
         </div>
       }
       discussion={

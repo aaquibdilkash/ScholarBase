@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 export const metadata: Metadata = {
   title: "Terms of Service | ScholarBase",
@@ -96,21 +97,13 @@ export default function TermsOfServicePage() {
             </li>
             <li>
               Comply with Google&apos;s{" "}
-              <a
-                href="https://policies.google.com/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <SafeExternalLink url="https://policies.google.com/terms">
                 Terms of Service
-              </a>{" "}
+              </SafeExternalLink>{" "}
               and{" "}
-              <a
-                href="https://policies.google.com/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <SafeExternalLink url="https://policies.google.com/privacy">
                 Privacy Policy
-              </a>
+              </SafeExternalLink>
               .
             </li>
             <li>

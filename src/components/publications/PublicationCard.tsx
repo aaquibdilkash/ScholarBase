@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { PublicationWithAuthor } from "@/types/cards";
 
 const PUBLICATION_TYPE_LABELS: Record<string, string> = {
@@ -105,18 +106,16 @@ export function PublicationCard({
       }
       noBodyLink={true}
       bodyBottomContent={
-        publication.url && (
+        publication.url ? (
           <div className="flex gap-3 mt-4">
-            <a
-              href={publication.url}
-              target="_blank"
-              rel="noopener noreferrer"
+            <SafeExternalLink
+              url={publication.url}
               className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
             >
               View Publication
-            </a>
+            </SafeExternalLink>
           </div>
-        )
+        ) : null
       }
     >
       <Link href={`/publications/${publication.id}`} prefetch={false} className="block group">

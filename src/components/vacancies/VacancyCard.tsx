@@ -8,6 +8,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { deleteJobVacancy } from "@/app/actions/vacancies";
 import { useToast } from "@/components/ui/Toast";
 import { getTimeLeft } from "@/utils/time-ago";
@@ -98,27 +99,19 @@ export function VacancyCard({
       constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          {vacancy.notificationLink && (
-            <a
-              href={vacancy.notificationLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
-            >
-              Details
-            </a>
-          )}
+          <SafeExternalLink
+            url={vacancy.notificationLink}
+            className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
+          >
+            Details
+          </SafeExternalLink>
 
-          {vacancy.applyLink && (
-            <a
-              href={vacancy.applyLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-            >
-              Apply
-            </a>
-          )}
+          <SafeExternalLink
+            url={vacancy.applyLink}
+            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+          >
+            Apply
+          </SafeExternalLink>
         </div>
       }
     >

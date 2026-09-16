@@ -8,6 +8,7 @@ import { deleteResearchTool } from "@/app/actions/researchTools";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 
@@ -128,16 +129,12 @@ const ResearchToolDetailPage = async ({
       <RichContent content={tool.description} />
 
       <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">
-        {tool.website && (
-          <a
-            href={tool.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            View Website
-          </a>
-        )}
+        <SafeExternalLink
+          url={tool.website}
+          className="flex-1 rounded-lg bg-slate-950 py-2 sm:py-2.5 text-center text-xs sm:text-sm font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+        >
+          View Website
+        </SafeExternalLink>
       </div>
     </DetailPageCardShell>
   );

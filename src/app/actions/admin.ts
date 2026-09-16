@@ -184,10 +184,12 @@ export async function getAdminStats() {
     throw new Error("Not authorized.");
   }
 
-  // Read every dashboard counter from PostgreSQL metadata in one query. This
-  // is substantially cheaper than running one exact COUNT(*) per table on the
-  // free tier. The namespace filter prevents similarly named tables in other
-  // schemas from being mixed into the result.
+  // RULE 2 Zero-Compute: dashboard badges (stats cards + sidebar share the
+  // same `sections` map via `sectionCount`) read from pg_class.reltuples.
+  // `InstitutionDomainRequest` is included here so its badge matches every
+  // other section. A fresh/small table reads 0 until VACUUM/ANALYZE refreshes
+  // reltuples — that 0 is the expected estimate, not a query bug. The request
+  // table itself keeps its exact COUNT(*) for pagination.
   const pgRows = await prisma.$queryRaw<
     Array<{ tableName: string; estimate: bigint }>
   >`

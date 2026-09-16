@@ -8,6 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deleteResearchTool } from "@/app/actions/researchTools";
 import { useToast } from "@/components/ui/Toast";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 
@@ -91,16 +92,12 @@ export function ResearchToolCard({
       }
       noBodyLink={true}
       bodyBottomContent={
-        tool.website && (
-          <a
-            href={tool.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
-          >
-            Visit Tool
-          </a>
-        )
+        <SafeExternalLink
+          url={tool.website}
+          className="mt-6 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors duration-200 hover:bg-slate-800"
+        >
+          Visit Tool
+        </SafeExternalLink>
       }
     >
       <Link href={`/research-tools/${tool.id}`} prefetch={false} className="block group">

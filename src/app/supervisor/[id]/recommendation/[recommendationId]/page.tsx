@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
@@ -51,7 +52,10 @@ export default async function RecommendationDetailPage({
   async function handleDelete() {
     "use server";
     await deleteRecommendation(recommendation!.id);
-    return { redirect: `/supervisor/${id}`, invalidateQueries: [["recommendations", id]] };
+    return {
+      redirect: `/supervisor/${id}`,
+      invalidateQueries: [["recommendations", id]],
+    };
   }
 
   // Filtered select in getRecommendation returns at most one row (the
@@ -84,7 +88,11 @@ export default async function RecommendationDetailPage({
         recommendation.isAnonymous
           ? null
           : recommendation.author?.avatarUrl || undefined
-      } authorVerified={!recommendation.isAnonymous && !!(recommendation.author?.institutionVerifiedAt)}
+      }
+      authorVerified={
+        !recommendation.isAnonymous &&
+        !!recommendation.author?.institutionVerifiedAt
+      }
       authorId={
         recommendation.isAnonymous ? undefined : recommendation.authorId
       }
@@ -144,12 +152,13 @@ export default async function RecommendationDetailPage({
       ) : null}
       <p className="text-sm font-semibold text-slate-700 mb-2">
         Recommendation for{" "}
-        <a
+        <Link
           href={`/supervisor/${recommendation.supervisor.id}`}
           className="text-blue-700 hover:underline"
+          prefetch={false}
         >
           {recommendation.supervisor.name}
-        </a>
+        </Link>
       </p>
       <div className="space-y-3 mb-4">
         <div>

@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { SafeEmailLink, SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import {
   getAdminInstitutionDomainRequests,
   reviewInstitutionDomainRequest,
@@ -160,20 +161,17 @@ export function InstitutionDomainRequestsPanel({
                     )}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-700 dark:text-slate-300">{item.domain}</td>
-                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{item.requesterEmail}</td>
+                  <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                    <SafeEmailLink email={item.requesterEmail} />
+                  </td>
                   <td className="px-4 py-3">
-                    {item.website ? (
-                      <a
-                        href={`/api/outbound?url=${encodeURIComponent(item.website)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-700 hover:underline dark:text-blue-300"
-                      >
-                        Website
-                      </a>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
+                    <SafeExternalLink
+                      url={item.website}
+                      fallback={<span className="text-slate-400">—</span>}
+                      className="text-blue-700 hover:underline dark:text-blue-300"
+                    >
+                      Website
+                    </SafeExternalLink>
                   </td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">

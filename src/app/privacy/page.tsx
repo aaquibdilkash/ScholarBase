@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | ScholarBase",
@@ -73,13 +74,9 @@ export default function PrivacyPolicyPage() {
             <strong>Limited Use Disclosure: </strong>ScholarBase&apos;s use and
             transfer of information received from Google APIs to any other app
             will adhere to the{" "}
-            <a
-              href="https://developers.google.com/terms/api-services-user-data-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <SafeExternalLink url="https://developers.google.com/terms/api-services-user-data-policy">
               Google API Services User Data Policy
-            </a>
+            </SafeExternalLink>
             , including the Limited Use requirements. We only access the minimum
             Google data necessary to provide authentication and will not use this
             data for any other purpose without your explicit consent.
@@ -267,13 +264,9 @@ export default function PrivacyPolicyPage() {
             You may lodge a complaint with your local data protection
             authority. Contact details for EU data protection authorities are
             available at{" "}
-            <a
-              href="https://edpb.europa.eu/about-edpb/about-edpb/members_en"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <SafeExternalLink url="https://edpb.europa.eu/about-edpb/about-edpb/members_en">
               edpb.europa.eu
-            </a>
+            </SafeExternalLink>
             .
           </p>
 
@@ -385,13 +378,9 @@ export default function PrivacyPolicyPage() {
           <h2>13. Google API Services User Data Policy</h2>
           <p>
             ScholarBase complies with the{" "}
-            <a
-              href="https://developers.google.com/terms/api-services-user-data-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <SafeExternalLink url="https://developers.google.com/terms/api-services-user-data-policy">
               Google API Services User Data Policy
-            </a>
+            </SafeExternalLink>
             . Our use of Google user data is limited to:
           </p>
           <ul>
