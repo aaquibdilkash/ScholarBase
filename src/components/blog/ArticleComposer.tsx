@@ -196,21 +196,26 @@ export function ArticleComposer({
             </span>
           </div>
 
-          <div className="flex h-[420px] min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white sm:h-[520px] lg:h-auto lg:min-h-0 lg:flex-1">
+          {/* Mobile: flows with the page (no fixed height, no inner scroll).
+              Desktop: lg:flex-1 + min-h-0 makes this box end exactly where the
+              preview column ends, so only very long content scrolls inside. */}
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:min-h-0 lg:flex-1">
             <Editor
               maxLength={MAX_ARTICLE_CONTENT}
               value={draftFields.content}
               onChange={(value: string) => updateDraftField("content", value)}
-              className="min-h-0 flex-1"
+              className="min-h-0 lg:flex-1"
+              scrollable
             />
             <input type="hidden" name="content" value={draftFields.content} />
           </div>
         </div>
         </div>
 
-        {/* Right column: preview card. Bounded by the grid height on desktop so
-            only the body below the frozen header scrolls; fixed height on mobile. */}
-        <section className="sb-surface-strong flex h-[560px] min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200/70 sm:h-[620px] lg:h-auto lg:min-h-0 lg:flex-1">
+        {/* Right column: preview card. On mobile it flows with the page (no
+            fixed height, no inner scroll). On desktop it is bounded by the grid
+            row height so only the body below the frozen header scrolls. */}
+        <section className="sb-surface-strong flex min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200/70 lg:min-h-0 lg:flex-1">
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 dark:border-slate-800">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">

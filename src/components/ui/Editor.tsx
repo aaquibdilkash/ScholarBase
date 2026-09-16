@@ -26,6 +26,10 @@ interface EditorProps {
       when the parent wants the editor pinned to a fixed height; by default
       the editor grows naturally with its content (other forms rely on this). */
   className?: string;
+  /** Force the fixed-height internal-scroll mode regardless of className.
+      The blog composer sets this so scrolling never depends on fragile
+      class-name sniffing or percentage heights. */
+  scrollable?: boolean;
 }
 
 const Editor = ({
@@ -34,6 +38,7 @@ const Editor = ({
   maxLength,
   showCharCount = true,
   className,
+  scrollable = false,
 }: EditorProps) => {
   const [pendingStates, setPendingStates] = useState({
     bold: false,
@@ -127,7 +132,7 @@ const Editor = ({
     return null;
   }
 
-  const isFixedHeight = Boolean(className && /h-\[|h-\d|max-h-|h-full|flex-1/.test(className));
+  const isFixedHeight = scrollable || Boolean(className && /h-\[|h-\d|max-h-|h-full|flex-1/.test(className));
 
   return (
     <div
