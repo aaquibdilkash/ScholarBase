@@ -139,9 +139,12 @@ export function ArticleComposer({
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr] lg:items-stretch lg:gap-8">
-      <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-6">
-        <CautionNote />
+    <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-6">
+      <CautionNote />
+      <div className="grid gap-6 lg:h-[800px] lg:grid-cols-[1fr_1.05fr] lg:items-stretch lg:gap-8 xl:h-[840px]">
+        {/* Left column: form fields. Content editor is flex-1 so the whole
+            left column stretches to match the right (preview) column height. */}
+        <div className="flex min-h-0 min-w-0 flex-col gap-6">
          <div>
            <label className="sb-label inline-flex items-center gap-1.5">
              Article Title
@@ -182,7 +185,7 @@ export function ArticleComposer({
           </div>
         </div>
 
-         <div>
+         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
            <div className="mb-3 flex items-center justify-between gap-3">
              <label className="sb-label mb-0 inline-flex items-center gap-1.5">
                Content
@@ -193,59 +196,60 @@ export function ArticleComposer({
             </span>
           </div>
 
-          <div className="flex h-[420px] flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:h-[520px]">
+          <div className="flex h-[420px] min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white sm:h-[520px] lg:h-auto lg:min-h-0 lg:flex-1">
             <Editor
               maxLength={MAX_ARTICLE_CONTENT}
               value={draftFields.content}
               onChange={(value: string) => updateDraftField("content", value)}
-              className="h-full min-h-0"
+              className="min-h-0 flex-1"
             />
             <input type="hidden" name="content" value={draftFields.content} />
           </div>
         </div>
-
-        <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
-          <FormCancelButton />
-          <SubmitBtnWithAuth disabled={isPending || isFormOverLimit} loadingText={mode === "edit" ? "Saving..." : "Publishing..."} className="sb-button-accent">
-            {isPending
-              ? mode === "edit"
-                ? "Saving..."
-                : "Publishing..."
-              : mode === "edit"
-                ? "Save Changes"
-                : "Publish Article"}
-          </SubmitBtnWithAuth>
-        </div>
-      </form>
-
-      {/* Live preview: equal height to the whole form (grid stretch on desktop).
-          The form itself never scrolls internally — only the preview body
-          below the header does, on desktop and mobile. */}
-      <section className="sb-surface-strong flex h-[560px] min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200/70 sm:h-[620px] lg:h-auto lg:min-h-0">
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 dark:border-slate-800">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-              Live Preview
-            </p>
-            <h2 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-              {draftFields.title || "Your article"}
-            </h2>
-          </div>
-          <div className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300">
-            {mode === "edit" ? "Editing" : "Draft"}
-          </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
-          <p className="break-words text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-            {draftFields.excerpt || "Your short description will appear here."}
-          </p>
+        {/* Right column: preview card. Bounded by the grid height on desktop so
+            only the body below the frozen header scrolls; fixed height on mobile. */}
+        <section className="sb-surface-strong flex h-[560px] min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200/70 sm:h-[620px] lg:h-auto lg:min-h-0 lg:flex-1">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  Live Preview
+                </p>
+                <h2 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
+                  {draftFields.title || "Your article"}
+                </h2>
+              </div>
+              <div className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300">
+                {mode === "edit" ? "Editing" : "Draft"}
+              </div>
+            </div>
 
-          <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
-            <RichContent content={previewContent} />
-          </div>
-        </div>
-      </section>
-    </div>
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
+              <p className="break-words text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                {draftFields.excerpt || "Your short description will appear here."}
+              </p>
+
+              <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
+                <RichContent content={previewContent} />
+              </div>
+            </div>
+        </section>
+      </div>
+
+      {/* Actions on the next line, right-aligned under the preview. */}
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+        <FormCancelButton />
+        <SubmitBtnWithAuth disabled={isPending || isFormOverLimit} loadingText={mode === "edit" ? "Saving..." : "Publishing..."} className="sb-button-accent">
+          {isPending
+            ? mode === "edit"
+              ? "Saving..."
+              : "Publishing..."
+            : mode === "edit"
+              ? "Save Changes"
+              : "Publish Article"}
+        </SubmitBtnWithAuth>
+      </div>
+    </form>
   );
 }

@@ -127,7 +127,7 @@ const Editor = ({
     return null;
   }
 
-  const isFixedHeight = Boolean(className && /h-\[|h-\d|max-h-/.test(className));
+  const isFixedHeight = Boolean(className && /h-\[|h-\d|max-h-|h-full|flex-1/.test(className));
 
   return (
     <div
