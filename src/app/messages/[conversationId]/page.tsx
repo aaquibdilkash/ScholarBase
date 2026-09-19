@@ -569,7 +569,7 @@ export default function ConversationPage({
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
-          className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm md:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
+          className="mr-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm lg:hidden dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
         >
           <ChevronsRight className="h-6 w-6" />
         </button>

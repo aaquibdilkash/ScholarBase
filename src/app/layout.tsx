@@ -187,10 +187,10 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders isFrozen={isFrozen}>
-          <div className="relative flex min-h-screen w-full min-w-0 flex-col overflow-x-clip md:h-dvh md:min-h-0 md:flex-row md:overflow-hidden">
+          <div className="relative flex min-h-screen w-full min-w-[var(--sb-min-viewport-width)] flex-col overflow-x-clip lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden">
             <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
-            <div className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip md:min-h-0 md:overflow-hidden">
+            <div className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip lg:min-h-0 lg:overflow-hidden">
               {isFrozen && (
                 <div
                   role="alert"
@@ -210,7 +210,7 @@ export default async function RootLayout({
                   the middle column. Mobile keeps native window scroll. */}
               <main
                 id="sb-main-scroll"
-                className="sb-shell w-full min-w-0 flex-1 grow py-4 md:min-h-0 md:overflow-y-auto md:overscroll-contain md:py-10"
+                className="sb-shell w-full min-w-0 flex-1 grow py-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:py-10"
               >
                 {children}
               </main>

@@ -3,6 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --sb-min-viewport-width: 360px;
   --background: #e1e6ee;
   --background-deep: #c9d1de;
   --foreground: #1c2330;
@@ -37,12 +38,12 @@ html[data-theme="dark"] {
 @layer base {
   html {
     scroll-behavior: smooth;
-    max-width: 100%;
-    overflow-x: clip;
+    min-width: var(--sb-min-viewport-width);
+    overflow-x: auto;
   }
 
   body {
-    max-width: 100%;
+    min-width: var(--sb-min-viewport-width);
     overflow-x: clip;
     position: relative;
   }
@@ -61,7 +62,7 @@ html[data-theme="dark"] {
 
   /* Desktop inner-scroll shell: the /messages page manages its own internal
      scroll regions, so the root <main> must not add a second scrollbar. */
-  @media (min-width: 768px) {
+  @media (min-width: 1024px) {
     body:has(main .sb-messages-page) main#sb-main-scroll {
       overflow: hidden;
       display: flex;

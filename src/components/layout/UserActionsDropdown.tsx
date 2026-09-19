@@ -86,7 +86,7 @@ export default function UserActionsDropdown({
   }, [router]);
 
   return (
-    <div className="relative md:hidden">
+    <div className="relative lg:hidden">
       <button
         ref={btnRef}
         type="button"

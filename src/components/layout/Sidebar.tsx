@@ -67,7 +67,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
   const { toast } = useToast();
   
   // We keep this ONLY for click handlers, NOT for rendering classes
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   
   const [desktopCollapsed, setDesktopCollapsed] = useState(defaultCollapsed);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -304,23 +304,23 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       <button
         type="button"
         onClick={() => setMobileOpen(false)}
-        className={`fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-[1px] md:hidden dark:bg-black/60 transition-opacity duration-300 ${!mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        className={`fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-[1px] lg:hidden dark:bg-black/60 transition-opacity duration-300 ${!mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         aria-label="Close navigation overlay"
       />
 
       <aside 
         className={`fixed inset-y-0 left-0 z-[60] flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
 
-        md:sticky md:top-0 md:z-20 md:h-dvh md:shrink-0 md:gap-4 md:py-6 md:backdrop-blur-xl md:shadow-sm 
+        lg:sticky lg:top-0 lg:z-20 lg:h-dvh lg:shrink-0 lg:gap-4 lg:py-6 lg:backdrop-blur-xl lg:shadow-sm
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"} w-72 px-6 
-        md:translate-x-0 ${desktopCollapsed ? "md:w-24 md:px-3" : "md:w-72 md:px-6"}`}
+        lg:translate-x-0 ${desktopCollapsed ? "lg:w-24 lg:px-3" : "lg:w-72 lg:px-6"}`}
       >
-        <div className={`flex w-full items-center transition-all duration-300 justify-between ${desktopCollapsed ? "md:justify-center" : ""}`}>
+        <div className={`flex w-full items-center transition-all duration-300 justify-between ${desktopCollapsed ? "lg:justify-center" : ""}`}>
           <Link prefetch={false}
             href="/"
             className={`overflow-hidden whitespace-nowrap text-2xl font-semibold tracking-tight text-slate-950 transition-all duration-300 ease-in-out dark:text-slate-50
             max-w-[200px] opacity-100 mr-2 pl-4 
-            ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:m-0 md:p-0" : ""}`}
+            ${desktopCollapsed ? "lg:w-0 lg:max-w-0 lg:opacity-0 lg:m-0 lg:p-0" : ""}`}
           >
             <BrandMark />
           </Link>
@@ -329,7 +329,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="md:hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white inline-flex items-center justify-center h-10 w-10"
+              className="lg:hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white inline-flex items-center justify-center h-10 w-10"
               aria-label="Close sidebar"
             >
               <ChevronsLeft className="h-5 w-5" />
@@ -337,8 +337,8 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
             <button
               type="button"
               onClick={toggleDesktop}
-              className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white md:inline-flex items-center justify-center 
-              ${desktopCollapsed ? "md:h-12 md:w-12 md:mx-auto md:p-0" : "md:h-11 md:w-11 md:p-0"}`}
+              className={`hidden shrink-0 rounded-2xl border border-slate-200/70 bg-[var(--input-bg)] text-slate-950 shadow-sm transition hover:border-slate-300 hover:bg-[var(--surface-strong)] hover:text-slate-950 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800 dark:hover:text-white lg:inline-flex items-center justify-center
+              ${desktopCollapsed ? "lg:h-12 lg:w-12 lg:mx-auto lg:p-0" : "lg:h-11 lg:w-11 lg:p-0"}`}
               aria-label={desktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {desktopCollapsed ? <Menu className="h-6 w-6" /> : <ChevronsLeft className="h-6 w-6" />}
@@ -365,7 +365,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
                   className={`flex items-center overflow-hidden rounded-2xl font-semibold transition-all duration-300 ease-in-out
                     w-full px-4 py-3 justify-start gap-3
-                    ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:gap-0" : ""}
+                    ${desktopCollapsed ? "lg:w-12 lg:h-12 lg:mx-auto lg:justify-center lg:p-0 lg:gap-0" : ""}
                     ${isActive ? "bg-blue-50/90 text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300" : "text-slate-950 hover:bg-[var(--surface)] hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white"}
                   `}
                 >
@@ -382,7 +382,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   <span
                     className={`whitespace-nowrap transition-all duration-300 ease-in-out
                       max-w-[200px] opacity-100
-                      ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:m-0 md:p-0" : ""}
+                      ${desktopCollapsed ? "lg:w-0 lg:max-w-0 lg:opacity-0 lg:m-0 lg:p-0" : ""}
                     `}
                   >
                     {item.name}
@@ -421,7 +421,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   href={profileHref}
                   className={`group flex items-center overflow-hidden rounded-2xl transition-all duration-300 ease-in-out
                     w-full border border-slate-200/70 bg-[var(--input-bg)] px-4 py-3 gap-3 hover:border-blue-200 hover:bg-blue-50/70 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-blue-500/20 dark:hover:bg-slate-800
-                    ${desktopCollapsed ? "md:w-12 md:h-12 md:mx-auto md:justify-center md:p-0 md:border-transparent md:bg-transparent md:gap-0" : ""}
+                    ${desktopCollapsed ? "lg:w-12 lg:h-12 lg:mx-auto lg:justify-center lg:p-0 lg:border-transparent lg:bg-transparent lg:gap-0" : ""}
                   `}
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
                 >
@@ -437,7 +437,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   <span
                     className={`flex flex-col whitespace-nowrap transition-all duration-300 ease-in-out
                       max-w-[160px] opacity-100
-                      ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:m-0 md:p-0" : ""}
+                      ${desktopCollapsed ? "lg:w-0 lg:max-w-0 lg:opacity-0 lg:m-0 lg:p-0" : ""}
                     `}
                   >
                     <span className="block truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
@@ -452,20 +452,20 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                 <SignOutButton
                   className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:border dark:border-slate-700 dark:bg-black dark:shadow-[0_10px_24px_rgba(0,0,0,0.5)] dark:hover:border-slate-500 dark:hover:bg-slate-800
                     w-full rounded-2xl px-4 py-3
-                    ${desktopCollapsed ? "md:h-12 md:w-12 md:p-0 md:mx-auto md:justify-center" : ""}
+                    ${desktopCollapsed ? "lg:h-12 lg:w-12 lg:p-0 lg:mx-auto lg:justify-center" : ""}
                   `}
                   aria-label="Sign out"
                 >
                   <LogOut
                     className={`absolute h-5 w-5 transition-all duration-300 ease-in-out
                       scale-50 opacity-0
-                      ${desktopCollapsed ? "md:scale-100 md:opacity-100" : ""}
+                      ${desktopCollapsed ? "lg:scale-100 lg:opacity-100" : ""}
                     `}
                   />
                   <span
                     className={`whitespace-nowrap transition-all duration-300 ease-in-out
                       scale-100 opacity-100
-                      ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:scale-50" : ""}
+                      ${desktopCollapsed ? "lg:w-0 lg:max-w-0 lg:opacity-0 lg:scale-50" : ""}
                     `}
                   >
                     Sign Out
@@ -477,20 +477,20 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                 href={`/login?callbackUrl=${encodeURIComponent(isOnLoginPage ? "/" : currentUrl)}`}
                 className={`sb-button-primary relative flex items-center justify-center overflow-hidden transition-all duration-300 ease-in-out dark:bg-black dark:hover:bg-black
                   w-full rounded-2xl px-4 py-3
-                  ${desktopCollapsed ? "md:h-12 md:w-12 md:rounded-2xl md:p-0 md:mx-auto md:justify-center md:bg-[var(--surface-strong)] md:border md:border-[var(--card-border)] md:text-slate-950 md:dark:border-slate-800 md:dark:bg-slate-900 md:dark:text-slate-300" : ""}
+                  ${desktopCollapsed ? "lg:h-12 lg:w-12 lg:rounded-2xl lg:p-0 lg:mx-auto lg:justify-center lg:bg-[var(--surface-strong)] lg:border lg:border-[var(--card-border)] lg:text-slate-950 lg:dark:border-slate-800 lg:dark:bg-slate-900 lg:dark:text-slate-300" : ""}
                 `}
                 onClick={() => { if (!isDesktop) setMobileOpen(false); }}
               >
                 <LogIn
                   className={`absolute h-5 w-5 transition-all duration-300 ease-in-out
                     scale-50 opacity-0
-                    ${desktopCollapsed ? "md:scale-100 md:opacity-100" : ""}
+                    ${desktopCollapsed ? "lg:scale-100 lg:opacity-100" : ""}
                   `}
                 />
                 <span
                   className={`whitespace-nowrap transition-all duration-300 ease-in-out
                     scale-100 opacity-100
-                    ${desktopCollapsed ? "md:w-0 md:max-w-0 md:opacity-0 md:scale-50" : ""}
+                    ${desktopCollapsed ? "lg:w-0 lg:max-w-0 lg:opacity-0 lg:scale-50" : ""}
                   `}
                 >
                   Sign In

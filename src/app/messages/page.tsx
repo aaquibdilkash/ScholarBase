@@ -12,7 +12,7 @@ export default function MessagesPage() {
 
   return (
     <div className="h-full flex flex-col items-center justify-center">
-      <div className="md:hidden mb-4">
+      <div className="lg:hidden mb-4">
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)} // Renamed

@@ -32,7 +32,7 @@ export default function Navbar({
     >
       {/* Density steps with the viewport: phone -> tablet (`sm`) -> laptop (`md`). */}
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-15 sm:py-2.5 md:min-h-16 md:py-3">
-        <Link prefetch={false} href="/" className="hidden items-center gap-2.5 md:flex lg:gap-3">
+        <Link prefetch={false} href="/" className="hidden items-center gap-2.5 lg:flex lg:gap-3">
           <SBIcon className="h-9 w-9 text-base lg:h-10 lg:w-10 lg:text-[18px]" />
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-tight lg:text-base">
@@ -49,7 +49,7 @@ export default function Navbar({
 
         <Link prefetch={false}
           href="/"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[15px] font-semibold tracking-tight sm:text-base md:hidden"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[15px] font-semibold tracking-tight sm:text-base lg:hidden"
         >
           <BrandMark />
         </Link>
@@ -58,9 +58,9 @@ export default function Navbar({
           {user ? (
             <>
               {/* Desktop action cluster. The message-alert toggle lives in here
-                  too, so on phones the navbar collapses to just the overflow
+                  too, so smaller screens collapse to just the overflow
                   menu and every action is reachable from that one dropdown. */}
-              <div className="hidden items-center gap-3 md:flex">
+              <div className="hidden items-center gap-3 lg:flex">
                 <EnablePushButton variant="navbar" />
                 <NotificationBadge initialUnreadCount={unreadCount} />
                 <Link prefetch={false}

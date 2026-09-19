@@ -297,7 +297,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
   }, [searchQuery, user]);
 
   const closeSidebarIfMobile = () => {
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
       setIsSidebarOpen(false);
     }
   };
@@ -309,13 +309,13 @@ function ConversationSidebar({ user }: { user: User | null }) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
-        {isSidebarOpen && <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Conversations</h2>}
-        <div className="flex items-center gap-2">
+      <div className={`flex h-16 shrink-0 items-center border-b border-slate-200 px-2.5 dark:border-slate-800 sm:px-4 ${isSidebarOpen ? "justify-between gap-2" : "justify-center"}`}>
+        {isSidebarOpen && <h2 className="min-w-0 truncate text-base font-semibold text-slate-900 dark:text-slate-100 sm:text-lg xl:text-xl">Conversations</h2>}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {isSidebarOpen && ( 
-            <Link prefetch={false} href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black">New</Link>
+            <Link prefetch={false} href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary min-h-8 px-3 py-1.5 text-xs dark:bg-black dark:hover:bg-black sm:px-4 sm:py-2">New</Link>
           )}
-          <EnablePushButton variant="compact" />
+          {isSidebarOpen && <span className="hidden sm:inline-flex"><EnablePushButton variant="compact" /></span>}
           <button onClick={() => setIsSidebarOpen((prev) => !prev)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
             {isSidebarOpen ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />}
           </button>
@@ -454,7 +454,7 @@ export default function MessagesClientLayout({
   }, [isSidebarOpen]);
 
   useEffect(() => {
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 1024) {
       setIsSidebarOpen(false);
     }
   }, []);
@@ -470,8 +470,8 @@ export default function MessagesClientLayout({
   // (min-h-14 on mobile, min-h-16 from `sm`, its bottom border, plus the
   // frozen-account banner can all change it), so we publish its measured
   // height as --sb-navbar-h and consume it in the classes below. The 3.5rem
-  // fallback keeps the first paint correct before JS runs. On md+ the drawer
-  // is `md:static`, so the variable only affects the fixed mobile drawer.
+  // fallback keeps the first paint correct before JS runs. On lg+ the drawer
+  // is `lg:static`, so the variable only affects the fixed small-screen drawer.
   useEffect(() => {
     // ⚡ Target the top navbar by id — a plain `querySelector("nav")` would
     // match the main Sidebar's inner <nav> link list, which renders first in
@@ -495,9 +495,9 @@ export default function MessagesClientLayout({
 
   return (
     <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
-       <div className="sb-messages-page relative flex h-[calc(100vh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden md:h-full md:min-h-0 md:flex-1">
-         {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
-          <div className={`fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-50 h-[calc(100vh-var(--sb-navbar-h,3.5rem))] shrink-0 md:static md:h-auto md:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 translate-x-0" : "w-16 -translate-x-full sm:translate-x-0"}`}>
+       <div className="sb-messages-page relative flex h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden lg:h-full lg:min-h-0 lg:flex-1">
+         {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm lg:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
+          <div className={`fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-50 h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] shrink-0 lg:static lg:h-auto lg:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 max-w-[calc(var(--sb-min-viewport-width)-1.5rem)] translate-x-0" : "w-16 -translate-x-full lg:translate-x-0"}`}>
           <Suspense fallback={
             <div className="flex items-center justify-center gap-2 p-4 text-sm text-slate-500 dark:text-slate-400">
               <Loader2 className="h-4 w-4 animate-spin" />
