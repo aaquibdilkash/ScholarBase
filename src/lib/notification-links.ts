@@ -13,6 +13,12 @@ const targetLinks: Record<string, (targetId: string) => string | null> = {
       ? `/supervisor/${recIds[0]}/recommendation/${recIds[1]}`
       : null;
   },
+  journalReview: (targetId) => {
+    const reviewIds = targetId.split("/");
+    return reviewIds.length === 2
+      ? `/journals/${reviewIds[0]}/review/${reviewIds[1]}`
+      : null;
+  },
   help: (targetId) => `/help/${targetId}`,
   journal: (targetId) => `/journals/${targetId}`,
   researchTool: (targetId) => `/research-tools/${targetId}`,
@@ -36,6 +42,7 @@ const moduleLabels: Record<string, string> = {
   vacancy: "Vacancies",
   admission: "Admissions",
   recommendation: "Supervisor recommendation",
+  journalReview: "Journal review",
   help: "Help",
   journal: "Journals",
   researchTool: "Research Tools",
@@ -58,6 +65,7 @@ const targetTypeAliases: Record<string, string> = {
   admission: "admission",
   phdadmission: "admission",
   recommendation: "recommendation",
+  journalreview: "journalReview",
   help: "help",
   helppost: "help",
   journal: "journal",

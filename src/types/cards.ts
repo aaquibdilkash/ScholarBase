@@ -20,6 +20,8 @@ import type {
     SocialPost,
     Supervisor,
     Recommendation,
+    JournalReview,
+    JournalOutcome,
 } from "@prisma/client";
 import type { VoteType } from "./votes";
 import type { MentionUser } from "@/components/interactions/CommentThread";
@@ -268,6 +270,31 @@ export type RecommendationWithAuthor = Partial<Recommendation> & {
     guidanceScore: number;
     supervisorId: string;
     supervisor?: { id: string; name: string | null };
+    author: AuthorWithFollowers;
+    totalVotes: number;
+    totalBookmarks: number;
+    totalComments: number;
+    votes: UserVote;
+    bookmarks: UserBookmark;
+};
+
+/**
+ * A journal review card. Mirrors RecommendationWithAuthor: the same materialized
+ * counters, the viewer's filtered vote/bookmark state, and the parent journal
+ * relation (needed for the card header + notification deep links).
+ */
+export type JournalReviewWithAuthor = Partial<JournalReview> & {
+    id: string;
+    createdAt: Date;
+    updatedAt?: Date;
+    rating: number;
+    feedback: string;
+    outcome: JournalOutcome;
+    turnaroundTimeDays: number;
+    editorialQualityScore: number;
+    peerReviewRigorScore: number;
+    journalId: string;
+    journal?: { id: string; title: string | null };
     author: AuthorWithFollowers;
     totalVotes: number;
     totalBookmarks: number;

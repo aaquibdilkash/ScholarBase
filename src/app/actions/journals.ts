@@ -300,11 +300,15 @@ export const getJournalById = cache(
               : false,
           },
         },
-        totalVotes: true,
+                totalVotes: true,
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
         totalComments: true,
+        // Materialized review aggregates (mirrors recommendationCount on
+        // Supervisor): average rating = ratingSum / reviewCount.
+        reviewCount: true,
+        ratingSum: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,

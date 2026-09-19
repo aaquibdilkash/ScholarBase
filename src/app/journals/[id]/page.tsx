@@ -8,6 +8,11 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { createClient } from "@/utils/supabase/server";
 import { getJournalById } from "../../actions/journals";
 import { deleteJournal } from "@/app/actions/journals";
+import {
+  getJournalReviewMeta,
+  getJournalReviews,
+} from "@/app/actions/journalReviews";
+import { JournalReviewsSection } from "@/components/journals/JournalReviewsSection";
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
@@ -47,9 +52,15 @@ const JournalDetailPage = async ({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const journal = await getJournalById(id, user?.id);
+      const journal = await getJournalById(id, user?.id);
 
   if (!journal) notFound();
+
+  // Journal Reviews (mirrors the supervisor recommendations flow). Aggregates
+  // are materialized on the Journal; the meta call adds the per-star split and
+  // the viewer's own review id (for the "+ Review" / "Edit Review" CTA).
+  const reviewMeta = await getJournalReviewMeta(id, user?.id);
+  const initialReviews = await getJournalReviews(id, user?.id, 0, 5);
 
   const j = journal;
   const userVote =
@@ -254,6 +265,25 @@ const JournalDetailPage = async ({
           View Website
         </SafeExternalLink>
       </div>
+
+      <JournalReviewsSection
+        journalId={j.id}
+        initialReviews={initialReviews}
+        initialCount={reviewMeta.totalCount}
+        initialRatingSum={
+          // ratingSum is materialized on Journal; fall back to a recomputed sum
+          // if the Journal aggregate hasn't been backfilled yet.
+          j.ratingSum ??
+          initialReviews.reduce((s, r) => s + (r.rating ?? 0), 0)
+        }
+        initialDistribution={reviewMeta.ratingDistribution.reduce(
+          (acc, row) => ({ ...acc, [row.stars]: row.count }),
+          {} as Record<number, number>,
+        )}
+        currentUserId={user?.id ?? undefined}
+        hasUserReview={reviewMeta.hasUserReview}
+        userReviewId={reviewMeta.userReviewId ?? undefined}
+      />
     </DetailPageCardShell>
   );
 };

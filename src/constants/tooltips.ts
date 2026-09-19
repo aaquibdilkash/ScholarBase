@@ -24,6 +24,17 @@ export const JOURNAL_FREQUENCY_TIP = "How often issues are published (e.g., Mont
 export const JOURNAL_OPEN_ACCESS_TIP = "The publishing model. Gold requires author fees; Diamond is completely free for authors and readers.";
 
 // -----------------------------------------------------------------------------
+// JOURNAL REVIEWS MODULE
+// -----------------------------------------------------------------------------
+export const JOURNAL_REVIEW_RATING_TIP = "Your overall rating of the journal's review and publication process.";
+export const JOURNAL_REVIEW_OUTCOME_TIP = "The final decision received for your submission (or the typical decision path).";
+export const JOURNAL_REVIEW_TURNAROUND_TIP = "Number of days from submission to first editorial decision.";
+export const JOURNAL_REVIEW_EDITORIAL_TIP = "Quality of editorial communication, promptness, and professionalism.";
+export const JOURNAL_REVIEW_PEER_REVIEW_TIP = "Rigour, fairness, and usefulness of the peer-review feedback.";
+export const JOURNAL_REVIEW_FEEDBACK_TIP = "Detailed feedback about your experience submitting to or reviewing for this journal.";
+export const JOURNAL_REVIEW_ANONYMOUS_TIP = "Post this review without revealing your identity to other scholars.";
+
+// -----------------------------------------------------------------------------
 // ADMISSIONS MODULE
 // -----------------------------------------------------------------------------
 export const ADMISSION_UNIVERSITY_TIP = "The full name of the university or institute offering the program.";

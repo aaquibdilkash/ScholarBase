@@ -87,6 +87,16 @@ enum OpenAccessStatus {
   UNKNOWN
 }
 
+/// Outcome a scholar experienced with a journal's submission process. Drives the
+/// review card/detail badges and mirrors `Recommendation`'s domain-specific fields.
+enum JournalOutcome {
+  ACCEPTED
+  MINOR_REVISION
+  MAJOR_REVISION
+  REJECTED
+  WITHDRAWN
+}
+
 enum SurveyQuestionType {
   SHORT_TEXT
   LONG_TEXT
@@ -545,6 +555,19 @@ model RecommendationBookmark {
   @@index([userId, createdAt(sort: Desc)])
 }
 
+model JournalReviewBookmark {
+  id              String   @id @default(cuid())
+  journalReviewId String
+  userId          String
+  createdAt       DateTime @default(now())
+
+  journalReview JournalReview @relation(fields: [journalReviewId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([journalReviewId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
 // ============================================
 // REPORT / MODERATION
 // ============================================
@@ -1000,6 +1023,7 @@ model User {
   researchEventCount       Int @default(0)
   helpPostCount            Int @default(0)
   journalCount             Int @default(0)
+  journalReviewCount       Int @default(0)
   researchToolCount        Int @default(0)
   recommendationCount      Int @default(0)
   supervisorCount          Int @default(0)
@@ -1030,6 +1054,7 @@ model User {
   phdAdmissionBookmarks   PhdAdmissionBookmark[]
   jobVacancyBookmarks     JobVacancyBookmark[]
   recommendationBookmarks RecommendationBookmark[]
+  journalReviewBookmarks  JournalReviewBookmark[]
 
   articleCommentVotes ArticleCommentVote[]
 
@@ -1088,6 +1113,11 @@ model User {
   journalVotes        JournalVote[]
   journalComments     JournalComment[]
   journalCommentVotes JournalCommentVote[]
+
+  journalReviews            JournalReview[]
+  journalReviewVotes        JournalReviewVote[]
+  journalReviewComments     JournalReviewComment[]
+  journalReviewCommentVotes JournalReviewCommentVote[]
 
   results            Result[]
   resultVotes        ResultVote[]
@@ -1524,10 +1554,16 @@ model Journal {
   deletedById    String?
   reportCount    Int            @default(0)
 
+  // ZERO-COMPUTE REVIEW AGGREGATES (Rule 2/3): the review rating average is
+  // derived as ratingSum / reviewCount instead of averaging rows on read.
+  reviewCount Int @default(0)
+  ratingSum   Int @default(0)
+
   author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  JournalComment[]
   votes     JournalVote[]
   bookmarks JournalBookmark[]
+  reviews   JournalReview[]
   about     String?
 
   @@index([createdAt(sort: Desc)])
@@ -1585,6 +1621,113 @@ model JournalCommentVote {
   createdAt DateTime       @default(now())
   comment   JournalComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+}
+
+// ============================================
+// JOURNAL REVIEWS
+// Structured peer-review-experience reports attached to a Journal, fully
+// mirroring the Supervisor Recommendation architecture (votes, threaded
+// comments, bookmarks, anonymity, moderation + materialized counters).
+// ============================================
+model JournalReview {
+  id                  String         @id @default(cuid())
+  rating              Int
+  feedback            String
+  outcome             JournalOutcome
+  turnaroundTimeDays  Int
+  editorialQualityScore Int
+  peerReviewRigorScore  Int
+  isAnonymous         Boolean        @default(false)
+  journalId           String
+  authorId            String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  editedAt            DateTime?
+  isFrozen            Boolean        @default(false)
+  hasActiveAppeal     Boolean        @default(false)
+
+  // ZERO-COMPUTE FIELDS
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
+
+  journal   Journal                  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  author    User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes     JournalReviewVote[]
+  bookmarks JournalReviewBookmark[]
+  comments  JournalReviewComment[]
+
+  // NOTE: uniqueness of one ACTIVE review per (author, journal) is enforced by a
+  // PARTIAL unique index in SQL:
+  //   CREATE UNIQUE INDEX ... ON "JournalReview"("authorId","journalId") WHERE "isDeleted" = false;
+  // A full @@unique here would count soft-deleted tombstones and crash
+  // re-submission after a delete.
+  @@index([journalId, isDeleted, createdAt(sort: Desc)])
+  // INDEX: duplicate-review guard (journalReviews.ts findFirst on
+  // journalId + authorId + isDeleted). isDeleted is a cheap residual filter.
+  @@index([journalId, authorId])
+  @@index([createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
+  @@index([trendingScore(sort: Desc)])
+}
+
+model JournalReviewVote {
+  id              String        @id @default(cuid())
+  journalReviewId String
+  userId          String
+  voteType        VoteType
+  createdAt       DateTime      @default(now())
+  journalReview   JournalReview @relation(fields: [journalReviewId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([journalReviewId, userId])
+}
+
+model JournalReviewComment {
+  id              String    @id @default(cuid())
+  content         String
+  journalReviewId String
+  parentId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  editedAt        DateTime?
+
+  // TOMBSTONING & COUNTERS
+  authorId        String
+  totalVotes      Int            @default(0)
+  totalReplies    Int            @default(0)
+  reportCount     Int            @default(0)
+  isDeleted       Boolean        @default(false)
+  deletedByType   DeletedByType?
+  deletedById     String?
+  isFrozen        Boolean        @default(false)
+  hasActiveAppeal Boolean        @default(false)
+
+  journalReview JournalReview              @relation(fields: [journalReviewId], references: [id], onDelete: Cascade)
+  author        User                       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        JournalReviewComment?      @relation("JournalReviewReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       JournalReviewComment[]     @relation("JournalReviewReplies")
+  votes         JournalReviewCommentVote[]
+  mentions      Json?
+
+  @@index([journalReviewId, createdAt(sort: Desc)])
+}
+
+model JournalReviewCommentVote {
+  id        String               @id @default(cuid())
+  commentId String
+  userId    String
+  voteType  VoteType
+  createdAt DateTime             @default(now())
+  comment   JournalReviewComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
 }

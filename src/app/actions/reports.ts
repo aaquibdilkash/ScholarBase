@@ -59,9 +59,14 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "socialPost",
     reportCountField: "reportCount",
   },
-  RECOMMENDATION: {
+    RECOMMENDATION: {
     delegate: prisma.recommendation as unknown as ModuleConfig["delegate"],
     model: "recommendation",
+    reportCountField: "reportCount",
+  },
+  JOURNAL_REVIEW: {
+    delegate: prisma.journalReview as unknown as ModuleConfig["delegate"],
+    model: "journalReview",
     reportCountField: "reportCount",
   },
   SUPERVISOR: {
@@ -215,9 +220,14 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "supervisorComment",
     reportCountField: "reportCount",
   },
-  RECOMMENDATION_COMMENT: {
+    RECOMMENDATION_COMMENT: {
     delegate: prisma.recommendationComment as unknown as ModuleConfig["delegate"],
     model: "recommendationComment",
+    reportCountField: "reportCount",
+  },
+  JOURNAL_REVIEW_COMMENT: {
+    delegate: prisma.journalReviewComment as unknown as ModuleConfig["delegate"],
+    model: "journalReviewComment",
     reportCountField: "reportCount",
   },
 };

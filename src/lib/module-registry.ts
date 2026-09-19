@@ -14,6 +14,7 @@ export const PROFILE_SECTION_CONFIG = {
   journals: { model: "journal", bookmarkModel: "journalBookmark", bookmarkParent: "journal" },
   researchTools: { model: "researchTool", bookmarkModel: "researchToolBookmark", bookmarkParent: "researchTool" },
   recommendations: { model: "recommendation", bookmarkModel: "recommendationBookmark", bookmarkParent: "recommendation" },
+  journalReviews: { model: "journalReview", bookmarkModel: "journalReviewBookmark", bookmarkParent: "journalReview" },
   supervisors: { model: "supervisor", bookmarkModel: "supervisorBookmark", bookmarkParent: "supervisor" },
   results: { model: "result", bookmarkModel: "resultBookmark", bookmarkParent: "result" },
   contributionPosts: { model: "contribution", bookmarkModel: "contributionBookmark", bookmarkParent: "contribution" },
@@ -42,4 +43,5 @@ export const CONTENT_TABLES = [
   "PhdAdmission",
   "JobVacancy",
   "Recommendation",
+  "JournalReview",
 ] as const;

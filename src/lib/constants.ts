@@ -141,6 +141,10 @@ export type AppealCategory = (typeof APPEAL_CATEGORIES)[number]["value"];
 
 export const MAX_RECOMMENDATION_FEEDBACK = 512;
 
+// Journal Reviews mirror the Recommendation architecture (rating + feedback +
+// two sub-scores + anonymity) on top of a Journal.
+export const MAX_JOURNAL_REVIEW_FEEDBACK = 512;
+
 export const MAX_ADMISSION_UNIVERSITY = 64;
 export const MAX_ADMISSION_DEPARTMENT = 64;
 export const MAX_ADMISSION_DESCRIPTION = 512;
@@ -207,6 +211,7 @@ export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   JOB_VACANCY: "vacancy",
   SUPERVISOR: "supervisor",
   RECOMMENDATION: "recommendation",
+  JOURNAL_REVIEW: "journalReview",
   RESEARCH_SURVEY: "survey",
   SCHOLAR_PROFILE: "SCHOLAR_PROFILE",
   SOCIAL_COMMENT: "socialComment",
@@ -225,4 +230,5 @@ export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   JOB_VACANCY_COMMENT: "vacancyComment",
   SUPERVISOR_COMMENT: "supervisorComment",
   RECOMMENDATION_COMMENT: "recommendationComment",
+  JOURNAL_REVIEW_COMMENT: "journalReviewComment",
 };

@@ -125,6 +125,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
           updatedAt: true,
           editedAt: true,
           parentId: true,
+          authorId: true,
           totalVotes: true,
           totalReplies: true,
           author: {

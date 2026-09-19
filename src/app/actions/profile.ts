@@ -123,6 +123,7 @@ export async function getProfileSections(
       researchEventCount: true,
       helpPostCount: true,
       journalCount: true,
+      journalReviewCount: true,
       researchToolCount: true,
       recommendationCount: true,
       supervisorCount: true,
@@ -157,6 +158,7 @@ export async function getProfileSections(
     surveys,
     researchGrants,
     courses,
+    journalReviews,
   ] = await Promise.all([
     prisma.article.findMany({
       where: { authorId: profileId, isDeleted: false },
@@ -259,6 +261,19 @@ export async function getProfileSections(
       orderBy: { createdAt: "desc" },
       include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
+    // Anonymous reviews stay hidden from the public profile, exactly like
+    // anonymous recommendations (the materialized counter is also skipped).
+    prisma.journalReview.findMany({
+      where: { authorId: profileId, isDeleted: false, isAnonymous: false },
+      take,
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: authorSelect,
+        votes: votesSelect,
+        bookmarks: bookmarksSelect,
+        journal: { select: { id: true, title: true } },
+      },
+    }),
   ]);
 
   return {
@@ -279,6 +294,7 @@ export async function getProfileSections(
     surveys,
     researchGrants,
     courses,
+    journalReviews,
     counts: {
       articles: userCounters?.articleCount ?? 0,
       socialPosts: userCounters?.socialPostCount ?? 0,
@@ -297,6 +313,7 @@ export async function getProfileSections(
       surveyParticipation: userCounters?.surveyParticipationCount ?? 0,
       researchGrants: userCounters?.researchGrantCount ?? 0,
       courses: userCounters?.courseCount ?? 0,
+      journalReviews: userCounters?.journalReviewCount ?? 0,
     },
   };
 }
@@ -317,6 +334,9 @@ export async function getProfileSection(
     ...(model === "recommendation"
       ? { supervisor: { select: { id: true, name: true } } }
       : {}),
+    ...(model === "journalReview"
+      ? { journal: { select: { id: true, title: true } } }
+      : {}),
   };
 
   // `model` is a dynamic Prisma model key; a single intentional cast is used.
@@ -326,6 +346,7 @@ export async function getProfileSection(
       authorId: profileId,
       isDeleted: false,
       ...(model === "recommendation" ? { isAnonymous: false } : {}),
+      ...(model === "journalReview" ? { isAnonymous: false } : {}),
     },
     skip,
     take,
@@ -339,6 +360,7 @@ function getProfileParentWhere(section: ProfileSection) {
   return {
     isDeleted: false,
     ...(model === "recommendation" ? { isAnonymous: false } : {}),
+    ...(model === "journalReview" ? { isAnonymous: false } : {}),
     ...(model === "contribution" ? { status: "APPROVED" } : {}),
   };
 }
@@ -351,6 +373,9 @@ function getBookmarkParentInclude(section: ProfileSection, currentUserId?: strin
     bookmarks: getProfileBookmarksInclude(currentUserId),
     ...(model === "recommendation"
       ? { supervisor: { select: { id: true, name: true } } }
+      : {}),
+    ...(model === "journalReview"
+      ? { journal: { select: { id: true, title: true } } }
       : {}),
   };
 }

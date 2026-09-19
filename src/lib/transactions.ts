@@ -270,6 +270,20 @@ export const ENTITY_CONFIG = {
     parentFk: 'recommendationId',
     commentFk: 'recommendationId',
   },
+  JOURNAL_REVIEW: {
+    model: 'journalReview' as const,
+    voteModel: 'journalReviewVote' as const,
+    bookmarkModel: 'journalReviewBookmark' as const,
+    commentModel: 'journalReviewComment' as const,
+    commentVoteModel: 'journalReviewCommentVote' as const,
+    get parent() { return (prisma as any)[this.model] },
+    get vote() { return (prisma as any)[this.voteModel] },
+    get comment() { return (prisma as any)[this.commentModel] },
+    get commentVote() { return (prisma as any)[this.commentVoteModel] },
+    titleField: 'feedback',
+    parentFk: 'journalReviewId',
+    commentFk: 'journalReviewId',
+  },
 } as const
 
 export const VOTE_CONFIG = ENTITY_CONFIG
@@ -305,6 +319,7 @@ const MODULE_VOTE_TARGET_TYPE: Record<ModuleKey, string> = {
   JOB_VACANCY: 'vacancy',
   SUPERVISOR: 'supervisor',
   RECOMMENDATION: 'recommendation',
+  JOURNAL_REVIEW: 'journalReview',
 }
 
 const getVoteValue = (current: VoteType | null, next: VoteType): number => {
@@ -512,6 +527,19 @@ export async function handleVoteTransaction(
           })
           if (rec?.supervisorId) {
             targetId = `${rec.supervisorId}/${entityId}`
+          }
+        }
+        if (module === 'JOURNAL_REVIEW') {
+          // Journal reviews are nested under their journal (route
+          // /journals/[id]/review/[reviewId]) so the notification link needs the
+          // composite `journalId/reviewId` target id, exactly like
+          // recommendations use `supervisorId/recommendationId`.
+          const review = await (tx.journalReview as unknown as AnyDelegate).findUnique({
+            where: { id: entityId },
+            select: { journalId: true },
+          })
+          if (review?.journalId) {
+            targetId = `${review.journalId}/${entityId}`
           }
         }
 
@@ -781,6 +809,7 @@ export const COMMENT_TYPE_TO_MODULE: Record<string, ModuleKey> = {
   event: 'RESEARCH_EVENT',
   supervisor: 'SUPERVISOR',
   recommendation: 'RECOMMENDATION',
+  journalReview: 'JOURNAL_REVIEW',
   help: 'HELP_POST',
   journal: 'JOURNAL',
   researchTool: 'RESEARCH_TOOL',

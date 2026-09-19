@@ -11,6 +11,7 @@ export type CommentEntityType =
   | "event"
   | "supervisor"
   | "recommendation"
+  | "journalReview"
   | "help"
   | "journal"
   | "researchTool"
