@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v5";
+const CACHE_NAME = "scholarbase-v6";
 const urlsToCache = [
   "/",
   "/manifest.json",
@@ -33,21 +33,10 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = event.request.url;
 
-  // Never serve cached bundles during local development. Without this guard,
-  // the service worker can keep an older React client in front of Next.js HMR.
-  //
-  // Returning *without* `respondWith` is what enforces that: the browser then
-  // handles the request natively, so the caching branch below can never run.
-  // Re-issuing it here with `fetch(event.request)` would also route every dev
-  // request through this worker (page -> worker -> network -> worker -> page)
-  // and make each one show up twice in the DevTools Network panel — once for
-  // the page, once for `sw.js` — which is easy to mistake for a duplicate call.
   if (self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1") {
     return;
   }
 
-  // API responses are per-user and must never be cached, so there is nothing
-  // for this worker to do with them.
   if (url.includes("/api/")) {
     return;
   }
@@ -67,43 +56,87 @@ self.addEventListener("fetch", (event) => {
 });
 
 /**
- * Message Web Push.
- *
- * The server has already decided that no ScholarBase tab was visible, so the
- * push is always rendered as a real OS notification (required by
- * `userVisibleOnly: true`). The `tag` collapses repeat messages from the same
- * conversation into a single notification instead of stacking them.
+ * WhatsApp-Style Expandable Web Push with iOS Badge Sync
  */
 self.addEventListener("push", (event) => {
-  let payload = {};
+  if (!event.data) return;
 
+  let payload = {};
   try {
-    payload = event.data ? event.data.json() : {};
+    payload = event.data.json();
   } catch {
     payload = {};
   }
 
-  const title = payload.title || "New message";
-  const options = {
-    body: payload.body || "You have a new message on ScholarBase.",
-    icon: "/logo.png",
-    badge: "/badge.png",
-    tag: payload.tag || "scholarbase-message",
-    renotify: true,
-    data: { url: payload.url || "/messages" },
-  };
+  event.waitUntil(
+    (async () => {
+      const tag = payload.tag || "scholarbase-chat";
+      
+      // Query active notifications matching this conversation/channel
+      const activeNotifications = await self.registration.getNotifications({ tag });
+      const existingNotification = activeNotifications.length > 0 ? activeNotifications[0] : null;
 
-  event.waitUntil(self.registration.showNotification(title, options));
+      let messageHistory = [];
+      const incomingSender = payload.title || "ScholarBase";
+      const incomingText = payload.body || "New update";
+
+      if (existingNotification && existingNotification.data?.messages) {
+        messageHistory = [
+          ...existingNotification.data.messages,
+          { sender: incomingSender, text: incomingText },
+        ];
+      } else {
+        messageHistory = [{ sender: incomingSender, text: incomingText }];
+      }
+
+      // WhatsApp format: Single line for 1 message, bulleted multiline for 2+ messages
+      let displayTitle = incomingSender;
+      let displayBody = incomingText;
+
+      if (messageHistory.length > 1) {
+        displayTitle = `ScholarBase (${messageHistory.length} messages)`;
+        // Slice last 5 messages so the expanded drawer does not overflow
+        displayBody = messageHistory
+          .slice(-5)
+          .map((m) => `• ${m.sender}: ${m.text}`)
+          .join("\n");
+      }
+
+      // iOS PWA Home Screen Red Badge Update
+      if ("setAppBadge" in self.navigator) {
+        const unreadTotal = payload.unreadCount || messageHistory.length;
+        self.navigator.setAppBadge(unreadTotal).catch(() => {});
+      }
+
+      const options = {
+        body: displayBody,
+        icon: "/logo.png",
+        badge: "/badge.png",
+        tag: tag,
+        renotify: true,
+        data: {
+          url: payload.url || "/messages",
+          messages: messageHistory,
+        },
+      };
+
+      return self.registration.showNotification(displayTitle, options);
+    })()
+  );
 });
 
 /**
- * Focus an existing ScholarBase tab if one is open (navigating it to the
- * conversation), otherwise open a new one.
+ * Handle notification clicks & clear iOS Home Screen badges
  */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = (event.notification.data && event.notification.data.url) || "/messages";
+  // Clear iOS unread badge on click
+  if ("clearAppBadge" in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
+
+  const targetUrl = event.notification.data?.url || "/messages";
 
   event.waitUntil(
     (async () => {
@@ -126,7 +159,7 @@ self.addEventListener("notificationclick", (event) => {
           try {
             await client.navigate(targetUrl);
           } catch {
-            // Cross-origin or detached client — focus alone is good enough.
+            // Client already at destination
           }
         }
         return;
@@ -135,4 +168,13 @@ self.addEventListener("notificationclick", (event) => {
       await self.clients.openWindow(targetUrl);
     })()
   );
+});
+
+/**
+ * Clear iOS badge if notification is dismissed
+ */
+self.addEventListener("notificationclose", () => {
+  if ("clearAppBadge" in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
 });

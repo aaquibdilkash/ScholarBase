@@ -44,7 +44,7 @@ export function ConfirmationModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg"
+        className="relative w-full max-w-md mx-6 sm:mx-auto p-6 bg-white rounded-lg shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex flex-col gap-4">

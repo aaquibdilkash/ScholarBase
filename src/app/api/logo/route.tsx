@@ -1,12 +1,23 @@
-
-
-
-
 import { ImageResponse } from "next/og";
+import fs from "node:fs/promises";
+import path from "node:path";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function GET() {
+  let fontData: ArrayBuffer | null = null;
+  try {
+    const fontBuffer = await fs.readFile(
+      path.join(process.cwd(), "public", "fonts", "DejaVuSans-Bold.ttf")
+    );
+    fontData = fontBuffer.buffer.slice(
+      fontBuffer.byteOffset,
+      fontBuffer.byteOffset + fontBuffer.byteLength
+    ) as ArrayBuffer;
+  } catch {
+    // Fallback if missing
+  }
+
   return new ImageResponse(
     (
       <div
@@ -16,20 +27,20 @@ export async function GET() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#020617", // Deep luxury dark background
-          borderRadius: "50%", // Perfect circle for social media profile pictures
-          border: "16px solid #1e293b", // Sleek dark metallic/slate outer ring
+          backgroundColor: "#020617",
+          borderRadius: "50%",
+          border: "16px solid #1e293b",
           boxSizing: "border-box",
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 220, // Massive, high-fidelity scale for crisp rendering
-            fontWeight: 1200,
-            letterSpacing: "-0.04em",
+            fontSize: 220,
+            letterSpacing: "-0.05em",
             lineHeight: 1,
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: fontData ? "DejaVu Sans" : "sans-serif",
+            fontWeight: 700,
           }}
         >
           <span style={{ color: "#ffffff" }}>S</span>
@@ -38,10 +49,18 @@ export async function GET() {
       </div>
     ),
     {
-      // 512x512 pixels: High resolution so it never gets pixelated when zoomed in 
-      // on WhatsApp, Telegram, Gmail, or Twitter/X profile pictures.
       width: 512,
       height: 512,
-    },
+      fonts: fontData
+        ? [
+            {
+              name: "DejaVu Sans",
+              data: fontData,
+              style: "normal",
+              weight: 700,
+            },
+          ]
+        : undefined,
+    }
   );
 }

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, User as UserIcon, Bell, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
@@ -19,7 +19,8 @@ export default function UserActionsDropdown({
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [optimisticUnreadCount, setOptimisticUnreadCount] = useState(unreadCount);
+  const [optimisticUnreadCount, setOptimisticUnreadCount] =
+    useState(unreadCount);
 
   useEffect(() => {
     setOptimisticUnreadCount(unreadCount);
@@ -107,22 +108,31 @@ export default function UserActionsDropdown({
         >
           <ul className="m-0 list-none p-0">
             <li>
-              <Link prefetch={false}
+              {/* Toggle, not a link — it stays open so the On/Off state change
+              stays visible while the request completes. */}
+              <EnablePushButton variant="menu" />
+            </li>
+            <li>
+              <Link
+                prefetch={false}
                 role="menuitem"
                 href={`/scholars/${user.id}`}
-                className="sb-menu-item flex items-center px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
+                className="sb-menu-item flex items-center gap-2 px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
                 onClick={() => setOpen(false)}
               >
+                <UserIcon className="h-4 w-4 shrink-0" />
                 Profile
               </Link>
             </li>
             <li>
-              <Link prefetch={false}
+              <Link
+                prefetch={false}
                 role="menuitem"
                 href="/notifications"
                 className="sb-menu-item flex items-center gap-2 px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
                 onClick={() => setOpen(false)}
               >
+                <Bell className="h-4 w-4 shrink-0" />
                 Notifications
                 {optimisticUnreadCount > 0 && (
                   <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold leading-none text-white">
@@ -130,11 +140,6 @@ export default function UserActionsDropdown({
                   </span>
                 )}
               </Link>
-            </li>
-            <li>
-              {/* Toggle, not a link — it stays open so the On/Off state change
-                  stays visible while the request completes. */}
-              <EnablePushButton variant="menu" />
             </li>
             <li>
               <button
@@ -153,7 +158,10 @@ export default function UserActionsDropdown({
                     Signing out...
                   </span>
                 ) : (
-                  "Sign Out"
+                  <span className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4 shrink-0" />
+                    Sign Out
+                  </span>
                 )}
               </button>
             </li>
