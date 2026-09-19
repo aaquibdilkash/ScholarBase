@@ -7,9 +7,11 @@ export function readFormValue(formData: FormData, key: string): string {
 }
 
 export function readOptionalFormValue(formData: FormData, key: string): string | null {
+    if (!formData.has(key)) {
+      return null
+    }
     const value = readFormValue(formData, key)
-
-    return value.length > 0 ? value : null
+    return value.length > 0 ? value : ""
 }
 
 /**

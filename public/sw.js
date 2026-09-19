@@ -1,10 +1,11 @@
-const CACHE_NAME = "scholarbase-v4";
+const CACHE_NAME = "scholarbase-v5";
 const urlsToCache = [
   "/",
   "/manifest.json",
   "/logo.png",
   "/favicon.ico",
   "/favicon.svg",
+  "/badge.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -86,7 +87,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: payload.body || "You have a new message on ScholarBase.",
     icon: "/logo.png",
-    badge: "/favicon.ico",
+    badge: "/badge.png",
     tag: payload.tag || "scholarbase-message",
     renotify: true,
     data: { url: payload.url || "/messages" },

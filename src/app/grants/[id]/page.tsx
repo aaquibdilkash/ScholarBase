@@ -78,7 +78,7 @@ export default async function ResearchGrantDetailPage({
       currentUserId={user?.id}
       createdDate={grant.createdAt}
       editedDate={
-        grant.updatedAt > grant.createdAt ? grant.updatedAt : undefined
+        grant.editedAt && grant.editedAt > grant.createdAt ? grant.editedAt : undefined
       }
       managementControls={
         user?.id === grant.author?.id ? (

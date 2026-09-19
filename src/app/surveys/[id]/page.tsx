@@ -41,7 +41,7 @@ export async function generateMetadata({
     path: `/surveys/${survey.id}`,
     type: "article",
     publishedTime: survey.createdAt,
-    modifiedTime: survey.updatedAt,
+    modifiedTime: survey.editedAt,
     section: "Research Surveys",
   });
 }

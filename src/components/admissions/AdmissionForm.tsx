@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { useRouter } from "next/navigation";
 import { CautionNote } from "@/components/ui/CautionNote";
+import { getTodayString } from "@/lib/date";
 import {
   MAX_ADMISSION_UNIVERSITY,
   MAX_ADMISSION_DEPARTMENT,
@@ -66,6 +67,8 @@ export default function AdmissionForm({
     draftKey,
     initial,
   );
+
+  const today = getTodayString();
 
   const { submitting, submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
@@ -163,6 +166,7 @@ export default function AdmissionForm({
           name="deadline"
           className="sb-input"
           required
+          min={today}
           value={draftFields.deadline}
           onChange={(e) => updateDraftField("deadline", e.target.value)}
         />

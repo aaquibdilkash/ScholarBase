@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
+import { resetJournalReviewCount } from "./journalReviewCount";
 import { useToast } from "@/components/ui/Toast";
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
@@ -90,6 +91,16 @@ export default function JournalReviewForm({
             response.data as JournalReviewWithAuthor,
             mode,
           );
+          if (journalId) {
+            // Drop the cached aggregates so the overall rating chart reseeds
+            // from fresh server data on the journal detail page.
+            resetJournalReviewCount(queryClient, journalId);
+            // Flip the header button into the Edit/Delete Review dropdown.
+            queryClient.setQueryData(
+              ["user_review_status", journalId],
+              (response.data as JournalReviewWithAuthor).id,
+            );
+          }
         }
       },
     },
@@ -121,7 +132,13 @@ export default function JournalReviewForm({
       }
       return;
     } else if (journalId) {
-      await submit(() => createJournalReview(formData, journalId));
+      // Redirect to the journal detail page on success (mirrors the
+      // recommendation flow). On failure, useFormSubmit surfaces the error
+      // toast and the user stays on the form to retry.
+      const ok = await submit(() => createJournalReview(formData, journalId));
+      if (ok) {
+        router.push(`/journals/${journalId}`);
+      }
     }
   }
 
@@ -165,7 +182,7 @@ export default function JournalReviewForm({
             </option>
           ))}
         </select>
-            </div>
+      </div>
       {/* __JR_FORM_PART_1__ */}
 
 
@@ -195,19 +212,21 @@ export default function JournalReviewForm({
             Editorial Quality (1-5)
             <InfoTooltip message={JOURNAL_REVIEW_EDITORIAL_TIP} />
           </label>
-          <input
-            type="number"
+          <select
             name="editorialQualityScore"
-            min={1}
-            max={5}
-            step={1}
             value={draftFields.editorialQualityScore}
             onChange={(e) =>
               updateDraftField("editorialQualityScore", e.target.value)
             }
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+            className="sb-select"
             required
-          />
+          >
+            <option value="5">5 - Excellent</option>
+            <option value="4">4 - Good</option>
+            <option value="3">3 - Average</option>
+            <option value="2">2 - Below Average</option>
+            <option value="1">1 - Poor</option>
+          </select>
         </div>
 
         <div className="md:col-span-2">
@@ -215,19 +234,21 @@ export default function JournalReviewForm({
             Peer Review Rigor (1-5)
             <InfoTooltip message={JOURNAL_REVIEW_PEER_REVIEW_TIP} />
           </label>
-          <input
-            type="number"
+          <select
             name="peerReviewRigorScore"
-            min={1}
-            max={5}
-            step={1}
             value={draftFields.peerReviewRigorScore}
             onChange={(e) =>
               updateDraftField("peerReviewRigorScore", e.target.value)
             }
-            className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition-all text-slate-900"
+            className="sb-select"
             required
-          />
+          >
+            <option value="5">5 - Rigorous</option>
+            <option value="4">4 - Thorough</option>
+            <option value="3">3 - Average</option>
+            <option value="2">2 - Superficial</option>
+            <option value="1">1 - Minimal</option>
+          </select>
         </div>
       </div>
 

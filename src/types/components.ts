@@ -18,6 +18,7 @@ export type PublicationType = NonNullable<SectionData>["publications"][number];
 export type SurveyType = NonNullable<SectionData>["surveys"][number];
 export type ResearchGrantType = NonNullable<SectionData>["researchGrants"][number];
 export type CourseType = NonNullable<SectionData>["courses"][number];
+export type JournalReviewType = NonNullable<SectionData>["journalReviews"][number];
 
 export type SectionConfig = {
     [K in SectionKey]: {

@@ -4,7 +4,6 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
-import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { createClient } from "@/utils/supabase/server";
 import { getJournalById } from "../../actions/journals";
 import { deleteJournal } from "@/app/actions/journals";
@@ -12,6 +11,8 @@ import {
   getJournalReviewMeta,
   getJournalReviews,
 } from "@/app/actions/journalReviews";
+import { JournalRatingSection } from "@/components/journals/JournalRatingSection";
+import { JournalHeaderActions } from "@/components/journals/JournalHeaderActions";
 import { JournalReviewsSection } from "@/components/journals/JournalReviewsSection";
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -36,7 +37,7 @@ export async function generateMetadata({
     path: `/journals/${journal.id}`,
     type: "article",
     publishedTime: journal.createdAt,
-    modifiedTime: journal.updatedAt,
+    modifiedTime: journal.editedAt,
     section: "Journals",
   });
 }
@@ -52,7 +53,7 @@ const JournalDetailPage = async ({
     data: { user },
   } = await supabase.auth.getUser();
 
-      const journal = await getJournalById(id, user?.id);
+  const journal = await getJournalById(id, user?.id);
 
   if (!journal) notFound();
 
@@ -86,17 +87,8 @@ const JournalDetailPage = async ({
       isFollowing={!!j.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={j.createdAt}
-      editedDate={j.updatedAt > j.createdAt ? j.updatedAt : undefined}
-      managementControls={
-        user?.id === j.author?.id ? (
-          <OwnerActionsDropdown
-            editHref={`/journals/${j.id}/edit`}
-            onDelete={handleDelete}
-            isOwner={true}
-            editLabel="Edit Journal"
-            deleteLabel="Delete"
-          />
-        ) : null
+      editedDate={
+        j.editedAt && j.editedAt > j.createdAt ? j.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
@@ -141,9 +133,23 @@ const JournalDetailPage = async ({
         />
       }
     >
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-3 sm:mb-4">
-        {j.title}
-      </h1>
+      <div className="flex min-w-0 w-full flex-row items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
+        <div className="min-w-0 flex-1">
+          <h1 className="max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950">
+            {j.title}
+          </h1>
+        </div>
+        <div className="flex w-auto shrink-0 justify-end">
+          <JournalHeaderActions
+            journalId={j.id}
+            isJournalOwner={user?.id === j.author?.id}
+            journalEditHref={`/journals/${j.id}/edit`}
+            onDeleteJournal={handleDelete}
+            initialHasReview={reviewMeta.hasUserReview}
+            initialUserReviewId={reviewMeta.userReviewId}
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
         {j.publisher && (
@@ -256,6 +262,13 @@ const JournalDetailPage = async ({
           <RichContent content={j.about} />
         </div>
       )}
+
+      <JournalRatingSection
+        journalId={j.id}
+        initialCount={reviewMeta.totalCount}
+        initialAvgRating={reviewMeta.avgRating}
+        initialDistribution={reviewMeta.ratingDistribution}
+      />
 
       <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">
         <SafeExternalLink

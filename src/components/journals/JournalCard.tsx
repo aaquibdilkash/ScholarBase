@@ -16,9 +16,11 @@ import type { JournalWithAuthor } from "@/types/cards";
 export function JournalCard({
   journal,
   currentUserId,
+  viewWebsiteHref,
 }: {
   journal: JournalWithAuthor;
   currentUserId?: string;
+  viewWebsiteHref?: string;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -26,6 +28,10 @@ export function JournalCard({
   const isFollowing = (journal.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (journal.votes || [])[0]?.voteType ?? null;
+  const websiteUrl =
+    typeof viewWebsiteHref === "string"
+      ? viewWebsiteHref
+      : (journal.website as string | null | undefined);
 
   return (
     <ListPageCardShell
@@ -104,17 +110,26 @@ export function JournalCard({
         />
       }
       bodyBottomContent={
-        <>
-          <div className="mt-4 flex gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          {typeof websiteUrl === "string" && websiteUrl ? (
             <SafeExternalLink
-              url={journal.website}
+              url={websiteUrl}
               onClick={(e) => e.stopPropagation()}
               className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
             >
               View Website
             </SafeExternalLink>
-          </div>
-        </>
+          ) : (
+            <Link
+              href={`/journals/${journal.id}`}
+              prefetch={false}
+              onClick={(e) => e.stopPropagation()}
+              className="sb-button-secondary flex-1 px-4 py-2 text-center text-xs text-slate-500 dark:text-slate-400"
+            >
+              View Journal
+            </Link>
+          )}
+        </div>
       }
     >
       <Link href={`/journals/${journal.id}`} prefetch={false} className="block group">

@@ -33,7 +33,7 @@ export function SubmitBtn({
         isValidationDisabled
           ? () =>
               toast(
-                "Please fix the highlighted validation issue before saving.",
+                "Please fix the highlighted input validation issue before saving.",
                 "error",
               )
           : undefined

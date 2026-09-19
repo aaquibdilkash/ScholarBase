@@ -156,7 +156,7 @@ export async function createJobVacancy(formData: FormData) {
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
   const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -238,7 +238,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
   const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  const safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");

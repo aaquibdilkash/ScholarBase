@@ -150,8 +150,14 @@ export async function getJournalReviews(
  * `getSupervisorRecommendationMeta`.
  */
 export async function getJournalReviewMeta(journalId: string, userId?: string) {
+  // NOTE: no `isAnonymous` filter here — mirrors
+  // `getSupervisorRecommendationMeta`. Anonymous reviews still count toward
+  // totals/distribution and toward the viewer's own-review detection; the
+  // duplicate guard in `createJournalReview` uses the same unfiltered scope,
+  // so filtering here would show "No reviews yet" while create reports
+  // "You already have a review".
   const reviews = await prisma.journalReview.findMany({
-    where: { journalId, isDeleted: false, isAnonymous: false },
+    where: { journalId, isDeleted: false },
     select: { id: true, rating: true, authorId: true },
   });
 

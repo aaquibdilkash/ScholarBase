@@ -76,9 +76,13 @@ export function JournalReviewCard({
     } as Record<JournalOutcome, string>)[o] ?? o;
 
 
-    return (
+  return (
     <ListPageCardShell
       detailPageHref={`/journals/${review.journalId}/review/${review.id}`}
+      // The card renders its own <Link> below (star rating + feedback body),
+      // so the shell's generic body link must be disabled to avoid nesting
+      // <a> inside <a> (hydration error).
+      noBodyLink={true}
       authorHref={
         review.isAnonymous
           ? undefined

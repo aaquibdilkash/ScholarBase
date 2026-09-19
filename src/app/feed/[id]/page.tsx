@@ -31,7 +31,7 @@ export async function generateMetadata({
     type: "article",
     author: post.author?.name || undefined,
     publishedTime: post.createdAt,
-    modifiedTime: post.updatedAt,
+    modifiedTime: post.editedAt,
     image: post.imageUrl || undefined,
     section: "Scholar Community",
   });
@@ -89,7 +89,7 @@ export default async function SinglePostPage({
       }
       currentUserId={user?.id}
       createdDate={p.createdAt}
-      editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
+      editedDate={p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined}
       footerVoteButton={
         <VoteButton
           targetId={p.id}

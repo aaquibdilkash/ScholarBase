@@ -3,7 +3,7 @@ import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { UserAvatar } from "@/components/ui/UserAvatar";
+import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -49,17 +49,12 @@ export default async function ScholarProfile({
         <div className="lg:row-span-2 lg:min-w-0">
           <div className="flex items-center gap-4 sm:gap-6">
           <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
-            {profile.avatarUrl ? (
-              <UserAvatar
-                src={profile.avatarUrl}
-                name={profile.name}
-                fallbackClassName="text-3xl font-bold text-slate-400 dark:text-slate-500"
-              />
-            ) : (
-              <span className="text-3xl font-bold text-slate-400 dark:text-slate-500">
-                {profile.name?.charAt(0).toUpperCase() || "S"}
-              </span>
-            )}
+            <ProfileAvatar
+              src={profile.avatarUrl}
+              name={profile.name}
+              size={96}
+              fallbackClassName="text-3xl font-bold text-slate-400 dark:text-slate-500"
+            />
           </div>
 
             <div className="min-w-0">

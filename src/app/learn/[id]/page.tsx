@@ -86,7 +86,7 @@ export default async function CourseDetailPage({
       currentUserId={user?.id}
       createdDate={course.createdAt}
       editedDate={
-        course.updatedAt > course.createdAt ? course.updatedAt : undefined
+        course.editedAt && course.editedAt > course.createdAt ? course.editedAt : undefined
       }
       managementControls={
         user?.id === course.author?.id ? (

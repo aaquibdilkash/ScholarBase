@@ -27,7 +27,7 @@ export async function generateMetadata({
     path: `/help/${post.id}`,
     type: "article",
     publishedTime: post.createdAt,
-    modifiedTime: post.updatedAt,
+    modifiedTime: post.editedAt,
     section: "Help & Support",
   });
 }
@@ -69,7 +69,7 @@ export default async function HelpPostPage({
       isFollowing={!!post.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={post.createdAt}
-      editedDate={post.updatedAt > post.createdAt ? post.updatedAt : undefined}
+      editedDate={post.editedAt && post.editedAt > post.createdAt ? post.editedAt : undefined}
       managementControls={
         user?.id === post.author?.id ? (
           <OwnerActionsDropdown

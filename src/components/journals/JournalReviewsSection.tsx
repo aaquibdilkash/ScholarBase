@@ -11,7 +11,6 @@ import {
   type JournalReviewAggregates,
 } from "./journalReviewCount";
 import type { JournalReviewWithAuthor } from "@/types/cards";
-import { StarRating } from "@/components/ui/StarRating";
 
 /**
  * Server value for the initial paint, then the count re-derives from the
@@ -74,8 +73,6 @@ export function JournalReviewsSection({
     },
   });
   const reactiveTotal = aggregate?.count ?? initialCount;
-  const avgRating =
-    reactiveTotal > 0 ? (aggregate?.ratingSum ?? 0) / reactiveTotal : 0;
 
   const [loading, setLoading] = useState(false);
 
@@ -117,27 +114,10 @@ export function JournalReviewsSection({
         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900">
           Reviews ({reactiveTotal})
         </h2>
-        {currentUserId ? (
-          <WriteJournalReviewButton
-            journalId={journalId}
-            initialHasReview={hasUserReview}
-            initialUserReviewId={userReviewId}
-            initialRating={userReviewRating}
-          />
-        ) : null}
       </div>
 
       {reactiveTotal > 0 ? (
         <>
-          <div className="flex items-center gap-3 mb-4">
-            <StarRating rating={avgRating} size="md" />
-            <span className="font-bold text-slate-800 dark:text-slate-100">
-              {avgRating.toFixed(1)} / 5
-            </span>
-            <span className="text-slate-500 text-sm">
-              ({reactiveTotal} review{reactiveTotal !== 1 ? "s" : ""})
-            </span>
-          </div>
           <div className="space-y-4">
             {reviews.map((r) => (
               <JournalReviewCard
@@ -160,14 +140,12 @@ export function JournalReviewsSection({
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           <p className="mb-2">No reviews yet. Be the first to share yours!</p>
-          {currentUserId ? (
-            <WriteJournalReviewButton
-              journalId={journalId}
-              initialHasReview={hasUserReview}
-              initialUserReviewId={userReviewId}
-              initialRating={userReviewRating}
-            />
-          ) : null}
+          <WriteJournalReviewButton
+            journalId={journalId}
+            initialHasReview={hasUserReview}
+            initialUserReviewId={userReviewId}
+            initialRating={userReviewRating}
+          />
         </div>
       )}
     </section>

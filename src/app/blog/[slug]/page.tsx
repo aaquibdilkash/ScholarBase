@@ -80,7 +80,7 @@ export default async function ArticlePage({
       }
       currentUserId={user?.id}
       createdDate={a.createdAt}
-      editedDate={a.updatedAt > a.createdAt ? a.updatedAt : undefined}
+      editedDate={a.editedAt && a.editedAt > a.createdAt ? a.editedAt : undefined}
       footerVoteButton={
         <VoteButton
           targetId={a.id}

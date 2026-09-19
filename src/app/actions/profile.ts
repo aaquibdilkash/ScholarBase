@@ -355,12 +355,12 @@ export async function getProfileSection(
   });
 }
 
-function getProfileParentWhere(section: ProfileSection) {
+function getProfileParentWhere(section: ProfileSection, isBookmark = false) {
   const model = PROFILE_SECTION_CONFIG[section].model;
   return {
     isDeleted: false,
-    ...(model === "recommendation" ? { isAnonymous: false } : {}),
-    ...(model === "journalReview" ? { isAnonymous: false } : {}),
+    ...(!isBookmark && model === "recommendation" ? { isAnonymous: false } : {}),
+    ...(!isBookmark && model === "journalReview" ? { isAnonymous: false } : {}),
     ...(model === "contribution" ? { status: "APPROVED" } : {}),
   };
 }
@@ -404,7 +404,7 @@ export async function getProfileBookmarkSections(
       const count = await bookmarkDelegate.count({
         where: {
           userId: profileId,
-          [config.bookmarkParent]: getProfileParentWhere(section),
+          [config.bookmarkParent]: getProfileParentWhere(section, true),
         },
       });
       return [section, count] as const;
@@ -417,7 +417,7 @@ export async function getProfileBookmarkSections(
       const rows = await bookmarkDelegate.findMany({
         where: {
           userId: profileId,
-          [config.bookmarkParent]: getProfileParentWhere(section),
+          [config.bookmarkParent]: getProfileParentWhere(section, true),
         },
         take,
         orderBy: { createdAt: "desc" },
@@ -455,7 +455,7 @@ export async function getProfileBookmarkSection(
   const rows = await bookmarkDelegate.findMany({
     where: {
       userId: profileId,
-      [config.bookmarkParent]: getProfileParentWhere(section),
+      [config.bookmarkParent]: getProfileParentWhere(section, true),
     },
     skip,
     take,
@@ -525,10 +525,11 @@ export async function updateProfile(formData: FormData) {
     formData,
     "googleScholarUrl",
   );
-  const safeGithubUrl = validateExternalUrl(newGithubUrl ?? "", "GitHub URL");
-  const safeOrcidUrl = validateExternalUrl(newOrcidUrl ?? "", "ORCID URL");
-  const safeLinkedinUrl = validateExternalUrl(newLinkedinUrl ?? "", "LinkedIn URL");
-  const safeGoogleScholarUrl = validateExternalUrl(newGoogleScholarUrl ?? "", "Google Scholar URL");
+
+  const safeGithubUrl = newGithubUrl === null ? null : newGithubUrl === "" ? null : validateExternalUrl(newGithubUrl, "GitHub URL");
+  const safeOrcidUrl = newOrcidUrl === null ? null : newOrcidUrl === "" ? null : validateExternalUrl(newOrcidUrl, "ORCID URL");
+  const safeLinkedinUrl = newLinkedinUrl === null ? null : newLinkedinUrl === "" ? null : validateExternalUrl(newLinkedinUrl, "LinkedIn URL");
+  const safeGoogleScholarUrl = newGoogleScholarUrl === null ? null : newGoogleScholarUrl === "" ? null : validateExternalUrl(newGoogleScholarUrl, "Google Scholar URL");
 
   if (newHandle) {
     const handleAvailable = await isHandleAvailable(newHandle);
@@ -558,14 +559,14 @@ export async function updateProfile(formData: FormData) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      handle: newHandle ? normalizeHandle(newHandle) : user.handle,
-      name: newName || user.name,
-      bio: newBio,
+      handle: newHandle !== null ? normalizeHandle(newHandle) : user.handle,
+      name: newName !== null ? newName : user.name,
+      bio: newBio !== null ? newBio : user.bio,
       avatarUrl: finalAvatarUrl,
-      githubUrl: safeGithubUrl ?? user.githubUrl,
-      orcidUrl: safeOrcidUrl ?? user.orcidUrl,
-      linkedinUrl: safeLinkedinUrl ?? user.linkedinUrl,
-      googleScholarUrl: safeGoogleScholarUrl ?? user.googleScholarUrl,
+      githubUrl: newGithubUrl === null ? user.githubUrl : safeGithubUrl,
+      orcidUrl: newOrcidUrl === null ? user.orcidUrl : safeOrcidUrl,
+      linkedinUrl: newLinkedinUrl === null ? user.linkedinUrl : safeLinkedinUrl,
+      googleScholarUrl: newGoogleScholarUrl === null ? user.googleScholarUrl : safeGoogleScholarUrl,
     },
   });
 

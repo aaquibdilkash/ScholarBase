@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { CautionNote } from "@/components/ui/CautionNote";
+import { getTodayString } from "@/lib/date";
 import {
   MAX_VACANCY_TITLE,
   MAX_VACANCY_INSTITUTION,
@@ -111,6 +112,8 @@ export default function VacancyForm({
     },
   });
 
+  const today = getTodayString();
+
   const isDescriptionOverLimit =
     getRichTextLength(draftFields.description) > MAX_VACANCY_DESCRIPTION;
   const isFormOverLimit = isDescriptionOverLimit;
@@ -186,6 +189,7 @@ return (
           name="deadline"
           className="sb-input"
           required
+          min={today}
           value={draftFields.deadline}
           onChange={(e) => updateDraftField("deadline", e.target.value)}
           disabled={isPending}
@@ -236,9 +240,9 @@ return (
           <InfoTooltip message={VACANCY_APPLY_LINK_TIP} />
         </label>
         <input
-          type="url"
+          type="text"
           name="applyLink"
-          placeholder="https://recruitment.portal or mailto:hr@inst.edu"
+          placeholder="https://recruitment.portal or hr@inst.edu"
           className="sb-input"
           required
           maxLength={MAX_VACANCY_APPLY_LINK}

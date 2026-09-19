@@ -33,7 +33,7 @@ export async function generateMetadata({
     path: `/contributions/${contribution.id}`,
     type: "article",
     publishedTime: contribution.createdAt,
-    modifiedTime: contribution.updatedAt,
+    modifiedTime: contribution.editedAt,
     section: "Contributions",
   });
 }
@@ -95,8 +95,9 @@ const ContributionDetailPage = async ({
       currentUserId={user?.id}
       createdDate={contribution.createdAt}
       editedDate={
-        contribution.updatedAt > contribution.createdAt
-          ? contribution.updatedAt
+        contribution.editedAt &&
+        contribution.editedAt > contribution.createdAt
+          ? contribution.editedAt
           : undefined
       }
       footerVoteButton={

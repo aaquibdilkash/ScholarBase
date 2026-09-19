@@ -6,7 +6,6 @@ export const metadata: Metadata = buildNoindexMetadata(
 );
 import { notFound } from "next/navigation";
 import prisma from "@/lib/db";
-import { requireCurrentUser } from "@/lib/auth";
 import JournalReviewForm from "@/components/journals/JournalReviewForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 
@@ -15,8 +14,10 @@ export default async function AddJournalReviewPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // No server-side login gate: logged-out scholars can open the form and the
+  // SubmitBtnWithAuth button opens the AuthModal on submit (mirrors the
+  // supervisor recommendation flow).
   const { id } = await params;
-  await requireCurrentUser("You must be logged in to write a review.");
 
   const journal = await prisma.journal.findUnique({
     where: { id, isDeleted: false },

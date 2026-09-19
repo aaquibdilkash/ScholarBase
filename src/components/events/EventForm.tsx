@@ -10,6 +10,7 @@ import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
+import { getTodayString } from "@/lib/date";
 import {
   MAX_EVENT_TITLE,
   MAX_EVENT_LOCATION,
@@ -66,6 +67,8 @@ export default function EventForm({
     initial,
   );
   const queryClient = useQueryClient();
+
+  const today = getTodayString();
 
   const { submitting, submit } = useFormSubmit(mode !== "edit" ? resetDraft : undefined, {
     resetOnSuccess: mode !== "edit",
@@ -146,6 +149,7 @@ export default function EventForm({
               name="date"
               className="sb-input"
               required
+              min={today}
               value={draftFields.date}
               onChange={(e) => updateDraftField("date", e.target.value)}
             />
@@ -179,6 +183,7 @@ export default function EventForm({
             type="date"
             name="deadline"
             className="sb-input"
+            min={today}
             value={draftFields.deadline}
             onChange={(e) => updateDraftField("deadline", e.target.value)}
           />

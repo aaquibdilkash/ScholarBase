@@ -44,6 +44,7 @@ export async function getHelpPosts(
       title: true,
       subject: true,
       category: true,
+      message: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,

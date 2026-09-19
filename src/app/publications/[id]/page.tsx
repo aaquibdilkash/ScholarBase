@@ -46,7 +46,7 @@ export async function generateMetadata({
           .filter(Boolean)
       : undefined,
     publishedTime: p.createdAt,
-    modifiedTime: p.updatedAt,
+    modifiedTime: p.editedAt,
     section: p.publicationType || "Publications",
   });
 }
@@ -90,7 +90,7 @@ const PublicationDetailPage = async ({
       isFollowing={!!p.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={p.createdAt}
-      editedDate={p.updatedAt > p.createdAt ? p.updatedAt : undefined}
+      editedDate={p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined}
       managementControls={
         user?.id === p.author?.id ? (
           <OwnerActionsDropdown

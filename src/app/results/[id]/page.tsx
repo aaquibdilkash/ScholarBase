@@ -93,7 +93,7 @@ const ResultDetailPage = async ({
       currentUserId={user?.id}
       createdDate={result.createdAt}
       editedDate={
-        result.updatedAt > result.createdAt ? result.updatedAt : undefined
+        result.editedAt && result.editedAt > result.createdAt ? result.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton

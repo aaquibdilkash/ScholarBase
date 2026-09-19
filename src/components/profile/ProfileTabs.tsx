@@ -34,6 +34,7 @@ import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
 import { ResearchGrantCard } from "@/components/grants/ResearchGrantCard";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { RecommendationCard } from "@/components/supervisor/RecommendationCard";
+import { JournalReviewCard } from "@/components/journals/JournalReviewCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { ResultCard } from "@/components/results/ResultCard";
 import { ContributionCard } from "@/components/contributions/ContributionCard";
@@ -54,6 +55,7 @@ import {
   JournalType,
   ResearchToolType,
   RecommendationType,
+  JournalReviewType,
   SupervisorType,
   ResultType,
   ContributionType,
@@ -204,6 +206,19 @@ const SECTIONS: SectionWithCount[] = [
       )),
   },
   {
+    key: "journalReviews",
+    title: "Journal Reviews Given",
+    emptyMessage: "No journal reviews given yet.",
+    renderItems: (items: JournalReviewType[], currentUserId) =>
+      items.map((r) => (
+        <JournalReviewCard
+          key={r.id}
+          review={r}
+          currentUserId={currentUserId}
+        />
+      )),
+  },
+  {
     key: "supervisors",
     title: "Supervisor Profiles",
     emptyMessage: "No supervisor profiles created yet.",
@@ -301,6 +316,7 @@ export default function ProfileTabs({
         ? "activity"
         : "about",
   );
+  const isOwnProfile = currentUserId === profileId;
   const [sections, setSections] = useState<SectionData | null>(null);
   const [bookmarkSections, setBookmarkSections] = useState<SectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -405,13 +421,20 @@ export default function ProfileTabs({
     if (tab === "content" && !sections) {
       loadContent();
     }
-    if (tab === "bookmarks" && !bookmarkSections) {
+    if (tab === "bookmarks" && isOwnProfile && !bookmarkSections) {
       loadBookmarks();
     }
     if (tab === "activity" && !activity) {
       loadActivity();
     }
-  }, [searchParams, sections, bookmarkSections, activity, loadActivity, loadBookmarks, loadContent]);
+    // Redirect from bookmarks tab if not own profile
+    if (tab === "bookmarks" && !isOwnProfile) {
+      const params = new URLSearchParams(searchParams);
+      params.set("tab", "about");
+      router.replace(`${pathname}?${params.toString()}`);
+      setActiveTab("about");
+    }
+  }, [searchParams, sections, bookmarkSections, activity, loadActivity, loadBookmarks, loadContent, isOwnProfile, profileId, pathname, router]);
 
   const setTab = (tab: "about" | "content" | "bookmarks" | "activity") => {
     const params = new URLSearchParams(searchParams);
@@ -525,7 +548,9 @@ export default function ProfileTabs({
   return (
     <div className="mt-8">
       {/* Tab Buttons */}
-      <div className="mb-8 grid w-full grid-cols-4 gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:w-fit sm:min-w-[30rem] sm:grid-cols-4">
+      <div className={`mb-8 grid w-full gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:w-fit sm:min-w-[30rem] ${
+        isOwnProfile ? "grid-cols-4" : "grid-cols-3"
+      }`}>
         <button
           onClick={() => setTab("about")}
           className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
@@ -546,16 +571,18 @@ export default function ProfileTabs({
         >
           Content
         </button>
-        <button
-          onClick={handleBookmarksTabClick}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
-            activeTab === "bookmarks"
-              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
-              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
-          }`}
-        >
-          BookMarks
-        </button>
+        {isOwnProfile && (
+          <button
+            onClick={handleBookmarksTabClick}
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
+              activeTab === "bookmarks"
+                ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+            }`}
+          >
+            BookMarks
+          </button>
+        )}
         <button
           onClick={handleActivityTabClick}
           className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
@@ -1085,6 +1112,8 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
         }
         return (
           <>
+            {" "}
+            <span className={boldCls}>{label}</span>
             {" "}
             {renderEntityTitle(item.entityTitle)}
           </>

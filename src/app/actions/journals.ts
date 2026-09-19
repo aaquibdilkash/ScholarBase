@@ -229,6 +229,7 @@ export async function getJournals(
       publisher: true,
       impactFactor: true,
       createdAt: true,
+      website: true,
       updatedAt: true,
       editedAt: true,
       authorId: true,

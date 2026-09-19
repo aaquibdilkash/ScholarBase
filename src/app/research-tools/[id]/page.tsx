@@ -70,7 +70,7 @@ const ResearchToolDetailPage = async ({
       isFollowing={!!tool.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={tool.createdAt}
-      editedDate={tool.updatedAt > tool.createdAt ? tool.updatedAt : undefined}
+      editedDate={tool.editedAt && tool.editedAt > tool.createdAt ? tool.editedAt : undefined}
       managementControls={
         user?.id === tool.author?.id ? (
           <OwnerActionsDropdown

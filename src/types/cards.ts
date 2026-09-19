@@ -123,6 +123,10 @@ export type HelpPostWithAuthor = Partial<HelpPost> & {
     createdAt: Date;
     updatedAt: Date;
     title: string;
+    subject: string | null;
+    category: string;
+    message: string;
+    editedAt: Date | null;
     author: AuthorWithFollowers;
     totalVotes: number;
     totalBookmarks: number;
