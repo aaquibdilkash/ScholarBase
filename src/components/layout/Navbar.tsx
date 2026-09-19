@@ -6,7 +6,17 @@ import UserActionsDropdown from "./UserActionsDropdown";
 import NavLoginButton from "./NavLoginButton";
 import SignOutButton from "@/components/auth/SignOutButton";
 import NotificationBadge from "./NotificationBadge";
+import { EnablePushButton } from "@/components/push/EnablePushButton";
 import type { User } from "@supabase/supabase-js";
+
+/**
+ * Navbar action pills are denser than the app-wide `sb-button-accent` button.
+ * The bar has to hold three widths — phone, the tablet range in between, and
+ * laptop — so label size and padding step up together at `sm` and `md`
+ * instead of jumping straight to their full size at `sm`.
+ */
+const NAVBAR_ACTION =
+  "sb-button-accent px-2.5 py-1.5 text-[11px] sm:px-3.5 sm:py-2 sm:text-xs md:px-4 md:py-2.5 md:text-sm";
 
 export default function Navbar({
   user,
@@ -20,15 +30,16 @@ export default function Navbar({
       id="sb-navbar"
       className="sticky top-0 z-50 shrink-0 shadow-sm border-b border-slate-200/70 sb-navbar-bg backdrop-blur-xl dark:border-slate-800/80"
     >
-      <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-16 sm:py-3">
-        <Link prefetch={false} href="/" className="hidden items-center gap-3 md:flex">
-          <SBIcon className="h-10 w-10 text-[18px]" />
+      {/* Density steps with the viewport: phone -> tablet (`sm`) -> laptop (`md`). */}
+      <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-15 sm:py-2.5 md:min-h-16 md:py-3">
+        <Link prefetch={false} href="/" className="hidden items-center gap-2.5 md:flex lg:gap-3">
+          <SBIcon className="h-9 w-9 text-base lg:h-10 lg:w-10 lg:text-[18px]" />
           <div className="leading-tight">
-            <div className="text-base font-semibold tracking-tight">
+            <div className="text-sm font-semibold tracking-tight lg:text-base">
               <BrandMark />
             </div>
 
-            <div className="hidden text-xs text-slate-500 dark:text-slate-400 sm:block">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 lg:text-xs">
               Research Community Platform
             </div>
           </div>
@@ -38,24 +49,28 @@ export default function Navbar({
 
         <Link prefetch={false}
           href="/"
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-base font-semibold tracking-tight md:hidden"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[15px] font-semibold tracking-tight sm:text-base md:hidden"
         >
           <BrandMark />
         </Link>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3 md:gap-4">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2 md:gap-3">
           {user ? (
             <>
-              <div className="hidden items-center gap-2 sm:gap-3 md:flex md:gap-4">
+              {/* Desktop action cluster. The message-alert toggle lives in here
+                  too, so on phones the navbar collapses to just the overflow
+                  menu and every action is reachable from that one dropdown. */}
+              <div className="hidden items-center gap-3 md:flex">
+                <EnablePushButton variant="navbar" />
                 <NotificationBadge initialUnreadCount={unreadCount} />
                 <Link prefetch={false}
                   href={`/scholars/${user.id}`}
-                  className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2"
+                  className={NAVBAR_ACTION}
                   aria-label="Open profile"
                 >
                   Profile
                 </Link>
-                <SignOutButton className="sb-button-accent px-3 py-1.5 sm:px-4 sm:py-2">
+                <SignOutButton className={NAVBAR_ACTION}>
                   Sign Out
                 </SignOutButton>
               </div>

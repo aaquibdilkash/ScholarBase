@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/db";
 import { NotificationsList } from "@/components/notifications/NotificationsList";
+import { EnablePushButton } from "@/components/push/EnablePushButton";
 
 export default async function NotificationsPage() {
   const supabase = await createClient();
@@ -43,6 +44,7 @@ export default async function NotificationsPage() {
             matter to you.
           </p>
         </div>
+        <EnablePushButton />
       </div>
 
       <NotificationsList

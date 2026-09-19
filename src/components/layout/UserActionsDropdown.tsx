@@ -7,6 +7,7 @@ import { User } from "@supabase/supabase-js";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
+import { EnablePushButton } from "@/components/push/EnablePushButton";
 
 export default function UserActionsDropdown({
   user,
@@ -92,9 +93,9 @@ export default function UserActionsDropdown({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="sb-menu-trigger"
+        className="sb-menu-trigger h-8 w-8 sm:h-9 sm:w-9"
       >
-        <ChevronDown className="h-5 w-5" />
+        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
         <span className="sr-only">Open user menu</span>
       </button>
 
@@ -102,14 +103,14 @@ export default function UserActionsDropdown({
         <div
           ref={menuRef}
           role="menu"
-          className="sb-menu sb-menu-navbar absolute right-0 z-[100] mt-2 w-56"
+          className="sb-menu sb-menu-navbar absolute right-0 z-[100] mt-2 w-52 sm:w-60"
         >
           <ul className="m-0 list-none p-0">
             <li>
               <Link prefetch={false}
                 role="menuitem"
                 href={`/scholars/${user.id}`}
-                className="sb-menu-item flex items-center px-4"
+                className="sb-menu-item flex items-center px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
                 onClick={() => setOpen(false)}
               >
                 Profile
@@ -119,7 +120,7 @@ export default function UserActionsDropdown({
               <Link prefetch={false}
                 role="menuitem"
                 href="/notifications"
-                className="sb-menu-item flex items-center gap-2 px-4"
+                className="sb-menu-item flex items-center gap-2 px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
                 onClick={() => setOpen(false)}
               >
                 Notifications
@@ -131,6 +132,11 @@ export default function UserActionsDropdown({
               </Link>
             </li>
             <li>
+              {/* Toggle, not a link — it stays open so the On/Off state change
+                  stays visible while the request completes. */}
+              <EnablePushButton variant="menu" />
+            </li>
+            <li>
               <button
                 type="button"
                 role="menuitem"
@@ -139,7 +145,7 @@ export default function UserActionsDropdown({
                   setIsModalOpen(true);
                 }}
                 disabled={signingOut}
-                className="sb-menu-item w-full text-left disabled:opacity-50 gap-2 px-4"
+                className="sb-menu-item w-full text-left disabled:opacity-50 gap-2 px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
               >
                 {signingOut ? (
                   <span className="inline-flex items-center gap-2">

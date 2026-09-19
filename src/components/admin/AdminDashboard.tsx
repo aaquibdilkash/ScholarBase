@@ -409,7 +409,11 @@ export function AdminDashboard({
           getCount={sectionCount}
         />
 
-        <div className="flex-1">
+        {/* ⚡ RESPONSIVE: `min-w-0` is required on this flex child — without it,
+            a wide table's min-content width forces this column to grow past the
+            viewport, so the inner `overflow-x-auto` never scrolls and the last
+            (Actions) column gets clipped. */}
+        <div className="min-w-0 flex-1">
           {isInstitutionRequestsTab ? (
             <div ref={tableRef} className="scroll-mt-20">
               <InstitutionDomainRequestsPanel

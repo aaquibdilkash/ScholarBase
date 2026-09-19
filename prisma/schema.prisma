@@ -878,6 +878,7 @@ model User {
   conversationsCreated     Conversation[]            @relation("ConversationCreator")
   conversationParticipants ConversationParticipant[]
   messagesSent             Message[]
+  pushSubscriptions        PushSubscription[]
 
   // Appeals — owner-filed appeals on their frozen/deleted content
   appeals         Appeal[] @relation("AppealOwner")
@@ -2105,4 +2106,23 @@ model OrphanedAsset {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// W3C Web Push registrations for message notifications. One row per browser
+/// install that has granted notification permission. Rows are removed when the
+/// push service reports the endpoint as gone (404/410 in the send worker) and
+/// cascaded away on account deletion.
+model PushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // INDEX: the send worker resolves every subscription for one recipient.
+  @@index([userId])
 }

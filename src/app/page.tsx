@@ -148,13 +148,13 @@ export default async function HomePage() {
     <div className="mx-auto max-w-6xl px-0 py-3 sm:py-8 md:py-10">
       {/* Hero Section */}
       <section className="sb-surface overflow-hidden">
-        <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           {/* Top Left: Headline & CTAs */}
-          <div className="flex flex-col justify-center p-6 sm:p-8 md:p-10 lg:p-12 xl:p-14">
-            <div className="mb-5 flex items-center gap-3 sm:gap-4">
+          <div className="flex min-w-0 flex-col justify-center p-6 sm:p-8 md:p-10 lg:p-12 xl:p-14">
+            <div className="mb-5 flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
               <SBIcon className="h-14 w-14 text-[26px] sm:h-20 sm:w-20 sm:text-[36px] md:h-24 md:w-24 md:text-[44px]" />
-              <div className="leading-tight">
-                <BrandMark className="sb-heading text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight" />
+              <div className="min-w-0 leading-tight">
+                <BrandMark className="sb-heading text-3xl md:text-5xl xl:text-6xl font-extrabold tracking-tight" />
                 <div className="text-base sm:text-xl md:text-2xl text-slate-500 dark:text-slate-400">
                   Research Community Platform
                 </div>
@@ -193,7 +193,7 @@ export default async function HomePage() {
           </div>
 
           {/* Top Right: Live Pulse Cards */}
-          <div className="sb-surface-soft border-t p-6 sm:p-8 md:p-10 lg:border-l lg:border-t-0 dark:border-slate-800 dark:bg-slate-900/60">
+          <div className="sb-surface-soft min-w-0 border-t p-6 sm:p-8 md:p-10 lg:border-l lg:border-t-0 dark:border-slate-800 dark:bg-slate-900/60">
             
             <div className="grid gap-4">
               <StatCard
@@ -228,7 +228,7 @@ export default async function HomePage() {
           </div>
 
           {/* Bottom Full-Width: Field notes spanning across both columns */}
-          <div className="border-t sb-surface-soft p-6 sm:p-8 md:p-10 lg:col-span-2 lg:p-12 dark:border-slate-800 dark:bg-slate-900/40">
+          <div className="border-t sb-surface-soft min-w-0 p-6 sm:p-8 md:p-10 lg:col-span-2 lg:p-12 dark:border-slate-800 dark:bg-slate-900/40">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700 dark:text-blue-300">
               Field notes from the founders
             </p>
@@ -374,7 +374,7 @@ export default async function HomePage() {
 
       {/* Join the team — careers teaser */}
       <section className="mt-12 sb-surface-strong p-8 md:p-12">
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
               <Megaphone className="h-3.5 w-3.5" />

@@ -9,6 +9,7 @@ import { useTimeAgo } from "@/utils/use-time-ago";
 import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox, searchInbox } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
+import { EnablePushButton } from "@/components/push/EnablePushButton";
 import { MessagesLayoutContext } from "./messages-context";
 import { ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 
@@ -314,6 +315,7 @@ function ConversationSidebar({ user }: { user: User | null }) {
           {isSidebarOpen && ( 
             <Link prefetch={false} href="/messages/new" onClick={handleNewMessageClick} className="sb-button-primary w-full justify-center dark:bg-black dark:hover:bg-black">New</Link>
           )}
+          <EnablePushButton variant="compact" />
           <button onClick={() => setIsSidebarOpen((prev) => !prev)} className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
             {isSidebarOpen ? <ChevronsLeft className="h-5 w-5" /> : <ChevronsRight className="h-5 w-5" />}
           </button>

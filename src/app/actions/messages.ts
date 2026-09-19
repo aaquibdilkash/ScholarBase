@@ -6,6 +6,7 @@ import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { messageSelect } from "@/lib/message-select";
 import type { SubmitResult } from "@/types/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { queueMessagePush } from "@/lib/qstash";
 import { Prisma } from "@prisma/client";
 
 const directConversationSelect = {
@@ -361,6 +362,16 @@ export async function startConversation(
     data: { lastReadAt: new Date() },
   });
 
+  // ⚡ FIRE-AND-FORGET: the push gate + delivery happen off the request path.
+  // Never awaited — messaging must stay instant and must never break if the
+  // push infrastructure (Redis / QStash / web-push) is unavailable.
+  void queueMessagePush({
+    recipientId,
+    conversationId,
+    senderName: (user.name?.trim() || "A researcher").slice(0, 120),
+    body,
+  }).catch((error) => console.error("Message push enqueue error:", error));
+
   return { success: true, redirect: `/messages/${conversationId}` };
 }
 
@@ -520,6 +531,17 @@ export async function sendMessage(
 
     return newMessage;
   });
+
+  // ⚡ FIRE-AND-FORGET: mirrors `startConversation`. Only the *other*
+  // participant is notified, and only after the transaction above committed.
+  if (otherParticipant) {
+    void queueMessagePush({
+      recipientId: otherParticipant.userId,
+      conversationId,
+      senderName: (createdMessage.sender.name?.trim() || "A researcher").slice(0, 120),
+      body: createdMessage.body,
+    }).catch((error) => console.error("Message push enqueue error:", error));
+  }
 
   return createdMessage;
 }

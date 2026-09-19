@@ -7,6 +7,8 @@ import { PresenceProvider } from "./PresenceProvider";
 import { ToastProvider } from "@/components/ui/Toast";
 import { AuthModalProvider } from "./AuthModal";
 import { FrozenUserProvider } from "./FrozenUserProvider";
+import { PushActivitySignal } from "@/components/push/PushActivitySignal";
+import { PushNotificationProvider } from "@/components/push/PushNotificationProvider";
 
 export function AppProviders({
   children,
@@ -52,7 +54,12 @@ export function AppProviders({
         <FollowProvider>
           <AuthModalProvider>
             <FrozenUserProvider isFrozen={isFrozen}>
-              <PresenceProvider>{children}</PresenceProvider>
+              <PresenceProvider>
+                <PushNotificationProvider>
+                  <PushActivitySignal />
+                  {children}
+                </PushNotificationProvider>
+              </PresenceProvider>
             </FrozenUserProvider>
           </AuthModalProvider>
         </FollowProvider>
