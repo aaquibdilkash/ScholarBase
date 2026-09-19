@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteHelpPost } from "@/app/actions/help";
 import Link from "next/link";
@@ -76,6 +77,15 @@ export function HelpPostCard({
           module="HELP_POST"
           initialTotalVotes={helpPost.totalVotes}
           initialUserVote={initialUserVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={helpPost.isFrozen === true}
+          targetId={helpPost.id}
+          module="HELP_POST"
+          initialTotalBookmarks={helpPost.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(helpPost.bookmarks) && helpPost.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/help/${helpPost.id}`}

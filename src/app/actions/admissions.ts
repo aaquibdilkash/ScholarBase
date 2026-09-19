@@ -57,10 +57,12 @@ export async function getAdmissions(
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -90,10 +92,12 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       comments: {
         where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
@@ -159,7 +163,7 @@ export async function createPhdAdmission(formData: FormData) {
         applyLink: safeApplyLink,
         authorId: user.id,
       },
-      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } } },
+      include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } } },
     });
 
     await tx.userActivity.create({
@@ -309,10 +313,12 @@ export async function getLatestAdmissions(count: number, userId?: string) {
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }

@@ -5,6 +5,7 @@ import { CommentSection } from "@/components/interactions/CommentSection";
 import { RichContent } from "@/components/content/RichContent";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import {
   deleteSurvey,
   getSurvey,
@@ -121,6 +122,15 @@ const SurveyDetailPage = async ({
           module="RESEARCH_SURVEY"
           initialTotalVotes={survey.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={survey.isFrozen === true}
+          targetId={survey.id}
+          module="RESEARCH_SURVEY"
+          initialTotalBookmarks={survey.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(survey.bookmarks) && survey.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/surveys/${survey.id}#comments`}

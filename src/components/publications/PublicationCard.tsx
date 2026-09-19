@@ -3,6 +3,7 @@
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
@@ -89,6 +90,15 @@ export function PublicationCard({
           module="PUBLICATION"
           initialTotalVotes={publication.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={publication.isFrozen === true}
+          targetId={publication.id}
+          module="PUBLICATION"
+          initialTotalBookmarks={publication.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(publication.bookmarks) && publication.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/publications/${publication.id}`}

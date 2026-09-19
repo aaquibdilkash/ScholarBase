@@ -25,6 +25,7 @@ import type { VoteType } from "./votes";
 import type { MentionUser } from "@/components/interactions/CommentThread";
 
 export type UserVote = { voteType: VoteType }[] | undefined | false;
+export type UserBookmark = { id: string }[] | undefined | false;
 
 /**
  * Author shape used by cards. Structural (not `extends User`) so that
@@ -52,8 +53,10 @@ export type SocialPostWithAuthor = Omit<Partial<SocialPost>, "mentions"> & {
     mentions?: MentionUser[] | null;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type ArticleWithAuthor = Partial<Article> & {
@@ -63,8 +66,10 @@ export type ArticleWithAuthor = Partial<Article> & {
     slug: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type VacancyWithAuthor = Partial<JobVacancy> & {
@@ -76,8 +81,10 @@ export type VacancyWithAuthor = Partial<JobVacancy> & {
     description: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type AdmissionWithAuthor = Partial<PhdAdmission> & {
@@ -88,8 +95,10 @@ export type AdmissionWithAuthor = Partial<PhdAdmission> & {
     department: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type EventWithAuthor = Partial<ResearchEvent> & {
@@ -101,8 +110,10 @@ export type EventWithAuthor = Partial<ResearchEvent> & {
     deadline: Date | null;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type HelpPostWithAuthor = Partial<HelpPost> & {
@@ -112,8 +123,10 @@ export type HelpPostWithAuthor = Partial<HelpPost> & {
     title: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type ResearchToolWithAuthor = Partial<ResearchTool> & {
@@ -124,8 +137,10 @@ export type ResearchToolWithAuthor = Partial<ResearchTool> & {
     description: string | null;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type ResearchGrantWithAuthor = Partial<ResearchGrant> & {
@@ -136,8 +151,10 @@ export type ResearchGrantWithAuthor = Partial<ResearchGrant> & {
     description: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type CourseWithAuthor = Partial<Course> & {
@@ -149,8 +166,10 @@ export type CourseWithAuthor = Partial<Course> & {
     description: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type JournalWithAuthor = Partial<Journal> & {
@@ -159,8 +178,10 @@ export type JournalWithAuthor = Partial<Journal> & {
     updatedAt: Date;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type ResultWithAuthor = Partial<Result> & {
@@ -172,8 +193,10 @@ export type ResultWithAuthor = Partial<Result> & {
     description: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type ContributionWithAuthor = Partial<Contribution> & {
@@ -182,8 +205,10 @@ export type ContributionWithAuthor = Partial<Contribution> & {
     updatedAt: Date;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type PublicationWithAuthor = Partial<Publication> & {
@@ -193,8 +218,10 @@ export type PublicationWithAuthor = Partial<Publication> & {
     publicationType: string;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type SurveyWithAuthor = Partial<ResearchSurvey> & {
@@ -209,9 +236,11 @@ export type SurveyWithAuthor = Partial<ResearchSurvey> & {
     updatedAt: Date;
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     totalResponses: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type SupervisorWithAuthor = Partial<Supervisor> & {
@@ -222,8 +251,10 @@ export type SupervisorWithAuthor = Partial<Supervisor> & {
     recommendationCount?: number;
     ratingSum?: number;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };
 
 export type RecommendationWithAuthor = Partial<Recommendation> & {
@@ -239,6 +270,8 @@ export type RecommendationWithAuthor = Partial<Recommendation> & {
     supervisor?: { id: string; name: string | null };
     author: AuthorWithFollowers;
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
     votes: UserVote;
+    bookmarks: UserBookmark;
 };

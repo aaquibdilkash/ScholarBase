@@ -136,17 +136,19 @@ model Article {
   editedAt        DateTime?
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  author   User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments ArticleComment[]
-  votes    ArticleVote[]
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  ArticleComment[]
+  votes     ArticleVote[]
+  bookmarks ArticleBookmark[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -170,6 +172,7 @@ model Supervisor {
 
   // ZERO-COMPUTE FIELDS
   totalVotes          Int            @default(0)
+  totalBookmarks      Int            @default(0)
   totalComments       Int            @default(0)
   // Materialized recommendation aggregates (avg = ratingSum / recommendationCount)
   recommendationCount Int            @default(0)
@@ -183,6 +186,7 @@ model Supervisor {
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   votes           SupervisorVote[]
+  bookmarks       SupervisorBookmark[]
   comments        SupervisorComment[]
   recommendations Recommendation[]
 
@@ -204,19 +208,21 @@ model SocialPost {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   mentions Json?
 
-  comments SocialComment[]
-  votes    SocialVote[]
-  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  SocialComment[]
+  votes     SocialVote[]
+  bookmarks SocialPostBookmark[]
+  author    User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -329,6 +335,214 @@ model SocialVote {
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([socialPostId, userId])
+}
+
+model ArticleBookmark {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model SupervisorBookmark {
+  id           String   @id @default(cuid())
+  supervisorId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  supervisor Supervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([supervisorId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model SocialPostBookmark {
+  id           String   @id @default(cuid())
+  socialPostId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  socialPost SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([socialPostId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model HelpPostBookmark {
+  id         String   @id @default(cuid())
+  helpPostId String
+  userId     String
+  createdAt  DateTime @default(now())
+
+  helpPost HelpPost @relation(fields: [helpPostId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([helpPostId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ContributionBookmark {
+  id             String   @id @default(cuid())
+  contributionId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  contribution Contribution @relation(fields: [contributionId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([contributionId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model PublicationBookmark {
+  id            String   @id @default(cuid())
+  publicationId String
+  userId        String
+  createdAt     DateTime @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ResearchToolBookmark {
+  id             String   @id @default(cuid())
+  researchToolId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  researchTool ResearchTool @relation(fields: [researchToolId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([researchToolId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ResearchGrantBookmark {
+  id              String   @id @default(cuid())
+  researchGrantId String
+  userId          String
+  createdAt       DateTime @default(now())
+
+  researchGrant ResearchGrant @relation(fields: [researchGrantId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([researchGrantId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model CourseBookmark {
+  id        String   @id @default(cuid())
+  courseId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model JournalBookmark {
+  id        String   @id @default(cuid())
+  journalId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  journal Journal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([journalId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ResultBookmark {
+  id        String   @id @default(cuid())
+  resultId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  result Result @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resultId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model SurveyBookmark {
+  id        String   @id @default(cuid())
+  surveyId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  researchSurvey ResearchSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model ResearchEventBookmark {
+  id              String   @id @default(cuid())
+  researchEventId String
+  userId          String
+  createdAt       DateTime @default(now())
+
+  researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([researchEventId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model PhdAdmissionBookmark {
+  id             String   @id @default(cuid())
+  phdAdmissionId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([phdAdmissionId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model JobVacancyBookmark {
+  id           String   @id @default(cuid())
+  jobVacancyId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jobVacancyId, userId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model RecommendationBookmark {
+  id               String   @id @default(cuid())
+  recommendationId String
+  userId           String
+  createdAt        DateTime @default(now())
+
+  recommendation Recommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([recommendationId, userId])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 // ============================================
@@ -462,18 +676,20 @@ model HelpPost {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes    HelpPostVote[]
-  comments HelpPostComment[]
+  votes     HelpPostVote[]
+  bookmarks HelpPostBookmark[]
+  comments  HelpPostComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -556,18 +772,20 @@ model Contribution {
   hasActiveAppeal Boolean            @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes    ContributionVote[]
-  comments ContributionComment[]
+  votes     ContributionVote[]
+  bookmarks ContributionBookmark[]
+  comments  ContributionComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -655,17 +873,19 @@ model Publication {
   editedAt            DateTime?
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  votes    PublicationVote[]
-  comments PublicationComment[]
+  author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes     PublicationVote[]
+  bookmarks PublicationBookmark[]
+  comments  PublicationComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -791,9 +1011,26 @@ model User {
   researchGrantCount       Int @default(0)
   courseCount              Int @default(0)
 
-  articles            Article[]
-  articleComments     ArticleComment[]
-  articleVotes        ArticleVote[]
+  articles                Article[]
+  articleComments         ArticleComment[]
+  articleVotes            ArticleVote[]
+  articleBookmarks        ArticleBookmark[]
+  supervisorBookmarks     SupervisorBookmark[]
+  socialPostBookmarks     SocialPostBookmark[]
+  helpPostBookmarks       HelpPostBookmark[]
+  contributionBookmarks   ContributionBookmark[]
+  publicationBookmarks    PublicationBookmark[]
+  researchToolBookmarks   ResearchToolBookmark[]
+  researchGrantBookmarks  ResearchGrantBookmark[]
+  courseBookmarks         CourseBookmark[]
+  journalBookmarks        JournalBookmark[]
+  resultBookmarks         ResultBookmark[]
+  surveyBookmarks         SurveyBookmark[]
+  researchEventBookmarks  ResearchEventBookmark[]
+  phdAdmissionBookmarks   PhdAdmissionBookmark[]
+  jobVacancyBookmarks     JobVacancyBookmark[]
+  recommendationBookmarks RecommendationBookmark[]
+
   articleCommentVotes ArticleCommentVote[]
 
   following Follows[] @relation("following")
@@ -999,17 +1236,19 @@ model ResearchTool {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  author   User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments ResearchToolComment[]
-  votes    ResearchToolVote[]
+  author    User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  ResearchToolComment[]
+  votes     ResearchToolVote[]
+  bookmarks ResearchToolBookmark[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1085,17 +1324,19 @@ model ResearchGrant {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  author   User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments ResearchGrantComment[]
-  votes    ResearchGrantVote[]
+  author    User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  ResearchGrantComment[]
+  votes     ResearchGrantVote[]
+  bookmarks ResearchGrantBookmark[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1175,17 +1416,19 @@ model Course {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments CourseComment[]
-  votes    CourseVote[]
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  CourseComment[]
+  votes     CourseVote[]
+  bookmarks CourseBookmark[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1272,18 +1515,20 @@ model Journal {
   openAccess  OpenAccessStatus @default(UNKNOWN)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  author   User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments JournalComment[]
-  votes    JournalVote[]
-  about    String?
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  JournalComment[]
+  votes     JournalVote[]
+  bookmarks JournalBookmark[]
+  about     String?
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1362,18 +1607,20 @@ model Result {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes    ResultVote[]
-  comments ResultComment[]
+  votes     ResultVote[]
+  bookmarks ResultBookmark[]
+  comments  ResultComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1452,6 +1699,7 @@ model ResearchSurvey {
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
   totalComments  Int            @default(0)
   totalResponses Int            @default(0)
   trendingScore  Float          @default(0)
@@ -1472,6 +1720,7 @@ model ResearchSurvey {
   questions SurveyQuestion[]
   responses SurveyResponse[]
   votes     SurveyVote[]
+  bookmarks SurveyBookmark[]
   comments  SurveyComment[]
 
   @@index([createdAt(sort: Desc)])
@@ -1694,18 +1943,20 @@ model ResearchEvent {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes    ResearchEventVote[]
-  comments ResearchEventComment[]
+  votes     ResearchEventVote[]
+  bookmarks ResearchEventBookmark[]
+  comments  ResearchEventComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1784,18 +2035,20 @@ model PhdAdmission {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes    PhdAdmissionVote[]
-  comments PhdAdmissionComment[]
+  votes     PhdAdmissionVote[]
+  bookmarks PhdAdmissionBookmark[]
+  comments  PhdAdmissionComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1874,18 +2127,20 @@ model JobVacancy {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes    JobVacancyVote[]
-  comments JobVacancyComment[]
+  votes     JobVacancyVote[]
+  bookmarks JobVacancyBookmark[]
+  comments  JobVacancyComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -2019,17 +2274,19 @@ model Recommendation {
   hasActiveAppeal     Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes    Int            @default(0)
-  totalComments Int            @default(0)
-  trendingScore Float          @default(0)
-  isDeleted     Boolean        @default(false)
-  deletedByType DeletedByType?
-  deletedById   String?
-  reportCount   Int            @default(0)
+  totalVotes     Int            @default(0)
+  totalBookmarks Int            @default(0)
+  totalComments  Int            @default(0)
+  trendingScore  Float          @default(0)
+  isDeleted      Boolean        @default(false)
+  deletedByType  DeletedByType?
+  deletedById    String?
+  reportCount    Int            @default(0)
 
-  supervisor Supervisor              @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
-  author     User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  supervisor Supervisor               @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  author     User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes      RecommendationVote[]
+  bookmarks  RecommendationBookmark[]
   comments   RecommendationComment[]
 
   // NOTE: uniqueness of one ACTIVE recommendation per (author, supervisor) is

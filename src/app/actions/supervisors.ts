@@ -42,10 +42,12 @@ export async function getSupervisors(
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       // Zero-compute materialized aggregates (Rule 2): count + avg derive
       // from these scalars. No recommendation rows are fetched.
       recommendationCount: true,
@@ -78,10 +80,12 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       recommendations: {
         where: { isDeleted: false },
         orderBy: { createdAt: "desc" },
@@ -113,12 +117,14 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
             },
           },
           totalVotes: true,
+          totalBookmarks: true,
           isFrozen: true,
           hasActiveAppeal: true,
           totalComments: true,
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
+          bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
         },
       },
       comments: {
@@ -191,8 +197,10 @@ export async function getSupervisorRecommendations(
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -268,10 +276,7 @@ export async function createSupervisor(formData: FormData) {
             },
           },
         },
-        votes: {
-          where: { userId: user.id },
-          select: { voteType: true },
-        },
+        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
     });
 
@@ -338,10 +343,7 @@ export async function updateSupervisor(
           },
         },
       },
-      votes: {
-        where: { userId: user.id },
-        select: { voteType: true },
-      },
+      votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
     },
   });
 

@@ -138,6 +138,7 @@ export async function getSurveys(
       status: true,
       isDeleted: true,
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
@@ -158,6 +159,7 @@ export async function getSurveys(
         },
       },
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -180,6 +182,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       status: true,
       isDeleted: true,
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
@@ -246,6 +249,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
         orderBy: { createdAt: "desc" },
       },
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 });

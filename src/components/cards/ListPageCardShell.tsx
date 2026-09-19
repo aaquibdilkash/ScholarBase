@@ -34,6 +34,7 @@ export type ListPageCardShellProps = {
 
     // Common footer (vote + comments)
   footerVoteButton?: ReactNode;
+  footerBookmarkButton?: ReactNode;
   footerCommentsHref?: string;
   footerCommentsCount?: number;
   footer?: ReactNode;
@@ -74,7 +75,8 @@ export default function ListPageCardShell({
   currentUserId,
   managementControls,
   children,
-    footerVoteButton,
+  footerVoteButton,
+  footerBookmarkButton,
   footerCommentsHref,
   footerCommentsCount,
   footer,
@@ -204,6 +206,7 @@ export default function ListPageCardShell({
             </div>
 
             <div className="flex items-center gap-2">
+              {footerBookmarkButton}
               <ShareButton href={detailPageHref} label="Share" />
               {footerReportMenu}
             </div>

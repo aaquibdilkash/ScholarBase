@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -123,6 +124,15 @@ export function RecommendationCard({
           module="RECOMMENDATION"
           initialTotalVotes={recommendation.totalVotes ?? 0}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={recommendation.isFrozen === true}
+          targetId={recommendation.id}
+          module="RECOMMENDATION"
+          initialTotalBookmarks={recommendation.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(recommendation.bookmarks) && recommendation.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}

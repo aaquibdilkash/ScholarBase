@@ -6,6 +6,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteCourse } from "@/app/actions/courses";
 import { useToast } from "@/components/ui/Toast";
@@ -85,6 +86,15 @@ export function CourseCard({
           module="COURSE"
           initialTotalVotes={course.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={course.isFrozen === true}
+          targetId={course.id}
+          module="COURSE"
+          initialTotalBookmarks={course.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(course.bookmarks) && course.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/learn/${course.id}`}

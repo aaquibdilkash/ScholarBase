@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/grants";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -96,6 +97,15 @@ export default async function ResearchGrantDetailPage({
           module="RESEARCH_GRANT"
           initialTotalVotes={grant.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={grant.isFrozen === true}
+          targetId={grant.id}
+          module="RESEARCH_GRANT"
+          initialTotalBookmarks={grant.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(grant.bookmarks) && grant.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/grants/${grant.id}#comments`}

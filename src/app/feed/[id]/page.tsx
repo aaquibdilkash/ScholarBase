@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { PostContent } from "@/components/feed/PostContent";
 import { FeedImage } from "@/components/feed/FeedImage";
@@ -95,6 +96,15 @@ export default async function SinglePostPage({
           module="SOCIAL_POST"
           initialTotalVotes={p.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={p.isFrozen === true}
+          targetId={p.id}
+          module="SOCIAL_POST"
+          initialTotalBookmarks={p.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(p.bookmarks) && p.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/feed/${p.id}#comments`}

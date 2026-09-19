@@ -28,6 +28,7 @@ async function getTrending<T extends { id: string; createdAt: Date }>(
 
 const TRENDING_INCLUDE = {
   votes: { select: { userId: true, voteType: true } },
+  bookmarks: { select: { id: true } },
 } as const
 
 export const getTrendingArticles = async () =>

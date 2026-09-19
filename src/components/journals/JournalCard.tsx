@@ -5,6 +5,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteJournal } from "@/app/actions/journals";
@@ -78,6 +79,15 @@ export function JournalCard({
           module="JOURNAL"
           initialTotalVotes={journal.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={journal.isFrozen === true}
+          targetId={journal.id}
+          module="JOURNAL"
+          initialTotalBookmarks={journal.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(journal.bookmarks) && journal.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/journals/${journal.id}`}

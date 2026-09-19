@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -188,6 +189,15 @@ export function SocialPostCard({
           module="SOCIAL_POST"
           initialTotalVotes={post.totalVotes ?? 0}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={post.isFrozen === true}
+          targetId={post.id}
+          module="SOCIAL_POST"
+          initialTotalBookmarks={post.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(post.bookmarks) && post.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/feed/${post.id}`}

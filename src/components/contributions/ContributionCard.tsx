@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import Link from "next/link";
 import { deleteContribution } from "@/app/actions/contributions";
@@ -79,6 +80,15 @@ export function ContributionCard({
           module="CONTRIBUTION"
           initialTotalVotes={contribution.totalVotes ?? 0}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={contribution.isFrozen === true}
+          targetId={contribution.id}
+          module="CONTRIBUTION"
+          initialTotalBookmarks={contribution.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(contribution.bookmarks) && contribution.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/contributions/${contribution.id}`}

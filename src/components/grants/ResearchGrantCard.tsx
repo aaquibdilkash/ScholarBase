@@ -6,6 +6,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchGrant } from "@/app/actions/grants";
 import { useToast } from "@/components/ui/Toast";
@@ -77,6 +78,15 @@ export function ResearchGrantCard({
           module="RESEARCH_GRANT"
           initialTotalVotes={grant.totalVotes ?? 0}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={grant.isFrozen === true}
+          targetId={grant.id}
+          module="RESEARCH_GRANT"
+          initialTotalBookmarks={grant.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(grant.bookmarks) && grant.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/grants/${grant.id}`}

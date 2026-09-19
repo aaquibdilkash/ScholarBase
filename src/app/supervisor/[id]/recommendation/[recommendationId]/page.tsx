@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import {
   deleteRecommendation,
   getRecommendation,
@@ -104,6 +105,15 @@ export default async function RecommendationDetailPage({
           module="RECOMMENDATION"
           initialTotalVotes={recommendation.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={recommendation.isFrozen === true}
+          targetId={recommendation.id}
+          module="RECOMMENDATION"
+          initialTotalBookmarks={recommendation.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(recommendation.bookmarks) && recommendation.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/supervisor/${recommendation.supervisor.id}/recommendation/${recommendation.id}#comments`}

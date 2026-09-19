@@ -23,6 +23,7 @@ type TrendingItemBase = {
     totalComments: number;
     author: User;
     votes: { userId: string; voteType: VoteType }[];
+    bookmarks: { id: string }[];
 };
 
 export type TrendingSupervisor = Supervisor & {
@@ -31,7 +32,9 @@ export type TrendingSupervisor = Supervisor & {
     score: number;
     type: 'supervisor';
     votes: { userId: string; voteType: VoteType }[];
+    bookmarks: { id: string }[];
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
 };
 
@@ -40,7 +43,9 @@ export type SupervisorWithVotesAndRecommendations = Supervisor & {
     author: User;
     recommendations: Recommendation[];
     votes: { userId: string; voteType: VoteType }[];
+    bookmarks: { id: string }[];
     totalVotes: number;
+    totalBookmarks: number;
     totalComments: number;
 };
 

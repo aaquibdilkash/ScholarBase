@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -80,6 +81,15 @@ export function SupervisorCard({
           module="SUPERVISOR"
           initialTotalVotes={supervisor.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={supervisor.isFrozen === true}
+          targetId={supervisor.id}
+          module="SUPERVISOR"
+          initialTotalBookmarks={supervisor.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(supervisor.bookmarks) && supervisor.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}

@@ -27,8 +27,10 @@ type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
       };
     };
     totalVotes: true;
+    totalBookmarks: true;
     totalComments: true;
     votes: { select: { voteType: true } };
+    bookmarks: { select: { id: true } };
   };
 }>;
 

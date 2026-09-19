@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -70,6 +71,15 @@ export function ArticleCard({
           module="ARTICLE"
           initialTotalVotes={article.totalVotes}
           initialUserVote={initialUserVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={article.isFrozen === true}
+          targetId={article.id}
+          module="ARTICLE"
+          initialTotalBookmarks={article.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(article.bookmarks) && article.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/blog/${article.slug}`}

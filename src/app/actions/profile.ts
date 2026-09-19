@@ -98,6 +98,15 @@ function getProfileVotesInclude(currentUserId?: string) {
     : false;
 }
 
+function getProfileBookmarksInclude(currentUserId?: string) {
+  return currentUserId
+    ? {
+      where: { userId: currentUserId },
+      select: { id: true },
+    }
+    : false;
+}
+
 export async function getProfileSections(
   profileId: string,
   currentUserId?: string,
@@ -129,6 +138,7 @@ export async function getProfileSections(
 
   const authorSelect = getProfileAuthorInclude(currentUserId);
   const votesSelect = getProfileVotesInclude(currentUserId);
+  const bookmarksSelect = getProfileBookmarksInclude(currentUserId);
 
   const [
     articles,
@@ -152,49 +162,49 @@ export async function getProfileSections(
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.socialPost.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.jobVacancy.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.phdAdmission.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.researchEvent.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.helpPost.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.journal.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.researchTool.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.recommendation.findMany({
       where: { authorId: profileId, isDeleted: false, isAnonymous: false },
@@ -203,6 +213,7 @@ export async function getProfileSections(
       include: {
         author: authorSelect,
         votes: votesSelect,
+        bookmarks: bookmarksSelect,
         supervisor: { select: { id: true, name: true } },
       },
     }),
@@ -210,43 +221,43 @@ export async function getProfileSections(
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.result.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.contribution.findMany({
       where: { authorId: profileId, isDeleted: false, status: "APPROVED" },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.publication.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.researchSurvey.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.researchGrant.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
     prisma.course.findMany({
       where: { authorId: profileId, isDeleted: false },
       take,
       orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect },
+      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
     }),
   ]);
 
@@ -302,6 +313,7 @@ export async function getProfileSection(
   const include = {
     author: getProfileAuthorInclude(currentUserId),
     votes: getProfileVotesInclude(currentUserId),
+    bookmarks: getProfileBookmarksInclude(currentUserId),
     ...(model === "recommendation"
       ? { supervisor: { select: { id: true, name: true } } }
       : {}),
@@ -320,6 +332,119 @@ export async function getProfileSection(
     orderBy: { createdAt: "desc" },
     include,
   });
+}
+
+function getProfileParentWhere(section: ProfileSection) {
+  const model = PROFILE_SECTION_CONFIG[section].model;
+  return {
+    isDeleted: false,
+    ...(model === "recommendation" ? { isAnonymous: false } : {}),
+    ...(model === "contribution" ? { status: "APPROVED" } : {}),
+  };
+}
+
+function getBookmarkParentInclude(section: ProfileSection, currentUserId?: string) {
+  const model = PROFILE_SECTION_CONFIG[section].model;
+  return {
+    author: getProfileAuthorInclude(currentUserId),
+    votes: getProfileVotesInclude(currentUserId),
+    bookmarks: getProfileBookmarksInclude(currentUserId),
+    ...(model === "recommendation"
+      ? { supervisor: { select: { id: true, name: true } } }
+      : {}),
+  };
+}
+
+type BookmarkDelegate = {
+  count: (args: Record<string, unknown>) => Promise<number>;
+  findMany: (args: Record<string, unknown>) => Promise<Record<string, unknown>[]>;
+};
+
+function getBookmarkDelegate(bookmarkModel: string): BookmarkDelegate {
+  return (prisma as unknown as Record<string, BookmarkDelegate>)[bookmarkModel];
+}
+
+export async function getProfileBookmarkSections(
+  profileId: string,
+  currentUserId?: string,
+  take: number = 1,
+) {
+  const entries = Object.entries(PROFILE_SECTION_CONFIG) as Array<
+    [ProfileSection, (typeof PROFILE_SECTION_CONFIG)[ProfileSection]]
+  >;
+
+  const countEntries = await Promise.all(
+    entries.map(async ([section, config]) => {
+      const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
+      const count = await bookmarkDelegate.count({
+        where: {
+          userId: profileId,
+          [config.bookmarkParent]: getProfileParentWhere(section),
+        },
+      });
+      return [section, count] as const;
+    }),
+  );
+
+  const itemEntries = await Promise.all(
+    entries.map(async ([section, config]) => {
+      const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
+      const rows = await bookmarkDelegate.findMany({
+        where: {
+          userId: profileId,
+          [config.bookmarkParent]: getProfileParentWhere(section),
+        },
+        take,
+        orderBy: { createdAt: "desc" },
+        include: {
+          [config.bookmarkParent]: {
+            include: getBookmarkParentInclude(section, currentUserId),
+          },
+        },
+      });
+      return [
+        section,
+        rows
+          .map((row: Record<string, unknown>) => row[config.bookmarkParent])
+          .filter(Boolean),
+      ] as const;
+    }),
+  );
+
+  return {
+    id: profileId,
+    ...Object.fromEntries(itemEntries),
+    counts: Object.fromEntries(countEntries),
+  } as NonNullable<Awaited<ReturnType<typeof getProfileSections>>>;
+}
+
+export async function getProfileBookmarkSection(
+  profileId: string,
+  section: ProfileSection,
+  currentUserId?: string,
+  skip: number = 0,
+  take: number = 5,
+) {
+  const config = PROFILE_SECTION_CONFIG[section];
+  const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
+  const rows = await bookmarkDelegate.findMany({
+    where: {
+      userId: profileId,
+      [config.bookmarkParent]: getProfileParentWhere(section),
+    },
+    skip,
+    take,
+    orderBy: { createdAt: "desc" },
+    include: {
+      [config.bookmarkParent]: {
+        include: getBookmarkParentInclude(section, currentUserId),
+      },
+    },
+  });
+
+  return rows
+    .map((row: Record<string, unknown>) => row[config.bookmarkParent])
+    .filter(Boolean);
 }
 
 // ─────────────────────────────────────────────────────────────

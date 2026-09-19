@@ -30,6 +30,7 @@ export const getRecommendation = cache(
         updatedAt: true,
         editedAt: true,
         totalVotes: true,
+        totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
         totalComments: true,
@@ -47,6 +48,7 @@ export const getRecommendation = cache(
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
+        bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
         comments: {
           where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: matches @@index([recommendationId, createdAt(sort: Desc)])
@@ -165,10 +167,7 @@ export async function createRecommendation(
             },
           },
           supervisor: { select: { id: true, name: true } },
-          votes: {
-            where: { userId: user.id },
-            select: { voteType: true },
-          },
+          votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
         },
       });
 
@@ -366,6 +365,7 @@ export async function deleteRecommendation(recommendationId: string) {
       authorId: true,
       supervisorId: true,
       totalVotes: true,
+      totalBookmarks: true,
       isAnonymous: true,
       rating: true,
     },

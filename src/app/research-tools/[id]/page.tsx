@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { getResearchToolById } from "../../actions/researchTools";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchTool } from "@/app/actions/researchTools";
@@ -87,6 +88,15 @@ const ResearchToolDetailPage = async ({
           module="RESEARCH_TOOL"
           initialTotalVotes={tool.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={tool.isFrozen === true}
+          targetId={tool.id}
+          module="RESEARCH_TOOL"
+          initialTotalBookmarks={tool.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(tool.bookmarks) && tool.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}#comments`}

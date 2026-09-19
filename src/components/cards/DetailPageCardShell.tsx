@@ -37,6 +37,7 @@ export type DetailPageCardShellProps = {
 
   // Common footer (votes + comments)
   footerVoteButton?: ReactNode;
+  footerBookmarkButton?: ReactNode;
   footerCommentsHref: string;
   footerCommentsCount: number;
 
@@ -75,6 +76,7 @@ export default function DetailPageCardShell({
   managementControls,
   children,
   footerVoteButton,
+  footerBookmarkButton,
   footerCommentsHref,
   footerCommentsCount,
   footerReportMenu,
@@ -220,6 +222,12 @@ export default function DetailPageCardShell({
           </div>
 
           <div className="flex items-center gap-2">
+            {isFrozen && footerBookmarkButton && isValidElement(footerBookmarkButton)
+              ? cloneElement(
+                  footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
+                  { frozen: true },
+                )
+              : footerBookmarkButton}
             <ShareButton label="Share" />
             {/* Report menu is always visible — on frozen posts it also hosts
                 the owner's "Appeal Removal" option. */}

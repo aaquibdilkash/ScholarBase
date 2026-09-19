@@ -3,6 +3,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { createClient } from "@/utils/supabase/server";
 import { getJournalById } from "../../actions/journals";
@@ -92,6 +93,15 @@ const JournalDetailPage = async ({
           module="JOURNAL"
           initialTotalVotes={j.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={j.isFrozen === true}
+          targetId={j.id}
+          module="JOURNAL"
+          initialTotalBookmarks={j.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(j.bookmarks) && j.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/journals/${j.id}#comments`}

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { RichContent } from "@/components/content/RichContent";
 import { getCurrentUser } from "@/lib/auth";
@@ -86,6 +87,15 @@ export default async function ArticlePage({
           module="ARTICLE"
           initialTotalVotes={a.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={a.isFrozen === true}
+          targetId={a.id}
+          module="ARTICLE"
+          initialTotalBookmarks={a.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(a.bookmarks) && a.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/blog/${a.slug}#comments`}

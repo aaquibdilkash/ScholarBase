@@ -751,6 +751,7 @@ export async function moderateContent(
             select: {
               id: true,
               totalVotes: true,
+      totalBookmarks: true,
               authorId: true,
               parentId: true,
             },
@@ -832,6 +833,7 @@ export async function moderateContent(
               isFrozen: true,
               isDeleted: true,
               totalVotes: true,
+      totalBookmarks: true,
               authorId: true,
               parentId: true,
             },

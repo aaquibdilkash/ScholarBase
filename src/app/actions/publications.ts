@@ -75,7 +75,7 @@ export async function createPublication(formData: FormData) {
             followers: { where: { followerId: user.id }, select: { followerId: true } },
           },
         },
-        votes: { where: { userId: user.id }, select: { voteType: true } },
+        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
     });
 
@@ -273,10 +273,12 @@ export async function getPublications(
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -325,12 +327,14 @@ export const getPublicationById = cache(
           },
         },
         totalVotes: true,
+        totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }
           : false,
+        bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
         comments: {
           where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: first page of parents only; replies load on demand.

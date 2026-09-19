@@ -56,10 +56,12 @@ export async function getEvents(
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -90,10 +92,12 @@ export const getEvent = cache(async (id: string, userId?: string) => {
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       comments: {
         where: VISIBLE_PARENT_COMMENT_WHERE,
         // LAZY PAGINATION: first page of parents only; replies load on demand.
@@ -175,10 +179,7 @@ export async function createResearchEvent(formData: FormData) {
             },
           },
         },
-        votes: {
-          where: { userId: user.id },
-          select: { voteType: true },
-        },
+        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
     });
 
@@ -328,10 +329,12 @@ export async function getUpcomingEvents(count: number, userId?: string) {
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }

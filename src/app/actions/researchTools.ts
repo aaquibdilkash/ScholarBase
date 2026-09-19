@@ -46,10 +46,7 @@ export async function createResearchTool(formData: FormData) {
             },
           },
         },
-        votes: {
-          where: { userId: user.id },
-          select: { voteType: true },
-        },
+        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
     });
 
@@ -197,12 +194,14 @@ export async function getResearchTools(
         },
       },
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId
         ? { where: { userId }, select: { userId: true, voteType: true } }
         : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -233,12 +232,14 @@ export const getResearchToolById = cache(
           },
         },
         totalVotes: true,
+        totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }
           : false,
+        bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
         comments: {
           where: VISIBLE_PARENT_COMMENT_WHERE,
           // LAZY PAGINATION: first page of parents only; replies load on demand.

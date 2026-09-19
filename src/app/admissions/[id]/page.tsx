@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deletePhdAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -93,6 +94,15 @@ const AdmissionDetailPage = async ({
           module="PHD_ADMISSION"
           initialTotalVotes={admission.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={admission.isFrozen === true}
+          targetId={admission.id}
+          module="PHD_ADMISSION"
+          initialTotalBookmarks={admission.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(admission.bookmarks) && admission.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/admissions/${admission.id}#comments`}

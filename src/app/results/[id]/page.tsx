@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
 import { deleteResult, getResult } from "@/app/actions/results";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -100,6 +101,15 @@ const ResultDetailPage = async ({
           module="RESULT"
           initialTotalVotes={result.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={result.isFrozen === true}
+          targetId={result.id}
+          module="RESULT"
+          initialTotalBookmarks={result.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(result.bookmarks) && result.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/results/${result.id}#comments`}

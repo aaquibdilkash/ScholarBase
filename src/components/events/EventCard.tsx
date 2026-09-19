@@ -5,6 +5,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -88,6 +89,15 @@ export function EventCard({
           module="RESEARCH_EVENT"
           initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={event.isFrozen === true}
+          targetId={event.id}
+          module="RESEARCH_EVENT"
+          initialTotalBookmarks={event.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(event.bookmarks) && event.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/events/${event.id}`}

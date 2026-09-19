@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
 import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -96,6 +97,15 @@ const VacancyDetailPage = async ({
           module="JOB_VACANCY"
           initialTotalVotes={vacancy.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={vacancy.isFrozen === true}
+          targetId={vacancy.id}
+          module="JOB_VACANCY"
+          initialTotalBookmarks={vacancy.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(vacancy.bookmarks) && vacancy.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/vacancies/${vacancy.id}#comments`}

@@ -10,6 +10,7 @@ import { deleteResearchTool } from "@/app/actions/researchTools";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import type { ResearchToolWithAuthor } from "@/types/cards";
 
 export function ResearchToolCard({
@@ -75,6 +76,15 @@ export function ResearchToolCard({
           module="RESEARCH_TOOL"
           initialTotalVotes={tool.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={tool.isFrozen === true}
+          targetId={tool.id}
+          module="RESEARCH_TOOL"
+          initialTotalBookmarks={tool.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(tool.bookmarks) && tool.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}`}

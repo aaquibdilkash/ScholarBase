@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
 import {
   deleteContribution,
@@ -104,6 +105,15 @@ const ContributionDetailPage = async ({
           module="CONTRIBUTION"
           initialTotalVotes={contribution.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={contribution.isFrozen === true}
+          targetId={contribution.id}
+          module="CONTRIBUTION"
+          initialTotalBookmarks={contribution.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(contribution.bookmarks) && contribution.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/contributions/${contribution.id}#comments`}

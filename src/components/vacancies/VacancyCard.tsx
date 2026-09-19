@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
@@ -80,6 +81,15 @@ export function VacancyCard({
           module="JOB_VACANCY"
           initialTotalVotes={vacancy.totalVotes ?? 0}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={vacancy.isFrozen === true}
+          targetId={vacancy.id}
+          module="JOB_VACANCY"
+          initialTotalBookmarks={vacancy.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(vacancy.bookmarks) && vacancy.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/vacancies/${vacancy.id}`}

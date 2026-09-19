@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
 import { deleteResearchEvent, getEvent } from "@/app/actions/events";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -93,6 +94,15 @@ const EventDetailPage = async ({
           module="RESEARCH_EVENT"
           initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={event.isFrozen === true}
+          targetId={event.id}
+          module="RESEARCH_EVENT"
+          initialTotalBookmarks={event.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(event.bookmarks) && event.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/events/${event.id}#comments`}

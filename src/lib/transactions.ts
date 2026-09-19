@@ -49,6 +49,7 @@ export const ENTITY_CONFIG = {
   SOCIAL_POST: {
     model: 'socialPost' as const,
     voteModel: 'socialVote' as const,
+    bookmarkModel: 'socialPostBookmark' as const,
     commentModel: 'socialComment' as const,
     commentVoteModel: 'socialCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -62,6 +63,7 @@ export const ENTITY_CONFIG = {
   ARTICLE: {
     model: 'article' as const,
     voteModel: 'articleVote' as const,
+    bookmarkModel: 'articleBookmark' as const,
     commentModel: 'articleComment' as const,
     commentVoteModel: 'articleCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -75,6 +77,7 @@ export const ENTITY_CONFIG = {
   HELP_POST: {
     model: 'helpPost' as const,
     voteModel: 'helpPostVote' as const,
+    bookmarkModel: 'helpPostBookmark' as const,
     commentModel: 'helpPostComment' as const,
     commentVoteModel: 'helpPostCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -88,6 +91,7 @@ export const ENTITY_CONFIG = {
   CONTRIBUTION: {
     model: 'contribution' as const,
     voteModel: 'contributionVote' as const,
+    bookmarkModel: 'contributionBookmark' as const,
     commentModel: 'contributionComment' as const,
     commentVoteModel: 'contributionCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -101,6 +105,7 @@ export const ENTITY_CONFIG = {
   PUBLICATION: {
     model: 'publication' as const,
     voteModel: 'publicationVote' as const,
+    bookmarkModel: 'publicationBookmark' as const,
     commentModel: 'publicationComment' as const,
     commentVoteModel: 'publicationCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -114,6 +119,7 @@ export const ENTITY_CONFIG = {
   RESEARCH_TOOL: {
     model: 'researchTool' as const,
     voteModel: 'researchToolVote' as const,
+    bookmarkModel: 'researchToolBookmark' as const,
     commentModel: 'researchToolComment' as const,
     commentVoteModel: 'researchToolCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -127,6 +133,7 @@ export const ENTITY_CONFIG = {
   RESEARCH_GRANT: {
     model: 'researchGrant' as const,
     voteModel: 'researchGrantVote' as const,
+    bookmarkModel: 'researchGrantBookmark' as const,
     commentModel: 'researchGrantComment' as const,
     commentVoteModel: 'researchGrantCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -140,6 +147,7 @@ export const ENTITY_CONFIG = {
   COURSE: {
     model: 'course' as const,
     voteModel: 'courseVote' as const,
+    bookmarkModel: 'courseBookmark' as const,
     commentModel: 'courseComment' as const,
     commentVoteModel: 'courseCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -153,6 +161,7 @@ export const ENTITY_CONFIG = {
   JOURNAL: {
     model: 'journal' as const,
     voteModel: 'journalVote' as const,
+    bookmarkModel: 'journalBookmark' as const,
     commentModel: 'journalComment' as const,
     commentVoteModel: 'journalCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -166,6 +175,7 @@ export const ENTITY_CONFIG = {
   RESULT: {
     model: 'result' as const,
     voteModel: 'resultVote' as const,
+    bookmarkModel: 'resultBookmark' as const,
     commentModel: 'resultComment' as const,
     commentVoteModel: 'resultCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -179,6 +189,7 @@ export const ENTITY_CONFIG = {
   RESEARCH_SURVEY: {
     model: 'researchSurvey' as const,
     voteModel: 'surveyVote' as const,
+    bookmarkModel: 'surveyBookmark' as const,
     commentModel: 'surveyComment' as const,
     commentVoteModel: 'surveyCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -192,6 +203,7 @@ export const ENTITY_CONFIG = {
   RESEARCH_EVENT: {
     model: 'researchEvent' as const,
     voteModel: 'researchEventVote' as const,
+    bookmarkModel: 'researchEventBookmark' as const,
     commentModel: 'researchEventComment' as const,
     commentVoteModel: 'researchEventCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -205,6 +217,7 @@ export const ENTITY_CONFIG = {
   PHD_ADMISSION: {
     model: 'phdAdmission' as const,
     voteModel: 'phdAdmissionVote' as const,
+    bookmarkModel: 'phdAdmissionBookmark' as const,
     commentModel: 'phdAdmissionComment' as const,
     commentVoteModel: 'phdAdmissionCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -218,6 +231,7 @@ export const ENTITY_CONFIG = {
   JOB_VACANCY: {
     model: 'jobVacancy' as const,
     voteModel: 'jobVacancyVote' as const,
+    bookmarkModel: 'jobVacancyBookmark' as const,
     commentModel: 'jobVacancyComment' as const,
     commentVoteModel: 'jobVacancyCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -231,6 +245,7 @@ export const ENTITY_CONFIG = {
   SUPERVISOR: {
     model: 'supervisor' as const,
     voteModel: 'supervisorVote' as const,
+    bookmarkModel: 'supervisorBookmark' as const,
     commentModel: 'supervisorComment' as const,
     commentVoteModel: 'supervisorCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -244,6 +259,7 @@ export const ENTITY_CONFIG = {
   RECOMMENDATION: {
     model: 'recommendation' as const,
     voteModel: 'recommendationVote' as const,
+    bookmarkModel: 'recommendationBookmark' as const,
     commentModel: 'recommendationComment' as const,
     commentVoteModel: 'recommendationCommentVote' as const,
     get parent() { return (prisma as any)[this.model] },
@@ -265,6 +281,7 @@ export function getDelegates(moduleKey: ModuleKey, client: any) {
   return {
     parent: client[config.model] as AnyDelegate,
     vote: client[config.voteModel] as AnyDelegate,
+    bookmark: client[config.bookmarkModel] as AnyDelegate,
     comment: client[config.commentModel] as AnyDelegate,
     commentVote: client[config.commentVoteModel] as AnyDelegate,
     config,
@@ -305,6 +322,11 @@ export type VoteResult = {
     targetId: string
     body: string
   }
+}
+
+export type BookmarkResult = {
+  totalBookmarks: number
+  isBookmarked: boolean
 }
 
 // ============================================
@@ -354,6 +376,65 @@ export async function handleFollowTransaction(followerId: string, followingId: s
       },
     })
     return { wasFollowing: false }
+  }, TRANSACTION_OPTIONS)
+}
+
+// ============================================
+// BOOKMARK TRANSACTION (top-level content)
+// ============================================
+export async function handleBookmarkTransaction(
+  module: string,
+  entityId: string,
+  userId: string,
+): Promise<BookmarkResult> {
+  const moduleKey = module as ModuleKey
+  const config = ENTITY_CONFIG[moduleKey]
+  if (!config) throw new Error(`Invalid module for bookmarking: ${module}`)
+
+  const bookmarkWhere = {
+    [`${config.parentFk}_userId`]: { [config.parentFk]: entityId, userId },
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const { parent, bookmark } = getDelegates(moduleKey, tx)
+
+    const [entity, existingBookmark] = await Promise.all([
+      parent.findUnique({
+        where: { id: entityId },
+        select: { id: true, isFrozen: true },
+      }),
+      bookmark.findUnique({ where: bookmarkWhere, select: { id: true } }),
+    ])
+
+    if (!entity) throw new Error("The content you're trying to bookmark does not exist.")
+    if (entity.isFrozen) throw new Error('This content is frozen by moderators and cannot be bookmarked.')
+
+    if (existingBookmark) {
+      await bookmark.delete({ where: bookmarkWhere })
+      const updatedEntity = await parent.update({
+        where: { id: entityId },
+        data: { totalBookmarks: { decrement: 1 } },
+        select: { totalBookmarks: true },
+      })
+      return {
+        totalBookmarks: updatedEntity.totalBookmarks as number,
+        isBookmarked: false,
+      }
+    }
+
+    await bookmark.create({
+      data: { [config.parentFk]: entityId, userId },
+    })
+    const updatedEntity = await parent.update({
+      where: { id: entityId },
+      data: { totalBookmarks: { increment: 1 } },
+      select: { totalBookmarks: true },
+    })
+
+    return {
+      totalBookmarks: updatedEntity.totalBookmarks as number,
+      isBookmarked: true,
+    }
   }, TRANSACTION_OPTIONS)
 }
 

@@ -29,8 +29,10 @@ type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
       };
     };
     totalVotes: true;
+    totalBookmarks: true;
     totalComments: true;
     votes: { select: { voteType: true } } | false;
+    bookmarks: { select: { id: true } } | false;
   };
 }>;
 

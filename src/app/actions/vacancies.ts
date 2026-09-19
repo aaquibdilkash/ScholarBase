@@ -49,6 +49,7 @@ export async function getVacancies(
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
@@ -70,6 +71,7 @@ export async function getVacancies(
         },
       },
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }
@@ -89,6 +91,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
@@ -135,6 +138,7 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
         orderBy: { createdAt: "desc" },
       },
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 });
@@ -180,6 +184,7 @@ export async function createJobVacancy(formData: FormData) {
         updatedAt: true,
         editedAt: true,
         totalVotes: true,
+      totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
         totalComments: true,
@@ -196,10 +201,7 @@ export async function createJobVacancy(formData: FormData) {
             },
           },
         },
-        votes: {
-          where: { userId: user.id },
-          select: { voteType: true },
-        },
+        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
     });
 
@@ -274,6 +276,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
@@ -345,6 +348,7 @@ export async function getLatestVacancies(count: number, userId?: string) {
       updatedAt: true,
       editedAt: true,
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
@@ -365,6 +369,7 @@ export async function getLatestVacancies(count: number, userId?: string) {
         },
       },
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
   });
 }

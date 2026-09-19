@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getCourseById, deleteCourse } from "@/app/actions/courses";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -104,6 +105,15 @@ export default async function CourseDetailPage({
           module="COURSE"
           initialTotalVotes={course.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={course.isFrozen === true}
+          targetId={course.id}
+          module="COURSE"
+          initialTotalBookmarks={course.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(course.bookmarks) && course.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/learn/${course.id}#comments`}

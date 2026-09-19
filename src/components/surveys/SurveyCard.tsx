@@ -5,6 +5,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
@@ -88,6 +89,15 @@ export function SurveyCard({
           module="RESEARCH_SURVEY"
           initialTotalVotes={survey.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={survey.isFrozen === true}
+          targetId={survey.id}
+          module="RESEARCH_SURVEY"
+          initialTotalBookmarks={survey.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(survey.bookmarks) && survey.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/surveys/${survey.id}`}

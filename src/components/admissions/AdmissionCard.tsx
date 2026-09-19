@@ -4,6 +4,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deletePhdAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
@@ -78,6 +79,15 @@ export function AdmissionCard({
           module="PHD_ADMISSION"
           initialTotalVotes={admission.totalVotes ?? 0}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={admission.isFrozen === true}
+          targetId={admission.id}
+          module="PHD_ADMISSION"
+          initialTotalBookmarks={admission.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(admission.bookmarks) && admission.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/admissions/${admission.id}`}

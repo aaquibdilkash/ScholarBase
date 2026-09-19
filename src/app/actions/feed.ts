@@ -45,6 +45,9 @@ const socialPostInclude = {
   votes: {
     select: { userId: true, voteType: true },
   },
+  bookmarks: {
+    select: { id: true },
+  },
 } as const;
 
 // Helper to cast a Prisma SocialPost result to SocialPostWithAuthor.
@@ -61,6 +64,7 @@ function castPost(post: {
   isFrozen: boolean;
   hasActiveAppeal: boolean;
   totalVotes: number;
+  totalBookmarks: number;
   totalComments: number;
   trendingScore: number;
   isDeleted: boolean;
@@ -75,6 +79,7 @@ function castPost(post: {
     avatarUrl: string | null;
   };
   votes: { userId: string; voteType: VoteType }[] | false;
+  bookmarks: { id: string }[] | false;
 }): SocialPostWithAuthor {
   return {
     ...post,
@@ -137,11 +142,13 @@ const getFeed = async (
       },
       // RULE 6: Use materialized counters
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       // RULE 6: Filtered select for user's vote
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -182,10 +189,12 @@ export const getPost = cache(async (id: string, userId?: string) => {
       },
       // RULE 6: Use materialized counters and filtered selects
       totalVotes: true,
+      totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
+      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       // LAZY PAGINATION: ship only the first page of parent comments.
       // Replies are fetched on demand by CommentThread via fetchReplies().
       comments: {

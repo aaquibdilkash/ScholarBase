@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
 import { RecommendationsSection } from "@/components/supervisor/RecommendationsSection";
 import { OverallRatingSection } from "@/components/supervisor/OverallRatingSection";
@@ -94,6 +95,15 @@ export default async function SupervisorPage({
       authorHandle={supervisor.author?.handle || undefined}
       authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
       createdDate={supervisor.createdAt}
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={supervisor.isFrozen === true}
+          targetId={supervisor.id}
+          module="SUPERVISOR"
+          initialTotalBookmarks={supervisor.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(supervisor.bookmarks) && supervisor.bookmarks.length > 0}
+        />
+      }
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
       footerCommentsCount={supervisor.totalComments}
       footerReportMenu={

@@ -17,6 +17,8 @@ import { stripHtmlTags } from "@/lib/html";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 import {
   getProfileSections,
+  getProfileBookmarkSections,
+  getProfileBookmarkSection,
   getProfileActivity,
   getProfileSection,
 } from "@/app/actions/profile";
@@ -290,17 +292,25 @@ export default function ProfileTabs({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"about" | "content" | "activity">(
+  const [activeTab, setActiveTab] = useState<"about" | "content" | "bookmarks" | "activity">(
     searchParams.get("tab") === "content"
       ? "content"
+      : searchParams.get("tab") === "bookmarks"
+        ? "bookmarks"
       : searchParams.get("tab") === "activity"
         ? "activity"
         : "about",
   );
   const [sections, setSections] = useState<SectionData | null>(null);
+  const [bookmarkSections, setBookmarkSections] = useState<SectionData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
+  const [bookmarkLoadingMore, setBookmarkLoadingMore] = useState<string | null>(null);
   const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [bookmarkSectionHasMore, setBookmarkSectionHasMore] = useState<Record<string, boolean>>(
     {},
   );
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
@@ -353,6 +363,20 @@ export default function ProfileTabs({
     }
   }, [profileId, activity, activityLoading]);
 
+  const loadBookmarks = useCallback(async () => {
+    if (bookmarkSections || bookmarksLoading) return;
+    setBookmarksLoading(true);
+    try {
+      const data = await getProfileBookmarkSections(profileId, currentUserId, 1);
+      setBookmarkSections(data);
+      setBookmarkSectionHasMore({});
+    } catch (err) {
+      console.error("Failed to load profile bookmarks:", err);
+    } finally {
+      setBookmarksLoading(false);
+    }
+  }, [profileId, currentUserId, bookmarkSections, bookmarksLoading]);
+
   const loadMoreActivity = useCallback(async () => {
     if (activityLoadingMoreRef.current || !activityHasMoreRef.current) return;
     activityLoadingMoreRef.current = true;
@@ -381,12 +405,15 @@ export default function ProfileTabs({
     if (tab === "content" && !sections) {
       loadContent();
     }
+    if (tab === "bookmarks" && !bookmarkSections) {
+      loadBookmarks();
+    }
     if (tab === "activity" && !activity) {
       loadActivity();
     }
-  }, [searchParams, sections, activity, loadActivity, loadContent]);
+  }, [searchParams, sections, bookmarkSections, activity, loadActivity, loadBookmarks, loadContent]);
 
-  const setTab = (tab: "about" | "content" | "activity") => {
+  const setTab = (tab: "about" | "content" | "bookmarks" | "activity") => {
     const params = new URLSearchParams(searchParams);
     params.set("tab", tab);
     router.replace(`${pathname}?${params.toString()}`);
@@ -434,6 +461,46 @@ export default function ProfileTabs({
     [sections, profileId, currentUserId, loadingMore],
   );
 
+  const loadMoreBookmark = useCallback(
+    async (sectionKey: SectionKey) => {
+      if (bookmarkLoadingMore) return;
+
+      setBookmarkLoadingMore(sectionKey);
+      try {
+        const currentItems = bookmarkSections?.[sectionKey] ?? [];
+        const totalCount =
+          bookmarkSections?.counts?.[sectionKey] ?? currentItems.length;
+
+        if (currentItems.length >= totalCount) {
+          setBookmarkSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
+          return;
+        }
+
+        const result = await getProfileBookmarkSection(
+          profileId,
+          sectionKey,
+          currentUserId,
+          currentItems.length,
+          1,
+        );
+
+        if (result.length > 0) {
+          setBookmarkSections((prevSections) => ({
+            ...(prevSections as NonNullable<SectionData>),
+            [sectionKey]: [...currentItems, ...result],
+          }));
+        } else {
+          setBookmarkSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
+        }
+      } catch (err) {
+        console.error(`Failed to load more bookmarked ${sectionKey}:`, err);
+      } finally {
+        setBookmarkLoadingMore(null);
+      }
+    },
+    [bookmarkSections, profileId, currentUserId, bookmarkLoadingMore],
+  );
+
   const handleContentTabClick = () => {
     setTab("content");
     if (!sections) {
@@ -448,10 +515,17 @@ export default function ProfileTabs({
     }
   };
 
+  const handleBookmarksTabClick = () => {
+    setTab("bookmarks");
+    if (!bookmarkSections) {
+      loadBookmarks();
+    }
+  };
+
   return (
     <div className="mt-8">
       {/* Tab Buttons */}
-      <div className="mb-8 grid w-full grid-cols-3 gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:w-fit sm:min-w-[24rem] sm:grid-cols-3">
+      <div className="mb-8 grid w-full grid-cols-4 gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:w-fit sm:min-w-[30rem] sm:grid-cols-4">
         <button
           onClick={() => setTab("about")}
           className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
@@ -471,6 +545,16 @@ export default function ProfileTabs({
           }`}
         >
           Content
+        </button>
+        <button
+          onClick={handleBookmarksTabClick}
+          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
+            activeTab === "bookmarks"
+              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+          }`}
+        >
+          BookMarks
         </button>
         <button
           onClick={handleActivityTabClick}
@@ -598,6 +682,63 @@ export default function ProfileTabs({
                     <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
                       <p className="text-sm font-medium text-slate-400">
                         {section.emptyMessage}
+                      </p>
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+        </div>
+      )}
+
+      {activeTab === "bookmarks" && (
+        <div className="space-y-10">
+          {bookmarksLoading && !bookmarkSections && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+            </div>
+          )}
+
+          {bookmarkSections &&
+            SECTIONS.map((section) => {
+              const items = bookmarkSections[section.key] ?? [];
+              const count = bookmarkSections.counts?.[section.key] ?? items.length;
+              const sectionHasMoreItems =
+                bookmarkSectionHasMore[section.key] !== false &&
+                items.length < count;
+
+              return (
+                <section key={section.key}>
+                  <h2 className="mb-4 text-xl font-semibold text-slate-950">
+                    {section.title} ({count})
+                  </h2>
+                  {items.length > 0 ? (
+                    <div className="relative px-1">
+                      <Carousel
+                        onLoadMore={
+                          sectionHasMoreItems
+                            ? () => loadMoreBookmark(section.key)
+                            : undefined
+                        }
+                        hasMore={sectionHasMoreItems}
+                      >
+                        {/* TypeScript cannot correlate the dynamic section.key with the items type */}
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        {section.renderItems(items as any, currentUserId)}
+                      </Carousel>
+                      {bookmarkLoadingMore === section.key && (
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                          <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                            Loading more...
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                      <p className="text-sm font-medium text-slate-400">
+                        No bookmarks yet.
                       </p>
                     </div>
                   )}

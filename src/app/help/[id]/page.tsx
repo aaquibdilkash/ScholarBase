@@ -3,6 +3,7 @@ import { CommentSection } from "@/components/interactions/CommentSection";
 import { getCurrentUser } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteHelpPost } from "@/app/actions/help";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -86,6 +87,15 @@ export default async function HelpPostPage({
           module="HELP_POST"
           initialTotalVotes={post.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={post.isFrozen === true}
+          targetId={post.id}
+          module="HELP_POST"
+          initialTotalBookmarks={post.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(post.bookmarks) && post.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/help/${post.id}#comments`}

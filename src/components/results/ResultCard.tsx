@@ -5,6 +5,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
+import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResult } from "@/app/actions/results";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
@@ -85,6 +86,15 @@ export function ResultCard({
           module="RESULT"
           initialTotalVotes={result.totalVotes}
           initialUserVote={userVote}
+        />
+      }
+      footerBookmarkButton={
+        <BookmarkButton
+          frozen={result.isFrozen === true}
+          targetId={result.id}
+          module="RESULT"
+          initialTotalBookmarks={result.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(result.bookmarks) && result.bookmarks.length > 0}
         />
       }
       footerCommentsHref={`/results/${result.id}`}
