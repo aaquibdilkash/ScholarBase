@@ -59,6 +59,7 @@ export function VoteButton({
   frozen?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
   const [nonOptimisticState, setNonOptimisticState] = useState<VoteState>({
     totalVotes: initialTotalVotes,
     userVote: initialUserVote,
@@ -88,39 +89,42 @@ export function VoteButton({
       return;
     }
 
+    setPendingVote(voteType);
     startTransition(async () => {
-      setOptimisticState(voteType);
-      
-      const result = await voteOnContent(
-        targetId,
-        voteType,
-        module,
-      );
+      try {
+        setOptimisticState(voteType);
+        
+        const result = await voteOnContent(
+          targetId,
+          voteType,
+          module,
+        );
 
-      if (result.success && result.data) {
-        setNonOptimisticState({
-          totalVotes: result.data.totalVotes,
-          userVote: result.data.userVote,
-        });
-        toast({
-          title: "Success",
-          description: result.data.userVote ? "Vote Registered!" : "Vote Removed!",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description:
-            (result && !result.success && result.error) ||
-            "Failed to register vote. Please try again.",
-          variant: "destructive",
-        });
+        if (result.success && result.data) {
+          setNonOptimisticState({
+            totalVotes: result.data.totalVotes,
+            userVote: result.data.userVote,
+          });
+          toast({
+            title: "Success",
+            description: result.data.userVote ? "Vote Registered!" : "Vote Removed!",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description:
+              (result && !result.success && result.error) ||
+              "Failed to register vote. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        setPendingVote(null);
       }
     });
   };
 
   const { totalVotes, userVote } = optimisticState;
-  const isUpvoting = isPending && optimisticState.userVote === 'UPVOTE' && nonOptimisticState.userVote !== 'UPVOTE';
-  const isDownvoting = isPending && optimisticState.userVote === 'DOWNVOTE' && nonOptimisticState.userVote !== 'DOWNVOTE';
 
   return (
     <div className="flex items-center gap-1">
@@ -134,7 +138,7 @@ export function VoteButton({
         }`}
         title="Upvote"
       >
-        {isUpvoting ? (
+        {isPending && pendingVote === "UPVOTE" ? (
           <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowUp
@@ -165,7 +169,7 @@ export function VoteButton({
         }`}
         title="Downvote"
       >
-        {isDownvoting ? (
+        {isPending && pendingVote === "DOWNVOTE" ? (
           <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowDown
