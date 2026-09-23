@@ -31,13 +31,15 @@ export default async function EditSurveyPage({
     ...survey,
     createdAt: survey.createdAt.toISOString(),
     updatedAt: survey.editedAt?.toISOString() ?? survey.updatedAt.toISOString(),
-    questions: survey.questions.map((q) => ({
-      ...q,
-      skipLogic: parseSkipLogic(q.skipLogic),
-      columnLabels: parseColumnLabels(q.columnLabels),
-      createdAt: q.createdAt.toISOString(),
-      updatedAt: q.editedAt?.toISOString() ?? q.updatedAt.toISOString(),
-    })),
+    questions: survey.questions
+      .filter((q) => q.archivedAt == null)
+      .map((q) => ({
+        ...q,
+        skipLogic: parseSkipLogic(q.skipLogic),
+        columnLabels: parseColumnLabels(q.columnLabels),
+        createdAt: q.createdAt.toISOString(),
+        updatedAt: q.editedAt?.toISOString() ?? q.updatedAt.toISOString(),
+      })),
     comments: undefined,
     votes: undefined,
     author: undefined,

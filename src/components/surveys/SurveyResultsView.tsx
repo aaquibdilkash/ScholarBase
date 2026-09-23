@@ -212,7 +212,7 @@ export function SurveyResultsView({
           </p>
         </div>
         <div className="flex w-full max-w-full min-w-0 flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap lg:w-auto lg:max-w-none lg:shrink-0 lg:flex-nowrap">
-          {isOwner && surveyId && (
+          {surveyId && (
             <>
               <button
                 type="button"

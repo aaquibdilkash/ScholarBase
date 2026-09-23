@@ -13,8 +13,11 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * Research export endpoint. Owner-or-admin only; serves either a two-sheet
- * XLSX workbook (Codebook + Raw Data) or a flat CSV for R/Python/Stata/SPSS.
+ * Research export endpoint.
+ * - Owner / admin: full access (identity columns included if survey is non-anonymous).
+ * - Other authenticated users: allowed only when survey.shareData is true; results
+ *   are force-anonymized (all respondent identity columns stripped).
+ * Serves either a two-sheet XLSX workbook (Codebook + Raw Data) or a flat CSV.
  */
 export async function GET(
   request: Request,
@@ -35,6 +38,7 @@ export async function GET(
       title: true,
       privacy: true,
       authorId: true,
+      shareData: true,
       questions: {
         orderBy: { order: "asc" },
         include: {
@@ -48,9 +52,17 @@ export async function GET(
   }
 
   const isAdmin = await isUserAdmin(user.id);
-  if (survey.authorId !== user.id && !isAdmin) {
+  const isOwner = survey.authorId === user.id;
+  const isAuthorized = isOwner || isAdmin;
+
+  // Non-owners can download only when the survey creator enabled data sharing.
+  // Their export is force-anonymized (no respondent handles/names).
+  const shareData = survey.shareData ?? false;
+  if (!isAuthorized && !shareData) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const anonymize = !isAuthorized;
 
   const responses = await prisma.surveyResponse.findMany({
     where: { surveyId: id },
@@ -101,7 +113,7 @@ export async function GET(
     survey.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_") || "survey";
 
   if (format === "csv") {
-    const csv = toCsv(buildRawData(exportSurvey, responses, includeIdentity));
+    const csv = toCsv(buildRawData(exportSurvey, responses, includeIdentity, anonymize));
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
@@ -114,7 +126,7 @@ export async function GET(
   const codebookSheet = XLSX.utils.aoa_to_sheet(buildCodebook(exportSurvey));
   codebookSheet["!cols"] = [{ wch: 16 }, { wch: 60 }, { wch: 18 }, { wch: 10 }, { wch: 50 }, { wch: 60 }];
   const rawDataSheet = XLSX.utils.aoa_to_sheet(
-    buildRawData(exportSurvey, responses, includeIdentity),
+    buildRawData(exportSurvey, responses, includeIdentity, anonymize),
   );
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, codebookSheet, "Codebook");

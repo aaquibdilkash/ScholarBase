@@ -116,6 +116,7 @@ export function buildRawData(
   survey: ExportSurvey,
   responses: ExportResponse[],
   includeIdentity: boolean,
+  anonymize: boolean = false,
 ): string[][] {
   const questions = [...survey.questions].sort((a, b) => a.order - b.order);
 
@@ -167,7 +168,10 @@ export function buildRawData(
 
   const metaHeaders = ["response_id", "submitted_at", "updated_at", "duration_seconds"];
   if (survey.privacy !== "ANONYMOUS") metaHeaders.push("consented_at");
-  if (includeIdentity) metaHeaders.push("is_anonymous", "respondent_handle");
+  // Identity columns are included only when the requester is the owner (or admin)
+  // AND the survey is not anonymous. Forced anonymization strips them regardless.
+  const includeIdentityColumns = includeIdentity && !anonymize;
+  if (includeIdentityColumns) metaHeaders.push("is_anonymous", "respondent_handle");
 
   const header = [...metaHeaders, ...variables.map((v) => v.header)];
   const questionById = new Map(questions.map((q) => [q.id, q]));
@@ -219,7 +223,7 @@ export function buildRawData(
     if (survey.privacy !== "ANONYMOUS") {
       meta.push(response.consentedAt ? response.consentedAt.toISOString() : "");
     }
-    if (includeIdentity) {
+    if (includeIdentity && !anonymize) {
       meta.push(
         response.isAnonymous ? "true" : "false",
         response.isAnonymous ? "" : (response.respondent?.handle ?? ""),
