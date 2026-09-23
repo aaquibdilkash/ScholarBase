@@ -1,36 +1,171 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ScholarBase
 
-## Getting Started
+A high-performance academic networking platform built with Next.js 16, TypeScript, Prisma, and PostgreSQL (Supabase).
 
-First, run the development server:
+## Architecture
+
+ScholarBase is a research-community platform combining social feed functionality with research infrastructure:
+
+- **Social Feed** - Posts, comments, votes, bookmarks, follows
+- **Research Infrastructure** - Journals, supervisors, publications, surveys, PhD admissions, vacancies, events, grants
+- **Communication** - Messaging, notifications, push notifications
+- **Content** - Blog, research tools, learning resources
+
+### Tech Stack
+
+- **Frontend**: Next.js 16.2.9 (App Router), React 19.2.4, TypeScript 5
+- **Backend**: Server Actions, API Routes
+- **Database**: PostgreSQL via Prisma 7.9, Supabase
+- **Caching/Rate Limiting**: Upstash Redis
+- **Queue/Async**: Upstash QStash
+- **Media**: Cloudinary
+- **Email**: Resend
+- **Push Notifications**: Web Push API
+- **Analytics**: Vercel Analytics & Speed Insights
+- **Validation**: Zod
+
+### Performance Architecture
+
+Key performance optimizations implemented:
+
+1. **Materialized Counters**: `totalVotes`, `totalComments`, `totalBookmarks` stored as static integers
+2. **Filtered Selects**: User vote/bookmark state fetched in main query to avoid N+1
+3. **Indexed Queries**: Strategic B-Tree indexes on feed ordering, trending, nested comments
+4. **Cursor Pagination**: Efficient infinite scroll without offset-based pagination
+5. **Optimistic UI**: Instant feedback for votes, follows, bookmarks
+6. **Zero-Compute Reads**: Dashboard stats via `pg_class.reltuples` raw SQL
+
+### Database Connection Strategy
+
+- **Production**: Single connection per serverless instance to protect Supabase pool
+- **Connection pooling**: `pg` pool with 20s idle timeout, 10s connection timeout
+- **SSL**: Configured for production (see `src/lib/db.ts`)
+
+### Background Processing
+
+- **Cron Jobs**: Vercel Serverless Cron with `CRON_SECRET` protection
+  - `update-trending`: Recalculate trending scores
+  - `trim-maintenance`: Clean up old conversations
+  - `cleanup-deadlines`: Remove expired deadlines
+  - `trim-soft-deleted-posts`: Purge old soft-deleted content
+  - `daily-digest` / `weekly-digest`: Email digests
+
+- **Async Notifications**: QStash for fan-out notification delivery
+- **Push Notifications**: Web Push with VAPID keys
+
+### Security Features
+
+- **Authentication**: Supabase Auth + Google OAuth
+- **Authorization**: Server-side checks for ownership, admin, frozen/deleted accounts
+- **Rate Limiting**: Upstash Redis sliding window (with graceful degradation)
+- **Input Validation**: Zod schemas on all server actions and API routes
+- **Soft Deletes**: Content preserved with `isDeleted` flag + tombstone pattern
+- **Cron Protection**: Timing-safe `CRON_SECRET` comparison
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database (Supabase recommended)
+- Environment variables (see `.env.example`)
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your credentials
+
+# Generate Prisma client
+npx prisma generate
+
+# Run database migrations
+npx prisma migrate dev
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Available Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run TypeScript type checking |
+| `npm run test` | Run tests with Vitest |
+| `npm run test:watch` | Run tests in watch mode |
 
-## Learn More
+### Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+See `.env.example` for all required variables.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Vercel (Recommended)
 
-## Deploy on Vercel
+1. Connect repository to Vercel
+2. Add all environment variables in Vercel dashboard
+3. Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Manual
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+npm run start
+```
+
+## Database Management
+
+### Migrations
+
+```bash
+# Create new migration
+npx prisma migrate dev --name <migration_name>
+
+# Apply migrations to production
+npx prisma migrate deploy
+
+# Check migration status
+npx prisma migrate status
+```
+
+For detailed migration recovery procedures, see [Prisma.md](./Prisma.md).
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── admin/            # Admin dashboard
+│   └── ...               # Other page routes
+├── components/           # React components
+├── lib/                  # Server-side libraries
+│   ├── auth.ts          # Authentication utilities
+│   ├── db.ts            # Prisma client setup
+│   ├── transactions.ts  # Vote/comment transaction logic
+│   └── ...
+├── actions/             # Server Actions
+└── types/              # TypeScript types
+```
+
+## Testing
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+```
+
+## License
+
+MIT License - see [LICENSE](./LICENSE) for details.

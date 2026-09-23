@@ -40,7 +40,7 @@ function extractPublicId(url: string): string | null {
   }
 }
 
-async function handler(req: Request) {
+async function handler(_req: Request) {
   try {
     // 1. Fetch up to 100 orphaned assets to process within Cloudinary's batch limit
     const orphanedAssets = await prisma.orphanedAsset.findMany({

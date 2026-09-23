@@ -34,6 +34,14 @@ const eslintConfig = defineConfig([
     rules: {
       "react-hooks/set-state-in-effect": "off",
       "@typescript-eslint/no-explicit-any": "warn",
+      // Allow unused parameters prefixed with underscore (common for wrapped handlers)
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
     },
   },
 ]);

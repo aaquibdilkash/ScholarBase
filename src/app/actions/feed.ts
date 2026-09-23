@@ -311,7 +311,7 @@ export async function createSocialPost(formData: FormData) {
   });
 
   await Promise.all([
-    await notifyFollowersOfActivity({
+    notifyFollowersOfActivity({
       actorId: authUser.id,
       type: "content-published",
       targetType: "post",
@@ -319,7 +319,7 @@ export async function createSocialPost(formData: FormData) {
       title: `${user.name || user.email?.split("@")[0] || "Someone"} posted an update`,
       body: content.slice(0, 120),
     }),
-    await notifyMentionedUsers({
+    notifyMentionedUsers({
       actorId: authUser.id,
       content,
       type: "post-mention",

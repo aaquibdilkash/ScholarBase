@@ -13,6 +13,10 @@ type RateLimitConfig = {
 type RateLimitOutcome =
     | { allowed: true; limited: false; degraded: boolean }
     | { allowed: false; limited: true; degraded: false }
+    // NOTE: degraded=true means Redis is unavailable and rate limiting is bypassed.
+    // This is a deliberate fail-open design to prevent Redis outages from taking
+    // down the application. Monitor degraded mode activations in production.
+    // See: docs/rate-limiting.md for operational guidance.
 
 const limiterCache = new Map<string, Ratelimit | null>()
 const warnedNamespaces = new Set<string>()

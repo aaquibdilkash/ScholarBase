@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -47,12 +50,14 @@
     "@types/sanitize-html": "^2.16.1",
     "@types/web-push": "^3.6.4",
     "@types/xlsx": "^0.0.35",
+    "@vitest/coverage-v8": "^2.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "prisma": "^7.9.0",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.8"
   }
 }
