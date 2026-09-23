@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { createSurvey, updateSurvey } from "@/app/actions/surveys";
@@ -10,6 +10,15 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { QuestionEditor, generateId } from "./QuestionEditor";
 import { SurveyPreview } from "./SurveyPreview";
 import { DEMOGRAPHIC_BLOCKS } from "@/lib/surveys/demographics";
+import {
+  getQuestionPosition,
+  moveQuestion as moveQuestionInStructure,
+  moveQuestionToSection as relocateQuestion,
+  moveSection as moveSectionInStructure,
+  normalizeSurveyStructure,
+  placeQuestion as placeQuestionInStructure,
+} from "@/lib/surveys/structure";
+import { useQuestionDrag } from "./useQuestionDrag";
 import { Editor } from "@/components/ui/Editor";
 import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
@@ -25,6 +34,7 @@ import {
   MAX_SURVEY_CONSENT_TEXT,
   MAX_SURVEY_BLOCKS,
   TEMPLATE_CONSENT_TEXT,
+  NEW_QUESTION_ID_PREFIX,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -122,6 +132,7 @@ export default function SurveyForm({
   });
 
   const { title, description, privacy, shareData, consentRequired, consentText, blocks, questions } = draft;
+  const generalQuestions = questions.filter((q) => (q.blockId ?? null) === null);
 
   const [activeTab, setActiveTab] = useState<"build" | "preview">("build");
   const [selectedDemographic, setSelectedDemographic] = useState<string>("");
@@ -132,8 +143,6 @@ export default function SurveyForm({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { toast } = useToast();
-
-  const normalizeOrders = (qs: Question[]) => qs.map((q, i) => ({ ...q, order: i }));
 
   const withSkipIntegrity = (nextQuestions: Question[]) => {
     const byOrder = new Map(nextQuestions.map((q) => [q.order, q]));
@@ -167,35 +176,78 @@ export default function SurveyForm({
     return updated;
   };
 
-  const moveQuestion = (index: number, dir: "up" | "down") => {
-    const next = [...questions];
-    const target = dir === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= questions.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    updateDraft("questions", withSkipIntegrity(normalizeOrders(next)));
+  /**
+   * Persist a structural change. Every structural mutation returns normalized
+   * questions (dense order, contiguous sections) plus normalized blocks, so the
+   * builder, the preview and the published form always agree on the layout.
+   */
+  const applyStructure = (result: {
+    questions: Question[];
+    blocks: BlockInput[];
+  }) => {
+    updateDraft("blocks", result.blocks);
+    updateDraft("questions", withSkipIntegrity(result.questions));
+  };
+
+  const moveQuestion = (questionId: string, dir: "up" | "down") => {
+    const result = moveQuestionInStructure(questions, blocks, questionId, dir);
+    if (!result.moved) return;
+    applyStructure(result);
     toast("Question moved");
   };
 
-  const moveBlock = (index: number, dir: "up" | "down") => {
-    const next = [...blocks];
-    const target = dir === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= blocks.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    updateDraft("blocks", next.map((b, i) => ({ ...b, order: i })));
+  const moveBlock = (blockId: string, dir: "up" | "down") => {
+    const result = moveSectionInStructure(questions, blocks, blockId, dir);
+    if (!result.moved) return;
+    applyStructure(result);
     toast("Section moved");
   };
 
-  const addQuestion = () => {
+  const changeQuestionSection = (
+    questionId: string,
+    targetBlockId: string | null,
+  ) => {
+    const result = relocateQuestion(questions, blocks, questionId, targetBlockId);
+    if (!result.moved) return;
+    applyStructure(result);
+    toast(targetBlockId ? "Question moved to section" : "Question moved to General");
+  };
+
+  const dropQuestion = (
+    questionId: string,
+    target: { blockId: string | null; index: number },
+  ) => {
+    const result = placeQuestionInStructure(
+      questions,
+      blocks,
+      questionId,
+      target.blockId,
+      target.index,
+    );
+    if (!result.moved) return;
+    applyStructure(result);
+    toast("Question moved");
+  };
+
+  const { beginDrag, draggingId, target: dropTarget, pointer } =
+    useQuestionDrag(dropQuestion);
+
+  const addQuestion = (blockId: string | null = null) => {
     const newQuestion: Question = {
-      id: generateId(),
+      // Builder-local key: the server creates the row and persists this as
+      // `clientKey`, so a retried save updates instead of duplicating.
+      id: `${NEW_QUESTION_ID_PREFIX}${generateId()}`,
       type: "SHORT_TEXT",
       title: `Question ${questions.length + 1}`,
       required: false,
       order: questions.length,
+      blockId,
       options: [],
       typeData: {},
     };
-    updateDraft("questions", [...questions, newQuestion]);
+    applyStructure(
+      normalizeSurveyStructure([...questions, newQuestion], blocks),
+    );
     toast("Question added");
   };
 
@@ -204,7 +256,7 @@ export default function SurveyForm({
     updateDraft("blocks", [
       ...blocks,
       {
-        id: generateId(),
+        id: `${NEW_QUESTION_ID_PREFIX}${generateId()}`,
         title: `Section ${blocks.length + 1}`,
         order: blocks.length,
         randomizeOrder: false,
@@ -221,47 +273,50 @@ export default function SurveyForm({
   };
 
   const removeBlock = (index: number) => {
-    const removed = blocks[index];
-    updateDraft(
-      "blocks",
-      blocks
-        .filter((_, i) => i !== index)
-        .map((b, i) => ({ ...b, order: i })),
-    );
-    updateDraft(
-      "questions",
-      questions.map((q) =>
-        q.blockId === removed.id ? { ...q, blockId: null } : q,
-      ),
-    );
+    const remainingBlocks = blocks
+      .filter((_, i) => i !== index)
+      .map((b, i) => ({ ...b, order: i }));
+    // normalizeSurveyStructure clears any block reference to the removed
+    // section, so those questions fall back to General.
+    applyStructure(normalizeSurveyStructure(questions, remainingBlocks));
     toast("Section removed (questions kept)");
   };
 
-  const insertDemographicBlock = (blockKey: string) => {
+  const insertDemographicBlock = (
+    blockKey: string,
+    blockId: string | null = null,
+  ) => {
     const template = DEMOGRAPHIC_BLOCKS.find((b) => b.key === blockKey);
     if (!template) return;
-    const newQuestions: Question[] = template.questions.map((q, i) => ({
+    const newQuestions: Question[] = template.questions.map((q) => ({
       ...q,
-      id: generateId(),
-      order: questions.length + i,
+      id: `${NEW_QUESTION_ID_PREFIX}${generateId()}`,
+      order: 0,
+      blockId,
       options: q.options.map((o) => ({ ...o })),
     }));
-    updateDraft("questions", [...questions, ...newQuestions]);
+    applyStructure(
+      normalizeSurveyStructure([...questions, ...newQuestions], blocks),
+    );
     toast(
       `${template.questions.length === 1 ? template.questions[0].title : `${template.questions.length} standard demographics`} added`,
     );
   };
 
-  const updateQuestion = (index: number, question: Question) => {
-    const newQuestions = questions.map((q: Question, i: number) =>
-      i === index ? question : q,
+  const updateQuestion = (questionId: string, question: Question) => {
+    updateDraft(
+      "questions",
+      questions.map((q) => (q.id === questionId ? question : q)),
     );
-    updateDraft("questions", newQuestions);
   };
 
-  const removeQuestion = (index: number) => {
-    const newQuestions = questions.filter((_, i: number) => i !== index);
-    updateDraft("questions", newQuestions);
+  const removeQuestion = (questionId: string) => {
+    applyStructure(
+      normalizeSurveyStructure(
+        questions.filter((q) => q.id !== questionId),
+        blocks,
+      ),
+    );
     toast("Question removed");
   };
 
@@ -295,6 +350,109 @@ export default function SurveyForm({
       await submit(() => createSurvey(formData));
     }
   }
+
+  /**
+   * One question row. `data-drop-index` marks it as a drag/drop insertion point;
+   * the index is relative to its own section, matching `placeQuestion`.
+   */
+  const renderQuestionCard = (
+    question: Question,
+    indexInSection: number,
+  ) => {
+    const position = getQuestionPosition(questions, question.id);
+    const globalIndex = questions.findIndex((q) => q.id === question.id);
+    const isDropHere =
+      draggingId !== null &&
+      dropTarget !== null &&
+      dropTarget.blockId === (question.blockId ?? null) &&
+      dropTarget.index === indexInSection;
+
+    return (
+      <Fragment key={question.id}>
+        <div
+          aria-hidden
+          className={`mx-1 h-1 rounded-full transition-colors ${
+            isDropHere ? "bg-blue-500" : "bg-transparent"
+          }`}
+        />
+        <div data-drop-index={indexInSection}>
+          <QuestionEditor
+            question={question}
+            index={globalIndex}
+            allQuestions={questions}
+            blocks={blocks}
+            isFirstInSection={position?.isFirstInSection ?? true}
+            isLastInSection={position?.isLastInSection ?? true}
+            isDragging={draggingId === question.id}
+            onChange={(updated) => updateQuestion(question.id, updated)}
+            onDelete={() => removeQuestion(question.id)}
+            onMoveUp={() => moveQuestion(question.id, "up")}
+            onMoveDown={() => moveQuestion(question.id, "down")}
+            onMoveToSection={(blockId) =>
+              changeQuestionSection(question.id, blockId)
+            }
+            onDragHandlePointerDown={(event) => beginDrag(event, question.id)}
+          />
+        </div>
+      </Fragment>
+    );
+  };
+
+  /**
+   * A section: header, its questions, and an add button. The container carries
+   * `data-drop-bucket` so a drag can resolve which section it is hovering.
+   */
+  const renderSectionCard = (block: BlockInput | null) => {
+    const blockId = block?.id ?? null;
+    const sectionQuestions = questions.filter(
+      (q) => (q.blockId ?? null) === blockId,
+    );
+    const isDropBucket =
+      draggingId !== null &&
+      dropTarget !== null &&
+      dropTarget.blockId === blockId;
+
+    return (
+      <section
+        key={blockId ?? "general"}
+        data-drop-bucket={blockId ?? "general"}
+        className={`rounded-xl border p-3 shadow-sm transition-colors sm:p-5 ${
+          isDropBucket
+            ? "border-blue-400 bg-blue-50/40 dark:border-blue-500 dark:bg-blue-950/20"
+            : "border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/30"
+        }`}
+      >
+        <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
+          <h3 className="break-words text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+            {block ? block.title : "General questions"}
+          </h3>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {sectionQuestions.length === 1
+              ? "1 question"
+              : `${sectionQuestions.length} questions`}
+          </span>
+        </header>
+
+        {sectionQuestions.length === 0 ? (
+          <p className="py-3 text-center text-xs text-slate-400">
+            No questions in this section yet.
+          </p>
+        ) : (
+          <div>{sectionQuestions.map((q, i) => renderQuestionCard(q, i))}</div>
+        )}
+
+        <div className="mt-3 flex justify-center border-t border-slate-200 pt-3 dark:border-slate-700">
+          <button
+            type="button"
+            onClick={() => addQuestion(blockId)}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
+          >
+            + Add question here
+          </button>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <>
@@ -540,7 +698,7 @@ export default function SurveyForm({
                     <div className="ml-auto flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => moveBlock(i, "up")}
+                    onClick={() => block.id && moveBlock(block.id, "up")}
                     disabled={i === 0}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Move section up"
@@ -549,7 +707,7 @@ export default function SurveyForm({
                   </button>
                   <button
                     type="button"
-                    onClick={() => moveBlock(i, "down")}
+                    onClick={() => block.id && moveBlock(block.id, "down")}
                     disabled={i === blocks.length - 1}
                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                     aria-label="Move section down"
@@ -579,7 +737,7 @@ export default function SurveyForm({
             <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
             <button
               type="button"
-              onClick={addQuestion}
+              onClick={() => addQuestion()}
               className="sb-button-accent w-full text-sm sm:w-auto"
             >
               + Add Question
@@ -613,38 +771,14 @@ export default function SurveyForm({
               Insert
             </button>
           </div>
-          {questions.length === 0 && (
-            <p className="py-8 text-center text-sm text-slate-500">
-              No questions yet. Click &ldquo;Add Question&rdquo; to start
-              building your survey.
-            </p>
-          )}
-        <div className="space-y-4">
-            {questions.map((q: Question, i: number) => (
-              <QuestionEditor
-                key={q.id}
-                question={q}
-                index={i}
-                allQuestions={questions}
-                blocks={blocks}
-                onChange={(updated) => updateQuestion(i, updated)}
-                onDelete={() => removeQuestion(i)}
-                onMoveUp={() => moveQuestion(i, "up")}
-                onMoveDown={() => moveQuestion(i, "down")}
-              />
-            ))}
+          {/* Questions, grouped into visible sections so boundaries are
+              explicit. Each card is a drop bucket for cross-section drags. */}
+          <div className="space-y-4">
+            {generalQuestions.length > 0 || blocks.length === 0
+              ? renderSectionCard(null)
+              : null}
+            {blocks.map((block) => renderSectionCard(block))}
           </div>
-          {questions.length > 0 && (
-            <div className="flex justify-center pt-4 border-t border-slate-100 mt-4">
-              <button
-                type="button"
-                onClick={addQuestion}
-                className="sb-button-accent w-full text-sm sm:w-auto"
-              >
-                + Add Question
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -685,6 +819,17 @@ export default function SurveyForm({
       message="Are you sure you want to delete this section? This action cannot be undone."
       isConfirming={isDeleting}
     />
+
+    {/* Drag ghost. `pointer-events-none` is essential: it keeps the ghost out
+        of elementFromPoint() hit-testing so the drop markers underneath win. */}
+    {pointer && (
+      <div
+        className="pointer-events-none fixed z-50 rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+        style={{ left: pointer.x + 12, top: pointer.y + 12 }}
+      >
+        Moving question…
+      </div>
+    )}
     </>
   );
 }

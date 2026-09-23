@@ -614,7 +614,7 @@ export default function ConversationPage({
         <div className="relative" data-block-menu>
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-300"
           >
             <MoreVertical className="h-5 w-5" />
           </button>

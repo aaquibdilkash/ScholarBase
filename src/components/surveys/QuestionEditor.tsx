@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { X, ChevronDown, ChevronUp, Trash2, GripVertical } from "lucide-react";
 import type { QuestionOption, Question, SkipRule, BlockInput } from "@/types/survey";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
@@ -58,19 +58,34 @@ export function QuestionEditor({
   index,
   allQuestions = [],
   blocks = [],
+  isFirstInSection = false,
+  isLastInSection = false,
+  isDragging = false,
   onChange,
   onDelete,
   onMoveUp,
   onMoveDown,
+  onMoveToSection,
+  onDragHandlePointerDown,
 }: {
   question: Question;
   index: number;
   allQuestions?: Question[];
   blocks?: BlockInput[];
+  /**
+   * Section-boundary flags come from the structure module. An arrow at a
+   * section edge crosses into the neighbouring section instead of stopping.
+   */
+  isFirstInSection?: boolean;
+  isLastInSection?: boolean;
+  isDragging?: boolean;
   onChange: (q: Question) => void;
   onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  /** Reassign to another section (null = General). Relocates the question. */
+  onMoveToSection: (blockId: string | null) => void;
+  onDragHandlePointerDown: (event: React.PointerEvent<HTMLElement>) => void;
 }) {
   const needsOptions = [...CHOICE_TYPES, "MATRIX_LIKERT"].includes(
     question.type,
@@ -124,9 +139,22 @@ export function QuestionEditor({
 
   return (
     <>
-    <div className="rounded-none border-0 border-t border-slate-200 bg-transparent pt-5 first:border-t-0 first:pt-0 dark:border-slate-700 dark:bg-transparent sm:rounded-xl sm:border sm:bg-white sm:p-5 sm:first:pt-5 sm:shadow-sm sm:dark:bg-slate-800">
+    <div
+      className={`rounded-none border-0 border-t border-slate-200 bg-transparent pt-5 first:border-t-0 first:pt-0 dark:border-slate-700 dark:bg-transparent sm:rounded-xl sm:border sm:bg-white sm:p-5 sm:first:pt-5 sm:shadow-sm sm:dark:bg-slate-800 ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onPointerDown={onDragHandlePointerDown}
+            className="touch-none cursor-grab rounded p-0.5 text-slate-400 hover:text-slate-700 active:cursor-grabbing"
+            title="Drag to move this question"
+            aria-label="Drag to move this question"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -143,9 +171,7 @@ export function QuestionEditor({
           {blocks.length > 0 && (
             <select
               value={question.blockId ?? ""}
-              onChange={(e) =>
-                onChange({ ...question, blockId: e.target.value || null })
-              }
+              onChange={(e) => onMoveToSection(e.target.value || null)}
               className="sb-select min-w-0 w-full text-xs sm:max-w-40 !pr-10"
               aria-label="Assign question to a section"
             >
@@ -161,8 +187,12 @@ export function QuestionEditor({
             <button
               type="button"
               onClick={onMoveUp}
-              disabled={index === 0}
-              title="Move question up"
+              disabled={isFirstInSection}
+              title={
+                isFirstInSection
+                  ? "Move into the previous section"
+                  : "Move question up"
+              }
               aria-label="Move question up"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -171,8 +201,12 @@ export function QuestionEditor({
             <button
               type="button"
               onClick={onMoveDown}
-              disabled={index === allQuestions.length - 1}
-              title="Move question down"
+              disabled={isLastInSection}
+              title={
+                isLastInSection
+                  ? "Move into the next section"
+                  : "Move question down"
+              }
               aria-label="Move question down"
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >

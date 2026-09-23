@@ -455,7 +455,7 @@ export default function MessagesClientLayout({
 
   useEffect(() => {
     if (window.innerWidth < 1024) {
-      setIsSidebarOpen(false);
+      setIsSidebarOpen(true);
     }
   }, []);
 
@@ -496,7 +496,7 @@ export default function MessagesClientLayout({
   return (
     <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen }}>
        <div className="sb-messages-page relative flex h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden lg:h-full lg:min-h-0 lg:flex-1">
-         {isSidebarOpen && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm lg:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
+         {isSidebarOpen && <div className="fixed inset-0 z-30 bg-slate-950/25 backdrop-blur-[1px] lg:hidden" onClick={() => setIsSidebarOpen(false)} aria-hidden="true" />}
           <div className={`fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-50 h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] shrink-0 lg:static lg:h-auto lg:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${isSidebarOpen ? "w-80 max-w-[calc(var(--sb-min-viewport-width)-1.5rem)] translate-x-0" : "w-16 -translate-x-full lg:translate-x-0"}`}>
           <Suspense fallback={
             <div className="flex items-center justify-center gap-2 p-4 text-sm text-slate-500 dark:text-slate-400">

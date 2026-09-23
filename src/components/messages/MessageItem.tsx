@@ -21,6 +21,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 import type { SentMessage } from "./MessageInputForm";
+import { useMessagesLayout } from "@/app/messages/messages-context";
 
 interface MessageItemProps {
   message: SentMessage;
@@ -47,6 +48,7 @@ export const MessageItem = React.memo(
     const isRead = new Date(message.createdAt) <= otherParticipantLastReadAt;
     const isDeleted = Boolean(message.isDeleted);
     const timeLabel = useTimeAgo(message.createdAt);
+    const { isSidebarOpen } = useMessagesLayout();
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -285,7 +287,7 @@ export const MessageItem = React.memo(
           {/* ⚡ ISSUE 6: Message action bar (kebab) on owned, delivered messages.
               DB-loaded messages have no `status` field — only optimistic
               realtime ones are marked "sent" — so treat undefined as sent. */}
-          {(!isMine || message.status === "sent" || !message.status) &&
+          {!isSidebarOpen && (!isMine || message.status === "sent" || !message.status) &&
             !isEditing && (
             <div
               ref={actionBarRef}

@@ -9,7 +9,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import { Clock } from "lucide-react";
-import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -121,18 +121,17 @@ const AdmissionDetailPage = async ({
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
-          <SafeExternalLink
+          <SmartExternalLink
             url={admission.notificationLink}
             className="flex-1 sb-button-soft"
-          >
-            View Circular
-          </SafeExternalLink>
-          <SafeExternalLink
+            urlLabel="View Circular"
+          />
+          <SmartExternalLink
             url={admission.applyLink}
             className="flex-1 sb-button-primary"
-          >
-            Go to Portal
-          </SafeExternalLink>
+            urlLabel="Go to Portal"
+            emailLabel="Email to Apply"
+          />
         </div>
       }
       discussion={

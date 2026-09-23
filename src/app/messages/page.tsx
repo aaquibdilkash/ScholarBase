@@ -1,6 +1,6 @@
 "use client";
 import { useContext } from "react";
-import { Plus } from "lucide-react";
+import { ChevronsRight } from "lucide-react";
 import { MessagesLayoutContext } from "./messages-context";
 
 export default function MessagesPage() {
@@ -8,18 +8,18 @@ export default function MessagesPage() {
   if (!context) {
     throw new Error("MessagesPage must be used within a MessagesLayout");
   }
-  const { setIsSidebarOpen } = context; // Renamed
+  const { setIsSidebarOpen, isSidebarOpen } = context;
 
   return (
     <div className="h-full flex flex-col items-center justify-center">
       <div className="lg:hidden mb-4">
         <button
           type="button"
-          onClick={() => setIsSidebarOpen(true)} // Renamed
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-300"
-          aria-label="Open conversations"
+          aria-label="Toggle conversations"
         >
-          <Plus className="h-6 w-6" />
+          <ChevronsRight className="h-6 w-6" />
         </button>
       </div>
       <div className="text-center">

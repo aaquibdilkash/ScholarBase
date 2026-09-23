@@ -129,7 +129,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
       <div className="overflow-x-hidden">
         <div
           ref={containerRef}
-          className="flex items-start overflow-x-auto snap-x snap-mandatory transition-[height] duration-200 ease-out [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex items-start overflow-x-auto overflow-y-hidden snap-x snap-mandatory transition-[height] duration-200 ease-out [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           style={activeHeight ? { height: activeHeight } : undefined}
         >
           {Children.map(children, (child, i) => (

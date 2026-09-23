@@ -10,7 +10,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { Calendar, Clock, MapPin } from "lucide-react";
-import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -121,18 +121,17 @@ const EventDetailPage = async ({
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
-          <SafeExternalLink
+          <SmartExternalLink
             url={event.notificationLink}
             className="flex-1 sb-button-soft"
-          >
-            View Brochure
-          </SafeExternalLink>
-          <SafeExternalLink
+            urlLabel="View Brochure"
+          />
+          <SmartExternalLink
             url={event.applyLink}
             className="flex-1 sb-button-primary"
-          >
-            Register Now
-          </SafeExternalLink>
+            urlLabel="Register Now"
+            emailLabel="Email to Register"
+          />
         </div>
       }
       discussion={

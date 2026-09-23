@@ -85,6 +85,15 @@ export const MAX_SURVEY_ANSWER_SHORT = 256;
 export const MAX_SURVEY_ANSWER_LONG = 1024;
 export const MAX_SURVEY_CONSENT_TEXT = 1024;
 export const MAX_SURVEY_BLOCKS = 10;
+
+/**
+ * Prefix for builder-local ids on entities that do not exist in the database
+ * yet. The server uses it to tell "create this" apart from "the id you sent no
+ * longer exists" (a stale/concurrent edit), and persists the key as
+ * `clientKey` so a retried submit updates instead of duplicating.
+ */
+export const NEW_QUESTION_ID_PREFIX = "new_";
+
 export const MAX_MATRIX_ROWS = 10;
 export const MAX_MATRIX_COLUMNS = 10;
 

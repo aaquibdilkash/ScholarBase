@@ -14,7 +14,7 @@ import {
 } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE, NEW_QUESTION_ID_PREFIX } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import type { SurveyBlockInput } from "@/types/survey";
@@ -448,6 +448,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         skipLogic: true,
         columnLabels: true,
         blockId: true,
+        clientKey: true,
         options: { where: { archivedAt: null } },
         totalAnswers: true,
       },
@@ -455,30 +456,60 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     const existingById = new Map(
       existingQuestions.map((question) => [question.id, question]),
     );
+    // Builder-local ("new_") ids are persisted as clientKey so a replayed submit
+    // resolves to the row it already created instead of duplicating it.
+    const existingByClientKey = new Map(
+      existingQuestions
+        .filter((question) => question.clientKey)
+        .map((question) => [question.clientKey as string, question]),
+    );
 
     // Block diff: update existing, create new, hard-delete removed (blocks
     // carry no response data; questions detach via onDelete: SetNull).
     const existingBlocks = await tx.surveyBlock.findMany({
       where: { surveyId },
-      select: { id: true, title: true, order: true, randomizeOrder: true },
+      select: {
+        id: true,
+        title: true,
+        order: true,
+        randomizeOrder: true,
+        clientKey: true,
+      },
     });
     const existingBlockIds = new Set(existingBlocks.map((b) => b.id));
+    const existingBlockById = new Map(existingBlocks.map((b) => [b.id, b]));
+    const existingBlockByClientKey = new Map(
+      existingBlocks
+        .filter((b) => b.clientKey)
+        .map((b) => [b.clientKey as string, b]),
+    );
+    // Only persisted ids count as "still present"; builder-local ids are new.
     const submittedBlockIds = new Set(
-      blocks.flatMap((b) => (b.id ? [b.id] : [])),
+      blocks.flatMap((b) =>
+        b.id && !b.id.startsWith(NEW_QUESTION_ID_PREFIX) ? [b.id] : [],
+      ),
     );
 
     const blockIdMap = new Map<string, string>();
     for (const block of blocks) {
-      if (block.id && existingBlockIds.has(block.id)) {
+      const isNewBlock =
+        !!block.id && block.id.startsWith(NEW_QUESTION_ID_PREFIX);
+      const existing = block.id
+        ? isNewBlock
+          ? existingBlockByClientKey.get(block.id)
+          : existingBlockById.get(block.id)
+        : undefined;
+
+      if (existing) {
         await tx.surveyBlock.update({
-          where: { id: block.id },
+          where: { id: existing.id },
           data: {
             title: block.title,
             order: block.order,
             randomizeOrder: block.randomizeOrder,
           },
         });
-        blockIdMap.set(block.id, block.id);
+        if (block.id) blockIdMap.set(block.id, existing.id);
       } else {
         const created = await tx.surveyBlock.create({
           data: {
@@ -486,6 +517,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
             title: block.title,
             order: block.order,
             randomizeOrder: block.randomizeOrder,
+            ...(isNewBlock && block.id ? { clientKey: block.id } : {}),
           },
         });
         if (block.id) blockIdMap.set(block.id, created.id);
@@ -501,9 +533,19 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     }
 
     for (const question of questions) {
-      const existing = question.id ? existingById.get(question.id) : undefined;
+      // A "new_" id is a builder-local key for a question that does not exist in
+      // the database yet, so it is resolved by clientKey (which also makes a
+      // replayed submit idempotent). Any other id must resolve to a persisted
+      // question, so a concurrent edit that removed one is still surfaced.
+      const isNewQuestion =
+        !!question.id && question.id.startsWith(NEW_QUESTION_ID_PREFIX);
+      const existing = question.id
+        ? isNewQuestion
+          ? existingByClientKey.get(question.id)
+          : existingById.get(question.id)
+        : undefined;
 
-      if (question.id && !existing) {
+      if (question.id && !existing && !isNewQuestion) {
         throw new Error(
           "One of the survey questions is no longer available to edit.",
         );
@@ -522,6 +564,9 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         await tx.surveyQuestion.create({
           data: {
             surveyId,
+            ...(isNewQuestion && question.id
+              ? { clientKey: question.id }
+              : {}),
             type: question.type as SurveyQuestionType,
             title: question.title,
             required: question.required,
@@ -563,11 +608,17 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
       const existingOptionsById = new Map(
         existing.options.map((option) => [option.id, option]),
       );
+      // Options added during this builder session carry no id, so match them by
+      // their stable `value`. Without this, re-saving a question that was just
+      // created (matched by clientKey) would recreate its options every time.
+      const existingOptionsByValue = new Map(
+        existing.options.map((option) => [option.value, option]),
+      );
 
       for (const option of question.options ?? []) {
         const existingOption = option.id
           ? existingOptionsById.get(option.id)
-          : undefined;
+          : existingOptionsByValue.get(option.value);
         if (option.id && !existingOption) {
           throw new Error(
             `An option in \"${existing.title}\" is no longer available to edit.`,

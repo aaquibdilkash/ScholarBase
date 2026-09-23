@@ -1883,6 +1883,12 @@ model SurveyBlock {
   survey    ResearchSurvey   @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   questions SurveyQuestion[]
 
+  // IDEMPOTENCY: client-generated key for a section created in the builder that
+  // has not been persisted yet. A retried submit updates the same row instead of
+  // creating a duplicate section. NULL for all pre-existing rows.
+  clientKey String?
+
+  @@unique([surveyId, clientKey])
   @@index([surveyId, order(sort: Asc)])
 }
 
@@ -1925,6 +1931,13 @@ model SurveyQuestion {
   // ZERO-COMPUTE FIELDS
   totalAnswers Int @default(0)
 
+  // IDEMPOTENCY: client-generated key for a question created in the builder
+  // (ids are prefixed NEW_QUESTION_ID_PREFIX) that has not been persisted yet.
+  // A retried submit updates the same row instead of creating a duplicate.
+  // NULL for all pre-existing rows, which Postgres permits in a unique index.
+  clientKey String?
+
+  @@unique([surveyId, clientKey])
   @@index([surveyId, order(sort: Asc)])
 }
 

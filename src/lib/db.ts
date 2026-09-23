@@ -1,16 +1,13 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
+import type { ConnectionOptions } from "node:tls";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
   pgPool?: Pool;
 };
 
-/**
- * Resolves the Supabase Root CA certificate.
- * Decodes the base64-encoded certificate string configured in Vercel.
- */
 function getDatabaseCACert(): string | undefined {
   if (process.env.SUPABASE_CA_CERT_BASE64) {
     try {
@@ -18,8 +15,8 @@ function getDatabaseCACert(): string | undefined {
         process.env.SUPABASE_CA_CERT_BASE64.trim(),
         "base64"
       ).toString("utf-8");
-    } catch (err) {
-      console.error("[Database SSL] Failed to decode SUPABASE_CA_CERT_BASE64:", err);
+    } catch {
+      console.error("[Database SSL] Failed to decode SUPABASE_CA_CERT_BASE64");
     }
   }
 
@@ -33,25 +30,28 @@ function getDatabaseCACert(): string | undefined {
 const getPool = () => {
   if (!globalForPrisma.pgPool) {
     const caCert = getDatabaseCACert();
+    const isLocalDb =
+      process.env.DATABASE_URL?.includes("localhost") ||
+      process.env.DATABASE_URL?.includes("127.0.0.1");
 
     // SSL Configuration:
-    // - Localhost (NODE_ENV !== "production"): undefined (keeps local dev working smoothly)
-    // - Vercel Preview / Prod with CA: rejectUnauthorized = true (strict TLS certificate verification)
-    // - Fallback: rejectUnauthorized = false if the env variable is somehow omitted
-    const sslConfig =
-      process.env.NODE_ENV === "production"
-        ? caCert
-          ? { rejectUnauthorized: true, ca: caCert }
-          : { rejectUnauthorized: false }
-        : undefined;
+    // 1. Local Postgres instance (Docker/local server): no SSL (undefined)
+    // 2. Production with CA Cert: strict verification ({ rejectUnauthorized: true, ca })
+    // 3. Remote connection without local CA (localhost to Supabase): SSL enabled with fallback ({ rejectUnauthorized: false })
+    let sslConfig: boolean | ConnectionOptions | undefined = undefined;
+
+    if (!isLocalDb) {
+      if (caCert) {
+        sslConfig = { rejectUnauthorized: true, ca: caCert };
+      } else {
+        sslConfig = { rejectUnauthorized: false };
+      }
+    }
 
     globalForPrisma.pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      // Cap at 1 connection per serverless execution context
-      max: process.env.NODE_ENV === "production" ? 1 : 1,
-      // Discard stale idle sockets before Supavisor drops them
+      max: process.env.NODE_ENV === "production" ? 1 : 2,
       idleTimeoutMillis: 20000,
-      // Fail fast within 10s if the database or pooler is unreachable
       connectionTimeoutMillis: 10000,
       ssl: sslConfig,
     });
