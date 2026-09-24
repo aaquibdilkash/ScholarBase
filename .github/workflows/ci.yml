@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   verify:
+    name: Verify & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -41,3 +42,21 @@ jobs:
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci_build
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci_build
           RESEND_API_KEY: re_mock_api_key_for_ci_build
+
+  deploy:
+    name: Deploy to Vercel
+    needs: verify
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
