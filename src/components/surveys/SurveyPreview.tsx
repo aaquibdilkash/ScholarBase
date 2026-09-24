@@ -1,19 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
-  ShieldCheck,
-} from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { computeSkippedQuestionIds } from "@/lib/surveys/logic";
-import { SurveyQuestionInput } from "./SurveyQuestionInput";
+import { buildSurveyPages } from "@/lib/surveys/pages";
+import { SurveyQuestionCard } from "./SurveyQuestionCard";
+import { SurveySectionHeader } from "./SurveySectionHeader";
+import { SurveyConsentGate } from "./SurveyConsentGate";
+import { SurveyPager } from "./SurveyPager";
 import { useToast } from "@/components/ui/Toast";
-import type { Question } from "@/types/survey";
-
-// Google Forms-style: show this many questions per page, under Back/Next.
-const QUESTIONS_PER_PAGE = 3;
+import type { BlockInput, Question } from "@/types/survey";
 
 /** Recover a stored answer (plain string or JSON array/object) for skip logic. */
 function parseAnswer(raw: string | undefined): unknown {
@@ -37,12 +33,14 @@ export function SurveyPreview({
   title,
   description,
   questions,
+  blocks = [],
   consentRequired,
   consentText,
 }: {
   title: string;
   description?: string | null;
   questions: Question[];
+  blocks?: BlockInput[];
   consentRequired: boolean;
   consentText?: string | null;
 }) {
@@ -86,11 +84,27 @@ export function SurveyPreview({
     [questions, skippedQuestionIds],
   );
 
-  // Pagination over visible questions.
-  const contentPages: Question[][] = [];
-  for (let i = 0; i < visibleQuestions.length; i += QUESTIONS_PER_PAGE) {
-    contentPages.push(visibleQuestions.slice(i, i + QUESTIONS_PER_PAGE));
-  }
+  // Builder blocks may be partially created (id is optional mid-edit), so
+  // narrow to the persisted shape the shared page builder expects.
+  const paginableBlocks = useMemo(
+    () =>
+      blocks
+        .filter(
+          (block): block is BlockInput & { id: string; title: string; order: number } =>
+            typeof block.id === "string" &&
+            typeof block.title === "string" &&
+            typeof block.order === "number",
+        ),
+    [blocks],
+  );
+
+  // Pagination mirrors the live response form exactly: visible-only questions
+  // are grouped by buildSurveyPages, so sections get their own page each and
+  // section-free questions fill 3-per-page General runs.
+  const contentPages = useMemo(
+    () => buildSurveyPages(visibleQuestions, paginableBlocks),
+    [visibleQuestions, paginableBlocks],
+  );
   const hasConsentPage = consentRequired;
   const pageCount = contentPages.length + (hasConsentPage ? 1 : 0);
   const isConsentPage = hasConsentPage && page === 0;
@@ -118,7 +132,7 @@ export function SurveyPreview({
       setPage(1);
       return;
     }
-    const currentQ = contentPages[contentPageIndex];
+    const currentQ = contentPages[contentPageIndex]?.questions;
     if (!currentQ || !pageComplete(currentQ)) return;
     if (contentPageIndex === contentPages.length - 1) {
       toast("This is a preview — no response was saved, only a dry run.");
@@ -154,7 +168,10 @@ const progressPct =
   const currentQuestions =
     isConsentPage || finished
       ? []
-      : contentPages[contentPageIndex] ?? [];
+      : contentPages[contentPageIndex]?.questions ?? [];
+  const currentPage = isConsentPage
+    ? null
+    : contentPages[contentPageIndex] ?? null;
 
   return (
     <div className="w-full space-y-4">
@@ -219,91 +236,52 @@ const progressPct =
 
       {/* Consent page */}
       {isConsentPage && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-500/30 dark:bg-indigo-500/10">
-          <div className="mb-3 flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200">
-              Informed Consent
-            </h3>
-          </div>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-indigo-800 dark:text-indigo-300">
-            {consentText ||
-              "By participating, you agree that your responses may be used for research purposes."}
-          </p>
-          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-indigo-300 bg-white p-4 dark:border-indigo-500/40 dark:bg-slate-800/50">
-            <input
-              type="checkbox"
-              checked={consented}
-              onChange={(e) => setConsented(e.target.checked)}
-              className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              I have read and accept the terms above.
-            </span>
-          </label>
-        </div>
+        <SurveyConsentGate
+          consentText={consentText}
+          consented={consented}
+          onChange={setConsented}
+        />
+      )}
+
+      {/* Section header for the current content page */}
+      {!isConsentPage && currentPage?.title && (
+        <SurveySectionHeader
+          title={currentPage.title}
+          sectionIndex={currentPage.sectionIndex}
+          sectionCount={currentPage.sectionCount}
+        />
       )}
 
       {/* Question page */}
       {currentQuestions.map((q, idx) => (
-        <div
+        <SurveyQuestionCard
           key={q.id}
-          className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30"
-        >
-          <div className="mb-4 flex items-start gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-              {idx + 1}
-            </span>
-            <div className="min-w-0">
-              <h3 className="break-words break-all whitespace-pre-wrap min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {q.title}
-                {q.required && <span className="ml-1 text-red-500">*</span>}
-              </h3>
-              <span className="text-xs text-slate-400 dark:text-slate-500">
-                {q.type.replace(/_/g, " ").toLowerCase()}
-              </span>
-            </div>
-          </div>
-          <SurveyQuestionInput
-            question={q}
-            value={answers[q.id] || ""}
-            options={q.options}
-            namePrefix="preview_q"
-            onChange={(value) => handleChange(q.id, value)}
-            onCheckboxChange={(optionValue, checked) =>
-              handleCheckbox(q.id, optionValue, checked)
-            }
-            onMatrixChange={(rowValue, columnIndex) =>
-              handleMatrix(q.id, rowValue, columnIndex)
-            }
-          />
-        </div>
+          question={q}
+          number={
+            visibleQuestions.findIndex((question) => question.id === q.id) + 1 || idx + 1
+          }
+          value={answers[q.id] || ""}
+          options={q.options}
+          namePrefix="preview_q"
+          onChange={(value) => handleChange(q.id, value)}
+          onCheckboxChange={(optionValue, checked) =>
+            handleCheckbox(q.id, optionValue, checked)
+          }
+          onMatrixChange={(rowValue, columnIndex) =>
+            handleMatrix(q.id, rowValue, columnIndex)
+          }
+        />
       ))}
 
       {/* Pager */}
       {!finished && (
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={goBack}
-            disabled={page === 0}
-            className="sb-button-soft text-sm inline-flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={
-              isConsentPage ? !consented : !pageComplete(currentQuestions)
-            }
-            className="sb-button-accent text-sm inline-flex items-center gap-2"
-          >
-            {isLastContentPage ? "Finish" : "Next"}
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
+        <SurveyPager
+          onBack={goBack}
+          onNext={goNext}
+          backDisabled={page === 0}
+          nextDisabled={isConsentPage ? !consented : !pageComplete(currentQuestions)}
+          nextLabel={isLastContentPage ? "Finish" : "Next"}
+        />
       )}
     </div>
   );

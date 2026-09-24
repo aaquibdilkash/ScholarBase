@@ -42,6 +42,8 @@ export async function getEvents(
       location: true,
       deadline: true,
       description: true,
+      notificationLink: true,
+      applyLink: true,
       createdAt: true,
       authorId: true,
       author: {
@@ -285,12 +287,12 @@ export async function deleteResearchEvent(eventId: string) {
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
-     await tx.user.update({
-       where: { id: event.authorId },
-       data: { researchEventCount: { decrement: 1 }, reputation: { decrement: 1 } },
-     });
+    await tx.user.update({
+      where: { id: event.authorId },
+      data: { researchEventCount: { decrement: 1 }, reputation: { decrement: 1 } },
+    });
 
-     if (event.totalVotes !== 0) {
+    if (event.totalVotes !== 0) {
       await tx.user.update({
         where: { id: event.authorId },
         data: { reputation: { decrement: event.totalVotes } },

@@ -5,16 +5,17 @@ import { useRouter } from "next/navigation";
 import { submitSurveyResponse } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthModal } from "@/components/interactions/AuthModal";
-import { Loader2, PencilLine, RefreshCw, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
-import { SurveyQuestionInput } from "./SurveyQuestionInput";
+import { Loader2, PencilLine, RefreshCw } from "lucide-react";
 import { computeSkippedQuestionIds,
   seededShuffle,
   hashString,
 } from "@/lib/surveys/logic";
+import { buildSurveyPages } from "@/lib/surveys/pages";
+import { SurveySectionHeader } from "./SurveySectionHeader";
+import { SurveyConsentGate } from "./SurveyConsentGate";
+import { SurveyQuestionCard } from "./SurveyQuestionCard";
+import { SurveyPager } from "./SurveyPager";
 import type { SkipRule, SurveyBlock } from "@/types/survey";
-
-// Google Forms-style: show this many questions per page
-const QUESTIONS_PER_PAGE = 3;
 
 type Answer = {
   id: string;
@@ -45,13 +46,6 @@ type Question = {
 };
 
 type SurveyPrivacy = "ANONYMOUS" | "NON_ANONYMOUS" | "HYBRID";
-
-type SurveyPage = {
-  title: string | null;
-  questions: Question[];
-  sectionIndex: number | null;
-  sectionCount: number;
-};
 
 export function SurveyResponseForm({
   surveyId,
@@ -177,63 +171,13 @@ export function SurveyResponseForm({
     [orderedQuestions, skippedQuestionIds],
   );
 
-  const contentPages: SurveyPage[] = useMemo(() => {
-    const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
-    if (sortedBlocks.length === 0) {
-      const fallbackPages: SurveyPage[] = [];
-      for (let i = 0; i < visibleQuestions.length; i += QUESTIONS_PER_PAGE) {
-        fallbackPages.push({
-          title: null,
-          questions: visibleQuestions.slice(i, i + QUESTIONS_PER_PAGE),
-          sectionIndex: null,
-          sectionCount: 0,
-        });
-      }
-      return fallbackPages;
-    }
-
-    const blockById = new Map(sortedBlocks.map((block, index) => [block.id, { block, index }]));
-    const pages: SurveyPage[] = [];
-
-    for (const question of visibleQuestions) {
-      const section = question.blockId ? blockById.get(question.blockId) : undefined;
-      const lastPage = pages[pages.length - 1];
-
-      if (section) {
-        if (lastPage?.title === section.block.title) {
-          lastPage.questions.push(question);
-        } else {
-          pages.push({
-            title: section.block.title,
-            questions: [question],
-            sectionIndex: section.index + 1,
-            sectionCount: sortedBlocks.length,
-          });
-        }
-        continue;
-      }
-
-      if (
-        lastPage?.title === "General questions" &&
-        lastPage.questions.length < QUESTIONS_PER_PAGE
-      ) {
-        lastPage.questions.push(question);
-      } else {
-        pages.push({
-          title: "General questions",
-          questions: [question],
-          sectionIndex: null,
-          sectionCount: sortedBlocks.length,
-        });
-      }
-    }
-
-    if (pages.length > 0) {
-      return pages;
-    }
-
-    return [];
-  }, [blocks, visibleQuestions]);
+  // Pagination mirrors the builder preview exactly: visible-only questions
+  // grouped by the shared builder, so sections get their own page each and
+  // section-free questions fill 3-per-page General runs.
+  const contentPages = useMemo(
+    () => buildSurveyPages(visibleQuestions, blocks),
+    [blocks, visibleQuestions],
+  );
   const hasConsentPage = consentRequired;
   const pageCount = contentPages.length + (hasConsentPage ? 1 : 0);
   const isConsentPage = hasConsentPage && page === 0;
@@ -577,158 +521,74 @@ export function SurveyResponseForm({
       )}
 
       {!isConsentPage && currentPage?.title && (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
-          <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-            {currentPage.sectionIndex
-              ? `Section ${currentPage.sectionIndex} of ${currentPage.sectionCount}`
-              : "Section"}
-          </p>
-          <h3 className="mt-1 break-words text-base font-bold text-slate-900 dark:text-slate-100">
-            {currentPage.title}
-          </h3>
-        </div>
+        <SurveySectionHeader
+          title={currentPage.title}
+          sectionIndex={currentPage.sectionIndex}
+          sectionCount={currentPage.sectionCount}
+        />
       )}
 
       {/* IRB CONSENT GATE: shown as first page when required and not yet consented */}
       {isConsentPage && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-6 dark:border-indigo-500/30 dark:bg-indigo-500/10">
-          <div className="mb-3 flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200">
-              Informed Consent
-            </h3>
-          </div>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-indigo-800 dark:text-indigo-300">
-            {consentText ||
-              "By participating, you agree that your responses may be used for research purposes."}
-          </p>
-          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-indigo-300 bg-white p-4 dark:border-indigo-500/40 dark:bg-slate-800/50">
-            <input
-              type="checkbox"
-              checked={consented}
-              onChange={(e) => {
-                setConsented(e.target.checked);
-                if (e.target.checked) setConsentError(false);
-              }}
-              className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              I have read and accept the terms above.
-            </span>
-           </label>
-           <div className="mt-6 flex justify-end">
-             {consentError && (
-               <p className="mr-auto text-sm font-medium text-red-600 dark:text-red-400">
-                 You must accept the consent terms to continue.
-               </p>
-             )}
-             <button
-              type="button"
-              onClick={goNext}
-              className="sb-button-accent inline-flex items-center gap-2"
-            >
-              Continue
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <SurveyConsentGate
+          consentText={consentText}
+          consented={consented}
+          consentError={consentError}
+          onChange={(checked) => {
+            setConsented(checked);
+            if (checked) setConsentError(false);
+          }}
+        />
       )}
 
       {/* Questions (paginated, visible only — skip logic hides non-applicable ones) */}
       {!isConsentPage && currentQuestions.map((q) => (
-        <div
+        <SurveyQuestionCard
           key={q.id}
-          className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30"
-        >
-          <div className="mb-4 flex items-start gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-              {visibleQuestions.findIndex((question) => question.id === q.id) + 1}
-            </span>
-            <div className="min-w-0">
-              <h3 className="break-words break-all whitespace-pre-wrap min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {q.title}
-                {q.required && <span className="ml-1 text-red-500">*</span>}
-              </h3>
-              <span className="text-xs text-slate-400 dark:text-slate-500">
-                {q.type.replace(/_/g, " ").toLowerCase()}
-              </span>
-            </div>
-          </div>
-          <SurveyQuestionInput
-            question={q}
-            value={answers[q.id] || ""}
-            options={optionsByQuestion.get(q.id) ?? q.options}
-            namePrefix="q"
-            onChange={(value) => handleAnswerChange(q.id, value)}
-            onCheckboxChange={(optionValue, checked) =>
-              handleCheckboxChange(q.id, optionValue, checked)
-            }
-            onMatrixChange={(rowValue, columnIndex) =>
-              handleMatrixChange(q.id, rowValue, columnIndex)
-            }
-          />
-        </div>
+          question={q}
+          number={visibleQuestions.findIndex((question) => question.id === q.id) + 1}
+          value={answers[q.id] || ""}
+          options={optionsByQuestion.get(q.id) ?? q.options}
+          onChange={(value) => handleAnswerChange(q.id, value)}
+          onCheckboxChange={(optionValue, checked) =>
+            handleCheckboxChange(q.id, optionValue, checked)
+          }
+          onMatrixChange={(rowValue, columnIndex) =>
+            handleMatrixChange(q.id, rowValue, columnIndex)
+          }
+        />
       ))}
 
       {/* Pagination controls */}
       {!isConsentPage && pageCount > 1 && (
-        <div className="flex justify-between pt-4">
-          <button
-            type="button"
-            onClick={goBack}
-            disabled={page === 0}
-            className="sb-button-soft inline-flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Back
-          </button>
-          <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-            {currentQuestions.length > 0 && (
-              <span>
-                Question{" "}
-                {Math.min(
-                  ...currentQuestions.map(
-                    (question) =>
-                      visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
-                  ),
-                )}
-                –{" "}
-                {Math.max(
-                  ...currentQuestions.map(
-                    (question) =>
-                      visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
-                  ),
-                )}{" "}
-                of {visibleQuestions.length}
-              </span>
-            )}
-          </div>
-          {contentPageIndex === contentPages.length - 1 ? (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="sb-button-accent inline-flex items-center gap-2"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="animate-spin h-5 w-5" />
-                  Submitting...
-                </span>
-              ) : (
-                `Submit Response${hasResponded ? " (Update)" : ""}`
+        <SurveyPager
+          onBack={goBack}
+          onNext={goNext}
+          backDisabled={page === 0}
+          submit={contentPageIndex === contentPages.length - 1}
+          submitLabel={`Submit Response${hasResponded ? " (Update)" : ""}`}
+          submitting={isSubmitting}
+        >
+          {currentQuestions.length > 0 && (
+            <span>
+              Question{" "}
+              {Math.min(
+                ...currentQuestions.map(
+                  (question) =>
+                    visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
+                ),
               )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={goNext}
-              className="sb-button-accent inline-flex items-center gap-2"
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </button>
+              –{" "}
+              {Math.max(
+                ...currentQuestions.map(
+                  (question) =>
+                    visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
+                ),
+              )}{" "}
+              of {visibleQuestions.length}
+            </span>
           )}
-        </div>
+        </SurveyPager>
       )}
 
       {/* Submit button for single-page surveys (no pagination) */}

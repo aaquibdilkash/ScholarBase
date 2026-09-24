@@ -38,7 +38,7 @@ import {
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
   SURVEY_TITLE_TIP,
@@ -135,6 +135,7 @@ export default function SurveyForm({
   const generalQuestions = questions.filter((q) => (q.blockId ?? null) === null);
 
   const [activeTab, setActiveTab] = useState<"build" | "preview">("build");
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [selectedDemographic, setSelectedDemographic] = useState<string>("");
   const [showBlockDeleteModal, setShowBlockDeleteModal] = useState<{
     isOpen: boolean;
@@ -411,21 +412,47 @@ export default function SurveyForm({
       draggingId !== null &&
       dropTarget !== null &&
       dropTarget.blockId === blockId;
+    const sectionKey = blockId ?? "general";
+    const isCollapsed = collapsedSections.has(sectionKey);
+    const toggleCollapsed = () => {
+      setCollapsedSections((prev) => {
+        const next = new Set(prev);
+        if (next.has(sectionKey)) next.delete(sectionKey);
+        else next.add(sectionKey);
+        return next;
+      });
+    };
 
     return (
       <section
-        key={blockId ?? "general"}
-        data-drop-bucket={blockId ?? "general"}
+        key={sectionKey}
+        data-drop-bucket={sectionKey}
         className={`rounded-xl border p-3 shadow-sm transition-colors sm:p-5 ${
           isDropBucket
             ? "border-blue-400 bg-blue-50/40 dark:border-blue-500 dark:bg-blue-950/20"
             : "border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/30"
         }`}
       >
-        <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
-          <h3 className="break-words text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
-            {block ? block.title : "General questions"}
-          </h3>
+        <header className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="rounded p-0.5 text-slate-500 hover:text-slate-700"
+              aria-label={
+                isCollapsed ? "Expand section" : "Collapse section"
+              }
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronUp className="h-4 w-4" />
+              )}
+            </button>
+            <h3 className="break-words text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+              {block ? block.title : "General questions"}
+            </h3>
+          </div>
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {sectionQuestions.length === 1
               ? "1 question"
@@ -433,23 +460,28 @@ export default function SurveyForm({
           </span>
         </header>
 
-        {sectionQuestions.length === 0 ? (
-          <p className="py-3 text-center text-xs text-slate-400">
-            No questions in this section yet.
-          </p>
-        ) : (
-          <div>{sectionQuestions.map((q, i) => renderQuestionCard(q, i))}</div>
-        )}
+        {!isCollapsed &&
+          (sectionQuestions.length === 0 ? (
+            <p className="py-3 text-center text-xs text-slate-400">
+              No questions in this section yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {sectionQuestions.map((q, i) => renderQuestionCard(q, i))}
+            </div>
+          ))}
 
-        <div className="mt-3 flex justify-center border-t border-slate-200 pt-3 dark:border-slate-700">
-          <button
-            type="button"
-            onClick={() => addQuestion(blockId)}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
-          >
-            + Add question here
-          </button>
-        </div>
+        {!isCollapsed && (
+          <div className="mt-3 flex justify-center border-t border-slate-200 pt-3 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => addQuestion(blockId)}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400"
+            >
+              + Add question here
+            </button>
+          </div>
+        )}
       </section>
     );
   };
