@@ -66,13 +66,13 @@ export default async function HomePage() {
     },
     {
       title: "Journals",
-      description: "Browse academic journals and publications.",
+      description: "Explore journals, connect publications, and read scholar reviews.",
       href: "/journals",
       icon: <BookCopy className="h-8 w-8" />,
     },
     {
       title: "Supervisors",
-      description: "Find and review PhD supervisors and mentors.",
+      description: "Find PhD supervisors, read recommendations, and connect with scholars.",
       href: "/supervisor",
       icon: <Star className="h-8 w-8" />,
     },

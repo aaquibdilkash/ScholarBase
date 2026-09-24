@@ -351,3 +351,66 @@ export const getJournalById = cache(
     });
   },
 );
+
+
+export type JournalPickerResult = {
+  id: string;
+  title: string;
+  publisher: string | null;
+  issn: string | null;
+};
+
+/** Lightweight, indexed picker search used when linking a publication. */
+export async function searchJournalsForPicker(
+  query: string,
+  limit = 6,
+): Promise<JournalPickerResult[]> {
+  const term = query.trim();
+  if (term.length < 2) return [];
+
+  const safeLimit = Math.min(10, Math.max(1, Math.floor(limit)));
+  try {
+    return await prisma.$queryRaw<JournalPickerResult[]>`
+      SELECT "id", "title", "publisher", "issn"
+      FROM "Journal"
+      WHERE "isDeleted" = false
+        AND (
+          LOWER("issn") = LOWER(${term})
+          OR LOWER("issn") LIKE LOWER(${term}) || '%'
+          OR LOWER("title") LIKE LOWER(${term}) || '%'
+          OR LOWER("publisher") LIKE LOWER(${term}) || '%'
+          OR similarity("title", ${term}) > 0.18
+          OR word_similarity(${term}, "title") > 0.18
+          OR word_similarity(${term}, "publisher") > 0.18
+          OR similarity("publisher", ${term}) > 0.18
+          OR to_tsvector('simple', COALESCE("title", '') || ' ' || COALESCE("publisher", '') || ' ' || COALESCE("about", '') || ' ' || COALESCE("subjectArea", ''))
+             @@ plainto_tsquery('simple', ${term})
+        )
+      ORDER BY
+        CASE WHEN LOWER("issn") = LOWER(${term}) THEN 0
+             WHEN LOWER("issn") LIKE LOWER(${term}) || '%' THEN 1
+             WHEN LOWER("title") = LOWER(${term}) THEN 2
+             WHEN LOWER("title") LIKE LOWER(${term}) || '%' THEN 3
+             ELSE 4 END,
+        GREATEST(similarity("title", ${term}), similarity("publisher", ${term})) DESC,
+        "createdAt" DESC
+      LIMIT ${safeLimit}
+    `;
+  } catch (error) {
+    // Keep the picker usable if a deployment has not yet installed pg_trgm.
+    console.error("Optimized journal picker search failed; using fallback:", error);
+    return prisma.journal.findMany({
+      where: {
+        isDeleted: false,
+        OR: [
+          { title: { contains: term, mode: "insensitive" } },
+          { publisher: { contains: term, mode: "insensitive" } },
+          { issn: { contains: term, mode: "insensitive" } },
+        ],
+      },
+      select: { id: true, title: true, publisher: true, issn: true },
+      orderBy: { createdAt: "desc" },
+      take: safeLimit,
+    });
+  }
+}

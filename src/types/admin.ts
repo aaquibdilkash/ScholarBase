@@ -201,6 +201,7 @@ export type InstitutionDomainRequestItem = {
   domain: string;
   institutionName: string;
   requesterEmail: string;
+  confirmationEmail: string;
   website: string | null;
   details: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";

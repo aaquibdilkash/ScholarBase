@@ -201,3 +201,46 @@ export async function sendInstitutionVerificationEmail({
         return { success: false, error };
     }
 }
+
+/** Sends the final decision for an institutional-domain review to the submitter's chosen contact. */
+export async function sendInstitutionDomainDecisionEmail({
+  recipientEmail,
+  institutionName,
+  status,
+  reviewNote,
+}: {
+  recipientEmail: string;
+  institutionName: string;
+  status: "APPROVED" | "REJECTED";
+  reviewNote?: string | null;
+}) {
+  const approved = status === "APPROVED";
+  const safeInstitution = escapeHtml(institutionName);
+  const safeNote = escapeHtml(reviewNote || (approved
+    ? "Your institution domain is now approved. You can use an email from this domain to register and receive the ScholarBase verification badge."
+    : "We could not approve this request. You may update the request details and submit it again."));
+
+  try {
+    const { error } = await resend.emails.send({
+      from: "ScholarBase <system@scholarbase.app>",
+      to: [recipientEmail],
+      subject: `${institutionName} institution request ${approved ? "approved" : "not approved"}`,
+      html: `${renderScholarBaseResponsiveStyles()}
+        <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+          ${renderScholarBaseCompactHeader("Institution domain request")}
+          <div class="sb-email-panel" style="background-color: #ffffff; padding: 32px; border-radius: 8px; border-top: 4px solid #2563eb;">
+            <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">${safeInstitution} was ${approved ? "approved" : "not approved"}</h2>
+            <p style="color: #475569; line-height: 1.6;">${safeNote}</p>
+          </div>
+        </div>`,
+    });
+    if (error) {
+      console.error("Failed to send institution domain decision email:", error);
+      return { success: false as const };
+    }
+    return { success: true as const };
+  } catch (error) {
+    console.error("Failed to send institution domain decision email:", error);
+    return { success: false as const };
+  }
+}

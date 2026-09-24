@@ -41,6 +41,8 @@ export default async function EditPublicationPage({
       abstract: true,
       isUserAuthor: true,
       authorId: true,
+      journalId: true,
+      publicationAuthors: { select: { userId: true, authorOrder: true }, orderBy: { authorOrder: "asc" } },
     },
   });
 
@@ -79,6 +81,8 @@ export default async function EditPublicationPage({
           domain: publication.domain ?? "",
           abstract: publication.abstract ?? "",
           isUserAuthor: publication.isUserAuthor ? "true" : "false",
+          journalId: publication.journalId ?? "",
+          authorIds: publication.publicationAuthors.map((author) => author.userId),
         }}
       />
     </CreateOrEditPageShell>

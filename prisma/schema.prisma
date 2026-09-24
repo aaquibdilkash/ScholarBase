@@ -607,18 +607,20 @@ enum InstitutionDomainRequestStatus {
 }
 
 model InstitutionDomainRequest {
-  id              String                         @id @default(cuid())
-  domain          String                         @unique
-  institutionName String
-  requesterEmail  String
-  website         String?
-  details         String?                        @db.Text
-  status          InstitutionDomainRequestStatus @default(PENDING)
-  reviewNote      String?                        @db.Text
-  reviewedById    String?
-  reviewedAt      DateTime?
-  createdAt       DateTime                       @default(now())
-  updatedAt       DateTime                       @updatedAt
+  id                String                         @id @default(cuid())
+  domain            String                         @unique
+  institutionName   String
+  requesterEmail    String
+  // May differ from requesterEmail when approval updates should go elsewhere.
+  confirmationEmail String
+  website           String?
+  details           String?                        @db.Text
+  status            InstitutionDomainRequestStatus @default(PENDING)
+  reviewNote        String?                        @db.Text
+  reviewedById      String?
+  reviewedAt        DateTime?
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
 
   reviewedBy User? @relation("InstitutionDomainRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
@@ -905,14 +907,31 @@ model Publication {
   deletedById    String?
   reportCount    Int            @default(0)
 
-  author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  votes     PublicationVote[]
-  bookmarks PublicationBookmark[]
-  comments  PublicationComment[]
+  author             User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  journalId          String?
+  journal            Journal?              @relation(fields: [journalId], references: [id], onDelete: SetNull)
+  publicationAuthors PublicationAuthor[]
+  votes              PublicationVote[]
+  bookmarks          PublicationBookmark[]
+  comments           PublicationComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
+  @@index([journalId])
+}
+
+model PublicationAuthor {
+  id            String      @id @default(cuid())
+  publicationId String
+  userId        String
+  authorOrder   Int
+  createdAt     DateTime    @default(now())
+  publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, userId])
+  @@index([userId, authorOrder])
 }
 
 model PublicationVote {
@@ -991,6 +1010,9 @@ model User {
   institutionVerificationTokenHash String?   @unique
   institutionVerificationExpiresAt DateTime?
   name                             String?
+  // Exact handle uniqueness is managed here; fuzzy/prefix search indexes live in
+  // prisma/migrations/20260924110000_optimize_picker_search/migration.sql.
+  // See docs/search-indexes.md for the complete custom-index inventory.
   avatarUrl                        String?
   handle                           String?   @unique
   bio                              String?
@@ -1135,6 +1157,7 @@ model User {
   publicationVotes        PublicationVote[]
   publicationComments     PublicationComment[]
   publicationCommentVotes PublicationCommentVote[]
+  publicationAuthors      PublicationAuthor[]
 
   surveys            ResearchSurvey[]
   surveyVotes        SurveyVote[]
@@ -1520,6 +1543,9 @@ model CourseCommentVote {
 }
 
 model Journal {
+  // Search trigram/full-text/prefix indexes are maintained in the search migration
+  // because PostgreSQL expression indexes are not fully modeled by Prisma.
+  // See docs/search-indexes.md.
   id              String    @id @default(cuid())
   title           String
   issn            String?
@@ -1559,12 +1585,13 @@ model Journal {
   reviewCount Int @default(0)
   ratingSum   Int @default(0)
 
-  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments  JournalComment[]
-  votes     JournalVote[]
-  bookmarks JournalBookmark[]
-  reviews   JournalReview[]
-  about     String?
+  author       User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments     JournalComment[]
+  votes        JournalVote[]
+  bookmarks    JournalBookmark[]
+  reviews      JournalReview[]
+  publications Publication[]
+  about        String?
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -1632,21 +1659,21 @@ model JournalCommentVote {
 // comments, bookmarks, anonymity, moderation + materialized counters).
 // ============================================
 model JournalReview {
-  id                  String         @id @default(cuid())
-  rating              Int
-  feedback            String
-  outcome             JournalOutcome
-  turnaroundTimeDays  Int
+  id                    String         @id @default(cuid())
+  rating                Int
+  feedback              String
+  outcome               JournalOutcome
+  turnaroundTimeDays    Int
   editorialQualityScore Int
   peerReviewRigorScore  Int
-  isAnonymous         Boolean        @default(false)
-  journalId           String
-  authorId            String
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  editedAt            DateTime?
-  isFrozen            Boolean        @default(false)
-  hasActiveAppeal     Boolean        @default(false)
+  isAnonymous           Boolean        @default(false)
+  journalId             String
+  authorId              String
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  editedAt              DateTime?
+  isFrozen              Boolean        @default(false)
+  hasActiveAppeal       Boolean        @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int            @default(0)
@@ -1658,8 +1685,8 @@ model JournalReview {
   deletedById    String?
   reportCount    Int            @default(0)
 
-  journal   Journal                  @relation(fields: [journalId], references: [id], onDelete: Cascade)
-  author    User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  journal   Journal                 @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  author    User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes     JournalReviewVote[]
   bookmarks JournalReviewBookmark[]
   comments  JournalReviewComment[]

@@ -8,10 +8,26 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+
+function readLinkedIds(formData: FormData, key: string): string[] {
+  return [...new Set((readOptionalFormValue(formData, key) ?? "").split(",").map((id) => id.trim()).filter(Boolean))].slice(0, 20);
+}
+
+async function resolvePublicationPeople(formData: FormData) {
+  const authorIds = readLinkedIds(formData, "authorIds");
+  const journalId = readOptionalFormValue(formData, "journalId");
+  if (authorIds.length === 0) throw new Error("Select at least one ScholarBase author for this publication.");
+  const [authors, journal] = await Promise.all([
+    prisma.user.findMany({ where: { id: { in: authorIds }, isDeleted: false }, select: { id: true, name: true, handle: true } }),
+    journalId ? prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } }) : null,
+  ]);
+  if (authors.length !== authorIds.length || (journalId && !journal)) throw new Error("One or more selected authors or journals are no longer available. Please select them again.");
+  return { authorIds, authors: authors.map((author) => author.name || `@${author.handle}`), journalId: journal?.id ?? null };
+}
 
 export async function createPublication(formData: FormData) {
   const user = await requireActiveUser(
@@ -20,7 +36,8 @@ export async function createPublication(formData: FormData) {
   await enforceRateLimit({ namespace: "publication:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
-  const authors = readFormValue(formData, "authors");
+  const linkedPeople = await resolvePublicationPeople(formData);
+  const authors = linkedPeople.authors.join(", ");
   const publicationType = readFormValue(
     formData,
     "publicationType",
@@ -64,6 +81,8 @@ export async function createPublication(formData: FormData) {
         abstract,
         isUserAuthor,
         authorId: user.id,
+        journalId: linkedPeople.journalId,
+        publicationAuthors: { create: linkedPeople.authorIds.map((userId, authorOrder) => ({ userId, authorOrder })) },
       },
       include: {
         author: {
@@ -97,14 +116,26 @@ export async function createPublication(formData: FormData) {
     return newPublication;
   });
 
-  await notifyFollowersOfActivity({
-    actorId: user.id,
-    type: "content-published",
-    targetType: "Publication",
-    targetId: publication.id,
-    title: `${user.email?.split("@")[0] || "Someone"} published a new paper`,
-    body: `${title}${journalOrConference ? ` (${journalOrConference})` : ""}`,
-  });
+  const publicationAuthors = linkedPeople.authorIds.filter((authorId) => authorId !== user.id);
+  await Promise.all([
+    notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "Publication",
+      targetId: publication.id,
+      title: `${user.email?.split("@")[0] || "Someone"} published a new paper`,
+      body: `${title}${journalOrConference ? ` (${journalOrConference})` : ""}`,
+    }),
+    ...publicationAuthors.map((recipientId) => notifyUserById({
+      recipientId,
+      actorId: user.id,
+      type: "publication-author",
+      targetType: "Publication",
+      targetId: publication.id,
+      title: "You were added as a publication author",
+      body: title,
+    })),
+  ]);
 
   return { success: true, data: publication };
 }
@@ -117,7 +148,8 @@ export async function updatePublication(
   await enforceRateLimit({ namespace: "publication:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
-  const authors = readFormValue(formData, "authors");
+  const linkedPeople = await resolvePublicationPeople(formData);
+  const authors = linkedPeople.authors.join(", ");
   const publicationType = readFormValue(
     formData,
     "publicationType",
@@ -153,10 +185,14 @@ export async function updatePublication(
     throw new Error("Not authorized to edit this publication.");
   }
 
-  const updatedPublication = await prisma.publication.update({
+  const updatedPublication = await prisma.$transaction(async (tx) => {
+    await tx.publicationAuthor.deleteMany({ where: { publicationId } });
+    return tx.publication.update({
     where: { id: publicationId },
     data: {
       title,
+      journalId: linkedPeople.journalId,
+      publicationAuthors: { create: linkedPeople.authorIds.map((userId, authorOrder) => ({ userId, authorOrder })) },
       authors,
       publicationType,
       journalOrConference,
@@ -174,6 +210,7 @@ export async function updatePublication(
       isUserAuthor,
       editedAt: new Date(),
     },
+  });
   });
 
   return { success: true, data: updatedPublication };

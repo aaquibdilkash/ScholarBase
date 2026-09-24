@@ -3,6 +3,7 @@
 import prisma from "@/lib/db";
 import { requireCurrentUser, isUserAdmin } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
+import { sendInstitutionDomainDecisionEmail } from "@/lib/email";
 
 import {
   AdminCommentModel,
@@ -338,6 +339,13 @@ export async function reviewInstitutionDomainRequest(
       reviewedAt: new Date(),
     },
   });
+
+  void sendInstitutionDomainDecisionEmail({
+    recipientEmail: updated.confirmationEmail,
+    institutionName: updated.institutionName,
+    status,
+    reviewNote: safeReviewNote,
+  }).catch((error) => console.error("Institution decision email failed:", error));
 
   return { success: true, data: updated as InstitutionDomainRequestItem };
 }

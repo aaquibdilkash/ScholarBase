@@ -36,6 +36,7 @@ export async function requestInstitutionDomain(
   formData: FormData,
 ): Promise<InstitutionRequestResult> {
   const requesterEmail = normalizeEmail(readField(formData, "institutionEmail"));
+  const confirmationEmail = normalizeEmail(readField(formData, "confirmationEmail"));
   const institutionName = readField(formData, "institutionName");
   const websiteInput = readField(formData, "website");
   const details = readField(formData, "details");
@@ -46,6 +47,12 @@ export async function requestInstitutionDomain(
     !validateEmailFormat(requesterEmail)
   ) {
     return { success: false, error: "Please enter a valid institutional email." };
+  }
+  if (
+    confirmationEmail.length > MAX_INSTITUTION_REQUEST_EMAIL ||
+    !validateEmailFormat(confirmationEmail)
+  ) {
+    return { success: false, error: "Please enter a valid confirmation email." };
   }
   if (!institutionName || institutionName.length > MAX_INSTITUTION_NAME) {
     return { success: false, error: "Please enter a valid institution name." };
@@ -125,6 +132,7 @@ export async function requestInstitutionDomain(
             data: {
               institutionName,
               requesterEmail,
+              confirmationEmail,
               website,
               details: details || null,
               status: "PENDING",
@@ -141,6 +149,7 @@ export async function requestInstitutionDomain(
             domain,
             institutionName,
             requesterEmail,
+            confirmationEmail,
             website,
             details: details || null,
           },

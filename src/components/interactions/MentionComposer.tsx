@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
-import { getScholars } from "@/app/actions/scholars";
+import { searchScholarsForPicker } from "@/app/actions/scholars";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { ScholarSuggestionDropdown } from "@/components/interactions/ScholarSuggestionDropdown";
 
 export type MentionUser = { id: string; handle: string | null };
 
-type ScholarSuggestion = Awaited<ReturnType<typeof getScholars>>[number];
+type ScholarSuggestion = Awaited<ReturnType<typeof searchScholarsForPicker>>[number];
 
 export function MentionComposer({
   name,
@@ -47,10 +47,16 @@ export function MentionComposer({
       setSuggestions([]);
       return;
     }
+    let active = true;
     const handle = window.setTimeout(() => {
-      getScholars(term).then((users) => setSuggestions(users.slice(0, 5)));
-    }, 250);
-    return () => window.clearTimeout(handle);
+      searchScholarsForPicker(term, 5).then((users) => {
+        if (active) setSuggestions(users);
+      });
+    }, 300);
+    return () => {
+      active = false;
+      window.clearTimeout(handle);
+    };
   }, [value]);
 
   const insertSuggestion = (user: ScholarSuggestion) => {
@@ -110,34 +116,11 @@ export function MentionComposer({
       <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         {value.length}/{maxLength} characters
       </div>
-      {suggestions.length > 0 && (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
-          {suggestions.map((user, index) => (
-            <button
-              key={user.id}
-              type="button"
-              onClick={() => insertSuggestion(user)}
-              className={`flex w-full items-center gap-3 px-3 py-2 text-left transition ${index === activeIndex ? "bg-blue-50 dark:bg-blue-500/10" : "hover:bg-slate-50 dark:hover:bg-slate-900"}`}
-            >
-              <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 text-xs font-semibold text-white dark:bg-slate-800">
-                {user.avatarUrl ? (
-                  <UserAvatar src={user.avatarUrl} name={user.name} />
-                ) : (
-                  user.name?.charAt(0).toUpperCase() || "@"
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {user.name || "Scholar"}
-                </span>
-                <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-                  @{user.handle || "scholar"}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+      <ScholarSuggestionDropdown
+        suggestions={suggestions}
+        activeIndex={activeIndex}
+        onSelect={insertSuggestion}
+      />
       {showPreview && (
         <div className="mt-2 break-words overflow-wrap-anywhere rounded-xl border border-dashed border-slate-200 bg-white/70 p-3 text-sm leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-300">
           {renderMentionContent(value || placeholder, mentionedUsers)}

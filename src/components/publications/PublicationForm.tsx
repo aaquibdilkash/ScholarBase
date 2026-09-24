@@ -15,8 +15,6 @@ import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import {
   MAX_PUBLICATION_TITLE,
-  MAX_PUBLICATION_AUTHORS,
-  MAX_PUBLICATION_JOURNAL,
   MAX_PUBLICATION_PUBLISHER,
   MAX_PUBLICATION_DOI,
   MAX_PUBLICATION_ISBN,
@@ -31,12 +29,11 @@ import {
 import { getRichTextLength } from "@/lib/html";
 import type { PublicationWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { PublicationLinkedPeopleFields } from "@/components/publications/PublicationLinkedPeopleFields";
 import {
   PUBLICATION_TITLE_TIP,
-  PUBLICATION_AUTHORS_TIP,
   PUBLICATION_TYPE_TIP,
   PUBLICATION_YEAR_TIP,
-  PUBLICATION_JOURNAL_TIP,
   PUBLICATION_PUBLISHER_TIP,
   PUBLICATION_VOLUME_TIP,
   PUBLICATION_ISSUE_TIP,
@@ -67,6 +64,8 @@ export type PublicationFormValues = {
   domain: string;
   abstract: string;
   isUserAuthor: string;
+  journalId: string;
+  authorIds: string[];
 };
 
 const PUBLICATION_TYPES = [
@@ -107,6 +106,8 @@ export default function PublicationForm({
     domain: initialValues?.domain ?? "",
     abstract: initialValues?.abstract ?? "",
     isUserAuthor: initialValues?.isUserAuthor ? "true" : "false",
+    journalId: initialValues?.journalId ?? "",
+    authorIds: initialValues?.authorIds ?? [],
   };
 
   const draftKey = mode === "edit" ? null : "draft_publication_create";
@@ -188,25 +189,16 @@ export default function PublicationForm({
         </div>
       </div>
 
-      {/* Authors */}
-      <div>
-        <label className="sb-label inline-flex items-center gap-1.5">
-          Authors *
-          <InfoTooltip message={PUBLICATION_AUTHORS_TIP} />
-        </label>
-        <input
-          name="authors"
-          placeholder="e.g., Jane Doe, John Smith, ..."
-          className="sb-input"
-          required
-          maxLength={MAX_PUBLICATION_AUTHORS}
-          value={draftFields.authors}
-          onChange={(e) => updateDraftField("authors", e.target.value)}
-        />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {draftFields.authors.length}/{MAX_PUBLICATION_AUTHORS} characters
-        </div>
-      </div>
+      <PublicationLinkedPeopleFields
+        authors={draftFields.authors}
+        journal={draftFields.journalOrConference}
+        onAuthorsChange={(value) => updateDraftField("authors", value)}
+        onJournalChange={(value) => updateDraftField("journalOrConference", value)}
+        authorIds={draftFields.authorIds}
+        onAuthorIdsChange={(value) => updateDraftField("authorIds", value)}
+        journalId={draftFields.journalId}
+        onJournalIdChange={(value) => updateDraftField("journalId", value)}
+      />
 
       {/* Publication Type & Year */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -254,46 +246,22 @@ export default function PublicationForm({
         </div>
       </div>
 
-      {/* Journal/Conference & Publisher */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="sb-label inline-flex items-center gap-1.5">
-            Journal / Conference / Book
-            <InfoTooltip message={PUBLICATION_JOURNAL_TIP} />
-          </label>
-          <input
-            name="journalOrConference"
-            placeholder="e.g., Journal of AI Research"
-            className="sb-input"
-            maxLength={MAX_PUBLICATION_JOURNAL}
-            value={draftFields.journalOrConference}
-            onChange={(e) =>
-              updateDraftField("journalOrConference", e.target.value)
-            }
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.journalOrConference.length}/{MAX_PUBLICATION_JOURNAL}{" "}
-            characters
-          </div>
-        </div>
-        <div>
-          <label className="sb-label inline-flex items-center gap-1.5">
-            Publisher
-            <InfoTooltip message={PUBLICATION_PUBLISHER_TIP} />
-          </label>
-          <input
-            name="publisher"
-            placeholder="e.g., Springer, IEEE"
-            className="sb-input"
-            maxLength={MAX_PUBLICATION_PUBLISHER}
-            value={draftFields.publisher}
-            onChange={(e) => updateDraftField("publisher", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.publisher.length}/{MAX_PUBLICATION_PUBLISHER}{" "}
-            characters
-          </div>
-        </div>
+      {/* Publisher */}
+      <div>
+        <label htmlFor="publication-publisher" className="sb-label inline-flex items-center gap-1.5">
+          Publisher
+          <InfoTooltip message={PUBLICATION_PUBLISHER_TIP} />
+        </label>
+        <input
+          id="publication-publisher"
+          name="publisher"
+          placeholder="e.g., Elsevier, Springer Nature"
+          className="sb-input"
+          maxLength={MAX_PUBLICATION_PUBLISHER}
+          value={draftFields.publisher}
+          onChange={(e) => updateDraftField("publisher", e.target.value)}
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{draftFields.publisher.length}/{MAX_PUBLICATION_PUBLISHER} characters</div>
       </div>
 
       {/* Volume, Issue, Pages */}

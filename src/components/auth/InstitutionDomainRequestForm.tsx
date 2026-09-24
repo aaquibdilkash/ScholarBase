@@ -50,6 +50,7 @@ export function InstitutionDomainRequestForm({
 }) {
   const { toast } = useToast();
   const [email, setEmail] = useState(defaultEmail);
+  const [confirmationEmail, setConfirmationEmail] = useState(defaultEmail);
   const [institutionName, setInstitutionName] = useState("");
   const [website, setWebsite] = useState("");
   const [details, setDetails] = useState("");
@@ -139,8 +140,7 @@ export function InstitutionDomainRequestForm({
   if (submitted) {
     return (
       <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-300">
-        Your request is with the ScholarBase team. You can register after the
-        domain has been reviewed and added to the approved directory.
+        Your request is with the ScholarBase team. Approval confirmation will be sent to {confirmationEmail}. You can register after the domain has been reviewed and added to the approved directory.
       </div>
     );
   }
@@ -164,7 +164,9 @@ export function InstitutionDomainRequestForm({
 
       <div className="space-y-3">
         <div className="space-y-1">
+          <label htmlFor="institutionEmail" className="sb-label">Institutional email *</label>
           <input
+            id="institutionEmail"
             className="sb-input"
             name="institutionEmail"
             type="email"
@@ -177,7 +179,24 @@ export function InstitutionDomainRequestForm({
           <CharacterCount value={email} max={MAX_INSTITUTION_REQUEST_EMAIL} />
         </div>
         <div className="space-y-1">
+          <label htmlFor="confirmationEmail" className="sb-label">Send approval confirmation to *</label>
           <input
+            id="confirmationEmail"
+            className="sb-input"
+            name="confirmationEmail"
+            type="email"
+            placeholder="you@institution.edu"
+            required
+            maxLength={MAX_INSTITUTION_REQUEST_EMAIL}
+            value={confirmationEmail}
+            onChange={(event) => setConfirmationEmail(event.target.value)}
+          />
+          <CharacterCount value={confirmationEmail} max={MAX_INSTITUTION_REQUEST_EMAIL} />
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="institutionName" className="sb-label">Institution or research lab name *</label>
+          <input
+            id="institutionName"
             className="sb-input"
             name="institutionName"
             placeholder="Institution or research lab name"
@@ -189,7 +208,9 @@ export function InstitutionDomainRequestForm({
           <CharacterCount value={institutionName} max={MAX_INSTITUTION_NAME} />
         </div>
         <div className="space-y-1">
+          <label htmlFor="institutionWebsite" className="sb-label">Institution website</label>
           <input
+            id="institutionWebsite"
             className="sb-input"
             name="website"
             type="url"
@@ -201,7 +222,9 @@ export function InstitutionDomainRequestForm({
           <CharacterCount value={website} max={MAX_INSTITUTION_WEBSITE} />
         </div>
         <div className="space-y-1">
+          <label htmlFor="institutionDetails" className="sb-label">Verification details</label>
           <textarea
+            id="institutionDetails"
             className="sb-input min-h-24 resize-y"
             name="details"
             placeholder="Optional details to help us verify the institution"
