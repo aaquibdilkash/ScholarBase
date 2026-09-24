@@ -40,3 +40,4 @@ jobs:
           QSTASH_TOKEN: mock_qstash_token_for_ci_build
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci_build
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci_build
+          RESEND_API_KEY: re_mock_api_key_for_ci_build

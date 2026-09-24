@@ -134,7 +134,9 @@ export async function runDigest(
 
   if (users.length === 0) return { emailedUsers: 0, flaggedNotifications: 0 };
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
+  const resend = new Resend(
+  process.env.RESEND_API_KEY || "re_dummy_key_for_build"
+);
   const appUrl = getAppUrl();
   const processedIds: string[] = [];
   let sentCount = 0;

@@ -15,7 +15,9 @@ import {
   renderScholarBaseResponsiveStyles,
 } from "@/lib/emails/brand";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(
+  process.env.RESEND_API_KEY || "re_dummy_key_for_build"
+);
 
 const contactSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),

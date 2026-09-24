@@ -4,19 +4,33 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  let fontData: ArrayBuffer | null = null;
+// In-memory cache for warm serverless invocations
+let cachedLogoFont: ArrayBuffer | null = null;
+
+async function loadLogoFont(): Promise<ArrayBuffer | null> {
+  if (cachedLogoFont) return cachedLogoFont;
+
+  const fontPath = path.join(
+    /* turbopackIgnore: true */ process.cwd(),
+    "public",
+    "fonts",
+    "DejaVuSans-Bold.ttf"
+  );
+
   try {
-    const fontBuffer = await fs.readFile(
-      path.join(process.cwd(), "public", "fonts", "DejaVuSans-Bold.ttf")
-    );
-    fontData = fontBuffer.buffer.slice(
+    const fontBuffer = await fs.readFile(fontPath);
+    cachedLogoFont = fontBuffer.buffer.slice(
       fontBuffer.byteOffset,
       fontBuffer.byteOffset + fontBuffer.byteLength
     ) as ArrayBuffer;
+    return cachedLogoFont;
   } catch {
-    // Fallback if missing
+    return null;
   }
+}
+
+export async function GET() {
+  const fontData = await loadLogoFont();
 
   return new ImageResponse(
     (

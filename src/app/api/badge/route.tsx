@@ -4,27 +4,27 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  let fontData: ArrayBuffer | null = null;
+let cachedBadgeFont: ArrayBuffer | null = null;
 
-  const candidatePaths = [
-    path.join(process.cwd(), "public", "fonts", "DejaVuSans-Bold.ttf"),
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-  ];
+async function loadBadgeFont(): Promise<ArrayBuffer | null> {
+  if (cachedBadgeFont) return cachedBadgeFont;
 
-  for (const fontPath of candidatePaths) {
-    try {
-      const fontBuffer = await fs.readFile(fontPath);
-      // Explicitly cast to ArrayBuffer to satisfy Next.js Satori FontOptions
-      fontData = fontBuffer.buffer.slice(
-        fontBuffer.byteOffset,
-        fontBuffer.byteOffset + fontBuffer.byteLength
-      ) as ArrayBuffer;
-      break;
-    } catch {
-      // Continue to next path
-    }
+  try {
+    const fontBuffer = await fs.readFile(
+      path.join(process.cwd(), "public", "fonts", "DejaVuSans-Bold.ttf")
+    );
+    cachedBadgeFont = fontBuffer.buffer.slice(
+      fontBuffer.byteOffset,
+      fontBuffer.byteOffset + fontBuffer.byteLength
+    ) as ArrayBuffer;
+    return cachedBadgeFont;
+  } catch {
+    return null;
   }
+}
+
+export async function GET() {
+  const fontData = await loadBadgeFont();
 
   return new ImageResponse(
     (
@@ -65,8 +65,8 @@ export async function GET() {
             {
               name: "DejaVu Sans",
               data: fontData,
-              style: "normal" as const,
-              weight: 700 as const,
+              style: "normal",
+              weight: 700,
             },
           ]
         : undefined,

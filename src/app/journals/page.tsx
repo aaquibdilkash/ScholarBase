@@ -4,7 +4,7 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Academic Journals Database - ISSN, Impact Factor & More",
   description:
-    "Browse and discover academic journals, ISSN, impact factors, Scopus indexing, and publisher information.",
+    "Browse and discover academic journals reviewed by scholars along with their ISSN, impact factors, Scopus indexing, and publisher information.",
   path: "/journals",
   section: "Journals",
 });
@@ -30,7 +30,7 @@ export default async function JournalsPage({
   return (
     <ListPageShell
       title="Journals"
-      description="Browse and discover academic journals."
+      description="Browse and discover academic journals reviewed by scholars."
       addHref="/journals/add"
       addLabel="+ Add Journal"
       tab={tab}
@@ -41,8 +41,11 @@ export default async function JournalsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingJournals()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingJournals()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -56,7 +59,9 @@ export default async function JournalsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const journals = await getJournals(q ?? "", user?.id, 10);
             return { journals, userId: user?.id };
           }}
