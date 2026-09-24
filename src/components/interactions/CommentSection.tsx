@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   createComment,
@@ -59,6 +60,7 @@ export function CommentSection({
   const [hasMore, setHasMore] = useState(
     initialComments.length > COMMENT_PAGE_SIZE,
   );
+  const [parentsExpanded, setParentsExpanded] = useState(false);
 
   const [content, setContent] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
@@ -164,6 +166,7 @@ export function CommentSection({
         currentUserId,
       );
       if (next && next.length > 0) {
+        setParentsExpanded(true);
         // Drop any rows we already hold (offset overlap after a head insert).
         setParents((prev) => {
           const seen = new Set(prev.map((c) => c.id));
@@ -293,7 +296,7 @@ export function CommentSection({
         )}
 
         <div className="space-y-4 md:space-y-6">
-          {parents.map((comment) => (
+          {parents.slice(0, COMMENT_PAGE_SIZE).map((comment) => (
             <CommentThread
               key={comment.id}
               comment={comment}
@@ -318,13 +321,43 @@ export function CommentSection({
           )}
 
           {/* Shallow parent pagination — only while a previous page came back full */}
-          {hasMore && (
+          {parentsExpanded ? (
+            <div className="space-y-4 md:space-y-6">
+              {parents.slice(COMMENT_PAGE_SIZE).map((comment) => (
+                <CommentThread
+                  key={comment.id}
+                  comment={comment}
+                  module={module}
+                  targetId={targetId}
+                  currentUserId={currentUserId}
+                  postAuthorId={postAuthorId}
+                  locked={locked}
+                  onCountDelta={handleCountDelta}
+                  onRemoved={() =>
+                    setParents((prev) => prev.filter((c) => c.id !== comment.id))
+                  }
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {(hasMore || parentsExpanded || parents.length > COMMENT_PAGE_SIZE) && (
             <button
-              onClick={loadMoreComments}
+              type="button"
+              onClick={() => {
+                if (parentsExpanded) {
+                  setParentsExpanded(false);
+                } else if (hasMore) {
+                  void loadMoreComments();
+                } else {
+                  setParentsExpanded(true);
+                }
+              }}
               disabled={loadingMore}
-              className="w-full rounded-xl border border-slate-200 py-2 text-sm font-bold text-blue-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:text-blue-300 dark:hover:bg-slate-900"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-sm font-bold text-blue-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:text-blue-300 dark:hover:bg-slate-900"
             >
-              {loadingMore ? "Loading..." : "Load More Comments"}
+              {parentsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {loadingMore ? "Loading..." : parentsExpanded ? "Wrap up comments" : "View more comments"}
             </button>
           )}
         </div>

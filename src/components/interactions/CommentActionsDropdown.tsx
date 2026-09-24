@@ -13,6 +13,8 @@ export type CommentActionsDropdownProps = {
   canEdit?: boolean;
   editLabel?: string;
   deleteLabel?: string;
+  /** Adds a Reply action for users who can respond to this comment. */
+  onReply?: () => void;
 };
 
 export default function CommentActionsDropdown({
@@ -22,6 +24,7 @@ export default function CommentActionsDropdown({
   canEdit = true,
   editLabel = "Edit",
   deleteLabel = "Delete",
+  onReply,
 }: CommentActionsDropdownProps) {
   const [open, setOpen] = useState(false);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -51,7 +54,7 @@ export default function CommentActionsDropdown({
     };
   }, [open]);
 
-  if (!isOwner) return null;
+  if (!isOwner && !onReply) return null;
 
   const handleDelete = () => {
     setOpen(false);
@@ -88,6 +91,20 @@ export default function CommentActionsDropdown({
             className="sb-menu absolute right-0 z-50 mt-2 w-40"
           >
             <div>
+              {onReply && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={isDeleting}
+                  onClick={() => {
+                    setOpen(false);
+                    onReply();
+                  }}
+                  className="sb-menu-item"
+                >
+                  Reply
+                </button>
+              )}
               {canEdit && (
                 <button
                   type="button"
@@ -102,15 +119,17 @@ export default function CommentActionsDropdown({
                   {editLabel}
                 </button>
               )}
-              <button
-                type="button"
-                role="menuitem"
-                disabled={isDeleting}
-                onClick={handleDelete}
-                className="sb-menu-item text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
-              >
-                {deleteLabel}
-              </button>
+              {isOwner && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                  className="sb-menu-item text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10"
+                >
+                  {deleteLabel}
+                </button>
+              )}
             </div>
           </div>
         )}

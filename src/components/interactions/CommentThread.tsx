@@ -18,6 +18,7 @@ import { SubmitBtn } from "@/components/ui/SubmitBtn";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { CommentVoteButton } from "@/components/interactions/CommentVoteButton";
 import { useToast } from "@/components/ui/Toast";
+import { MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
 import {
   MentionComposer,
   renderMentionContent,
@@ -74,18 +75,25 @@ function ReplyForm({
   targetId,
   module,
   parentComment,
+  initialMention,
   onSuccess,
   toast,
 }: {
   targetId: string;
   module: CommentEntityType;
   parentComment: CommentWithAuthorAndVotes;
+  initialMention?: MentionUser;
   onSuccess: (reply: CommentWithAuthorAndVotes) => void;
   toast: ToastFn;
 }) {
   const draftKey = `draft_reply_${module}_${targetId}_${parentComment.id}`;
-  const [reply, setReply] = useState("");
-  const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
+  const initialMentionId = initialMention?.id;
+  const initialMentionHandle = initialMention?.handle;
+  const initialMentionText = initialMentionHandle ? `@${initialMentionHandle} ` : "";
+  const [reply, setReply] = useState(initialMentionText);
+  const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>(
+    initialMention ? [initialMention] : [],
+  );
   const [submitting, setSubmitting] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -95,13 +103,28 @@ function ReplyForm({
       if (saved) {
         const { content: savedContent, mentionedUsers: savedMentionedUsers } =
           JSON.parse(saved);
-        setReply(savedContent || "");
-        setMentionedUsers(savedMentionedUsers || []);
+        const draftMentions = Array.isArray(savedMentionedUsers)
+          ? savedMentionedUsers
+          : [];
+        const mergedMentions = initialMentionId
+          ? [
+              ...draftMentions.filter(
+                (user: MentionUser) => user.id !== initialMentionId,
+              ),
+              { id: initialMentionId, handle: initialMentionHandle ?? null },
+            ]
+          : draftMentions;
+        const mergedContent =
+          initialMentionHandle && !String(savedContent || "").includes(`@${initialMentionHandle}`)
+            ? `${initialMentionText}${savedContent || ""}`
+            : savedContent || "";
+        setReply(mergedContent);
+        setMentionedUsers(mergedMentions);
       }
     } catch (error) {
       console.error("Failed to read reply draft from localStorage", error);
     }
-  }, [draftKey]);
+  }, [draftKey, initialMentionId, initialMentionHandle, initialMentionText]);
 
   const handleReplyChange = (value: string) => {
     const currentMentions = mentionedUsers.filter((u) =>
@@ -240,7 +263,7 @@ interface CommentCardProps {
   /** Author of the parent comment — only set for replies, enables PARENT_COMMENT_AUTHOR deletion. */
   parentCommentAuthorId?: string | null;
   replyingToThis: boolean;
-  onToggleReplyForm: () => void;
+  onReply?: () => void;
   onEdited: (next: CommentWithAuthorAndVotes) => void;
   onTombstoned: () => void;
   onHardDeleted: () => void;
@@ -262,7 +285,7 @@ function CommentCard({
   postAuthorId,
   parentCommentAuthorId,
   replyingToThis,
-  onToggleReplyForm,
+  onReply,
   onEdited,
   onTombstoned,
   onHardDeleted,
@@ -270,8 +293,8 @@ function CommentCard({
   editingId,
   setEditingId,
   toast,
-  locked = false,
-  userFrozen = false,
+  locked: _locked = false,
+  userFrozen: _userFrozen = false,
 }: CommentCardProps) {
   const isOwner = !!currentUserId && comment.author?.id === currentUserId;
   // Mirrors src/lib/deletion.ts: the root post author and (for replies) the
@@ -389,12 +412,6 @@ function CommentCard({
                 : comment.content}
             </p>
           </div>
-          {!isReply && (
-            <span className="ml-2 mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 md:text-xs">
-              {comment.totalReplies ?? 0}{" "}
-              {(comment.totalReplies ?? 0) === 1 ? "Reply" : "Replies"}
-            </span>
-          )}
         </div>
       </div>
     );
@@ -543,6 +560,7 @@ function CommentCard({
                         canEdit={isOwner}
                         onEdit={() => setEditingId(comment.id)}
                         onDelete={handleDeleteComment}
+                        onReply={onReply}
                       />
                       <CommentVoteButton
                         commentId={comment.id}
@@ -558,14 +576,6 @@ function CommentCard({
           )}
         </div>
 
-        {!isReply && !isFrozen && !locked && !userFrozen && (
-          <button
-            onClick={onToggleReplyForm}
-            className="ml-2 mt-2 text-[11px] font-bold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
-          >
-            Reply ({comment.totalReplies ?? 0})
-          </button>
-        )}
         {replyingToThis && null}
       </div>
     </div>
@@ -608,13 +618,28 @@ export function CommentThread({
     () => new Set((initialComment.replies ?? []).map((reply) => reply.id)),
   );
   const [replyPagesExhausted, setReplyPagesExhausted] = useState(false);
+  // Keep the collapsed baseline separate from the full, already-loaded slice.
+  // Wrapping up must never depend on pagination state; it only controls display.
+  const [repliesExpanded, setRepliesExpanded] = useState(
+    (initialComment.replies?.length ?? 0) > 0,
+  );
   const [loadingReplies, setLoadingReplies] = useState(false);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const openReplyForm = (id: string) =>
+    setActiveReplyId((current) => (current === id ? null : id));
 
   // Materialized counter decides button visibility — zero extra queries.
   const hasMoreReplies =
     !replyPagesExhausted && (comment.totalReplies ?? 0) > replies.length;
+
+  const visibleReplies = repliesExpanded ? replies : [];
+
+  const activeReplyTarget = activeReplyId
+    ? activeReplyId === comment.id
+      ? comment
+      : replies.find((reply) => reply.id === activeReplyId) ?? null
+    : null;
 
   const loadMoreReplies = async () => {
     if (loadingReplies || !hasMoreReplies) return;
@@ -636,6 +661,7 @@ export function CommentThread({
         fetchedReplies.forEach((reply) => ids.add(reply.id));
         return ids;
       });
+      setRepliesExpanded(true);
       setReplies((prev) => {
         const uniqueReplies = new Map(prev.map((reply) => [reply.id, reply]));
         fetchedReplies.forEach((reply) => uniqueReplies.set(reply.id, reply));
@@ -658,8 +684,22 @@ export function CommentThread({
 
   const handleReplyPosted = (reply: CommentWithAuthorAndVotes) => {
     setReplies((prev) => [...prev, reply]);
-    setComment((c) => ({ ...c, totalReplies: (c.totalReplies ?? 0) + 1 }));
+    if (reply.parentId === comment.id) {
+      setComment((c) => ({
+        ...c,
+        totalReplies: (c.totalReplies ?? 0) + 1,
+      }));
+    } else {
+      setReplies((prev) =>
+        prev.map((item) =>
+          item.id === reply.parentId
+            ? { ...item, totalReplies: (item.totalReplies ?? 0) + 1 }
+            : item,
+        ),
+      );
+    }
     setReplyPagesExhausted(false);
+    setRepliesExpanded(true);
     onCountDelta(1);
     setActiveReplyId(null);
   };
@@ -696,8 +736,10 @@ export function CommentThread({
         replyingToThis={activeReplyId === comment.id}
         locked={locked}
         userFrozen={userFrozen}
-        onToggleReplyForm={() =>
-          setActiveReplyId(activeReplyId === comment.id ? null : comment.id)
+        onReply={
+          comment.isDeleted || comment.isFrozen || locked || userFrozen
+            ? undefined
+            : () => openReplyForm(comment.id)
         }
         onEdited={(next) => setComment(next)}
         onTombstoned={() =>
@@ -716,22 +758,9 @@ export function CommentThread({
 
       {/* 🔥 WRAPPER ADDED HERE: Indents everything past the parent avatar */}
       <div className="ml-10 md:ml-12">
-        {activeReplyId === comment.id &&
-          !!comment.authorId &&
-          !comment.isDeleted &&
-          !userFrozen && (
-            <ReplyForm
-              targetId={targetId}
-              module={module}
-              parentComment={comment}
-              onSuccess={handleReplyPosted}
-              toast={toast}
-            />
-          )}
-
         {replies.length > 0 && (
           <div className="mt-2 space-y-2 border-l-2 border-slate-100 pl-2 dark:border-slate-800 md:mt-3 md:space-y-3 md:pl-4">
-            {replies.map((reply) => (
+            {visibleReplies.map((reply) => (
               <CommentCard
                 key={reply.id}
                 comment={reply}
@@ -743,7 +772,7 @@ export function CommentThread({
                 parentCommentAuthorId={comment.authorId}
                 replyingToThis={false}
                 locked={locked}
-                onToggleReplyForm={() => {}}
+                onReply={comment.isDeleted ? undefined : () => openReplyForm(reply.id)}
                 onEdited={(next) =>
                   setReplies((prev) =>
                     prev.map((r) => (r.id === next.id ? next : r)),
@@ -760,18 +789,66 @@ export function CommentThread({
           </div>
         )}
 
-        {hasMoreReplies && (
-          <button
-            onClick={loadMoreReplies}
-            disabled={loadingReplies}
-            className="ml-2 mt-2 block text-[11px] font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:opacity-50 dark:text-blue-300 dark:hover:text-blue-200 md:text-xs"
-          >
-            {loadingReplies
-              ? "Loading..."
-              : replies.length === 0
-                ? "Load Replies"
-                : "Load More Replies"}
-          </button>
+        {(comment.isFrozen !== true && !locked && !userFrozen && !comment.isDeleted) ||
+        (comment.isDeleted && (replies.length > 0 || hasMoreReplies || repliesExpanded)) ? (
+          <div className="mt-2 flex w-full items-center gap-2">
+            {comment.isFrozen !== true && !locked && !userFrozen && !comment.isDeleted && (
+              <button
+                type="button"
+                onClick={() => openReplyForm(comment.id)}
+                className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
+              >
+                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                Add a reply
+                {activeReplyTarget?.id === comment.id ? (
+                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+              </button>
+            )}
+
+            {(replies.length > 0 || hasMoreReplies || repliesExpanded) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (repliesExpanded) {
+                    setRepliesExpanded(false);
+                  } else if (hasMoreReplies) {
+                    void loadMoreReplies();
+                  } else {
+                    setRepliesExpanded(true);
+                  }
+                }}
+                disabled={loadingReplies}
+                className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:opacity-50 dark:text-blue-300 dark:hover:text-blue-200 md:text-xs"
+              >
+                {repliesExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {loadingReplies
+                  ? "Loading..."
+                  : `${repliesExpanded ? "Wrap up replies" : replies.length === 0 ? "View replies" : "View more replies"} (${comment.totalReplies ?? 0})`}
+              </button>
+            )}
+
+          </div>
+        ) : null}
+
+        {activeReplyTarget && !activeReplyTarget.isDeleted && !userFrozen && (
+          <ReplyForm
+            key={activeReplyTarget.id}
+            targetId={targetId}
+            module={module}
+            parentComment={activeReplyTarget}
+            initialMention={
+              activeReplyTarget.id === comment.id
+                ? undefined
+                : activeReplyTarget.author?.id && activeReplyTarget.author.handle
+                  ? { id: activeReplyTarget.author.id, handle: activeReplyTarget.author.handle }
+                  : undefined
+            }
+            onSuccess={handleReplyPosted}
+            toast={toast}
+          />
         )}
       </div>
     </div>
