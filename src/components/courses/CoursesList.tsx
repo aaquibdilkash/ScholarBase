@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { CourseCard } from "./CourseCard";
 import type { CourseWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getCourses } from "@/app/actions/courses";
 
 export function CoursesList({
@@ -22,12 +21,9 @@ export function CoursesList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["courses", q] as const, [q]);
 
-  const { data: coursesData } = useQuery({
-    queryKey: ["courses", q],
-    queryFn: () => getCourses(q, currentUserId),
-    initialData: courses,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function CoursesList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={coursesData}
-        loadMore={(cursor) => getCourses(q, currentUserId, 10, cursor)}
+      <CacheBackedList<CourseWithAuthor>
+        queryKey={queryKey}
+        initialItems={courses}
+        fetchPage={(cursor) => getCourses(q, currentUserId, 10, cursor)}
         renderItem={(course) => (
           <CourseCard
             key={(course as CourseWithAuthor).id}

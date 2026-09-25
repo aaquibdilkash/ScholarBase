@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ResultCard } from "./ResultCard";
 import type { ResultWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getResults } from "@/app/actions/results";
 
 export function ResultsList({
@@ -22,12 +21,9 @@ export function ResultsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["results", q] as const, [q]);
 
-  const { data: resultsData } = useQuery({
-    queryKey: ["results", q],
-    queryFn: () => getResults(q, currentUserId),
-    initialData: results,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,13 +42,14 @@ export function ResultsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={resultsData}
-        loadMore={(cursor) => getResults(q, currentUserId, 10, cursor)}
+      <CacheBackedList<ResultWithAuthor>
+        queryKey={queryKey}
+        initialItems={results}
+        fetchPage={(cursor) => getResults(q, currentUserId, 10, cursor)}
         renderItem={(item) => (
           <ResultCard
-            key={(item as ResultWithAuthor).id}
-            result={item as ResultWithAuthor}
+            key={item.id}
+            result={item}
             currentUserId={currentUserId}
           />
         )}

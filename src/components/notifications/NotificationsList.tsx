@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Notification } from "@prisma/client";
 import {
   getNotifications,
@@ -9,7 +9,7 @@ import {
 } from "@/app/actions/notifications";
 import { getNotificationLink } from "@/lib/notification-links";
 import { formatTimeAgo } from "@/utils/time-ago";
-import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import Link from "next/link";
 import {
@@ -162,50 +162,8 @@ export function NotificationsList({
   initialNotifications: NotificationWithActor[];
   initialUnreadCount: number;
 }) {
-  const [hasMore, setHasMore] = useState(initialNotifications.length === 10);
-  const [loadingMore, setLoadingMore] = useState(false);
   const queryClient = useQueryClient();
-  const queryKey = useMemo(() => ["notifications", userId], [userId]);
-
-  const { data: notifications = [] } = useQuery({
-    queryKey,
-    queryFn: async () => {
-      const items = await getNotifications(10);
-      return items as NotificationWithActor[];
-    },
-    initialData: initialNotifications,
-    staleTime: 30 * 1000,
-  });
-
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
-    setLoadingMore(true);
-    try {
-      const lastItemId =
-        notifications.length > 0
-          ? notifications[notifications.length - 1].id
-          : undefined;
-      const newItems = await getNotifications(10, lastItemId);
-
-      if (newItems.length === 10) {
-        setHasMore(true);
-      } else {
-        setHasMore(false);
-      }
-
-      queryClient.setQueryData<NotificationWithActor[]>(
-        queryKey,
-        (oldData = []) => [
-          ...oldData,
-          ...(newItems as NotificationWithActor[]),
-        ],
-      );
-    } catch (error) {
-      console.error("Failed to load more notifications:", error);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [notifications, hasMore, loadingMore, queryClient, queryKey]);
+  const queryKey = useMemo(() => ["notifications", userId] as const, [userId]);
 
   useEffect(() => {
     const handleRead = (event: Event) => {
@@ -250,20 +208,17 @@ export function NotificationsList({
         </div>
       )}
 
-      <div className="space-y-4">
-        {notifications.map((notification) => (
+      <CacheBackedList<NotificationWithActor>
+        queryKey={queryKey}
+        initialItems={initialNotifications}
+        chunkSize={10}
+        staleTime={30 * 1000}
+        fetchPage={(cursor) => getNotifications(10, cursor)}
+        renderItem={(notification) => (
           <NotificationCard key={notification.id} notification={notification} />
-        ))}
-
-        <LoadMoreSentinel disabled={!hasMore || loadingMore} onVisible={loadMore} />
-
-        {loadingMore && (
-          <div className="py-4 text-center text-sm text-slate-500">
-            Loading more...
-          </div>
         )}
-
-        {notifications.length === 0 && (
+        className="space-y-4"
+        emptyState={
           <div className="sb-surface-strong p-10 text-center">
             <p className="text-lg font-semibold text-slate-950 dark:text-slate-100">
               No notifications yet
@@ -273,8 +228,11 @@ export function NotificationsList({
               follow will appear here.
             </p>
           </div>
-        )}
-      </div>
+        }
+        onLoadError={(error) => {
+          console.error("Failed to load more notifications:", error);
+        }}
+      />
     </div>
   );
 }

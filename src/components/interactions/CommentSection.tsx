@@ -89,38 +89,26 @@ export function CommentSection({
   }, [visibleCount]);
 
   // Central counter handler: every thread reports +/-1 deltas here so we can
-  // surgically update the detail-page and feed caches (RULE 1).
+  // surgically update the feed cache (RULE 1).
+  //
+  // Note: this deliberately patches ONLY `["feed"]`. Detail pages are server
+  // components that ship a fresh `totalComments` on navigation, and no client
+  // query is ever registered under `[module, targetId]`, so patching that key
+  // was a silent no-op. The on-page badge is driven by `visibleCount` above.
   const handleCountDelta = (delta: number) => {
     setVisibleCount((v) => Math.max(0, v + delta));
-    queryClient.setQueriesData<{ totalComments?: number }>(
-      { queryKey: [module, targetId] },
-      (oldData) => {
-        if (!oldData || typeof oldData !== "object") return oldData;
-        const data = oldData as { totalComments?: number };
-        if (typeof data.totalComments === "number") {
-          return {
-            ...data,
-            totalComments: Math.max(0, data.totalComments + delta),
-          };
-        }
-        return data;
-      },
-    );
-    queryClient.setQueriesData(
-      { queryKey: ["feed"] },
-      (oldData) => {
-        if (!Array.isArray(oldData)) return oldData;
-        return oldData.map((item) => {
-          const feedItem = item as { id: string; totalComments?: number };
-          if (feedItem.id !== targetId || typeof feedItem.totalComments !== "number")
-            return item;
-          return {
-            ...feedItem,
-            totalComments: Math.max(0, feedItem.totalComments + delta),
-          };
-        });
-      },
-    );
+    queryClient.setQueriesData({ queryKey: ["feed"] }, (oldData) => {
+      if (!Array.isArray(oldData)) return oldData;
+      return oldData.map((item) => {
+        const feedItem = item as { id: string; totalComments?: number };
+        if (feedItem.id !== targetId || typeof feedItem.totalComments !== "number")
+          return item;
+        return {
+          ...feedItem,
+          totalComments: Math.max(0, feedItem.totalComments + delta),
+        };
+      });
+    });
   };
 
   useEffect(() => {
@@ -184,6 +172,11 @@ export function CommentSection({
       setLoadingMore(false);
     }
   };
+
+  // Single removal path shared by every rendered parent, so the collapse
+  // boundary below never has to be duplicated across two render blocks.
+  const removeParent = (commentId: string) =>
+    setParents((prev) => prev.filter((c) => c.id !== commentId));
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -296,21 +289,21 @@ export function CommentSection({
         )}
 
         <div className="space-y-4 md:space-y-6">
-          {parents.slice(0, COMMENT_PAGE_SIZE).map((comment) => (
-            <CommentThread
-              key={comment.id}
-              comment={comment}
-              module={module}
-              targetId={targetId}
-              currentUserId={currentUserId}
-              postAuthorId={postAuthorId}
-              locked={locked}
-              onCountDelta={handleCountDelta}
-              onRemoved={() =>
-                setParents((prev) => prev.filter((c) => c.id !== comment.id))
-              }
-            />
-          ))}
+          {(parentsExpanded ? parents : parents.slice(0, COMMENT_PAGE_SIZE)).map(
+            (comment) => (
+              <CommentThread
+                key={comment.id}
+                comment={comment}
+                module={module}
+                targetId={targetId}
+                currentUserId={currentUserId}
+                postAuthorId={postAuthorId}
+                locked={locked}
+                onCountDelta={handleCountDelta}
+                onRemoved={() => removeParent(comment.id)}
+              />
+            ),
+          )}
 
           {parents.length === 0 && (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-8 text-center md:py-10 dark:border-slate-800 dark:bg-slate-950/70">
@@ -319,27 +312,6 @@ export function CommentSection({
               </p>
             </div>
           )}
-
-          {/* Shallow parent pagination — only while a previous page came back full */}
-          {parentsExpanded ? (
-            <div className="space-y-4 md:space-y-6">
-              {parents.slice(COMMENT_PAGE_SIZE).map((comment) => (
-                <CommentThread
-                  key={comment.id}
-                  comment={comment}
-                  module={module}
-                  targetId={targetId}
-                  currentUserId={currentUserId}
-                  postAuthorId={postAuthorId}
-                  locked={locked}
-                  onCountDelta={handleCountDelta}
-                  onRemoved={() =>
-                    setParents((prev) => prev.filter((c) => c.id !== comment.id))
-                  }
-                />
-              ))}
-            </div>
-          ) : null}
 
           {(hasMore || parentsExpanded || parents.length > COMMENT_PAGE_SIZE) && (
             <button

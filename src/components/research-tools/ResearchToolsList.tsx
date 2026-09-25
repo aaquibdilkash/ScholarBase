@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ResearchToolCard } from "./ResearchToolCard";
 import type { ResearchToolWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getResearchTools } from "@/app/actions/researchTools";
 
 export function ResearchToolsList({
@@ -22,12 +21,9 @@ export function ResearchToolsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["researchTools", q] as const, [q]);
 
-  const { data: toolsData } = useQuery({
-    queryKey: ["researchTools", q],
-    queryFn: () => getResearchTools(q, currentUserId),
-    initialData: tools,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function ResearchToolsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={toolsData}
-        loadMore={(cursor) => getResearchTools(q, currentUserId, 10, cursor)}
+      <CacheBackedList<ResearchToolWithAuthor>
+        queryKey={queryKey}
+        initialItems={tools}
+        fetchPage={(cursor) => getResearchTools(q, currentUserId, 10, cursor)}
         renderItem={(tool) => (
           <ResearchToolCard
             key={(tool as ResearchToolWithAuthor).id}

@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { EventCard } from "./EventCard";
 import type { EventWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getEvents } from "@/app/actions/events";
 
 export function EventsList({
@@ -22,12 +21,9 @@ export function EventsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["events", q] as const, [q]);
 
-  const { data: eventsData } = useQuery({
-    queryKey: ["events", q],
-    queryFn: () => getEvents(q, currentUserId),
-    initialData: events,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,13 +42,14 @@ export function EventsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={eventsData}
-        loadMore={(cursor) => getEvents(q, currentUserId, 10, cursor)}
+      <CacheBackedList<EventWithAuthor>
+        queryKey={queryKey}
+        initialItems={events}
+        fetchPage={(cursor) => getEvents(q, currentUserId, 10, cursor)}
         renderItem={(event) => (
           <EventCard
-            key={(event as EventWithAuthor).id}
-            event={event as EventWithAuthor}
+            key={event.id}
+            event={event}
             currentUserId={currentUserId}
           />
         )}

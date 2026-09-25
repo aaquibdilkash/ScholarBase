@@ -70,7 +70,8 @@ export default async function FeedPage({
                 posts={posts}
                 currentUserId={userId}
                 initialQuery={q ?? ""}
-                loadMoreParams={{ q, tab }}
+                tab={tab}
+                pageSize={pageSize}
               />
             )}
           </AsyncListRegion>

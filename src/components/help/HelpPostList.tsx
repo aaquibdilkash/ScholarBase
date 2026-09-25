@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { HelpPostCard } from "./HelpPostCard";
 import type { HelpPostWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getHelpPosts } from "@/app/actions/help";
 
 export function HelpPostList({
@@ -22,12 +21,9 @@ export function HelpPostList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["helpPosts", q] as const, [q]);
 
-  const { data: helpPostsData } = useQuery({
-    queryKey: ["helpPosts", q],
-    queryFn: () => getHelpPosts(q, currentUserId),
-    initialData: posts,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function HelpPostList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={helpPostsData}
-        loadMore={(cursor) => getHelpPosts(query, currentUserId, 10, cursor)}
+      <CacheBackedList<HelpPostWithAuthor>
+        queryKey={queryKey}
+        initialItems={posts}
+        fetchPage={(cursor) => getHelpPosts(query, currentUserId, 10, cursor)}
         renderItem={(post) => (
           <HelpPostCard
             key={(post as HelpPostWithAuthor).id}

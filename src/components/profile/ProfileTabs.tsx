@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import {
   FileText,
@@ -14,7 +14,7 @@ import Link from "next/link";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { RichContent } from "@/components/content/RichContent";
 import { stripHtmlTags } from "@/lib/html";
-import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import {
   getProfileSections,
   getProfileBookmarkSections,
@@ -331,20 +331,11 @@ export default function ProfileTabs({
   );
   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
   const [activityLoading, setActivityLoading] = useState(false);
-  const [activityLoadingMore, setActivityLoadingMore] = useState(false);
-  const [activityHasMore, setActivityHasMore] = useState(false);
-
-  const activityRef = useRef<ActivityItem[] | null>(null);
-  const activityLoadingMoreRef = useRef(false);
-  const activityHasMoreRef = useRef(false);
-
-  useEffect(() => {
-    activityRef.current = activity;
-  }, [activity]);
-
-  useEffect(() => {
-    activityHasMoreRef.current = activityHasMore;
-  }, [activityHasMore]);
+  // Owned by the React Query cache so appended pages survive tab switches.
+  const activityQueryKey = useMemo(
+    () => ["profile-activity", profileId] as const,
+    [profileId],
+  );
 
   const loadContent = useCallback(async () => {
     if (sections || isLoading) return;
@@ -364,16 +355,10 @@ export default function ProfileTabs({
     if (activity || activityLoading) return;
     setActivityLoading(true);
     try {
-      const data = await getProfileActivity(profileId, 10);
-      setActivity(data);
-      const hasMore = data.length === 10;
-      activityHasMoreRef.current = hasMore;
-      setActivityHasMore(hasMore);
+      setActivity(await getProfileActivity(profileId, 10));
     } catch (err) {
       console.error("Failed to load profile activity:", err);
       setActivity([]);
-      activityHasMoreRef.current = false;
-      setActivityHasMore(false);
     } finally {
       setActivityLoading(false);
     }
@@ -392,29 +377,6 @@ export default function ProfileTabs({
       setBookmarksLoading(false);
     }
   }, [profileId, currentUserId, bookmarkSections, bookmarksLoading]);
-
-  const loadMoreActivity = useCallback(async () => {
-    if (activityLoadingMoreRef.current || !activityHasMoreRef.current) return;
-    activityLoadingMoreRef.current = true;
-    setActivityLoadingMore(true);
-    try {
-      const currentActivity = activityRef.current;
-      const lastItem =
-        currentActivity && currentActivity.length > 0
-          ? currentActivity[currentActivity.length - 1]
-          : undefined;
-      const newItems = await getProfileActivity(profileId, 10, lastItem?.id);
-      const hasMore = newItems.length === 10;
-      activityHasMoreRef.current = hasMore;
-      setActivityHasMore(hasMore);
-      setActivity((prev) => [...(prev ?? []), ...newItems]);
-    } catch (err) {
-      console.error("Failed to load more activity:", err);
-    } finally {
-      activityLoadingMoreRef.current = false;
-      setActivityLoadingMore(false);
-    }
-  }, [profileId]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -775,43 +737,37 @@ export default function ProfileTabs({
         </div>
       )}
 
-      {activeTab === "activity" && (
-        <div className="space-y-4">
-          {activityLoading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
-            </div>
-          )}
-          {activity && activity.length > 0
-            ? activity.map((item, index) => (
-                <ActivityItemCard
-                  key={`${item.id}-${item.action}-${index}`}
-                  item={item}
-                />
-              ))
-            : !activityLoading && (
-                <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
-                  <p className="text-sm font-medium text-slate-400">
-                    No activity to show yet.
-                  </p>
-                </div>
-              )}
-
-          {activity && activity.length > 0 && (
-            <LoadMoreSentinel
-              disabled={!activityHasMore || activityLoadingMore}
-              onVisible={loadMoreActivity}
-            />
-          )}
-
-          {activityLoadingMore && (
-            <div className="flex items-center justify-center py-4 text-sm text-slate-500">
-              <Loader2 className="mr-2 h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
-              Loading more...
-            </div>
-          )}
-        </div>
-      )}
+      {activeTab === "activity" &&
+        (activityLoading || !activity ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+          </div>
+        ) : (
+          <CacheBackedList<ActivityItem>
+            queryKey={activityQueryKey}
+            initialItems={activity}
+            chunkSize={10}
+            fetchPage={(cursor) => getProfileActivity(profileId, 10, cursor)}
+            renderItem={(item, index) => (
+              <ActivityItemCard key={`${item.id}-${item.action}-${index}`} item={item} />
+            )}
+            className="space-y-4"
+            emptyState={
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                <p className="text-sm font-medium text-slate-400">No activity to show yet.</p>
+              </div>
+            }
+            loadingIndicator={
+              <div className="flex items-center justify-center py-4 text-sm text-slate-500">
+                <Loader2 className="mr-2 h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+                Loading more...
+              </div>
+            }
+            onLoadError={(error) => {
+              console.error("Failed to load more activity:", error);
+            }}
+          />
+        ))}
     </div>
   );
 }

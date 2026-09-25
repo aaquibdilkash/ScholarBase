@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, useCallback } from "react";
+import { useEffect, useRef, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { getFollowersWithCursor, getFollowingWithCursor, toggleFollow } from "@/app/actions/follow";
 import { useToast } from "@/components/ui/Toast";
+import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import type { CursorPage } from "@/components/layout/listPage";
 
 import { X } from "lucide-react";
 
@@ -15,6 +17,10 @@ type UserItem = {
   avatarUrl: string | null;
   isFollowing: boolean;
 };
+
+const PAGE_SIZE = 10;
+// Stable identity so the internal re-seed effect does not fire every render.
+const EMPTY_USERS: UserItem[] = [];
 
 export function UserListModal({
   open,
@@ -32,113 +38,60 @@ export function UserListModal({
   currentUserId?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [users, setUsers] = useState<UserItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [, startTransition] = useTransition();
   const { toast } = useToast();
-  
+
   const fetcher = mode === "followers" ? getFollowersWithCursor : getFollowingWithCursor;
-  const fetcherRef = useRef(fetcher);
-  const loadingMoreRef = useRef(loadingMore);
-
-  useEffect(() => {
-    fetcherRef.current = fetcher;
-    loadingMoreRef.current = loadingMore;
-  });
-
-  const loadUsers = useCallback(async (cursorOverride?: string, replace = false) => {
-    if (loadingMoreRef.current) return;
-    
-    const isFetchingMore = !!cursorOverride;
-    if (isFetchingMore) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
-    
-    try {
-      const result = await fetcherRef.current(userId, currentUserId, 20, cursorOverride || undefined);
-      
-      if (replace) {
-        setUsers(result.users);
-        setCursor(result.nextCursor);
-        setHasMore(result.hasMore);
-      } else {
-        setUsers((prev) => [...prev, ...result.users]);
-        if (cursorOverride) {
-          setCursor(result.nextCursor);
-        }
-        setHasMore(result.hasMore);
-      }
-    } catch (err) {
-      console.error(`Failed to load ${mode}:`, err);
-      toast(`Failed to load ${mode.toLowerCase()}.`, "error");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [userId, currentUserId, mode, toast]);
+  // These endpoints paginate on `createdAt` and return an explicit `nextCursor`
+  // under a `users` key, so map the result into the shared CursorPage shape.
+  const fetchPage = useCallback(
+    async (cursor?: string): Promise<CursorPage<UserItem>> => {
+      const result = await fetcher(
+        userId,
+        currentUserId,
+        PAGE_SIZE,
+        cursor,
+      );
+      return {
+        items: result.users as UserItem[],
+        nextCursor: result.nextCursor,
+        hasMore: result.hasMore,
+      };
+    },
+    [fetcher, userId, currentUserId],
+  );
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open) {
       dialog.showModal();
-      setUsers([]);
-      setCursor(null);
-      setHasMore(false);
-      loadUsers(undefined, true);
-    } else {
+    } else if (dialog.open) {
       dialog.close();
     }
-  }, [open, userId, mode, currentUserId, loadUsers]);
+  }, [open]);
 
   const handleClose = () => {
     dialogRef.current?.close();
     onClose();
   };
 
-  const handleFollow = (targetId: string) => {
+  const handleFollow = (targetId: string, updateItem: (id: string, patch: Partial<UserItem>) => void) => {
     startTransition(async () => {
       try {
         const result = await toggleFollow(targetId);
         if (result.error) {
           toast(result.error, "error");
-          return
+          return;
         };
         if (result.success) {
-          setUsers((prev) =>
-            prev.map((u) =>
-              u.id === targetId ? { ...u, isFollowing: result.isFollowing } : u,
-            ),
-          );
+          updateItem(targetId, { isFollowing: result.isFollowing });
         }
       } catch {
         toast("Failed to update.", "error");
       }
     });
   };
-
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    if (!hasMore || loadingMore) return;
-    
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-    
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting && hasMore) {
-        loadUsers(cursor || undefined, false);
-      }
-    });
-    
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, loadingMore, cursor, loadUsers]);
 
   return (
     <dialog
@@ -160,73 +113,74 @@ export function UserListModal({
           </button>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
-          </div>
-        ) : users.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-            No users found.
-          </p>
-        ) : (
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {users.map((u) => (
-              <div
-                key={u.id}
-                className="flex items-center justify-between gap-3 rounded-xl p-3 hover:bg-slate-50 transition dark:hover:bg-slate-800/60"
+        <AppendMoreList<UserItem>
+          initialItems={EMPTY_USERS}
+          loadMore={fetchPage}
+          chunkSize={PAGE_SIZE}
+          // Re-fetch page 1 each time the dialog opens.
+          reloadToken={open ? `${userId}:${mode}` : null}
+          onLoadError={(error) => {
+            console.error(`Failed to load ${mode}:`, error);
+            toast(`Failed to load ${mode.toLowerCase()}.`, "error");
+          }}
+          className="max-h-[60vh] space-y-3 overflow-y-auto"
+          emptyState={
+            <p className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              No users found.
+            </p>
+          }
+          loadingIndicator={
+            <div className="flex items-center justify-center gap-2 py-4 text-slate-500">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
+              Loading more...
+            </div>
+          }
+          renderItem={(u, { updateItem }) => (
+            <div
+              key={u.id}
+              className="flex items-center justify-between gap-3 rounded-xl p-3 hover:bg-slate-50 transition dark:hover:bg-slate-800/60"
+            >
+              <Link
+                href={`/scholars/${u.id}`}
+                prefetch={false}
+                className="flex items-center gap-3 min-w-0"
+                onClick={handleClose}
               >
-                <Link
-                  href={`/scholars/${u.id}`}
-                  prefetch={false}
-                  className="flex items-center gap-3 min-w-0"
-                  onClick={handleClose}
-                >
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden dark:border-slate-700 dark:bg-slate-800">
-                    {u.avatarUrl ? (
-                      <UserAvatar src={u.avatarUrl} name={u.name} />
-                    ) : (
-                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500">
-                        {u.name?.charAt(0).toUpperCase() || "?"}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                      {u.name || "Scholar"}
+                <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+                  {u.avatarUrl ? (
+                    <UserAvatar src={u.avatarUrl} name={u.name} />
+                  ) : (
+                    <span className="text-sm font-bold text-slate-400 dark:text-slate-500">
+                      {u.name?.charAt(0).toUpperCase() || "?"}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {u.name || "Scholar"}
+                  </p>
+                  {u.handle && (
+                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                      @{u.handle}
                     </p>
-                    {u.handle && (
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        @{u.handle}
-                      </p>
-                    )}
-                  </div>
-                </Link>
-                {currentUserId && currentUserId !== u.id && (
-                  <button
-                    onClick={() => handleFollow(u.id)}
-                    className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-                      u.isFollowing
-                        ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-1 dark:ring-slate-600 dark:hover:bg-slate-700"
-                        : "bg-blue-600 text-white hover:bg-blue-700"
-                    }`}
-                  >
-                    {u.isFollowing ? "Following" : "Follow"}
-                  </button>
-                )}
-              </div>
-            ))}
-            {hasMore && (
-              <div ref={sentinelRef} className="py-4 text-center">
-                {loadingMore ? (
-                  <div className="flex items-center justify-center gap-2 text-slate-500">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
-                    Loading more...
-                  </div>
-                ) : null}
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+                </div>
+              </Link>
+              {currentUserId && currentUserId !== u.id && (
+                <button
+                  onClick={() => handleFollow(u.id, updateItem)}
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                    u.isFollowing
+                      ? "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:ring-1 dark:ring-slate-600 dark:hover:bg-slate-700"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
+                >
+                  {u.isFollowing ? "Following" : "Follow"}
+                </button>
+              )}
+            </div>
+          )}
+        />
       </div>
     </dialog>
   );

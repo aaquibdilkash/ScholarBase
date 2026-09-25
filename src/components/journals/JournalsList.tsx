@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { JournalCard } from "./JournalCard";
 import type { JournalWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getJournals } from "@/app/actions/journals";
 
 export function JournalsList({
@@ -22,12 +21,9 @@ export function JournalsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["journals", q] as const, [q]);
 
-  const { data: journalsData } = useQuery({
-    queryKey: ["journals", q],
-    queryFn: () => getJournals(q, currentUserId),
-    initialData: journals,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,13 +42,14 @@ export function JournalsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={journalsData}
-        loadMore={(cursor) => getJournals(q, currentUserId, 10, cursor)}
+      <CacheBackedList<JournalWithAuthor>
+        queryKey={queryKey}
+        initialItems={journals}
+        fetchPage={(cursor) => getJournals(q, currentUserId, 10, cursor)}
         renderItem={(journal) => (
           <JournalCard
-            key={(journal as JournalWithAuthor).id}
-            journal={journal as JournalWithAuthor}
+            key={journal.id}
+            journal={journal}
             currentUserId={currentUserId}
           />
         )}

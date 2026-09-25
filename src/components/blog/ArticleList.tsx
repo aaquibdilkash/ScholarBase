@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import type { ArticleWithAuthor } from "@/types/cards";
 import { ArticleCard } from "@/components/blog/ArticleCard";
@@ -19,15 +18,13 @@ export function ArticleList({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
-  const { data: articlesData, refetch } = useQuery({
-    queryKey: ["articles", query],
-    queryFn: () => getArticles(query),
-    initialData: articles,
-  });
+  // Search runs on submit, so keep the applied term separate from the input
+  // value. Driving pagination from the raw input would refetch every keystroke.
+  const [appliedQuery, setAppliedQuery] = useState(initialQuery ?? "");
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    refetch();
+    setAppliedQuery(query);
   };
 
   return (
@@ -40,13 +37,15 @@ export function ArticleList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={articlesData}
-        loadMore={(cursor) => getArticles(query, currentUserId, 10, cursor)}
+      <AppendMoreList<ArticleWithAuthor>
+        initialItems={articles}
+        // Search is client-side (no navigation), so re-fetch page 1 per term.
+        reloadToken={appliedQuery}
+        loadMore={(cursor) => getArticles(appliedQuery, currentUserId, 10, cursor)}
         renderItem={(article) => (
           <ArticleCard
-            key={(article as ArticleWithAuthor).id}
-            article={article as ArticleWithAuthor}
+            key={article.id}
+            article={article}
             currentUserId={currentUserId}
           />
         )}

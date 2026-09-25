@@ -16,6 +16,7 @@ import {
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import type { HelpPostWithAuthor } from "@/types/cards";
+import { upsertToList } from "@/utils/cacheMutation";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   HELP_TITLE_TIP,
@@ -64,10 +65,7 @@ export default function HelpPostForm({
         return;
       }
       const newPost = response.data as HelpPostWithAuthor;
-      queryClient.setQueryData<HelpPostWithAuthor[]>(
-        ["helpPosts", { q: "" }],
-        (oldData = []) => [newPost, ...oldData],
-      );
+      upsertToList<HelpPostWithAuthor>(queryClient, ["helpPosts"], newPost, "create");
       resetDraft();
       toast("Help post created successfully!", "success");
       router.push(`/help/${newPost.id}`);
@@ -86,11 +84,7 @@ export default function HelpPostForm({
         return;
       }
       const updatedPost = response.data as HelpPostWithAuthor;
-      queryClient.setQueryData<HelpPostWithAuthor[]>(
-        ["helpPosts", { q: "" }],
-        (oldData = []) =>
-          oldData.map((p) => (p.id === updatedPost.id ? updatedPost : p)),
-      );
+      upsertToList<HelpPostWithAuthor>(queryClient, ["helpPosts"], updatedPost, "edit");
       queryClient.setQueryData(["helpPost", updatedPost.id], updatedPost);
       toast("Help post updated successfully!", "success");
       router.push(`/help/${updatedPost.id}`);

@@ -7,6 +7,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
 import type { ArticleWithAuthor } from "@/types/cards";
+import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 
@@ -48,10 +49,10 @@ export function ArticleCard({
                   toast({ title: "Error", description: "Failed to delete article.", variant: "destructive" });
                   return { refresh: false };
                 }
-                queryClient.setQueriesData<ArticleWithAuthor[]>(
-                  { queryKey: ["articles", { q: "" }] },
-                  (oldData = []) =>
-                    oldData.filter((p) => p.id !== response.data?.deletedId),
+                removeFromList<ArticleWithAuthor>(
+                  queryClient,
+                  ["articles"],
+                  response.data.deletedId,
                 );
                 toast({ title: "Success", description: "Article deleted successfully." });
                 return { refresh: false };

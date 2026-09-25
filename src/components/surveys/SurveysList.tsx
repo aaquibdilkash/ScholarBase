@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { SurveyCard } from "./SurveyCard";
 import type { SurveyWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getSurveys } from "@/app/actions/surveys";
 
 export function SurveysList({
@@ -22,12 +21,9 @@ export function SurveysList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["surveys", q] as const, [q]);
 
-  const { data: surveysData } = useQuery({
-    queryKey: ["surveys", q],
-    queryFn: () => getSurveys(q, currentUserId),
-    initialData: surveys,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function SurveysList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={surveysData}
-        loadMore={(cursor) => getSurveys(q, currentUserId, 10, cursor)}
+      <CacheBackedList<SurveyWithAuthor>
+        queryKey={queryKey}
+        initialItems={surveys}
+        fetchPage={(cursor) => getSurveys(q, currentUserId, 10, cursor)}
         renderItem={(item) => (
           <SurveyCard
             key={(item as SurveyWithAuthor).id}

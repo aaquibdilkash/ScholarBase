@@ -34,10 +34,6 @@ const getPool = () => {
       process.env.DATABASE_URL?.includes("localhost") ||
       process.env.DATABASE_URL?.includes("127.0.0.1");
 
-    // SSL Configuration:
-    // 1. Local Postgres instance (Docker/local server): no SSL (undefined)
-    // 2. Production with CA Cert: strict verification ({ rejectUnauthorized: true, ca })
-    // 3. Remote connection without local CA (localhost to Supabase): SSL enabled with fallback ({ rejectUnauthorized: false })
     let sslConfig: boolean | ConnectionOptions | undefined = undefined;
 
     if (!isLocalDb) {
@@ -50,9 +46,11 @@ const getPool = () => {
 
     globalForPrisma.pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
+      // 1 connection per serverless lambda in production prevents Supavisor exhaustion
       max: process.env.NODE_ENV === "production" ? 1 : 2,
-      idleTimeoutMillis: 20000,
+      idleTimeoutMillis: 15000,
       connectionTimeoutMillis: 10000,
+      allowExitOnIdle: true,
       ssl: sslConfig,
     });
 
@@ -67,19 +65,19 @@ const getPool = () => {
 const createPrismaClient = () => {
   const pool = getPool();
   const adapter = new PrismaPg(pool);
+
+  // Only log verbose queries if explicitly requested via environment variable
+  const shouldLogQueries = process.env.PRISMA_LOG_QUERIES === "true";
+
   return new PrismaClient({
     adapter,
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    log: shouldLogQueries ? ["query", "error", "warn"] : ["error", "warn"],
   });
 };
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Maintain client singleton across warm lambda executions in all environments
+globalForPrisma.prisma = prisma;
 
 export default prisma;

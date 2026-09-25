@@ -18,6 +18,8 @@ import {
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import type { Article } from "@prisma/client";
+import { upsertToList } from "@/utils/cacheMutation";
+import type { ArticleWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   ARTICLE_TITLE_TIP,
@@ -70,9 +72,11 @@ export function ArticleComposer({
         return;
       }
       const newArticle = response.data as Article;
-      queryClient.setQueryData<Article[]>(
-        ["articles", { q: "" }],
-        (oldData = []) => [newArticle, ...oldData],
+      upsertToList<ArticleWithAuthor>(
+        queryClient,
+        ["articles"],
+        newArticle as ArticleWithAuthor,
+        "create",
       );
       resetDraft();
       toast("Article published successfully!", "success");
@@ -92,10 +96,11 @@ export function ArticleComposer({
         return;
       }
       const updatedArticle = response.data as Article;
-      queryClient.setQueryData<Article[]>(
-        ["articles", { q: "" }],
-        (oldData = []) =>
-          oldData.map((p) => (p.id === updatedArticle.id ? updatedArticle : p)),
+      upsertToList<ArticleWithAuthor>(
+        queryClient,
+        ["articles"],
+        updatedArticle as ArticleWithAuthor,
+        "edit",
       );
       if (slug && updatedArticle.slug !== slug) {
         queryClient.removeQueries({ queryKey: ["article", slug] });

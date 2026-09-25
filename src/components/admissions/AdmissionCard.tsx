@@ -11,6 +11,7 @@ import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { Clock } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
+import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -56,11 +57,10 @@ export function AdmissionCard({
             onDelete={async () => {
               const res = await deletePhdAdmission(admission.id);
               if (res?.success) {
-                queryClient.setQueryData(
-                  ["admissions", ""],
-                  (oldData: AdmissionWithAuthor[] | undefined) => {
-                    return oldData?.filter((post) => post.id !== admission.id);
-                  },
+                removeFromList<AdmissionWithAuthor>(
+                  queryClient,
+                  ["admissions"],
+                  admission.id,
                 );
                 toast("Admission deleted successfully.", "success");
               }

@@ -10,6 +10,7 @@ import { deleteHelpPost } from "@/app/actions/help";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
+import { removeFromList } from "@/utils/cacheMutation";
 import { useToast } from "@/components/ui/Toast";
 
 export function HelpPostCard({
@@ -50,10 +51,10 @@ export function HelpPostCard({
                   toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
                   return { refresh: false };
                 }
-                queryClient.setQueryData<HelpPostWithAuthor[]>(
-                  ["helpPosts", { q: "" }],
-                  (oldData = []) =>
-                    oldData.filter((p) => p.id !== response.data?.deletedId),
+                removeFromList<HelpPostWithAuthor>(
+                  queryClient,
+                  ["helpPosts"],
+                  response.data.deletedId,
                 );
                 toast({ title: "Success", description: "Post deleted successfully." });
                 return { refresh: false };

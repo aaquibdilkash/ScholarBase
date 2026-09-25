@@ -6,7 +6,7 @@ import { useFormDraft } from "@/hooks/useFormDraft";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { CautionNote } from "@/components/ui/CautionNote";
 import { getTodayString } from "@/lib/date";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import type { VacancyWithAuthor } from "@/types/cards";
+import { upsertToList } from "@/utils/cacheMutation";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   VACANCY_TITLE_TIP,
@@ -64,8 +65,6 @@ export default function VacancyForm({
 
   const queryClient = useQueryClient();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const q = searchParams.get("q") ?? "";
   const { toast } = useToast();
 
   const { mutate: create, isPending: isCreating } = useMutation({
@@ -73,9 +72,12 @@ export default function VacancyForm({
     onSuccess: (result) => {
       if (result.success && result.data) {
         toast("Vacancy posted successfully!", "success");
-        queryClient.setQueryData(['vacancies', ''], (oldData: VacancyWithAuthor[] | undefined) => {
-          return [result.data as VacancyWithAuthor, ...(oldData || [])];
-        });
+        upsertToList<VacancyWithAuthor>(
+          queryClient,
+          ["vacancies"],
+          result.data as VacancyWithAuthor,
+          "create",
+        );
         resetDraft();
         router.push('/vacancies');
       } else {
@@ -94,9 +96,13 @@ export default function VacancyForm({
         const updatedVacancy = result.data as VacancyWithAuthor;
         toast("Vacancy updated successfully!", "success");
 
-        // Update list cache
-        queryClient.setQueryData(['vacancies', q], (oldData: VacancyWithAuthor[] | undefined) => 
-          oldData?.map(v => v.id === updatedVacancy.id ? updatedVacancy : v)
+        // Update list cache across every cached variant (e.g. `["vacancies", ""]`,
+        // `["vacancies", "remote"]`) — the captured `q` goes stale after navigation.
+        upsertToList<VacancyWithAuthor>(
+          queryClient,
+          ["vacancies"],
+          updatedVacancy,
+          "edit",
         );
 
         // Update detail cache

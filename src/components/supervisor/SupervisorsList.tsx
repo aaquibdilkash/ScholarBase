@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { SearchInput } from "@/components/ui/SearchInput";
 import type { Prisma } from "@prisma/client";
 import { SupervisorCard } from "./SupervisorCard";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getSupervisors } from "@/app/actions/supervisors";
 
 type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
@@ -49,12 +48,9 @@ export function SupervisorsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["supervisors", q] as const, [q]);
 
-  const { data: supervisorsData } = useQuery({
-    queryKey: ["supervisors", q],
-    queryFn: () => getSupervisors(q, currentUserId),
-    initialData: supervisors,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,13 +69,14 @@ export function SupervisorsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={supervisorsData}
-        loadMore={(cursor) => getSupervisors(q, currentUserId, 10, cursor)}
+      <CacheBackedList<SupervisorWithDetails>
+        queryKey={queryKey}
+        initialItems={supervisors}
+        fetchPage={(cursor) => getSupervisors(q, currentUserId, 10, cursor)}
         renderItem={(s) => (
           <SupervisorCard
-            key={(s as SupervisorWithDetails).id}
-            supervisor={s as SupervisorWithDetails}
+            key={s.id}
+            supervisor={s}
             currentUserId={currentUserId}
           />
         )}

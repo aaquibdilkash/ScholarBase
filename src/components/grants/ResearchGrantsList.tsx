@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ResearchGrantCard } from "./ResearchGrantCard";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getResearchGrants } from "@/app/actions/grants";
 
 export function ResearchGrantsList({
@@ -22,12 +21,9 @@ export function ResearchGrantsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["grants", q] as const, [q]);
 
-  const { data: grantsData } = useQuery({
-    queryKey: ["grants", q],
-    queryFn: () => getResearchGrants(q, currentUserId),
-    initialData: grants,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function ResearchGrantsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={grantsData}
-        loadMore={(cursor) => getResearchGrants(q, currentUserId, 10, cursor)}
+      <CacheBackedList<ResearchGrantWithAuthor>
+        queryKey={queryKey}
+        initialItems={grants}
+        fetchPage={(cursor) => getResearchGrants(q, currentUserId, 10, cursor)}
         renderItem={(grant) => (
           <ResearchGrantCard
             key={(grant as ResearchGrantWithAuthor).id}

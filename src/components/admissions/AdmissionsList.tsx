@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { AdmissionCard } from "./AdmissionCard";
 import type { AdmissionWithAuthor } from "@/types/cards";
@@ -18,16 +17,13 @@ export function AdmissionsList({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
-
-  const { data: admissionsData, refetch } = useQuery({
-    queryKey: ["admissions", query],
-    queryFn: () => getAdmissions(query),
-    initialData: admissions,
-  });
+  // Search runs on submit, so keep the applied term separate from the input
+  // value. Driving pagination from the raw input would refetch every keystroke.
+  const [appliedQuery, setAppliedQuery] = useState(initialQuery ?? "");
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    refetch();
+    setAppliedQuery(query);
   };
 
   return (
@@ -40,13 +36,15 @@ export function AdmissionsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={admissionsData}
-        loadMore={(cursor) => getAdmissions(query, currentUserId, 10, cursor)}
+      <AppendMoreList<AdmissionWithAuthor>
+        initialItems={admissions}
+        // Search is client-side (no navigation), so re-fetch page 1 per term.
+        reloadToken={appliedQuery}
+        loadMore={(cursor) => getAdmissions(appliedQuery, currentUserId, 10, cursor)}
         renderItem={(item) => (
           <AdmissionCard
-            key={(item as AdmissionWithAuthor).id}
-            admission={item as AdmissionWithAuthor}
+            key={item.id}
+            admission={item}
             currentUserId={currentUserId}
           />
         )}

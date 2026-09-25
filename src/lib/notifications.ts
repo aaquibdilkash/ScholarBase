@@ -35,7 +35,7 @@ export async function notifyUserById(params: NotifyUserByIdParams) {
 }
 
 const MENTION_REGEX = /@(\w+)/g;
-const MAX_MENTIONS_PER_ITEM = 20;
+const MAX_MENTIONS_PER_ITEM = 10;
 
 type NotifyMentionedUsersParams = {
   actorId: string;

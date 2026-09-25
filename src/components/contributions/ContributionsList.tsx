@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ContributionCard } from "./ContributionCard";
 import type { ContributionWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getContributions } from "@/app/actions/contributions";
 
 export function ContributionsList({
@@ -22,12 +21,9 @@ export function ContributionsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["contributions", q] as const, [q]);
 
-  const { data: contributionsData } = useQuery({
-    queryKey: ["contributions", q],
-    queryFn: () => getContributions(q, currentUserId),
-    initialData: contributions,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function ContributionsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={contributionsData}
-        loadMore={(cursor) => getContributions(q, currentUserId, 10, cursor)}
+      <CacheBackedList<ContributionWithAuthor>
+        queryKey={queryKey}
+        initialItems={contributions}
+        fetchPage={(cursor) => getContributions(q, currentUserId, 10, cursor)}
         renderItem={(contribution) => (
           <ContributionCard
             key={(contribution as ContributionWithAuthor).id}

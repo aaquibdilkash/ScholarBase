@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { VacancyCard } from "./VacancyCard";
 import type { VacancyWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getVacancies } from "@/app/actions/vacancies";
 
 export function VacanciesList({
@@ -22,12 +21,9 @@ export function VacanciesList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["vacancies", q] as const, [q]);
 
-  const { data: vacancyData } = useQuery({
-    queryKey: ['vacancies', q],
-    queryFn: () => getVacancies(q, currentUserId),
-    initialData: vacancies,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,13 +42,14 @@ export function VacanciesList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={vacancyData}
-        loadMore={(cursor) => getVacancies(q, currentUserId, 10, cursor)}
+      <CacheBackedList<VacancyWithAuthor>
+        queryKey={queryKey}
+        initialItems={vacancies}
+        fetchPage={(cursor) => getVacancies(q, currentUserId, 10, cursor)}
         renderItem={(job) => (
           <VacancyCard
-            key={(job as VacancyWithAuthor).id}
-            vacancy={job as VacancyWithAuthor}
+            key={job.id}
+            vacancy={job}
             currentUserId={currentUserId}
           />
         )}

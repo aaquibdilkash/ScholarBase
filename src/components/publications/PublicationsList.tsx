@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { PublicationCard } from "./PublicationCard";
 import type { PublicationWithAuthor } from "@/types/cards";
-import { AppendMoreList } from "@/components/layout/AppendMoreList";
+import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getPublications } from "@/app/actions/publications";
 
 export function PublicationsList({
@@ -22,12 +21,9 @@ export function PublicationsList({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = searchParams.get("q") ?? "";
+  // Part of the cache key so every cached search variant stays independent.
+  const queryKey = useMemo(() => ["publications", q] as const, [q]);
 
-  const { data: publicationsData } = useQuery({
-    queryKey: ["publications", q],
-    queryFn: () => getPublications(q, currentUserId),
-    initialData: publications,
-  });
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,9 +42,10 @@ export function PublicationsList({
           className="mb-4"
         />
       </form>
-      <AppendMoreList
-        initialItems={publicationsData}
-        loadMore={(cursor) => getPublications(q, currentUserId, 10, cursor)}
+      <CacheBackedList<PublicationWithAuthor>
+        queryKey={queryKey}
+        initialItems={publications}
+        fetchPage={(cursor) => getPublications(q, currentUserId, 10, cursor)}
         renderItem={(pub) => (
           <PublicationCard
             key={(pub as PublicationWithAuthor).id}

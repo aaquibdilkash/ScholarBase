@@ -85,7 +85,7 @@ export default function AdmissionForm({
       const data = response.data as AdmissionWithAuthor;
       upsertToList<AdmissionWithAuthor>(
         queryClient,
-        ["admissions", ""],
+        ["admissions"],
         data,
         mode,
       );
