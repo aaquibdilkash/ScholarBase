@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getCurrentUser, requireCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
@@ -15,6 +15,15 @@ import {
   createCommentTransaction,
   deleteCommentTransaction,
 } from "@/lib/transactions";
+import {
+  getCachedPublicFeed,
+  getSocialPostLiveOverlay,
+  loadDynamicFeedPage,
+  normalizeFeedPageSize,
+  revalidatePublicFeed,
+} from "@/lib/feed-cache";
+import { stitchSocialPostLiveState } from "@/lib/feed-stitch";
+import type { SocialPostFeedItem } from "@/types/feed";
 import { VoteType, DeletedByType } from "@prisma/client";
 
 import {
@@ -89,77 +98,56 @@ function castPost(post: {
   };
 }
 
-const getFeed = async (
-  userId?: string,
+/**
+ * Loads one page of the Research Feed for the *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (The previous `getFeed` accepted a `userId` from the browser, so any caller
+ * could read another user's vote/bookmark/follow state.)
+ *
+ *  - Global feed        -> cached, viewer-agnostic batch (`getCachedPublicFeed`)
+ *  - following / search -> dynamic, never cached
+ *  - viewer state       -> one live indexed statement, stitched onto the batch
+ */
+export async function fetchFeedPage(
   tab?: string,
-  q?: string,
-  limit = 10,
+  query?: string,
+  pageSize?: number,
   cursor?: string,
-) => {
+): Promise<SocialPostFeedItem[]> {
+  const user = await getCurrentUser();
+  const viewerId = user?.id;
+  // Clamped because the page size is part of the cache key.
+  const limit = normalizeFeedPageSize(pageSize);
+
   const isFollowingTab = tab === "following";
-  const hasQuery = Boolean(q && q.trim().length > 0);
-  let followingIds: string[] = [];
+  const hasQuery = Boolean(query && query.trim().length > 0);
 
-  if (isFollowingTab && userId) {
-    const following = await prisma.follows.findMany({
-      where: { followerId: userId },
-      select: { followingId: true },
-    });
-    followingIds = following.map((f) => f.followingId);
-  }
+  const posts =
+    isFollowingTab || hasQuery
+      ? await loadDynamicFeedPage({
+          viewerId,
+          followingOnly: isFollowingTab,
+          query,
+          limit,
+          cursor,
+        })
+      : await getCachedPublicFeed(limit, cursor);
 
-  const posts = await prisma.socialPost.findMany({
-    where: {
-      isDeleted: false, // RULE 3: Filter out soft-deleted posts
-      ...(isFollowingTab && { authorId: { in: followingIds } }),
-      ...(hasQuery && {
-        OR: [
-          { content: { contains: q, mode: "insensitive" } },
-          { author: { name: { contains: q, mode: "insensitive" } } },
-          { author: { handle: { contains: q, mode: "insensitive" } } },
-        ],
-      }),
-    },
-    select: {
-      id: true,
-      content: true,
-      imageUrl: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      mentions: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      // RULE 6: Use materialized counters
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      // RULE 6: Filtered select for user's vote
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-  });
+  if (posts.length === 0) return [];
 
-  return posts;
-};
+  // The live half of the split: viewer state + mutable counters, resolved in
+  // ONE statement for exactly these rows.
+  const overlay = viewerId
+    ? await getSocialPostLiveOverlay(
+        viewerId,
+        posts.map((post) => post.id),
+        Array.from(new Set(posts.map((post) => post.authorId))),
+      )
+    : null;
 
-// Re-assign getFeed to the new implementation
-export { getFeed };
+  return stitchSocialPostLiveState(posts, overlay);
+}
 
 export const getPost = cache(async (id: string, userId?: string) => {
   return prisma.socialPost.findUnique({
@@ -331,6 +319,10 @@ export async function createSocialPost(formData: FormData) {
     }),
   ]);
 
+  // Read-your-own-writes: purge the cached public feed so the new post is
+  // visible to everyone on the very next request.
+  revalidatePublicFeed();
+
   return { success: true, data: castPost(post) };
   } catch (error) {
     console.error("[CreateSocialPostAction Error]:", error);
@@ -420,6 +412,9 @@ export async function updateSocialPost(formData: FormData, postId: string) {
     await deleteCloudinaryAsset(oldImage);
   }
 
+  // The edited body/mentions/editedAt are part of the cached public payload.
+  revalidatePublicFeed();
+
   return { success: true, data: castPost(updatedPost) };
   } catch (error) {
     console.error("[UpdateSocialPostAction Error]:", error);
@@ -501,6 +496,9 @@ export async function deleteSocialPost(postId: string) {
       });
     }
   });
+
+  // Soft delete (RULE 4) must disappear from the cached public feed at once.
+  revalidatePublicFeed();
 
   return { success: true, data: { id: postId } };
 }

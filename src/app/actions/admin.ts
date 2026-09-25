@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isUserAdmin } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { sendInstitutionDomainDecisionEmail } from "@/lib/email";
+import { revalidatePublicFeed } from "@/lib/feed-cache";
 
 import {
   AdminCommentModel,
@@ -64,6 +65,10 @@ export async function toggleContentFreeze(
     where: { id: contentId },
     data: { isFrozen: !content.isFrozen },
   });
+
+  // `isFrozen` is part of the cached public feed payload and gates voting, so
+  // moderation must be visible immediately rather than after the TTL.
+  if (contentType === "feed") revalidatePublicFeed();
 
   return { success: true, data: content };
 }
@@ -128,6 +133,9 @@ export async function adminDeleteContent(
     where: { id: contentId },
     data: { isDeleted: true },
   });
+
+  // Soft delete (RULE 4) must vanish from the cached public feed at once.
+  if (contentType === "feed") revalidatePublicFeed();
 
   return { success: true, data: { id: contentId } };
 }

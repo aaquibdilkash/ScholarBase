@@ -9,6 +9,7 @@ import { FeedImage } from "@/components/feed/FeedImage";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost } from "@/app/actions/feed";
+import { getPostMetadata } from "@/lib/feed-cache";
 import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
@@ -21,7 +22,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const post = await getPost(id).catch(() => null);
+  const post = await getPostMetadata(id).catch(() => null);
   if (!post) return { title: "Scholar Post" };
   const text = post.content.replace(/\s+/g, " ").trim();
   return buildMetadata({

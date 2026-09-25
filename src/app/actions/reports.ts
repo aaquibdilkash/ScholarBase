@@ -10,6 +10,7 @@ import type {
   ModerationAction,
 } from "@/types/reports";
 import { MAX_REPORT_DETAILS } from "@/lib/constants";
+import { revalidatePublicFeed } from "@/lib/feed-cache";
 import { Prisma } from "@prisma/client";
 import { queueNotification } from "@/lib/qstash";
 
@@ -1246,6 +1247,13 @@ export async function moderateContent(
         throw new Error(`Unknown moderation action: ${action}`);
     }
   });
+
+  // Moderation of feed content (freeze / delete / recover) changes the cached
+  // public feed payload. Accepts both the report-module key ("SOCIAL_FEED")
+  // and the admin content-type key ("feed"), since both spellings reach here.
+  if (contentType === "SOCIAL_FEED" || contentType === "feed") {
+    revalidatePublicFeed();
+  }
 
   return result;
   } catch (error) {

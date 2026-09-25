@@ -7,7 +7,7 @@ export const metadata: Metadata = buildMetadata({
   path: "/feed",
   section: "Community",
 });
-import { getFeed } from "@/app/actions/feed";
+import { fetchFeedPage } from "@/app/actions/feed";
 import { createClient } from "@/utils/supabase/server";
 
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -61,7 +61,7 @@ export default async function FeedPage({
             fetcher={async () => {
               const supabase = await supabasePromise;
               const { data: { user } } = await supabase.auth.getUser();
-              const posts = await getFeed(user?.id, tab, q, pageSize);
+              const posts = await fetchFeedPage(tab, q, pageSize);
               return { posts, userId: user?.id };
             }}
           >

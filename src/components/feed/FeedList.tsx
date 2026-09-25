@@ -3,35 +3,10 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { SearchInput } from "@/components/ui/SearchInput";
-import type { Prisma } from "@prisma/client";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
-import { getFeed } from "@/app/actions/feed";
-
-type SocialPostWithDetails = Prisma.SocialPostGetPayload<{
-  select: {
-    id: true;
-    content: true;
-    imageUrl: true;
-    createdAt: true;
-    updatedAt: true;
-    editedAt: true;
-    author: {
-      select: {
-        id: true;
-        name: true;
-        handle: true;
-        avatarUrl: true, institutionVerifiedAt: true;
-        followers: { select: { followerId: true } };
-      };
-    };
-    totalVotes: true;
-    totalBookmarks: true;
-    totalComments: true;
-    votes: { select: { voteType: true } };
-    bookmarks: { select: { id: true } };
-  };
-}>;
+import { fetchFeedPage } from "@/app/actions/feed";
+import type { SocialPostFeedItem } from "@/types/feed";
 
 export function FeedList({
   posts,
@@ -40,7 +15,7 @@ export function FeedList({
   tab,
   pageSize = 10,
 }: {
-  posts: SocialPostWithDetails[];
+  posts: SocialPostFeedItem[];
   currentUserId?: string;
   initialQuery?: string;
   /** Active feed tab ("trending", "following", ...). Part of the query key. */
@@ -75,12 +50,14 @@ export function FeedList({
         />
       </form>
 
-      <CacheBackedList<SocialPostWithDetails>
+      <CacheBackedList<SocialPostFeedItem>
         queryKey={queryKey}
         initialItems={posts}
         chunkSize={pageSize}
         fetchPage={(cursor) =>
-          getFeed(currentUserId, tab, initialQuery, pageSize, cursor)
+          // Viewer identity is resolved server-side inside the action; the
+          // client never sends a userId.
+          fetchFeedPage(tab, initialQuery, pageSize, cursor)
         }
         renderItem={(post, index) => (
           <SocialPostCard
