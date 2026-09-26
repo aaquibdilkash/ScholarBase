@@ -22,7 +22,9 @@
  *  - Signed-out viewers read counters from the cached batch, which may lag by at
  *    most {@link FEED_PUBLIC_REVALIDATE_SECONDS} — the standard public-feed
  *    eventual-consistency window, and the price of not adding a round trip to
- *    the highest-volume path.
+ *    the highest-volume path. It is a backstop for drift we do not invalidate
+ *    on (counters, embedded author fields, cron writes), not the primary
+ *    freshness mechanism: real content changes purge the tag explicitly.
  *  - Author- and moderator-initiated changes (publish / edit / delete / freeze)
  *    call {@link revalidatePublicFeed} for an immediate purge.
  */
@@ -43,12 +45,38 @@ import {
 export const FEED_PUBLIC_TAG = "feed-public";
 
 /**
- * How long a cached counter may lag for signed-out viewers. Deliberately short:
- * it caps write amplification (we do NOT invalidate on every vote) while keeping
- * the public feed feeling live. Signed-in viewers bypass this window entirely
- * via the live overlay.
+ * How long a cached public feed page may be served before it is regenerated.
+ *
+ * WHO IS AFFECTED BY THIS WINDOW:
+ *  - Signed-IN viewers: not at all. `getSocialPostLiveOverlay` returns their
+ *    vote / bookmark / follow state AND fresh counters in one statement on every
+ *    page load, so they always see live numbers regardless of this TTL.
+ *  - Signed-OUT visitors: they have no overlay, so they read the counters and
+ *    author fields embedded in the cached batch. Those can lag by at most this
+ *    many seconds.
+ *
+ * Content mutations (publish / edit / delete / freeze) call
+ * {@link revalidatePublicFeed} and purge the tag immediately, so this TTL is NOT
+ * what governs how quickly posts appear or disappear. It only bounds the drift we
+ * deliberately refuse to invalidate on:
+ *
+ *  - Materialized counters, which change on every vote/bookmark/comment.
+ *    Invalidating per interaction would turn a burst of votes into a cache
+ *    stampede against a free-tier database.
+ *  - Embedded author fields (name / handle / avatar / verification badge),
+ *    which drift whenever a scholar edits their profile.
+ *  - Rows mutated by background crons (e.g. trending score recalculation).
+ *
+ * It is also the safety net for any missed invalidation (a failed purge, a
+ * direct dashboard edit, a cron write) — without a TTL such a miss would
+ * desynchronise the public feed indefinitely.
+ *
+ * 5 minutes is the compromise: a signed-out visitor's counts are at most
+ * 5 minutes behind (imperceptible), while cutting cached-page regenerations by
+ * 10x versus the previous 30s setting. Lower it if staleness becomes
+ * user-visible; raise it if the read cost ever matters more than freshness.
  */
-export const FEED_PUBLIC_REVALIDATE_SECONDS = 30;
+export const FEED_PUBLIC_REVALIDATE_SECONDS = 5 * 60;
 
 /**
  * Upper bound on a requested page size. The page size is part of the cache key,

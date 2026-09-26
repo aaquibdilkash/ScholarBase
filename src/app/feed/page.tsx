@@ -8,7 +8,7 @@ export const metadata: Metadata = buildMetadata({
   section: "Community",
 });
 import { fetchFeedPage } from "@/app/actions/feed";
-import { createClient } from "@/utils/supabase/server";
+import { getCurrentUser } from "@/lib/auth";
 
 import ListPageShell from "@/components/layout/ListPageShell";
 import { getTrendingSocialPosts } from "@/lib/trending";
@@ -26,8 +26,7 @@ export default async function FeedPage({
 }) {
   const { tab, q } = await searchParams as { tab?: string; q?: string };
   const pageSize = 10;
-  // Auth resolved lazily so the shell heading/tabs render instantly.
-  const supabasePromise = createClient();
+  const userPromise = getCurrentUser();
 
   return (
     <ListPageShell
@@ -40,8 +39,7 @@ export default async function FeedPage({
       trending={
         <AsyncListRegion
           fetcher={async () => {
-            const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const user = await userPromise;
             const items = (await getTrendingSocialPosts().catch(
               () => [],
             )) as unknown as TrendingItem[];
@@ -59,8 +57,7 @@ export default async function FeedPage({
           <AsyncListRegion
             key={q}
             fetcher={async () => {
-              const supabase = await supabasePromise;
-              const { data: { user } } = await supabase.auth.getUser();
+              const user = await userPromise;
               const posts = await fetchFeedPage(tab, q, pageSize);
               return { posts, userId: user?.id };
             }}

@@ -7,7 +7,7 @@ import {
   moveSection,
   normalizeSurveyStructure,
   placeQuestion,
-} from "./structure";
+} from "@/lib/surveys/structure";
 import type { BlockInput, Question } from "@/types/survey";
 
 function q(id: string, blockId: string | null = null): Question {

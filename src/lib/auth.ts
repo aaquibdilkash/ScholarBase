@@ -1,11 +1,24 @@
 import { User as SupabaseUser } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import prisma from '@/lib/db'
+import { verifyUserFromCookies } from '@/lib/supabase-jwt'
 
 import { createClient } from '@/utils/supabase/server'
 
 export const getCurrentUser = cache(async (): Promise<SupabaseUser | null> => {
+    try {
+        const cookieStore = await cookies()
+        const cookieList = cookieStore.getAll()
+        const localUser = await verifyUserFromCookies(cookieList)
+        if (localUser) {
+            return localUser
+        }
+    } catch {
+        // In environments where cookies() throws or verification errors, fall through to GoTrue client.
+    }
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

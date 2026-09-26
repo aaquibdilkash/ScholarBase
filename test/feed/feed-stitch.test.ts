@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   rehydratePublicSocialPost,
   stitchSocialPostLiveState,
-} from "./feed-stitch";
+} from "@/lib/feed-stitch";
 import type {
   CachedPublicSocialPost,
   SocialPostLiveOverlay,

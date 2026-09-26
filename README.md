@@ -104,6 +104,23 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 | `npm run test` | Run tests with Vitest |
 | `npm run test:watch` | Run tests in watch mode |
 
+### Testing
+
+All tests live in the top-level `test/` directory, grouped into subfolders by the
+module they exercise. The folder name mirrors the `src/` module it covers, and
+tests import production code through the `@/` alias rather than relative paths.
+
+```
+test/
+├── auth/      # src/lib/supabase-jwt.ts
+├── email/     # src/lib/email-normalizer.ts, src/lib/email-domain-allowlist.ts
+├── feed/      # src/lib/feed-stitch.ts, src/lib/feed-cache.ts
+└── surveys/   # src/lib/surveys/*
+```
+
+Naming convention: `<module-name>.test.ts`. Place a new suite in the subfolder
+that matches its module; `vitest.config.ts` picks up everything under `test/`.
+
 ### Environment Variables
 
 See `.env.example` for all required variables.

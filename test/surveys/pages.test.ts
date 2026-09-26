@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSurveyPages } from "./pages";
+import { buildSurveyPages } from "@/lib/surveys/pages";
 
 function q(id: string, blockId: string | null = null) {
   return { id, blockId };
