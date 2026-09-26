@@ -45,7 +45,7 @@ export function CoursesList({
       <CacheBackedList<CourseWithAuthor>
         queryKey={queryKey}
         initialItems={courses}
-        fetchPage={(cursor) => getCourses(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getCourses(q, 10, cursor)}
         renderItem={(course) => (
           <CourseCard
             key={(course as CourseWithAuthor).id}

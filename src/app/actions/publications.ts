@@ -1,8 +1,15 @@
 "use server";
 
+import type { PublicationWithAuthor } from "@/types/cards";
+import type { PublicationType } from "@prisma/client";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma, PublicationType } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -137,6 +144,9 @@ export async function createPublication(formData: FormData) {
     })),
   ]);
 
+  // Purge the cached publication pages: publish must be visible at once, not after the TTL.
+  revalidateContent("PUBLICATION");
+
   return { success: true, data: publication };
 }
 
@@ -213,6 +223,9 @@ export async function updatePublication(
   });
   });
 
+  // Purge the cached publication pages: edit must be visible at once, not after the TTL.
+  revalidateContent("PUBLICATION");
+
   return { success: true, data: updatedPublication };
 }
 
@@ -252,72 +265,31 @@ export async function deletePublication(publicationId: string) {
     }
   });
 
+  // Purge the cached publication pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("PUBLICATION");
+
   return { success: true, data: { deletedId: publicationId } };
 }
 
+/**
+ * Loads one page of publication rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getPublications(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.PublicationWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { authors: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { keywords: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { domain: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        {
-          journalOrConference: {
-            contains: q,
-            mode: Prisma.QueryMode.insensitive,
-          },
-        },
-        { abstract: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.publication.findMany({
-    where,
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      authors: true,
-      year: true,
-      journalOrConference: true,
-      publicationType: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("PUBLICATION", { query: q, pageSize: limit, cursor }) as Promise<
+  PublicationWithAuthor[]
+>;
 }
 
 export const getPublicationById = cache(

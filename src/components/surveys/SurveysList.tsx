@@ -45,7 +45,7 @@ export function SurveysList({
       <CacheBackedList<SurveyWithAuthor>
         queryKey={queryKey}
         initialItems={surveys}
-        fetchPage={(cursor) => getSurveys(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getSurveys(q, 10, cursor)}
         renderItem={(item) => (
           <SurveyCard
             key={(item as SurveyWithAuthor).id}

@@ -45,7 +45,7 @@ export function PublicationsList({
       <CacheBackedList<PublicationWithAuthor>
         queryKey={queryKey}
         initialItems={publications}
-        fetchPage={(cursor) => getPublications(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getPublications(q, 10, cursor)}
         renderItem={(pub) => (
           <PublicationCard
             key={(pub as PublicationWithAuthor).id}

@@ -55,7 +55,7 @@ export default async function ContributionsPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const contributions = await getContributions(q ?? "", user?.id, 10);
+            const contributions = await getContributions(q ?? "", 10);
             return { contributions, userId: user?.id };
           }}
         >

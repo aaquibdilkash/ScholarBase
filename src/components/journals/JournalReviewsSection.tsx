@@ -53,7 +53,7 @@ export function JournalReviewsSection({
 
   const { data: reviews = [] } = useQuery({
     queryKey,
-    queryFn: () => getJournalReviews(journalId, currentUserId, 0, 5),
+    queryFn: () => getJournalReviews(journalId, 0, 5),
     initialData: initialReviews,
   });
 
@@ -82,7 +82,6 @@ export function JournalReviewsSection({
     try {
       const newItems = await getJournalReviews(
         journalId,
-        currentUserId,
         reviews.length,
         5,
       );

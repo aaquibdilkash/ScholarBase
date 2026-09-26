@@ -55,7 +55,7 @@ export default async function SurveysPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const surveys = await getSurveys(q ?? "", user?.id, 10);
+            const surveys = await getSurveys(q ?? "", 10);
             return { surveys, userId: user?.id };
           }}
         >

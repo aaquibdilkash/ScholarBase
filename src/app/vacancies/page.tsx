@@ -56,7 +56,7 @@ export default async function VacanciesPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const vacancies = await getVacancies(q ?? "", user?.id, 10);
+            const vacancies = await getVacancies(q ?? "", 10);
             return { vacancies, userId: user?.id };
           }}
         >

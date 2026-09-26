@@ -45,7 +45,7 @@ export function ResearchToolsList({
       <CacheBackedList<ResearchToolWithAuthor>
         queryKey={queryKey}
         initialItems={tools}
-        fetchPage={(cursor) => getResearchTools(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getResearchTools(q, 10, cursor)}
         renderItem={(tool) => (
           <ResearchToolCard
             key={(tool as ResearchToolWithAuthor).id}

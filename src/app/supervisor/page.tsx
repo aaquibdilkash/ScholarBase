@@ -52,7 +52,9 @@ export default async function SupervisorDirectory({
           key={q}
           fetcher={async () => {
             const user = await userPromise;
-            const supervisors = await getSupervisors(q, user?.id);
+            // Viewer identity is resolved inside the action; the page does not
+            // pass a userId down to the data layer.
+            const supervisors = await getSupervisors(q);
             return { supervisors, userId: user?.id };
           }}
         >

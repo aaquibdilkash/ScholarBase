@@ -1,8 +1,16 @@
 "use server";
 
+import { getCurrentUser } from "@/lib/auth";
+
+import type { AdmissionWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -13,58 +21,25 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
+/**
+ * Loads one page of phd admission rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getAdmissions(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.PhdAdmissionWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { university: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { department: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.phdAdmission.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      university: true,
-      department: true,
-      deadline: true,
-      description: true,
-      notificationLink: true,
-      applyLink: true,
-      createdAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("PHD_ADMISSION", { query: q, pageSize: limit, cursor }) as Promise<
+  AdmissionWithAuthor[]
+>;
 }
 
 export const getAdmission = cache(async (id: string, userId?: string) => {
@@ -193,6 +168,9 @@ export async function createPhdAdmission(formData: FormData) {
     body: `${department} at ${university} - Deadline: ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
   });
 
+  // Purge the cached phd admission pages: publish must be visible at once, not after the TTL.
+  revalidateContent("PHD_ADMISSION");
+
   return { success: true, data: admission };
 }
 
@@ -242,6 +220,9 @@ export async function updatePhdAdmission(
     },
   });
 
+  // Purge the cached phd admission pages: edit must be visible at once, not after the TTL.
+  revalidateContent("PHD_ADMISSION");
+
   return { success: true, data: updatedAdmission };
 }
 
@@ -281,10 +262,20 @@ export async function deletePhdAdmission(admissionId: string) {
     }
   });
 
+  // Purge the cached phd admission pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("PHD_ADMISSION");
+
   return { success: true, data: { deletedId: admissionId } };
 }
 
-export async function getLatestAdmissions(count: number, userId?: string) {
+export async function getLatestAdmissions(count: number) {
+  // Identity comes from the session, server-side — never from a client
+  // argument. This used to accept `userId` and filter the author's
+  // `followers` relation by it, so any caller could read another user's
+  // follow relationships.
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   return prisma.phdAdmission.findMany({
     where: {
       deadline: {

@@ -56,7 +56,7 @@ export default async function ResearchGrantsPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const grants = await getResearchGrants(q ?? "", user?.id, 10);
+            const grants = await getResearchGrants(q ?? "", 10);
             return { grants, userId: user?.id };
           }}
         >

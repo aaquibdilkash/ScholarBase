@@ -61,7 +61,7 @@ export default async function SupervisorPage({
       </div>
     );
 
-  const recMeta = await getSupervisorRecommendationMeta(id, user?.id);
+  const recMeta = await getSupervisorRecommendationMeta(id);
 
   async function handleDelete() {
     "use server";

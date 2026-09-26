@@ -45,7 +45,7 @@ export function VacanciesList({
       <CacheBackedList<VacancyWithAuthor>
         queryKey={queryKey}
         initialItems={vacancies}
-        fetchPage={(cursor) => getVacancies(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getVacancies(q, 10, cursor)}
         renderItem={(job) => (
           <VacancyCard
             key={job.id}

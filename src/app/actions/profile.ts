@@ -3,13 +3,14 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
-import { requireActiveUser } from "@/lib/auth";
+import { getCurrentUser, requireActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
   deleteCloudinaryAsset,
   promoteDraftCloudinaryAsset,
 } from "@/lib/cloudinary";
 import { MAX_PROFILE_BIO } from "@/lib/constants";
+import { revalidateScholars } from "@/lib/tri-split/modules/scholar";
 import { validateExternalUrl } from "@/lib/external-url";
 import {
   PROFILE_SECTION_CONFIG,
@@ -321,10 +322,14 @@ export async function getProfileSections(
 export async function getProfileSection(
   profileId: string,
   section: ProfileSection,
-  currentUserId?: string,
   skip: number = 0,
   take: number = 5,
 ) {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each row's `votes` / `bookmarks` by it.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id;
+
   const model = PROFILE_SECTION_CONFIG[section].model;
 
   const include = {
@@ -446,10 +451,14 @@ export async function getProfileBookmarkSections(
 export async function getProfileBookmarkSection(
   profileId: string,
   section: ProfileSection,
-  currentUserId?: string,
   skip: number = 0,
   take: number = 5,
 ) {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each row's `votes` / `bookmarks` by it.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id;
+
   const config = PROFILE_SECTION_CONFIG[section];
   const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
   const rows = await bookmarkDelegate.findMany({
@@ -569,6 +578,10 @@ export async function updateProfile(formData: FormData) {
       googleScholarUrl: newGoogleScholarUrl === null ? user.googleScholarUrl : safeGoogleScholarUrl,
     },
   });
+
+  // Name / handle / bio / avatar are part of the cached scholar directory, so a
+  // profile edit must be visible there at once rather than after the TTL.
+  revalidateScholars();
 
   return {
     success: true,

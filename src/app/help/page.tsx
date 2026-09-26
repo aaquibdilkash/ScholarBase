@@ -56,7 +56,7 @@ export default async function HelpPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const posts = await getHelpPosts(q ?? "", user?.id, 10);
+            const posts = await getHelpPosts(q ?? "", 10);
             return { posts, userId: user?.id };
           }}
         >

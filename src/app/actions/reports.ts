@@ -10,7 +10,7 @@ import type {
   ModerationAction,
 } from "@/types/reports";
 import { MAX_REPORT_DETAILS } from "@/lib/constants";
-import { revalidatePublicFeed } from "@/lib/feed-cache";
+import { revalidatePublicFeed } from "@/lib/tri-split/modules/feed";
 import { Prisma } from "@prisma/client";
 import { queueNotification } from "@/lib/qstash";
 

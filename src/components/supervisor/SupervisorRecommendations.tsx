@@ -26,7 +26,7 @@ export function SupervisorRecommendations({
   const { data: recommendations = [] } = useQuery({
     queryKey,
     queryFn: () =>
-      getSupervisorRecommendations(supervisor.id, currentUserId, 0, 1),
+      getSupervisorRecommendations(supervisor.id, 0, 1),
     initialData: initialRecommendations,
   });
 
@@ -51,7 +51,6 @@ export function SupervisorRecommendations({
     try {
       const newItems = await getSupervisorRecommendations(
         supervisor.id,
-        currentUserId,
         recommendations.length,
         1,
       );

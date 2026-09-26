@@ -45,7 +45,7 @@ export function EventsList({
       <CacheBackedList<EventWithAuthor>
         queryKey={queryKey}
         initialItems={events}
-        fetchPage={(cursor) => getEvents(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getEvents(q, 10, cursor)}
         renderItem={(event) => (
           <EventCard
             key={event.id}

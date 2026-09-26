@@ -42,10 +42,11 @@ export function ScholarsList({
       <AppendMoreList
         initialItems={scholars}
         loadMore={(cursor) =>
+          // Viewer identity is resolved server-side inside the action; the
+          // client never sends a userId.
           getScholars(
             initialQuery,
             loadMoreParams?.sort === "reputation" ? "reputation" : "latest",
-            currentUserId,
             10,
             cursor,
           )

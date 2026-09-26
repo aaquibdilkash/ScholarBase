@@ -40,7 +40,7 @@ export function AdmissionsList({
         initialItems={admissions}
         // Search is client-side (no navigation), so re-fetch page 1 per term.
         reloadToken={appliedQuery}
-        loadMore={(cursor) => getAdmissions(appliedQuery, currentUserId, 10, cursor)}
+        loadMore={(cursor) => getAdmissions(appliedQuery, 10, cursor)}
         renderItem={(item) => (
           <AdmissionCard
             key={item.id}

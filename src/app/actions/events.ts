@@ -1,8 +1,16 @@
 "use server";
 
+import { getCurrentUser } from "@/lib/auth";
+
+import type { EventWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -13,59 +21,25 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
+/**
+ * Loads one page of research event rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getEvents(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.ResearchEventWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { location: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.researchEvent.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      date: true,
-      location: true,
-      deadline: true,
-      description: true,
-      notificationLink: true,
-      applyLink: true,
-      createdAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("RESEARCH_EVENT", { query: q, pageSize: limit, cursor }) as Promise<
+  EventWithAuthor[]
+>;
 }
 
 export const getEvent = cache(async (id: string, userId?: string) => {
@@ -212,6 +186,9 @@ export async function createResearchEvent(formData: FormData) {
     body: `"${title}" - ${new Date(date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
   });
 
+  // Purge the cached research event pages: publish must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_EVENT");
+
   return { success: true, data: event };
 }
 
@@ -261,6 +238,9 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
     },
   });
 
+  // Purge the cached research event pages: edit must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_EVENT");
+
   return { success: true, data: updatedEvent };
 }
 
@@ -300,10 +280,20 @@ export async function deleteResearchEvent(eventId: string) {
     }
   });
 
+  // Purge the cached research event pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_EVENT");
+
   return { success: true, data: { deletedId: eventId } };
 }
 
-export async function getUpcomingEvents(count: number, userId?: string) {
+export async function getUpcomingEvents(count: number) {
+  // Identity comes from the session, server-side — never from a client
+  // argument. This used to accept `userId` and filter the author's
+  // `followers` relation by it, so any caller could read another user's
+  // follow relationships.
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   return prisma.researchEvent.findMany({
     where: {
       date: {

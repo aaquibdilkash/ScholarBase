@@ -1,13 +1,25 @@
 import { describe, expect, it } from "vitest";
 
+import { stitchLiveState, type LiveOverlay } from "@/lib/tri-split";
 import {
+  feedStitchOptions,
   rehydratePublicSocialPost,
-  stitchSocialPostLiveState,
-} from "@/lib/feed-stitch";
+} from "@/lib/tri-split/modules/feed-stitch";
 import type {
   CachedPublicSocialPost,
-  SocialPostLiveOverlay,
+  SocialPostFeedItem,
 } from "@/types/feed";
+
+/** Runs the feed's real stitch rules, as the factory does. */
+const stitch = (
+  posts: CachedPublicSocialPost[],
+  overlay: LiveOverlay | null,
+): SocialPostFeedItem[] =>
+  stitchLiveState<CachedPublicSocialPost, SocialPostFeedItem>(
+    posts,
+    overlay,
+    feedStitchOptions,
+  );
 
 function cachedPost(
   id: string,
@@ -39,9 +51,7 @@ function cachedPost(
   };
 }
 
-function overlay(
-  overrides: Partial<SocialPostLiveOverlay> = {},
-): SocialPostLiveOverlay {
+function overlay(overrides: Partial<LiveOverlay> = {}): LiveOverlay {
   return {
     viewerId: "viewer-1",
     votes: [],
@@ -73,12 +83,12 @@ describe("rehydratePublicSocialPost", () => {
   });
 });
 
-describe("stitchSocialPostLiveState", () => {
+describe("feed stitch", () => {
   it("preserves every viewer-independent field a card reads", () => {
     // Regression guard: the public select must carry authorId, mentions,
     // isFrozen and hasActiveAppeal, otherwise owner actions, the moderation
     // banner and mention links silently break.
-    const [item] = stitchSocialPostLiveState(
+    const [item] = stitch(
       [
         cachedPost("p1", "author-1", {
           imageUrl: "https://res.cloudinary.com/demo/image/upload/post.jpg",
@@ -106,7 +116,7 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("renders the signed-out state with empty arrays, never false/undefined", () => {
-    const [item] = stitchSocialPostLiveState(
+    const [item] = stitch(
       [cachedPost("p1", "author-1")],
       null,
     );
@@ -118,11 +128,11 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("overlays the viewer's vote, bookmark and follow state", () => {
-    const [item] = stitchSocialPostLiveState(
+    const [item] = stitch(
       [cachedPost("p1", "author-1")],
       overlay({
-        votes: [{ socialPostId: "p1", voteType: "UPVOTE" }],
-        bookmarks: [{ id: "bookmark-1", socialPostId: "p1" }],
+        votes: [{ id: "p1", voteType: "UPVOTE" }],
+        bookmarks: [{ id: "bookmark-1", rowId: "p1" }],
         following: ["author-1"],
       }),
     );
@@ -133,11 +143,11 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("never leaks one post's state onto another post or author", () => {
-    const items = stitchSocialPostLiveState(
+    const items = stitch(
       [cachedPost("p1", "author-1"), cachedPost("p2", "author-2")],
       overlay({
-        votes: [{ socialPostId: "p1", voteType: "DOWNVOTE" }],
-        bookmarks: [{ id: "bookmark-1", socialPostId: "p1" }],
+        votes: [{ id: "p1", voteType: "DOWNVOTE" }],
+        bookmarks: [{ id: "bookmark-1", rowId: "p1" }],
         following: ["author-2"],
       }),
     );
@@ -152,7 +162,7 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("normalises the Json mentions column", () => {
-    const [withMentions] = stitchSocialPostLiveState(
+    const [withMentions] = stitch(
       [
         cachedPost("p1", "author-1", {
           mentions: [{ id: "u9", handle: "ada", name: "Ada" }],
@@ -160,7 +170,7 @@ describe("stitchSocialPostLiveState", () => {
       ],
       null,
     );
-    const [withObject] = stitchSocialPostLiveState(
+    const [withObject] = stitch(
       [cachedPost("p2", "author-1", { mentions: { not: "an-array" } })],
       null,
     );
@@ -173,10 +183,10 @@ describe("stitchSocialPostLiveState", () => {
 
   it("does not mutate the cached rows it is given", () => {
     const post = cachedPost("p1", "author-1");
-    stitchSocialPostLiveState(
+    stitch(
       [post],
       overlay({
-        votes: [{ socialPostId: "p1", voteType: "UPVOTE" }],
+        votes: [{ id: "p1", voteType: "UPVOTE" }],
         following: ["author-1"],
       }),
     );
@@ -191,7 +201,7 @@ describe("stitchSocialPostLiveState", () => {
   it("prefers live counters over the cached batch values", () => {
     // The cached batch is allowed to lag (signed-out viewers read it); a
     // signed-in viewer must see the true numbers.
-    const [item] = stitchSocialPostLiveState(
+    const [item] = stitch(
       [
         cachedPost("p1", "author-1", {
           totalVotes: 40,
@@ -202,10 +212,8 @@ describe("stitchSocialPostLiveState", () => {
       overlay({
         counters: [
           {
-            socialPostId: "p1",
-            totalVotes: 43,
-            totalBookmarks: 5,
-            totalComments: 12,
+            id: "p1",
+            values: { totalVotes: 43, totalBookmarks: 5, totalComments: 12 },
           },
         ],
       }),
@@ -217,14 +225,14 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("only overlays the counters that belong to their own post", () => {
-    const items = stitchSocialPostLiveState(
+    const items = stitch(
       [
         cachedPost("p1", "author-1", { totalVotes: 40 }),
         cachedPost("p2", "author-2", { totalVotes: 1 }),
       ],
       overlay({
         counters: [
-          { socialPostId: "p1", totalVotes: 43, totalBookmarks: 5, totalComments: 12 },
+          { id: "p1", values: { totalVotes: 43, totalBookmarks: 5, totalComments: 12 } },
         ],
       }),
     );
@@ -235,7 +243,7 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("keeps the cached counters when the overlay has no entry at all", () => {
-    const [item] = stitchSocialPostLiveState(
+    const [item] = stitch(
       [
         cachedPost("p1", "author-1", {
           totalVotes: 40,
@@ -252,7 +260,7 @@ describe("stitchSocialPostLiveState", () => {
   });
 
   it("keeps cached counters for anonymous visitors", () => {
-    const [item] = stitchSocialPostLiveState(
+    const [item] = stitch(
       [cachedPost("p1", "author-1", { totalVotes: 7, totalComments: 3 })],
       null,
     );

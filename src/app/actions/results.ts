@@ -1,8 +1,14 @@
 "use server";
 
+import type { ResultWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -13,62 +19,25 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESULT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
+/**
+ * Loads one page of result rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getResults(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.ResultWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { category: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { conductingBody: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { session: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.result.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      type: true,
-      category: true,
-      conductingBody: true,
-      session: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("RESULT", { query: q, pageSize: limit, cursor }) as Promise<
+  ResultWithAuthor[]
+>;
 }
 
 export const getResult = cache(async (id: string, userId?: string) => {
@@ -196,6 +165,9 @@ export async function createResult(formData: FormData) {
     body: `${title}${category ? ` (${category})` : ""}${conductingBody ? ` - ${conductingBody}` : ""}`,
   });
 
+  // Purge the cached result pages: publish must be visible at once, not after the TTL.
+  revalidateContent("RESULT");
+
   return { success: true, data: result };
 }
 
@@ -242,6 +214,9 @@ export async function updateResult(formData: FormData, resultId: string) {
     },
   });
 
+  // Purge the cached result pages: edit must be visible at once, not after the TTL.
+  revalidateContent("RESULT");
+
   return { success: true, data: updatedResult };
 }
 
@@ -280,6 +255,9 @@ export async function deleteResult(resultId: string) {
       });
     }
   });
+
+  // Purge the cached result pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("RESULT");
 
   return { success: true, data: { deletedId: resultId } };
 }

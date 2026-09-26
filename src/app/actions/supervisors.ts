@@ -1,59 +1,41 @@
 "use server";
 
+import type { SupervisorWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
+/**
+ * Loads one page of supervisor rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getSupervisors(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  return prisma.supervisor.findMany({
-    where: {
-      isDeleted: false,
-      ...(q && { name: { contains: q, mode: "insensitive" } }),
-    },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      name: true,
-      university: true,
-      department: true,
-      createdAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-      // Zero-compute materialized aggregates (Rule 2): count + avg derive
-      // from these scalars. No recommendation rows are fetched.
-      recommendationCount: true,
-      ratingSum: true,
-    },
-  });
+  return loadContentPage("SUPERVISOR", { query: q, pageSize: limit, cursor }) as Promise<
+  SupervisorWithAuthor[]
+>;
 }
 
 export const getSupervisor = cache(async (id: string, userId?: string) => {
@@ -160,13 +142,22 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
 
 /**
  * Fetch the next batch of recommendations for a supervisor (lazy-loaded carousel).
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * Deliberately NOT cached: a `take: 1` carousel scoped to one `supervisorId`
+ * would mint a cache entry per supervisor for ~1KB of data.
  */
 export async function getSupervisorRecommendations(
   supervisorId: string,
-  userId?: string,
   skip: number = 0,
   take: number = 1,
 ) {
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   return prisma.recommendation.findMany({
     where: { supervisorId, isDeleted: false },
     skip,
@@ -210,8 +201,11 @@ export async function getSupervisorRecommendations(
  */
 export async function getSupervisorRecommendationMeta(
   supervisorId: string,
-  userId?: string,
 ) {
+  // Identity comes from the session, server-side — never from a client argument.
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   const recommendations = await prisma.recommendation.findMany({
     where: { supervisorId, isDeleted: false },
     select: { id: true, rating: true, authorId: true },
@@ -298,6 +292,9 @@ export async function createSupervisor(formData: FormData) {
     return newSupervisor;
   });
 
+  // Purge the cached supervisor pages: publish must be visible at once, not after the TTL.
+  revalidateContent("SUPERVISOR");
+
   return { success: true, data: supervisor };
 }
 
@@ -347,6 +344,9 @@ export async function updateSupervisor(
     },
   });
 
+  // Purge the cached supervisor pages: edit must be visible at once, not after the TTL.
+  revalidateContent("SUPERVISOR");
+
   return { success: true, data: updatedSupervisor };
 }
 
@@ -385,6 +385,9 @@ export async function deleteSupervisor(supervisorId: string) {
       });
     }
   });
+
+  // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("SUPERVISOR");
 
   return { success: true, data: { deletedId: supervisorId } };
 }

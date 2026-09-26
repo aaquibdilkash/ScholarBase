@@ -46,19 +46,16 @@ export function UserListModal({
   // under a `users` key, so map the result into the shared CursorPage shape.
   const fetchPage = useCallback(
     async (cursor?: string): Promise<CursorPage<UserItem>> => {
-      const result = await fetcher(
-        userId,
-        currentUserId,
-        PAGE_SIZE,
-        cursor,
-      );
+      // Viewer identity is resolved inside the action; the client never sends
+      // a userId.
+      const result = await fetcher(userId, PAGE_SIZE, cursor);
       return {
         items: result.users as UserItem[],
         nextCursor: result.nextCursor,
         hasMore: result.hasMore,
       };
     },
-    [fetcher, userId, currentUserId],
+    [fetcher, userId],
   );
 
   useEffect(() => {

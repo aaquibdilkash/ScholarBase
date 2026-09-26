@@ -58,7 +58,7 @@ export default async function AdmissionsPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const admissions = await getAdmissions(q ?? "", user?.id, 10);
+            const admissions = await getAdmissions(q ?? "", 10);
             return { admissions, userId: user?.id };
           }}
         >

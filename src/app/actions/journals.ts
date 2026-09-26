@@ -1,8 +1,14 @@
 "use server";
 
+import type { JournalWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -95,6 +101,9 @@ export async function createJournal(formData: FormData) {
     body: `${title}${publisher ? ` by ${publisher}` : ""}`,
   });
 
+  // Purge the cached journal pages: publish must be visible at once, not after the TTL.
+  revalidateContent("JOURNAL");
+
   return { success: true, data: journal };
 }
 
@@ -156,6 +165,9 @@ export async function updateJournal(formData: FormData, journalId: string) {
     },
   });
 
+  // Purge the cached journal pages: edit must be visible at once, not after the TTL.
+  revalidateContent("JOURNAL");
+
   return { success: true, data: updatedJournal };
 }
 
@@ -195,67 +207,31 @@ export async function deleteJournal(journalId: string) {
     }
   });
 
+  // Purge the cached journal pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("JOURNAL");
+
   return { success: true, data: { deletedId: journalId } };
 }
 
+/**
+ * Loads one page of journal rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getJournals(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.JournalWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { publisher: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { about: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { issn: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.journal.findMany({
-    where,
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      publisher: true,
-      impactFactor: true,
-      createdAt: true,
-      website: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? {
-                where: { followerId: userId },
-                select: { followerId: true },
-              }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("JOURNAL", { query: q, pageSize: limit, cursor }) as Promise<
+  JournalWithAuthor[]
+>;
 }
 
 export const getJournalById = cache(

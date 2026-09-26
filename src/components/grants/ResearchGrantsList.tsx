@@ -45,7 +45,7 @@ export function ResearchGrantsList({
       <CacheBackedList<ResearchGrantWithAuthor>
         queryKey={queryKey}
         initialItems={grants}
-        fetchPage={(cursor) => getResearchGrants(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getResearchGrants(q, 10, cursor)}
         renderItem={(grant) => (
           <ResearchGrantCard
             key={(grant as ResearchGrantWithAuthor).id}

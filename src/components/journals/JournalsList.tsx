@@ -45,7 +45,7 @@ export function JournalsList({
       <CacheBackedList<JournalWithAuthor>
         queryKey={queryKey}
         initialItems={journals}
-        fetchPage={(cursor) => getJournals(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getJournals(q, 10, cursor)}
         renderItem={(journal) => (
           <JournalCard
             key={journal.id}

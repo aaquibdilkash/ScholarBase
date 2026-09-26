@@ -6,34 +6,19 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { SearchInput } from "@/components/ui/SearchInput";
-import type { Prisma } from "@prisma/client";
 import { SupervisorCard } from "./SupervisorCard";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { getSupervisors } from "@/app/actions/supervisors";
 
-type SupervisorWithDetails = Prisma.SupervisorGetPayload<{
-  select: {
-    id: true;
-    name: true;
-    university: true;
-    department: true;
-    createdAt: true;
-    author: {
-      select: {
-        id: true;
-        name: true;
-        handle: true;
-        avatarUrl: true, institutionVerifiedAt: true;
-        followers: { select: { followerId: true } } | false;
-      };
-    };
-    totalVotes: true;
-    totalBookmarks: true;
-    totalComments: true;
-    votes: { select: { voteType: true } } | false;
-    bookmarks: { select: { id: true } } | false;
-  };
-}>;
+/**
+ * Row shape, derived from the loader so the list and the data layer can never
+ * drift. The loader resolves viewer state server-side and returns `votes` /
+ * `bookmarks` as real arrays (never `false`), plus the zero-compute
+ * `recommendationCount` / `ratingSum` scalars.
+ */
+type SupervisorWithDetails = Awaited<
+  ReturnType<typeof getSupervisors>
+>[number];
 
 export function SupervisorsList({
   supervisors,
@@ -72,7 +57,7 @@ export function SupervisorsList({
       <CacheBackedList<SupervisorWithDetails>
         queryKey={queryKey}
         initialItems={supervisors}
-        fetchPage={(cursor) => getSupervisors(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getSupervisors(q, 10, cursor)}
         renderItem={(s) => (
           <SupervisorCard
             key={s.id}

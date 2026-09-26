@@ -14,8 +14,11 @@ export default defineConfig({
     globals: true,
     environment: "node",
     // All tests live in the top-level `test/` tree, grouped by module
-    // subfolder (test/feed, test/auth, test/surveys, test/email, ...).
+    // subfolder (test/feed, test/auth, test/surveys, test/tri-split, ...).
     include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
+    // Blocks any database access from the unit suite, so `npm test` can never
+    // consume Supabase compute or a Supavisor connection. See test/setup.ts.
+    setupFiles: ["test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
+import { getCurrentUser } from "@/lib/auth";
 import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
@@ -62,8 +63,13 @@ export async function fetchParentComments(
   type: CommentEntityType,
   postId: string,
   skip: number,
-  currentUserId: string | null = null,
 ): Promise<CommentWithAuthorAndVotes[]> {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each comment's `votes` by it, so any caller could
+  // read back which comments another user had voted on.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id ?? null;
+
   const moduleKey = COMMENT_TYPE_TO_MODULE[type];
   if (!moduleKey) throw new Error(`Invalid comment type: ${type}`);
 
@@ -85,8 +91,13 @@ export async function fetchReplies(
   type: CommentEntityType,
   parentId: string,
   skip: number,
-  currentUserId: string | null = null,
 ): Promise<CommentWithAuthorAndVotes[]> {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each reply's `votes` by it, so any caller could
+  // read back which replies another user had voted on.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id ?? null;
+
   const moduleKey = COMMENT_TYPE_TO_MODULE[type];
   if (!moduleKey) throw new Error(`Invalid comment type: ${type}`);
 

@@ -14,6 +14,11 @@ type ScholarCardProps = {
     reputation: number;
     createdAt: Date;
     institutionVerifiedAt?: Date | string | null;
+    /**
+     * Live follow state from the Tri-Split overlay. Present on directory rows;
+     * absent on detail/profile pages, which still pass the raw relation.
+     */
+    isFollowed?: boolean;
     followers?: { followerId: string }[];
     // RULE 6: materialized counters maintained in transactions.ts (handleFollow).
     followersCount: number;
@@ -23,7 +28,10 @@ type ScholarCardProps = {
 };
 
 export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
-  const isFollowing = (scholar.followers?.length ?? 0) > 0;
+  // Prefer the explicit boolean; fall back to the relation for callers that
+  // still select it (profile page, trending).
+  const isFollowing =
+    scholar.isFollowed ?? (scholar.followers?.length ?? 0) > 0;
 
   return (
     <ListPageCardShell

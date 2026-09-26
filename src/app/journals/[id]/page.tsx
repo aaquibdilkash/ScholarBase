@@ -60,8 +60,8 @@ const JournalDetailPage = async ({
   // Journal Reviews (mirrors the supervisor recommendations flow). Aggregates
   // are materialized on the Journal; the meta call adds the per-star split and
   // the viewer's own review id (for the "+ Review" / "Edit Review" CTA).
-  const reviewMeta = await getJournalReviewMeta(id, user?.id);
-  const initialReviews = await getJournalReviews(id, user?.id, 0, 5);
+  const reviewMeta = await getJournalReviewMeta(id);
+  const initialReviews = await getJournalReviews(id, 0, 5);
 
   const j = journal;
   const userVote =

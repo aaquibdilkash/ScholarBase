@@ -12,7 +12,7 @@ import { ListSkeleton } from "./ListSkeleton";
  *   <AsyncListRegion
  *     key={q}
  *     fetcher={async () => {
- *       const journals = await getJournals(q, user?.id, 10);
+ *       const journals = await getJournals(q, 10);
  *       return { journals, userId: user?.id };
  *     }}
  *   >

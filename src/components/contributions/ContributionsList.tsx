@@ -45,7 +45,7 @@ export function ContributionsList({
       <CacheBackedList<ContributionWithAuthor>
         queryKey={queryKey}
         initialItems={contributions}
-        fetchPage={(cursor) => getContributions(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getContributions(q, 10, cursor)}
         renderItem={(contribution) => (
           <ContributionCard
             key={(contribution as ContributionWithAuthor).id}

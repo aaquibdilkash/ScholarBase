@@ -62,7 +62,7 @@ export default async function JournalsPage({
             const {
               data: { user },
             } = await supabase.auth.getUser();
-            const journals = await getJournals(q ?? "", user?.id, 10);
+            const journals = await getJournals(q ?? "", 10);
             return { journals, userId: user?.id };
           }}
         >

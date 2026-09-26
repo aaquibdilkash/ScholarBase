@@ -72,9 +72,14 @@ export async function toggleFollow(
 
 export async function getFollowers(
   userId: string,
-  currentUserId?: string,
   take: number = 50,
 ) {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each row's `followers` by it, leaking the
+  // caller's ability to read another user's follow relationships.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id;
+
   const follows = await prisma.follows.findMany({
     where: { followingId: userId },
     take,
@@ -109,10 +114,15 @@ export async function getFollowers(
 
 export async function getFollowersWithCursor(
   userId: string,
-  currentUserId?: string,
   take: number = 10,
   cursor?: string,
 ) {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each row's `followers` by it, leaking the
+  // caller's ability to read another user's follow relationships.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id;
+
   const follows = await prisma.follows.findMany({
     where: {
       followingId: userId,
@@ -160,9 +170,14 @@ export async function getFollowersWithCursor(
 
 export async function getFollowing(
   userId: string,
-  currentUserId?: string,
   take: number = 50,
 ) {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each row's `followers` by it, leaking the
+  // caller's ability to read another user's follow relationships.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id;
+
   const follows = await prisma.follows.findMany({
     where: { followerId: userId },
     take,
@@ -197,10 +212,15 @@ export async function getFollowing(
 
 export async function getFollowingWithCursor(
   userId: string,
-  currentUserId?: string,
   take: number = 10,
   cursor?: string,
 ) {
+  // The viewer is resolved server-side; this used to accept a client-supplied
+  // `currentUserId` and filter each row's `followers` by it, leaking the
+  // caller's ability to read another user's follow relationships.
+  const viewer = await getCurrentUser();
+  const currentUserId = viewer?.id;
+
   const follows = await prisma.follows.findMany({
     where: {
       followerId: userId,

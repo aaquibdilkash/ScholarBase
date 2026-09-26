@@ -1,8 +1,16 @@
 "use server";
 
+import { getCurrentUser } from "@/lib/auth";
+
+import type { VacancyWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -13,67 +21,25 @@ import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
+/**
+ * Loads one page of job vacancy rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getVacancies(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where = {
-    isDeleted: false,
-    ...(q
-      ? {
-          OR: [
-            { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            { institution: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-          ],
-        }
-      : {}),
-  };
-
-  return prisma.jobVacancy.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      institution: true,
-      deadline: true,
-      description: true,
-      notificationLink: true,
-      applyLink: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          ...(userId
-            ? {
-                followers: {
-                  where: { followerId: userId },
-                  select: { followerId: true },
-                },
-              }
-            : {}),
-        },
-      },
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("JOB_VACANCY", { query: q, pageSize: limit, cursor }) as Promise<
+  VacancyWithAuthor[]
+>;
 }
 
 export const getVacancyById = cache(async (id: string, userId?: string) => {
@@ -223,6 +189,9 @@ export async function createJobVacancy(formData: FormData) {
     body: `${title} at ${institution} - Apply by ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
   });
 
+  // Purge the cached job vacancy pages: publish must be visible at once, not after the TTL.
+  revalidateContent("JOB_VACANCY");
+
   return { success: true, data: vacancy };
 }
 
@@ -287,6 +256,9 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
     },
   });
 
+  // Purge the cached job vacancy pages: edit must be visible at once, not after the TTL.
+  revalidateContent("JOB_VACANCY");
+
   return { success: true, data: updatedVacancy };
 }
 
@@ -324,10 +296,20 @@ export async function deleteJobVacancy(vacancyId: string) {
     }
   });
 
+  // Purge the cached job vacancy pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("JOB_VACANCY");
+
   return { success: true, data: { deletedId: vacancyId } };
 }
 
-export async function getLatestVacancies(count: number, userId?: string) {
+export async function getLatestVacancies(count: number) {
+  // Identity comes from the session, server-side — never from a client
+  // argument. This used to accept `userId` and filter the author's
+  // `followers` relation by it, so any caller could read another user's
+  // follow relationships.
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   return prisma.jobVacancy.findMany({
     where: {
       isDeleted: false,

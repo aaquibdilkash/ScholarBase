@@ -1,5 +1,12 @@
 "use server";
 
+import type { SurveyWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
 import prisma from "@/lib/db";
@@ -102,66 +109,25 @@ function buildQuestionExtras(
   return extras;
 }
 
+/**
+ * Loads one page of research survey rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getSurveys(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where = {
-    isDeleted: false,
-    ...(q
-      ? {
-          OR: [
-            { title: { contains: q, mode: "insensitive" as const } },
-            { description: { contains: q, mode: "insensitive" as const } },
-          ],
-        }
-      : {}),
-  };
-
-  return prisma.researchSurvey.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      privacy: true,
-      shareData: true,
-      authorId: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      status: true,
-      isDeleted: true,
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      totalResponses: true,
-      trendingScore: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? {
-                where: { followerId: userId },
-                select: { followerId: true },
-              }
-            : false,
-        },
-      },
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("RESEARCH_SURVEY", { query: q, pageSize: limit, cursor }) as Promise<
+  SurveyWithAuthor[]
+>;
 }
 
 export const getSurvey = cache(async (id: string, userId?: string) => {
@@ -379,6 +345,9 @@ export async function createSurvey(formData: FormData) {
     title: `${user.email?.split("@")[0] || "Someone"} created a new survey`,
     body: title,
   });
+
+  // Purge the cached survey pages: publish must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
 
   return { success: true, data: survey };
 }
@@ -779,6 +748,9 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
   const updatedSurvey = await getSurvey(surveyId, user.id);
 
+  // Purge the cached survey pages: edit must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
+
   return { success: true, data: updatedSurvey };
 }
 
@@ -817,6 +789,9 @@ export async function deleteSurvey(surveyId: string) {
     }
   });
 
+  // Purge the cached survey pages: soft delete must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
+
   return { success: true, data: { deletedId: surveyId } };
 }
 
@@ -843,6 +818,9 @@ export async function closeSurvey(surveyId: string) {
       questions: { include: { options: true } },
     },
   });
+  // Purge the cached survey pages: close must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
+
   return { success: true, data: updatedSurvey };
 }
 
@@ -869,6 +847,9 @@ export async function reopenSurvey(surveyId: string) {
       questions: { include: { options: true } },
     },
   });
+  // Purge the cached survey pages: reopen must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
+
   return { success: true, data: updatedSurvey };
 }
 
@@ -895,6 +876,9 @@ export async function toggleShareData(surveyId: string) {
       questions: { include: { options: true } },
     },
   });
+
+  // Purge the cached survey pages: share-data toggle must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
 
   return { success: true, data: updatedSurvey };
 }
@@ -1143,6 +1127,9 @@ export async function submitSurveyResponse(
 
     return response;
   });
+
+  // Purge the cached survey pages: new response (totalResponses is on the card) must be visible at once.
+  revalidateContent("RESEARCH_SURVEY");
 
   return { success: true, data: newResponse };
 }

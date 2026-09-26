@@ -1,8 +1,14 @@
 "use server";
 
+import type { ResearchToolWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -76,6 +82,9 @@ export async function createResearchTool(formData: FormData) {
     body: `${name} - ${use}`,
   });
 
+  // Purge the cached research tool pages: publish must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_TOOL");
+
   return { success: true, data: tool };
 }
 
@@ -106,6 +115,9 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
     where: { id: toolId },
     data: { name, website: safeWebsite ?? "", use, description, editedAt: new Date() },
   });
+
+  // Purge the cached research tool pages: edit must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_TOOL");
 
   return { success: true, data: updatedTool };
 }
@@ -146,64 +158,31 @@ export async function deleteResearchTool(toolId: string) {
     }
   });
 
+  // Purge the cached research tool pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_TOOL");
+
   return { success: true, data: { deletedId: toolId } };
 }
 
+/**
+ * Loads one page of research tool rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getResearchTools(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.ResearchToolWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { website: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { use: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.researchTool.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      name: true,
-      website: true,
-      use: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId
-        ? { where: { userId }, select: { userId: true, voteType: true } }
-        : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("RESEARCH_TOOL", { query: q, pageSize: limit, cursor }) as Promise<
+  ResearchToolWithAuthor[]
+>;
 }
 
 export const getResearchToolById = cache(

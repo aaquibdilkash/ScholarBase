@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma, JournalOutcome } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
@@ -97,13 +97,23 @@ export const getJournalReview = cache(
 /**
  * Paginated slice of a journal's reviews (lazy-loaded carousel/list). Mirrors
  * `getSupervisorRecommendations`.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * Deliberately NOT cached: this is a `take: 1..5` carousel scoped to one
+ * `journalId`, so a cache key per journal would mint an entry per journal for
+ * ~1KB of data — a memory leak with none of the benefit the top-level lists get.
  */
 export async function getJournalReviews(
   journalId: string,
-  userId?: string,
   skip: number = 0,
   take: number = 1,
 ) {
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   return prisma.journalReview.findMany({
     where: { journalId, isDeleted: false },
     skip,
@@ -149,7 +159,14 @@ export async function getJournalReviews(
  * distribution, total count and the viewer's own review id. Mirrors
  * `getSupervisorRecommendationMeta`.
  */
-export async function getJournalReviewMeta(journalId: string, userId?: string) {
+export async function getJournalReviewMeta(journalId: string) {
+  // Identity comes from the session, server-side — never from a client
+  // argument. This used to accept `userId` and filter the author's
+  // `followers` relation by it, so any caller could read another user's
+  // follow relationships.
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   // NOTE: no `isAnonymous` filter here — mirrors
   // `getSupervisorRecommendationMeta`. Anonymous reviews still count toward
   // totals/distribution and toward the viewer's own-review detection; the

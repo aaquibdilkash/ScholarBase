@@ -4,7 +4,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser, isUserAdmin } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { sendInstitutionDomainDecisionEmail } from "@/lib/email";
-import { revalidatePublicFeed } from "@/lib/feed-cache";
+import { revalidatePublicFeed } from "@/lib/tri-split/modules/feed";
 
 import {
   AdminCommentModel,

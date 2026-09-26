@@ -55,7 +55,9 @@ export default async function BlogIndex({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const articles = await getArticles(q ?? "", user?.id, 10);
+            // Viewer identity is resolved inside the action; the page does not
+            // pass a userId down to the data layer.
+            const articles = await getArticles(q ?? "", 10);
             return { articles, userId: user?.id };
           }}
         >

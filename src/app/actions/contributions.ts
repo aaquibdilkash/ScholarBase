@@ -1,8 +1,14 @@
 "use server";
 
+import type { ContributionWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -16,58 +22,25 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
+/**
+ * Loads one page of contribution rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getContributions(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.ContributionWhereInput = {
-    isDeleted: false,
-    status: "APPROVED",
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { message: { contains: q, mode: "insensitive" } },
-      ],
-    }),
-  };
-
-  return prisma.contribution.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      message: true,
-      amount: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      status: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("CONTRIBUTION", { query: q, pageSize: limit, cursor }) as Promise<
+  ContributionWithAuthor[]
+>;
 }
 
 export const getContribution = cache(async (id: string, userId?: string) => {
@@ -240,6 +213,9 @@ export async function createContribution(formData: FormData) {
     body: `${title}${amount ? ` (₹${amount})` : ""}`,
   });
 
+  // Purge the cached contribution pages: publish must be visible at once, not after the TTL.
+  revalidateContent("CONTRIBUTION");
+
   return { success: true, data: contribution };
 }
 
@@ -316,6 +292,9 @@ export async function updateContribution(
     await deleteCloudinaryAsset(oldScreenshot);
   }
 
+  // Purge the cached contribution pages: edit must be visible at once, not after the TTL.
+  revalidateContent("CONTRIBUTION");
+
   return { success: true, data: updatedContribution };
 }
 
@@ -356,6 +335,9 @@ export async function deleteContribution(contributionId: string) {
   });
 
   // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.
+  // Purge the cached contribution pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("CONTRIBUTION");
+
   return { success: true, data: { deletedId: contributionId } };
 }
 

@@ -1,8 +1,14 @@
 "use server";
 
+import type { CourseWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -73,6 +79,9 @@ export async function createCourse(formData: FormData) {
     body: provider ? `${title} - ${provider}` : title,
   });
 
+  // Purge the cached course pages: publish must be visible at once, not after the TTL.
+  revalidateContent("COURSE");
+
   return { success: true, data: course };
 }
 
@@ -120,6 +129,9 @@ export async function updateCourse(formData: FormData, courseId: string) {
     },
   });
 
+  // Purge the cached course pages: edit must be visible at once, not after the TTL.
+  revalidateContent("COURSE");
+
   return { success: true, data: updatedCourse };
 }
 
@@ -159,66 +171,31 @@ export async function deleteCourse(courseId: string) {
     }
   });
 
+  // Purge the cached course pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("COURSE");
+
   return { success: true, data: { deletedId: courseId } };
 }
 
+/**
+ * Loads one page of course rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getCourses(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.CourseWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { provider: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { instructor: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { format: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { level: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.course.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      provider: true,
-      link: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId
-        ? { where: { userId }, select: { userId: true, voteType: true } }
-        : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("COURSE", { query: q, pageSize: limit, cursor }) as Promise<
+  CourseWithAuthor[]
+>;
 }
 
 export const getCourseById = cache(

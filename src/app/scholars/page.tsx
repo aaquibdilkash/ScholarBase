@@ -47,7 +47,7 @@ export default async function ScholarsPage({
         <AsyncListRegion
           fetcher={async () => {
             const currentUser = await userPromise
-            const items = (await getTrendingScholars(currentUser?.id)) as unknown as import('@/types/trending').TrendingItem[]
+            const items = (await getTrendingScholars()) as unknown as import('@/types/trending').TrendingItem[]
             return { items, userId: currentUser?.id }
           }}
         >
@@ -61,10 +61,11 @@ export default async function ScholarsPage({
           key={q}
           fetcher={async () => {
             const currentUser = await userPromise
+            // Viewer identity is resolved inside the action; the page does not
+            // pass a userId down to the data layer.
             const scholars = await getScholars(
               q,
               sort === 'reputation' ? 'reputation' : 'latest',
-              currentUser?.id,
               pageSize,
             )
             return { scholars, userId: currentUser?.id }

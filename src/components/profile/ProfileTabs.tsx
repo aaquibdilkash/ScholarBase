@@ -421,10 +421,10 @@ export default function ProfileTabs({
           return;
         }
 
+        // Viewer identity is resolved inside the action.
         const result = await getProfileSection(
           profileId,
           sectionKey,
-          currentUserId,
           currentItems.length,
           1,
         );
@@ -443,7 +443,7 @@ export default function ProfileTabs({
         setLoadingMore(null);
       }
     },
-    [sections, profileId, currentUserId, loadingMore],
+    [sections, profileId, loadingMore],
   );
 
   const loadMoreBookmark = useCallback(
@@ -461,10 +461,10 @@ export default function ProfileTabs({
           return;
         }
 
+        // Viewer identity is resolved inside the action.
         const result = await getProfileBookmarkSection(
           profileId,
           sectionKey,
-          currentUserId,
           currentItems.length,
           1,
         );
@@ -483,7 +483,7 @@ export default function ProfileTabs({
         setBookmarkLoadingMore(null);
       }
     },
-    [bookmarkSections, profileId, currentUserId, bookmarkLoadingMore],
+    [bookmarkSections, profileId, bookmarkLoadingMore],
   );
 
   const handleContentTabClick = () => {

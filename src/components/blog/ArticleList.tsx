@@ -41,7 +41,9 @@ export function ArticleList({
         initialItems={articles}
         // Search is client-side (no navigation), so re-fetch page 1 per term.
         reloadToken={appliedQuery}
-        loadMore={(cursor) => getArticles(appliedQuery, currentUserId, 10, cursor)}
+        // Viewer identity is resolved server-side inside the action; the
+        // client never sends a userId.
+        loadMore={(cursor) => getArticles(appliedQuery, 10, cursor)}
         renderItem={(article) => (
           <ArticleCard
             key={article.id}

@@ -57,7 +57,7 @@ export default async function EventsPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const events = await getEvents(q ?? "", user?.id, 10);
+            const events = await getEvents(q ?? "", 10);
             return { events, userId: user?.id };
           }}
         >

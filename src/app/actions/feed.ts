@@ -16,13 +16,9 @@ import {
   deleteCommentTransaction,
 } from "@/lib/transactions";
 import {
-  getCachedPublicFeed,
-  getSocialPostLiveOverlay,
-  loadDynamicFeedPage,
-  normalizeFeedPageSize,
+  loadFeedPage,
   revalidatePublicFeed,
-} from "@/lib/feed-cache";
-import { stitchSocialPostLiveState } from "@/lib/feed-stitch";
+} from "@/lib/tri-split/modules/feed";
 import type { SocialPostFeedItem } from "@/types/feed";
 import { VoteType, DeletedByType } from "@prisma/client";
 
@@ -105,9 +101,8 @@ function castPost(post: {
  * (The previous `getFeed` accepted a `userId` from the browser, so any caller
  * could read another user's vote/bookmark/follow state.)
  *
- *  - Global feed        -> cached, viewer-agnostic batch (`getCachedPublicFeed`)
- *  - following / search -> dynamic, never cached
- *  - viewer state       -> one live indexed statement, stitched onto the batch
+ * The split itself lives in `@/lib/tri-split/modules/feed`: a cached
+ * viewer-agnostic batch plus a single-statement live overlay.
  */
 export async function fetchFeedPage(
   tab?: string,
@@ -116,37 +111,16 @@ export async function fetchFeedPage(
   cursor?: string,
 ): Promise<SocialPostFeedItem[]> {
   const user = await getCurrentUser();
-  const viewerId = user?.id;
-  // Clamped because the page size is part of the cache key.
-  const limit = normalizeFeedPageSize(pageSize);
 
-  const isFollowingTab = tab === "following";
-  const hasQuery = Boolean(query && query.trim().length > 0);
-
-  const posts =
-    isFollowingTab || hasQuery
-      ? await loadDynamicFeedPage({
-          viewerId,
-          followingOnly: isFollowingTab,
-          query,
-          limit,
-          cursor,
-        })
-      : await getCachedPublicFeed(limit, cursor);
-
-  if (posts.length === 0) return [];
-
-  // The live half of the split: viewer state + mutable counters, resolved in
-  // ONE statement for exactly these rows.
-  const overlay = viewerId
-    ? await getSocialPostLiveOverlay(
-        viewerId,
-        posts.map((post) => post.id),
-        Array.from(new Set(posts.map((post) => post.authorId))),
-      )
-    : null;
-
-  return stitchSocialPostLiveState(posts, overlay);
+  return loadFeedPage({
+    tab,
+    query,
+    pageSize,
+    cursor,
+    // Only the viewer-scoped "following" tab needs this; the factory resolves
+    // its own identity for the overlay and never exposes it as a parameter.
+    viewerId: user?.id,
+  });
 }
 
 export const getPost = cache(async (id: string, userId?: string) => {

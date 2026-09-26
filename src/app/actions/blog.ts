@@ -1,8 +1,9 @@
 "use server";
 
+import { getCurrentUser } from "@/lib/auth";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -14,60 +15,27 @@ import {
 } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import {
+  loadArticlesPage,
+  revalidateArticles,
+} from "@/lib/tri-split/modules/article";
 
+/**
+ * Loads one page of articles for the *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached batch + single-statement live overlay live in
+ * `@/lib/tri-split/modules/article`.
+ */
 export async function getArticles(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.ArticleWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { author: { name: { contains: q, mode: "insensitive" } } },
-      ],
-    }),
-  };
-
-  // RULE 6: The query is already optimized. The `.map()` transformation has been
-  // removed to stop doing server-side computation. The client is now responsible
-  // for deriving `isFollowing` and `userVote`.
-  return prisma.article.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      excerpt: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadArticlesPage({ query: q, pageSize: limit, cursor });
 }
 
 export const getArticle = cache(async (slug: string, userId?: string) => {
@@ -225,6 +193,10 @@ export async function createArticle(formData: FormData) {
     }),
   ]);
 
+  // Read-your-own-writes: purge the cached article pages so the new post is
+  // visible to everyone on the very next request.
+  revalidateArticles();
+
   return { success: true, data: article };
 }
 
@@ -277,6 +249,9 @@ export async function updateArticle(formData: FormData, articleId: string) {
     },
   });
 
+  // The edited title/excerpt/slug are part of the cached public payload.
+  revalidateArticles();
+
   return { success: true, data: updatedArticle };
 }
 
@@ -316,10 +291,20 @@ export async function deleteArticle(articleId: string) {
     }
   });
 
+  // Soft delete (RULE 4) must disappear from the cached public pages at once.
+  revalidateArticles();
+
   return { success: true, data: { deletedId: articleId } };
 }
 
-export async function getLatestArticles(count: number, userId?: string) {
+export async function getLatestArticles(count: number) {
+  // Identity comes from the session, server-side — never from a client
+  // argument. This used to accept `userId` and filter the author's
+  // `followers` relation by it, so any caller could read another user's
+  // follow relationships.
+  const user = await getCurrentUser();
+  const userId = user?.id;
+
   return prisma.article.findMany({
     where: { isDeleted: false },
     take: count,

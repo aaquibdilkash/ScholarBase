@@ -1,8 +1,14 @@
 "use server";
 
+import type { ResearchGrantWithAuthor } from "@/types/cards";
+
+import {
+  loadContentPage,
+  revalidateContent,
+} from "@/lib/tri-split/modules/registry";
+
 import { cache } from "react";
 
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
@@ -85,6 +91,9 @@ export async function createResearchGrant(formData: FormData) {
     body: amount ? `${title} - ${amount}` : title,
   });
 
+  // Purge the cached research grant pages: publish must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_GRANT");
+
   return { success: true, data: grant };
 }
 
@@ -124,6 +133,9 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
       editedAt: new Date(),
     },
   });
+
+  // Purge the cached research grant pages: edit must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_GRANT");
 
   return { success: true, data: updatedGrant };
 }
@@ -166,66 +178,31 @@ export async function deleteResearchGrant(grantId: string) {
     }
   });
 
+  // Purge the cached research grant pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("RESEARCH_GRANT");
+
   return { success: true, data: { deletedId: grantId } };
 }
 
+/**
+ * Loads one page of research grant rows for the
+ * *current* viewer.
+ *
+ * Identity comes from the session, server-side — never from a client argument.
+ * (This loader used to accept `userId` from the browser, so any caller could
+ * read another user's vote / bookmark / follow state.)
+ *
+ * The cached viewer-agnostic batch plus the single-statement live overlay live
+ * in `@/lib/tri-split/modules/registry`.
+ */
 export async function getResearchGrants(
   q?: string,
-  userId?: string,
   limit = 10,
   cursor?: string,
 ) {
-  const where: Prisma.ResearchGrantWhereInput = {
-    isDeleted: false,
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { amount: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { applyLink: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { infoLink: { contains: q, mode: Prisma.QueryMode.insensitive } },
-      ],
-    }),
-  };
-
-  return prisma.researchGrant.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: {
-      id: true,
-      title: true,
-      amount: true,
-      description: true,
-      applyLink: true,
-      infoLink: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId
-        ? { where: { userId }, select: { userId: true, voteType: true } }
-        : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return loadContentPage("RESEARCH_GRANT", { query: q, pageSize: limit, cursor }) as Promise<
+  ResearchGrantWithAuthor[]
+>;
 }
 
 export const getResearchGrantById = cache(

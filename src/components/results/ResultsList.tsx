@@ -45,7 +45,7 @@ export function ResultsList({
       <CacheBackedList<ResultWithAuthor>
         queryKey={queryKey}
         initialItems={results}
-        fetchPage={(cursor) => getResults(q, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getResults(q, 10, cursor)}
         renderItem={(item) => (
           <ResultCard
             key={item.id}

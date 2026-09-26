@@ -55,7 +55,7 @@ export default async function ResearchToolsPage({
           fetcher={async () => {
             const supabase = await supabasePromise;
             const { data: { user } } = await supabase.auth.getUser();
-            const tools = await getResearchTools(q ?? "", user?.id, 10);
+            const tools = await getResearchTools(q ?? "", 10);
             return { tools, userId: user?.id };
           }}
         >

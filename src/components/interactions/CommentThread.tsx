@@ -647,12 +647,8 @@ export function CommentThread({
     try {
       // Offset pagination tracks server-loaded rows only; optimistic replies
       // already visible locally should not move the server cursor.
-      const next = await fetchReplies(
-        module,
-        comment.id,
-        replySkip,
-        currentUserId,
-      );
+      // Viewer identity is resolved inside the action.
+      const next = await fetchReplies(module, comment.id, replySkip);
       const fetchedReplies = next ?? [];
       setReplySkip((skip) => skip + fetchedReplies.length);
       setReplyPagesExhausted(fetchedReplies.length < COMMENT_PAGE_SIZE);

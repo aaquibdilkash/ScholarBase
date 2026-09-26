@@ -147,12 +147,8 @@ export function CommentSection({
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      const next = await fetchParentComments(
-        module,
-        targetId,
-        parentSkip,
-        currentUserId,
-      );
+      // Viewer identity is resolved inside the action.
+      const next = await fetchParentComments(module, targetId, parentSkip);
       if (next && next.length > 0) {
         setParentsExpanded(true);
         // Drop any rows we already hold (offset overlap after a head insert).

@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { revalidateScholars } from "@/lib/tri-split/modules/scholar";
 import { requireActiveUser } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -50,6 +51,9 @@ export async function deleteAccount(
   if (!deleted) {
     return { success: false, error: "This account is already deleted." };
   }
+
+  // A tombstoned scholar must vanish from the cached directory at once (RULE 3).
+  revalidateScholars();
 
   const supabase = await createClient();
   await supabase.auth.signOut();

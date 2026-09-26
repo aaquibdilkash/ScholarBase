@@ -45,7 +45,7 @@ export function HelpPostList({
       <CacheBackedList<HelpPostWithAuthor>
         queryKey={queryKey}
         initialItems={posts}
-        fetchPage={(cursor) => getHelpPosts(query, currentUserId, 10, cursor)}
+        fetchPage={(cursor) => getHelpPosts(query, 10, cursor)}
         renderItem={(post) => (
           <HelpPostCard
             key={(post as HelpPostWithAuthor).id}
