@@ -38,11 +38,9 @@ function mapValueToLabel(q: QuestionResult, value: unknown): string {
 export function SurveyResultsView({
   survey,
   surveyId,
-  isOwner = false,
 }: {
   survey: SurveyResults | null;
   surveyId?: string;
-  isOwner?: boolean;
 }) {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [exportingFormat, setExportingFormat] = useState<"xlsx" | "csv" | null>(null);

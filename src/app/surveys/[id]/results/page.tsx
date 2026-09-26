@@ -78,8 +78,6 @@ export default async function SurveyResultsPage({
     })),
   };
 
-  const isOwner = user?.id === survey.authorId;
-
   return (
     <main className="mx-auto max-w-3xl py-6 sm:py-12">
       <Link
@@ -95,7 +93,6 @@ export default async function SurveyResultsPage({
       <SurveyResultsView
         survey={serializedSurvey}
         surveyId={survey.id}
-        isOwner={isOwner}
       />
     </main>
   );
