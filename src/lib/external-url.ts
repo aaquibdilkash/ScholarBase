@@ -20,6 +20,7 @@ export function validateExternalUrl(
       if (emailRegex.test(email)) {
         return trimmed;
       }
+      throw new Error(`${label} must be a valid email address.`);
     }
   }
 

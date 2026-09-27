@@ -17,7 +17,7 @@
 import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
 import { revalidateTrending } from "@/lib/trending";
 
-import { createContentList, type ContentListArgs } from "../content";
+import { createContentList, CONTENT_COUNTER_KEYS, type ContentListArgs } from "../content";
 import { revalidateProfileContent } from "./profile-tab";
 
 /** The author projection every content card renders. */
@@ -232,6 +232,17 @@ export const CONTENT_LIST_CONFIGS = {
     trending: "journals",
     tag: "journals-public",
     where: { isDeleted: false },
+    // The card renders the average rating, so both aggregates ride the live
+    // overlay: a posted/edited/deleted review is reflected on the next page
+    // load without purging this shared batch for every visitor.
+    counterKeys: [
+      ...CONTENT_COUNTER_KEYS,
+      "reviewCount",
+      "ratingSum",
+    ],
+    // Zero-compute materialized aggregates (Rule 2): the count and the average
+    // rating derive from these scalars, so no review rows are fetched. Kept in
+    // the projection as the stitch's fallback when the overlay has no row.
     select: {
       id: true,
       title: true,
@@ -241,6 +252,8 @@ export const CONTENT_LIST_CONFIGS = {
       createdAt: true,
       updatedAt: true,
       editedAt: true,
+      reviewCount: true,
+      ratingSum: true,
       authorId: true,
       ...COMMON_TAIL,
       author: AUTHOR,
@@ -300,6 +313,8 @@ export const CONTENT_LIST_CONFIGS = {
       isDeleted: true,
       // Survey-specific zero-compute aggregates.
       totalResponses: true,
+      totalQuestions: true,
+      totalBlocks: true,
       trendingScore: true,
       createdAt: true,
       updatedAt: true,
@@ -339,7 +354,7 @@ export const CONTENT_LIST_CONFIGS = {
       { field: "location" },
       { field: "description" },
     ],
-    dateKeys: DATES,
+    dateKeys: [...DATES, "date", "deadline"] as const,
   },
 
   PHD_ADMISSION: {
@@ -368,7 +383,7 @@ export const CONTENT_LIST_CONFIGS = {
       { field: "department" },
       { field: "description" },
     ],
-    dateKeys: DATES,
+    dateKeys: [...DATES, "deadline"] as const,
   },
 
   JOB_VACANCY: {
@@ -397,7 +412,7 @@ export const CONTENT_LIST_CONFIGS = {
       { field: "institution" },
       { field: "description" },
     ],
-    dateKeys: DATES,
+    dateKeys: [...DATES, "deadline"] as const,
   },
 
   SUPERVISOR: {

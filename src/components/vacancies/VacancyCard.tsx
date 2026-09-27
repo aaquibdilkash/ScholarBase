@@ -9,14 +9,14 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
-import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { deleteJobVacancy } from "@/app/actions/vacancies";
 import { useToast } from "@/components/ui/Toast";
 import { getTimeLeft } from "@/utils/time-ago";
+import { formatDate } from "@/utils/date";
 import type { VacancyWithAuthor } from "@/types/cards";
 
-export function VacancyCard({
-  vacancy,
+export function VacancyCard({ vacancy,
   currentUserId,
 }: {
   vacancy: VacancyWithAuthor;
@@ -109,19 +109,17 @@ export function VacancyCard({
       constrainBody={true}
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <SafeExternalLink
-            url={vacancy.notificationLink}
-            className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
-          >
-            Details
-          </SafeExternalLink>
-
-          <SafeExternalLink
-            url={vacancy.applyLink}
-            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-          >
-            Apply
-          </SafeExternalLink>
+          <SmartExternalLink
+                      url={vacancy.notificationLink}
+                      className="flex-1 sb-button-soft"
+                      urlLabel="View Details"
+                    />
+                    <SmartExternalLink
+                      url={vacancy.applyLink}
+                      className="flex-1 sb-button-primary"
+                      urlLabel="Apply Now"
+                      emailLabel="Email to Apply"
+                    /> 
         </div>
       }
     >
@@ -148,11 +146,7 @@ export function VacancyCard({
           <span>
             Last Date:{" "}
             <span className="font-medium">
-              {new Date(vacancy.deadline).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {formatDate(vacancy.deadline)}
             </span>
           </span>
         </div>

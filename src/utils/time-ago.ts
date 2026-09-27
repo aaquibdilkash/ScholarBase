@@ -32,14 +32,23 @@ export function formatTimeAgo(date: Date | string | number | null | undefined): 
   return `${years}y ago`;
 }
 
-export function getTimeLeft(deadline: Date | null | undefined): {
+export function getTimeLeft(deadline: Date | string | number | null | undefined): {
   label: string;
   className: string;
 } | null {
-  if (!deadline) return null;
+  if (!deadline && deadline !== 0) return null;
+
+  let deadlineDate: Date;
+  if (typeof deadline === 'number') {
+    deadlineDate = new Date(deadline);
+  } else if (typeof deadline === 'string') {
+    deadlineDate = new Date(deadline);
+  } else {
+    deadlineDate = deadline;
+  }
 
   const now = new Date();
-  const diff = deadline.getTime() - now.getTime();
+  const diff = deadlineDate.getTime() - now.getTime();
 
   if (diff <= 0) {
     return {

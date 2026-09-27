@@ -188,7 +188,9 @@ export type JournalWithAuthor = Partial<Journal> & {
     totalComments: number;
     votes: UserVote;
     bookmarks: UserBookmark;
-};
+    reviewCount?: number;
+    ratingSum?: number;
+  };
 
 export type ResultWithAuthor = Partial<Result> & {
     id: string;
@@ -254,6 +256,8 @@ export type SurveyWithAuthor = Partial<ResearchSurvey> & {
     totalBookmarks: number;
     totalComments: number;
     totalResponses: number;
+    totalQuestions: number;
+    totalBlocks: number;
     votes: UserVote;
     bookmarks: UserBookmark;
 };

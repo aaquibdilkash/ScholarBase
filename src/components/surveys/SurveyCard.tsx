@@ -130,6 +130,14 @@ export function SurveyCard({
             {survey.totalResponses} response
             {survey.totalResponses !== 1 ? "s" : ""}
           </span>
+          <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+            {survey.totalQuestions} question
+            {survey.totalQuestions !== 1 ? "s" : ""}
+          </span>
+          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+            {survey.totalBlocks} section
+            {survey.totalBlocks !== 1 ? "s" : ""}
+          </span>
         </div>
 
         <h2 className="mb-2 break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">

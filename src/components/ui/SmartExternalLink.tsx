@@ -55,6 +55,16 @@ export function SmartExternalLink({
         </SafeEmailLink>
       );
     }
+    if (trimmed.startsWith("mailto:")) {
+      const email = trimmed.slice(7);
+      if (validateEmailFormat(email)) {
+        return (
+          <SafeEmailLink email={email} {...rest}>
+            {children ?? emailLabel}
+          </SafeEmailLink>
+        );
+      }
+    }
   }
 
   return <>{fallback}</>;

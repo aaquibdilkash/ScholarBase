@@ -9,20 +9,13 @@ import { deletePhdAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
+import { formatDate } from "@/utils/date";
 import { Clock } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export function AdmissionCard({
   admission,

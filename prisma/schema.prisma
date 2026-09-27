@@ -1872,6 +1872,8 @@ model ResearchSurvey {
   totalBookmarks Int            @default(0)
   totalComments  Int            @default(0)
   totalResponses Int            @default(0)
+  totalQuestions Int            @default(0)
+  totalBlocks     Int            @default(0)
   trendingScore  Float          @default(0)
   isDeleted      Boolean        @default(false)
   deletedByType  DeletedByType?

@@ -1,15 +1,16 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import ListPageCardShell from "@/components/cards/ListPageCardShell";
-import { ReportMenu } from "@/components/cards/ReportMenu";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
+import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import { RichContent } from "@/components/content/RichContent";
+import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteJournal } from "@/app/actions/journals";
 import { useToast } from "@/components/ui/Toast";
+import { StarRating } from "@/components/ui/StarRating";
+import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { JournalWithAuthor } from "@/types/cards";
 
@@ -28,6 +29,11 @@ export function JournalCard({
   const isFollowing = (journal.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (journal.votes || [])[0]?.voteType ?? null;
+  const reviewCount = journal.reviewCount ?? 0;
+
+  const avgRating =
+    reviewCount > 0 ? (journal.ratingSum ?? 0) / reviewCount : 0;
+
   const websiteUrl =
     typeof viewWebsiteHref === "string"
       ? viewWebsiteHref
@@ -141,6 +147,24 @@ export function JournalCard({
           content={journal.about}
           className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
+
+        {reviewCount > 0 ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <StarRating rating={avgRating} size="sm" />
+            <div className="text-sm">
+              <span className="font-semibold">{avgRating.toFixed(1)}</span>
+              <span className="text-slate-500"> / 5</span>
+            </div>
+            <span className="text-slate-500 text-xs">
+              ({reviewCount} review
+              {reviewCount !== 1 ? "s" : ""})
+            </span>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+            No reviews yet.
+          </div>
+        )}
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
           {journal.publisher && (

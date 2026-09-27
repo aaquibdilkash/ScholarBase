@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
+import { CONTENT_COUNTER_KEYS } from "@/lib/tri-split/content";
 import {
   CONTENT_LIST_CONFIGS,
   CONTENT_LIST_KEYS,
@@ -121,6 +122,42 @@ describe("CONTENT_LIST_CONFIGS", () => {
     (_key, config) => {
       // `createdAt` is the feed ordering, so it must always be serialized.
       expect(config.dateKeys ?? []).toContain("createdAt");
+    },
+  );
+
+  it("JOURNAL reads its review aggregates through the live overlay", () => {
+    // The card renders an average rating. `reviewCount` / `ratingSum` are
+    // materialized on Journal and move on every posted/edited/deleted review, so
+    // they belong in the overlay's counter columns: the aggregate is then
+    // correct on the next page load, with no purge of the shared list batch and
+    // no extra round trip (the overlay already selects these off the row).
+    //
+    // Purging instead would be a correctness-preserving but strictly worse
+    // trade — it invalidates the batch every visitor shares.
+    const journal = CONTENT_LIST_CONFIGS.JOURNAL;
+    expect(journal.counterKeys).toEqual([
+      ...CONTENT_COUNTER_KEYS,
+      "reviewCount",
+      "ratingSum",
+    ]);
+  });
+
+  it.each(entries)(
+    "%s selects every counter it reads live, so the stitch can fall back",
+    (_key, config) => {
+      // `stitchLiveState` falls back to the cached value when the overlay has no
+      // row (signed out, or the row deleted between the two reads). A counter
+      // that is overlaid but not selected would silently render as 0 in exactly
+      // that window.
+      //
+      // Widened because only JOURNAL declares `counterKeys`, so the property is
+      // absent from the union; the fallback mirrors `createContentList`.
+      const { counterKeys = CONTENT_COUNTER_KEYS } = config as {
+        counterKeys?: readonly string[];
+      };
+      for (const counter of counterKeys) {
+        expect(config.select[counter], `${_key}.select.${counter}`).toBe(true);
+      }
     },
   );
 });

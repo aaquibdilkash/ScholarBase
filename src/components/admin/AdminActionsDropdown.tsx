@@ -8,6 +8,7 @@ import {
   Fragment,
 } from "react";
 import { createPortal } from "react-dom";
+import { formatDate } from "@/utils/date";
 import {
   useMutation,
   useQueryClient,
@@ -521,7 +522,7 @@ export function AdminActionsDropdown({
                             {report.category}
                           </span>
                           <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {new Date(report.createdAt).toLocaleDateString()}
+                            {formatDate(report.createdAt)}
                           </span>
                         </div>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">

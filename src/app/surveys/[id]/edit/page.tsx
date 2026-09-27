@@ -46,6 +46,8 @@ export default async function EditSurveyPage({
     totalVotes: survey.totalVotes ?? 0,
     totalComments: survey.totalComments ?? 0,
     totalResponses: survey.totalResponses ?? 0,
+    totalQuestions: survey.totalQuestions ?? 0,
+    totalBlocks: survey.totalBlocks ?? 0,
   };
 
   return (

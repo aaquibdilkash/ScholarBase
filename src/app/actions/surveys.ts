@@ -153,6 +153,8 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       hasActiveAppeal: true,
       totalComments: true,
       totalResponses: true,
+      totalQuestions: true,
+      totalBlocks: true,
       trendingScore: true,
       author: {
         select: {
@@ -257,6 +259,8 @@ export async function createSurvey(formData: FormData) {
 
   const questions = JSON.parse(questionsJson) as SurveyQuestionInput[];
   const blocks = parseBlockInputs(readOptionalFormValue(formData, "blocks"));
+  const questionCount = questions.length;
+  const blocksCount = blocks.length;
 
   const survey = await prisma.$transaction(async (tx) => {
     const newSurvey = await tx.researchSurvey.create({
@@ -268,6 +272,8 @@ export async function createSurvey(formData: FormData) {
         authorId: user.id,
         consentRequired,
         consentText,
+        totalQuestions: questionCount,
+        totalBlocks: blocksCount,
       },
     });
 
@@ -723,6 +729,9 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
 
     const contentChanged = questionsChanged || blocksChanged || metaChanged;
 
+    const newQuestionCount = questions.length;
+    const newBlocksCount = blocks.length;
+
     await tx.researchSurvey.update({
       where: { id: surveyId },
       data: {
@@ -732,6 +741,8 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
         shareData,
         consentRequired,
         consentText,
+        totalQuestions: newQuestionCount,
+        totalBlocks: newBlocksCount,
         ...(contentChanged ? { editedAt: new Date() } : {}),
       },
     });

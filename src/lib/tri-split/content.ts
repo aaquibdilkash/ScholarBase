@@ -51,6 +51,17 @@ export type ContentListArgs = {
   dateKeys?: readonly string[];
   /** Extra cache-key discriminators beyond the tag. */
   keyParts?: readonly string[];
+  /**
+   * Materialized counters read live in the overlay on every page load, with the
+   * cached batch as fallback. Defaults to {@link CONTENT_COUNTER_KEYS}.
+   *
+   * A module whose card renders an extra materialized aggregate (e.g. Journal's
+   * `reviewCount` / `ratingSum`) adds it here rather than purging the shared
+   * list cache whenever the aggregate moves. The overlay statement already
+   * selects these columns off the row it is reading, so the extra keys cost
+   * nothing — whereas a purge would invalidate the batch for every visitor.
+   */
+  counterKeys?: readonly string[];
   /** Per-module fold tweaks (e.g. a `mentions` normaliser). */
   stitchOverrides?: Partial<
     StitchOptions<Record<string, unknown>, Record<string, unknown>>
@@ -59,6 +70,7 @@ export type ContentListArgs = {
 
 /** Default fold rules for a standard content module. */
 function contentStitch(
+  counterKeys: readonly string[],
   overrides?: Partial<
     StitchOptions<Record<string, unknown>, Record<string, unknown>>
   >,
@@ -66,7 +78,7 @@ function contentStitch(
   return {
     getRowId: (row: Record<string, unknown>) => row.id as string,
     getAuthorId: (row: Record<string, unknown>) => row.authorId as string,
-    counterKeys: CONTENT_COUNTER_KEYS,
+    counterKeys,
     rehydrate: (row: Record<string, unknown>) => ({ ...row }),
     ...overrides,
   };
@@ -85,6 +97,7 @@ export function createContentList(
 ): TriSplitLoader<Record<string, unknown>> {
   const config = ENTITY_CONFIG[args.module];
   const mode = Prisma.QueryMode.insensitive;
+  const counterKeys = args.counterKeys ?? CONTENT_COUNTER_KEYS;
 
   return createTriSplitList<
     Record<string, unknown>,
@@ -103,9 +116,9 @@ export function createContentList(
       bookmark: tableName(config.bookmarkModel),
       rowFk: config.parentFk,
       authorFk: "authorId",
-      counterKeys: CONTENT_COUNTER_KEYS,
+      counterKeys,
     },
-    stitch: contentStitch(args.stitchOverrides),
+    stitch: contentStitch(counterKeys, args.stitchOverrides),
     buildWhere: (callArgs: Record<string, unknown>) => {
       const query =
         typeof callArgs.query === "string" ? callArgs.query.trim() : "";

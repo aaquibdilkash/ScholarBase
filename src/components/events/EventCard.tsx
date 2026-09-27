@@ -11,17 +11,10 @@ import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
+import { formatDate } from "@/utils/date";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import type { EventWithAuthor } from "@/types/cards";
 import { RichContent } from "../content/RichContent";
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
 
 export function EventCard({
   event,
@@ -165,11 +158,7 @@ export function EventCard({
               <span>
                 Deadline:{" "}
                 <span className="font-medium">
-                  {new Date(event.deadline).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {formatDate(event.deadline)}
                 </span>
               </span>
             </div>
