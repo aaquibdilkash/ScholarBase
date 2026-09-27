@@ -103,6 +103,19 @@ export function JournalReviewCard({
           ? undefined
           : review.author?.id ?? review.authorId ?? null
       }
+      // Without these the shell has no photo to render and falls back to the
+      // bare initial circle, so the reviewer looked faceless in every list the
+      // card appears in (the journal reviews rail and the profile's
+      // Journal Reviews tab).
+      authorHandle={
+        review.isAnonymous ? undefined : review.author?.handle || undefined
+      }
+      authorAvatarUrl={
+        review.isAnonymous ? null : review.author?.avatarUrl || undefined
+      }
+      authorVerified={
+        !review.isAnonymous && !!review.author?.institutionVerifiedAt
+      }
       isFollowing={review.isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
       createdDate={review.createdAt}

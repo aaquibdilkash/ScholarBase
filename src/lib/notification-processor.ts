@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
+import { getModuleNoun } from "@/lib/notification-links";
 import type { NotificationPayload } from "@/lib/qstash";
 
 const ROLLUP_TYPES = new Set([
@@ -14,6 +15,9 @@ function formatRollupBody(
   actorName: string,
   othersCount: number,
   fallback: string,
+  // What was voted on, e.g. "journal review". Only NEW_VOTE is module-aware
+  // today; a review vote used to be announced as "upvoted your post".
+  noun: string = "post",
 ) {
   if (!ROLLUP_TYPES.has(type)) return fallback;
   if (othersCount === 0) {
@@ -25,7 +29,7 @@ function formatRollupBody(
       case "NEW_FOLLOWER":
         return `${actorName} started following you.`;
       case "NEW_VOTE":
-        return `${actorName} upvoted your post.`;
+        return `${actorName} upvoted your ${noun}.`;
     }
   }
 
@@ -38,7 +42,7 @@ function formatRollupBody(
     case "NEW_FOLLOWER":
       return `${actorName} and ${suffix} started following you.`;
     case "NEW_VOTE":
-      return `${actorName} and ${suffix} upvoted your post.`;
+      return `${actorName} and ${suffix} upvoted your ${noun}.`;
     default:
       return fallback;
   }
@@ -55,6 +59,9 @@ export async function processNotificationPayload(payload: NotificationPayload) {
       select: { name: true, handle: true },
     });
     const actorName = actor?.name || actor?.handle || "A researcher";
+    // Resolved once for both rollup paths: a vote on a journal review must be
+    // announced as "upvoted your journal review", not as a generic post.
+    const noun = getModuleNoun(payload.targetType);
 
     const aggregated = await prisma.$transaction(async (tx) => {
       const existingNotification = ROLLUP_TYPES.has(payload.type)
@@ -76,7 +83,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
           data: {
             actorId: payload.actorId,
             count,
-            body: formatRollupBody(payload.type, actorName, count - 1, payload.body),
+            body: formatRollupBody(payload.type, actorName, count - 1, payload.body, noun),
             updatedAt: new Date(),
           },
         });
@@ -91,7 +98,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
           targetType: payload.targetType,
           targetId: payload.targetId,
           title: payload.title,
-          body: formatRollupBody(payload.type, actorName, 0, payload.body),
+          body: formatRollupBody(payload.type, actorName, 0, payload.body, noun),
           count: 1,
         },
       });

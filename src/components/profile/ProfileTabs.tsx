@@ -757,6 +757,19 @@ const ACTIVITY_META: Record<
   ARTICLE: { label: "article", href: (id) => `/blog/${id}` },
   PUBLICATION: { label: "publication", href: (id) => `/publications/${id}` },
   JOURNAL: { label: "journal", href: (id) => `/journals/${id}` },
+  // A review vote writes the nested `journalId/reviewId` id (see
+  // handleVoteTransaction), so the entry links to the review itself rather than
+  // to the journal it belongs to. Without this entry the activity tab fell back
+  // to the generic "voted on content" wording.
+  JOURNAL_REVIEW: {
+    label: "journal review",
+    href: (id) => {
+      const [journalId, reviewId] = id.split("/");
+      return journalId && reviewId
+        ? `/journals/${journalId}/review/${reviewId}`
+        : undefined;
+    },
+  },
   RESEARCH_TOOL: {
     label: "research tool",
     href: (id) => `/research-tools/${id}`,

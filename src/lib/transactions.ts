@@ -512,44 +512,51 @@ export async function handleVoteTransaction(
       })
     }
 
+    // Reviews and recommendations are nested under a parent, so their activity
+    // row and their vote notification both need the composite
+    // `parentId/childId` to link at the real route. One indexed primary-key
+    // lookup, shared by both.
+    let nestedTargetId: string | null = null
+    if (module === 'RECOMMENDATION') {
+      const rec = await (tx.recommendation as unknown as AnyDelegate).findUnique({
+        where: { id: entityId },
+        select: { supervisorId: true },
+      })
+      if (rec?.supervisorId) {
+        nestedTargetId = `${rec.supervisorId}/${entityId}`
+      }
+    } else if (module === 'JOURNAL_REVIEW') {
+      // Journal reviews live at /journals/[journalId]/review/[reviewId], so a
+      // bare review id would send the reader nowhere.
+      const review = await (tx.journalReview as unknown as AnyDelegate).findUnique({
+        where: { id: entityId },
+        select: { journalId: true },
+      })
+      if (review?.journalId) {
+        nestedTargetId = `${review.journalId}/${entityId}`
+      }
+    }
+
     await tx.userActivity.create({
-      data: { userId, action: 'VOTED', moduleType: module, entityId, entityTitle },
+      data: {
+        userId,
+        action: 'VOTED',
+        moduleType: module,
+        entityId: nestedTargetId ?? entityId,
+        entityTitle,
+      },
     })
 
     if (newVote === 'UPVOTE' && voteValue > 0 && entity.authorId && entity.authorId !== userId) {
       const targetType = MODULE_VOTE_TARGET_TYPE[moduleKey]
       if (targetType) {
-        let targetId = entityId
-        if (module === 'RECOMMENDATION') {
-          const rec = await (tx.recommendation as unknown as AnyDelegate).findUnique({
-            where: { id: entityId },
-            select: { supervisorId: true },
-          })
-          if (rec?.supervisorId) {
-            targetId = `${rec.supervisorId}/${entityId}`
-          }
-        }
-        if (module === 'JOURNAL_REVIEW') {
-          // Journal reviews are nested under their journal (route
-          // /journals/[id]/review/[reviewId]) so the notification link needs the
-          // composite `journalId/reviewId` target id, exactly like
-          // recommendations use `supervisorId/recommendationId`.
-          const review = await (tx.journalReview as unknown as AnyDelegate).findUnique({
-            where: { id: entityId },
-            select: { journalId: true },
-          })
-          if (review?.journalId) {
-            targetId = `${review.journalId}/${entityId}`
-          }
-        }
-
         return {
           totalVotes,
           userVote: newVote === currentVote ? null : newVote,
           notification: {
             recipientId: entity.authorId,
             targetType,
-            targetId,
+            targetId: nestedTargetId ?? entityId,
             body: entityTitle,
           },
         }
