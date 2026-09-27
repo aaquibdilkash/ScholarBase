@@ -92,7 +92,7 @@ export async function createResearchGrant(formData: FormData) {
   });
 
   // Purge the cached research grant pages: publish must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_GRANT");
+  revalidateContent("RESEARCH_GRANT", user.id);
 
   return { success: true, data: grant };
 }
@@ -135,7 +135,7 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
   });
 
   // Purge the cached research grant pages: edit must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_GRANT");
+  revalidateContent("RESEARCH_GRANT", grant.authorId);
 
   return { success: true, data: updatedGrant };
 }
@@ -179,7 +179,7 @@ export async function deleteResearchGrant(grantId: string) {
   });
 
   // Purge the cached research grant pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_GRANT");
+  revalidateContent("RESEARCH_GRANT", grant.authorId);
 
   return { success: true, data: { deletedId: grantId } };
 }

@@ -83,7 +83,7 @@ export async function createResearchTool(formData: FormData) {
   });
 
   // Purge the cached research tool pages: publish must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_TOOL");
+  revalidateContent("RESEARCH_TOOL", user.id);
 
   return { success: true, data: tool };
 }
@@ -117,7 +117,7 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
   });
 
   // Purge the cached research tool pages: edit must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_TOOL");
+  revalidateContent("RESEARCH_TOOL", tool.authorId);
 
   return { success: true, data: updatedTool };
 }
@@ -159,7 +159,7 @@ export async function deleteResearchTool(toolId: string) {
   });
 
   // Purge the cached research tool pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_TOOL");
+  revalidateContent("RESEARCH_TOOL", tool.authorId);
 
   return { success: true, data: { deletedId: toolId } };
 }

@@ -108,25 +108,25 @@ export function CommentVoteButton({
         type="button"
         disabled={isPending}
         onClick={() => handleVote("UPVOTE")}
-        className={`inline-flex items-center justify-center transition hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-70 ${
-          userVote === "UPVOTE" ? "text-green-600" : "text-black-400"
+        className={`inline-flex items-center justify-center transition hover:text-green-600 dark:hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-70 ${
+          userVote === "UPVOTE" ? "text-green-700 dark:text-green-400" : "text-slate-800 dark:text-slate-400"
         }`}
         title="Upvote"
       >
         {isPending && pendingVote === "UPVOTE" ? (
           <Loader2 className="animate-spin h-3.5 w-3.5" />
         ) : (
-          <ArrowUp className="w-3.5 h-3.5" />
+          <ArrowUp className="w-3.5 h-3.5" strokeWidth={3} />
         )}
       </button>
 
       <span
         className={`text-xs font-bold min-w-[1rem] text-center ${
           totalVotes > 0
-            ? "text-green-600"
+            ? "text-green-700 dark:text-green-400"
             : totalVotes < 0
-              ? "text-red-600"
-              : "text-black-500"
+              ? "text-red-700 dark:text-red-400"
+              : "text-slate-900 dark:text-slate-400"
         }`}
       >
         {totalVotes}
@@ -136,15 +136,15 @@ export function CommentVoteButton({
         type="button"
         disabled={isPending}
         onClick={() => handleVote("DOWNVOTE")}
-        className={`inline-flex items-center justify-center transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-70 ${
-          userVote === "DOWNVOTE" ? "text-red-600" : "text-black-400"
+        className={`inline-flex items-center justify-center transition hover:text-red-600 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70 ${
+          userVote === "DOWNVOTE" ? "text-red-700 dark:text-red-400" : "text-slate-800 dark:text-slate-400"
         }`}
         title="Downvote"
       >
         {isPending && pendingVote === "DOWNVOTE" ? (
           <Loader2 className="animate-spin h-3.5 w-3.5" />
         ) : (
-          <ArrowDown className="w-3.5 h-3.5" />
+          <ArrowDown className="w-3.5 h-3.5" strokeWidth={3} />
         )}
       </button>
     </div>

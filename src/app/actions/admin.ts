@@ -56,7 +56,10 @@ export async function toggleContentFreeze(
 
   const content = await model.findUnique({
     where: { id: contentId },
-    select: { isFrozen: true },
+    // `authorId` names the profile whose Content tab just changed, so the
+    // freeze shows up on their profile at once. The actor is the admin and must
+    // not be the one purged.
+    select: { isFrozen: true, authorId: true },
   });
 
   if (!content) throw new Error("Content not found");
@@ -68,7 +71,7 @@ export async function toggleContentFreeze(
 
   // `isFrozen` is part of the cached public feed payload and gates voting, so
   // moderation must be visible immediately rather than after the TTL.
-  if (contentType === "feed") revalidatePublicFeed();
+  if (contentType === "feed") revalidatePublicFeed(content.authorId);
 
   return { success: true, data: content };
 }
@@ -129,13 +132,21 @@ export async function adminDeleteContent(
   const config = deleteMap[contentType];
   if (!config) throw new Error("Invalid content type");
 
+  // Read the author before the delete so the right profile tab can be purged.
+  // A soft delete hides the row from that author's own Content tab too, and the
+  // actor is an admin who may well be a different scholar.
+  const target = await config.model.findUnique({
+    where: { id: contentId },
+    select: { authorId: true },
+  });
+
   await config.model.update({
     where: { id: contentId },
     data: { isDeleted: true },
   });
 
   // Soft delete (RULE 4) must vanish from the cached public feed at once.
-  if (contentType === "feed") revalidatePublicFeed();
+  if (contentType === "feed") revalidatePublicFeed(target?.authorId);
 
   return { success: true, data: { id: contentId } };
 }

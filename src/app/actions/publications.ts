@@ -145,7 +145,7 @@ export async function createPublication(formData: FormData) {
   ]);
 
   // Purge the cached publication pages: publish must be visible at once, not after the TTL.
-  revalidateContent("PUBLICATION");
+  revalidateContent("PUBLICATION", user.id);
 
   return { success: true, data: publication };
 }
@@ -224,7 +224,7 @@ export async function updatePublication(
   });
 
   // Purge the cached publication pages: edit must be visible at once, not after the TTL.
-  revalidateContent("PUBLICATION");
+  revalidateContent("PUBLICATION", publication.authorId);
 
   return { success: true, data: updatedPublication };
 }
@@ -266,7 +266,7 @@ export async function deletePublication(publicationId: string) {
   });
 
   // Purge the cached publication pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("PUBLICATION");
+  revalidateContent("PUBLICATION", publication.authorId);
 
   return { success: true, data: { deletedId: publicationId } };
 }
@@ -334,6 +334,14 @@ export const getPublicationById = cache(
                 }
               : false,
           },
+        },
+        publicationAuthors: {
+          select: {
+            userId: true,
+            authorOrder: true,
+            user: { select: { id: true, name: true, handle: true } },
+          },
+          orderBy: { authorOrder: "asc" },
         },
         totalVotes: true,
         totalBookmarks: true,

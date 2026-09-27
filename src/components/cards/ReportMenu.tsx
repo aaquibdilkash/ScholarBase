@@ -96,14 +96,14 @@ export function ReportMenu({
           onClick={() => setOpen((v) => !v)}
           className={clsx(
             "inline-flex h-8 w-8 items-center justify-center rounded-lg",
-            "text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600",
+            "text-slate-900 transition-colors hover:bg-slate-100 hover:text-slate-900",
             "focus:outline-none focus:ring-2 focus:ring-blue-500/10",
-            "dark:hover:bg-slate-800 dark:hover:text-slate-300",
+            "dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
           )}
           aria-label="Report content"
           title="Report content"
         >
-          <Flag className="h-4 w-4" />
+           <Flag className="h-4 w-4" strokeWidth={3} />
         </button>
 
         {open && (
@@ -137,7 +137,7 @@ export function ReportMenu({
                   onClick={handleReportClick}
                   className="sb-menu-item flex items-center gap-2"
                 >
-                  <Flag className="h-4 w-4" />
+                  <Flag className="h-4 w-4" strokeWidth={3} />
                   <span>{reportLabel}</span>
                 </button>
               )}

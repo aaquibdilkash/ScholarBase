@@ -2,6 +2,7 @@
 
 import { getActiveUser } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { revalidateProfileBookmarks } from "@/lib/tri-split/modules/profile-tab";
 import {
   handleBookmarkTransaction,
   type ModuleKey,
@@ -39,6 +40,10 @@ export async function toggleBookmark(entityId: string, module: ModuleKey) {
       entityId,
       user.id,
     );
+
+    // The Bookmarks tab lists exactly these rows, so a bookmark must show up
+    // there at once rather than after the cache TTL.
+    revalidateProfileBookmarks(user.id);
 
     return { success: true, data: { totalBookmarks, isBookmarked } };
   } catch (error) {

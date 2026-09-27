@@ -187,7 +187,7 @@ export async function createResearchEvent(formData: FormData) {
   });
 
   // Purge the cached research event pages: publish must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_EVENT");
+  revalidateContent("RESEARCH_EVENT", user.id);
 
   return { success: true, data: event };
 }
@@ -239,7 +239,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   });
 
   // Purge the cached research event pages: edit must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_EVENT");
+  revalidateContent("RESEARCH_EVENT", event.authorId);
 
   return { success: true, data: updatedEvent };
 }
@@ -281,7 +281,7 @@ export async function deleteResearchEvent(eventId: string) {
   });
 
   // Purge the cached research event pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_EVENT");
+  revalidateContent("RESEARCH_EVENT", event.authorId);
 
   return { success: true, data: { deletedId: eventId } };
 }

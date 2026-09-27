@@ -313,10 +313,14 @@ export function CommentSection({
             <button
               type="button"
               onClick={() => {
-                if (parentsExpanded) {
-                  setParentsExpanded(false);
-                } else if (hasMore) {
+                // Pagination wins over the collapse toggle: while another page
+                // exists the click must fetch the NEXT 5 comments, not wrap up
+                // the ones already loaded. Wrapping up only becomes possible
+                // once every comment has been paged in.
+                if (hasMore) {
                   void loadMoreComments();
+                } else if (parentsExpanded) {
+                  setParentsExpanded(false);
                 } else {
                   setParentsExpanded(true);
                 }
@@ -324,8 +328,20 @@ export function CommentSection({
               disabled={loadingMore}
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2 text-sm font-bold text-blue-600 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:text-blue-300 dark:hover:bg-slate-900"
             >
-              {parentsExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              {loadingMore ? "Loading..." : parentsExpanded ? "Wrap up comments" : "View more comments"}
+              {loadingMore ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : !hasMore && parentsExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+              {loadingMore
+                ? "Loading..."
+                : hasMore
+                  ? "Load more comments"
+                  : parentsExpanded
+                    ? "Wrap up comments"
+                    : "View all comments"}
             </button>
           )}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { PagedCarousel } from "@/components/ui/PagedCarousel";
 import { JournalReviewCard } from "./JournalReviewCard";
 import { WriteJournalReviewButton } from "./WriteJournalReviewButton";
 import { getJournalReviews } from "@/app/actions/journalReviews";
@@ -13,6 +13,10 @@ import {
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
 /**
+ * Reviews for one journal, paged as a horizontal carousel — the exact twin of
+ * `RecommendationsSection` / `SupervisorRecommendations`, down to the shared
+ * `PagedCarousel` and the `["journalReviewCount", id]` aggregates store.
+ *
  * Server value for the initial paint, then the count re-derives from the
  * shared ["journalReviewCount", id] cache that every mutation keeps in sync.
  * Deletes decrement it, create resets it so the next server render re-seeds.
@@ -29,6 +33,7 @@ export function JournalReviewsSection({
   currentUserId,
   hasUserReview,
   userReviewId,
+  userReviewRating,
 }: {
   journalId: string;
   initialReviews: JournalReviewWithAuthor[];
@@ -38,6 +43,13 @@ export function JournalReviewsSection({
   currentUserId?: string;
   hasUserReview: boolean;
   userReviewId?: string | null;
+  /**
+   * The viewer's own rating, from the aggregates query rather than the first
+   * carousel slide — the first slide is the newest review, which is usually
+   * somebody else's. Needed so the delete path decrements the star bucket the
+   * review actually fell into.
+   */
+  userReviewRating?: number | null;
 }) {
   const queryClient = useQueryClient();
 
@@ -48,14 +60,6 @@ export function JournalReviewsSection({
     initialRatingSum,
     initialDistribution ?? {},
   );
-
-  const queryKey = ["journalReviews", journalId];
-
-  const { data: reviews = [] } = useQuery({
-    queryKey,
-    queryFn: () => getJournalReviews(journalId, 0, 5),
-    initialData: initialReviews,
-  });
 
   const { data: aggregate } = useQuery<JournalReviewAggregates>({
     queryKey: journalReviewCountKey(journalId),
@@ -74,39 +78,6 @@ export function JournalReviewsSection({
   });
   const reactiveTotal = aggregate?.count ?? initialCount;
 
-  const [loading, setLoading] = useState(false);
-
-  const loadMore = async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      const newItems = await getJournalReviews(
-        journalId,
-        reviews.length,
-        5,
-      );
-      if (newItems.length > 0) {
-        queryClient.setQueryData(
-          queryKey,
-          (prev: JournalReviewWithAuthor[] = []) => {
-            const existingIds = new Set(prev.map((r) => r.id));
-            return [...prev, ...newItems.filter((r) => !existingIds.has(r.id))];
-          },
-        );
-      }
-    } catch (err) {
-      console.error("Failed to load more journal reviews:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const hasMore = reviews.length < reactiveTotal;
-  const userReviewRating: number | undefined = userReviewId
-    ? initialReviews.find((r) => r.id === userReviewId)?.rating ?? undefined
-    : undefined;
-
-
   return (
     <section className="mt-8 sm:mt-10" id="reviews">
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -116,26 +87,20 @@ export function JournalReviewsSection({
       </div>
 
       {reactiveTotal > 0 ? (
-        <>
-          <div className="space-y-4">
-            {reviews.map((r) => (
-              <JournalReviewCard
-                key={r.id}
-                review={r}
-                currentUserId={currentUserId ?? undefined}
-              />
-            ))}
-          </div>
-          {hasMore && (
-            <button
-              onClick={loadMore}
-              disabled={loading}
-              className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-            >
-              {loading ? "Loading…" : "Load more reviews"}
-            </button>
+        <PagedCarousel<JournalReviewWithAuthor>
+          queryKey={["journalReviews", journalId]}
+          initialItems={initialReviews}
+          totalCount={reactiveTotal}
+          fetchPage={(skip, take) => getJournalReviews(journalId, skip, take)}
+          errorLabel="journal reviews"
+          renderItem={(r) => (
+            <JournalReviewCard
+              key={r.id}
+              review={r}
+              currentUserId={currentUserId ?? undefined}
+            />
           )}
-        </>
+        />
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           <p className="mb-2">No reviews yet. Be the first to share yours!</p>
@@ -143,7 +108,7 @@ export function JournalReviewsSection({
             journalId={journalId}
             initialHasReview={hasUserReview}
             initialUserReviewId={userReviewId}
-            initialRating={userReviewRating}
+            initialRating={userReviewRating ?? undefined}
           />
         </div>
       )}

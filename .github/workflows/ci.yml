@@ -33,12 +33,16 @@ jobs:
       - name: Run type checking
         run: npm run typecheck
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         # The unit suite is DB-free by construction: test/setup.ts mocks
-        # `@/lib/db` so a test that reaches for the client fails loudly instead
-        # of consuming a real database. These are mock credentials purely so
-        # Next's build-time env loading has something to read.
-        run: npm run test
+        # `@/lib/db` and blocks non-loopback outbound fetches, so a test that
+        # reaches for production infrastructure fails loudly instead of
+        # consuming it. `--coverage` is what makes the ratchet in
+        # vitest.config.ts real — without the flag, thresholds are never read.
+        # These are mock credentials purely so Next's build-time env loading has
+        # something to read; the guards in test/security/env-guard.test.ts
+        # reject anything that looks like a live credential.
+        run: npm run test:coverage
         env:
           DATABASE_URL: postgresql://localhost:5432/test
           DIRECT_URL: postgresql://localhost:5432/test
@@ -56,6 +60,71 @@ jobs:
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci_build
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci_build
           RESEND_API_KEY: re_mock_api_key_for_ci_build
+
+  integration:
+    name: Integration (Postgres 17)
+    needs: verify
+    runs-on: ubuntu-latest
+
+    # Ephemeral, throwaway database — never a Supabase connection. The real
+    # project is reached only by the app at runtime; tests get a local container
+    # so raw-SQL behaviour (pg_trgm, to_tsvector, pg_class, cron procs) can be
+    # exercised without touching the free tier's compute or connection pool.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scholarbase_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/scholarbase_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/scholarbase_test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # The tier activates itself: with no files under test/integration the
+      # migration and test steps are skipped rather than quietly passing, so the
+      # first real integration test turns this job on with no CI edits.
+      - name: Detect integration tests
+        id: detect
+        run: |
+          if find test/integration -name '*.test.ts' 2>/dev/null | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No integration tests yet — skipping migration + test steps"
+          fi
+
+      - name: Apply migrations
+        if: steps.detect.outputs.found == 'true'
+        run: npx prisma migrate deploy
+
+      - name: Run integration tests
+        if: steps.detect.outputs.found == 'true'
+        run: npm run test:integration
 
   deploy:
     name: Deploy to Vercel

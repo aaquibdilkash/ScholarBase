@@ -87,14 +87,6 @@ const KNOWN_SAFE = new Map<string, string>([
     "getProfile",
     "Not a \"use server\" export; a `cache()`-wrapped server-component helper.",
   ],
-  [
-    "getProfileSections",
-    "Server-component helper; identity comes from the session, not the caller.",
-  ],
-  [
-    "getProfileBookmarkSections",
-    "Server-component helper; identity comes from the session, not the caller.",
-  ],
 ]);
 
 /** Strips comments and string literals so they cannot be mistaken for code. */
@@ -190,7 +182,7 @@ describe("no client-supplied viewer identity on server actions", () => {
       (name) => !exported.has(name),
     );
     // Some entries are documented as non-`use server` helpers on purpose.
-    const intentional = ["getProfile", "getProfileSections", "getProfileBookmarkSections"];
+    const intentional = ["getProfile"];
     expect(knownButGone.filter((n) => !intentional.includes(n))).toEqual([]);
   });
 });

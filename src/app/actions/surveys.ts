@@ -347,7 +347,7 @@ export async function createSurvey(formData: FormData) {
   });
 
   // Purge the cached survey pages: publish must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  revalidateContent("RESEARCH_SURVEY", user.id);
 
   return { success: true, data: survey };
 }
@@ -749,7 +749,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
   const updatedSurvey = await getSurvey(surveyId, user.id);
 
   // Purge the cached survey pages: edit must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  revalidateContent("RESEARCH_SURVEY", survey.authorId);
 
   return { success: true, data: updatedSurvey };
 }
@@ -790,7 +790,7 @@ export async function deleteSurvey(surveyId: string) {
   });
 
   // Purge the cached survey pages: soft delete must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  revalidateContent("RESEARCH_SURVEY", survey.authorId);
 
   return { success: true, data: { deletedId: surveyId } };
 }
@@ -819,7 +819,7 @@ export async function closeSurvey(surveyId: string) {
     },
   });
   // Purge the cached survey pages: close must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  revalidateContent("RESEARCH_SURVEY", survey.authorId);
 
   return { success: true, data: updatedSurvey };
 }
@@ -848,7 +848,7 @@ export async function reopenSurvey(surveyId: string) {
     },
   });
   // Purge the cached survey pages: reopen must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  revalidateContent("RESEARCH_SURVEY", survey.authorId);
 
   return { success: true, data: updatedSurvey };
 }
@@ -878,7 +878,7 @@ export async function toggleShareData(surveyId: string) {
   });
 
   // Purge the cached survey pages: share-data toggle must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  revalidateContent("RESEARCH_SURVEY", survey.authorId);
 
   return { success: true, data: updatedSurvey };
 }
@@ -961,6 +961,9 @@ export async function submitSurveyResponse(
   const surveyForValidation = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
     select: {
+      // Read so the cache purge below can name the survey author, whose profile
+      // Content tab embeds this survey's `totalResponses`.
+      authorId: true,
       consentRequired: true,
       questions: {
         where: { archivedAt: null },
@@ -1128,8 +1131,11 @@ export async function submitSurveyResponse(
     return response;
   });
 
-  // Purge the cached survey pages: new response (totalResponses is on the card) must be visible at once.
-  revalidateContent("RESEARCH_SURVEY");
+  // Purge the cached survey pages: new response (totalResponses is on the card)
+  // must be visible at once. `totalResponses` is also part of the row embedded
+  // in the survey author's own profile Content tab, so name them here — the
+  // respondent is a different scholar and their tab is untouched.
+  revalidateContent("RESEARCH_SURVEY", surveyForValidation.authorId);
 
   return { success: true, data: newResponse };
 }

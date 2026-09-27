@@ -235,7 +235,7 @@ export function MessageInputForm({
             <button
               type="button"
               onClick={onCancelReply}
-              className="shrink-0 rounded-full p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+               className="shrink-0 rounded-full p-1 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
               aria-label="Cancel reply"
             >
               <X className="h-3.5 w-3.5" />

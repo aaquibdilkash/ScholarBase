@@ -169,7 +169,7 @@ export async function createPhdAdmission(formData: FormData) {
   });
 
   // Purge the cached phd admission pages: publish must be visible at once, not after the TTL.
-  revalidateContent("PHD_ADMISSION");
+  revalidateContent("PHD_ADMISSION", user.id);
 
   return { success: true, data: admission };
 }
@@ -221,7 +221,7 @@ export async function updatePhdAdmission(
   });
 
   // Purge the cached phd admission pages: edit must be visible at once, not after the TTL.
-  revalidateContent("PHD_ADMISSION");
+  revalidateContent("PHD_ADMISSION", admission.authorId);
 
   return { success: true, data: updatedAdmission };
 }
@@ -263,7 +263,7 @@ export async function deletePhdAdmission(admissionId: string) {
   });
 
   // Purge the cached phd admission pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("PHD_ADMISSION");
+  revalidateContent("PHD_ADMISSION", admission.authorId);
 
   return { success: true, data: { deletedId: admissionId } };
 }

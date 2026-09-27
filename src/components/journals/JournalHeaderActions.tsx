@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteJournalReview as deleteReviewAction } from "@/app/actions/journalReviews";
 import { decrementJournalReview } from "./journalReviewCount";
@@ -18,6 +19,8 @@ type Props = {
   onDeleteJournal: () => unknown | Promise<unknown>;
   initialHasReview: boolean;
   initialUserReviewId?: string | null;
+  /** The viewer's own review rating, for the star bucket its delete decrements. */
+  initialUserReviewRating?: number | null;
 };
 export function JournalHeaderActions({
   journalId,
@@ -26,6 +29,7 @@ export function JournalHeaderActions({
   onDeleteJournal,
   initialHasReview,
   initialUserReviewId,
+  initialUserReviewRating,
 }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -80,6 +84,7 @@ export function JournalHeaderActions({
           | { redirect?: string; refresh?: boolean; invalidateQueries?: unknown[][] }
           | undefined;
         setPendingDelete(null);
+        invalidateProfileTabs(queryClient, "content", "activity");
         if (result?.redirect) {
           result.invalidateQueries?.forEach((key) =>
             queryClient.invalidateQueries({ queryKey: key as string[] }),
@@ -106,11 +111,16 @@ export function JournalHeaderActions({
             (oldData: JournalReviewWithAuthor[] = []) =>
               oldData.filter((r) => r.id !== response.data.deletedId),
           );
-          // Adjust the overall rating instantly from the cached rating.
-          const cached =
-            queryClient.getQueryData<JournalReviewWithAuthor[]>(["journalReviews", journalId]) ?? [];
-          const deleted = cached.find((r) => (r.id ?? r.author?.id) === response.data.deletedId);
-          decrementJournalReview(queryClient, journalId, deleted?.rating ?? 5);
+          invalidateProfileTabs(queryClient, "content", "activity");
+          // Adjust the count / rating / star distribution instantly. The rating
+          // comes from the aggregates query, not from the reviews cache: the
+          // row was just removed from that cache, and it is only ever the
+          // first carousel slide when this reviewer also wrote the newest one.
+          decrementJournalReview(
+            queryClient,
+            journalId,
+            initialUserReviewRating ?? 5,
+          );
           queryClient.setQueryData(["user_review_status", journalId], null);
           toast("Review deleted successfully", "success");
         } catch (error) {

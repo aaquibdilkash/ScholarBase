@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteRecommendation as deleteRecommendationAction } from "@/app/actions/recommendations";
 import { decrementRecommendation } from "./recommendationCount";
@@ -80,6 +81,7 @@ export function SupervisorHeaderActions({
           | { redirect?: string; refresh?: boolean; invalidateQueries?: unknown[][] }
           | undefined;
         setPendingDelete(null);
+        invalidateProfileTabs(queryClient, "content", "activity");
         if (result?.redirect) {
           result.invalidateQueries?.forEach((key) =>
             queryClient.invalidateQueries({ queryKey: key as string[] }),
@@ -112,6 +114,7 @@ export function SupervisorHeaderActions({
           const deleted = cached.find((r) => (r.id ?? r.author?.id) === response.data.deletedId);
           decrementRecommendation(queryClient, supervisorId, deleted?.rating ?? 5);
           queryClient.setQueryData(["user_rec_status", supervisorId], null);
+          invalidateProfileTabs(queryClient, "content", "activity");
           toast("Recommendation deleted successfully", "success");
         } catch (error) {
           toast((error as Error).message, "error");

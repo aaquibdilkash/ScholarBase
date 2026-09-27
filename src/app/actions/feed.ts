@@ -294,8 +294,9 @@ export async function createSocialPost(formData: FormData) {
   ]);
 
   // Read-your-own-writes: purge the cached public feed so the new post is
-  // visible to everyone on the very next request.
-  revalidatePublicFeed();
+  // visible to everyone on the very next request, and name the author so their
+  // own profile Content and Activity tabs go with it.
+  revalidatePublicFeed(authUser.id);
 
   return { success: true, data: castPost(post) };
   } catch (error) {
@@ -387,7 +388,7 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   }
 
   // The edited body/mentions/editedAt are part of the cached public payload.
-  revalidatePublicFeed();
+  revalidatePublicFeed(post.authorId);
 
   return { success: true, data: castPost(updatedPost) };
   } catch (error) {
@@ -472,7 +473,7 @@ export async function deleteSocialPost(postId: string) {
   });
 
   // Soft delete (RULE 4) must disappear from the cached public feed at once.
-  revalidatePublicFeed();
+  revalidatePublicFeed(post.authorId);
 
   return { success: true, data: { id: postId } };
 }

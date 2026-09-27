@@ -8,6 +8,8 @@
 import type { ArticleWithAuthor } from "@/types/cards";
 
 import { createContentList } from "../content";
+import { revalidateTrending } from "@/lib/trending";
+import { revalidateProfileContent } from "./profile-tab";
 
 /** Cache tag for the viewer-agnostic public article pages. */
 export const ARTICLES_PUBLIC_TAG = "articles-public";
@@ -61,7 +63,13 @@ export function loadArticlesPage(args: {
 /**
  * Purges the cached article pages. Call on publish / edit / delete / freeze so
  * a removed or frozen article cannot be served from the cache.
+ *
+ * Articles are one of the 17 sections on a scholar's Content tab, so the
+ * author's Content and Activity tabs are purged here too, along with the
+ * articles Trending tab.
  */
-export function revalidateArticles(): void {
+export function revalidateArticles(...authorIds: (string | null | undefined)[]): void {
   articleList.revalidate();
+  revalidateTrending("articles");
+  revalidateProfileContent(...authorIds);
 }

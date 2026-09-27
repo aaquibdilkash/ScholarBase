@@ -14,7 +14,10 @@ import { createTriSplitList } from "@/lib/tri-split";
 import { POST_METADATA_SELECT, PUBLIC_SOCIAL_POST_SELECT } from "@/types/feed";
 import type { CachedPublicSocialPost, SocialPostFeedItem } from "@/types/feed";
 
+import { revalidateTrending } from "@/lib/trending";
+
 import { FEED_COUNTER_KEYS, feedStitchOptions } from "./feed-stitch";
+import { revalidateProfileContent } from "./profile-tab";
 
 /** Cache tag for the viewer-agnostic public feed pages. */
 export const FEED_PUBLIC_TAG = "feed-public";
@@ -84,9 +87,18 @@ export function loadFeedPage(args: {
  * serving a deleted or frozen post — not acceptable for author deletions or
  * moderation. The single-argument `revalidateTag(tag)` form is deprecated in
  * Next 16.
+ *
+ * Social posts are a section on the scholar Content tab and every publish
+ * writes a `UserActivity` row, so both profile tabs are purged here as well —
+ * and the feed has its own Trending tab, which must not keep serving a deleted
+ * post.
  */
-export function revalidatePublicFeed(): void {
+export function revalidatePublicFeed(
+  ...authorIds: (string | null | undefined)[]
+): void {
   feedList.revalidate();
+  revalidateTrending("socialPosts");
+  revalidateProfileContent(...authorIds);
 }
 
 /**

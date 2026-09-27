@@ -6,6 +6,7 @@ import { BookPlus, Search, UserPlus, X } from "lucide-react";
 import { searchJournalsForPicker } from "@/app/actions/journals";
 import { searchScholarsForPicker } from "@/app/actions/scholars";
 import { ScholarSuggestionDropdown } from "@/components/interactions/ScholarSuggestionDropdown";
+import { ShareButton } from "@/components/interactions/ShareButton";
 
 type Scholar = Awaited<ReturnType<typeof searchScholarsForPicker>>[number];
 type Journal = Awaited<ReturnType<typeof searchJournalsForPicker>>[number];
@@ -166,9 +167,12 @@ export function PublicationLinkedPeopleFields({
               Clear selected authors
             </button>
           )}
-          <Link href="/scholars" className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300">
-            <UserPlus className="h-3.5 w-3.5" /> Find or invite a scholar on ScholarBase
-          </Link>
+          <ShareButton
+            label="Invite the author on ScholarBase"
+            icon={UserPlus}
+            iconClassName="h-3.5 w-3.5"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300"
+          />
         </div>
       </div>
 

@@ -28,7 +28,7 @@ function SidebarTimeAgo({ date }: { date: Date | string | number | null | undefi
   return <>{label}</>;
 }
 
-function ConversationSidebar({ user }: { user: User | null }) {
+function ConversationSidebar({ user, isAuthLoading }: { user: User | null; isAuthLoading: boolean }) {
   const [inbox, setInbox] = useState<InboxConversation[]>([]);
   const { onlineUserIds } = usePresence();
   const [, setTick] = useState(0);
@@ -430,9 +430,16 @@ function ConversationSidebar({ user }: { user: User | null }) {
               {isSearching ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "No conversations found."}
             </div>
           ) : null
-         ) : isSidebarOpen ? (
-           <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Please sign in to see your conversations.</div>
-         ) : null
+          ) : isSidebarOpen ? (
+           isAuthLoading ? (
+             <div className="flex items-center justify-center gap-2 p-6 text-sm text-slate-500 dark:text-slate-400">
+               <Loader2 className="h-4 w-4 animate-spin" />
+               <span>Loading conversations...</span>
+             </div>
+           ) : (
+            <div className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">Please sign in to see your conversations.</div>
+           )
+          ) : null
          }
        </div>
     </div>
@@ -448,6 +455,7 @@ export default function MessagesClientLayout({
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(defaultOpen);
   const [user, setUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   useEffect(() => {
     document.cookie = `sb-conversation-sidebar-open=${isSidebarOpen}; path=/; max-age=31536000`;
@@ -460,8 +468,14 @@ export default function MessagesClientLayout({
   }, []);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => setUser(user));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => setUser(session?.user ?? null));
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => {
+      setUser(user);
+      setIsAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      setUser(session?.user ?? null);
+      setIsAuthLoading(false);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -504,7 +518,7 @@ export default function MessagesClientLayout({
               {isSidebarOpen && <span>Loading conversations...</span>}
             </div>
           }>
-            <ConversationSidebar user={user} />
+            <ConversationSidebar user={user} isAuthLoading={isAuthLoading} />
           </Suspense>
         </div>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">{children}</div>

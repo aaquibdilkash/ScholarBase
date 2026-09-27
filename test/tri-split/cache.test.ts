@@ -1,11 +1,30 @@
 import { describe, expect, it } from "vitest";
 
+import { LIST_REVALIDATE_MS } from "@/components/layout/listPage";
 import {
   LIST_PAGE_SIZE_DEFAULT,
   LIST_PAGE_SIZE_MAX,
+  LIST_REVALIDATE_SECONDS,
   normalizePageSize,
   serializeDates,
 } from "@/lib/tri-split";
+
+describe("the client and server list caches expire together", () => {
+  it("use the same TTL", () => {
+    // The client `staleTime` and the server `revalidate` are stated separately —
+    // the server constant cannot be imported into a client bundle because it
+    // pulls in `next/cache`. They must still describe the same window, or a
+    // client entry could be considered fresh while the rows behind it had
+    // already been regenerated.
+    expect(LIST_REVALIDATE_MS).toBe(LIST_REVALIDATE_SECONDS * 1000);
+  });
+
+  it("is five minutes", () => {
+    // A restatement, not a derivation: if the TTL is ever deliberately changed,
+    // this is the reminder that the client half has to move with it.
+    expect(LIST_REVALIDATE_SECONDS).toBe(5 * 60);
+  });
+});
 
 describe("normalizePageSize", () => {
   it("falls back to the default for missing or non-finite input", () => {

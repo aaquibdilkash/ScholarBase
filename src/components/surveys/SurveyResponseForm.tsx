@@ -559,13 +559,16 @@ export function SurveyResponseForm({
         />
       ))}
 
-      {/* Pagination controls */}
-      {!isConsentPage && pageCount > 1 && (
+      {/* Pagination controls. The pager must also render on the consent page,
+          otherwise `consentRequired` hides every advance control and the
+          respondent can never reach the questions. Next stays enabled there so
+          `goNext` can surface the inline consent error. */}
+      {pageCount > 1 && (
         <SurveyPager
           onBack={goBack}
           onNext={goNext}
           backDisabled={page === 0}
-          submit={contentPageIndex === contentPages.length - 1}
+          submit={!isConsentPage && contentPageIndex === contentPages.length - 1}
           submitLabel={`Submit Response${hasResponded ? " (Update)" : ""}`}
           submitting={isSubmitting}
         >

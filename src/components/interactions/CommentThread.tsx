@@ -792,9 +792,9 @@ export function CommentThread({
               <button
                 type="button"
                 onClick={() => openReplyForm(comment.id)}
-                className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
+                className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold text-slate-800 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-300 md:text-xs"
               >
-                <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                 <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />
                 Add a reply
                 {activeReplyTarget?.id === comment.id ? (
                   <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
@@ -808,10 +808,14 @@ export function CommentThread({
               <button
                 type="button"
                 onClick={() => {
-                  if (repliesExpanded) {
-                    setRepliesExpanded(false);
-                  } else if (hasMoreReplies) {
+                  // Pagination wins over the collapse toggle: while another page
+                  // exists the click must fetch the NEXT 5 replies, not wrap up
+                  // the ones already loaded. Wrapping up only becomes possible
+                  // once every reply has been paged in.
+                  if (hasMoreReplies) {
                     void loadMoreReplies();
+                  } else if (repliesExpanded) {
+                    setRepliesExpanded(false);
                   } else {
                     setRepliesExpanded(true);
                   }
@@ -819,10 +823,24 @@ export function CommentThread({
                 disabled={loadingReplies}
                 className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-600 transition-colors hover:text-blue-700 disabled:opacity-50 dark:text-blue-300 dark:hover:text-blue-200 md:text-xs"
               >
-                {repliesExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                {loadingReplies ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : !hasMoreReplies && repliesExpanded ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
                 {loadingReplies
                   ? "Loading..."
-                  : `${repliesExpanded ? "Wrap up replies" : replies.length === 0 ? "View replies" : "View more replies"} (${comment.totalReplies ?? 0})`}
+                  : `${
+                      hasMoreReplies
+                        ? "Load more replies"
+                        : repliesExpanded
+                          ? "Wrap up replies"
+                          : replies.length === 0
+                            ? "View replies"
+                            : "View all replies"
+                    } (${comment.totalReplies ?? 0})`}
               </button>
             )}
 

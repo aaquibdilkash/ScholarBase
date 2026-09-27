@@ -184,7 +184,7 @@ export async function createHelpPost(formData: FormData) {
   });
 
   // Purge the cached help post pages: publish must be visible at once, not after the TTL.
-  revalidateContent("HELP_POST");
+  revalidateContent("HELP_POST", user.id);
 
   return { success: true, data: post };
 }
@@ -223,7 +223,7 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
   });
 
   // Purge the cached help post pages: edit must be visible at once, not after the TTL.
-  revalidateContent("HELP_POST");
+  revalidateContent("HELP_POST", post.authorId);
 
   return { success: true, data: updatedPost };
 }
@@ -265,7 +265,7 @@ export async function deleteHelpPost(helpPostId: string) {
   });
 
   // Purge the cached help post pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("HELP_POST");
+  revalidateContent("HELP_POST", post.authorId);
 
   return { success: true, data: { deletedId: helpPostId } };
 }

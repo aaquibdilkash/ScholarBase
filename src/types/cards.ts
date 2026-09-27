@@ -217,7 +217,7 @@ export type ContributionWithAuthor = Partial<Contribution> & {
     bookmarks: UserBookmark;
 };
 
-export type PublicationWithAuthor = Partial<Publication> & {
+export type PublicationWithAuthor = Omit<Partial<Publication>, "publicationAuthors"> & {
     id: string;
     createdAt: Date;
     updatedAt: Date;
@@ -228,6 +228,15 @@ export type PublicationWithAuthor = Partial<Publication> & {
     totalComments: number;
     votes: UserVote;
     bookmarks: UserBookmark;
+    publicationAuthors?: {
+      userId: string;
+      authorOrder: number;
+      user: {
+        id: string;
+        name: string | null;
+        handle: string | null;
+      };
+    }[];
 };
 
 export type SurveyWithAuthor = Partial<ResearchSurvey> & {

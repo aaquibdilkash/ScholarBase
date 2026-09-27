@@ -565,7 +565,7 @@ export default function ConversationPage({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 sb-navbar-bg px-2 dark:border-slate-800 sm:px-4">
+      <div className="relative z-40 flex h-16 shrink-0 items-center border-b border-slate-200 sb-navbar-bg px-2 dark:border-slate-800 sm:px-4">
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
@@ -614,12 +614,12 @@ export default function ConversationPage({
         <div className="relative" data-block-menu>
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-300"
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 ${menuOpen ? 'invisible' : ''}`}
           >
             <MoreVertical className="h-5 w-5" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-12 z-20 w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="absolute right-0 top-12 z-50 w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900">
               <button
                 onClick={handleToggleBlock}
                 disabled={isBlocking}

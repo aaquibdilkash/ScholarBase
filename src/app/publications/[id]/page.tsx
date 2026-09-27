@@ -10,6 +10,7 @@ import { getPublicationById } from "../../actions/publications";
 import { deletePublication } from "@/app/actions/publications";
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import Link from "next/link";
 
 const PUBLICATION_TYPE_LABELS: Record<string, string> = {
   RESEARCH_PAPER: "Research Paper",
@@ -156,7 +157,23 @@ const PublicationDetailPage = async ({
 
       <p className="text-sm sm:text-base text-slate-600 mb-3 sm:mb-4">
         <span className="font-semibold text-slate-800">Authors:</span>{" "}
-        {p.authors}
+        {p.publicationAuthors?.length
+          ? p.publicationAuthors.map((pa, index) => {
+              const name = pa.user?.name || `@${pa.user?.handle}`;
+              return (
+                <span key={pa.userId}>
+                  {index > 0 && ", "}
+                  <Link
+                    href={`/scholars/${pa.userId}`}
+                    prefetch={false}
+                    className="font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {name}
+                  </Link>
+                </span>
+              );
+            })
+          : p.authors}
       </p>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">

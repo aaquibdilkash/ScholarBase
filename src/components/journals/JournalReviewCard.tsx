@@ -9,6 +9,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteJournalReview } from "@/app/actions/journalReviews";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
+import { decrementJournalReview } from "./journalReviewCount";
 import { removeFromList } from "@/utils/cacheMutation";
 import Link from "next/link";
 import { StarRating } from "@/components/ui/StarRating";
@@ -45,17 +46,21 @@ export function JournalReviewCard({
         return { refresh: false };
       }
 
-      // 1. Remove from every cached list slice instantly.
+      // 1. Remove from every cached list slice instantly. No invalidate: the
+      // reviews rail is a carousel, so refetching it would collapse the reader
+      // back to a single slide, and the cache is already correct — the next
+      // page request offsets by the new length and lands on the right row.
       removeFromList<JournalReviewWithAuthor>(
         queryClient,
         ["journalReviews", review.journalId],
         response.data.deletedId,
       );
 
-      // 2. Journal detail aggregates (reviewCount / ratingSum) are materialized
-      // on the Journal, so invalidate the journal query to reseed them.
-      queryClient.invalidateQueries({ queryKey: ["journal", review.journalId] });
-      queryClient.invalidateQueries({ queryKey: ["journalReviews", review.journalId] });
+      // 2. Keep the reactive count / rating / star distribution in sync.
+      decrementJournalReview(queryClient, review.journalId, review.rating);
+
+      // 3. Flip the header CTA back to "+ Review" if this was the viewer's own.
+      queryClient.setQueryData(["user_review_status", review.journalId], null);
 
       toast("Review deleted successfully.", "success");
       router.push(`/journals/${review.journalId}`);

@@ -3,18 +3,24 @@
 import { usePathname } from "next/navigation";
 import { useCallback } from "react";
 import { useToast } from "@/components/ui/Toast";
-import { Share } from "lucide-react";
+import { Share, type LucideIcon } from "lucide-react";
 
 export function ShareButton({
   href,
   label = "Share",
   variant = "default",
   copySuccessMessage = "Link copied!",
+  className,
+  icon: Icon = Share,
+  iconClassName,
 }: {
   href?: string;
   label?: string;
   variant?: "default" | "primary";
   copySuccessMessage?: string;
+  className?: string;
+  icon?: LucideIcon;
+  iconClassName?: string;
 }) {
   const pathname = usePathname();
   const { toast } = useToast();
@@ -45,6 +51,8 @@ export function ShareButton({
   }, [copySuccessMessage, href, pathname, toast]);
 
   const isPrimary = variant === "primary";
+  const defaultClasses =
+    "inline-flex h-8 min-w-8 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium text-slate-900 dark:text-slate-400 transition hover:text-blue-600 dark:hover:text-blue-300";
 
   return (
     <button
@@ -52,13 +60,13 @@ export function ShareButton({
       onClick={onShare}
       className={
         isPrimary
-          ? "sb-button-primary w-full gap-2 whitespace-nowrap sm:w-auto"
-          : "inline-flex h-8 min-w-8 items-center justify-center gap-2 rounded-lg px-1 text-sm font-medium transition hover:text-blue-600 dark:hover:text-blue-300"
+          ? `sb-button-primary w-full gap-2 whitespace-nowrap sm:w-auto ${className ?? ""}`
+          : className ?? defaultClasses
       }
       aria-label={label}
       title={label}
     >
-      <Share className={isPrimary ? "h-4 w-4" : "h-5 w-5"} />
+      <Icon className={iconClassName ?? (isPrimary ? "h-4 w-4" : "h-5 w-5")} strokeWidth={2.5} />
       <span className={isPrimary ? undefined : "hidden sm:inline"}>{label}</span>
     </button>
   );

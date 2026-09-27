@@ -74,10 +74,8 @@ export function FollowButton({
     <button
       disabled={isPending}
       onClick={handleClick}
-      className={`min-w-0 flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition sm:flex-none sm:px-6 ${
-        optimisticIsFollowing
-          ? "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
-          : "bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+      className={`sb-button-primary min-w-0 flex-1 sm:flex-none ${
+        optimisticIsFollowing ? "opacity-90" : ""
       }`}
     >
       {isPending ? (

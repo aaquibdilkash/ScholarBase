@@ -131,10 +131,10 @@ export function VoteButton({
       <button
         disabled={isPending || frozen}
         onClick={() => handleVote("UPVOTE")}
-        className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-green-300 hover:text-green-600 disabled:cursor-not-allowed disabled:opacity-70 ${
+        className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-green-300 hover:text-green-700 dark:hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "UPVOTE"
-            ? "bg-green-50 text-green-600 border-green-300"
-            : "text-slate-500"
+            ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-700"
+            : "text-slate-800 dark:text-slate-400"
         }`}
         title="Upvote"
       >
@@ -142,7 +142,8 @@ export function VoteButton({
           <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowUp
-            className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-600" : ""}`}
+            className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-700 dark:text-green-400" : "text-slate-800 dark:text-slate-400"}`}
+            strokeWidth={3}
           />
         )}
       </button>
@@ -150,10 +151,10 @@ export function VoteButton({
       <span
         className={`inline-flex items-center justify-center min-w-[1.5rem] text-xs font-bold px-1 ${
           totalVotes > 0
-            ? "text-green-600"
+            ? "text-green-600 dark:text-green-400"
             : totalVotes < 0
-              ? "text-red-600"
-              : "text-slate-500"
+              ? "text-red-600 dark:text-red-400"
+              : "text-slate-800 dark:text-slate-400"
         }`}
       >
         {totalVotes}
@@ -162,10 +163,10 @@ export function VoteButton({
       <button
         disabled={isPending || frozen}
         onClick={() => handleVote("DOWNVOTE")}
-        className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold transition hover:border-red-300 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-70 ${
+        className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-red-300 hover:text-red-700 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "DOWNVOTE"
-            ? "bg-red-50 text-red-600 border-red-300"
-            : "text-slate-500"
+            ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-700"
+            : "text-slate-800 dark:text-slate-400"
         }`}
         title="Downvote"
       >
@@ -173,7 +174,8 @@ export function VoteButton({
           <Loader2 className="animate-spin h-4 w-4" />
         ) : (
           <ArrowDown
-            className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-600" : ""}`}
+            className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-700 dark:text-red-400" : "text-slate-800 dark:text-slate-400"}`}
+            strokeWidth={3}
           />
         )}
       </button>

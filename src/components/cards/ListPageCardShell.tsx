@@ -194,9 +194,9 @@ export default function ListPageCardShell({
                 <Link
                   href={footerCommentsHref}
                   prefetch={false}
-                  className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 sm:gap-2"
+                  className="flex items-center gap-1.5 text-sm font-bold text-slate-800 transition-colors hover:text-blue-700 dark:text-slate-400 sm:gap-2"
                 >
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
                   {(footerCommentsCount || 0).toString()}{" "}
                   <span className="hidden md:inline">
                     {footerCommentsCount === 1 ? "Comment" : "Comments"}

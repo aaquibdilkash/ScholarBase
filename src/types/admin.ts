@@ -37,8 +37,11 @@ import {
 export interface FreezableContentModel {
   findUnique: (args: {
     where: { id: string }
-    select: { isFrozen: boolean }
-  }) => Promise<{ isFrozen: boolean } | null>
+    // `authorId` is read so moderation can name the profile whose cached
+    // Content tab just changed — the author, never the acting admin.
+    // Both values are select *flags*; the return type is the column types.
+    select: { isFrozen: true; authorId: true }
+  }) => Promise<{ isFrozen: boolean; authorId: string | null } | null>
   update: (args: {
     where: { id: string }
     data: { isFrozen: boolean }
@@ -46,6 +49,12 @@ export interface FreezableContentModel {
 }
 
 export interface DeleteableContentModel {
+  findUnique: (args: {
+    where: { id: string }
+    // Same reason as above: the author of a soft-deleted row, so the right
+    // profile tab can be purged.
+    select: { authorId: true }
+  }) => Promise<{ authorId: string | null } | null>
   update: (args: {
     where: { id: string }
     data: { isDeleted: boolean }

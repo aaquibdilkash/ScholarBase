@@ -214,7 +214,7 @@ export async function createContribution(formData: FormData) {
   });
 
   // Purge the cached contribution pages: publish must be visible at once, not after the TTL.
-  revalidateContent("CONTRIBUTION");
+  revalidateContent("CONTRIBUTION", user.id);
 
   return { success: true, data: contribution };
 }
@@ -293,7 +293,7 @@ export async function updateContribution(
   }
 
   // Purge the cached contribution pages: edit must be visible at once, not after the TTL.
-  revalidateContent("CONTRIBUTION");
+  revalidateContent("CONTRIBUTION", existingContribution.authorId);
 
   return { success: true, data: updatedContribution };
 }
@@ -336,7 +336,7 @@ export async function deleteContribution(contributionId: string) {
 
   // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.
   // Purge the cached contribution pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("CONTRIBUTION");
+  revalidateContent("CONTRIBUTION", contribution.authorId);
 
   return { success: true, data: { deletedId: contributionId } };
 }

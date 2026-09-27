@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, Children, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { shouldShowLeftArrow, shouldShowRightArrow } from "./carousel-arrows";
 
 interface CarouselProps {
   children: ReactNode;
@@ -11,8 +12,6 @@ interface CarouselProps {
 
 export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [activeHeight, setActiveHeight] = useState<number>();
   const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -22,44 +21,31 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
     const el = containerRef.current;
     if (!el || el.clientWidth === 0) return;
 
+    // Read the slide count from the DOM, not from the `children` prop. This is
+    // also called right after a load, and the closure would still hold the
+    // pre-append children — clamping the newly appended slide's index back into
+    // the old range, which leaves the carousel believing it is still on the
+    // first slide and turns the next arrow click into a no-op scroll.
+    const slideCount = el.children.length;
+    if (slideCount === 0) return;
+
     const index = Math.max(
       0,
-      Math.min(
-        Children.count(children) - 1,
-        Math.round(el.scrollLeft / el.clientWidth),
-      ),
+      Math.min(slideCount - 1, Math.round(el.scrollLeft / el.clientWidth)),
     );
     setActiveIndex(index);
-  }, [children]);
+  }, []);
 
   const updateActiveHeight = useCallback(() => {
     const height = slideRefs.current[activeIndex]?.offsetHeight;
     if (height) setActiveHeight(height);
   }, [activeIndex]);
 
-  const checkScrollability = () => {
-    const el = containerRef.current;
-    if (el) {
-      // A little buffer to prevent floating point inaccuracies
-      const isScrollable = el.scrollWidth > el.clientWidth;
-      if (!isScrollable) {
-        setCanScrollLeft(false);
-        setCanScrollRight(false);
-        return;
-      }
-      setCanScrollLeft(el.scrollLeft > 0);
-      setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth);
-    }
-  };
-
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    checkScrollability();
-
     const resizeObserver = new ResizeObserver(() => {
-      checkScrollability();
       updateActiveSlide();
       updateActiveHeight();
     });
@@ -67,7 +53,6 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
     slideRefs.current.forEach((slide) => slide && resizeObserver.observe(slide));
 
     const onScroll = () => {
-      checkScrollability();
       updateActiveSlide();
     };
     el.addEventListener("scroll", onScroll);
@@ -78,7 +63,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
         el.removeEventListener("scroll", onScroll);
       }
     };
-  }, [children, activeIndex, updateActiveHeight, updateActiveSlide]); // Rerender when children change to re-evaluate scrollability
+  }, [children, activeIndex, updateActiveHeight, updateActiveSlide]);
 
   useEffect(() => {
     updateActiveHeight();
@@ -92,9 +77,17 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
     const el = containerRef.current;
     if (!el) return;
 
-    const isAtEnd = el.scrollLeft >= el.scrollWidth - el.clientWidth;
+    // Which slide is in view, rather than where the track happens to be sitting.
+    // `scrollLeft` is unusable as the test here: `scrollTo`/`scrollBy` animate
+    // smoothly, so a click that lands while an earlier animation is still
+    // running reads a half-finished offset, concludes it is not at the end, and
+    // quietly does nothing. `activeIndex` is snapped to the nearest slide, so it
+    // stays correct throughout the animation and the arrow cannot get stuck.
+    const currentChildCount = Children.count(children);
+    const nextIndex = activeIndex + (direction === "right" ? 1 : -1);
+    const hasLoadedChildBeyond = nextIndex < currentChildCount;
 
-    if (direction === "right" && isAtEnd && onLoadMore) {
+    if (direction === "right" && !hasLoadedChildBeyond && onLoadMore) {
       const prevCount = childCountRef.current;
       await onLoadMore();
 
@@ -110,6 +103,9 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
           left: prevCount * el.clientWidth,
           behavior: "smooth",
         });
+        // Re-read the offset now that the slide is committed, so `activeIndex`
+        // reflects the newly revealed item.
+        updateActiveSlide();
       }
       return;
     }
@@ -122,7 +118,13 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
   };
 
   const childCount = Children.count(children);
-  const showRightArrow = canScrollRight || (onLoadMore && hasMore);
+  const showRightArrow = shouldShowRightArrow({
+    activeIndex,
+    childCount,
+    hasMore: Boolean(hasMore),
+    canLoadMore: Boolean(onLoadMore),
+  });
+  const showLeftArrow = shouldShowLeftArrow({ activeIndex, childCount });
 
   return (
     <div className="group relative overflow-visible">
@@ -146,7 +148,7 @@ export function Carousel({ children, onLoadMore, hasMore }: CarouselProps) {
         </div>
       </div>
 
-      {childCount > 1 && canScrollLeft && (
+      {showLeftArrow && (
         <button
           type="button"
           onClick={() => scroll("left")}

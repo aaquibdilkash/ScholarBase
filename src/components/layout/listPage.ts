@@ -26,6 +26,18 @@ export function normalizePage<T>(page: ListPage<T>): CursorPage<T> {
 
 /** Default cursor derivation: the `id` of the last item in the page. */
 export function defaultGetCursor<T>(items: T[]): string | undefined {
-  const last = items[items.length - 1] as { id?: string } | undefined;
+  const last = (items[items.length - 1] as { id?: string } | undefined);
   return last?.id ?? undefined;
 }
+
+/**
+ * How long a list's React Query entry is considered fresh.
+ *
+ * Five minutes, matching `LIST_REVALIDATE_SECONDS` in `lib/tri-split/cache.ts`
+ * — the server cache underneath expires on the same clock, so a client entry and
+ * the rows behind it never disagree about what "current" means. The value is
+ * restated here rather than imported because that module pulls in `next/cache`,
+ * which cannot cross into a client bundle; `test/tri-split/cache.test.ts` pins
+ * the two to the same number.
+ */
+export const LIST_REVALIDATE_MS = 5 * 60 * 1000;

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
-import { defaultGetCursor, normalizePage } from "@/components/layout/listPage";
+import { defaultGetCursor, normalizePage, LIST_REVALIDATE_MS } from "@/components/layout/listPage";
 import type { ListPage } from "@/components/layout/listPage";
 
 /**
@@ -32,12 +32,19 @@ export function CacheBackedList<T extends { id: string }>({
   emptyMessage,
   emptyState,
   getCursor = defaultGetCursor,
-  staleTime = 5 * 60 * 1000,
+  staleTime = LIST_REVALIDATE_MS,
   onLoadError,
   loadingIndicator,
 }: {
   queryKey: readonly unknown[];
-  initialItems: T[];
+  /**
+   * Server-rendered first page, if the caller already has one.
+   *
+   * Optional on purpose: a `useQuery` treats `undefined` as "no data yet" and
+   * runs `queryFn` immediately, so a list that has nothing to seed with still
+   * loads on mount rather than rendering as permanently empty.
+   */
+  initialItems?: T[];
   /** Loads one page. Called with `undefined` for the first page. */
   fetchPage: (cursor?: string) => Promise<ListPage<T>>;
   renderItem: (item: T, index: number) => ReactNode;
@@ -52,7 +59,7 @@ export function CacheBackedList<T extends { id: string }>({
 }) {
   const queryClient = useQueryClient();
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(initialItems.length === chunkSize);
+  const [hasMore, setHasMore] = useState(initialItems?.length === chunkSize);
 
   // Keep the latest props in refs so `loadMore` (and therefore the
   // IntersectionObserver callback) stays stable. Assigned in an effect because
@@ -73,6 +80,8 @@ export function CacheBackedList<T extends { id: string }>({
       const page = normalizePage(await fetchPageRef.current(undefined));
       return page.items;
     },
+    // `undefined` initialData is deliberate: `useQuery` reads it as "no data
+    // yet" and fetches, where `[]` would be cached as a real (empty) result.
     initialData: initialItems,
     staleTime,
     // Never silently drop already-appended pages on a background refetch.
@@ -87,7 +96,7 @@ export function CacheBackedList<T extends { id: string }>({
   useEffect(() => {
     if (previousKeyRef.current === keyString) return;
     previousKeyRef.current = keyString;
-    setHasMore(initialItems.length === chunkSize);
+    setHasMore(initialItems?.length === chunkSize);
   }, [keyString, initialItems, chunkSize]);
 
   const loadMore = useCallback(async () => {

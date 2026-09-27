@@ -195,7 +195,7 @@ export async function createArticle(formData: FormData) {
 
   // Read-your-own-writes: purge the cached article pages so the new post is
   // visible to everyone on the very next request.
-  revalidateArticles();
+  revalidateArticles(user.id);
 
   return { success: true, data: article };
 }
@@ -250,7 +250,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
   });
 
   // The edited title/excerpt/slug are part of the cached public payload.
-  revalidateArticles();
+  revalidateArticles(article.authorId);
 
   return { success: true, data: updatedArticle };
 }
@@ -292,7 +292,7 @@ export async function deleteArticle(articleId: string) {
   });
 
   // Soft delete (RULE 4) must disappear from the cached public pages at once.
-  revalidateArticles();
+  revalidateArticles(article.authorId);
 
   return { success: true, data: { deletedId: articleId } };
 }

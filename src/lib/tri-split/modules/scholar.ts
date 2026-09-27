@@ -16,7 +16,10 @@
  * for signed-in viewers and read from the cached batch for signed-out ones,
  * exactly like every other list.
  */
+import { revalidateTrending } from "@/lib/trending";
+
 import { createTriSplitList } from "../index";
+import { revalidateProfileContent } from "./profile-tab";
 
 /** Cache tag for the viewer-agnostic scholar directory pages. */
 export const SCHOLARS_PUBLIC_TAG = "scholars-public";
@@ -149,8 +152,18 @@ export function loadScholarsPage(args: {
   });
 }
 
-/** Purges the cached scholar directory pages (both orderings). */
-export function revalidateScholars(): void {
+/**
+ * Purges the cached scholar directory pages (both orderings), the Trending
+ * scholars tab, and the named scholar's own Content and Activity tabs.
+ *
+ * A profile edit moves a scholar's trending rank as well as their directory
+ * entry, so both have to go. The author fields embedded in *other* scholars'
+ * cached content are not purged — they drift until the TTL, which is the same
+ * policy every public list page already runs on.
+ */
+export function revalidateScholars(profileId?: string | null): void {
   variants.latest.revalidate();
   variants.reputation.revalidate();
+  revalidateTrending("scholars");
+  revalidateProfileContent(profileId);
 }

@@ -7,6 +7,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
@@ -31,6 +32,7 @@ export function PublicationCard({
   publication: PublicationWithAuthor;
   currentUserId?: string;
 }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === publication.authorId;
@@ -38,6 +40,33 @@ export function PublicationCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (publication.votes || [])[0]?.voteType ??
     null;
+
+  const authorLinks = publication.publicationAuthors?.length ? publication.publicationAuthors.map((pa) => {
+    const name = pa.user?.name || `@${pa.user?.handle}`;
+    return (
+      <span
+        key={pa.userId}
+        role="link"
+        tabIndex={0}
+        data-author-id={pa.userId}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.nativeEvent?.stopImmediatePropagation();
+          router.push(`/scholars/${pa.userId}`);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            router.push(`/scholars/${pa.userId}`);
+          }
+        }}
+        className="cursor-pointer font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+      >
+        {name}
+      </span>
+    );
+  }) : null;
 
   return (
     <ListPageCardShell
@@ -141,7 +170,7 @@ export function PublicationCard({
 
         <p className="break-words text-sm text-slate-500 mb-2 dark:text-slate-400">
           <span className="font-medium text-slate-700 dark:text-slate-200">Authors:</span>{" "}
-          {publication.authors}
+          {authorLinks ?? publication.authors}
         </p>
 
         {publication.abstract && (

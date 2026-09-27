@@ -1,6 +1,3 @@
-import prisma from '@/lib/db'
-import { getCurrentUser } from '@/lib/auth'
-
 /**
  * ZERO-COMPUTE TRENDING
  * ---------------------
@@ -8,295 +5,138 @@ import { getCurrentUser } from '@/lib/auth'
  * background cron job refreshes (see src/app/api/cron/trending). Reads never
  * compute scores on the fly and never run relational `_count` aggregations —
  * the materialized `totalVotes`/`totalComments` columns are returned directly.
+ *
+ * Caching
+ * -------
+ * Each tab is a `unstable_cache`d, viewer-agnostic top-N batch plus the shared
+ * live overlay, so the read costs one indexed statement instead of a full
+ * `findMany` on every navigation. The overlay is not optional: a cached batch
+ * has no viewer's vote, bookmark or follow state in it, and `stitchLiveState`
+ * puts those back before the card ever sees them.
+ *
+ * The batch is purged by the same funnel that purges the All tab
+ * (`revalidateContent` and siblings), so a publish, edit, freeze or delete
+ * cannot leave a deleted row sitting in a Trending tab. The 5-minute TTL
+ * (`LIST_REVALIDATE_SECONDS`) is then only a backstop — for the score ordering
+ * the cron rewrites, which is refreshed on its own schedule anyway.
+ *
+ * Every `getTrending*` function here takes no arguments. The viewer is resolved
+ * from the session inside the loader, which is what stops a caller from
+ * rendering another user's vote or follow state.
  */
+import { createContentTrending, createScholarsTrending } from "@/lib/tri-split/trending";
 
-const AUTHOR_SELECT = { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true }
+export type TrendingItem = Record<string, unknown>;
 
-async function getTrending<T extends { id: string; createdAt: Date }>(
-  fetcher: () => Promise<T[]>,
-  itemType: string,
-) {
-  const items = await fetcher()
-  return items.map((item) => ({
-    ...item,
-    type: itemType,
-    // `trendingScore` exists on every trending-bearing model but is not part of
-    // the shared `T` constraint, so a single intentional cast is used here.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    score: (item as any).trendingScore ?? 0,
-  }))
-}
+const loaders = {
+  articles: createContentTrending({
+    module: "ARTICLE",
+    tag: "articles",
+    type: "article",
+    // RULE 4 / moderation: an unpublished draft is not trending content.
+    where: { published: true },
+  }),
+  socialPosts: createContentTrending({
+    module: "SOCIAL_POST",
+    tag: "feed",
+    type: "social-post",
+  }),
+  vacancies: createContentTrending({
+    module: "JOB_VACANCY",
+    tag: "vacancies",
+    type: "vacancy",
+  }),
+  admissions: createContentTrending({
+    module: "PHD_ADMISSION",
+    tag: "admissions",
+    type: "admission",
+  }),
+  events: createContentTrending({
+    module: "RESEARCH_EVENT",
+    tag: "events",
+    type: "event",
+  }),
+  journals: createContentTrending({
+    module: "JOURNAL",
+    tag: "journals",
+    type: "journal",
+  }),
+  researchTools: createContentTrending({
+    module: "RESEARCH_TOOL",
+    tag: "research-tools",
+    type: "researchTool",
+  }),
+  helpPosts: createContentTrending({
+    module: "HELP_POST",
+    tag: "help",
+    type: "help-post",
+  }),
+  results: createContentTrending({
+    module: "RESULT",
+    tag: "results",
+    type: "result",
+  }),
+  publications: createContentTrending({
+    module: "PUBLICATION",
+    tag: "publications",
+    type: "publication",
+  }),
+  contributions: createContentTrending({
+    module: "CONTRIBUTION",
+    tag: "contributions",
+    type: "contribution",
+    // Only approved contributions are public; the rest stay out of trending too.
+    where: { status: "APPROVED" },
+  }),
+  surveys: createContentTrending({
+    module: "RESEARCH_SURVEY",
+    tag: "surveys",
+    type: "survey",
+  }),
+  grants: createContentTrending({
+    module: "RESEARCH_GRANT",
+    tag: "grants",
+    type: "grant",
+  }),
+  courses: createContentTrending({
+    module: "COURSE",
+    tag: "courses",
+    type: "course",
+  }),
+  supervisors: createContentTrending({
+    module: "SUPERVISOR",
+    tag: "supervisors",
+    type: "supervisor",
+  }),
+  scholars: createScholarsTrending(),
+} as const;
+
+export type TrendingModule = keyof typeof loaders;
+
+export const getTrendingArticles = () => loaders.articles.fetch();
+export const getTrendingSocialPosts = () => loaders.socialPosts.fetch();
+export const getTrendingVacancies = () => loaders.vacancies.fetch();
+export const getTrendingAdmissions = () => loaders.admissions.fetch();
+export const getTrendingEvents = () => loaders.events.fetch();
+export const getTrendingJournals = () => loaders.journals.fetch();
+export const getTrendingResearchTools = () => loaders.researchTools.fetch();
+export const getTrendingHelpPosts = () => loaders.helpPosts.fetch();
+export const getTrendingResults = () => loaders.results.fetch();
+export const getTrendingPublications = () => loaders.publications.fetch();
+export const getTrendingContributions = () => loaders.contributions.fetch();
+export const getTrendingSurveys = () => loaders.surveys.fetch();
+export const getTrendingGrants = () => loaders.grants.fetch();
+export const getTrendingCourses = () => loaders.courses.fetch();
+export const getTrendingSupervisors = () => loaders.supervisors.fetch();
+export const getTrendingScholars = () => loaders.scholars.fetch();
 
 /**
- * Viewer-scoped relations for trending rows.
+ * Purges one module's Trending tab.
  *
- * This MUST be filtered to the current viewer. Two reasons:
- *
- *  1. Privacy: an unfiltered `votes: { select: { userId: true } }` returns
- *     every voter's identity for every trending post, to anonymous visitors.
- *  2. Correctness: the cards read `votes[0].voteType` to decide the button
- *     state. With an unfiltered array, `votes[0]` is whichever account voted
- *     first, so an anonymous visitor could be shown a vote they never cast.
- *
- * Trending is a `take: 10` list rendered on nearly every index page, so the
- * viewer is resolved once per call. `getCurrentUser` verifies the JWT locally
- * (no GoTrue round trip), so this is cheap.
+ * Called from the shared content-mutation funnel alongside the All-tab purge —
+ * a deleted or frozen row must disappear from both lists, not just the one the
+ * user happened to be looking at.
  */
-const trendingInclude = (viewerId: string | null) =>
-  ({
-    votes: {
-      where: { userId: viewerId ?? "__anonymous__" },
-      select: { voteType: true },
-    },
-    bookmarks: {
-      where: { userId: viewerId ?? "__anonymous__" },
-      select: { id: true },
-    },
-  }) as const
-
-export const getTrendingArticles = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.article.findMany({
-      where: { published: true, isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'article',
-  )
-}
-export const getTrendingVacancies = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.jobVacancy.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'vacancy',
-  )
-}
-
-export const getTrendingAdmissions = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.phdAdmission.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'admission',
-  )
-}
-
-export const getTrendingEvents = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.researchEvent.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'event',
-  )
-}
-
-export const getTrendingSocialPosts = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.socialPost.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'social-post',
-  )
-}
-export const getTrendingJournals = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.journal.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'journal',
-  )
-}
-
-export const getTrendingResearchTools = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.researchTool.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'researchTool',
-  )
-}
-
-export const getTrendingHelpPosts = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.helpPost.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'help-post',
-  )
-}
-
-export const getTrendingResults = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.result.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'result',
-  )
-}
-
-export const getTrendingPublications = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.publication.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'publication',
-  )
-}
-
-export const getTrendingContributions = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.contribution.findMany({
-      where: { isDeleted: false, status: 'APPROVED' },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'contribution',
-  )
-}
-
-export const getTrendingSurveys = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.researchSurvey.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'survey',
-  )
-}
-
-export const getTrendingGrants = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.researchGrant.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'grant',
-  )
-}
-
-export const getTrendingCourses = async () => {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  return getTrending(() =>
-    prisma.course.findMany({
-      where: { isDeleted: false },
-      include: { author: { select: AUTHOR_SELECT }, ...include },
-      orderBy: { trendingScore: 'desc' },
-      take: 10,
-    }),
-    'course',
-  )
-}
-
-export async function getTrendingSupervisors() {
-  const user = await getCurrentUser()
-  const include = trendingInclude(user?.id ?? null)
-  const supervisors = await prisma.supervisor.findMany({
-    where: { isDeleted: false },
-    include: { author: { select: AUTHOR_SELECT }, ...include },
-    orderBy: { trendingScore: 'desc' },
-    take: 10,
-  })
-
-  return supervisors.map((supervisor) => ({
-    ...supervisor,
-    type: 'supervisor',
-    score: supervisor.trendingScore,
-  }))
-}
-
-/**
- * Trending scholars.
- *
- * The viewer is resolved from the session, server-side. The `userId` parameter
- * this used to accept is gone: it was only ever fed a server-derived value, but
- * a viewer-scoped `followers` filter has no business being caller-supplied.
- */
-export async function getTrendingScholars() {
-  const user = await getCurrentUser()
-  const userId = user?.id
-  const scholars = await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      handle: true,
-      avatarUrl: true, institutionVerifiedAt: true,
-      bio: true,
-      reputation: true,
-      trendingScore: true,
-      followersCount: true,
-      followingCount: true,
-      followers: userId
-        ? { where: { followerId: userId }, select: { followerId: true } }
-        : false,
-    },
-    orderBy: { trendingScore: 'desc' },
-    take: 10,
-  })
-
-  return scholars.map((scholar) => ({
-    ...scholar,
-    type: 'scholar' as const,
-    score: scholar.trendingScore,
-  }))
+export function revalidateTrending(module: TrendingModule): void {
+  loaders[module].revalidate();
 }

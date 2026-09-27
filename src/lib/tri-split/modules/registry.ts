@@ -15,8 +15,10 @@
  * behaviour (a viewer-scoped "following" tab, mention normalisation).
  */
 import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
+import { revalidateTrending } from "@/lib/trending";
 
 import { createContentList, type ContentListArgs } from "../content";
+import { revalidateProfileContent } from "./profile-tab";
 
 /** The author projection every content card renders. */
 const AUTHOR_SELECT = {
@@ -49,6 +51,8 @@ const AUTHOR = { select: AUTHOR_SELECT } as unknown as Record<string, unknown>;
 export const CONTENT_LIST_CONFIGS = {
   HELP_POST: {
     module: "HELP_POST",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "helpPosts",
     tag: "help-public",
     where: { isDeleted: false },
     select: {
@@ -74,6 +78,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   CONTRIBUTION: {
     module: "CONTRIBUTION",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "contributions",
     tag: "contributions-public",
     // Only approved contributions are public; the rest stay out of the feed.
     where: { isDeleted: false, status: "APPROVED" },
@@ -96,6 +102,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   PUBLICATION: {
     module: "PUBLICATION",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "publications",
     tag: "publications-public",
     where: { isDeleted: false },
     select: {
@@ -109,6 +117,14 @@ export const CONTENT_LIST_CONFIGS = {
       updatedAt: true,
       editedAt: true,
       authorId: true,
+      publicationAuthors: {
+        select: {
+          userId: true,
+          authorOrder: true,
+          user: { select: { id: true, name: true, handle: true } },
+        },
+        orderBy: { authorOrder: "asc" },
+      },
       ...COMMON_TAIL,
       author: AUTHOR,
     } as unknown as Record<string, unknown>,
@@ -124,6 +140,8 @@ export const CONTENT_LIST_CONFIGS = {
   },
   RESEARCH_TOOL: {
     module: "RESEARCH_TOOL",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "researchTools",
     tag: "research-tools-public",
     where: { isDeleted: false },
     select: {
@@ -150,6 +168,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   RESEARCH_GRANT: {
     module: "RESEARCH_GRANT",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "grants",
     tag: "research-grants-public",
     where: { isDeleted: false },
     select: {
@@ -178,6 +198,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   COURSE: {
     module: "COURSE",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "courses",
     tag: "courses-public",
     where: { isDeleted: false },
     select: {
@@ -206,6 +228,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   JOURNAL: {
     module: "JOURNAL",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "journals",
     tag: "journals-public",
     where: { isDeleted: false },
     select: {
@@ -231,6 +255,8 @@ export const CONTENT_LIST_CONFIGS = {
   },
   RESULT: {
     module: "RESULT",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "results",
     tag: "results-public",
     where: { isDeleted: false },
     select: {
@@ -260,6 +286,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   RESEARCH_SURVEY: {
     module: "RESEARCH_SURVEY",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "surveys",
     tag: "surveys-public",
     where: { isDeleted: false },
     select: {
@@ -286,6 +314,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   RESEARCH_EVENT: {
     module: "RESEARCH_EVENT",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "events",
     tag: "events-public",
     where: { isDeleted: false },
     select: {
@@ -314,6 +344,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   PHD_ADMISSION: {
     module: "PHD_ADMISSION",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "admissions",
     tag: "admissions-public",
     where: { isDeleted: false },
     select: {
@@ -341,6 +373,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   JOB_VACANCY: {
     module: "JOB_VACANCY",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "vacancies",
     tag: "vacancies-public",
     where: { isDeleted: false },
     select: {
@@ -368,6 +402,8 @@ export const CONTENT_LIST_CONFIGS = {
 
   SUPERVISOR: {
     module: "SUPERVISOR",
+    // Which Trending tab lists this module, so one mutation purges both.
+    trending: "supervisors",
     tag: "supervisors-public",
     where: { isDeleted: false },
     // Zero-compute materialized aggregates (RULE 2): the count and the average
@@ -417,9 +453,25 @@ export function loadContentPage(
   return CONTENT_LISTS[key].fetchPage(args);
 }
 
-/** Purges one module's cached pages. Call from its create/edit/delete paths. */
-export function revalidateContent(key: ContentListKey): void {
+/**
+ * Purges one module's cached pages. Call from its create/edit/delete paths.
+ *
+ * Also purges that module's Trending tab, and the Content and Activity tabs of
+ * every profile named in `authorIds` — all three list exactly the rows this
+ * mutation changed.
+ *
+ * `authorIds` is what makes the profile purge precise rather than global. A tag
+ * is fixed per profile, so a publish has to say whose tab it dirtied; a call
+ * site that cannot name the author purges only the module's own lists and
+ * leaves the profile tab to the 5-minute TTL.
+ */
+export function revalidateContent(
+  key: ContentListKey,
+  ...authorIds: (string | null | undefined)[]
+): void {
   CONTENT_LISTS[key].revalidate();
+  revalidateTrending(CONTENT_LIST_CONFIGS[key].trending);
+  revalidateProfileContent(...authorIds);
 }
 
 /** Re-exported so tests can cross-check a config key against the write path. */

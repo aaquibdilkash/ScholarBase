@@ -95,14 +95,14 @@ export const getJournalReview = cache(
 );
 
 /**
- * Paginated slice of a journal's reviews (lazy-loaded carousel/list). Mirrors
- * `getSupervisorRecommendations`.
+ * Paginated slice of a journal's reviews, used as a one-item-per-slide
+ * carousel. Mirrors `getSupervisorRecommendations`.
  *
  * Identity comes from the session, server-side — never from a client argument.
  * (This loader used to accept `userId` from the browser, so any caller could
  * read another user's vote / bookmark / follow state.)
  *
- * Deliberately NOT cached: this is a `take: 1..5` carousel scoped to one
+ * Deliberately NOT cached: this is a `take: 1` carousel scoped to one
  * `journalId`, so a cache key per journal would mint an entry per journal for
  * ~1KB of data — a memory leak with none of the benefit the top-level lists get.
  */
@@ -192,13 +192,20 @@ export async function getJournalReviewMeta(journalId: string) {
     };
   });
 
+  const ownReview = userId
+    ? reviews.find((r) => r.authorId === userId)
+    : undefined;
+
   return {
     totalCount: total,
     avgRating,
     ratingDistribution,
-    hasUserReview: !!(userId && reviews.some((r) => r.authorId === userId)),
-    userReviewId:
-      reviews.find((r) => r.authorId === userId)?.id ?? null,
+    hasUserReview: !!ownReview,
+    userReviewId: ownReview?.id ?? null,
+    // The reviews rail is a carousel seeded with a single (newest) review, so
+    // the caller's own review is usually not in the first slide. The delete
+    // path needs the rating to decrement the right star bucket.
+    userReviewRating: ownReview?.rating ?? null,
   };
 }
 // __END_PART_1__
@@ -428,7 +435,10 @@ export async function updateJournalReview(
             userId: review.authorId,
             action: "PUBLISHED",
             moduleType: "JOURNAL_REVIEW",
-            entityId: `${review.journalId}/${reviewId}`,
+            OR: [
+              { entityId: reviewId },
+              { entityId: `${review.journalId}/${reviewId}` },
+            ],
           },
         });
       } else if (review.isAnonymous && !isAnonymous) {

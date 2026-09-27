@@ -2,7 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import type {
     SubmitOptions,
     SubmitResult,
@@ -13,7 +15,7 @@ import type {
  * Reusable hook to standardize form submission with draft management.
  * Calls resetDraft() ONLY after successful server response.
  * Handles loading states, error handling, and client-side redirect.
- * 
+ *
  * Returns { submitting, submit } where `submit` takes an async action function.
  * This avoids name collisions with form `onSubmit` handlers.
  */
@@ -24,6 +26,7 @@ export function useFormSubmit(
     const [submitting, setSubmitting] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     const {
         resetOnSuccess = true,
@@ -47,6 +50,13 @@ export function useFormSubmit(
                         if (resetOnSuccess && resetDraft) {
                             resetDraft();
                         }
+
+                        // Every content form funnels through here, so this is the
+                        // one place that has to tell the scholar's own Content
+                        // and Activity tabs their cached rows just went stale.
+                        // The server cache was purged by the same mutation, so
+                        // marking is enough — no round trip while the tab is shut.
+                        invalidateProfileTabs(queryClient, "content", "activity");
 
                         // Let the caller patch the React Query cache (client-side mutation)
                         if (onSuccess) {
@@ -78,7 +88,7 @@ export function useFormSubmit(
             }
             return false;
         },
-        [resetDraft, resetOnSuccess, router, toast, successMessage, errorMessage, onSuccess],
+        [resetDraft, resetOnSuccess, router, toast, successMessage, errorMessage, onSuccess, queryClient],
     );
 
     return { submitting, submit };

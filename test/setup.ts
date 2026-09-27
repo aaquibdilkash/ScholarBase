@@ -42,4 +42,83 @@ const blocked = new Proxy(
   },
 );
 
-vi.mock("@/lib/db", () => ({ default: blocked }));
+vi.mock("@/lib/db", () => ({ default: blocked }))
+
+/**
+ * Outbound-network guard.
+ *
+ * The unit suite must not reach Supabase, Resend, Upstash, Cloudinary or QStash.
+ * Rather than enumerate hosts and hope the list is complete, only loopback
+ * addresses are permitted; everything else fails the test with the offending
+ * URL. A test that legitimately needs HTTP stubs `globalThis.fetch` itself,
+ * which replaces this wrapper entirely.
+ */
+const nativeFetch = globalThis.fetch
+
+function assertAllowedUrl(input: RequestInfo | URL): void {
+  let raw: string
+  if (typeof input === "string") raw = input
+  else if (input instanceof URL) raw = input.toString()
+  else if (input && typeof input === "object" && "url" in input) raw = String((input as Request).url)
+  else raw = String(input)
+
+  let host: string
+  try {
+    host = new URL(raw).hostname
+  } catch {
+    throw new Error(
+      `A unit test attempted an outbound request to an unparseable URL (${raw}). ` +
+        "Stub globalThis.fetch instead of performing real network I/O.",
+    )
+  }
+
+  const isLoopback = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === ""
+  if (!isLoopback) {
+    throw new Error(
+      `A unit test attempted a real outbound request to "${host}". The unit ` +
+        "suite must stay offline so it never talks to Supabase, Resend, Upstash, " +
+        "Cloudinary or QStash. Stub globalThis.fetch for this test.",
+    )
+  }
+}
+
+// `fetch` never throws synchronously in real life, so neither does the guard:
+// violations surface as a rejected promise, which keeps `.rejects.toThrow(...)`
+// and ordinary `try/catch` around `await fetch(...)` both working.
+globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+  try {
+    assertAllowedUrl(input)
+  } catch (error) {
+    return Promise.reject(error)
+  }
+  return nativeFetch(input, init)
+}) as typeof fetch
+
+/**
+ * Supabase-coupling guard.
+ *
+ * Migrations in this repo are vanilla Postgres (no `auth.users`, no RLS), so a
+ * throwaway database is structurally safe — but nothing should *point* at the
+ * production project during a test run. This is a belt to the mocked client's
+ * braces: if a real client is ever constructed with a Supabase DSN, fail loudly.
+ */
+const SUPABASE_HOST = /\.supabase\.(co|in|red)\s*$/i
+
+for (const key of ["DATABASE_URL", "DIRECT_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL"] as const) {
+  const value = process.env[key]
+  if (!value) continue
+  let host: string | null = null
+  try {
+    host = new URL(value).hostname
+  } catch {
+    continue
+  }
+  if (host && SUPABASE_HOST.test(host)) {
+    throw new Error(
+      `${key} points at the hosted Supabase project "${host}". No test run may ` +
+        "target Supabase: use a throwaway local Postgres (integration tier) or " +
+        "the in-memory fake (unit tier).",
+    )
+  }
+}
+

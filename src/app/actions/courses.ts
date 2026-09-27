@@ -80,7 +80,7 @@ export async function createCourse(formData: FormData) {
   });
 
   // Purge the cached course pages: publish must be visible at once, not after the TTL.
-  revalidateContent("COURSE");
+  revalidateContent("COURSE", user.id);
 
   return { success: true, data: course };
 }
@@ -130,7 +130,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
   });
 
   // Purge the cached course pages: edit must be visible at once, not after the TTL.
-  revalidateContent("COURSE");
+  revalidateContent("COURSE", course.authorId);
 
   return { success: true, data: updatedCourse };
 }
@@ -172,7 +172,7 @@ export async function deleteCourse(courseId: string) {
   });
 
   // Purge the cached course pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("COURSE");
+  revalidateContent("COURSE", course.authorId);
 
   return { success: true, data: { deletedId: courseId } };
 }

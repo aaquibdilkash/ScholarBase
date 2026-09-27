@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 export type OwnerActionsDropdownProps = {
@@ -71,6 +72,10 @@ export default function OwnerActionsDropdown({
           | { redirect?: string; refresh?: boolean; invalidateQueries?: unknown[][] }
           | undefined;
         setIsModalOpen(false);
+        // The deleted row was on the author's Content and Activity tabs. The
+        // server cache is purged by the action, so marking the client entry is
+        // enough and costs no round trip while the tab is shut.
+        invalidateProfileTabs(queryClient, "content", "activity");
         if (res?.redirect) {
           if (res.invalidateQueries) {
             res.invalidateQueries.forEach((key) =>

@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated test report (`npm run test:coverage`). It is written to disk on
+    // every coverage run, and linting a build artifact reports findings nobody
+    // can act on — the one that surfaced was an unused directive in the report's
+    // own bundled React shim.
+    "coverage/**",
     // Kilo agent worktrees (not part of the active source tree):
     ".kilo/worktrees/**",
   ]),

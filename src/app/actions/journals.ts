@@ -102,7 +102,7 @@ export async function createJournal(formData: FormData) {
   });
 
   // Purge the cached journal pages: publish must be visible at once, not after the TTL.
-  revalidateContent("JOURNAL");
+  revalidateContent("JOURNAL", user.id);
 
   return { success: true, data: journal };
 }
@@ -166,7 +166,7 @@ export async function updateJournal(formData: FormData, journalId: string) {
   });
 
   // Purge the cached journal pages: edit must be visible at once, not after the TTL.
-  revalidateContent("JOURNAL");
+  revalidateContent("JOURNAL", journal.authorId);
 
   return { success: true, data: updatedJournal };
 }
@@ -208,7 +208,7 @@ export async function deleteJournal(journalId: string) {
   });
 
   // Purge the cached journal pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("JOURNAL");
+  revalidateContent("JOURNAL", journal.authorId);
 
   return { success: true, data: { deletedId: journalId } };
 }

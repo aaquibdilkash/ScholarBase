@@ -293,7 +293,7 @@ export async function createSupervisor(formData: FormData) {
   });
 
   // Purge the cached supervisor pages: publish must be visible at once, not after the TTL.
-  revalidateContent("SUPERVISOR");
+  revalidateContent("SUPERVISOR", user.id);
 
   return { success: true, data: supervisor };
 }
@@ -345,7 +345,7 @@ export async function updateSupervisor(
   });
 
   // Purge the cached supervisor pages: edit must be visible at once, not after the TTL.
-  revalidateContent("SUPERVISOR");
+  revalidateContent("SUPERVISOR", supervisor.authorId);
 
   return { success: true, data: updatedSupervisor };
 }
@@ -387,7 +387,7 @@ export async function deleteSupervisor(supervisorId: string) {
   });
 
   // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("SUPERVISOR");
+  revalidateContent("SUPERVISOR", supervisor.authorId);
 
   return { success: true, data: { deletedId: supervisorId } };
 }

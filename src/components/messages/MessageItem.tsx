@@ -123,14 +123,23 @@ export const MessageItem = React.memo(
         const menuWidth = 144;
         const menuHeight = 76;
         const gap = 4;
+        const headerBottom = 72;
         const left = Math.min(
           Math.max(8, rect.right + gap),
           window.innerWidth - menuWidth - 8,
         );
+        const menuTopWhenAbove = rect.top - menuHeight - gap;
+
+        if (menuTopWhenAbove < headerBottom) {
+          const top = rect.bottom + gap;
+          setMenuPosition({ top, left });
+          return;
+        }
+
         const top =
           rect.bottom + gap + menuHeight <= window.innerHeight
             ? rect.bottom + gap
-            : Math.max(8, rect.top - menuHeight - gap);
+            : Math.max(headerBottom, menuTopWhenAbove);
 
         setMenuPosition({ top, left });
       };
@@ -287,8 +296,7 @@ export const MessageItem = React.memo(
           {/* ⚡ ISSUE 6: Message action bar (kebab) on owned, delivered messages.
               DB-loaded messages have no `status` field — only optimistic
               realtime ones are marked "sent" — so treat undefined as sent. */}
-          {!isSidebarOpen && (!isMine || message.status === "sent" || !message.status) &&
-            !isEditing && (
+          {(!isMine || message.status === "sent" || !message.status) && !isEditing && (
             <div
               ref={actionBarRef}
               className="relative z-30 order-3 flex h-7 w-7 shrink-0 self-center items-center justify-center opacity-100 transition-opacity"
@@ -300,7 +308,7 @@ export const MessageItem = React.memo(
                 aria-label="Message actions"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:opacity-100 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 hover:text-slate-700 focus-visible:opacity-100 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
               >
                 <MoreVertical className="h-4 w-4" />
               </button>
@@ -313,7 +321,7 @@ export const MessageItem = React.memo(
                 ref={menuRef}
                 role="menu"
                 style={{ top: menuPosition.top, left: menuPosition.left }}
-                className="fixed z-[10000] w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                className="fixed z-30 w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
               >
                 {isMine && (
                   <button
@@ -429,7 +437,7 @@ export const MessageItem = React.memo(
                     className={`mb-1.5 block w-full rounded-md border-l-2 px-1.5 py-1.5 text-left transition ${
                       isMine
                         ? "border-white/70 bg-white/15 hover:bg-white/25"
-                        : "border-blue-500 bg-white hover:bg-blue-50 dark:bg-slate-900/70 dark:hover:bg-slate-900"
+                        : "border-blue-500 bg-blue-50 hover:bg-blue-100 dark:bg-slate-900/70 dark:hover:bg-slate-900"
                     }`}
                     aria-label="Jump to quoted message"
                   >
@@ -516,7 +524,7 @@ export const MessageItem = React.memo(
               onClick={() => onSetReplyingTo?.(message)}
               aria-label="Reply to message"
               title="Reply"
-              className="flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+              className="flex h-7 w-7 shrink-0 self-center items-center justify-center rounded-full p-1.5 text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-blue-400"
             >
               <Reply className="h-4 w-4" />
             </button>

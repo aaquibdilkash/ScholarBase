@@ -673,6 +673,14 @@ export async function moderateContent(
     throw new Error("Not authorized.");
   }
 
+  /**
+   * The author of the row being moderated, captured out of the per-action
+   * branches below so the cache purge after the transaction can name them.
+   * Moderation acts on somebody else's content, so this is deliberately the
+   * target's id and never the moderator's.
+   */
+  let moderatedAuthorId: string | null | undefined;
+
   try {
     const isCommentType = Object.prototype.hasOwnProperty.call(
       commentModelMap,
@@ -772,6 +780,7 @@ export async function moderateContent(
             authorId: string | null;
             parentId: string | null;
           } | null;
+          moderatedAuthorId = full?.authorId;
           if (!full) throw new Error("Content not found");
 
           if (!entity.isDeleted) {
@@ -856,6 +865,7 @@ export async function moderateContent(
             authorId: string | null;
             parentId: string | null;
           } | null;
+          moderatedAuthorId = full?.authorId;
           if (!full) throw new Error("Content not found");
 
           if (full.isDeleted) {
@@ -1073,6 +1083,7 @@ export async function moderateContent(
           authorId?: string | null;
           isAnonymous?: boolean;
         } | null;
+        moderatedAuthorId = full?.authorId;
         if (!full) throw new Error("Content not found");
 
         if (!entity.isDeleted) {
@@ -1147,6 +1158,7 @@ export async function moderateContent(
           authorId?: string | null;
           isAnonymous?: boolean;
         } | null;
+        moderatedAuthorId = full?.authorId;
         if (!full) throw new Error("Content not found");
 
         if (entity.isDeleted && countField && full.authorId) {
@@ -1251,8 +1263,10 @@ export async function moderateContent(
   // Moderation of feed content (freeze / delete / recover) changes the cached
   // public feed payload. Accepts both the report-module key ("SOCIAL_FEED")
   // and the admin content-type key ("feed"), since both spellings reach here.
+  // `moderatedAuthorId` is the author whose profile tab changed — not the
+  // moderator's, who is a different scholar in every normal case.
   if (contentType === "SOCIAL_FEED" || contentType === "feed") {
-    revalidatePublicFeed();
+    revalidatePublicFeed(moderatedAuthorId);
   }
 
   return result;

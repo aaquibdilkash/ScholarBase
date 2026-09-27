@@ -52,8 +52,10 @@ export async function deleteAccount(
     return { success: false, error: "This account is already deleted." };
   }
 
-  // A tombstoned scholar must vanish from the cached directory at once (RULE 3).
-  revalidateScholars();
+  // A tombstoned scholar must vanish from the cached directory at once (RULE 3),
+  // and from their own Content and Activity tabs, whose rows are soft-deleted
+  // rows that would otherwise still be listed.
+  revalidateScholars(user.id);
 
   const supabase = await createClient();
   await supabase.auth.signOut();

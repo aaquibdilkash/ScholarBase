@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { useQuery, useIsFetching, useQueryClient } from "@tanstack/react-query";
 import {
   FileText,
   GraduationCap,
@@ -15,6 +16,7 @@ import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { RichContent } from "@/components/content/RichContent";
 import { stripHtmlTags } from "@/lib/html";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
+import { LIST_REVALIDATE_MS } from "@/components/layout/listPage";
 import {
   getProfileSections,
   getProfileBookmarkSections,
@@ -295,6 +297,104 @@ const SECTIONS: SectionWithCount[] = [
   },
 ];
 
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`truncate rounded-xl px-2 py-2 text-sm font-semibold transition-all duration-200 sm:px-4 ${
+        active
+          ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
+          : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ProfileSectionList({
+  sections,
+  counts,
+  sectionHasMore,
+  loadingMore,
+  onLoadMore,
+  emptyLabel,
+  currentUserId,
+}: {
+  sections: SectionData | null;
+  counts: Record<string, number> | undefined;
+  sectionHasMore: Record<string, boolean>;
+  loadingMore: string | null;
+  onLoadMore: (sectionKey: SectionKey) => void;
+  emptyLabel?: string;
+  currentUserId?: string;
+}) {
+  if (!sections) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10">
+      {SECTIONS.map((section) => {
+        const items = sections[section.key] ?? [];
+        const count = counts?.[section.key] ?? items.length;
+        const sectionHasMoreItems =
+          sectionHasMore[section.key] !== false && items.length < count;
+
+        return (
+          <section key={section.key}>
+            <h2 className="mb-4 text-xl font-semibold text-slate-950">
+              {section.title} ({count})
+            </h2>
+            {items.length > 0 ? (
+              <div className="relative px-1">
+                <Carousel
+                  onLoadMore={
+                    sectionHasMoreItems
+                      ? () => onLoadMore(section.key)
+                      : undefined
+                  }
+                  hasMore={sectionHasMoreItems}
+                >
+                  {/* TypeScript cannot correlate the dynamic section.key with the items type */}
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {section.renderItems(items as any, currentUserId)}
+                </Carousel>
+                {loadingMore === section.key && (
+                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                    <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      Loading more...
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
+                <p className="text-sm font-medium text-slate-400">
+                  {emptyLabel ?? section.emptyMessage}
+                </p>
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function ProfileTabs({
   profile,
   profileId,
@@ -317,10 +417,7 @@ export default function ProfileTabs({
         : "about",
   );
   const isOwnProfile = currentUserId === profileId;
-  const [sections, setSections] = useState<SectionData | null>(null);
-  const [bookmarkSections, setBookmarkSections] = useState<SectionData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [bookmarksLoading, setBookmarksLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [loadingMore, setLoadingMore] = useState<string | null>(null);
   const [bookmarkLoadingMore, setBookmarkLoadingMore] = useState<string | null>(null);
   const [sectionHasMore, setSectionHasMore] = useState<Record<string, boolean>>(
@@ -329,74 +426,65 @@ export default function ProfileTabs({
   const [bookmarkSectionHasMore, setBookmarkSectionHasMore] = useState<Record<string, boolean>>(
     {},
   );
-  const [activity, setActivity] = useState<ActivityItem[] | null>(null);
-  const [activityLoading, setActivityLoading] = useState(false);
-  // Owned by the React Query cache so appended pages survive tab switches.
+
+  // The Content and Bookmarks tabs are owned by the React Query cache, exactly
+  // like the list pages: a 5-minute `staleTime`, and a server cache beneath it
+  // that the content / bookmark mutations purge. The queries stay mounted even
+  // while their tab is closed, so switching About -> Content -> About -> Content
+  // costs no round trip, and appended carousel pages survive the round trip.
+  const contentQueryKey = useMemo(
+    () => ["profile-content", profileId] as const,
+    [profileId],
+  );
+  const bookmarkQueryKey = useMemo(
+    () => ["profile-bookmarks", profileId] as const,
+    [profileId],
+  );
   const activityQueryKey = useMemo(
     () => ["profile-activity", profileId] as const,
     [profileId],
   );
 
-  const loadContent = useCallback(async () => {
-    if (sections || isLoading) return;
-    setIsLoading(true);
-    try {
-      const data = await getProfileSections(profileId, currentUserId, 1);
-      setSections(data);
-      setSectionHasMore({});
-    } catch (err) {
-      console.error("Failed to load profile sections:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [profileId, currentUserId, sections, isLoading]);
+  // The Activity tab is owned by `CacheBackedList` below, which is already the
+  // single writer for this key — a second `useQuery` on it would mean two
+  // queryFns racing for one entry. `useIsFetching` reads that same cache to drive
+  // the first-load spinner without owning anything.
+  const isActivityFetching = useIsFetching({ queryKey: activityQueryKey }) > 0;
+  const hasActivity = (queryClient.getQueryData(activityQueryKey) as
+    | ActivityItem[]
+    | undefined)?.length;
 
-  const loadActivity = useCallback(async () => {
-    if (activity || activityLoading) return;
-    setActivityLoading(true);
-    try {
-      setActivity(await getProfileActivity(profileId, 10));
-    } catch (err) {
-      console.error("Failed to load profile activity:", err);
-      setActivity([]);
-    } finally {
-      setActivityLoading(false);
-    }
-  }, [profileId, activity, activityLoading]);
+  const {
+    data: sections = null,
+    isPending: isContentPending,
+  } = useQuery({
+    queryKey: contentQueryKey,
+    queryFn: () => getProfileSections(profileId, 1),
+    enabled: activeTab === "content",
+    staleTime: LIST_REVALIDATE_MS,
+  });
 
-  const loadBookmarks = useCallback(async () => {
-    if (bookmarkSections || bookmarksLoading) return;
-    setBookmarksLoading(true);
-    try {
-      const data = await getProfileBookmarkSections(profileId, currentUserId, 1);
-      setBookmarkSections(data);
-      setBookmarkSectionHasMore({});
-    } catch (err) {
-      console.error("Failed to load profile bookmarks:", err);
-    } finally {
-      setBookmarksLoading(false);
-    }
-  }, [profileId, currentUserId, bookmarkSections, bookmarksLoading]);
+  const {
+    data: bookmarkSections = null,
+    isPending: isBookmarksPending,
+  } = useQuery({
+    queryKey: bookmarkQueryKey,
+    // Viewer identity — and whose bookmarks these are — is resolved inside the
+    // action, so this tab cannot be pointed at another scholar.
+    queryFn: () => getProfileBookmarkSections(profileId, 1),
+    enabled: activeTab === "bookmarks" && isOwnProfile,
+    staleTime: LIST_REVALIDATE_MS,
+  });
 
   useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === "content" && !sections) {
-      loadContent();
-    }
-    if (tab === "bookmarks" && isOwnProfile && !bookmarkSections) {
-      loadBookmarks();
-    }
-    if (tab === "activity" && !activity) {
-      loadActivity();
-    }
     // Redirect from bookmarks tab if not own profile
-    if (tab === "bookmarks" && !isOwnProfile) {
+    if (activeTab === "bookmarks" && !isOwnProfile) {
       const params = new URLSearchParams(searchParams);
       params.set("tab", "about");
       router.replace(`${pathname}?${params.toString()}`);
       setActiveTab("about");
     }
-  }, [searchParams, sections, bookmarkSections, activity, loadActivity, loadBookmarks, loadContent, isOwnProfile, profileId, pathname, router]);
+  }, [activeTab, isOwnProfile, searchParams, pathname, router]);
 
   const setTab = (tab: "about" | "content" | "bookmarks" | "activity") => {
     const params = new URLSearchParams(searchParams);
@@ -407,8 +495,7 @@ export default function ProfileTabs({
 
   const loadMore = useCallback(
     async (sectionKey: SectionKey) => {
-      const currentLoadingKey = loadingMore;
-      if (currentLoadingKey) return;
+      if (loadingMore) return;
 
       setLoadingMore(sectionKey);
       try {
@@ -430,10 +517,17 @@ export default function ProfileTabs({
         );
 
         if (result.length > 0) {
-          setSections((prevSections) => ({
-            ...(prevSections as NonNullable<SectionData>),
-            [sectionKey]: [...currentItems, ...result],
-          }));
+          // Written into the query cache rather than local state, so the
+          // appended rows outlive a tab switch — the same contract
+          // `CacheBackedList` gives the paginated list pages.
+          queryClient.setQueryData<SectionData>(contentQueryKey, (prev) => {
+            if (!prev) return prev;
+            const merged = prev as NonNullable<SectionData>;
+            return {
+              ...merged,
+              [sectionKey]: [...currentItems, ...result],
+            };
+          });
         } else {
           setSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
         }
@@ -443,7 +537,7 @@ export default function ProfileTabs({
         setLoadingMore(null);
       }
     },
-    [sections, profileId, loadingMore],
+    [sections, profileId, loadingMore, queryClient, contentQueryKey],
   );
 
   const loadMoreBookmark = useCallback(
@@ -470,10 +564,14 @@ export default function ProfileTabs({
         );
 
         if (result.length > 0) {
-          setBookmarkSections((prevSections) => ({
-            ...(prevSections as NonNullable<SectionData>),
-            [sectionKey]: [...currentItems, ...result],
-          }));
+          queryClient.setQueryData<SectionData>(bookmarkQueryKey, (prev) => {
+            if (!prev) return prev;
+            const merged = prev as NonNullable<SectionData>;
+            return {
+              ...merged,
+              [sectionKey]: [...currentItems, ...result],
+            };
+          });
         } else {
           setBookmarkSectionHasMore((prev) => ({ ...prev, [sectionKey]: false }));
         }
@@ -483,29 +581,12 @@ export default function ProfileTabs({
         setBookmarkLoadingMore(null);
       }
     },
-    [bookmarkSections, profileId, bookmarkLoadingMore],
+    [bookmarkSections, profileId, bookmarkLoadingMore, queryClient, bookmarkQueryKey],
   );
 
-  const handleContentTabClick = () => {
-    setTab("content");
-    if (!sections) {
-      loadContent();
-    }
-  };
-
-  const handleActivityTabClick = () => {
-    setTab("activity");
-    if (!activity) {
-      loadActivity();
-    }
-  };
-
-  const handleBookmarksTabClick = () => {
-    setTab("bookmarks");
-    if (!bookmarkSections) {
-      loadBookmarks();
-    }
-  };
+  const handleContentTabClick = () => setTab("content");
+  const handleActivityTabClick = () => setTab("activity");
+  const handleBookmarksTabClick = () => setTab("bookmarks");
 
   return (
     <div className="mt-8">
@@ -513,48 +594,20 @@ export default function ProfileTabs({
       <div className={`mb-8 grid w-full gap-1 rounded-2xl border border-slate-200/70 bg-white/80 p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950/80 sm:w-fit sm:min-w-[30rem] ${
         isOwnProfile ? "grid-cols-4" : "grid-cols-3"
       }`}>
-        <button
-          onClick={() => setTab("about")}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
-            activeTab === "about"
-              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
-              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
-          }`}
-        >
+        <TabButton active={activeTab === "about"} onClick={() => setTab("about")}>
           About
-        </button>
-        <button
-          onClick={handleContentTabClick}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
-            activeTab === "content"
-              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
-              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
-          }`}
-        >
+        </TabButton>
+        <TabButton active={activeTab === "content"} onClick={handleContentTabClick}>
           Content
-        </button>
+        </TabButton>
         {isOwnProfile && (
-          <button
-            onClick={handleBookmarksTabClick}
-            className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
-              activeTab === "bookmarks"
-                ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
-                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
-            }`}
-          >
-            BookMarks
-          </button>
+          <TabButton active={activeTab === "bookmarks"} onClick={handleBookmarksTabClick}>
+            Bookmarks
+          </TabButton>
         )}
-        <button
-          onClick={handleActivityTabClick}
-          className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200 sm:px-5 ${
-            activeTab === "activity"
-              ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
-              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
-          }`}
-        >
+        <TabButton active={activeTab === "activity"} onClick={handleActivityTabClick}>
           Activity
-        </button>
+        </TabButton>
       </div>
 
       {/* Tab Content */}
@@ -624,128 +677,50 @@ export default function ProfileTabs({
         </div>
       )}
 
-      {activeTab === "content" && (
-        <div className="space-y-10">
-          {isLoading && !sections && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
-            </div>
-          )}
+      {activeTab === "content" &&
+        (isContentPending ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+          </div>
+        ) : (
+          <ProfileSectionList
+            sections={sections}
+            counts={sections?.counts}
+            sectionHasMore={sectionHasMore}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+            currentUserId={currentUserId}
+          />
+        ))}
 
-          {sections &&
-            SECTIONS.map((section) => {
-              const items = sections[section.key] ?? [];
-              const count = sections.counts?.[section.key] ?? items.length;
-              const sectionHasMoreItems =
-                sectionHasMore[section.key] !== false && items.length < count;
-
-              return (
-                <section key={section.key}>
-                  <h2 className="mb-4 text-xl font-semibold text-slate-950">
-                    {section.title} ({count})
-                  </h2>
-                  {items.length > 0 ? (
-                    <div className="relative px-1">
-                      <Carousel
-                        onLoadMore={
-                          sectionHasMoreItems
-                            ? () => loadMore(section.key)
-                            : undefined
-                        }
-                        hasMore={sectionHasMoreItems}
-                      >
-                        {/* TypeScript cannot correlate the dynamic section.key with the items type */}
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {section.renderItems(items as any, currentUserId)}
-                      </Carousel>
-                      {loadingMore === section.key && (
-                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                          <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                            Loading more...
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
-                      <p className="text-sm font-medium text-slate-400">
-                        {section.emptyMessage}
-                      </p>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-        </div>
-      )}
-
-      {activeTab === "bookmarks" && (
-        <div className="space-y-10">
-          {bookmarksLoading && !bookmarkSections && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
-            </div>
-          )}
-
-          {bookmarkSections &&
-            SECTIONS.map((section) => {
-              const items = bookmarkSections[section.key] ?? [];
-              const count = bookmarkSections.counts?.[section.key] ?? items.length;
-              const sectionHasMoreItems =
-                bookmarkSectionHasMore[section.key] !== false &&
-                items.length < count;
-
-              return (
-                <section key={section.key}>
-                  <h2 className="mb-4 text-xl font-semibold text-slate-950">
-                    {section.title} ({count})
-                  </h2>
-                  {items.length > 0 ? (
-                    <div className="relative px-1">
-                      <Carousel
-                        onLoadMore={
-                          sectionHasMoreItems
-                            ? () => loadMoreBookmark(section.key)
-                            : undefined
-                        }
-                        hasMore={sectionHasMoreItems}
-                      >
-                        {/* TypeScript cannot correlate the dynamic section.key with the items type */}
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {section.renderItems(items as any, currentUserId)}
-                      </Carousel>
-                      {bookmarkLoadingMore === section.key && (
-                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                          <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                            Loading more...
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-8 text-center">
-                      <p className="text-sm font-medium text-slate-400">
-                        No bookmarks yet.
-                      </p>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-        </div>
-      )}
+      {activeTab === "bookmarks" &&
+        (isBookmarksPending ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
+          </div>
+        ) : (
+          <ProfileSectionList
+            sections={bookmarkSections}
+            counts={bookmarkSections?.counts}
+            sectionHasMore={bookmarkSectionHasMore}
+            loadingMore={bookmarkLoadingMore}
+            onLoadMore={loadMoreBookmark}
+            emptyLabel="No bookmarks yet."
+            currentUserId={currentUserId}
+          />
+        ))}
 
       {activeTab === "activity" &&
-        (activityLoading || !activity ? (
+        (isActivityFetching && !hasActivity ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-slate-400 dark:text-slate-500" />
           </div>
         ) : (
           <CacheBackedList<ActivityItem>
             queryKey={activityQueryKey}
-            initialItems={activity}
+            // `CacheBackedList` is the only writer for this key, and its own
+            // `queryFn` loads the first page — so no `initialItems` is needed,
+            // and passing a stale snapshot would only be ignored.
             chunkSize={10}
             fetchPage={(cursor) => getProfileActivity(profileId, 10, cursor)}
             renderItem={(item, index) => (

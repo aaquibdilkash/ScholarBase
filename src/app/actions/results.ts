@@ -166,7 +166,7 @@ export async function createResult(formData: FormData) {
   });
 
   // Purge the cached result pages: publish must be visible at once, not after the TTL.
-  revalidateContent("RESULT");
+  revalidateContent("RESULT", user.id);
 
   return { success: true, data: result };
 }
@@ -215,7 +215,7 @@ export async function updateResult(formData: FormData, resultId: string) {
   });
 
   // Purge the cached result pages: edit must be visible at once, not after the TTL.
-  revalidateContent("RESULT");
+  revalidateContent("RESULT", result.authorId);
 
   return { success: true, data: updatedResult };
 }
@@ -257,7 +257,7 @@ export async function deleteResult(resultId: string) {
   });
 
   // Purge the cached result pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("RESULT");
+  revalidateContent("RESULT", result.authorId);
 
   return { success: true, data: { deletedId: resultId } };
 }

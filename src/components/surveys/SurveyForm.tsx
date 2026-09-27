@@ -137,6 +137,8 @@ export default function SurveyForm({
   const [activeTab, setActiveTab] = useState<"build" | "preview">("build");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [selectedDemographic, setSelectedDemographic] = useState<string>("");
+  const [demographicTargetBlock, setDemographicTargetBlock] =
+    useState<string>("");
   const [showBlockDeleteModal, setShowBlockDeleteModal] = useState<{
     isOpen: boolean;
     blockIndex: number | null;
@@ -274,12 +276,17 @@ export default function SurveyForm({
   };
 
   const removeBlock = (index: number) => {
+    const removedBlockId = blocks[index]?.id ?? null;
     const remainingBlocks = blocks
       .filter((_, i) => i !== index)
       .map((b, i) => ({ ...b, order: i }));
     // normalizeSurveyStructure clears any block reference to the removed
     // section, so those questions fall back to General.
     applyStructure(normalizeSurveyStructure(questions, remainingBlocks));
+    // Keep the demographics target pointing at a section that still exists.
+    if (demographicTargetBlock && demographicTargetBlock === removedBlockId) {
+      setDemographicTargetBlock("");
+    }
     toast("Section removed (questions kept)");
   };
 
@@ -789,11 +796,27 @@ export default function SurveyForm({
                 </option>
               ))}
             </select>
+            <select
+              value={demographicTargetBlock}
+              onChange={(e) => setDemographicTargetBlock(e.target.value)}
+              className="sb-select min-w-0 w-full text-sm sm:max-w-56 !pr-10"
+              aria-label="Section to insert the demographic block into"
+            >
+              <option value="">Into: General questions</option>
+              {blocks.map((block) => (
+                <option key={block.id} value={block.id ?? ""}>
+                  Into: {block.title}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={() => {
                 if (selectedDemographic) {
-                  insertDemographicBlock(selectedDemographic);
+                  insertDemographicBlock(
+                    selectedDemographic,
+                    demographicTargetBlock || null,
+                  );
                   setSelectedDemographic("");
                 }
               }}
@@ -830,6 +853,7 @@ export default function SurveyForm({
           title={title}
           description={description}
           questions={questions}
+          blocks={blocks}
           consentRequired={consentRequired === true}
           consentText={consentText}
         />

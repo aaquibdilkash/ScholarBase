@@ -2,6 +2,7 @@
 
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { ShareButton } from "@/components/interactions/ShareButton";
+import { UserPlus } from "lucide-react";
 
 type ScholarSuggestion = { id: string; name: string | null; handle: string | null; avatarUrl?: string | null };
 
@@ -45,7 +46,7 @@ export function ScholarSuggestionDropdown<T extends ScholarSuggestion>({
               <span className="block truncate text-xs text-slate-500 dark:text-slate-400">@{user.handle || "scholar"}</span>
             </span>
           </button>
-          {showShareAction ? <ShareButton href={`/scholars/${user.id}`} label={`Invite ${user.name || "scholar"} to ScholarBase`} /> : null}
+          {showShareAction ? <ShareButton href={`/scholars/${user.id}`} label={`Invite ${user.name || "scholar"} to ScholarBase`} icon={UserPlus} /> : null}
         </div>
       )) : <p className="px-3 py-3 text-sm text-slate-500 dark:text-slate-400">{emptyMessage}</p>}
     </div>

@@ -16,9 +16,9 @@ export default function CommentCountDisplay({
   return (
     <Link prefetch={false}
       href={href}
-      className="flex items-center gap-2 text-sm font-semibold text-slate-600 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
+      className="flex items-center gap-2 text-sm font-bold text-slate-800 transition-colors hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-300"
     >
-      <MessageCircle className="w-5 h-5" />
+      <MessageCircle className="w-5 h-5" strokeWidth={2.5} />
       {count}{" "}
       <span className="hidden md:inline">
         {count === 1 ? "Comment" : "Comments"}

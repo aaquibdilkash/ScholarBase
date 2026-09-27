@@ -59,9 +59,10 @@ const JournalDetailPage = async ({
 
   // Journal Reviews (mirrors the supervisor recommendations flow). Aggregates
   // are materialized on the Journal; the meta call adds the per-star split and
-  // the viewer's own review id (for the "+ Review" / "Edit Review" CTA).
+  // the viewer's own review id + rating (for the "+ Review" / "Edit Review" CTA).
+  // ONE review is fetched: the carousel pages the rest in through the arrow.
   const reviewMeta = await getJournalReviewMeta(id);
-  const initialReviews = await getJournalReviews(id, 0, 5);
+  const initialReviews = await getJournalReviews(id, 0, 1);
 
   const j = journal;
   const userVote =
@@ -147,6 +148,7 @@ const JournalDetailPage = async ({
             onDeleteJournal={handleDelete}
             initialHasReview={reviewMeta.hasUserReview}
             initialUserReviewId={reviewMeta.userReviewId}
+            initialUserReviewRating={reviewMeta.userReviewRating}
           />
         </div>
       </div>
@@ -283,12 +285,7 @@ const JournalDetailPage = async ({
         journalId={j.id}
         initialReviews={initialReviews}
         initialCount={reviewMeta.totalCount}
-        initialRatingSum={
-          // ratingSum is materialized on Journal; fall back to a recomputed sum
-          // if the Journal aggregate hasn't been backfilled yet.
-          j.ratingSum ??
-          initialReviews.reduce((s, r) => s + (r.rating ?? 0), 0)
-        }
+        initialRatingSum={j.ratingSum}
         initialDistribution={reviewMeta.ratingDistribution.reduce(
           (acc, row) => ({ ...acc, [row.stars]: row.count }),
           {} as Record<number, number>,
@@ -296,6 +293,7 @@ const JournalDetailPage = async ({
         currentUserId={user?.id ?? undefined}
         hasUserReview={reviewMeta.hasUserReview}
         userReviewId={reviewMeta.userReviewId ?? undefined}
+        userReviewRating={reviewMeta.userReviewRating ?? undefined}
       />
     </DetailPageCardShell>
   );

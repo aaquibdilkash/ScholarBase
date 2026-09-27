@@ -100,3 +100,31 @@ export function createCachedPage<TRow, TArgs extends unknown[]>(
 
   return cached;
 }
+
+/**
+ * The same policy as {@link createCachedPage}, for payloads that are not a flat
+ * array of rows.
+ *
+ * The profile tabs are the case this exists for: they return a record of 17
+ * sections rather than a page of rows, so the date serialisation of the array
+ * form does not apply. Everything that *is* shared with the array form — the
+ * {@link LIST_REVALIDATE_SECONDS} TTL, the tag, and the hard-expire purge
+ * contract — is identical, so a cached tab and a cached list page expire
+ * together.
+ *
+ * `keyParts` is fixed at creation, exactly as in {@link createCachedPage};
+ * per-request inputs (a profile id, a page size) must be function arguments,
+ * which `unstable_cache` folds into the cache key automatically.
+ */
+export function createCachedValue<TValue, TArgs extends unknown[]>(
+  tag: string,
+  loadValue: (...args: TArgs) => Promise<TValue>,
+  options: { keyParts?: readonly string[] } = {},
+) {
+  const { keyParts = [] } = options;
+
+  return unstable_cache(loadValue, [tag, ...keyParts], {
+    tags: [tag],
+    revalidate: LIST_REVALIDATE_SECONDS,
+  });
+}

@@ -31,3 +31,32 @@ export function removeFromList<T extends { id: string }>(
     oldData.filter((x) => x.id !== id),
   );
 }
+
+/** The three data tabs on a scholar profile, keyed by tab. */
+export const PROFILE_TAB_KEYS = {
+  content: ["profile-content"] as const,
+  bookmarks: ["profile-bookmarks"] as const,
+  activity: ["profile-activity"] as const,
+};
+
+/**
+ * Marks the scholar-profile Content and Activity tabs stale.
+ *
+ * Both list what a publish / edit / delete changes, so a mutation has to clear
+ * them. `refetchType: "none"` is deliberate: the server cache is purged by the
+ * same mutation (see `tri-split/modules/profile-tab`), so any later read is
+ * already correct, and there is no reason to spend a round trip while the tab
+ * is closed. The tab refetches the moment it is actually opened, because a
+ * stale query refetches as soon as it becomes enabled.
+ */
+export function invalidateProfileTabs(
+  queryClient: QueryClient,
+  ...tabs: (keyof typeof PROFILE_TAB_KEYS)[]
+): void {
+  for (const tab of tabs) {
+    queryClient.invalidateQueries({
+      queryKey: PROFILE_TAB_KEYS[tab],
+      refetchType: "none",
+    });
+  }
+}

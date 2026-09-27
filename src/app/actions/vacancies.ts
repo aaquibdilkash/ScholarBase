@@ -190,7 +190,7 @@ export async function createJobVacancy(formData: FormData) {
   });
 
   // Purge the cached job vacancy pages: publish must be visible at once, not after the TTL.
-  revalidateContent("JOB_VACANCY");
+  revalidateContent("JOB_VACANCY", user.id);
 
   return { success: true, data: vacancy };
 }
@@ -257,7 +257,7 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
   });
 
   // Purge the cached job vacancy pages: edit must be visible at once, not after the TTL.
-  revalidateContent("JOB_VACANCY");
+  revalidateContent("JOB_VACANCY", vacancy.authorId);
 
   return { success: true, data: updatedVacancy };
 }
@@ -297,7 +297,7 @@ export async function deleteJobVacancy(vacancyId: string) {
   });
 
   // Purge the cached job vacancy pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("JOB_VACANCY");
+  revalidateContent("JOB_VACANCY", vacancy.authorId);
 
   return { success: true, data: { deletedId: vacancyId } };
 }

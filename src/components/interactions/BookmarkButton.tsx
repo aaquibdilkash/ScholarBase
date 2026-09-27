@@ -5,8 +5,10 @@ import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
 import { type ModuleKey } from "@/lib/transactions";
+import { useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Loader2 } from "lucide-react";
 import { useOptimistic, useState, useTransition } from "react";
+import { PROFILE_TAB_KEYS } from "@/utils/cacheMutation";
 
 type BookmarkState = {
   totalBookmarks: number;
@@ -46,6 +48,7 @@ export function BookmarkButton({
   const { toast } = useToast();
   const { openAuthModal } = useAuthModal();
   const { user } = useUser();
+  const queryClient = useQueryClient();
 
   const handleBookmark = () => {
     if (!user) {
@@ -72,6 +75,13 @@ export function BookmarkButton({
           totalBookmarks: result.data.totalBookmarks,
           isBookmarked: result.data.isBookmarked,
         });
+        // Every bookmark in the app goes through this button, so this is the one
+        // place that has to clear the Bookmarks tab. The action already purged
+        // the server cache, so marking the client entry is enough — and the
+        // optimistic state above means the button itself never waits on it.
+        queryClient.invalidateQueries({
+          queryKey: PROFILE_TAB_KEYS.bookmarks,
+        });
         toast({
           title: result.data.isBookmarked ? "Bookmarked" : "Bookmark removed",
           description: result.data.isBookmarked
@@ -97,10 +107,10 @@ export function BookmarkButton({
       type="button"
       disabled={isPending || frozen}
       onClick={handleBookmark}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-70 ${
         isBookmarked
           ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-          : "border-slate-200 bg-white text-slate-500 hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-blue-800 dark:hover:text-blue-300"
+          : "border-slate-200 bg-white text-slate-800 hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400 dark:hover:border-blue-800 dark:hover:text-blue-300"
       }`}
       title={isBookmarked ? "Remove bookmark" : "Bookmark"}
       aria-pressed={isBookmarked}
@@ -111,6 +121,7 @@ export function BookmarkButton({
         <Bookmark
           className="h-4 w-4"
           fill={isBookmarked ? "currentColor" : "none"}
+          strokeWidth={2.5}
         />
       )}
       <span>{Math.max(0, totalBookmarks)}</span>

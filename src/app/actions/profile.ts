@@ -11,11 +11,13 @@ import {
 } from "@/lib/cloudinary";
 import { MAX_PROFILE_BIO } from "@/lib/constants";
 import { revalidateScholars } from "@/lib/tri-split/modules/scholar";
-import { validateExternalUrl } from "@/lib/external-url";
 import {
-  PROFILE_SECTION_CONFIG,
-  type ProfileSection,
-} from "@/lib/module-registry";
+  loadProfileActivity,
+  loadProfileBookmarkTab,
+  loadProfileContentTab,
+} from "@/lib/tri-split/modules/profile-tab";
+import { validateExternalUrl } from "@/lib/external-url";
+import { PROFILE_SECTION_CONFIG, type ProfileSection } from "@/lib/module-registry";
 
 export const getProfile = cache(
   async (profileId: string, currentUserId?: string) => {
@@ -110,213 +112,24 @@ function getProfileBookmarksInclude(currentUserId?: string) {
 
 export async function getProfileSections(
   profileId: string,
-  currentUserId?: string,
   take: number = 1,
 ) {
-  // ── Task 2.1: Fetch all 16 materialized counters in a single query ──
-  const userCounters = await prisma.user.findUnique({
-    where: { id: profileId },
-    select: {
-      articleCount: true,
-      socialPostCount: true,
-      jobVacancyCount: true,
-      phdAdmissionCount: true,
-      researchEventCount: true,
-      helpPostCount: true,
-      journalCount: true,
-      journalReviewCount: true,
-      researchToolCount: true,
-      recommendationCount: true,
-      supervisorCount: true,
-      resultCount: true,
-      contributionCount: true,
-      publicationCount: true,
-      surveyCount: true,
-      surveyParticipationCount: true,
-      researchGrantCount: true,
-      courseCount: true,
-    },
+  // The viewer is resolved server-side. This used to accept a client-supplied
+  // `currentUserId` and filter each row's `votes` / `bookmarks` by it, which
+  // let any caller read another user's vote and bookmark state.
+  const viewer = await getCurrentUser();
+
+  // ── Cached, viewer-agnostic rows + one live overlay statement ──
+  // The 18 materialized counters and all 17 sections ride in the same cached
+  // batch, so a warm tab costs exactly one query: the viewer overlay. The tab
+  // used to cost two serialised round trips on every single visit.
+  const { sections, counts } = await loadProfileContentTab({
+    profileId,
+    take,
+    viewerId: viewer?.id ?? null,
   });
 
-  const authorSelect = getProfileAuthorInclude(currentUserId);
-  const votesSelect = getProfileVotesInclude(currentUserId);
-  const bookmarksSelect = getProfileBookmarksInclude(currentUserId);
-
-  const [
-    articles,
-    socialPosts,
-    vacancies,
-    admissions,
-    events,
-    helpPosts,
-    journals,
-    researchTools,
-    recommendations,
-    supervisors,
-    results,
-    contributionPosts,
-    publications,
-    surveys,
-    researchGrants,
-    courses,
-    journalReviews,
-  ] = await Promise.all([
-    prisma.article.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.socialPost.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.jobVacancy.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.phdAdmission.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.researchEvent.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.helpPost.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.journal.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.researchTool.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.recommendation.findMany({
-      where: { authorId: profileId, isDeleted: false, isAnonymous: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: {
-        author: authorSelect,
-        votes: votesSelect,
-        bookmarks: bookmarksSelect,
-        supervisor: { select: { id: true, name: true } },
-      },
-    }),
-    prisma.supervisor.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.result.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.contribution.findMany({
-      where: { authorId: profileId, isDeleted: false, status: "APPROVED" },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.publication.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.researchSurvey.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.researchGrant.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    prisma.course.findMany({
-      where: { authorId: profileId, isDeleted: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: { author: authorSelect, votes: votesSelect, bookmarks: bookmarksSelect },
-    }),
-    // Anonymous reviews stay hidden from the public profile, exactly like
-    // anonymous recommendations (the materialized counter is also skipped).
-    prisma.journalReview.findMany({
-      where: { authorId: profileId, isDeleted: false, isAnonymous: false },
-      take,
-      orderBy: { createdAt: "desc" },
-      include: {
-        author: authorSelect,
-        votes: votesSelect,
-        bookmarks: bookmarksSelect,
-        journal: { select: { id: true, title: true } },
-      },
-    }),
-  ]);
-
-  return {
-    id: profileId,
-    articles,
-    socialPosts,
-    vacancies,
-    admissions,
-    events,
-    helpPosts,
-    journals,
-    researchTools,
-    recommendations,
-    supervisors,
-    results,
-    contributionPosts,
-    publications,
-    surveys,
-    researchGrants,
-    courses,
-    journalReviews,
-    counts: {
-      articles: userCounters?.articleCount ?? 0,
-      socialPosts: userCounters?.socialPostCount ?? 0,
-      vacancies: userCounters?.jobVacancyCount ?? 0,
-      admissions: userCounters?.phdAdmissionCount ?? 0,
-      events: userCounters?.researchEventCount ?? 0,
-      helpPosts: userCounters?.helpPostCount ?? 0,
-      journals: userCounters?.journalCount ?? 0,
-      researchTools: userCounters?.researchToolCount ?? 0,
-      recommendations: userCounters?.recommendationCount ?? 0,
-      supervisors: userCounters?.supervisorCount ?? 0,
-      results: userCounters?.resultCount ?? 0,
-      contributionPosts: userCounters?.contributionCount ?? 0,
-      publications: userCounters?.publicationCount ?? 0,
-      surveys: userCounters?.surveyCount ?? 0,
-      surveyParticipation: userCounters?.surveyParticipationCount ?? 0,
-      researchGrants: userCounters?.researchGrantCount ?? 0,
-      courses: userCounters?.courseCount ?? 0,
-      journalReviews: userCounters?.journalReviewCount ?? 0,
-    },
-  };
+  return { id: profileId, ...sections, counts };
 }
 
 export async function getProfileSection(
@@ -355,7 +168,10 @@ export async function getProfileSection(
     },
     skip,
     take,
-    orderBy: { createdAt: "desc" },
+    // The `id` tiebreaker matches the ordering the tab's first page comes from
+    // (see `buildContentSectionsSql`), so paging cannot skip or repeat a row
+    // when two posts share a timestamp.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     include,
   });
 }
@@ -396,55 +212,49 @@ function getBookmarkDelegate(bookmarkModel: string): BookmarkDelegate {
 
 export async function getProfileBookmarkSections(
   profileId: string,
-  currentUserId?: string,
   take: number = 1,
 ) {
-  const entries = Object.entries(PROFILE_SECTION_CONFIG) as Array<
-    [ProfileSection, (typeof PROFILE_SECTION_CONFIG)[ProfileSection]]
-  >;
+  // Two things are resolved server-side here, both of which used to be
+  // caller-controlled:
+  //   1. the viewer, which decided whose vote / bookmark state was overlaid;
+  //   2. *whose* bookmarks were listed. The tab is own-profile only, but that
+  //      was enforced by the client, so the action itself would happily return
+  //      any user's bookmarks to any caller.
+  // Bookmarks are private, so the session decides both. `profileId` is still
+  // returned for shape compatibility, but it is the viewer's own id.
+  const viewer = await getCurrentUser();
+  const ownerId = viewer?.id;
+  if (!ownerId) {
+    const empty = Object.fromEntries(
+      (Object.keys(PROFILE_SECTION_CONFIG) as ProfileSection[]).map((s) => [
+        s,
+        [],
+      ]),
+    );
+    return {
+      id: profileId,
+      ...empty,
+      counts: Object.fromEntries(
+        (Object.keys(PROFILE_SECTION_CONFIG) as ProfileSection[]).map((s) => [
+          s,
+          0,
+        ]),
+      ),
+    } as NonNullable<Awaited<ReturnType<typeof getProfileSections>>>;
+  }
 
-  const countEntries = await Promise.all(
-    entries.map(async ([section, config]) => {
-      const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
-      const count = await bookmarkDelegate.count({
-        where: {
-          userId: profileId,
-          [config.bookmarkParent]: getProfileParentWhere(section, true),
-        },
-      });
-      return [section, count] as const;
-    }),
-  );
-
-  const itemEntries = await Promise.all(
-    entries.map(async ([section, config]) => {
-      const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
-      const rows = await bookmarkDelegate.findMany({
-        where: {
-          userId: profileId,
-          [config.bookmarkParent]: getProfileParentWhere(section, true),
-        },
-        take,
-        orderBy: { createdAt: "desc" },
-        include: {
-          [config.bookmarkParent]: {
-            include: getBookmarkParentInclude(section, currentUserId),
-          },
-        },
-      });
-      return [
-        section,
-        rows
-          .map((row: Record<string, unknown>) => row[config.bookmarkParent])
-          .filter(Boolean),
-      ] as const;
-    }),
-  );
+  // One statement: 17 sections' rows and their totals together, instead of 34
+  // serialised round trips. Cached under a per-user key, purged on bookmark.
+  const { items, counts } = await loadProfileBookmarkTab({
+    ownerId,
+    take,
+    viewerId: viewer.id,
+  });
 
   return {
     id: profileId,
-    ...Object.fromEntries(itemEntries),
-    counts: Object.fromEntries(countEntries),
+    ...items,
+    counts,
   } as NonNullable<Awaited<ReturnType<typeof getProfileSections>>>;
 }
 
@@ -459,16 +269,25 @@ export async function getProfileBookmarkSection(
   const viewer = await getCurrentUser();
   const currentUserId = viewer?.id;
 
+  // Bookmarks are private, and the tab that calls this is own-profile only —
+  // but that was a client-side check, so the action itself would return any
+  // user's bookmarks to any caller. Scope the lookup to the session instead;
+  // `profileId` is retained for signature compatibility and ignored.
+  if (!currentUserId) return [];
+
   const config = PROFILE_SECTION_CONFIG[section];
   const bookmarkDelegate = getBookmarkDelegate(config.bookmarkModel);
   const rows = await bookmarkDelegate.findMany({
     where: {
-      userId: profileId,
+      userId: currentUserId,
       [config.bookmarkParent]: getProfileParentWhere(section, true),
     },
     skip,
     take,
-    orderBy: { createdAt: "desc" },
+    // The `id` tiebreaker matches the ordering the tab's first page comes from
+    // (see `buildBookmarkSectionsSql`), so paging cannot skip or repeat a row
+    // when two bookmarks share a timestamp.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     include: {
       [config.bookmarkParent]: {
         include: getBookmarkParentInclude(section, currentUserId),
@@ -493,20 +312,7 @@ export async function getProfileActivity(
 ) {
   if (!profileId) return [];
 
-  return prisma.userActivity.findMany({
-    where: { userId: profileId },
-    take,
-    orderBy: { createdAt: "desc" },
-    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
-    select: {
-      id: true,
-      action: true,
-      moduleType: true,
-      entityId: true,
-      entityTitle: true,
-      createdAt: true,
-    },
-  });
+  return loadProfileActivity(profileId, take, cursor);
 }
 
 export async function updateProfile(formData: FormData) {
@@ -580,8 +386,10 @@ export async function updateProfile(formData: FormData) {
   });
 
   // Name / handle / bio / avatar are part of the cached scholar directory, so a
-  // profile edit must be visible there at once rather than after the TTL.
-  revalidateScholars();
+  // profile edit must be visible there at once rather than after the TTL. The
+  // edit also changes the author block embedded in the author's own cached
+  // content, so their Content tab goes with it.
+  revalidateScholars(user.id);
 
   return {
     success: true,

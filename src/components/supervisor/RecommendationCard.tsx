@@ -48,15 +48,15 @@ export function RecommendationCard({
         return { refresh: false };
       }
 
-      // 1. Remove from the array cache instantly & refill
+      // 1. Remove from the array cache instantly. No invalidate: the
+      // recommendations rail is a carousel, so refetching it would collapse the
+      // reader back to a single slide, and the cache is already correct — the
+      // next page request offsets by the new length and lands on the right row.
       queryClient.setQueriesData(
         { queryKey: ["recommendations", supervisor.id] },
         (oldData: RecommendationWithAuthor[] = []) =>
           oldData.filter((r) => r.id !== response.data.deletedId),
       );
-      queryClient.invalidateQueries({
-        queryKey: ["recommendations", supervisor.id],
-      });
 
       // 2. Keep the reactive count in sync
       decrementRecommendation(

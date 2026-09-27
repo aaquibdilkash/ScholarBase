@@ -61,9 +61,9 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
       <Link
         href={detailUrl}
         prefetch={false}
-        className="flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-700"
+        className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-400 transition-colors hover:text-blue-700 dark:hover:text-blue-300"
       >
-        <MessageCircle className="w-5 h-5" />
+        <MessageCircle className="w-5 h-5" strokeWidth={2.5} />
         {item.totalComments} Comments
       </Link>
     </div>
