@@ -34,6 +34,53 @@ interface MessageItemProps {
   onSetReplyingTo?: (message: SentMessage) => void;
 }
 
+// ── Emoji visibility helpers ───────────────────────────────────────────────
+// Linux Chrome without Noto Color Emoji falls back to monochrome outlines,
+// and 15px yellow glyphs wash out on white / blue bubbles. We wrap every
+// emoji in `.sb-emoji` (color-emoji font stack + contrast filter + outline)
+// and render emoji-only messages large with a transparent bubble
+// (WhatsApp-style) so they stay legible in both themes.
+const EMOJI_SEGMENT_RE =
+  /(\p{Extended_Pictographic}\uFE0F?|\p{Emoji_Presentation}|\u2764\uFE0F?|[\u{1F1E6}-\u{1F1FF}]{2})/gu;
+const EMOJI_STRIP_RE = new RegExp(EMOJI_SEGMENT_RE.source, "gu");
+const ZWJ_SKIN_MOD_RE = /[\u200D\uFE0F\u{1F3FB}-\u{1F3FF}\u2190-\u2BFF\u2600-\u27BF]/gu;
+
+function isEmojiOnlyBody(body: string): boolean {
+  const text = body.trim().slice(0, 24);
+  if (!text) return false;
+  // Allow up to 4 emoji graphemes + whitespace only — no letters/numbers.
+  const withoutEmoji = text
+    .replace(EMOJI_STRIP_RE, "")
+    .replace(ZWJ_SKIN_MOD_RE, "")
+    .replace(/[\s\u200D]/g, "");
+  if (withoutEmoji.length !== 0) return false;
+  const graphemes = [...text.replace(/[\s]/g, "")].filter(
+    (ch) => ch !== "\u200D" && ch !== "\uFE0F",
+  );
+  return graphemes.length > 0 && graphemes.length <= 8;
+}
+
+function renderBodyWithEmoji(body: string, large: boolean) {
+  const parts = body.split(EMOJI_SEGMENT_RE);
+  if (parts.length === 1) return body;
+  return parts.map((part, i) => {
+    EMOJI_STRIP_RE.lastIndex = 0;
+    if (part && EMOJI_STRIP_RE.test(part)) {
+      return (
+        <span
+          key={i}
+          role="img"
+          aria-label="emoji"
+          className={`sb-emoji ${large ? "sb-emoji-large" : ""}`}
+        >
+          {part}
+        </span>
+      );
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+}
+
 export const MessageItem = React.memo(
   function MessageItem({
     message,
@@ -57,6 +104,13 @@ export const MessageItem = React.memo(
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const quote = message.replyTo;
+    // WhatsApp-style: emoji-only messages skip the bubble — no background to
+    // wash the yellow glyphs out — and render at 2x size instead.
+    const emojiOnly = React.useMemo(
+      () => !isDeleted && isEmojiOnlyBody(message.body),
+      [isDeleted, message.body],
+    );
     const editInputRef = useRef<HTMLTextAreaElement | null>(null);
     const actionBarRef = useRef<HTMLDivElement | null>(null);
     const actionButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -66,6 +120,10 @@ export const MessageItem = React.memo(
     // ⚡ QUOTE JUMP: Scroll to (and briefly highlight) the quoted message.
     // If it is paginated out of the DOM, tell the user it lives further up.
     const handleQuoteClick = (targetId: string) => {
+      // Bubble-aware highlight: a blue flash works on received (light)
+      // bubbles but would drown a sent bubble's white text in blue-on-blue,
+      // so sent messages flash light instead.
+      const highlightBg = isMine ? "bg-white/40" : "bg-blue-500/10";
       const target = document.getElementById(`message-${targetId}`);
       if (target) {
         target.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -76,7 +134,7 @@ export const MessageItem = React.memo(
           "ring-offset-2",
           "ring-offset-white",
           "dark:ring-offset-slate-950",
-          "bg-blue-500/10",
+          highlightBg,
         );
         setTimeout(() => {
           target.classList.remove(
@@ -86,7 +144,7 @@ export const MessageItem = React.memo(
             "ring-offset-2",
             "ring-offset-white",
             "dark:ring-offset-slate-950",
-            "bg-blue-500/10",
+            highlightBg,
           );
         }, 1500);
       } else {
@@ -254,8 +312,8 @@ export const MessageItem = React.memo(
               </div>
             )}
           </div>
-          <div className="max-w-[75%] rounded-lg border border-dashed border-slate-200 px-4 py-2 dark:border-slate-700">
-            <p className="text-sm italic text-slate-400 dark:text-slate-500">
+          <div className="max-w-[75%] rounded-lg border border-dashed border-slate-300 bg-slate-100 px-4 py-2 dark:border-slate-500 dark:bg-slate-800/70">
+            <p className="text-sm italic text-slate-500 dark:text-slate-300">
               This message was deleted
             </p>
             <div className="mt-1 flex items-center justify-end gap-1.5">
@@ -421,63 +479,45 @@ export const MessageItem = React.memo(
             </div>
           ) : (
             <div
-              className={`min-w-0 max-w-full rounded-lg ${
-                message.replyTo ? "px-2 py-2" : "px-4 py-2"
-              } ${
-                isMine
-                  ? "bg-blue-500 text-white"
-                  : "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
-              } ${message.status === "sending" ? "opacity-70" : ""}`}
+              className={
+                emojiOnly
+                  ? `min-w-0 max-w-full scroll-mt-32 bg-transparent px-1 py-1 ${message.status === "sending" ? "opacity-70" : ""}`
+                  : `min-w-0 max-w-full rounded-lg ${
+                      message.replyTo ? "px-2 py-2" : "px-4 py-2"
+                    } ${
+                      isMine
+                        ? "bg-blue-500 text-white"
+                        : "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-200"
+                    } ${message.status === "sending" ? "opacity-70" : ""}`
+              }
             >
               <>
                 {message.replyTo && (
                   <button
                     type="button"
                     onClick={() => handleQuoteClick(message.replyTo!.id)}
-                    className={`mb-1.5 block w-full rounded-md border-l-2 px-1.5 py-1.5 text-left transition ${
-                      isMine
-                        ? "border-white/70 bg-white/15 hover:bg-white/25"
-                        : "border-blue-500 bg-blue-50 hover:bg-blue-100 dark:bg-slate-900/70 dark:hover:bg-slate-900"
-                    }`}
+                    className="mb-1.5 block w-full rounded-md border-l-2 border-blue-500 bg-white px-1.5 py-1.5 text-left transition hover:bg-blue-50 dark:border-blue-300 dark:bg-slate-500 dark:hover:bg-slate-600"
                     aria-label="Jump to quoted message"
                   >
-                    <span
-                      className={`block text-[11px] font-bold ${
-                        isMine
-                          ? "text-white"
-                          : "text-blue-600 dark:text-blue-400"
-                      }`}
-                    >
+                    <span className="block text-[11px] font-bold text-blue-700 dark:text-blue-200">
                       {message.replyTo.sender.name ||
                         (message.replyTo.sender.handle
                           ? `@${message.replyTo.sender.handle}`
                           : "Scholar")}
                     </span>
                     {message.replyTo.isDeleted ? (
-                      <span
-                        className={`block text-[11px] italic ${
-                          isMine
-                            ? "text-blue-100"
-                            : "text-slate-500 dark:text-slate-400"
-                        }`}
-                      >
+                      <span className="block text-[11px] italic text-slate-500 dark:text-slate-300">
                         Original message was deleted
                       </span>
                     ) : (
-                      <span
-                        className={`block line-clamp-1 text-[11px] ${
-                          isMine
-                            ? "text-blue-50"
-                            : "text-slate-600 dark:text-slate-300"
-                        }`}
-                      >
-                        {message.replyTo.body}
+                      <span className="block line-clamp-1 text-[11px] text-slate-700 dark:text-white">
+                        {renderBodyWithEmoji(message.replyTo.body, false)}
                       </span>
                     )}
                   </button>
                 )}
-                <p className="text-sm break-words whitespace-pre-wrap">
-                  {message.body}
+                <p className={emojiOnly ? "text-4xl leading-snug break-words whitespace-pre-wrap" : "text-sm break-words whitespace-pre-wrap"}>
+                  {renderBodyWithEmoji(message.body, emojiOnly)}
                 </p>
                 <div className="mt-1 flex items-center justify-end gap-1.5">
                   {message.editedAt && (

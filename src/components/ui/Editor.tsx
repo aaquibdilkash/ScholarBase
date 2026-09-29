@@ -154,7 +154,7 @@ const Editor = ({
 
   return (
     <div
-      className={`flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 ${
+      className={`sb-editor flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800 ${
         isFixedHeight
           ? "h-full min-h-0 flex-col"
           : "min-h-[180px] flex-col"

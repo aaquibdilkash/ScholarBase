@@ -24,6 +24,27 @@
   --card-bg: rgba(255, 255, 255, 0.86);
   --card-border: rgba(56, 89, 122, 0.18);
   --input-bg: rgba(255, 255, 255, 0.88);
+
+  /* ---- Dynamic gradient theme system -------------------------------------
+     Single source of truth for every surface gradient in the app. Change
+     --surface-stop-1 / --surface-stop-2 here (and the dark overrides below)
+     and cards, inputs, overlays, selects, soft buttons, metric tiles and the
+     bg-white/xx rewrites all re-tint automatically. */
+  --surface-stop-1: #ffffff;
+  --surface-stop-2: #e2e8f0;
+  --surface-grad: linear-gradient(0deg,
+    color-mix(in srgb, var(--surface-stop-1) 98%, transparent),
+    color-mix(in srgb, var(--surface-stop-2) 95%, transparent));
+  --surface-grad-strong: linear-gradient(0deg,
+    color-mix(in srgb, var(--surface-stop-1) 99%, transparent),
+    color-mix(in srgb, var(--surface-stop-2) 97%, transparent));
+  --surface-grad-metric: linear-gradient(0deg,
+    color-mix(in srgb, var(--surface-stop-1) 98%, transparent),
+    color-mix(in srgb, var(--surface-stop-2) 95%, transparent));
+  --page-grad: linear-gradient(
+      radial-gradient(circle at top left, rgba(255, 255, 255, 0.9), transparent 42%),
+      radial-gradient(circle at top right, rgba(56, 89, 122, 0.1), transparent 34%),
+      linear-gradient(180deg, #f3f5f8 0%, #e1e6ee 50%, #c9d1de 100%));
 }
 
 html.dark,
@@ -34,6 +55,14 @@ html[data-theme="dark"] {
   --surface: rgba(17, 24, 39, 0.74);
   --surface-strong: rgba(15, 23, 42, 0.92);
   --border: rgba(148, 163, 184, 0.12);
+  /* Dark re-tint of the gradient system: same tokens, different stops. */
+  --surface-stop-1: #1e293b;
+  --surface-stop-2: #0f172a;
+  --surface-grad-metric: linear-gradient(0deg, #0f172a, #020617);
+  --page-grad: linear-gradient(
+      radial-gradient(circle at top left, rgba(148, 163, 184, 0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(96, 165, 250, 0.1), transparent 24%),
+      linear-gradient(180deg, #0b0d10 0%, #0f1318 42%, #050607 100%));
 }
 
 @theme inline {
@@ -79,37 +108,10 @@ html[data-theme="dark"] {
   }
 
   body {
-    background:
-      radial-gradient(
-        circle at top left,
-        rgba(255, 255, 255, 0.9),
-        transparent 42%
-      ),
-      radial-gradient(
-        circle at top right,
-        rgba(56, 89, 122, 0.1),
-        transparent 34%
-      ),
-      linear-gradient(180deg, #f3f5f8 0%, #e1e6ee 50%, #c9d1de 100%);
+    background: var(--page-grad);
     color: var(--foreground);
     font-family: var(--font-sans);
     min-height: 100vh;
-  }
-
-  html.dark body,
-  html[data-theme="dark"] body {
-    background:
-      radial-gradient(
-        circle at top left,
-        rgba(148, 163, 184, 0.14),
-        transparent 28%
-      ),
-      radial-gradient(
-        circle at top right,
-        rgba(96, 165, 250, 0.1),
-        transparent 24%
-      ),
-      linear-gradient(180deg, #0b0d10 0%, #0f1318 42%, #050607 100%);
   }
 
 ::selection {
@@ -187,13 +189,13 @@ html[data-theme="dark"] {
 
   .sb-surface {
     @apply rounded-2xl sm:rounded-[28px] border shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl;
-    background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95));
+    background: var(--surface-grad);
     border-color: var(--border);
   }
 
   .sb-surface-strong {
     @apply rounded-2xl sm:rounded-[28px] border shadow-[0_18px_60px_rgba(15,23,42,0.08)];
-    background: linear-gradient(0deg, rgba(255,255,255,0.99), rgba(226,232,240,0.97));
+    background: var(--surface-grad-strong);
     border-color: var(--border-strong);
   }
 
@@ -212,7 +214,7 @@ html[data-theme="dark"] {
 
   .sb-card {
     @apply rounded-2xl sm:rounded-3xl border p-4 shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition duration-300 sm:p-6;
-    background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95));
+    background: var(--surface-grad);
     border-color: var(--card-border);
   }
 
@@ -245,7 +247,7 @@ html[data-theme="dark"] {
     background-color: var(--input-bg);
     border-color: var(--card-border);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E"),
-      linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95));
+      var(--surface-grad);
     background-position: right 0.875rem center, center;
     background-repeat: no-repeat, no-repeat;
     background-size: 1.15rem, cover;
@@ -261,7 +263,7 @@ html[data-theme="dark"] {
      .sb-select (which already stacks the gradient) is never wiped out. */
   html:not(.dark):not([data-theme="dark"]) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]),
   html:not(.dark):not([data-theme="dark"]) textarea {
-    background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95)) !important;
+    background: var(--surface-grad) !important;
   }
   html:not(.dark):not([data-theme="dark"]) select {
     background-color: rgba(255, 255, 255, 0.95) !important;
@@ -299,7 +301,7 @@ html[data-theme="dark"] {
 
   .sb-button-soft {
     @apply inline-flex cursor-pointer items-center justify-center rounded-xl border px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed sm:px-5 sm:py-3 sm:text-sm;
-    background-color: var(--input-bg);
+    background: var(--surface-grad);
     border-color: var(--card-border);
   }
   .sb-button-soft:hover { border-color: var(--border-strong); }
@@ -331,42 +333,78 @@ html[data-theme="dark"] {
   /* Centralized light-theme surface helpers — driven entirely by CSS variables
      so changing the palette here updates every card across the app. */
   .sb-footer-bg {
-    background-color: var(--surface);
+    background: var(--surface-grad);
     border-color: var(--border);
     backdrop-filter: blur(20px);
   }
 
   .sb-card-flush {
-    background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95));
+    background: var(--surface-grad);
     border-color: var(--card-border);
   }
 
   .sb-soft {
-    background-color: var(--input-bg);
+    background: var(--surface-grad);
     border-color: var(--card-border);
   }
 
   .sb-overlay {
-    background-color: var(--surface-strong);
+    background: var(--surface-grad);
     border-color: var(--border-strong);
     backdrop-filter: blur(16px);
+  }
+
+  /* Tiptap editor: the gradient lives on the outer wrapper so the toolbar,
+     content padding and footer all share ONE seamless surface. The inner
+     editable stays transparent — giving it its own gradient caused the
+     visible padding seam. */
+  .sb-editor {
+    background: var(--surface-grad);
+  }
+  .sb-editor .tiptap {
+    background: transparent;
+  }
+
+  /* ── Emoji legibility ────────────────────────────────────────────────
+     Linux without Noto Color Emoji falls back to monochrome outlines, and
+     small yellow faces wash out on white/blue bubbles. Force the
+     color-emoji stack, nudge contrast, and paint a soft outline. */
+  .sb-emoji {
+    font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Twemoji Mozilla", sans-serif;
+    font-size: 1.18em;
+    line-height: 1;
+    vertical-align: -0.18em;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    padding: 0 !important;
+    margin: 0 0.02em;
+    display: inline;
+  }
+  .sb-emoji-large {
+    font-size: 1.15em;
+    letter-spacing: 0.04em;
   }
 
   /* Auto-rewrite common white patterns in light mode so any leftover hardcoded
       bg-white/bg-white/XX usage across the codebase inherits the cream palette.
       Dark mode keeps its own rules below. */
   :where([class*="bg-white"]) {
-    background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95));
+    background: var(--surface-grad);
   }
 
-  .bg-white { background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95)) !important; }
-  .bg-white\/55 { background: linear-gradient(0deg, rgba(255,255,255,0.55), rgba(226,232,240,0.65)) !important; }
-  .bg-white\/60 { background: linear-gradient(0deg, rgba(255,255,255,0.6), rgba(226,232,240,0.70)) !important; }
-  .bg-white\/65 { background: linear-gradient(0deg, rgba(255,255,255,0.65), rgba(226,232,240,0.75)) !important; }
-  .bg-white\/70 { background: linear-gradient(0deg, rgba(255,255,255,0.7), rgba(226,232,240,0.80)) !important; }
-  .bg-white\/75 { background: linear-gradient(0deg, rgba(255,255,255,0.75), rgba(226,232,240,0.85)) !important; }
-  .bg-white\/80 { background: linear-gradient(0deg, rgba(255,255,255,0.8), rgba(226,232,240,0.90)) !important; }
-  .bg-white\/90 { background: linear-gradient(0deg, rgba(255,255,255,0.9), rgba(226,232,240,0.95)) !important; }
+  .bg-white { background: var(--surface-grad) !important; }
+  .bg-white\/55 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 55%, transparent), color-mix(in srgb, var(--surface-stop-2) 65%, transparent)) !important; }
+  .bg-white\/60 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 60%, transparent), color-mix(in srgb, var(--surface-stop-2) 70%, transparent)) !important; }
+  .bg-white\/65 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 65%, transparent), color-mix(in srgb, var(--surface-stop-2) 75%, transparent)) !important; }
+  .bg-white\/70 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 70%, transparent), color-mix(in srgb, var(--surface-stop-2) 80%, transparent)) !important; }
+  .bg-white\/75 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 75%, transparent), color-mix(in srgb, var(--surface-stop-2) 85%, transparent)) !important; }
+  .bg-white\/80 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 80%, transparent), color-mix(in srgb, var(--surface-stop-2) 90%, transparent)) !important; }
+  .bg-white\/90 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 90%, transparent), color-mix(in srgb, var(--surface-stop-2) 95%, transparent)) !important; }
 
   /* Border tokens — same source of truth */
   .border-white\/60 { border-color: var(--border) !important; }
@@ -379,7 +417,7 @@ html[data-theme="dark"] {
 
   .metric-card {
     @apply rounded-xl border border-transparent p-3;
-    background: linear-gradient(0deg, rgba(255,255,255,0.98), rgba(226,232,240,0.95));
+    background: var(--surface-grad-metric);
   }
 
   html.dark .sb-surface,
@@ -395,12 +433,12 @@ html[data-theme="dark"] {
   html[data-theme="dark"] .sb-input,
   html[data-theme="dark"] .sb-textarea {
     border-color: rgba(148, 163, 184, 0.14);
-    background: linear-gradient(0deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98));
+    background: var(--surface-grad);
     color: var(--foreground);
   }
 
-  /* Dark theme: new surface helpers + cancel the light-mode auto-rewrite of
-      any leftover bg-white usage so dark mode keeps its own slate palette. */
+  /* The surface helper backgrounds now come from var(--surface-grad), which
+     re-tints from the dark stops automatically — only borders differ here. */
   html.dark .sb-footer-bg,
   html.dark .sb-card-flush,
   html.dark .sb-soft,
@@ -409,31 +447,8 @@ html[data-theme="dark"] {
   html[data-theme="dark"] .sb-card-flush,
   html[data-theme="dark"] .sb-soft,
   html[data-theme="dark"] .sb-overlay {
-    background: linear-gradient(0deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98));
     border-color: rgba(148, 163, 184, 0.14);
   }
-
-  html.dark :where([class*="bg-white"]),
-  html[data-theme="dark"] :where([class*="bg-white"]) {
-    background: linear-gradient(0deg, rgba(30,41,59,0.95), rgba(15,23,42,0.98));
-  }
-
-  html.dark .bg-white,
-  html[data-theme="dark"] .bg-white { background: linear-gradient(0deg, #1e293b, #0f172a) !important; }
-  html.dark .bg-white\/55,
-  html[data-theme="dark"] .bg-white\/55 { background: linear-gradient(0deg, rgba(30,41,59,0.55), rgba(15,23,42,0.65)) !important; }
-  html.dark .bg-white\/60,
-  html[data-theme="dark"] .bg-white\/60 { background: linear-gradient(0deg, rgba(30,41,59,0.6), rgba(15,23,42,0.7)) !important; }
-  html.dark .bg-white\/65,
-  html[data-theme="dark"] .bg-white\/65 { background: linear-gradient(0deg, rgba(30,41,59,0.65), rgba(15,23,42,0.75)) !important; }
-  html.dark .bg-white\/70,
-  html[data-theme="dark"] .bg-white\/70 { background: linear-gradient(0deg, rgba(30,41,59,0.7), rgba(15,23,42,0.8)) !important; }
-  html.dark .bg-white\/75,
-  html[data-theme="dark"] .bg-white\/75 { background: linear-gradient(0deg, rgba(30,41,59,0.75), rgba(15,23,42,0.85)) !important; }
-  html.dark .bg-white\/80,
-  html[data-theme="dark"] .bg-white\/80 { background: linear-gradient(0deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9)) !important; }
-  html.dark .bg-white\/90,
-  html[data-theme="dark"] .bg-white\/90 { background: linear-gradient(0deg, rgba(30,41,59,0.85), rgba(15,23,42,0.95)) !important; }
 
   html.dark .border-white\/60,
   html.dark .border-white\/70,
@@ -743,7 +758,7 @@ html[data-theme="dark"] {
   html.dark .metric-card,
   html[data-theme="dark"] .metric-card {
     border-color: rgba(148, 163, 184, 0.42);
-    background: linear-gradient(0deg, #0f172a, #020617);
+    background: var(--surface-grad-metric);
     color: #f8fafc;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 0 rgba(0, 0, 0, 0.24), 0 16px 28px rgba(0, 0, 0, 0.5);
   }
