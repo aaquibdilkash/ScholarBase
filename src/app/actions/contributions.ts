@@ -198,7 +198,7 @@ export async function createContribution(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { contributionCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { contributionCount: { increment: 1 } },
     });
 
     return newContribution;
@@ -321,7 +321,7 @@ export async function deleteContribution(contributionId: string) {
 
      await tx.user.update({
        where: { id: contribution.authorId },
-       data: { contributionCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { contributionCount: { decrement: 1 } },
      });
 
      // Reverse the vote-derived reputation so RECOVER can re-grant it exactly

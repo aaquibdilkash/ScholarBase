@@ -97,6 +97,7 @@ export default async function ResearchGrantDetailPage({
           module="RESEARCH_GRANT"
           initialTotalVotes={grant.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === grant.author?.id}
         />
       }
       footerBookmarkButton={

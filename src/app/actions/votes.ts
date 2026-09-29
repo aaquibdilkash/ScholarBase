@@ -68,6 +68,11 @@ export async function voteOnContent(
     return { success: true, data: { totalVotes, userVote } };
   } catch (error) {
     console.error(`Error voting on ${module} (${entityId}):`, error);
+    // Pass friendly guard errors (self-vote, frozen) through to the toast
+    // instead of swallowing them behind a generic message.
+    if (error instanceof Error && /own content|frozen/i.test(error.message)) {
+      return { success: false, error: error.message };
+    }
     return { success: false, error: "An unexpected error occurred." };
   }
 }
@@ -108,6 +113,9 @@ export async function toggleCommentVote(
     return { success: true, data: { totalVotes, userVote } };
   } catch (error) {
     console.error(`Error voting on comment (${commentId}):`, error);
+    if (error instanceof Error && /own comment|frozen/i.test(error.message)) {
+      return { success: false, error: error.message };
+    }
     return { success: false, error: "An unexpected error occurred." };
   }
 }

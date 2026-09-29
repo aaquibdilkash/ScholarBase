@@ -86,6 +86,7 @@ export function ResultCard({
           module="RESULT"
           initialTotalVotes={result.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

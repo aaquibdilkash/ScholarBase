@@ -78,6 +78,7 @@ export function ResearchGrantCard({
           module="RESEARCH_GRANT"
           initialTotalVotes={grant.totalVotes ?? 0}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

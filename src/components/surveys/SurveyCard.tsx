@@ -89,6 +89,7 @@ export function SurveyCard({
           module="RESEARCH_SURVEY"
           initialTotalVotes={survey.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

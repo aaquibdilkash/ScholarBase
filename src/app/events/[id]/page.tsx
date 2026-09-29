@@ -94,6 +94,7 @@ const EventDetailPage = async ({
           module="RESEARCH_EVENT"
           initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === event.author?.id}
         />
       }
       footerBookmarkButton={

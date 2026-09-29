@@ -1,14 +1,6 @@
 {
   "crons": [
     {
-      "path": "/api/cron/update-trending",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-deadlines",
-      "schedule": "5 3 * * *"
-    },
-    {
       "path": "/api/cron/trim-maintenance",
       "schedule": "10 3 * * *"
     },

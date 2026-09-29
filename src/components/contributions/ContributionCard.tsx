@@ -80,6 +80,7 @@ export function ContributionCard({
           module="CONTRIBUTION"
           initialTotalVotes={contribution.totalVotes ?? 0}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

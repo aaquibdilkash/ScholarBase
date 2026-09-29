@@ -150,7 +150,7 @@ export async function createResult(formData: FormData) {
     });
     await tx.user.update({
       where: { id: user.id },
-      data: { resultCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { resultCount: { increment: 1 } },
     });
 
     return newResult;
@@ -245,7 +245,7 @@ export async function deleteResult(resultId: string) {
 
      await tx.user.update({
        where: { id: result.authorId },
-       data: { resultCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { resultCount: { decrement: 1 } },
      });
 
      if (result.totalVotes !== 0) {

@@ -122,6 +122,7 @@ const SurveyDetailPage = async ({
           module="RESEARCH_SURVEY"
           initialTotalVotes={survey.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

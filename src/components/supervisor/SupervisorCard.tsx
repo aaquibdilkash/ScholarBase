@@ -81,6 +81,7 @@ export function SupervisorCard({
           module="SUPERVISOR"
           initialTotalVotes={supervisor.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

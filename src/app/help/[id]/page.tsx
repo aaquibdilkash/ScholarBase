@@ -87,6 +87,7 @@ export default async function HelpPostPage({
           module="HELP_POST"
           initialTotalVotes={post.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === post.author?.id}
         />
       }
       footerBookmarkButton={

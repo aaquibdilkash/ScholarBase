@@ -329,75 +329,29 @@ export async function submitReport(
 }
 
 // ----------------------------------------------------------------------------
-// CONTENT MODEL MAPS (used by moderateContent)
+// CONTENT MODEL MAPS
 // ----------------------------------------------------------------------------
+//
+// The registry now lives in src/lib/moderation-config.ts (shared with the
+// admin UI and importable from tests). A `"use server"` module may only export
+// async functions, so these maps cannot live here as exports.
 
-// Maps a content-type key to the Prisma delegate for the row. Comments and
-// top-level content share the same shape so a single resolver suffices.
-const modelMap: Record<string, { model: string }> = {
-  feed: { model: "socialPost" },
-  blog: { model: "article" },
-  publication: { model: "publication" },
-  journal: { model: "journal" },
-  researchTool: { model: "researchTool" },
-  researchGrant: { model: "researchGrant" },
-  course: { model: "course" },
-  admission: { model: "phdAdmission" },
-  event: { model: "researchEvent" },
-  vacancy: { model: "jobVacancy" },
-  help: { model: "helpPost" },
-  result: { model: "result" },
-  contribution: { model: "contribution" },
-  supervisor: { model: "supervisor" },
-  recommendation: { model: "recommendation" },
-  survey: { model: "researchSurvey" },
-  SCHOLAR_PROFILE: { model: "user" },
-};
-
-// Comment models (soft-deleted / frozen per RULE 4).
-const commentModelMap: Record<string, { model: string }> = {
-  socialComment: { model: "socialComment" },
-  articleComment: { model: "articleComment" },
-  helpComment: { model: "helpPostComment" },
-  contributionComment: { model: "contributionComment" },
-  publicationComment: { model: "publicationComment" },
-  researchToolComment: { model: "researchToolComment" },
-  researchGrantComment: { model: "researchGrantComment" },
-  courseComment: { model: "courseComment" },
-  journalComment: { model: "journalComment" },
-  resultComment: { model: "resultComment" },
-  surveyComment: { model: "surveyComment" },
-  researchEventComment: { model: "researchEventComment" },
-  admissionComment: { model: "phdAdmissionComment" },
-  vacancyComment: { model: "jobVacancyComment" },
-  supervisorComment: { model: "supervisorComment" },
-  recommendationComment: { model: "recommendationComment" },
-};
+import {
+  MODEL_MAP as modelMap,
+  COMMENT_MODEL_MAP as commentModelMap,
+  COMMENT_TOP_LEVEL,
+  ANONYMOUS_CONTENT_TYPES,
+  AUTHOR_COUNT_FIELD,
+  CONTENT_TARGET_TYPE,
+} from "@/lib/moderation-config";
 
 // -----------------------------------------------------------------------------
 // moderateContent — admin-facing server action dispatching to freeze, delete,
 // or dismiss reports inside a single atomic transaction (RULE 3).
-// Maps a comment content type to its top-level content delegate and the FK
-// field linking the comment to that parent. Used to restore materialized
-// totalComments counters when a soft-deleted top-level comment is recovered.
-const COMMENT_TOP_LEVEL: Record<string, { model: string; fk: string }> = {
-  socialComment: { model: "socialPost", fk: "socialPostId" },
-  articleComment: { model: "article", fk: "articleId" },
-  helpComment: { model: "helpPost", fk: "helpPostId" },
-  contributionComment: { model: "contribution", fk: "contributionId" },
-  publicationComment: { model: "publication", fk: "publicationId" },
-  researchToolComment: { model: "researchTool", fk: "researchToolId" },
-  researchGrantComment: { model: "researchGrant", fk: "researchGrantId" },
-  courseComment: { model: "course", fk: "courseId" },
-  journalComment: { model: "journal", fk: "journalId" },
-  resultComment: { model: "result", fk: "resultId" },
-  surveyComment: { model: "researchSurvey", fk: "surveyId" },
-  researchEventComment: { model: "researchEvent", fk: "researchEventId" },
-  admissionComment: { model: "phdAdmission", fk: "phdAdmissionId" },
-  vacancyComment: { model: "jobVacancy", fk: "jobVacancyId" },
-  supervisorComment: { model: "supervisor", fk: "supervisorId" },
-  recommendationComment: { model: "recommendation", fk: "recommendationId" },
-};
+//
+// The comment -> top-level table/FK map used to restore materialized
+// totalComments counters lives in src/lib/moderation-config.ts.
+// -----------------------------------------------------------------------------
 
 // Resolves the top-level parent of a comment and reports whether that parent
 // is itself soft-deleted (so counters are only restored for visible content).
@@ -434,43 +388,9 @@ async function resolveCommentParent(
 // user's profile. `targetType` is the key consumed by `getNotificationLink`
 // in src/lib/notification-links.ts, NOT the generic "MODERATION" stub that
 // produced dead (unlinkable) notifications.
-const CONTENT_TARGET_TYPE: Record<string, string> = {
-  // Top-level content
-  feed: "post",
-  blog: "article",
-  publication: "publication",
-  journal: "journal",
-  researchTool: "researchTool",
-  researchGrant: "researchGrant",
-  course: "course",
-  admission: "admission",
-  event: "event",
-  vacancy: "vacancy",
-  help: "help",
-  result: "result",
-  contribution: "contribution",
-  supervisor: "supervisor",
-  recommendation: "recommendation",
-  survey: "survey",
-  SCHOLAR_PROFILE: "profile",
-  // Nested comments -> resource they belong to
-  socialComment: "post",
-  articleComment: "article",
-  helpComment: "help",
-  contributionComment: "contribution",
-  publicationComment: "publication",
-  researchToolComment: "researchTool",
-  researchGrantComment: "researchGrant",
-  courseComment: "course",
-  journalComment: "journal",
-  resultComment: "result",
-  surveyComment: "survey",
-  researchEventComment: "event",
-  admissionComment: "admission",
-  vacancyComment: "vacancy",
-  supervisorComment: "supervisor",
-  recommendationComment: "recommendation",
-};
+//
+// The contentType -> targetType table itself lives in
+// src/lib/moderation-config.ts (imported above).
 
 type ModerationTarget = {
   recipientId: string | null;
@@ -525,13 +445,23 @@ async function resolveModerationTarget(
     );
     if (parent) {
       targetId = parent.id;
-      if (contentType === "recommendationComment") {
+      // A comment on a nested resource inherits that resource's route, so the
+      // moderation notification lands on the review/recommendation itself
+      // rather than on a bare id.
+      const parentNestedFk =
+        contentType === "recommendationComment"
+          ? "supervisorId"
+          : contentType === "journalReviewComment"
+            ? "journalId"
+            : null;
+      if (parentNestedFk) {
         const cfg = COMMENT_TOP_LEVEL[contentType];
-        const rec = (await tx[cfg.model].findUnique({
+        const nestedParent = (await tx[cfg.model].findUnique({
           where: { id: parent.id },
-          select: { supervisorId: true },
-        })) as { supervisorId?: string | null } | null;
-        if (rec?.supervisorId) targetId = `${rec.supervisorId}/${parent.id}`;
+          select: { [parentNestedFk]: true },
+        })) as Record<string, string | null> | null;
+        const nestedParentId = nestedParent?.[parentNestedFk];
+        if (nestedParentId) targetId = `${nestedParentId}/${parent.id}`;
       }
     }
     return {
@@ -548,16 +478,27 @@ async function resolveModerationTarget(
   let targetId = contentId;
   if (model) {
     const modelDelegate = tx[model];
+    // Reviews and recommendations are nested under a parent, so a bare row id
+    // would link nowhere: a review lives at
+    // /journals/[journalId]/review/[reviewId], a recommendation at
+    // /supervisor/[supervisorId]/recommendation/[recommendationId].
+    const nestedFk =
+      contentType === "recommendation"
+        ? "supervisorId"
+        : contentType === "journalReview"
+          ? "journalId"
+          : null;
     const result = (await modelDelegate.findUnique({
       where: { id: contentId },
       select: {
         authorId: true,
-        ...(contentType === "recommendation" ? { supervisorId: true } : {}),
+        ...(nestedFk ? { [nestedFk]: true } : {}),
       },
-    })) as { authorId?: string | null; supervisorId?: string | null } | null;
+    })) as Record<string, string | null> | null;
     recipientId = result?.authorId ?? null;
-    if (contentType === "recommendation" && result?.supervisorId) {
-      targetId = `${result.supervisorId}/${contentId}`;
+    const nestedParentId = nestedFk ? result?.[nestedFk] : null;
+    if (nestedParentId) {
+      targetId = `${nestedParentId}/${contentId}`;
     }
   }
   return { recipientId, targetType, targetId, isComment: false, isProfile: false };
@@ -990,26 +931,17 @@ export async function moderateContent(
 
     if (!entity) throw new Error("Content not found");
 
-    // Author materialized content-count fields, used to keep the delete /
-    // recover reputation + counter symmetry (RULE 3 / RULE 4). Users are
-    // handled by dedicated flows and carry no content-count field.
-    const AUTHOR_COUNT_FIELD: Record<string, string | null> = {
-      feed: "socialPostCount",
-      blog: "articleCount",
-      publication: "publicationCount",
-      journal: "journalCount",
-      researchTool: "researchToolCount",
-      admission: "phdAdmissionCount",
-      event: "researchEventCount",
-      vacancy: "jobVacancyCount",
-      help: "helpPostCount",
-      result: "resultCount",
-      contribution: "contributionCount",
-      supervisor: "supervisorCount",
-      recommendation: "recommendationCount",
-      survey: "surveyCount",
-      SCHOLAR_PROFILE: null,
-    };
+    // Whether this content type carries the content columns (`totalVotes`,
+    // `authorId`). Derived from the model map rather than from the presence of
+    // a count field: gating the select on `AUTHOR_COUNT_FIELD` is what let a
+    // missing map key silently disable the reputation reversal.
+    const isContentRow = modelMap[contentType]?.model !== "user";
+    const countField = AUTHOR_COUNT_FIELD[contentType];
+    // Anonymous content never incremented the author counter, so it must not
+    // decrement / restore it either. Reputation is still reversed: anonymous
+    // authors still earn votes.
+    const skipsCountForAnonymity = (isAnonymous?: boolean) =>
+      ANONYMOUS_CONTENT_TYPES.has(contentType) && !!isAnonymous;
 
     switch (action) {
       case "FREEZE": {
@@ -1069,13 +1001,14 @@ export async function moderateContent(
         // first-time delete, reverse the author's vote-derived reputation
         // and decrement their materialized content count — mirroring the
         // user-initiated delete flows.
-        const countField = AUTHOR_COUNT_FIELD[contentType];
         const full = (await txEntryDelegate!.findUnique({
           where: { id: contentId },
           select: {
             id: true,
-            ...(countField ? { totalVotes: true, authorId: true } : {}),
-            ...(contentType === "recommendation" ? { isAnonymous: true } : {}),
+            ...(isContentRow ? { totalVotes: true, authorId: true } : {}),
+            ...(ANONYMOUS_CONTENT_TYPES.has(contentType)
+              ? { isAnonymous: true }
+              : {}),
           },
         })) as {
           id: string;
@@ -1087,24 +1020,23 @@ export async function moderateContent(
         if (!full) throw new Error("Content not found");
 
         if (!entity.isDeleted) {
-          if (countField && full.authorId) {
+          if (full.authorId) {
+            // Reputation is vote-derived only, so it tracks `totalVotes` for
+            // every content type regardless of whether it has a count field.
             if ((full.totalVotes ?? 0) !== 0) {
               await tx.user.update({
                 where: { id: full.authorId },
                 data: { reputation: { decrement: full.totalVotes ?? 0 } },
               });
             }
-            // Creation-bonus reversal: always applied regardless of anonymity.
-            // (recommendationCount decrement is still conditional on !isAnonymous.)
-            const isAnonymousRec =
-              contentType === "recommendation" && !!full.isAnonymous;
-            await tx.user.update({
-              where: { id: full.authorId },
-              data: {
-                ...(isAnonymousRec ? {} : { [countField]: { decrement: 1 } }),
-                reputation: { decrement: 1 },
-              },
-            });
+            // Counter is a separate concern: anonymous content never
+            // incremented it, so it must not be decremented here.
+            if (countField && !skipsCountForAnonymity(full.isAnonymous)) {
+              await tx.user.update({
+                where: { id: full.authorId },
+                data: { [countField]: { decrement: 1 } },
+              });
+            }
           }
         }
 
@@ -1144,13 +1076,14 @@ export async function moderateContent(
         // the feed exactly as it was before deletion. The reputation that
         // was reversed at delete time is re-granted, and the author's
         // materialized content count is restored.
-        const countField = AUTHOR_COUNT_FIELD[contentType];
         const full = (await txEntryDelegate!.findUnique({
           where: { id: contentId },
           select: {
             id: true,
-            ...(countField ? { totalVotes: true, authorId: true } : {}),
-            ...(contentType === "recommendation" ? { isAnonymous: true } : {}),
+            ...(isContentRow ? { totalVotes: true, authorId: true } : {}),
+            ...(ANONYMOUS_CONTENT_TYPES.has(contentType)
+              ? { isAnonymous: true }
+              : {}),
           },
         })) as {
           id: string;
@@ -1161,24 +1094,23 @@ export async function moderateContent(
         moderatedAuthorId = full?.authorId;
         if (!full) throw new Error("Content not found");
 
-        if (entity.isDeleted && countField && full.authorId) {
+        if (entity.isDeleted && full.authorId) {
+          // Re-grant exactly what the delete reversed: the vote-derived
+          // reputation for every content type…
           if ((full.totalVotes ?? 0) !== 0) {
             await tx.user.update({
               where: { id: full.authorId },
               data: { reputation: { increment: full.totalVotes ?? 0 } },
             });
           }
-          // Creation-bonus grant-back: always applied regardless of anonymity.
-          // (recommendationCount increment is still conditional on !isAnonymous.)
-          const isAnonymousRec =
-            contentType === "recommendation" && !!full.isAnonymous;
-          await tx.user.update({
-            where: { id: full.authorId },
-            data: {
-              ...(isAnonymousRec ? {} : { [countField]: { increment: 1 } }),
-              reputation: { increment: 1 },
-            },
-          });
+          // …and the author counter, but only for types that actually
+          // incremented it (anonymous content never did).
+          if (countField && !skipsCountForAnonymity(full.isAnonymous)) {
+            await tx.user.update({
+              where: { id: full.authorId },
+              data: { [countField]: { increment: 1 } },
+            });
+          }
         }
 
         const updated = (await txEntryDelegate!.update({

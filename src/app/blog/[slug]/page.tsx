@@ -87,6 +87,7 @@ export default async function ArticlePage({
           module="ARTICLE"
           initialTotalVotes={a.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === a.authorId}
         />
       }
       footerBookmarkButton={

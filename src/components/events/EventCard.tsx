@@ -82,6 +82,7 @@ export function EventCard({
           module="RESEARCH_EVENT"
           initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

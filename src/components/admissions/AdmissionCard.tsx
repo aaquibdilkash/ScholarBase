@@ -72,6 +72,7 @@ export function AdmissionCard({
           module="PHD_ADMISSION"
           initialTotalVotes={admission.totalVotes ?? 0}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

@@ -105,6 +105,7 @@ export default async function CourseDetailPage({
           module="COURSE"
           initialTotalVotes={course.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === course.author?.id}
         />
       }
       footerBookmarkButton={

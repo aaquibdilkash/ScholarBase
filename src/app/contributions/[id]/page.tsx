@@ -106,6 +106,7 @@ const ContributionDetailPage = async ({
           module="CONTRIBUTION"
           initialTotalVotes={contribution.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === contribution.author?.id}
         />
       }
       footerBookmarkButton={

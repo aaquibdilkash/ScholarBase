@@ -117,7 +117,7 @@ export async function createPublication(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { publicationCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { publicationCount: { increment: 1 } },
     });
 
     return newPublication;
@@ -254,7 +254,7 @@ export async function deletePublication(publicationId: string) {
 
      await tx.user.update({
        where: { id: publication.authorId },
-       data: { publicationCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { publicationCount: { decrement: 1 } },
      });
 
      if (publication.totalVotes !== 0) {

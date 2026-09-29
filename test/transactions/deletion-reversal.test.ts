@@ -204,7 +204,7 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
 
   for (const spec of ENTITY_SPECS) {
     describe(spec.name, () => {
-      it("reverses creation reputation (1) AND all accumulated totalVotes, soft-deletes row", async () => {
+      it("reverses all accumulated totalVotes (no creation bonus), soft-deletes row", async () => {
         const ENTITY_ID = `entity-${spec.model}`
         const VOTES = 7
 
@@ -233,9 +233,10 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
         const row = fakeDb.rows(spec.model)[0]
         expect(row.isDeleted).toBe(true)
 
-        // 2. Author reputation reversed
+        // 2. Author reputation reversed by vote total only (creation grants
+        // no reputation, so there is no +1 to reverse).
         const author = fakeDb.rows("user").find((u) => u.id === AUTHOR)!
-        const expectedDeduction = 1 + VOTES
+        const expectedDeduction = VOTES
         expect(author.reputation).toBe(INITIAL_REP - expectedDeduction)
 
         // 3. Counter decremented if applicable
@@ -244,7 +245,7 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
         }
       })
 
-      it("reverses only creation reputation when totalVotes === 0", async () => {
+      it("leaves reputation untouched when totalVotes === 0", async () => {
         const ENTITY_ID = `entity-zero-${spec.model}`
         fakeDb.seed("user", [
           {
@@ -267,7 +268,7 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
         await spec.deleter(ENTITY_ID)
 
         const author = fakeDb.rows("user").find((u) => u.id === AUTHOR)!
-        expect(author.reputation).toBe(INITIAL_REP - 1)
+        expect(author.reputation).toBe(INITIAL_REP)
       })
 
       it("handles negative totalVotes cleanly during reversal", async () => {
@@ -294,7 +295,7 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
         await spec.deleter(ENTITY_ID)
 
         const author = fakeDb.rows("user").find((u) => u.id === AUTHOR)!
-        expect(author.reputation).toBe(INITIAL_REP - 1 - VOTES)
+        expect(author.reputation).toBe(INITIAL_REP - VOTES)
       })
 
       it("rejects deletion by an unauthorized stranger", async () => {

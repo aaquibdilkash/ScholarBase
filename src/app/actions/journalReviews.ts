@@ -309,7 +309,6 @@ export async function createJournalReview(
         where: { id: user.id },
         data: {
           ...(isAnonymous ? {} : { journalReviewCount: { increment: 1 } }),
-          reputation: { increment: 1 },
         },
       });
 
@@ -535,7 +534,6 @@ export async function deleteJournalReview(reviewId: string) {
       where: { id: review.authorId },
       data: {
         ...(review.isAnonymous ? {} : { journalReviewCount: { decrement: 1 } }),
-        reputation: { decrement: 1 },
       },
     });
 

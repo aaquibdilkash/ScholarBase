@@ -234,14 +234,15 @@ describe("vote transaction: upvote notification", () => {
     expect(off.notification).toBeUndefined()
   })
 
-  it("does not notify an author who upvotes their own content", async () => {
+  it("rejects an author who votes on their own content with zero writes", async () => {
     seedScenario("SOCIAL_POST", freshUp)
-    const result = await handleVoteTransaction("SOCIAL_POST", ENTITY_ID, AUTHOR, VoteType.UPVOTE)
-    expect(result.notification).toBeUndefined()
-    // A self-upvote still moves the counter and the author's reputation: voting
-    // is not restricted to other people. Documented here as current behaviour.
-    expect(entityRow("SOCIAL_POST").totalVotes).toBe(11)
-    expect(reputationOf(AUTHOR)).toBe(11)
+    await expect(
+      handleVoteTransaction("SOCIAL_POST", ENTITY_ID, AUTHOR, VoteType.UPVOTE),
+    ).rejects.toThrow(/own content/)
+    // Self-votes are blocked: no counter move, no reputation change, no rows.
+    expect(entityRow("SOCIAL_POST").totalVotes).toBe(10)
+    expect(reputationOf(AUTHOR)).toBe(10)
+    expect(writes()).toHaveLength(0)
   })
 
   it("falls back to 'Untitled' when the title field is empty", async () => {

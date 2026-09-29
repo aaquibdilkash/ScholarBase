@@ -130,6 +130,7 @@ export function JournalReviewCard({
           module="JOURNAL_REVIEW"
           initialTotalVotes={review.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

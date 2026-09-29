@@ -67,7 +67,7 @@ export async function createResearchTool(formData: FormData) {
     });
     await tx.user.update({
       where: { id: user.id },
-      data: { researchToolCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { researchToolCount: { increment: 1 } },
     });
 
     return newTool;
@@ -147,7 +147,7 @@ export async function deleteResearchTool(toolId: string) {
 
      await tx.user.update({
        where: { id: tool.authorId },
-       data: { researchToolCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { researchToolCount: { decrement: 1 } },
      });
 
      if (tool.totalVotes !== 0) {

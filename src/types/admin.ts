@@ -32,6 +32,8 @@ import {
   JobVacancyComment,
   SupervisorComment,
   RecommendationComment,
+  JournalReview,
+  JournalReviewComment,
 } from '@prisma/client'
 
 export interface FreezableContentModel {
@@ -45,31 +47,6 @@ export interface FreezableContentModel {
   update: (args: {
     where: { id: string }
     data: { isFrozen: boolean }
-  }) => Promise<unknown>
-}
-
-export interface DeleteableContentModel {
-  findUnique: (args: {
-    where: { id: string }
-    // Same reason as above: the author of a soft-deleted row, so the right
-    // profile tab can be purged.
-    select: { authorId: true }
-  }) => Promise<{ authorId: string | null } | null>
-  update: (args: {
-    where: { id: string }
-    data: { isDeleted: boolean }
-  }) => Promise<unknown>
-}
-
-export interface DeleteMapValue {
-  model: DeleteableContentModel
-  path: string
-}
-
-export interface CommentModel {
-  update: (args: {
-    where: { id: string }
-    data: { isDeleted?: boolean; isFrozen?: boolean }
   }) => Promise<unknown>
 }
 
@@ -94,6 +71,7 @@ export type CommentItem =
   | JobVacancyComment
   | SupervisorComment
   | RecommendationComment
+  | JournalReviewComment
 
 export type ContentItem =
   | (Article & { author: User })
@@ -101,6 +79,7 @@ export type ContentItem =
   | (SocialPost & { author: User })
   | (Publication & { author: User })
   | (Journal & { author: User })
+  | (JournalReview & { author: User })
   | (ResearchTool & { author: User })
   | (PhdAdmission & { author: User })
   | (ResearchEvent & { author: User })

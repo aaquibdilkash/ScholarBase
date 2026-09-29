@@ -119,6 +119,7 @@ export function PublicationCard({
           module="PUBLICATION"
           initialTotalVotes={publication.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

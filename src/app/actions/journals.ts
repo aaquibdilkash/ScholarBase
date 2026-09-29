@@ -86,7 +86,7 @@ export async function createJournal(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { journalCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { journalCount: { increment: 1 } },
     });
 
     return newJournal;
@@ -196,7 +196,7 @@ export async function deleteJournal(journalId: string) {
 
      await tx.user.update({
        where: { id: journal.authorId },
-       data: { journalCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { journalCount: { decrement: 1 } },
      });
 
      if (journal.totalVotes !== 0) {

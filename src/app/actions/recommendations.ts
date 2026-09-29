@@ -188,7 +188,6 @@ export async function createRecommendation(
          where: { id: user.id },
          data: {
            ...(isAnonymous ? {} : { recommendationCount: { increment: 1 } }),
-           reputation: { increment: 1 },
          },
        });
 
@@ -389,7 +388,6 @@ export async function deleteRecommendation(recommendationId: string) {
        where: { id: recommendation.authorId },
        data: {
          ...(recommendation.isAnonymous ? {} : { recommendationCount: { decrement: 1 } }),
-         reputation: { decrement: 1 },
        },
      });
 

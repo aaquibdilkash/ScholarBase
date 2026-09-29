@@ -88,6 +88,7 @@ const ResearchToolDetailPage = async ({
           module="RESEARCH_TOOL"
           initialTotalVotes={tool.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === tool.author?.id}
         />
       }
       footerBookmarkButton={

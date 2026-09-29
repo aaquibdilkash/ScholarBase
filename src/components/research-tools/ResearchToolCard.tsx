@@ -76,6 +76,7 @@ export function ResearchToolCard({
           module="RESEARCH_TOOL"
           initialTotalVotes={tool.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

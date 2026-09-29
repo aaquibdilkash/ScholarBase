@@ -337,7 +337,7 @@ export async function createSurvey(formData: FormData) {
 
  await tx.user.update({
    where: { id: user.id },
-   data: { surveyCount: { increment: 1 }, reputation: { increment: 1 } },
+   data: { surveyCount: { increment: 1 } },
  });
 
     return complete;
@@ -789,7 +789,7 @@ export async function deleteSurvey(surveyId: string) {
 
      await tx.user.update({
        where: { id: survey.authorId },
-       data: { surveyCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { surveyCount: { decrement: 1 } },
      });
 
      if (survey.totalVotes !== 0) {

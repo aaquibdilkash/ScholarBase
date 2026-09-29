@@ -97,6 +97,7 @@ const JournalDetailPage = async ({
           module="JOURNAL"
           initialTotalVotes={j.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === j.author?.id}
         />
       }
       footerBookmarkButton={

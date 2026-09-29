@@ -91,6 +91,7 @@ export function JournalCard({
           module="JOURNAL"
           initialTotalVotes={journal.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

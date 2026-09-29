@@ -41,11 +41,14 @@ export function CommentVoteButton({
   type,
   initialTotalVotes,
   initialUserVote,
+  isOwnContent = false,
 }: {
   commentId: string;
   type: CommentEntityType;
   initialTotalVotes: number;
   initialUserVote: VoteType | null;
+  /** Author's own comment — voting is disabled (server also rejects). */
+  isOwnContent?: boolean;
 }) {
   const [voteState, setVoteState] = useState<CommentVoteState>({
     userVote: initialUserVote,
@@ -66,6 +69,15 @@ export function CommentVoteButton({
   const handleVote = (voteType: VoteType) => {
     if (!user) {
       openAuthModal();
+      return;
+    }
+
+    if (isOwnContent) {
+      toast({
+        title: "Your own comment",
+        description: "You cannot vote on your own comment. Reputation comes from other scholars' votes.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -106,12 +118,12 @@ export function CommentVoteButton({
     <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1">
       <button
         type="button"
-        disabled={isPending}
+        disabled={isPending || isOwnContent}
         onClick={() => handleVote("UPVOTE")}
         className={`inline-flex items-center justify-center transition hover:text-green-600 dark:hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "UPVOTE" ? "text-green-700 dark:text-green-400" : "text-slate-800 dark:text-slate-400"
         }`}
-        title="Upvote"
+        title={isOwnContent ? "You cannot vote on your own comment" : "Upvote"}
       >
         {isPending && pendingVote === "UPVOTE" ? (
           <Loader2 className="animate-spin h-3.5 w-3.5" />
@@ -134,12 +146,12 @@ export function CommentVoteButton({
 
       <button
         type="button"
-        disabled={isPending}
+        disabled={isPending || isOwnContent}
         onClick={() => handleVote("DOWNVOTE")}
         className={`inline-flex items-center justify-center transition hover:text-red-600 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "DOWNVOTE" ? "text-red-700 dark:text-red-400" : "text-slate-800 dark:text-slate-400"
         }`}
-        title="Downvote"
+        title={isOwnContent ? "You cannot vote on your own comment" : "Downvote"}
       >
         {isPending && pendingVote === "DOWNVOTE" ? (
           <Loader2 className="animate-spin h-3.5 w-3.5" />

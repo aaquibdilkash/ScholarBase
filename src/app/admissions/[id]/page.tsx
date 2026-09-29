@@ -94,6 +94,7 @@ const AdmissionDetailPage = async ({
           module="PHD_ADMISSION"
           initialTotalVotes={admission.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === admission.author?.id}
         />
       }
       footerBookmarkButton={

@@ -276,7 +276,7 @@ export async function createSupervisor(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { supervisorCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { supervisorCount: { increment: 1 } },
     });
 
     await tx.userActivity.create({
@@ -375,7 +375,7 @@ export async function deleteSupervisor(supervisorId: string) {
 
      await tx.user.update({
        where: { id: supervisor.authorId },
-       data: { supervisorCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { supervisorCount: { decrement: 1 } },
      });
 
      if (supervisor.totalVotes !== 0) {

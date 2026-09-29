@@ -97,6 +97,7 @@ const VacancyDetailPage = async ({
           module="JOB_VACANCY"
           initialTotalVotes={vacancy.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === vacancy.author?.id}
         />
       }
       footerBookmarkButton={

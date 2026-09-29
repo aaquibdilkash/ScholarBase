@@ -15,9 +15,18 @@ type FooterItem = {
   totalVotes: number;
   totalComments: number;
   isFrozen?: boolean;
+  /** Author id, when the trending payload carries it — lets the footer disable
+   *  voting for the owner (the server rejects self-votes regardless). */
+  authorId?: string | null;
 };
 
-export function TrendingItemFooter({ item }: { item: FooterItem }) {
+export function TrendingItemFooter({
+  item,
+  currentUserId,
+}: {
+  item: FooterItem;
+  currentUserId?: string;
+}) {
   const { type, id } = item;
   const detailUrl = `/${
     type === "vacancy"
@@ -57,6 +66,9 @@ export function TrendingItemFooter({ item }: { item: FooterItem }) {
         }
         initialTotalVotes={item.totalVotes ?? 0}
         initialUserVote={null}
+        isOwnContent={
+          !!currentUserId && !!item.authorId && currentUserId === item.authorId
+        }
       />
       <Link
         href={detailUrl}

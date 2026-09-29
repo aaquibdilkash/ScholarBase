@@ -31,12 +31,12 @@ Any code generated for this project MUST strictly adhere to the following archit
 
 ## RULE 3: Database Write Optimizations & Voting Rules
 1. **Atomic Transactions:** Any user interaction (Voting, Commenting, Replying) must execute completely inside a `prisma.$transaction`. 
-2. **Stack Overflow Reputation System:** User reputation is tied strictly to community votes (1 vote = 1 rep).
-3. **The Voting Matrix:** 
+2. **Stack Overflow Reputation System:** User reputation is tied strictly to community votes (1 vote = 1 rep). Authors cannot vote on their own content or comments (server rejects, UI disables). Content creation grants no reputation; the survey-participation +1 is the only non-vote grant (engagement incentive).
+3. **The Voting Matrix (non-author voters only):** 
    - *New Vote:* Upsert vote + adjust `totalVotes` + adjust author `reputation`.
    - *Toggle Off:* Delete vote + reverse `totalVotes` + reverse author `reputation`.
    - *Switch Vote:* Update vote + double-adjust `totalVotes` + double-adjust author `reputation`.
-4. **Reputation Reversal:** If a user deletes a post, they MUST lose the exact amount of reputation they gained from that post's `totalVotes`.
+4. **Reputation Reversal:** If a user deletes a post, they MUST lose the exact amount of reputation they gained from that post's `totalVotes`. (No creation bonus exists to reverse; historical +1s granted before the votes-only change are grandfathered.)
 5. **Timestamp Integrity:** Never assume `updatedAt` means the user edited a post. `updatedAt` updates on every vote/comment counter increment. Use the manual `editedAt DateTime?` field to track actual content changes.
 
 ## RULE 4: Data Deletion Mechanics
@@ -52,8 +52,8 @@ Ensure Prisma schema utilizes strategic B-Tree indexing to prevent CPU spikes:
 5. **User Directory:** `@@index([trendingScore(sort: Desc)])` and `@@index([reputation(sort: Desc)])` on the `User` model (powers the scholar directory and trending scholar queries).
 
 ## RULE 6: Background Processing & Security
-1. **Cron Jobs:** Background tasks are handled via Vercel Serverless Cron Jobs calling `prisma.$executeRawUnsafe`. They must be protected by a `CRON_SECRET` authorization header. The cron suite includes: Trending math (`update-trending`), conversation trimming (`trim-maintenance`), deadline cleanup (`cleanup-deadlines`), soft-deleted post purging (`trim-soft-deleted-posts`), and digest email dispatch (`daily-digest`, `weekly-digest`).
-2. **Link Masking:** Protect user privacy and track outbound clicks. Replace external `<a href="https://...">` tags with internal routes: `<a href="/api/outbound?url=[encoded_url]">`.
+1. **Cron Jobs:** Background tasks are handled via Supabase cron jobs or Vercel Serverless Cron Jobs calling `prisma.$executeRawUnsafe` or qstash depending upon which kind of task it is. They must be protected by a `CRON_SECRET` authorization header. The cron suite includes: Trending math (`update-trending`), soft-deleted post purging (`trim-soft-deleted-posts`), and digest email dispatch (`daily-digest`, `weekly-digest`).
+
 3. **File Tracking:** Avoid unused imports, clean up unneeded dependencies, and resolve all TypeScript/ESLint warnings before marking a feature complete.
 
 **AGENT DIRECTIVE:** When asked to create or modify a feature, cross-reference these 6 rules. Do not take shortcuts that compromise database efficiency or UI responsiveness.

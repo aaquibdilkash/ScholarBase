@@ -12,10 +12,8 @@ import {
   AdminPage,
   AdminAppealItem,
   InstitutionDomainRequestItem,
-  CommentModel,
-  ContentMap,
-  DeleteMapValue,
   FreezableContentModel,
+  ContentMap,
   ReportWithReporter,
   ReportsPage,
 } from "@/types/admin";
@@ -49,6 +47,7 @@ export async function toggleContentFreeze(
     supervisor: prisma.supervisor,
     recommendation: prisma.recommendation,
     survey: prisma.researchSurvey,
+    journalReview: prisma.journalReview,
   };
 
   const model = modelMap[contentType];
@@ -100,99 +99,14 @@ export async function toggleAuthorFreeze(authorId: string) {
 }
 
 // Delete any content by admin
-export async function adminDeleteContent(
-  contentType: string,
-  contentId: string,
-) {
-  const user = await requireCurrentUser("Log in to access admin.");
+// REMOVED 2026-09-30: `adminDeleteContent` / `adminDeleteComment` were dead
+// code (zero call sites) that soft-deleted *without* reversing vote-derived
+// reputation, decrementing the author's materialized counter, recording
+// `deletedByType` / `deletedById`, or freezing the row — and with no recover
+// counterpart. Wiring them up would have silently broken the reputation
+// integrity guaranteed by `moderateContent` (src/app/actions/reports.ts).
+// Moderation now has exactly one write path: `moderateContent`.
 
-  if (!(await isUserAdmin(user.id))) {
-    throw new Error("Not authorized.");
-  }
-
-  const deleteMap: Record<string, DeleteMapValue> = {
-    feed: { model: prisma.socialPost, path: "/feed" },
-    blog: { model: prisma.article, path: "/blog" },
-    publication: { model: prisma.publication, path: "/publications" },
-    journal: { model: prisma.journal, path: "/journals" },
-    researchTool: { model: prisma.researchTool, path: "/research-tools" },
-    researchGrant: { model: prisma.researchGrant, path: "/grants" },
-    course: { model: prisma.course, path: "/learn" },
-    admission: { model: prisma.phdAdmission, path: "/admissions" },
-    event: { model: prisma.researchEvent, path: "/events" },
-    vacancy: { model: prisma.jobVacancy, path: "/vacancies" },
-    help: { model: prisma.helpPost, path: "/help" },
-    result: { model: prisma.result, path: "/results" },
-    contribution: { model: prisma.contribution, path: "/contributions" },
-    supervisor: { model: prisma.supervisor, path: "/supervisor" },
-    recommendation: { model: prisma.recommendation, path: "/supervisor" },
-    survey: { model: prisma.researchSurvey, path: "/surveys" },
-  };
-
-  const config = deleteMap[contentType];
-  if (!config) throw new Error("Invalid content type");
-
-  // Read the author before the delete so the right profile tab can be purged.
-  // A soft delete hides the row from that author's own Content tab too, and the
-  // actor is an admin who may well be a different scholar.
-  const target = await config.model.findUnique({
-    where: { id: contentId },
-    select: { authorId: true },
-  });
-
-  await config.model.update({
-    where: { id: contentId },
-    data: { isDeleted: true },
-  });
-
-  // Soft delete (RULE 4) must vanish from the cached public feed at once.
-  if (contentType === "feed") revalidatePublicFeed(target?.authorId);
-
-  return { success: true, data: { id: contentId } };
-}
-
-// Delete comment by admin
-export async function adminDeleteComment(
-  commentType: string,
-  commentId: string,
-) {
-  const user = await requireCurrentUser("Log in to access admin.");
-
-  if (!(await isUserAdmin(user.id))) {
-    throw new Error("Not authorized.");
-  }
-
-  const commentModelMap: Record<string, CommentModel> = {
-    post: prisma.socialComment,
-    article: prisma.articleComment,
-    publication: prisma.publicationComment,
-    journal: prisma.journalComment,
-    researchTool: prisma.researchToolComment,
-    researchGrant: prisma.researchGrantComment,
-    course: prisma.courseComment,
-    admission: prisma.phdAdmissionComment,
-    event: prisma.researchEventComment,
-    vacancy: prisma.jobVacancyComment,
-    help: prisma.helpPostComment,
-    result: prisma.resultComment,
-    contribution: prisma.contributionComment,
-    supervisor: prisma.supervisorComment,
-    recommendation: prisma.recommendationComment,
-    survey: prisma.surveyComment,
-  };
-
-  const model = commentModelMap[commentType];
-  if (!model) throw new Error("Invalid comment type");
-
-  // RULE 4: soft delete — toggle isDeleted (plus the companion freeze), never
-  // destroy the row, so the comment can be recovered from the admin panel.
-  await model.update({
-    where: { id: commentId },
-    data: { isDeleted: true, isFrozen: true },
-  });
-
-  return { success: true, data: { id: commentId } };
-}
 
 // Get admin dashboard stats (estimated rows per table + users).
 // pg_class.reltuples is maintained by PostgreSQL statistics collection and
@@ -239,6 +153,7 @@ export async function getAdminStats() {
         'Supervisor',
         'Recommendation',
         'ResearchSurvey',
+        'JournalReview',
         'InstitutionDomainRequest'
       )
   `;
@@ -268,6 +183,7 @@ export async function getAdminStats() {
     supervisors: estimate("Supervisor"),
     recommendations: estimate("Recommendation"),
     surveys: estimate("ResearchSurvey"),
+    journalReviews: estimate("JournalReview"),
     institutionRequests: estimate("InstitutionDomainRequest"),
   };
 
@@ -771,6 +687,7 @@ export async function getAdminContent(
       supervisors: { modelKey: "supervisorComment", model: prisma.supervisorComment as unknown as AdminCommentModel },
       recommendations: { modelKey: "recommendationComment", model: prisma.recommendationComment as unknown as AdminCommentModel },
       surveys: { modelKey: "surveyComment", model: prisma.surveyComment as unknown as AdminCommentModel },
+      journalReviews: { modelKey: "journalReviewComment", model: prisma.journalReviewComment as unknown as AdminCommentModel },
     };
 
     const commentConfig = contentType ? sectionCommentModels[contentType] : undefined;
@@ -882,6 +799,13 @@ export async function getAdminContent(
       surveys: {
         model: prisma.researchSurvey,
         detailHref: (item) => `/surveys/${item.id}`,
+      },
+      // Reviews are nested under their journal, so the detail link needs the
+      // parent id — same pattern as recommendations above.
+      journalReviews: {
+        model: prisma.journalReview,
+        detailHref: (item) =>
+          `/journals/${"journalId" in item ? item.journalId : ""}/review/${item.id}`,
       },
     };
 

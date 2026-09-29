@@ -124,6 +124,7 @@ export function RecommendationCard({
           module="RECOMMENDATION"
           initialTotalVotes={recommendation.totalVotes ?? 0}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

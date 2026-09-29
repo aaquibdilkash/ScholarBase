@@ -105,6 +105,7 @@ export default async function RecommendationDetailPage({
           module="RECOMMENDATION"
           initialTotalVotes={recommendation.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={!!user?.id && user.id === recommendation.authorId}
         />
       }
       footerBookmarkButton={

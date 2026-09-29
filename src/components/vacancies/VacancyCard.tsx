@@ -81,6 +81,7 @@ export function VacancyCard({ vacancy,
           module="JOB_VACANCY"
           initialTotalVotes={vacancy.totalVotes ?? 0}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

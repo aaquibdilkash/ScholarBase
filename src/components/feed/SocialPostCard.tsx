@@ -189,6 +189,7 @@ export function SocialPostCard({
           module="SOCIAL_POST"
           initialTotalVotes={post.totalVotes ?? 0}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

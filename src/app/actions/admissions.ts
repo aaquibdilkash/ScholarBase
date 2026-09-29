@@ -153,7 +153,7 @@ export async function createPhdAdmission(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { phdAdmissionCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { phdAdmissionCount: { increment: 1 } },
     });
 
     return newAdmission;
@@ -251,7 +251,7 @@ export async function deletePhdAdmission(admissionId: string) {
 
      await tx.user.update({
        where: { id: admission.authorId },
-       data: { phdAdmissionCount: { decrement: 1 }, reputation: { decrement: 1 } },
+       data: { phdAdmissionCount: { decrement: 1 } },
      });
 
      if (admission.totalVotes !== 0) {

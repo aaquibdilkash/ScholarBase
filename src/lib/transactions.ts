@@ -484,6 +484,9 @@ export async function handleVoteTransaction(
 
     if (!entity) throw new Error("The content you're trying to vote on does not exist.")
     if (entity.isFrozen) throw new Error('This content is frozen by moderators and cannot be voted on.')
+    if (entity.authorId && entity.authorId === userId) {
+      throw new Error('You cannot vote on your own content.')
+    }
 
     const currentVote = existingVote?.voteType || null
     const voteValue = getVoteValue(currentVote, newVote)
@@ -598,6 +601,9 @@ export async function handleCommentVoteTransaction(
 
     if (!comment) throw new Error("Comment not found.")
     if (comment.isFrozen) throw new Error("This comment is frozen by moderators and cannot be voted on.")
+    if (comment.authorId && comment.authorId === userId) {
+      throw new Error('You cannot vote on your own comment.')
+    }
 
     // Votes on a comment are also blocked when its parent content is frozen.
     const parentEntity = await parent.findUnique({

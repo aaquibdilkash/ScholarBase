@@ -171,7 +171,7 @@ export async function createResearchEvent(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { researchEventCount: { increment: 1 }, reputation: { increment: 1 } },
+      data: { researchEventCount: { increment: 1 } },
     });
 
     return newEvent;
@@ -269,7 +269,7 @@ export async function deleteResearchEvent(eventId: string) {
 
     await tx.user.update({
       where: { id: event.authorId },
-      data: { researchEventCount: { decrement: 1 }, reputation: { decrement: 1 } },
+      data: { researchEventCount: { decrement: 1 } },
     });
 
     if (event.totalVotes !== 0) {

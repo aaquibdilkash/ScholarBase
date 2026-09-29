@@ -567,6 +567,7 @@ function CommentCard({
                         type={module}
                         initialTotalVotes={comment.totalVotes}
                         initialUserVote={comment.votes?.[0]?.voteType ?? null}
+                        isOwnContent={isOwner}
                       />
                     </>
                   )}

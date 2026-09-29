@@ -155,6 +155,24 @@ describe("RULE 3: Comment voting matrix across all 17 entity types", () => {
         )
         expect(writes).toHaveLength(0)
       })
+
+      it("rejects an author who votes on their own comment with zero writes", async () => {
+        seedScenario(commentType, MATRIX[0])
+
+        await expect(
+          handleCommentVoteTransaction(COMMENT_ID, AUTHOR, VoteType.UPVOTE, commentType),
+        ).rejects.toThrow(/own comment/)
+
+        const comments = fakeDb.rows(config.commentModel)
+        expect(comments[0].totalVotes).toBe(10)
+        const users = fakeDb.rows("user")
+        expect(users.find((u) => u.id === AUTHOR)!.reputation).toBe(10)
+        const calls = fakeDb.calls()
+        const writes = calls.filter((c) =>
+          ["create", "update", "delete", "upsert"].includes(c.op),
+        )
+        expect(writes).toHaveLength(0)
+      })
     })
   }
 

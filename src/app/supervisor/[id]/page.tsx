@@ -124,6 +124,7 @@ export default async function SupervisorPage({
           module="SUPERVISOR"
           initialTotalVotes={supervisor.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === supervisor.author?.id}
         />
       }
       discussion={

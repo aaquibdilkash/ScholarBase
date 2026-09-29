@@ -119,6 +119,7 @@ export default async function JournalReviewDetailPage({
           module="JOURNAL_REVIEW"
           initialTotalVotes={review.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={

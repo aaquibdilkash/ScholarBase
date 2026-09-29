@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v6";
+const CACHE_NAME = "scholarbase-v7";
 const urlsToCache = [
   "/",
   "/manifest.json",

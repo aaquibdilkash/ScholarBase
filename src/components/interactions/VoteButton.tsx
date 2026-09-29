@@ -50,6 +50,7 @@ export function VoteButton({
   initialTotalVotes,
   initialUserVote,
   frozen = false,
+  isOwnContent = false,
 }: {
   targetId: string;
   module: keyof typeof VOTE_CONFIG;
@@ -57,6 +58,8 @@ export function VoteButton({
   initialUserVote: VoteType | null;
   /** Content frozen by moderators — voting is disabled (server also rejects). */
   frozen?: boolean;
+  /** Author's own content — voting is disabled (server also rejects). */
+  isOwnContent?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingVote, setPendingVote] = useState<VoteType | null>(null);
@@ -84,6 +87,15 @@ export function VoteButton({
       toast({
         title: "Frozen by moderators",
         description: "Voting is disabled while this content is under moderation.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isOwnContent) {
+      toast({
+        title: "Your own content",
+        description: "You cannot vote on your own content. Reputation comes from other scholars' votes.",
         variant: "destructive",
       });
       return;
@@ -125,18 +137,24 @@ export function VoteButton({
   };
 
   const { totalVotes, userVote } = optimisticState;
+  const votingDisabled = frozen || isOwnContent;
+  const disabledTitle = frozen
+    ? "Frozen by moderators"
+    : isOwnContent
+      ? "You cannot vote on your own content"
+      : undefined;
 
   return (
     <div className="flex items-center gap-1">
       <button
-        disabled={isPending || frozen}
+        disabled={isPending || votingDisabled}
         onClick={() => handleVote("UPVOTE")}
         className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-green-300 hover:text-green-700 dark:hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "UPVOTE"
             ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-700"
             : "text-slate-800 dark:text-slate-400"
         }`}
-        title="Upvote"
+        title={disabledTitle ?? "Upvote"}
       >
         {isPending && pendingVote === "UPVOTE" ? (
           <Loader2 className="animate-spin h-4 w-4" />
@@ -161,14 +179,14 @@ export function VoteButton({
       </span>
 
       <button
-        disabled={isPending || frozen}
+        disabled={isPending || votingDisabled}
         onClick={() => handleVote("DOWNVOTE")}
         className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-red-300 hover:text-red-700 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70 ${
           userVote === "DOWNVOTE"
             ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-700"
             : "text-slate-800 dark:text-slate-400"
         }`}
-        title="Downvote"
+        title={disabledTitle ?? "Downvote"}
       >
         {isPending && pendingVote === "DOWNVOTE" ? (
           <Loader2 className="animate-spin h-4 w-4" />

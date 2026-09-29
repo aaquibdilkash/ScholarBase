@@ -97,6 +97,7 @@ export default async function SinglePostPage({
           module="SOCIAL_POST"
           initialTotalVotes={p.totalVotes}
           initialUserVote={userVote}
+          isOwnContent={user?.id === p.authorId}
         />
       }
       footerBookmarkButton={

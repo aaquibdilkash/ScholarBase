@@ -42,6 +42,8 @@ next-env.d.ts
 
 /src/generated/prisma
 
+# doc
+/docs
 TODO.md
 TODO*.md
 todo.md

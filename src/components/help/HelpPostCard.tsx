@@ -78,6 +78,7 @@ export function HelpPostCard({
           module="HELP_POST"
           initialTotalVotes={helpPost.totalVotes}
           initialUserVote={initialUserVote}
+          isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={
