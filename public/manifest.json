@@ -2,10 +2,10 @@
   "name": "ScholarBase",
   "short_name": "ScholarBase",
   "description": "Academic community platform for researchers, PhD students, and scholars",
-  "start_url": "/",
+  "start_url": "/feed",
   "display": "standalone",
-  "background_color": "#f4f0e8",
-  "theme_color": "#15202b",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -16,7 +16,8 @@
     {
       "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "categories": ["Education", "Productivity"],
