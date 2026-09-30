@@ -13,7 +13,7 @@ ScholarBase is a research-community platform combining social feed functionality
 
 ### Tech Stack
 
-- **Frontend**: Next.js 16.2.9 (App Router), React 19.2.4, TypeScript 5
+- **Frontend**: Next.js 16.3.7 (App Router), React 19.2.4, TypeScript 5
 - **Backend**: Server Actions, API Routes
 - **Database**: PostgreSQL via Prisma 7.9, Supabase
 - **Caching/Rate Limiting**: Upstash Redis

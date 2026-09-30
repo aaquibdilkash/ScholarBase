@@ -81,7 +81,6 @@ describe("supabase-jwt", () => {
       expect(decodeSessionCookieValue("")).toBeNull();
     });
   });
-});
 
   describe("extractAccessTokenFromCookies", () => {
     it("extracts access_token from base64 JSON payload in chunked cookies", () => {
@@ -150,6 +149,9 @@ describe("supabase-jwt", () => {
 
     it("returns true for unparseable tokens", () => {
       expect(isJwtExpired("not.a.token")).toBe(true);
+    });
+  });
+
   describe("mapJwtPayloadToUser", () => {
     it("maps JWT standard claims and Supabase metadata correctly", () => {
       const payload = {
@@ -287,6 +289,4 @@ describe("supabase-jwt", () => {
       expect(getOrCreateRemoteJWKS("")).toBeNull();
     });
   });
-
-    });
-  });
+});

@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import * as XLSX from "xlsx";
 import prisma from "@/lib/db";
 import { isUserAdmin } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import {
-  buildCodebook,
   buildRawData,
   toCsv,
   type ExportSurvey,
 } from "@/lib/surveys/export";
+import { buildWorkbook, writeWorkbook } from "@/lib/surveys/export-xlsx";
 
 export const dynamic = "force-dynamic";
 
@@ -123,25 +122,17 @@ export async function GET(
     });
   }
 
-  const codebookSheet = XLSX.utils.aoa_to_sheet(buildCodebook(exportSurvey));
-  codebookSheet["!cols"] = [{ wch: 16 }, { wch: 60 }, { wch: 18 }, { wch: 10 }, { wch: 50 }, { wch: 60 }];
-  const rawDataSheet = XLSX.utils.aoa_to_sheet(
-    buildRawData(exportSurvey, responses, includeIdentity, anonymize),
+  // Two-sheet workbook: a Codebook data dictionary plus the flat Raw Data
+  // matrix. `writeWorkbook` awaits exceljs's zip serialization, which is why
+  // this handler stays async end to end.
+  const workbook = buildWorkbook(
+    exportSurvey,
+    responses,
+    includeIdentity,
+    anonymize,
   );
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, codebookSheet, "Codebook");
-  XLSX.utils.book_append_sheet(workbook, rawDataSheet, "Raw Data");
-
-  // bookSST is required: the SheetJS default writes string cells as t="str"
-  // (formula-result type) with no sharedStrings part, which Google Sheets and
-  // some Excel versions render as EMPTY cells. t="s" + sharedStrings.xml is
-  // the standard encoding every spreadsheet parser understands.
-  const buffer = XLSX.write(workbook, {
-    type: "buffer",
-    bookType: "xlsx",
-    bookSST: true,
-  }) as Buffer;
-  return new NextResponse(new Uint8Array(buffer), {
+  const buffer = await writeWorkbook(workbook);
+  return new NextResponse(buffer, {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
