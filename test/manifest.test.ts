@@ -78,6 +78,12 @@ function norm(value: string): string {
  * RULE 3 reputation reversal — is now covered by
  * `test/transactions/deletion-reversal.test.ts`, so those entries were removed
  * as the gate requires.
+ *
+ * Pruned 2026-09-30: `reports` — the admin `moderateContent` DELETE/RECOVER
+ * matrix (reputation reversal + materialized counters per content type,
+ * anonymous-content counter skipping, and no double-charge / no rep-farming) is
+ * now covered by `test/transactions/admin-moderation.test.ts`, with the map
+ * key-sets guarded by `test/security/admin-moderation-maps.test.ts`.
  */
 const PENDING_ACTION_TESTS = [
   "account",
@@ -96,7 +102,6 @@ const PENDING_ACTION_TESTS = [
   "messages",
   "notifications",
   "profile",
-  "reports",
   "scholars",
   "votes",
 ]

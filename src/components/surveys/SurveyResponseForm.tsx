@@ -11,6 +11,7 @@ import { computeSkippedQuestionIds,
   hashString,
 } from "@/lib/surveys/logic";
 import { buildSurveyPages } from "@/lib/surveys/pages";
+import { scrollToElementTop } from "@/lib/scroll";
 import { SurveySectionHeader } from "./SurveySectionHeader";
 import { SurveyConsentGate } from "./SurveyConsentGate";
 import { SurveyQuestionCard } from "./SurveyQuestionCard";
@@ -192,6 +193,21 @@ export function SurveyResponseForm({
     }
     if (page >= pageCount) setPage(pageCount - 1);
   }, [page, pageCount]);
+
+  // Page swap unmounts the old questions and mounts the new ones, so the
+  // browser keeps the previous scroll offset. Without this the respondent
+  // lands mid-form (or past the end of a short page) instead of at the first
+  // question of the page they just advanced to. The anchor div is rendered
+  // below, so the effect (post-commit) always sees a live node.
+  const pageAnchorRef = useRef<HTMLDivElement | null>(null);
+  const hasMountedPageRef = useRef(false);
+  useEffect(() => {
+    if (!hasMountedPageRef.current) {
+      hasMountedPageRef.current = true;
+      return;
+    }
+    scrollToElementTop(pageAnchorRef.current);
+  }, [page]);
 
   const pageComplete = (qs: Question[]) =>
     qs.every((q) => {
@@ -519,6 +535,10 @@ export function SurveyResponseForm({
           Page {page + 1} of {pageCount}
         </p>
       )}
+
+      {/* Scroll target for page changes. Sits directly above the section
+          header so the header and the first question are both in view. */}
+      <div ref={pageAnchorRef} aria-hidden="true" />
 
       {!isConsentPage && currentPage?.title && (
         <SurveySectionHeader

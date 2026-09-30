@@ -17,6 +17,8 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
  *   - With multiple images: navigate with the prev/next buttons, or the
  *     left/right arrow keys. A small "n / total" counter is shown.
  *   - While open, `body` scrolling is locked and the close button is focused.
+ *   - Theme-aware: the scrim, the control buttons and the gallery counter all
+ *     follow the app light/dark theme instead of always going dark.
  *
  * The parent owns the open state so callers can render the trigger. Use:
  *
@@ -98,7 +100,7 @@ export function ImageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Image preview"
-      className="fixed inset-0 z-[900] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[900] flex items-center justify-center bg-slate-100/95 backdrop-blur-sm dark:bg-black/80"
       onClick={(e) => {
         // Close only when the backdrop itself (not inner content) is clicked.
         if (e.target === e.currentTarget) onClose();
@@ -111,7 +113,7 @@ export function ImageLightbox({
         aria-label="Close image preview"
         title="Close (Esc)"
         onClick={onClose}
-        className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 active:bg-white/40"
+        className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-900/10 text-slate-900 ring-1 ring-slate-900/10 transition hover:bg-slate-900/15 active:bg-slate-900/20 dark:bg-white/10 dark:text-white dark:ring-white/15 dark:hover:bg-white/25 dark:active:bg-white/40"
       >
         <X className="h-6 w-6" />
       </button>
@@ -123,7 +125,7 @@ export function ImageLightbox({
           aria-label="Previous image"
           title="Previous (Left arrow)"
           onClick={() => handleNavigate((currentIndex - 1 + count) % count)}
-          className="absolute left-3 top-1/2 z-10 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 active:bg-white/40"
+          className="absolute left-3 top-1/2 z-10 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/10 text-slate-900 ring-1 ring-slate-900/10 transition hover:bg-slate-900/15 active:bg-slate-900/20 dark:bg-white/10 dark:text-white dark:ring-white/15 dark:hover:bg-white/25 dark:active:bg-white/40"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
@@ -136,7 +138,7 @@ export function ImageLightbox({
           aria-label="Next image"
           title="Next (Right arrow)"
           onClick={() => handleNavigate((currentIndex + 1) % count)}
-          className="absolute right-3 top-1/2 z-10 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25 active:bg-white/40"
+          className="absolute right-3 top-1/2 z-10 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/10 text-slate-900 ring-1 ring-slate-900/10 transition hover:bg-slate-900/15 active:bg-slate-900/20 dark:bg-white/10 dark:text-white dark:ring-white/15 dark:hover:bg-white/25 dark:active:bg-white/40"
         >
           <ChevronRight className="h-6 w-6" />
         </button>
@@ -153,7 +155,7 @@ export function ImageLightbox({
           src={src}
           alt=""
           draggable={false}
-          className="block max-h-[90vh] max-w-[90vw] object-contain"
+          className="block max-h-[90vh] max-w-[90vw] object-contain shadow-2xl ring-1 ring-slate-900/10 dark:ring-white/10"
         />
       </div>
 
@@ -161,7 +163,7 @@ export function ImageLightbox({
       {hasMultiple && (
         <div
           aria-live="polite"
-          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-sm font-semibold text-white"
+          className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-slate-900/10 px-3 py-1 text-sm font-semibold text-slate-900 ring-1 ring-slate-900/10 dark:bg-black/60 dark:text-white dark:ring-white/15"
         >
           {currentIndex + 1} / {count}
         </div>

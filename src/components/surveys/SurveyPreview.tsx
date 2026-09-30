@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { RotateCcw } from "lucide-react";
 import { computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import { buildSurveyPages } from "@/lib/surveys/pages";
+import { scrollToElementTop } from "@/lib/scroll";
 import { SurveyQuestionCard } from "./SurveyQuestionCard";
 import { SurveySectionHeader } from "./SurveySectionHeader";
 import { SurveyConsentGate } from "./SurveyConsentGate";
@@ -122,6 +123,18 @@ export function SurveyPreview({
       return answers[q.id] !== undefined && answers[q.id] !== "";
     });
 
+  // Page swap unmounts the old questions and mounts the new ones, so the
+  // browser keeps the previous scroll offset. Mirrors the live response form.
+  const pageAnchorRef = useRef<HTMLDivElement | null>(null);
+  const hasMountedPageRef = useRef(false);
+  useEffect(() => {
+    if (!hasMountedPageRef.current) {
+      hasMountedPageRef.current = true;
+      return;
+    }
+    scrollToElementTop(pageAnchorRef.current);
+  }, [page]);
+
   const isLastContentPage =
     contentPageIndex === contentPages.length - 1 &&
     !(hasConsentPage && contentPages.length === 0);
@@ -233,6 +246,10 @@ const progressPct =
           </p>
         </div>
       )}
+
+      {/* Scroll target for page changes, so "Next" lands on the first question
+          of the new page instead of preserving the previous scroll offset. */}
+      <div ref={pageAnchorRef} aria-hidden="true" />
 
       {/* Consent page */}
       {isConsentPage && (
