@@ -51,14 +51,20 @@ function isCovered(moduleName: string, importPath: string): boolean {
 }
 
 /**
- * Matches a real module specifier — `from "@/app/actions/comments"` — not a
- * path mentioned in prose. Without the `from` anchor, a doc comment that merely
- * *shows* an import would mark that module covered, which is exactly the
- * self-defeating false positive this gate had at first.
+ * Matches a real module specifier — `from "@/app/actions/comments"` or
+ * `await import("@/app/actions/comments")` — not a path mentioned in prose.
+ * Without the `from` / `import(` anchor, a doc comment that merely *shows* an
+ * import would mark that module covered, which is exactly the self-defeating
+ * false positive this gate had at first.
+ *
+ * The dynamic form matters: several suites deliberately `await import(...)` an
+ * action inside each test so the module is re-evaluated with the current
+ * harness state. Those are real dependencies, and matching only `from` made the
+ * gate report them as untested — which it did, on four modules.
  */
 function importSpecifier(importPath: string): RegExp {
   const escaped = importPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  return new RegExp(`from\\s*["'\`]@/${escaped}["'\`]`)
+  return new RegExp(`(?:from\\s*|import\\s*\\(\\s*)["'\`]@/${escaped}["'\`]`)
 }
 
 function testStem(path: string): string {
@@ -90,17 +96,14 @@ function norm(value: string): string {
  * throttle reaches the inbox search and the scholar picker.
  */
 const PENDING_ACTION_TESTS = [
-  "account",
-  "admin",
+  // Still untested: the login/signup/oauth surface itself, the outreach and
+  // push-admin paths, the contact form, and the client-side comment wrappers.
+  // Everything else that used to sit here now has a test; the gate below fails
+  // if one of these gains a test and is not removed from this list.
   "adminInvite",
-  "appeals",
-  "auth",
-  "bookmarks",
   "cloudinary",
   "comments.clientWrappers",
   "contact",
-  "institution",
-  "institution-verification",
   "notifications",
 ]
 

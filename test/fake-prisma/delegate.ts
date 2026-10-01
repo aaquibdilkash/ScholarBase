@@ -123,6 +123,24 @@ export class FakeDelegate {
     return row ? project(row, args.select) : null
   }
 
+  /**
+   * Added for `institution.ts`, which calls `findUniqueOrThrow` on a row it has
+   * already confirmed exists. Prisma throws `P2025` when nothing matches; the
+   * message mirrors the existing `mustFind` helper so the fake's failure modes
+   * stay uniform.
+   */
+  async findUniqueOrThrow(args: Args = {}): Promise<Row> {
+    this.record("findUniqueOrThrow", args)
+    const row = this.findRow(args.where)
+    if (!row) {
+      throw new Error(
+        "fake-prisma: An operation failed because it requires a record that does " +
+          `not exist. (no ${this.model}.findUniqueOrThrow matched ${JSON.stringify(args.where)})`,
+      )
+    }
+    return project(row, args.select)
+  }
+
   async findFirst(args: Args = {}): Promise<Row | null> {
     this.record("findFirst", args)
     const row = this.sorted(args).find((candidate) => matchWhere(candidate, args.where))
