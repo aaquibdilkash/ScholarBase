@@ -13,6 +13,7 @@ import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import EditProfileForm from "@/components/profile/EditProfileForm";
 import { DigestPreferenceForm } from "@/components/notifications/DigestPreferenceForm";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
+import { InstallAppButton, InstallStatusNote } from "@/components/pwa/InstallAppButton";
 import {
   SettingsTabs,
   resolveSettingsTab,
@@ -146,6 +147,35 @@ export default async function ScholarSettingsPage({
             <DigestPreferenceForm
               current={profile.digestPreference as DigestPreference}
             />
+          </section>
+        ) : null}
+
+        {activeTab === "app" ? (
+          <section
+            aria-label="App"
+            className="sb-surface-strong rounded-2xl p-4 sm:p-6"
+          >
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              App
+            </h2>
+            <p className="my-1 text-sm text-slate-500 dark:text-slate-400">
+              Install ScholarBase to open it like a normal app, launch it from
+              your home screen or desktop, and let it load faster. Installing is
+              per-device, and is separate from your notification settings — you
+              can install without enabling alerts, or the reverse.
+            </p>
+
+            {/* Device-scoped, exactly like the push subscription above: it
+                describes the browser this tab is open in, not the account, so it
+                lives in its own panel rather than under Notifications. Renders
+                nothing once installed, so there is no dead row here either. */}
+            <div className="mt-4">
+              <InstallAppButton variant="settings" />
+              {/* The install row is hidden while the browser decides and once
+                  the app is installed, so without this the panel would be a
+                  blank box. Saying which state we are in beats an empty area. */}
+              <InstallStatusNote />
+            </div>
           </section>
         ) : null}
       </div>

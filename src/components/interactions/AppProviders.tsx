@@ -9,6 +9,7 @@ import { AuthModalProvider } from "./AuthModal";
 import { FrozenUserProvider } from "./FrozenUserProvider";
 import { PushActivitySignal } from "@/components/push/PushActivitySignal";
 import { PushNotificationProvider } from "@/components/push/PushNotificationProvider";
+import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
 
 export function AppProviders({
   children,
@@ -55,10 +56,12 @@ export function AppProviders({
           <AuthModalProvider>
             <FrozenUserProvider isFrozen={isFrozen}>
               <PresenceProvider>
-                <PushNotificationProvider>
-                  <PushActivitySignal />
-                  {children}
-                </PushNotificationProvider>
+                <PwaInstallProvider>
+                  <PushNotificationProvider>
+                    <PushActivitySignal />
+                    {children}
+                  </PushNotificationProvider>
+                </PwaInstallProvider>
               </PresenceProvider>
             </FrozenUserProvider>
           </AuthModalProvider>

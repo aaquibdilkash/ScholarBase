@@ -21,6 +21,34 @@ const isDev =
   process.env.NEXT_PUBLIC_SITE_URL?.includes("dev.scholarbase.app") ||
   process.env.VERCEL_ENV !== "production";
 
+// Captures `beforeinstallprompt` before React can possibly hydrate.
+//
+// This event fires ONCE per page load, and on a fast load it can fire BEFORE
+// React hydrates and `PwaInstallProvider` attaches its `useEffect` listener.
+// The event is not re-issued, so a late listener misses it forever: the install
+// button would then show "How to install" until a reload that happened to be
+// slower, which is exactly the non-deterministic behaviour this avoids.
+//
+// This inline script is the earliest code we control, so it always wins the
+// race. It stashes the event on `window`, and the provider picks it up on mount
+// (or later, if the event has not fired yet). No `async`/`defer`, no import: it
+// must run synchronously in `<head>`.
+const INSTALL_PROMPT_CAPTURE = `
+(function () {
+  if (window.__sbInstallPrompt) return;
+  window.__sbInstallPrompt = null;
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    window.__sbInstallPrompt = e;
+    window.dispatchEvent(new Event("sb:beforeinstallprompt"));
+  });
+  window.addEventListener("appinstalled", function () {
+    window.__sbInstallPrompt = null;
+    window.dispatchEvent(new Event("sb:appinstalled"));
+  });
+})();
+`;
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://scholarbase.app"),
   title: {
@@ -186,7 +214,12 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
-      <head />
+      <head>
+        {/* Synchronous, inline, and blocking on purpose: this is the earliest
+            code we control, which is the only way to catch a
+            `beforeinstallprompt` that fires before React hydrates. */}
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_PROMPT_CAPTURE }} />
+      </head>
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders isFrozen={isFrozen}>

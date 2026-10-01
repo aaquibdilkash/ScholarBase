@@ -4,10 +4,17 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { ChevronDown, Loader2, User as UserIcon, Bell, LogOut } from "lucide-react";
+import {
+  ChevronDown,
+  Loader2,
+  User as UserIcon,
+  Bell,
+  LogOut,
+} from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 
 export default function UserActionsDropdown({
   user,
@@ -108,10 +115,16 @@ export default function UserActionsDropdown({
         >
           <ul className="m-0 list-none p-0">
             <li>
+              <InstallAppButton variant="menu" />
+            </li>
+            <li>
               {/* Toggle, not a link — it stays open so the On/Off state change
               stays visible while the request completes. */}
               <EnablePushButton variant="menu" />
             </li>
+            {/* Install lives here too: this menu is where every other action
+                already lives on small screens, so the install entry point must
+                not be navbar-desktop-only. Renders nothing once installed. */}
             <li>
               <Link
                 prefetch={false}

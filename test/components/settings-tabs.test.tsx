@@ -22,6 +22,7 @@ describe("resolveSettingsTab", () => {
     expect(resolveSettingsTab("profile")).toBe("profile");
     expect(resolveSettingsTab("security")).toBe("security");
     expect(resolveSettingsTab("notifications")).toBe("notifications");
+    expect(resolveSettingsTab("app")).toBe("app");
   });
 
   it("falls back to the default when no tab is requested", () => {

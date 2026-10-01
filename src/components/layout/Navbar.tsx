@@ -7,6 +7,7 @@ import NavLoginButton from "./NavLoginButton";
 import SignOutButton from "@/components/auth/SignOutButton";
 import NotificationBadge from "./NotificationBadge";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import type { User } from "@supabase/supabase-js";
 
 /**
@@ -61,6 +62,12 @@ export default function Navbar({
                   too, so smaller screens collapse to just the overflow
                   menu and every action is reachable from that one dropdown. */}
               <div className="hidden items-center gap-3 lg:flex">
+                {/* Install sits immediately left of the alert bell: the two are
+                    one-time per-device setup toggles, and installing is the step
+                    that makes push reliable, so the order mirrors that order.
+                    Both render nothing when there is nothing to offer, so the
+                    cluster never shows a dead icon. */}
+                <InstallAppButton variant="navbar" />
                 <EnablePushButton variant="navbar" />
                 <NotificationBadge initialUnreadCount={unreadCount} />
                 <Link prefetch={false}

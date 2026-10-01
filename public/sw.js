@@ -1,16 +1,39 @@
-const CACHE_NAME = "scholarbase-v7";
+const CACHE_NAME = "scholarbase-v9";
+// Precached so the installed app has a usable offline shell. `addAll` is
+// all-or-nothing — one failed entry aborts the entire install, the worker never
+// activates, and the app silently stops being installable. So each entry is
+// added individually and failures are tolerated: a missing icon must not cost
+// the user the whole app.
 const urlsToCache = [
   "/",
-  "/manifest.json",
+  // NOTE: "/manifest.json" is deliberately NOT precached. A cached manifest is
+  // a manifest the browser cannot update, and it gates both installability and
+  // `getInstalledRelatedApps`. See the fetch handler below.
   "/logo.png",
+  "/icon-192.png",
   "/favicon.ico",
   "/favicon.svg",
   "/badge.png",
 ];
 
 self.addEventListener("install", (event) => {
+  // Added one at a time rather than via `addAll`, which rejects the whole batch
+  // if any single entry fails. Tolerating partial failure is what keeps the
+  // worker activating reliably, and activation is a precondition for
+  // `beforeinstallprompt` — i.e. for the install button appearing at all.
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        urlsToCache.map((url) =>
+          // `reload` bypasses the HTTP cache so a precache never stores a stale
+          // copy of a shell that has since changed.
+          cache.add(new Request(url, { cache: "reload" })).catch(() => {
+            // Deliberately swallowed: an unreachable asset is not a reason to
+            // refuse to install the app.
+          }),
+        ),
+      ),
+    ),
   );
   event.waitUntil(self.skipWaiting());
 });
@@ -33,7 +56,25 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = event.request.url;
 
-  if (self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1") {
+  // NOTE: this handler used to bail out early on localhost/127.0.0.1 so that dev
+  // never served stale bundles. That silently broke PWA *installability* in dev:
+  // Chrome requires a service worker with a real fetch handler before it will
+  // fire `beforeinstallprompt`, so skipping respondWith on localhost made the
+  // app uninstallable there while working fine in production — the worst kind
+  // of bug, since the one place you test is the one place it is broken.
+  // Caching is versioned by CACHE_NAME below, so stale-bundle risk is handled
+  // there instead.
+
+  // The manifest must NEVER be served from the cache.
+  //
+  // It is precached below and matched cache-first here, which meant the browser
+  // kept reading the manifest as it was at install time. Any later change to it
+  // — notably adding `related_applications`, which is what makes
+  // `getInstalledRelatedApps` able to report an existing install — was silently
+  // ignored, so the app kept thinking it was not installed even when it was.
+  // Always go to the network, and never precache it.
+  if (url.endsWith("/manifest.json")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 

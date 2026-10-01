@@ -15,7 +15,11 @@ import Link from "next/link";
  * deliberately does not use: these panels are separately routable, and a tab
  * widget that is not a real URL breaks the back button.
  */
-export type SettingsTabId = "profile" | "security" | "notifications";
+export type SettingsTabId =
+  | "profile"
+  | "security"
+  | "notifications"
+  | "app";
 
 const TABS: { id: SettingsTabId; label: string; blurb: string }[] = [
   {
@@ -32,6 +36,11 @@ const TABS: { id: SettingsTabId; label: string; blurb: string }[] = [
     id: "notifications",
     label: "Notifications",
     blurb: "How often you receive the email digest.",
+  },
+  {
+    id: "app",
+    label: "App",
+    blurb: "Install ScholarBase on this device for faster, offline-friendly access.",
   },
 ];
 
