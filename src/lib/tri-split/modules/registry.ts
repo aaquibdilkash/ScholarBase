@@ -16,9 +16,65 @@
  */
 import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
 import { revalidateTrending } from "@/lib/trending";
+import { getCurrentUser } from "@/lib/auth";
+import { isSearchableQuery } from "@/lib/search-guard";
+import { allowSearchRequest } from "@/lib/search-rate-limit";
+import { PUBLIC_SOCIAL_POST_SELECT } from "@/types/feed";
+import type { MentionUser } from "@/components/interactions/CommentThread";
 
-import { createContentList, CONTENT_COUNTER_KEYS, type ContentListArgs } from "../content";
+import {
+  createContentList,
+  createDirectoryList,
+  CONTENT_COUNTER_KEYS,
+  type ContentListArgs,
+} from "../content";
 import { revalidateProfileContent } from "./profile-tab";
+import { reviveDates } from "../cache";
+
+/** Viewer-agnostic article projection. Excludes votes/bookmarks (live overlay). */
+const ARTICLE_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  excerpt: true,
+  createdAt: true,
+  updatedAt: true,
+  editedAt: true,
+  authorId: true,
+  isFrozen: true,
+  hasActiveAppeal: true,
+  totalVotes: true,
+  totalBookmarks: true,
+  totalComments: true,
+  author: {
+    select: {
+      id: true,
+      name: true,
+      handle: true,
+      avatarUrl: true,
+      institutionVerifiedAt: true,
+    },
+  },
+} as unknown as Record<string, unknown>;
+
+/**
+ * Viewer-agnostic scholar projection. Deliberately has no `followers` filter:
+ * that relation IS the identity leak this shape removes. Follow state arrives
+ * from the live overlay instead.
+ */
+const SCHOLAR_SELECT = {
+  id: true,
+  name: true,
+  handle: true,
+  avatarUrl: true,
+  institutionVerifiedAt: true,
+  bio: true,
+  reputation: true,
+  createdAt: true,
+  // RULE 6: materialized counters, not a live COUNT(*) subquery.
+  followersCount: true,
+  followingCount: true,
+} as unknown as Record<string, unknown>;
 
 /** The author projection every content card renders. */
 const AUTHOR_SELECT = {
@@ -46,9 +102,105 @@ const AUTHOR = { select: AUTHOR_SELECT } as unknown as Record<string, unknown>;
 /**
  * Per-module config, keyed by `ENTITY_CONFIG` module name.
  *
- * Exported so the contract test can assert across all 13 modules at once.
+ * A key maps either to a single `ContentListArgs`, or to `{ variants: [...] }`
+ * for a list that needs more than one cached loader. The scholar directory is
+ * the only such case: `latest` and `reputation` sort by different indexed
+ * columns, and `unstable_cache` fixes its key parts at creation time, so the two
+ * orderings must be separate loaders with disjoint cache key spaces.
+ *
+ * Exported so the contract test can assert across every key at once.
  */
 export const CONTENT_LIST_CONFIGS = {
+  // ---------------------------------------------------------------------
+  // Formerly bespoke. The feed and the article list each had their own
+  // factory config; both are plain `ContentListArgs` now, so every listing
+  // page in the product is declared in this one file and reaches the P0-3
+  // search floor and throttle through `loadContentPage`.
+  // ---------------------------------------------------------------------
+  FEED: {
+    module: "SOCIAL_POST",
+    trending: "socialPosts",
+    tag: "feed-public",
+    where: { isDeleted: false },
+    select: PUBLIC_SOCIAL_POST_SELECT as unknown as Record<string, unknown>,
+    // `unstable_cache` serialises via JSON.stringify, so dates become ISO
+    // strings; the shared `reviveDates` (driven by this same list) revives them.
+    dateKeys: ["createdAt", "updatedAt", "editedAt"],
+    // The feed searches post text *and* the author's name/handle, which the
+    // relation form of `searchFields` expresses.
+    searchFields: [
+      { field: "content" },
+      { field: "name", relation: "author" },
+      { field: "handle", relation: "author" },
+    ],
+    stitchOverrides: {
+      // The feed's only genuinely module-specific fold rule: the `mentions`
+      // column is Prisma `Json`, so it arrives as whatever was written. This
+      // used to live in a `feed-stitch.ts` of its own — the feed was the last
+      // bespoke module converted and it was the only one left with a private
+      // file. Every other rule is now shared: dates come from `dateKeys` via
+      // `reviveDates`, counters from `CONTENT_COUNTER_KEYS`.
+      normalize: (row: Record<string, unknown>) => ({
+        mentions: Array.isArray(row.mentions)
+          ? (row.mentions as MentionUser[])
+          : null,
+      }),
+    },
+  },
+  ARTICLE: {
+    module: "ARTICLE",
+    trending: "articles",
+    tag: "articles-public",
+    where: { isDeleted: false },
+    select: ARTICLE_SELECT as unknown as Record<string, unknown>,
+    dateKeys: ["createdAt", "updatedAt", "editedAt"],
+    searchFields: [{ field: "title" }, { field: "name", relation: "author" }],
+  },
+
+  // ---------------------------------------------------------------------
+  // The scholar directory: the one list that is not a content module. It
+  // lists `User` rows, so it has no vote/bookmark tables to derive and is
+  // declared through `createDirectoryList` instead.
+  // ---------------------------------------------------------------------
+  SCHOLAR_DIRECTORY: {
+    directory: true,
+    trending: "scholars",
+    variants: [
+      {
+        rowTable: "User",
+        tag: "scholars-public",
+        model: "user",
+        where: { isDeleted: false },
+        keyParts: ["latest"],
+        select: SCHOLAR_SELECT,
+        orderBy: { createdAt: "desc" },
+        dateKeys: ["createdAt"],
+        counterKeys: ["reputation", "followersCount", "followingCount"],
+        searchFields: [{ field: "name" }, { field: "handle" }, { field: "bio" }],
+        stitchOverrides: {
+          // Top-level follow state rather than a nested author.followers array,
+          // so the leaky shape never reaches the output.
+          followTarget: "self" as const,
+        },
+      },
+      {
+        rowTable: "User",
+        tag: "scholars-public",
+        model: "user",
+        where: { isDeleted: false },
+        keyParts: ["reputation"],
+        select: SCHOLAR_SELECT,
+        orderBy: { reputation: "desc", createdAt: "desc" },
+        dateKeys: ["createdAt"],
+        counterKeys: ["reputation", "followersCount", "followingCount"],
+        searchFields: [{ field: "name" }, { field: "handle" }, { field: "bio" }],
+        stitchOverrides: {
+          followTarget: "self" as const,
+        },
+      },
+    ],
+  },
+
   HELP_POST: {
     module: "HELP_POST",
     // Which Trending tab lists this module, so one mutation purges both.
@@ -442,15 +594,80 @@ export const CONTENT_LIST_CONFIGS = {
   },
 } as const;
 
-/** Keys of the registry, i.e. the `ENTITY_CONFIG` modules it covers. */
+/** Keys of the registry, i.e. every module the listings cover. */
 export type ContentListKey = keyof typeof CONTENT_LIST_CONFIGS;
+
+/** Cache-key discriminator per scholar ordering, so the two never collide. */
+export const SCHOLAR_SORT_KEY_PARTS = ["latest", "reputation"] as const;
+export type ScholarSort = (typeof SCHOLAR_SORT_KEY_PARTS)[number];
+
+/**
+ * The directory's fold rules, exported for the unit tests that assert the
+ * follow-state shape without a database.
+ *
+ * DERIVED from the `SCHOLAR_DIRECTORY` config rather than mirrored: this used
+ * to be a hand-copied literal, which meant a config edit could silently leave
+ * the tested rules diverging from the shipped ones.
+ */
+const scholarVariant = CONTENT_LIST_CONFIGS.SCHOLAR_DIRECTORY.variants[0];
+export const SCHOLAR_STITCH_OPTIONS = {
+  getRowId: (row: Record<string, unknown>) => row.id as string,
+  // Follow state on a scholar row is keyed by the scholar's own id.
+  getAuthorId: (row: Record<string, unknown>) => row.id as string,
+  counterKeys: scholarVariant.counterKeys,
+  // The shared date revival, driven by the directory's own `dateKeys` — the same
+  // derivation every content module gets, not a hand-rolled copy of it.
+  rehydrate: (row: Record<string, unknown>) =>
+    reviveDates(row, scholarVariant.dateKeys),
+  // Top-level follow state, not nested under an author.
+  followTarget: scholarVariant.stitchOverrides.followTarget,
+};
+
+type Loader = ReturnType<typeof createContentList>;
+
+/**
+ * Every configured module's loader(s).
+ *
+ * Typed as a union rather than per-key because `ContentListKey` is a union, so a
+ * per-key conditional resolves to `{}` for the members that are not variant
+ * lists. Callers narrow with {@link singleLoader} (content keys) or index the
+ * array directly (the scholar directory's two orderings).
+ */
+export type ContentListLoaders = Loader | Loader[];
+
+/** The single loader for a key that declares exactly one. */
+export function singleLoader(key: ContentListKey): Loader {
+  const entry = CONTENT_LISTS[key] as ContentListLoaders;
+  if (Array.isArray(entry)) {
+    throw new Error(`registry key "${key}" declares ordering variants, not one loader`);
+  }
+  return entry;
+}
+
+/**
+ * Builds the loader(s) for one registry key.
+ *
+ * A content key yields one loader. `SCHOLAR_DIRECTORY` yields two, because
+ * `unstable_cache` fixes its key parts at creation time and `latest` /
+ * `reputation` sort by different indexed columns — two loaders, two disjoint
+ * key spaces, so a reputation-sorted request can never be served latest-sorted
+ * rows.
+ */
+function buildLoaders(key: ContentListKey): ContentListLoaders {
+  const config = CONTENT_LIST_CONFIGS[key] as ContentListArgs | { variants: unknown[] };
+  if ("variants" in config) {
+    return config.variants.map((variant) => createDirectoryList(variant as never));
+  }
+  return createContentList(config);
+}
 
 /** Every configured module, built from its declarative config. */
 export const CONTENT_LISTS = Object.fromEntries(
-  (Object.entries(CONTENT_LIST_CONFIGS) as [ContentListKey, ContentListArgs][]).map(
-    ([key, config]) => [key, createContentList(config)],
-  ),
-) as Record<ContentListKey, ReturnType<typeof createContentList>>;
+  (Object.keys(CONTENT_LIST_CONFIGS) as ContentListKey[]).map((key) => [
+    key,
+    buildLoaders(key),
+  ]),
+) as Record<ContentListKey, ContentListLoaders>;
 
 /** All configured module keys, in declaration order. */
 export const CONTENT_LIST_KEYS = Object.keys(
@@ -460,12 +677,36 @@ export const CONTENT_LIST_KEYS = Object.keys(
 /**
  * Loads one page for a standard content module, for the current viewer.
  * Takes no identity — the factory resolves it from the session.
+ *
+ * This is the ONE entry point for all 13 configured content modules
+ * (publications, events, grants, surveys, admissions, courses, vacancies,
+ * journals, research tools, results, contributions, supervisors, help), so the
+ * search throttle lives here rather than being repeated in 13 action files that
+ * would inevitably drift apart.
+ *
+ * The minimum-length rule is one layer down, inside `createContentList`'s
+ * `buildWhere`; this adds the rate limit for terms that clear it.
  */
-export function loadContentPage(
+export async function loadContentPage(
   key: ContentListKey,
-  args: { query?: string; pageSize?: number; cursor?: string } = {},
+  args: {
+    query?: string;
+    pageSize?: number;
+    cursor?: string;
+    /** Ordering variant, for keys that declare more than one loader. */
+    variant?: number;
+  } = {},
 ): Promise<Record<string, unknown>[]> {
-  return CONTENT_LISTS[key].fetchPage(args);
+  const entry = CONTENT_LISTS[key] as Loader | Loader[];
+  const loader = Array.isArray(entry) ? entry[args.variant ?? 0] : entry;
+  if (isSearchableQuery(args.query)) {
+    const viewer = await getCurrentUser();
+    // Returns an empty page rather than throwing: callers are server-rendered
+    // list pages whose empty state already renders, and an exception would tear
+    // down the whole page to report a throttle.
+    if (!(await allowSearchRequest(`content:${key}`, viewer?.id))) return [];
+  }
+  return loader.fetchPage(args);
 }
 
 /**
@@ -484,7 +725,13 @@ export function revalidateContent(
   key: ContentListKey,
   ...authorIds: (string | null | undefined)[]
 ): void {
-  CONTENT_LISTS[key].revalidate();
+  const entry = CONTENT_LISTS[key] as Loader | Loader[];
+  // Variant keys (the scholar directory) purge every ordering.
+  if (Array.isArray(entry)) {
+    for (const loader of entry) loader.revalidate();
+  } else {
+    entry.revalidate();
+  }
   revalidateTrending(CONTENT_LIST_CONFIGS[key].trending);
   revalidateProfileContent(...authorIds);
 }

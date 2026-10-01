@@ -7,6 +7,8 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getCurrentUser, requireCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { isSearchableQuery } from "@/lib/search-guard";
+import { allowSearchRequest } from "@/lib/search-rate-limit";
 
 import { COMMENT_PAGE_SIZE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -15,10 +17,8 @@ import {
   createCommentTransaction,
   deleteCommentTransaction,
 } from "@/lib/transactions";
-import {
-  loadFeedPage,
-  revalidatePublicFeed,
-} from "@/lib/tri-split/modules/feed";
+import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
+import { POST_METADATA_SELECT } from "@/types/feed";
 import type { SocialPostFeedItem } from "@/types/feed";
 import { VoteType, DeletedByType } from "@prisma/client";
 
@@ -101,8 +101,9 @@ function castPost(post: {
  * (The previous `getFeed` accepted a `userId` from the browser, so any caller
  * could read another user's vote/bookmark/follow state.)
  *
- * The split itself lives in `@/lib/tri-split/modules/feed`: a cached
- * viewer-agnostic batch plus a single-statement live overlay.
+ * The split itself is configured under the `FEED` key in
+ * `@/lib/tri-split/modules/registry`: a cached viewer-agnostic batch plus a
+ * single-statement live overlay.
  */
 export async function fetchFeedPage(
   tab?: string,
@@ -112,15 +113,32 @@ export async function fetchFeedPage(
 ): Promise<SocialPostFeedItem[]> {
   const user = await getCurrentUser();
 
-  return loadFeedPage({
-    tab,
+  // P0-3: search is the only unbounded read on this route — anyone can call it
+  // in a loop, and every call spends the shared Supabase connection pool. The
+  // minimum-length guard lives in the `buildWhere` implementations; this is the
+  // brake for long queries, via the same helper every other search surface uses
+  // so the limit cannot drift between them.
+  if (isSearchableQuery(query)) {
+    if (!(await allowSearchRequest("feed", user?.id))) {
+      // Return an empty page rather than throwing: this function feeds a server
+      // component and the client's pagination loader, so an exception would
+      // blow up the whole feed to communicate a throttle. The empty state
+      // already reads as "nothing matched".
+      return [];
+    }
+  }
+
+  // `tab` is accepted for call-site compatibility but only "all" and
+  // "trending" exist today; a viewer-scoped "following" tab is not built yet and
+  // the shared factory keeps the viewer out of filters, so it arrives later as a
+  // registry-wide capability rather than a feed-only special case.
+  void tab;
+
+  return loadContentPage("FEED", {
     query,
     pageSize,
     cursor,
-    // Only the viewer-scoped "following" tab needs this; the factory resolves
-    // its own identity for the overlay and never exposes it as a parameter.
-    viewerId: user?.id,
-  });
+  }) as Promise<SocialPostFeedItem[]>;
 }
 
 export const getPost = cache(async (id: string, userId?: string) => {
@@ -194,6 +212,26 @@ export const getPost = cache(async (id: string, userId?: string) => {
     },
   });
 });
+
+/**
+ * Slim metadata row for the detail page's `generateMetadata`.
+ *
+ * Kept separate from the body query because `generateMetadata` and the page
+ * call `getPost` with *different* argument tuples, so React's request-level
+ * `cache()` cannot dedupe them and the full post query (comments, votes,
+ * bookmarks, followers) ran twice per detail page request. Metadata needs none
+ * of that.
+ *
+ * Lives beside `getPost` rather than in the listing registry: this is a
+ * single-row detail read, not a cached list, so it has no business declaring a
+ * cache tag, pagination, a live overlay or a search floor.
+ */
+export async function getPostMetadata(id: string) {
+  return prisma.socialPost.findUnique({
+    where: { id, isDeleted: false },
+    select: POST_METADATA_SELECT,
+  });
+}
 
 export async function createSocialPost(formData: FormData) {
   const auth = await getActiveUser("You must be logged in to post.");
@@ -296,7 +334,7 @@ export async function createSocialPost(formData: FormData) {
   // Read-your-own-writes: purge the cached public feed so the new post is
   // visible to everyone on the very next request, and name the author so their
   // own profile Content and Activity tabs go with it.
-  revalidatePublicFeed(authUser.id);
+  revalidateContent("FEED", authUser.id);
 
   return { success: true, data: castPost(post) };
   } catch (error) {
@@ -388,7 +426,7 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   }
 
   // The edited body/mentions/editedAt are part of the cached public payload.
-  revalidatePublicFeed(post.authorId);
+  revalidateContent("FEED", post.authorId);
 
   return { success: true, data: castPost(updatedPost) };
   } catch (error) {
@@ -473,7 +511,7 @@ export async function deleteSocialPost(postId: string) {
   });
 
   // Soft delete (RULE 4) must disappear from the cached public feed at once.
-  revalidatePublicFeed(post.authorId);
+  revalidateContent("FEED", post.authorId);
 
   return { success: true, data: { id: postId } };
 }

@@ -15,10 +15,8 @@ import {
 } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import {
-  loadArticlesPage,
-  revalidateArticles,
-} from "@/lib/tri-split/modules/article";
+import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
+import type { ArticleWithAuthor } from "@/types/cards";
 
 /**
  * Loads one page of articles for the *current* viewer.
@@ -27,15 +25,19 @@ import {
  * (This loader used to accept `userId` from the browser, so any caller could
  * read another user's vote / bookmark / follow state.)
  *
- * The cached batch + single-statement live overlay live in
- * `@/lib/tri-split/modules/article`.
+ * The cached batch + single-statement live overlay are configured under the
+ * `ARTICLE` key in `@/lib/tri-split/modules/registry`, like every listing page.
  */
 export async function getArticles(
   q?: string,
   limit = 10,
   cursor?: string,
 ) {
-  return loadArticlesPage({ query: q, pageSize: limit, cursor });
+  return loadContentPage("ARTICLE", {
+    query: q,
+    pageSize: limit,
+    cursor,
+  }) as Promise<ArticleWithAuthor[]>;
 }
 
 export const getArticle = cache(async (slug: string, userId?: string) => {
@@ -195,7 +197,7 @@ export async function createArticle(formData: FormData) {
 
   // Read-your-own-writes: purge the cached article pages so the new post is
   // visible to everyone on the very next request.
-  revalidateArticles(user.id);
+  revalidateContent("ARTICLE", user.id);
 
   return { success: true, data: article };
 }
@@ -250,7 +252,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
   });
 
   // The edited title/excerpt/slug are part of the cached public payload.
-  revalidateArticles(article.authorId);
+  revalidateContent("ARTICLE", article.authorId);
 
   return { success: true, data: updatedArticle };
 }
@@ -292,7 +294,7 @@ export async function deleteArticle(articleId: string) {
   });
 
   // Soft delete (RULE 4) must disappear from the cached public pages at once.
-  revalidateArticles(article.authorId);
+  revalidateContent("ARTICLE", article.authorId);
 
   return { success: true, data: { deletedId: articleId } };
 }

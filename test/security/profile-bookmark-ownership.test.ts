@@ -28,8 +28,8 @@ vi.mock("@/lib/cloudinary", () => ({
   deleteCloudinaryAsset: vi.fn(async () => {}),
   promoteDraftCloudinaryAsset: vi.fn(async () => null),
 }));
-vi.mock("@/lib/tri-split/modules/scholar", () => ({
-  revalidateScholars: vi.fn(),
+vi.mock("@/lib/tri-split/modules/registry", () => ({
+  revalidateContent: vi.fn(),
 }));
 
 const findMany = vi.fn(async (_args?: { where?: { userId?: string } }) => []);

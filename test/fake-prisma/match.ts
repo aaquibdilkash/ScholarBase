@@ -21,6 +21,7 @@ const OPERATORS = new Set([
   "contains",
   "startsWith",
   "endsWith",
+  "not",
 ])
 
 export type Row = Record<string, unknown>
@@ -44,6 +45,11 @@ function applyOperator(op: string, value: unknown, condition: unknown): boolean 
       return Array.isArray(condition) && condition.some((entry) => equals(value, entry))
     case "notIn":
       return Array.isArray(condition) && !condition.some((entry) => equals(value, entry))
+    // Scalar negation. `isHandleAvailable` uses `{ id: { not: <me> } }` so a user
+    // keeping their own handle is not reported as taken; without this the fake
+    // threw "unsupported nested filter" and the action could not be tested.
+    case "not":
+      return !equals(value, condition)
     case "lt":
     case "lte":
     case "gt":

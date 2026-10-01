@@ -21,7 +21,7 @@ import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 import type { SentMessage } from "./MessageInputForm";
-import { useMessagesLayout } from "@/app/messages/messages-context";
+
 
 interface MessageItemProps {
   message: SentMessage;
@@ -95,7 +95,6 @@ export const MessageItem = React.memo(
     const isRead = new Date(message.createdAt) <= otherParticipantLastReadAt;
     const isDeleted = Boolean(message.isDeleted);
     const timeLabel = useTimeAgo(message.createdAt);
-    const { isSidebarOpen } = useMessagesLayout();
 
     const [menuOpen, setMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
@@ -104,7 +103,8 @@ export const MessageItem = React.memo(
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const quote = message.replyTo;
+    // The quoted message is read straight off `message.replyTo` wherever it is
+    // rendered, so there is no local alias to keep in sync.
     // WhatsApp-style: emoji-only messages skip the bubble — no background to
     // wash the yellow glyphs out — and render at 2x size instead.
     const emojiOnly = React.useMemo(

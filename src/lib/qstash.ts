@@ -14,8 +14,31 @@ const notificationFields = {
   body: z.string().min(1).max(2000),
 };
 
+/**
+ * Fan-out resumption cursor.
+ *
+ * QStash is configured with `retries: 3`, so a fan-out handler can be invoked
+ * more than once for the same logical notification. The cursor therefore has to
+ * travel *in the payload* rather than live in a local variable: a local cursor
+ * is reset to `undefined` on every invocation, which makes a retry restart the
+ * walk from the first follower and re-notify everyone already processed.
+ *
+ * Matches the `(followerId, followingId)` ordering Prisma uses as the
+ * `Follows` primary key.
+ */
+const fanOutCursorSchema = z
+  .object({
+    followerId: z.string().min(1),
+    followingId: z.string().min(1),
+  })
+  .optional();
+
 export const notificationPayloadSchema = z.union([
-  z.object({ mode: z.literal("FAN_OUT"), ...notificationFields }),
+  z.object({
+    mode: z.literal("FAN_OUT"),
+    cursor: fanOutCursorSchema,
+    ...notificationFields,
+  }),
   z.object({ mode: z.literal("TARGETED"), recipientId: z.string().min(1), ...notificationFields }),
 ]);
 

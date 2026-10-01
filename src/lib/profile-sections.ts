@@ -34,6 +34,11 @@ import { Prisma, VoteType } from "@prisma/client";
 import prisma from "@/lib/db";
 import type { ProfileSection } from "@/lib/module-registry";
 import { dateKeysForModel } from "@/lib/tri-split/dates";
+import {
+  stitchLiveState,
+  type LiveOverlay,
+  type StitchOptions,
+} from "@/lib/tri-split/stitch";
 import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
 
 /** Section key -> `ENTITY_CONFIG` module. Checked for completeness by a test. */
@@ -612,11 +617,39 @@ export async function fetchProfileSectionsOverlay(
 }
 
 /**
+ * Fold rules for a profile-section row.
+ *
+ * Profile sections are heterogeneous — one row table per tab — so the row's own
+ * `authorId` is used rather than a derived module FK. The section payload is
+ * already fully revived (`fetchProfileSectionsOverlay` returns real `Date`s), so
+ * `rehydrate` is the identity.
+ */
+const SECTION_STITCH_OPTIONS: StitchOptions<
+  ProfileSectionRow,
+  ProfileSectionRow
+> = {
+  getRowId: (row) => String(row.id),
+  getAuthorId: (row) => (typeof row.authorId === "string" ? row.authorId : ""),
+  // Profile section counters come from the single `UNION ALL` statement, so
+  // there is nothing to overlay. Vote state is still never read from the cache.
+  counterKeys: [],
+  rehydrate: (row) => ({ ...row }) as unknown as Record<string, unknown>,
+};
+
+/**
  * Folds viewer state into a page of section rows.
  *
- * Mirrors `stitchLiveState` for the Tri-Split lists: the cached half supplies
- * the rows, the overlay supplies everything identity-bearing, and a stale cache
- * can therefore never revert a vote, a bookmark or a follow button.
+ * Delegates to the shared `stitchLiveState` — the same fold the Tri-Split list
+ * pages use — so the identity contract has exactly ONE implementation: the
+ * cached half supplies the rows, the overlay supplies everything
+ * identity-bearing, and a stale cache can never revert a vote, a bookmark or a
+ * follow button. This function used to re-implement that fold inline, which
+ * meant any bug fixed in the list path (e.g. emitting empty arrays instead of
+ * `undefined` for signed-out viewers) silently skipped the profile tabs.
+ *
+ * The only difference from a list page is the *shape*: rows arrive grouped by
+ * section, so the per-section Maps are adapted to `stitchLiveState`'s flat
+ * overlay. That adaptation is O(rows) either way.
  *
  * Pure, so it is unit-testable without a database.
  */
@@ -626,33 +659,32 @@ export function applySectionsOverlay(
   viewerId: string | null,
 ): ProfileSectionsPayload {
   const out = {} as Record<Section, ProfileSectionRow[]>;
+  const following = [...overlay.following];
 
   for (const section of SECTIONS) {
     const votesByRow = overlay.votes.get(section);
     const bookmarksByRow = overlay.bookmarks.get(section);
 
-    out[section] = (sections[section] ?? []).map((row) => {
-      const id = String(row.id);
-      const voteType = votesByRow?.get(id);
-      const bookmarkId = bookmarksByRow?.get(id);
-      const authorId = row.authorId;
-      const isFollowing =
-        viewerId != null &&
-        typeof authorId === "string" &&
-        overlay.following.has(authorId);
+    const liveOverlay: LiveOverlay = {
+      viewerId,
+      votes: votesByRow
+        ? [...votesByRow].map(([rowId, voteType]) => ({ id: rowId, voteType }))
+        : [],
+      bookmarks: bookmarksByRow
+        ? [...bookmarksByRow].map(([rowId, bookmarkId]) => ({
+            id: bookmarkId,
+            rowId,
+          }))
+        : [],
+      following,
+      counters: [],
+    };
 
-      return {
-        ...row,
-        votes: voteType ? [{ voteType }] : [],
-        bookmarks: bookmarkId ? [{ id: bookmarkId }] : [],
-        author: {
-          ...(row.author as Record<string, unknown> | undefined),
-          followers: isFollowing && viewerId != null
-            ? [{ followerId: viewerId }]
-            : [],
-        },
-      };
-    });
+    out[section] = stitchLiveState(
+      sections[section] ?? [],
+      liveOverlay,
+      SECTION_STITCH_OPTIONS,
+    );
   }
 
   return out as ProfileSectionsPayload;

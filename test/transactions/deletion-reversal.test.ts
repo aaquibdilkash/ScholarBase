@@ -44,8 +44,6 @@ vi.mock("@/lib/auth", () => ({
 }))
 
 // Mock revalidations
-vi.mock("@/lib/tri-split/modules/feed", () => ({ revalidatePublicFeed: vi.fn() }))
-vi.mock("@/lib/tri-split/modules/article", () => ({ revalidateArticles: vi.fn() }))
 vi.mock("@/lib/tri-split/modules/registry", () => ({ revalidateContent: vi.fn() }))
 vi.mock("@/lib/tri-split/modules/survey", () => ({ revalidateSurvey: vi.fn() }))
 vi.mock("@/lib/rate-limit", () => ({

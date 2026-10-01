@@ -34,26 +34,25 @@ export function FollowerCount({
         {followingCount} following
       </button>
 
-      {modalMode === "followers" && (
-        <UserListModal
-          open={true}
-          onClose={() => setModalMode(null)}
-          title="Followers"
-          userId={profileId}
-          mode="followers"
-          currentUserId={currentUserId}
-        />
-      )}
-      {modalMode === "following" && (
-        <UserListModal
-          open={true}
-          onClose={() => setModalMode(null)}
-          title="Following"
-          userId={profileId}
-          mode="following"
-          currentUserId={currentUserId}
-        />
-      )}
+      {/*
+        Mounted unconditionally and driven by `open`, NOT rendered
+        conditionally.
+
+        `AppendMoreList` fetches page 1 only when `reloadToken` *changes*. A
+        conditionally-mounted copy would come into existence already holding
+        `"<id>:<mode>"`, the change-check would see no change, and the list would
+        render empty forever with nothing to scroll. Keeping it mounted means
+        the token goes null -> "<id>:<mode>" on open, which is what actually
+        kicks off the fetch.
+      */}
+      <UserListModal
+        open={modalMode !== null}
+        onClose={() => setModalMode(null)}
+        title={modalMode === "following" ? "Following" : "Followers"}
+        userId={profileId}
+        mode={modalMode ?? "followers"}
+        currentUserId={currentUserId}
+      />
     </>
   );
 }

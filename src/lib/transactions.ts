@@ -722,7 +722,13 @@ export async function createCommentTransaction(
       id: (createdComment as any).id,
       content,
       authorId,
-      parentId,
+      // Normalised to `null`, never `undefined`: Prisma stores NULL for a root
+      // comment, every comment the client already holds has `parentId: null`,
+      // and the delete path compares `comment.parentId === null`. Returning the
+      // raw optional here made a just-posted root comment the one comment in the
+      // list carrying `undefined`, so any `parentId === null` filter would drop
+      // it until the next refetch.
+      parentId: parentId ?? null,
       [config.parentFk]: entityId,
       createdAt: (createdComment as any).createdAt,
       totalVotes: 0,

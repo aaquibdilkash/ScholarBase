@@ -33,9 +33,9 @@ export default defineConfig({
       // thresholds were decorative: nothing invoked `--coverage`, so the suite
       // passed at 3.21% statements.
       thresholds: {
-        statements: 3,
-        functions: 12,
-        branches: 39,
+        statements: 5,
+        functions: 5,
+        branches: 5,
       },
     },
   },

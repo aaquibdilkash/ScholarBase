@@ -65,7 +65,8 @@ export type PublicSocialPost = Prisma.SocialPostGetPayload<{
  *
  * `unstable_cache` stores results with `JSON.stringify`, so `Date` fields come
  * back as ISO strings. Modelling that explicitly (instead of asserting dates)
- * keeps the rehydration in `feed-stitch.ts` honest and testable.
+ * keeps the shared rehydration (`reviveDates` in `@/lib/tri-split/cache`) honest
+ * and testable.
  */
 export type CachedPublicSocialPost = Omit<
   PublicSocialPost,

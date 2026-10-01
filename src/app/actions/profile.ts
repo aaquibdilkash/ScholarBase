@@ -10,7 +10,7 @@ import {
   promoteDraftCloudinaryAsset,
 } from "@/lib/cloudinary";
 import { MAX_PROFILE_BIO } from "@/lib/constants";
-import { revalidateScholars } from "@/lib/tri-split/modules/scholar";
+import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import {
   loadProfileActivity,
   loadProfileBookmarkTab,
@@ -374,7 +374,16 @@ export async function updateProfile(formData: FormData) {
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      handle: newHandle !== null ? normalizeHandle(newHandle) : user.handle,
+      // A handle is IDENTITY, and the edit form always submits the field, so a
+      // blank input arrives as `""` (not `null`). Treating that like `null` and
+      // passing it through `normalizeHandle` — which maps `""` to `null` — wrote
+      // `handle: null`, silently destroying the user's @handle and breaking the
+      // directory row plus every link that resolves it. Blank therefore means
+      // "leave it alone", exactly like an absent field.
+      handle:
+        newHandle !== null && newHandle !== ""
+          ? normalizeHandle(newHandle) ?? user.handle
+          : user.handle,
       name: newName !== null ? newName : user.name,
       bio: newBio !== null ? newBio : user.bio,
       avatarUrl: finalAvatarUrl,
@@ -389,7 +398,7 @@ export async function updateProfile(formData: FormData) {
   // profile edit must be visible there at once rather than after the TTL. The
   // edit also changes the author block embedded in the author's own cached
   // content, so their Content tab goes with it.
-  revalidateScholars(user.id);
+  revalidateContent("SCHOLAR_DIRECTORY", user.id);
 
   return {
     success: true,

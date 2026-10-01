@@ -8,8 +8,11 @@ import { PostContent } from "@/components/feed/PostContent";
 import { FeedImage } from "@/components/feed/FeedImage";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
-import { deleteSocialPost, getPost } from "@/app/actions/feed";
-import { getPostMetadata } from "@/lib/tri-split/modules/feed";
+import {
+  deleteSocialPost,
+  getPost,
+  getPostMetadata,
+} from "@/app/actions/feed";
 import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 

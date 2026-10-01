@@ -75,6 +75,35 @@ export function serializeDates<TRow>(
 }
 
 /**
+ * The exact inverse of {@link serializeDates}, derived from the same
+ * `dateKeys` list so the two can never disagree.
+ *
+ * This is what every list's `rehydrate` uses. The feed used to hand-roll its
+ * own version listing `createdAt`/`updatedAt`/`editedAt` literally, which is
+ * the same class of drift `dates.ts` exists to prevent: add a date column to the
+ * projection and the hand-rolled list silently leaves an ISO string in a field
+ * a card calls `.getTime()` on.
+ *
+ * Only ISO strings are converted, so a `null` (a never-edited `editedAt`)
+ * survives as `null` rather than becoming an epoch date.
+ */
+export function reviveDates<TRow>(
+  row: TRow,
+  dateKeys: readonly string[],
+): TRow {
+  if (dateKeys.length === 0) return row;
+  const record = row as Record<string, unknown>;
+  let out: Record<string, unknown> | null = null;
+  for (const key of dateKeys) {
+    const value = record[key];
+    if (typeof value !== "string") continue;
+    out ??= { ...record };
+    out[key] = new Date(value);
+  }
+  return (out ?? record) as TRow;
+}
+
+/**
  * Wraps a viewer-agnostic page loader in the shared cache policy.
  *
  * `keyParts` MUST include every input that changes the result (module tag,

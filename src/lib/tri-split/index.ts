@@ -18,6 +18,7 @@ export {
   LIST_REVALIDATE_SECONDS,
   normalizePageSize,
   serializeDates,
+  reviveDates,
   createCachedPage,
 } from "./cache";
 

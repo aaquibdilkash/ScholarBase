@@ -11,8 +11,10 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
+import { isSearchableQuery } from "@/lib/search-guard";
+import { allowSearchRequest } from "@/lib/search-rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import type {
@@ -342,7 +344,13 @@ export async function searchJournalsForPicker(
   limit = 6,
 ): Promise<JournalPickerResult[]> {
   const term = query.trim();
-  if (term.length < 2) return [];
+  // P0-3: shared floor (3), not a local 2 — this is a raw-SQL trigram search,
+  // the most expensive query shape on the free tier, so it must not be easier
+  // to spam than the feed search.
+  if (!isSearchableQuery(term)) return [];
+  if (!(await allowSearchRequest("picker:journal", (await getCurrentUser())?.id))) {
+    return [];
+  }
 
   const safeLimit = Math.min(10, Math.max(1, Math.floor(limit)));
   try {

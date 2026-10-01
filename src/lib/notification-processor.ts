@@ -1,7 +1,19 @@
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { getModuleNoun } from "@/lib/notification-links";
-import type { NotificationPayload } from "@/lib/qstash";
+import { queueNotification, type NotificationPayload } from "@/lib/qstash";
+
+/**
+ * Fan-out work bounds (P2-1).
+ *
+ * `FAN_OUT_CHUNK_SIZE` is how many followers one `findMany` pulls;
+ * `MAX_FAN_OUT_CHUNKS` caps how many chunks a single invocation may process
+ * before it re-enqueues the remainder. 4 x 500 = 2000 recipients per
+ * invocation, which stays comfortably inside a serverless timeout while still
+ * fanning out to a very large following in a handful of messages.
+ */
+const FAN_OUT_CHUNK_SIZE = 500;
+const MAX_FAN_OUT_CHUNKS = 4;
 
 const ROLLUP_TYPES = new Set([
   "NEW_COMMENT",
@@ -113,22 +125,30 @@ export async function processNotificationPayload(payload: NotificationPayload) {
   }
 
   if (payload.mode === "FAN_OUT") {
-    const chunkSize = 500;
+    // Bounded work per invocation (RULE 3 / Vercel timeouts): walk at most
+    // FAN_OUT_CHUNK_SIZE * MAX_CHUNKS_PER_INVOCATION followers, then hand the
+    // remainder to a fresh message that carries its own cursor.
+    let cursor: { followerId: string; followingId: string } | undefined =
+      payload.cursor;
     let processed = 0;
-    let cursor: { followerId: string; followingId: string } | undefined;
+    let chunks = 0;
+    let exhausted = false;
 
-    while (true) {
+    while (chunks < MAX_FAN_OUT_CHUNKS) {
       const followers = await prisma.follows.findMany({
         where: { followingId: payload.actorId },
         select: { followerId: true, followingId: true },
         orderBy: [{ followerId: "asc" }, { followingId: "asc" }],
-        take: chunkSize,
+        take: FAN_OUT_CHUNK_SIZE,
         ...(cursor
           ? { cursor: { followerId_followingId: cursor }, skip: 1 }
           : {}),
       });
 
-      if (followers.length === 0) break;
+      if (followers.length === 0) {
+        exhausted = true;
+        break;
+      }
 
       const data = followers
         .filter(({ followerId }) => followerId !== payload.actorId)
@@ -144,16 +164,38 @@ export async function processNotificationPayload(payload: NotificationPayload) {
         }));
 
       if (data.length > 0) {
-        await prisma.notification.createMany({ data });
+        // P2-1 idempotency, part 2 of 2. The partial unique index
+        // `Notification_unread_dedupe_key` (migration
+        // 20260930120000) guarantees one unread row per
+        // (recipientId, targetId, type), so `skipDuplicates` turns a replayed
+        // or overlapping chunk into a no-op instead of a second notification.
+        // Without it this insert is the line that produced duplicates.
+        await prisma.notification.createMany({ data, skipDuplicates: true });
         processed += data.length;
       }
 
-      if (followers.length < chunkSize) break;
+      chunks += 1;
+
+      if (followers.length < FAN_OUT_CHUNK_SIZE) {
+        exhausted = true;
+        break;
+      }
+
       const lastFollower = followers[followers.length - 1];
       cursor = {
         followerId: lastFollower.followerId,
         followingId: lastFollower.followingId,
       };
+    }
+
+    // Re-enqueue the tail with the cursor INSIDE the payload. This is what makes
+    // the fan-out resumable: a continuation restarts at the boundary instead of
+    // at follower #1, and a QStash retry of either message is idempotent thanks
+    // to the unique index above.
+    if (!exhausted && cursor) {
+      void queueNotification({ ...payload, cursor }).catch((error) => {
+        console.error("QStash fan-out continuation error:", error);
+      });
     }
 
     return { success: true, processed };

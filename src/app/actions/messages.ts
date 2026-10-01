@@ -1,6 +1,8 @@
 "use server";
 
 import prisma from "@/lib/db";
+import { isSearchableQuery } from "@/lib/search-guard";
+import { allowSearchRequest } from "@/lib/search-rate-limit";
 import { requireCurrentUser, requireActiveUser, getActiveUser } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { messageSelect } from "@/lib/message-select";
@@ -110,7 +112,11 @@ export async function searchInbox(userId: string, query: string, limit = 30) {
   if (currentUser.id !== userId) throw new Error("Not authorized.");
 
   const q = query.trim();
-  if (!q) return [];
+  // P0-3: same floor as every other search, and a throttle — this scans the
+  // caller's whole conversation list. Authenticated and self-scoped, so it is
+  // the lowest-risk search surface, but still unbounded.
+  if (!isSearchableQuery(q)) return [];
+  if (!(await allowSearchRequest("messages:inbox", currentUser.id))) return [];
 
   const conversations = await prisma.conversation.findMany({
     where: {

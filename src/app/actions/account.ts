@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { revalidateScholars } from "@/lib/tri-split/modules/scholar";
+import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import { requireActiveUser } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 
@@ -55,7 +55,7 @@ export async function deleteAccount(
   // A tombstoned scholar must vanish from the cached directory at once (RULE 3),
   // and from their own Content and Activity tabs, whose rows are soft-deleted
   // rows that would otherwise still be listed.
-  revalidateScholars(user.id);
+  revalidateContent("SCHOLAR_DIRECTORY", user.id);
 
   const supabase = await createClient();
   await supabase.auth.signOut();

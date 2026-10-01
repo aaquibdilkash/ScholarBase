@@ -17,10 +17,14 @@ import { describe, expect, it } from "vitest";
 import {
   PROFILE_SECTION_KEYS,
   SECTION_MODULE,
+  applySectionsOverlay,
   buildBookmarkSectionsSql,
   buildContentSectionsSql,
   buildSectionsOverlaySql,
   reviveSectionDates,
+  type ProfileSectionRow,
+  type ProfileSectionsOverlay,
+  type ProfileSectionsPayload,
 } from "@/lib/profile-sections";
 import { PROFILE_SECTION_CONFIG } from "@/lib/module-registry";
 import { ENTITY_CONFIG } from "@/lib/transactions";
@@ -353,5 +357,161 @@ describe("reviveSectionDates", () => {
       socialPosts: [],
     } as unknown as Parameters<typeof reviveSectionDates>[0];
     expect(() => reviveSectionDates(orphaned)).not.toThrow();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// The viewer-state fold itself.
+//
+// This had NO direct coverage: the rest of this file pins the generated SQL,
+// the visibility rules and the date revival, while `tri-split/profile-tab`
+// *mocks* `applySectionsOverlay` away. So the one function that decides whether
+// a cached profile row may be trusted with vote / bookmark / follow state was
+// entirely untested.
+//
+// It also used to re-implement the fold inline ("Mirrors `stitchLiveState`"),
+// which meant a fix in the list path never reached the profile tabs. These
+// tests pin the shared contract so that cannot regress.
+// ─────────────────────────────────────────────────────────────
+
+const emptyPayload = (): ProfileSectionsPayload => {
+  const out = {} as ProfileSectionsPayload;
+  for (const key of PROFILE_SECTION_KEYS) (out as Record<string, unknown[]>)[key] = [];
+  return out;
+};
+
+const row = (
+  id: string,
+  authorId: string | null = "author-1",
+): ProfileSectionRow => ({
+  id,
+  authorId,
+  title: `title-${id}`,
+  author: { id: authorId ?? "", name: "Scholar", handle: "scholar" },
+});
+
+/**
+ * A payload holding `rows` in one section and nothing elsewhere.
+ *
+ * The cast is deliberate: `ProfileSectionsPayload` pins each section to its
+ * exact Prisma payload type, and these fixtures deliberately carry only the
+ * fields this test cares about. What is being asserted is the FOLD's contract
+ * (identity state never comes from the cached half), not each section's column
+ * list — that is already pinned against the live DMMF earlier in this file.
+ */
+const payloadWith = (
+  section: string,
+  rows: ProfileSectionRow[],
+): ProfileSectionsPayload => {
+  const out = emptyPayload();
+  (out as unknown as Record<string, ProfileSectionRow[]>)[section] = rows;
+  return out;
+};
+
+const overlayOf = (
+  partial: Partial<ProfileSectionsOverlay> = {},
+): ProfileSectionsOverlay => ({
+  votes: new Map(),
+  bookmarks: new Map(),
+  following: new Set(),
+  ...partial,
+});
+
+describe("applySectionsOverlay", () => {
+  it("overlays a vote and a bookmark onto the right row only", () => {
+    const sections = payloadWith("articles", [row("a1"), row("a2")]);
+    const overlay = overlayOf({
+      votes: new Map([["articles", new Map([["a2", "UPVOTE"]])]]),
+      bookmarks: new Map([["articles", new Map([["a1", "bm-1"]])]]),
+    });
+
+    const [first, second] = applySectionsOverlay(
+      sections,
+      overlay,
+      "viewer-1",
+    ).articles;
+
+    expect(first.votes).toEqual([]);
+    expect(first.bookmarks).toEqual([{ id: "bm-1" }]);
+    expect(second.votes).toEqual([{ voteType: "UPVOTE" }]);
+    expect(second.bookmarks).toEqual([]);
+  });
+
+  it("emits empty arrays, never undefined, for a signed-out viewer", () => {
+    // RULE 1: cards render `row.bookmarks.length`, so a missing key would throw
+    // at render time on every anonymous profile view.
+    //
+    // The signed-out guarantee is upstream of the fold: `getLiveOverlay` returns
+    // counters only when `viewerId` is null (the `!viewerId` branch in
+    // tri-split/overlay.ts), so an anonymous viewer's overlay is empty by
+    // construction. Assert that real shape rather than a null viewer alongside
+    // a populated overlay, which the database can never produce.
+    const sections = payloadWith("articles", [row("a1")]);
+
+    const [only] = applySectionsOverlay(sections, overlayOf(), null).articles;
+    expect(only.votes).toEqual([]);
+    expect(only.bookmarks).toEqual([]);
+    expect((only.author as { followers: unknown[] }).followers).toEqual([]);
+  });
+
+  it("never lets a stale cached row supply identity-bearing state", () => {
+    // The cached half is shared by every visitor, so it must never contain a
+    // vote/bookmark/follower even if one somehow got in there.
+    const sections = payloadWith("articles", [
+      {
+        ...row("a1"),
+        votes: [{ voteType: "DOWNVOTE" }],
+        bookmarks: [{ id: "stale-bm" }],
+        author: { id: "author-1", followers: [{ followerId: "someone" }] },
+      },
+    ]);
+
+    const [only] = applySectionsOverlay(
+      sections,
+      overlayOf(),
+      "viewer-1",
+    ).articles;
+    expect(only.votes).toEqual([]);
+    expect(only.bookmarks).toEqual([]);
+    expect((only.author as { followers: unknown[] }).followers).toEqual([]);
+  });
+
+  it("resolves follow state against the row's own author", () => {
+    const sections = payloadWith("articles", [
+      row("a1", "author-1"),
+      row("a2", "author-2"),
+    ]);
+    const overlay = overlayOf({ following: new Set(["author-2"]) });
+
+    const [first, second] = applySectionsOverlay(
+      sections,
+      overlay,
+      "viewer-1",
+    ).articles;
+    expect((first.author as { followers: unknown[] }).followers).toEqual([]);
+    expect((second.author as { followers: unknown[] }).followers).toEqual([
+      { followerId: "viewer-1" },
+    ]);
+  });
+
+  it("does not mutate the cached rows it is given", () => {
+    const cached = row("a1");
+    const sections = payloadWith("articles", [cached]);
+    const overlay = overlayOf({
+      votes: new Map([["articles", new Map([["a1", "UPVOTE"]])]]),
+      following: new Set(["author-1"]),
+    });
+
+    applySectionsOverlay(sections, overlay, "viewer-1");
+    expect(cached.votes).toBeUndefined();
+    expect(cached.bookmarks).toBeUndefined();
+    expect(
+      Object.prototype.hasOwnProperty.call(cached.author, "followers"),
+    ).toBe(false);
+  });
+
+  it("returns an empty row list for every section when there are no rows", () => {
+    const out = applySectionsOverlay(emptyPayload(), overlayOf(), "viewer-1");
+    for (const key of PROFILE_SECTION_KEYS) expect(out[key]).toEqual([]);
   });
 });

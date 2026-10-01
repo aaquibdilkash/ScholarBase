@@ -1,7 +1,11 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { loadScholarsPage } from "@/lib/tri-split/modules/scholar";
+import { loadContentPage } from "@/lib/tri-split/modules/registry";
+import { getCurrentUser } from "@/lib/auth";
+import { isSearchableQuery } from "@/lib/search-guard";
+import { allowSearchRequest } from "@/lib/search-rate-limit";
+import type { Scholar } from "@/types/scholar";
 
 /**
  * Loads one page of the scholar directory for the *current* viewer.
@@ -10,8 +14,9 @@ import { loadScholarsPage } from "@/lib/tri-split/modules/scholar";
  * (This loader used to accept `currentUserId` from the browser, so any caller
  * could read any other user's follow relationships.)
  *
- * The cached batch + single-statement live overlay live in
- * `@/lib/tri-split/modules/scholar`.
+ * The cached batch + single-statement live overlay are configured under the
+ * `SCHOLAR_DIRECTORY` key in `@/lib/tri-split/modules/registry`, like every
+ * other listing page.
  */
 export async function getScholars(
   q?: string,
@@ -19,7 +24,16 @@ export async function getScholars(
   limit = 10,
   cursor?: string,
 ) {
-  return loadScholarsPage({ query: q, sort, pageSize: limit, cursor });
+  // `latest` and `reputation` sort by different indexed columns on `User`, so
+  // they are separate loaders with disjoint cache-key spaces. The variant index
+  // picks between them — it must never be derived from a shared key part, or a
+  // reputation-sorted request could be served latest-sorted rows.
+  return loadContentPage("SCHOLAR_DIRECTORY", {
+    query: q,
+    pageSize: limit,
+    cursor,
+    variant: sort === "reputation" ? 1 : 0,
+  }) as unknown as Promise<Scholar[]>;
 }
 
 export async function getScholarById(id: string) {
@@ -55,7 +69,12 @@ export async function searchScholarsForPicker(
   limit = 6,
 ): Promise<ScholarPickerResult[]> {
   const term = query.trim();
-  if (term.length < 2) return [];
+  // P0-3: shared floor (3), not a local 2 — raw-SQL trigram search over every
+  // user row, so it must not be easier to spam than the feed search.
+  if (!isSearchableQuery(term)) return [];
+  if (!(await allowSearchRequest("picker:scholar", (await getCurrentUser())?.id))) {
+    return [];
+  }
 
   const safeLimit = Math.min(10, Math.max(1, Math.floor(limit)));
   return prisma.$queryRaw<ScholarPickerResult[]>`

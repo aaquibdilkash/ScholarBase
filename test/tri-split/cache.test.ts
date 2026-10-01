@@ -6,8 +6,12 @@ import {
   LIST_PAGE_SIZE_MAX,
   LIST_REVALIDATE_SECONDS,
   normalizePageSize,
+  reviveDates,
   serializeDates,
 } from "@/lib/tri-split";
+
+/** The date columns the feed's registry config declares. */
+const FEED_DATES = ["createdAt", "updatedAt", "editedAt"] as const;
 
 describe("the client and server list caches expire together", () => {
   it("use the same TTL", () => {
@@ -92,5 +96,46 @@ describe("serializeDates", () => {
       ["createdAt", "editedAt"],
     );
     expect(out.editedAt).toBeNull();
+  });
+});
+
+describe("reviveDates", () => {
+  it("is the exact inverse of serializeDates", () => {
+    const row = {
+      id: "p1",
+      createdAt: new Date("2026-01-02T03:04:05.000Z"),
+      editedAt: new Date("2026-02-03T04:05:06.000Z"),
+    };
+    const roundTripped = reviveDates(serializeDates(row, FEED_DATES), FEED_DATES);
+    expect(roundTripped.createdAt).toBeInstanceOf(Date);
+    expect(roundTripped.createdAt.toISOString()).toBe(row.createdAt.toISOString());
+    expect(roundTripped.editedAt.toISOString()).toBe(row.editedAt.toISOString());
+  });
+
+  it("keeps a never-edited row's date as null instead of an epoch Date", () => {
+    // The bug a truthiness check would hide: `new Date(null)` is 1970, not null.
+    const out = reviveDates(
+      { id: "p1", createdAt: "2026-01-02T03:04:05.000Z", editedAt: null },
+      FEED_DATES,
+    );
+    expect(out.editedAt).toBeNull();
+    expect(out.createdAt).toBeInstanceOf(Date);
+  });
+
+  it("leaves absent keys absent rather than stamping them null", () => {
+    const out = reviveDates({ id: "p1", createdAt: "2026-01-02T03:04:05.000Z" }, FEED_DATES);
+    expect(Object.prototype.hasOwnProperty.call(out, "editedAt")).toBe(false);
+    expect(Object.keys(out).sort()).toEqual(["createdAt", "id"]);
+  });
+
+  it("does not mutate the input row", () => {
+    const input = { id: "p1", createdAt: "2026-01-02T03:04:05.000Z" };
+    reviveDates(input, FEED_DATES);
+    expect(input.createdAt).toBe("2026-01-02T03:04:05.000Z");
+  });
+
+  it("leaves the row untouched when no date keys are declared", () => {
+    const row = { id: "p1", createdAt: "2026-01-02T03:04:05.000Z" };
+    expect(reviveDates(row, [])).toBe(row);
   });
 });

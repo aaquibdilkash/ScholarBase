@@ -39,8 +39,8 @@ vi.mock("@/lib/auth", () => ({
   isUserAdmin: vi.fn(async () => true),
 }));
 
-vi.mock("@/lib/tri-split/modules/feed", () => ({
-  revalidatePublicFeed: vi.fn(),
+vi.mock("@/lib/tri-split/modules/registry", () => ({
+  revalidateContent: vi.fn(),
 }));
 vi.mock("@/lib/qstash", () => ({
   queueNotification: vi.fn(async () => {}),

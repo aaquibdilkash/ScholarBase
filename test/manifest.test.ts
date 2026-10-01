@@ -84,6 +84,10 @@ function norm(value: string): string {
  * anonymous-content counter skipping, and no double-charge / no rep-farming) is
  * now covered by `test/transactions/admin-moderation.test.ts`, with the map
  * key-sets guarded by `test/security/admin-moderation-maps.test.ts`.
+ *
+ * Pruned 2026-09-30: `messages` and `scholars` — both are now imported by
+ * `test/security/search-surfaces.test.ts`, which asserts the P0-3 search
+ * throttle reaches the inbox search and the scholar picker.
  */
 const PENDING_ACTION_TESTS = [
   "account",
@@ -93,20 +97,20 @@ const PENDING_ACTION_TESTS = [
   "auth",
   "bookmarks",
   "cloudinary",
-  "comments",
   "comments.clientWrappers",
   "contact",
-  "follow",
   "institution",
   "institution-verification",
-  "messages",
   "notifications",
-  "profile",
-  "scholars",
-  "votes",
 ]
 
-const PENDING_TRISPLIT_TESTS = ["article", "feed"]
+/**
+ * `article.ts` and `feed.ts` used to sit here. Both were deleted when every
+ * listing moved into the single `registry.ts` — see the ARCH consolidation in
+ * `docs/security-scale-checklist.md` — so the baseline is empty rather than
+ * pointing at files that no longer exist.
+ */
+const PENDING_TRISPLIT_TESTS: string[] = []
 
 describe("test manifest: nothing new ships untested", () => {
   const actionFiles = walk(
@@ -146,6 +150,25 @@ describe("test manifest: nothing new ships untested", () => {
   it("the pending baseline holds no stale entries", () => {
     const stale = PENDING_ACTION_TESTS.filter((name) => isCovered(name, `app/actions/${name}`))
     expect(stale, "these are now tested; remove them from the baseline").toEqual([])
+  })
+
+  it("the tri-split pending baseline holds no stale entries", () => {
+    // Added after `article.ts` / `feed.ts` were deleted: the action baseline had
+    // a staleness check but this one did not, so it kept naming files that no
+    // longer existed and nobody noticed.
+    const stale = PENDING_TRISPLIT_TESTS.filter((name) =>
+      isCovered(name, `tri-split/modules/${name}`),
+    )
+    expect(stale, "these are now tested; remove them from the baseline").toEqual([])
+  })
+
+  it("the tri-split pending baseline has no typos", () => {
+    const known = new Set(triSplitModules)
+    const unknown = PENDING_TRISPLIT_TESTS.filter((name) => !known.has(name))
+    expect(
+      unknown,
+      "these tri-split modules do not exist — delete them from the baseline",
+    ).toEqual([])
   })
 
   it("the pending baseline has no typos", () => {

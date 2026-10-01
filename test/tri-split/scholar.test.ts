@@ -4,7 +4,7 @@ import { stitchLiveState, type LiveOverlay } from "@/lib/tri-split";
 import {
   SCHOLAR_SORT_KEY_PARTS,
   SCHOLAR_STITCH_OPTIONS,
-} from "@/lib/tri-split/modules/scholar";
+} from "@/lib/tri-split/modules/registry";
 
 type ScholarRow = {
   id: string;

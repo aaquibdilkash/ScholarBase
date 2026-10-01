@@ -10,7 +10,7 @@ import type {
   ModerationAction,
 } from "@/types/reports";
 import { MAX_REPORT_DETAILS } from "@/lib/constants";
-import { revalidatePublicFeed } from "@/lib/tri-split/modules/feed";
+import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import { Prisma } from "@prisma/client";
 import { queueNotification } from "@/lib/qstash";
 
@@ -1198,7 +1198,7 @@ export async function moderateContent(
   // `moderatedAuthorId` is the author whose profile tab changed — not the
   // moderator's, who is a different scholar in every normal case.
   if (contentType === "SOCIAL_FEED" || contentType === "feed") {
-    revalidatePublicFeed(moderatedAuthorId);
+    revalidateContent("FEED", moderatedAuthorId);
   }
 
   return result;

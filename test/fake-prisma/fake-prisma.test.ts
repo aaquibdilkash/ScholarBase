@@ -34,6 +34,20 @@ describe("fake-prisma: where matching", () => {
     expect(matchWhere(row, { NOT: [{ id: "a" }] })).toBe(false)
   })
 
+  it("supports scalar `not`, which excludes self-lookups", () => {
+    // Added for `isHandleAvailable`, which asks for `{ id: { not: <me> } }` so a
+    // user keeping their own handle is not told it is taken.
+    const row = { id: "u-author", handle: "ada" }
+    expect(matchWhere(row, { id: { not: "u-author" } })).toBe(false)
+    expect(matchWhere(row, { id: { not: "u-other" } })).toBe(true)
+    // `not` composes with another operator on the same field, as Prisma allows.
+    expect(matchWhere(row, { handle: { not: "ada", equals: "ada" } })).toBe(false)
+    // Known limitation: the fake cannot tell a scalar column from a relation, so
+    // `{ author: { not: "x" } }` evaluates instead of throwing, which real Prisma
+    // rejects. Only `not` is affected, and no production query uses it on a
+    // relation. Relation filters built from real columns still throw above.
+  })
+
   it("throws on a filter it cannot honour instead of matching nothing", () => {
     expect(() => matchWhere({ id: "a" }, { author: { reputation: { gt: 1 } } })).toThrow(/relation filters/)
     expect(() => matchWhere({ id: "a" }, { id: { bogus: 1 } })).toThrow(/unsupported nested filter/)
