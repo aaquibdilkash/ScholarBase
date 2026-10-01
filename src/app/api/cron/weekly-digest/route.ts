@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { verifyCronSecret } from "@/lib/cron";
-import { runDigest } from "@/lib/emails/digest";
 
 export async function GET() {
   if (!(await verifyCronSecret())) {
@@ -8,12 +7,16 @@ export async function GET() {
   }
 
   try {
-    const result = await runDigest("WEEKLY");
-    return NextResponse.json({ success: true, ...result });
+    // Kick off the first chunk only; the worker drains the rest via QStash, so
+    // this invocation stays inside the function timeout regardless of how many
+    // subscribers there are.
+    const { kickoffDigest } = await import("@/lib/emails/digest");
+    await kickoffDigest("WEEKLY");
+    return NextResponse.json({ success: true, kickedOff: "WEEKLY" });
   } catch (error) {
     console.error("[cron/weekly-digest]", error);
     return NextResponse.json(
-      { success: false, error: "Weekly digest failed" },
+      { success: false, error: "Weekly digest kickoff failed" },
       { status: 500 }
     );
   }

@@ -26,12 +26,62 @@ function clone<T>(value: T): T {
   return value === undefined ? value : (structuredClone(value) as T)
 }
 
+/**
+ * Applies a Prisma `select` to a row.
+ *
+ * Handles two shapes:
+ *   - scalars (`{ id: true }`), and
+ *   - a NESTED RELATION already materialised on the row
+ *     (`{ notificationsReceived: { where, orderBy, take, select } }`).
+ *
+ * The nested case reads the array straight off the parent row, so a fixture must
+ * embed its children (`userRow({ notificationsReceived: [...] })`). It is not a
+ * relation resolver: nothing wires models together by foreign key. That is a
+ * deliberate limit, but without it the digest worker's whole selection
+ * predicate (`notificationsReceived: { some: { isEmailed: false } }`) could not
+ * be unit tested at all.
+ */
 function project(row: Row, select: unknown): Row {
   if (!select) return clone(row)
   if (typeof select !== "object") throw new Error("fake-prisma: `select` must be an object")
   const out: Row = {}
   for (const [key, on] of Object.entries(select as Record<string, unknown>)) {
-    if (on === true && key in row) out[key] = clone(row[key])
+    if (on === true) {
+      if (key in row) out[key] = clone(row[key])
+      continue
+    }
+    if (!Array.isArray(row[key]) || typeof on !== "object" || on === null) continue
+
+    const spec = on as {
+      where?: unknown
+      orderBy?: Record<string, "asc" | "desc"> | Record<string, "asc" | "desc">[]
+      take?: number
+      select?: unknown
+    }
+
+    let items = row[key] as Row[]
+    if (spec.where) items = items.filter((element) => matchWhere(element, spec.where))
+
+    const orders = spec.orderBy
+      ? Array.isArray(spec.orderBy) ? spec.orderBy : [spec.orderBy]
+      : []
+    for (const order of orders.reverse()) {
+      const [field, direction] = Object.entries(order)[0] ?? []
+      if (!field) continue
+      const factor = direction === "desc" ? -1 : 1
+      items = [...items].sort((a, b) => {
+        const left = a[field]
+        const right = b[field]
+        if (left === right) return 0
+        if (left instanceof Date && right instanceof Date) {
+          return (left.getTime() - right.getTime()) * factor
+        }
+        return ((left as never) > (right as never) ? 1 : -1) * factor
+      })
+    }
+
+    if (typeof spec.take === "number") items = items.slice(0, spec.take)
+    out[key] = spec.select ? items.map((element) => project(element, spec.select)) : clone(items)
   }
   return out
 }

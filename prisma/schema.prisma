@@ -1147,7 +1147,18 @@ model User {
   resultCommentVotes ResultCommentVote[]
 
   // Digest email frequency control (Notification Digest system)
-  digestPreference DigestPreference @default(DAILY)
+  //
+  // Default is NEVER (opt-IN), deliberately. This was DAILY, which meant every
+  // account was silently enrolled in a digest that the cron could not deliver:
+  // `runDigest` fetched every subscriber and emailed them one at a time, so it
+  // hit Vercel's function timeout and Resend's 100/day wall together. Opt-in
+  // makes the daily job's population something the user actually chose.
+  //
+  // The opt-IN surface is `/scholars/[id]/settings` (`DigestPreferenceForm` +
+  // `updateDigestPreference`). This default is only safe BECAUSE that exists: a
+  // user on NEVER receives no digest, therefore no preference link, therefore no
+  // way to discover the feature. Do not flip this without that form.
+  digestPreference DigestPreference @default(NEVER)
 
   notificationsReceived Notification[] @relation("NotificationRecipient")
   notificationsSent     Notification[] @relation("NotificationActor")

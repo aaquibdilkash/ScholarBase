@@ -33,6 +33,19 @@ const fanOutCursorSchema = z
   })
   .optional();
 
+/**
+ * Digest resumption cursor (P0-2).
+ *
+ * Same reasoning as `fanOutCursorSchema`, and it prevents the same failure: the
+ * cron used to fetch EVERY opted-in subscriber and email them one at a time in
+ * a single invocation, which dies on the serverless timeout long before the
+ * backlog clears. The cursor travels in the payload so a retry resumes at the
+ * boundary instead of restarting at user #1.
+ *
+ * Ordered by `User.id`, so the cursor is simply the last id processed.
+ */
+const digestCursorSchema = z.string().min(1).optional();
+
 export const notificationPayloadSchema = z.union([
   z.object({
     mode: z.literal("FAN_OUT"),
@@ -40,6 +53,13 @@ export const notificationPayloadSchema = z.union([
     ...notificationFields,
   }),
   z.object({ mode: z.literal("TARGETED"), recipientId: z.string().min(1), ...notificationFields }),
+  z.object({
+    mode: z.literal("DIGEST"),
+    /** Which cadence to run. `NEVER` is not runnable — nobody is subscribed. */
+    preference: z.enum(["DAILY", "WEEKLY"]),
+    /** Last `User.id` processed; the next chunk resumes strictly after it. */
+    afterUserId: digestCursorSchema,
+  }),
 ]);
 
 export type NotificationPayload = z.infer<typeof notificationPayloadSchema>;
@@ -75,6 +95,15 @@ export async function queueNotification(payload: NotificationPayload) {
     url: `${destination.toString().replace(/\/$/, "")}/api/jobs/process-notifications`,
     body: payload,
     retries: 3,
+    // QStash retries 3x, so the SAME logical chunk can arrive more than once.
+    // Keying the publish by chunk makes a retry a no-op at the queue rather than
+    // a second fan-out. Notifications already dedupe in the database via the
+    // partial unique index, so they need no queue-level key.
+    ...(payload.mode === "DIGEST"
+      ? {
+          deduplication: `digest-${payload.preference}-${payload.afterUserId ?? "start"}`,
+        }
+      : {}),
   });
 }
 

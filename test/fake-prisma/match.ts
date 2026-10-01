@@ -22,6 +22,7 @@ const OPERATORS = new Set([
   "startsWith",
   "endsWith",
   "not",
+  "some",
 ])
 
 export type Row = Record<string, unknown>
@@ -50,6 +51,14 @@ function applyOperator(op: string, value: unknown, condition: unknown): boolean 
     // threw "unsupported nested filter" and the action could not be tested.
     case "not":
       return !equals(value, condition)
+    // Relation existence: `{ notificationsReceived: { some: { isEmailed: false } } }`.
+    // The digest's whole selection predicate depends on this, so without it the
+    // P0-2 chunk worker could not be unit tested at all.
+    case "some":
+      return (
+        Array.isArray(value) &&
+        value.some((element) => matchWhere(element as Row, condition))
+      )
     case "lt":
     case "lte":
     case "gt":

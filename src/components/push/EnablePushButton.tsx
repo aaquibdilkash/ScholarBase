@@ -14,15 +14,23 @@ import { usePushNotifications } from "@/components/push/PushNotificationProvider
  */
 
 /**
- * `default` — labelled pill, for settings surfaces such as `/notifications`.
+ * `default` — labelled pill, for surfaces such as `/notifications`.
  * `compact` — icon-only at a fixed 2rem, so it lines up with the 2rem chevron
  *   it sits beside in the messages sidebar header.
  * `navbar`  — icon-only, sized against the navbar's own density: dense on
  *   phones, roomier through the tablet range, full size from `md` up.
  * `menu`    — a dropdown row styled like the other `sb-menu-item` entries, for
  *   the mobile overflow menu where the navbar's icons are collapsed away.
+ * `settings` — a full-width row with its own label and explanation, for
+ *   `/scholars/[id]/settings`. Same provider state and same `toggle`, so the
+ *   navbar icon and this row can never disagree.
  */
-export type EnablePushButtonVariant = "default" | "compact" | "navbar" | "menu";
+export type EnablePushButtonVariant =
+  | "default"
+  | "compact"
+  | "navbar"
+  | "menu"
+  | "settings";
 
 export function EnablePushButton({
   variant = "default",
@@ -105,6 +113,49 @@ export function EnablePushButton({
         <span
           className={`ml-auto text-[11px] font-medium ${
             isEnabled ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"
+          }`}
+        >
+          {isWorking ? "Updating..." : isEnabled ? "On" : "Off"}
+        </span>
+      </button>
+    );
+  }
+
+  // Settings rows sit on their own line with the label on the left and the
+  // current state on the right, so this is a full-width row rather than a pill.
+  // `aria-pressed` is kept so this reads as a toggle to assistive tech, exactly
+  // like the navbar icon it stays in sync with.
+  if (variant === "settings") {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={isWorking}
+        aria-pressed={isEnabled}
+        className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+      >
+        <span
+          className={
+            isEnabled
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-500 dark:text-slate-400"
+          }
+        >
+          {renderIcon("h-5 w-5")}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Message alerts
+          </span>
+          <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+            Push notifications for new direct messages.
+          </span>
+        </span>
+        <span
+          className={`shrink-0 text-xs font-semibold ${
+            isEnabled
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-slate-400 dark:text-slate-500"
           }`}
         >
           {isWorking ? "Updating..." : isEnabled ? "On" : "Off"}

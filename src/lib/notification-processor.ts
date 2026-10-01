@@ -61,6 +61,21 @@ function formatRollupBody(
 }
 
 export async function processNotificationPayload(payload: NotificationPayload) {
+  // P0-2: the digest rides the same worker and the same QStash destination as
+  // notifications, so it inherits one schema, one retry policy and one DLQ
+  // rather than adding a parallel job route nobody remembers exists.
+  if (payload.mode === "DIGEST") {
+    const { sendDigestChunk } = await import("@/lib/emails/digest");
+    const result = await sendDigestChunk(payload.preference, payload.afterUserId);
+    return {
+      success: result.success,
+      processed: result.emailedUsers,
+      flaggedNotifications: result.flaggedNotifications,
+      exhausted: result.exhausted,
+      failedUsers: result.failedUsers,
+    };
+  }
+
   if (payload.mode === "TARGETED") {
     if (payload.actorId === payload.recipientId) {
       return { success: true, processed: 0 };
