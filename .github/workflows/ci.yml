@@ -34,14 +34,6 @@ jobs:
         run: npm run typecheck
 
       - name: Run unit tests with coverage
-        # The unit suite is DB-free by construction: test/setup.ts mocks
-        # `@/lib/db` and blocks non-loopback outbound fetches, so a test that
-        # reaches for production infrastructure fails loudly instead of
-        # consuming it. `--coverage` is what makes the ratchet in
-        # vitest.config.ts real — without the flag, thresholds are never read.
-        # These are mock credentials purely so Next's build-time env loading has
-        # something to read; the guards in test/security/env-guard.test.ts
-        # reject anything that looks like a live credential.
         run: npm run test:coverage
         env:
           DATABASE_URL: postgresql://localhost:5432/test
@@ -51,8 +43,8 @@ jobs:
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci
           RESEND_API_KEY: re_mock_api_key_for_ci
-          NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock_supabase_anon_key
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key-ci
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
       - name: Build application
@@ -65,8 +57,8 @@ jobs:
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci_build
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci_build
           RESEND_API_KEY: re_mock_api_key_for_ci_build
-          NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock_supabase_anon_key
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key-ci
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
   integration:

@@ -205,11 +205,15 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Password is too long." };
   }
 
+  const confirmUrl = new URL(`${baseUrl}/auth/callback`);
+  confirmUrl.searchParams.set("next", "/auth/confirmed");
+  confirmUrl.searchParams.set("type", "signup");
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${baseUrl}/auth/callback?next=/auth/confirmed`,
+      emailRedirectTo: confirmUrl.toString(),
     },
   });
 
@@ -292,9 +296,13 @@ export async function requestEmailChange(
   }
 
   const baseUrl = await getBaseUrl();
+  const confirmUrl = new URL(`${baseUrl}/auth/callback`);
+  confirmUrl.searchParams.set("next", "/auth/confirmed");
+  confirmUrl.searchParams.set("type", "email_change");
+
   const { error } = await supabase.auth.updateUser(
     { email: newEmail },
-    { emailRedirectTo: `${baseUrl}/auth/callback?next=/auth/confirmed` },
+    { emailRedirectTo: confirmUrl.toString() },
   );
 
   if (error) {
@@ -367,10 +375,12 @@ export async function forgotPassword(
   // Checking our local DB would leak information about registered emails
   // and could fail for users who exist in Supabase Auth but not yet in our DB.
 
-  const redirectTo = `${baseUrl}/auth/callback?next=/auth/update-password`;
+  const redirectUrl = new URL(`${baseUrl}/auth/callback`);
+  redirectUrl.searchParams.set("next", "/auth/update-password");
+  redirectUrl.searchParams.set("type", "recovery");
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo,
+    redirectTo: redirectUrl.toString(),
   });
 
   if (error) {

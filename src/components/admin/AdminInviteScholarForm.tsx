@@ -222,84 +222,412 @@ export function AdminInviteScholarForm() {
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Scholar outreach</h2>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">Admin only</span>
+                <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                  Scholar outreach
+                </h2>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  Admin only
+                </span>
               </div>
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">Write a transparent introduction, edit every visible line, and review the Gmail-style message before sending.</p>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Write a transparent introduction, edit every visible line, and
+                review the Gmail-style message before sending.
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 self-start rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-950">
-            <button type="button" onClick={() => setActiveTab("compose")} className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition ${activeTab === "compose" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"}`}>
+            <button
+              type="button"
+              onClick={() => setActiveTab("compose")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition ${activeTab === "compose" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"}`}
+            >
               <PenLine className="h-3.5 w-3.5" /> Compose
             </button>
-            <button type="button" onClick={() => setActiveTab("preview")} className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition ${activeTab === "preview" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"}`}>
+            <button
+              type="button"
+              onClick={() => setActiveTab("preview")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition ${activeTab === "preview" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-800 dark:text-slate-100" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"}`}
+            >
               <Eye className="h-3.5 w-3.5" /> Preview
             </button>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><div><p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Protected sending</p><p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">Admin authorization and rate limits.</p></div></div>
-          <div className="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60"><Monitor className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" /><div><p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Gmail-style preview</p><p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">The preview uses the exact sent HTML.</p></div></div>
-          <div className="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" /><div><p className="text-xs font-semibold text-slate-700 dark:text-slate-200">Everything editable</p><p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">Subject, headline, body, CTA, and signature.</p></div></div>
+          <div className="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+            <div>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Protected sending
+              </p>
+              <p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                Admin authorization and rate limits.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+            <Monitor className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+            <div>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Gmail-style preview
+              </p>
+              <p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                The preview uses the exact sent HTML.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/60">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+            <div>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Everything editable
+              </p>
+              <p className="mt-0.5 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                Subject, headline, body, CTA, and signature.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid items-stretch gap-6 lg:grid-cols-2">
-        <section className={`${activeTab === "preview" ? "hidden lg:block" : "block"} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6`}>
+        <section
+          className={`${activeTab === "preview" ? "hidden lg:block" : "block"} rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6`}
+        >
           <div className="mb-5 flex items-start justify-between gap-3">
-            <div><h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Message details</h3><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Edit the content exactly as you want it delivered.</p></div>
-            <Button type="button" variant="ghost" size="sm" onClick={() => resetDraft()} disabled={isSending || isSendingTest} className="gap-1.5 text-xs text-slate-500"><RotateCcw className="h-3.5 w-3.5" /> Reset</Button>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Message details
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Edit the content exactly as you want it delivered.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => resetDraft()}
+              disabled={isSending || isSendingTest}
+              className="gap-1.5 text-xs text-slate-500"
+            >
+              <RotateCcw className="h-3.5 w-3.5" /> Reset
+            </Button>
           </div>
 
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><FieldLabel optional>Scholar name</FieldLabel><input type="text" value={draft.scholarName} onChange={(event) => updateField("scholarName", event.target.value)} placeholder="Leave blank to use Scholar" maxLength={120} autoComplete="name" className={inputClassName} /></label>
-              <label className="space-y-2"><FieldLabel>Scholar email</FieldLabel><input type="email" value={draft.scholarEmail} onChange={(event) => updateField("scholarEmail", event.target.value)} placeholder="scholar@university.edu" maxLength={320} autoComplete="email" className={inputClassName} /></label>
+              <label className="space-y-2">
+                <FieldLabel optional>Scholar name</FieldLabel>
+                <input
+                  type="text"
+                  value={draft.scholarName}
+                  onChange={(event) =>
+                    updateField("scholarName", event.target.value)
+                  }
+                  placeholder="Leave blank to use Scholar"
+                  maxLength={120}
+                  autoComplete="name"
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-2">
+                <FieldLabel>Scholar email</FieldLabel>
+                <input
+                  type="email"
+                  value={draft.scholarEmail}
+                  onChange={(event) =>
+                    updateField("scholarEmail", event.target.value)
+                  }
+                  placeholder="scholar@university.edu"
+                  maxLength={320}
+                  autoComplete="email"
+                  className={inputClassName}
+                />
+              </label>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><FieldLabel optional>University or college</FieldLabel><input type="text" value={draft.university} onChange={(event) => updateField("university", event.target.value)} placeholder="e.g. IGNOU" maxLength={200} className={inputClassName} /></label>
-              <label className="space-y-2"><FieldLabel optional>Department</FieldLabel><input type="text" value={draft.department} onChange={(event) => updateField("department", event.target.value)} placeholder="e.g. PhD Research" maxLength={200} className={inputClassName} /></label>
+              <label className="space-y-2">
+                <FieldLabel optional>University or college</FieldLabel>
+                <input
+                  type="text"
+                  value={draft.university}
+                  onChange={(event) =>
+                    updateField("university", event.target.value)
+                  }
+                  placeholder="e.g. IGNOU"
+                  maxLength={200}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-2">
+                <FieldLabel optional>Department</FieldLabel>
+                <input
+                  type="text"
+                  value={draft.department}
+                  onChange={(event) =>
+                    updateField("department", event.target.value)
+                  }
+                  placeholder="e.g. PhD Research"
+                  maxLength={200}
+                  className={inputClassName}
+                />
+              </label>
             </div>
 
-            <label className="block space-y-2"><FieldHeader label="Subject line" showDefault onUseDefault={() => applyVariantField("subject")} /><input type="text" value={draft.subject} onChange={(event) => updateField("subject", event.target.value)} placeholder="A note from ScholarBase" maxLength={150} className={inputClassName} /></label>
+            <label className="block space-y-2">
+              <FieldHeader
+                label="Subject line"
+                showDefault
+                onUseDefault={() => applyVariantField("subject")}
+              />
+              <input
+                type="text"
+                value={draft.subject}
+                onChange={(event) => updateField("subject", event.target.value)}
+                placeholder="A note from ScholarBase"
+                maxLength={150}
+                className={inputClassName}
+              />
+            </label>
 
             <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-              <label className="space-y-2"><FieldHeader label="Greeting" showDefault onUseDefault={() => applyVariantField("greeting")} /><input type="text" value={draft.greeting} onChange={(event) => updateField("greeting", event.target.value)} placeholder="Hello" maxLength={50} className={inputClassName} /></label>
-              <label className="space-y-2"><FieldHeader label="Email headline" showDefault onUseDefault={() => applyVariantField("headline")} /><input type="text" value={draft.headline} onChange={(event) => updateField("headline", event.target.value)} placeholder="I wanted to introduce ScholarBase" maxLength={150} className={inputClassName} /></label>
+              <label className="space-y-2">
+                <FieldHeader
+                  label="Greeting"
+                  showDefault
+                  onUseDefault={() => applyVariantField("greeting")}
+                />
+                <input
+                  type="text"
+                  value={draft.greeting}
+                  onChange={(event) =>
+                    updateField("greeting", event.target.value)
+                  }
+                  placeholder="Hello"
+                  maxLength={50}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-2">
+                <FieldHeader
+                  label="Email headline"
+                  showDefault
+                  onUseDefault={() => applyVariantField("headline")}
+                />
+                <input
+                  type="text"
+                  value={draft.headline}
+                  onChange={(event) =>
+                    updateField("headline", event.target.value)
+                  }
+                  placeholder="I wanted to introduce ScholarBase"
+                  maxLength={150}
+                  className={inputClassName}
+                />
+              </label>
             </div>
 
-            <label className="block space-y-2"><div className="flex items-center justify-between gap-3"><FieldHeader label="Email body" showDefault onUseDefault={() => applyVariantField("body")} /><span className="text-[11px] text-slate-400">{draft.body.length}/8,000</span></div><textarea rows={9} value={draft.body} onChange={(event) => updateField("body", event.target.value)} placeholder="Write the complete message here..." maxLength={8000} className={`${inputClassName} resize-y leading-6`} /></label>
+            <label className="block space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <FieldHeader
+                  label="Email body"
+                  showDefault
+                  onUseDefault={() => applyVariantField("body")}
+                />
+                <span className="text-[11px] text-slate-400">
+                  {draft.body.length}/8,000
+                </span>
+              </div>
+              <textarea
+                rows={9}
+                value={draft.body}
+                onChange={(event) => updateField("body", event.target.value)}
+                placeholder="Write the complete message here..."
+                maxLength={8000}
+                className={`${inputClassName} resize-y leading-6`}
+              />
+            </label>
 
-            {contextLine && <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-xs leading-5 text-violet-900 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-100"><span className="font-semibold">Automatically added:</span> {contextLine}</div>}
+            {contextLine && (
+              <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-xs leading-5 text-violet-900 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-100">
+                <span className="font-semibold">Automatically added:</span>{" "}
+                {contextLine}
+              </div>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2"><FieldHeader label="Button text" showDefault onUseDefault={() => applyVariantField("ctaLabel")} /><input type="text" value={draft.ctaLabel} onChange={(event) => updateField("ctaLabel", event.target.value)} placeholder="Visit ScholarBase" maxLength={80} className={inputClassName} /></label>
-              <label className="space-y-2"><FieldHeader label="Signature name" showDefault={!draft.senderName.trim()} onUseDefault={() => applyDefault("senderName")} /><input type="text" value={draft.senderName} onChange={(event) => updateField("senderName", event.target.value)} placeholder="ScholarBase" maxLength={120} className={inputClassName} /></label>
+              <label className="space-y-2">
+                <FieldHeader
+                  label="Button text"
+                  showDefault
+                  onUseDefault={() => applyVariantField("ctaLabel")}
+                />
+                <input
+                  type="text"
+                  value={draft.ctaLabel}
+                  onChange={(event) =>
+                    updateField("ctaLabel", event.target.value)
+                  }
+                  placeholder="Visit ScholarBase"
+                  maxLength={80}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="space-y-2">
+                <FieldHeader
+                  label="Signature name"
+                  showDefault={!draft.senderName.trim()}
+                  onUseDefault={() => applyDefault("senderName")}
+                />
+                <input
+                  type="text"
+                  value={draft.senderName}
+                  onChange={(event) =>
+                    updateField("senderName", event.target.value)
+                  }
+                  placeholder="ScholarBase"
+                  maxLength={120}
+                  className={inputClassName}
+                />
+              </label>
             </div>
 
-            <label className="block space-y-2"><FieldHeader label="Signature role" showDefault={!draft.senderRole.trim()} onUseDefault={() => applyDefault("senderRole")} /><input type="text" value={draft.senderRole} onChange={(event) => updateField("senderRole", event.target.value)} placeholder="Founder, ScholarBase" maxLength={160} className={inputClassName} /></label>
-            <label className="block space-y-2"><FieldHeader label="Footer / opt-out note" optional showDefault onUseDefault={() => applyVariantField("footerText")} /><input type="text" value={draft.footerText} onChange={(event) => updateField("footerText", event.target.value)} placeholder="If you would prefer not to receive further notes, simply reply and let us know." maxLength={300} className={inputClassName} /></label>
+            <label className="block space-y-2">
+              <FieldHeader
+                label="Signature role"
+                showDefault={!draft.senderRole.trim()}
+                onUseDefault={() => applyDefault("senderRole")}
+              />
+              <input
+                type="text"
+                value={draft.senderRole}
+                onChange={(event) =>
+                  updateField("senderRole", event.target.value)
+                }
+                placeholder="Founder, ScholarBase"
+                maxLength={160}
+                className={inputClassName}
+              />
+            </label>
+            <label className="block space-y-2">
+              <FieldHeader
+                label="Footer / opt-out note"
+                optional
+                showDefault
+                onUseDefault={() => applyVariantField("footerText")}
+              />
+              <input
+                type="text"
+                value={draft.footerText}
+                onChange={(event) =>
+                  updateField("footerText", event.target.value)
+                }
+                placeholder="If you would prefer not to receive further notes, simply reply and let us know."
+                maxLength={300}
+                className={inputClassName}
+              />
+            </label>
 
-            <div className="flex gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs leading-5 text-blue-900 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-100"><Info className="mt-0.5 h-4 w-4 shrink-0" /><p>The visible email copy is editable. The verified sender address and ScholarBase destination link stay fixed for trust and deliverability.</p></div>
+            <div className="flex gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs leading-5 text-blue-900 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-100">
+              <Info className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                The visible email copy is editable. The verified sender address
+                and ScholarBase destination link stay fixed for trust and
+                deliverability.
+              </p>
+            </div>
 
             <div className="flex flex-col gap-3 border-t border-slate-100 pt-5 dark:border-slate-800 sm:flex-row">
-              <Button type="button" variant="outline" disabled={!canSend || isSending || isSendingTest} onClick={() => void executeSend(true)} className="h-11 flex-1 gap-2 text-xs">{isSendingTest ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}{isSendingTest ? "Sending test..." : "Send test to me"}</Button>
-              <Button type="button" disabled={!canSend || isSending || isSendingTest} onClick={() => setIsConfirmOpen(true)} className="h-11 flex-1 gap-2 bg-slate-900 text-xs text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"><Send className="h-4 w-4" />Send official email</Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!canSend || isSending || isSendingTest}
+                onClick={() => void executeSend(true)}
+                className="h-11 flex-1 gap-2 text-xs"
+              >
+                {isSendingTest ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+                {isSendingTest ? "Sending test..." : "Send test to me"}
+              </Button>
+              <Button
+                type="button"
+                disabled={!canSend || isSending || isSendingTest}
+                onClick={() => setIsConfirmOpen(true)}
+                className="h-11 flex-1 gap-2 bg-slate-900 text-xs text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+              >
+                <Send className="h-4 w-4" />
+                Send official email
+              </Button>
             </div>
           </div>
         </section>
 
-        <section className={`${activeTab === "compose" ? "hidden lg:flex" : "flex"} h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}>
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6"><div><h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Live email preview</h3><p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Review the exact email before it leaves ScholarBase.</p></div><span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400 sm:inline-flex">Gmail-style</span></div>
-          <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs dark:border-slate-800 dark:bg-slate-950/70 sm:px-6"><div className="space-y-1"><div><span className="text-slate-400">From:</span> <span className="font-medium text-slate-700 dark:text-slate-200">ScholarBase &lt;invitations@scholarbase.app&gt;</span></div><div><span className="text-slate-400">To:</span> <span className="font-medium text-slate-700 dark:text-slate-200">{draft.scholarEmail || "recipient@university.edu"}</span></div><div><span className="text-slate-400">Subject:</span> <span className="font-medium text-slate-700 dark:text-slate-200">{draft.subject || "A note from ScholarBase"}</span></div></div></div>
-          <div className="min-h-[740px] flex-1 bg-slate-100 p-2 dark:bg-slate-950 sm:p-4"><iframe title="ScholarBase outreach email preview" srcDoc={previewHtml} sandbox="" className="h-full min-h-[724px] w-full rounded-lg border-0 bg-white shadow-sm" /></div>
+        <section
+          className={`${activeTab === "compose" ? "hidden lg:flex" : "flex"} h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900`}
+        >
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                Live email preview
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Review the exact email before it leaves ScholarBase.
+              </p>
+            </div>
+            <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400 sm:inline-flex">
+              Gmail-style
+            </span>
+          </div>
+          <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-xs dark:border-slate-800 dark:bg-slate-950/70 sm:px-6">
+            <div className="space-y-1">
+              <div>
+                <span className="text-slate-400">From:</span>{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  ScholarBase &lt;invitations@scholarbase.app&gt;
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400">To:</span>{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  {draft.scholarEmail || "recipient@university.edu"}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400">Subject:</span>{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-200">
+                  {draft.subject || "A note from ScholarBase"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="min-h-[740px] flex-1 bg-slate-100 p-2 dark:bg-slate-950 sm:p-4">
+            <iframe
+              title="ScholarBase outreach email preview"
+              srcDoc={previewHtml}
+              sandbox=""
+              className="h-full min-h-[724px] w-full rounded-lg border-0 bg-white shadow-sm"
+            />
+          </div>
         </section>
       </div>
 
-      <ConfirmationModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={() => void executeSend(false)} title="Send official outreach email?" message={`This will send “${draft.subject || "your message"}” to ${draft.scholarEmail || "the scholar email"}. Please review the preview first.`} isConfirming={isSending} confirmLabel="Send email" confirmingLabel="Sending email..." confirmVariant="default" />
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={() => void executeSend(false)}
+        title="Send official outreach email?"
+        message={`This will send “${draft.subject || "your message"}” to ${draft.scholarEmail || "the scholar email"}. Please review the preview first.`}
+        isConfirming={isSending}
+        confirmLabel="Send email"
+        confirmingLabel="Sending email..."
+        confirmVariant="default"
+      />
     </div>
   );
 }

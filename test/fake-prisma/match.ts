@@ -92,9 +92,20 @@ function matchesValue(value: unknown, condition: unknown): boolean {
   if (keys.length === 0) return equals(value, condition)
 
   if (!keys.every((key) => OPERATORS.has(key))) {
+    // A to-one relation filter, e.g. `submitSurveyResponse`'s
+    // `surveyAnswer.findMany({ where: { question: { archivedAt: null } } })`.
+    //
+    // The fake resolves relations by materialising them ON the row (see
+    // `project`), so when the row already carries a plain object under this key
+    // the filter can be evaluated against it directly. When it does not, the
+    // relation was never materialised and guessing would be worse than failing.
+    if (isPlainObject(value)) {
+      return keys.every((key) => matchesValue(value[key], condition[key]))
+    }
     throw new Error(
       `fake-prisma: unsupported nested filter ${JSON.stringify(condition)} — ` +
-        "relation filters need the integration tier",
+        "relation filters need the relation materialised on the row, or the " +
+        "integration tier",
     )
   }
 

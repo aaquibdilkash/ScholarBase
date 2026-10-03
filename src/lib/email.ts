@@ -12,6 +12,16 @@ function getResendClient(): Resend {
   return new Resend(apiKey);
 }
 
+const OUTREACH_FROM_ADDRESS =
+  process.env.EMAIL_OUTREACH_FROM?.trim() ||
+  'ScholarBase Updates <updates@scholarbase.app>';
+
+const OUTREACH_REPLY_TO =
+  process.env.EMAIL_REPLY_TO?.trim() || 'updates@scholarbase.app';
+
+const OUTREACH_LIST_ID =
+  process.env.EMAIL_OUTREACH_LIST_ID?.trim() || 'scholarbase-updates';
+
 import type { CommentNotificationProps, ScholarInviteProps } from '@/types/email';
 import {
   generateScholarInviteHtml,
@@ -129,17 +139,21 @@ export async function sendScholarOutreachEmail({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'ScholarBase <invitations@scholarbase.app>',
+      from: OUTREACH_FROM_ADDRESS,
       to: [recipientEmail],
-      replyTo: 'invitations@scholarbase.app',
+      replyTo: OUTREACH_REPLY_TO,
       subject: isTestSend
         ? `[TEST] ${emailProps.subject}`
         : emailProps.subject,
       html: generateScholarInviteHtml({ ...emailProps, unsubscribeUrl }),
       text: generateScholarInvitePlainText({ ...emailProps, unsubscribeUrl }),
       headers: {
-        'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:invitations@scholarbase.app?subject=Unsubscribe>`,
+        'List-ID': `${OUTREACH_LIST_ID} <${OUTREACH_LIST_ID}.scholarbase.app>`,
+        'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:${OUTREACH_REPLY_TO}?subject=Unsubscribe>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        Precedence: 'bulk',
+        'Auto-Submitted': 'auto-generated',
+        'X-Auto-Response-Suppress': 'OOF, RN, NRN, AutoReply',
       },
     });
 
