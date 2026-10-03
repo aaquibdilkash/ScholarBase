@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Find PhD Supervisors - Reviews, Ratings & Recommendations",
-  description: "Search for PhD supervisors by university and department, and read student ratings and recommendations.",
-  path: "/supervisor",
-  section: "Supervisors",
+  title: SEO_PAGES.supervisor.title,
+  description: SEO_PAGES.supervisor.description,
+  path: SEO_PAGES.supervisor.path,
+  section: SEO_PAGES.supervisor.section,
 });
 import ListPageShell from "@/components/layout/ListPageShell";
 import { TrendingList } from "@/components/feed/TrendingList";
@@ -38,7 +39,8 @@ export default async function SupervisorDirectory({
         <AsyncListRegion
           fetcher={async () => {
             const user = await userPromise;
-            const items = (await getTrendingSupervisors()) as unknown as import("@/types/trending").TrendingItem[];
+            const items =
+              (await getTrendingSupervisors()) as unknown as import("@/types/trending").TrendingItem[];
             return { items, userId: user?.id };
           }}
         >

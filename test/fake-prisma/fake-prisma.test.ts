@@ -101,6 +101,153 @@ describe("fake-prisma: storage semantics", () => {
   })
 })
 
+describe("fake-prisma: nested relation writes", () => {
+  // These cover the explicit relation registry added for the survey response
+  // path (`surveyResponse.create({ answers: { create: [...] } })`). The registry
+  // exists so the fake never has to guess Prisma's naming, and these tests are
+  // what keep "refuses to guess" a real guarantee rather than a comment.
+  beforeEach(() => {
+    resetFakeDb()
+    fakeDb.link({
+      parent: "surveyResponse",
+      relation: "answers",
+      child: "surveyAnswer",
+      fk: "responseId",
+    })
+    fakeDb.link({
+      parent: "surveyAnswer",
+      relation: "question",
+      child: "surveyQuestion",
+      fk: "questionId",
+    })
+  })
+
+  it("materialises a nested `create` array as real child rows", async () => {
+    const response = await fakeDb.client.surveyResponse.create({
+      data: {
+        surveyId: "s1",
+        answers: {
+          create: [
+            { question: { connect: { id: "q1" } }, value: "Yes" },
+            { question: { connect: { id: "q2" } }, value: JSON.stringify(["a", "b"]) },
+          ],
+        },
+      },
+    })
+
+    const answers = fakeDb.rows("surveyAnswer")
+    expect(answers).toHaveLength(2)
+    // The parent's foreign key is stamped on every child.
+    expect(answers.map((a) => a.responseId)).toEqual([response.id, response.id])
+    // A nested `connect` resolves to the child's own foreign key rather than
+    // being stored as a literal `{ connect: ... }` object.
+    expect(answers.map((a) => a.questionId)).toEqual(["q1", "q2"])
+    expect(answers.map((a) => a.value)).toEqual(["Yes", '["a","b"]'])
+    for (const answer of answers) {
+      expect(answer).not.toHaveProperty("question")
+    }
+    // Distinct ids, or a later `connect` would silently match the wrong child.
+    expect(new Set(answers.map((a) => a.id)).size).toBe(2)
+  })
+
+  it("attaches created children to the parent so `include` reads them back", async () => {
+    const response = await fakeDb.client.surveyResponse.create({
+      data: { surveyId: "s1", answers: { create: [{ value: "Yes" }] } },
+    })
+    expect(response.answers).toHaveLength(1)
+  })
+
+  it("refuses an undeclared relation rather than guessing the table name", async () => {
+    await expect(
+      fakeDb.client.publication.create({
+        data: { title: "T", coAuthors: { create: [{ userId: "u2" }] } },
+      }),
+    ).rejects.toThrow(/has no declared relation/)
+  })
+
+  it("names the offending relation in the failure, so the fix is obvious", async () => {
+    await expect(
+      fakeDb.client.publication.create({ data: { mysteryRelation: { create: [{}] } } }),
+    ).rejects.toThrow(/publication\.mysteryRelation\.create/)
+  })
+
+  it("stores a JSONB answer object verbatim instead of reading it as a relation write", async () => {
+    // A MATRIX_LIKERT answer is `{ rowValue: columnIndex }` — a plain object that
+    // must reach the database unchanged. If relation detection were "any
+    // non-numeric object", this legitimate payload would be refused.
+    const matrix = { row_teaching: 3, row_research: 5 }
+    await fakeDb.client.surveyResponse.create({
+      data: { surveyId: "s1", answers: { create: [{ value: matrix }] } },
+    })
+    expect(fakeDb.rows("surveyAnswer")[0].value).toEqual(matrix)
+  })
+
+  it("still refuses the relation verbs it has never supported", async () => {
+    await expect(
+      fakeDb.client.surveyResponse.create({ data: { answers: { deleteMany: {} } } }),
+    ).rejects.toThrow(/is not\s+supported/)
+  })
+
+  it("detaches deleted children from the parent's materialised array", async () => {
+    await fakeDb.client.surveyResponse.create({
+      data: {
+        surveyId: "s1",
+        answers: { create: [{ value: "keep" }, { value: "drop" }] },
+      },
+    })
+
+    // `submitSurveyResponse`'s upsert path deletes the active answers and
+    // recreates them. If the parent kept a stale copy, the reloaded response
+    // would report twice the answers the database actually holds.
+    await fakeDb.client.surveyAnswer.deleteMany({ where: { value: "drop" } })
+    const reloaded = await fakeDb.client.surveyResponse.findFirst({
+      where: { surveyId: "s1" },
+      include: { answers: true },
+    })
+    expect(reloaded).not.toBeNull()
+    const answers = reloaded?.answers as Array<{ value: unknown }>
+    expect(answers).toHaveLength(1)
+    expect(answers[0].value).toBe("keep")
+  })
+
+  it("keeps declared relations across a reset so module-scope wiring survives", async () => {
+    resetFakeDb()
+    await expect(
+      fakeDb.client.surveyResponse.create({ data: { answers: { create: [{ value: "x" }] } } }),
+    ).resolves.toBeTruthy()
+  })
+})
+
+describe("fake-prisma: createMany", () => {
+  beforeEach(() => resetFakeDb())
+
+  it("inserts one row per spec and reports the count", async () => {
+    const result = await fakeDb.client.surveyQuestion.createMany({
+      data: [
+        { surveyId: "s1", order: 0, type: "SHORT_TEXT" },
+        { surveyId: "s1", order: 1, type: "DATE" },
+        { surveyId: "s1", order: 2, type: "RATING" },
+      ],
+    })
+    expect(result).toEqual({ count: 3 })
+    expect(fakeDb.rows("surveyQuestion").map((q) => q.order)).toEqual([0, 1, 2])
+  })
+
+  it("assigns each row its own id", async () => {
+    await fakeDb.client.surveyQuestion.createMany({
+      data: [{ surveyId: "s1" }, { surveyId: "s1" }],
+    })
+    const ids = fakeDb.rows("surveyQuestion").map((q) => q.id)
+    expect(new Set(ids).size).toBe(2)
+  })
+
+  it("rejects a non-array payload instead of inserting nothing silently", async () => {
+    await expect(
+      fakeDb.client.surveyQuestion.createMany({ data: { surveyId: "s1" } as never }),
+    ).rejects.toThrow(/requires `data` to be an array/)
+  })
+})
+
 describe("fake-prisma: injection replaces the real client", () => {
   beforeEach(() => resetFakeDb())
 

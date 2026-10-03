@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Scholar Suggest - ScholarBase",
-  description:
-    "Share suggestions, bug reports, or new feature request for ScholarBase with the community.",
-  path: "/help",
-  section: "Help & Support",
+  title: SEO_PAGES.help.title,
+  description: SEO_PAGES.help.description,
+  path: SEO_PAGES.help.path,
+  section: SEO_PAGES.help.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -40,8 +40,11 @@ export default async function HelpPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingHelpPosts()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingHelpPosts()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -55,7 +58,9 @@ export default async function HelpPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const posts = await getHelpPosts(q ?? "", 10);
             return { posts, userId: user?.id };
           }}

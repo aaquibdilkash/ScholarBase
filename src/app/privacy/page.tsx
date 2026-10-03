@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | ScholarBase",
-  description:
-    "Understand how ScholarBase handles your data and respects your privacy. Our Privacy Policy details the information we collect, how we use it, and the measures we take to protect it.",
+  title: SEO_PAGES.privacy.title,
+  description: SEO_PAGES.privacy.description,
 };
 
 export default function PrivacyPolicyPage() {
@@ -37,8 +37,8 @@ export default function PrivacyPolicyPage() {
           <p>We collect personal information that you voluntarily provide:</p>
           <ul>
             <li>
-              <strong>Account Information:</strong> When you register, we collect
-              your name, email address, and profile information.
+              <strong>Account Information:</strong> When you register, we
+              collect your name, email address, and profile information.
             </li>
             <li>
               <strong>Profile Data:</strong> Your academic interests, biography,
@@ -78,8 +78,8 @@ export default function PrivacyPolicyPage() {
               Google API Services User Data Policy
             </SafeExternalLink>
             , including the Limited Use requirements. We only access the minimum
-            Google data necessary to provide authentication and will not use this
-            data for any other purpose without your explicit consent.
+            Google data necessary to provide authentication and will not use
+            this data for any other purpose without your explicit consent.
           </p>
 
           <h3>1.3 Information Collected Automatically</h3>
@@ -107,8 +107,8 @@ export default function PrivacyPolicyPage() {
               post content and interact with the community.
             </li>
             <li>
-              <strong>To Improve Our Platform:</strong> Analyze usage patterns to
-              enhance user experience, develop new features, and optimize
+              <strong>To Improve Our Platform:</strong> Analyze usage patterns
+              to enhance user experience, develop new features, and optimize
               performance.
             </li>
             <li>
@@ -116,12 +116,12 @@ export default function PrivacyPolicyPage() {
               notifications, respond to inquiries, and provide support.
             </li>
             <li>
-              <strong>To Moderate Content:</strong> Review content for compliance
-              with our Terms of Service and applicable laws.
+              <strong>To Moderate Content:</strong> Review content for
+              compliance with our Terms of Service and applicable laws.
             </li>
             <li>
-              <strong>To Ensure Security:</strong> Detect and prevent fraudulent,
-              unauthorized, or illegal activity.
+              <strong>To Ensure Security:</strong> Detect and prevent
+              fraudulent, unauthorized, or illegal activity.
             </li>
           </ul>
 
@@ -137,8 +137,8 @@ export default function PrivacyPolicyPage() {
               like profile creation and content posting.
             </li>
             <li>
-              <strong>Contractual Necessity:</strong> To provide our services and
-              fulfill our obligations under our Terms of Service.
+              <strong>Contractual Necessity:</strong> To provide our services
+              and fulfill our obligations under our Terms of Service.
             </li>
             <li>
               <strong>Legitimate Interests:</strong> To improve our platform,
@@ -165,8 +165,8 @@ export default function PrivacyPolicyPage() {
               help us operate the platform, including:
               <ul>
                 <li>
-                  <strong>Supabase</strong> &mdash; Authentication, database, and
-                  file storage
+                  <strong>Supabase</strong> &mdash; Authentication, database,
+                  and file storage
                 </li>
                 <li>
                   <strong>Cloudinary</strong> &mdash; Image and media hosting
@@ -193,9 +193,9 @@ export default function PrivacyPolicyPage() {
           <p>
             We retain your personal information for as long as your account is
             active or as needed to provide you services. When you delete your
-            account, we will delete or anonymize your personal information within
-            30 days, except where we are required to retain certain data for
-            legal compliance (e.g., tax records, legal disputes).
+            account, we will delete or anonymize your personal information
+            within 30 days, except where we are required to retain certain data
+            for legal compliance (e.g., tax records, legal disputes).
           </p>
           <p>
             Public content you posted (publications, blog posts, comments) may
@@ -216,8 +216,8 @@ export default function PrivacyPolicyPage() {
             <li>Restricted access to personal data on a need-to-know basis</li>
           </ul>
           <p>
-            However, no method of transmission over the Internet is 100%
-            secure. We cannot guarantee absolute security.
+            However, no method of transmission over the Internet is 100% secure.
+            We cannot guarantee absolute security.
           </p>
 
           <h2>7. Your Rights</h2>
@@ -243,9 +243,7 @@ export default function PrivacyPolicyPage() {
           </ul>
 
           <h3>7.2 For EEA/UK Users (GDPR)</h3>
-          <p>
-            In addition to the above, you have the right to:
-          </p>
+          <p>In addition to the above, you have the right to:</p>
           <ul>
             <li>
               <strong>Restrict Processing:</strong> Request that we limit
@@ -261,9 +259,8 @@ export default function PrivacyPolicyPage() {
             </li>
           </ul>
           <p>
-            You may lodge a complaint with your local data protection
-            authority. Contact details for EU data protection authorities are
-            available at{" "}
+            You may lodge a complaint with your local data protection authority.
+            Contact details for EU data protection authorities are available at{" "}
             <SafeExternalLink url="https://edpb.europa.eu/about-edpb/about-edpb/members_en">
               edpb.europa.eu
             </SafeExternalLink>
@@ -271,9 +268,7 @@ export default function PrivacyPolicyPage() {
           </p>
 
           <h3>7.3 For California Residents (CCPA)</h3>
-          <p>
-            If you are a California resident, you have the right to:
-          </p>
+          <p>If you are a California resident, you have the right to:</p>
           <ul>
             <li>
               <strong>Know:</strong> Request disclosure of the categories and
@@ -369,9 +364,7 @@ export default function PrivacyPolicyPage() {
           <p>
             For data protection inquiries, you may reach our Data Protection
             Officer at{" "}
-            <a href="mailto:connect@scholarbase.app">
-              connect@scholarbase.app
-            </a>
+            <a href="mailto:connect@scholarbase.app">connect@scholarbase.app</a>
             . We will respond to your request within 30 days.
           </p>
 
@@ -397,7 +390,7 @@ export default function PrivacyPolicyPage() {
             in our database) or as required by law.
           </p>
         </div>
-    </div>
+      </div>
     </div>
   );
 }

@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import ResearchGrantForm from "@/components/grants/ResearchGrantForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { SEO_CREATE_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Add Research Grant",
-  description:
-    "Share a research grant, funding amount, application guidance, and useful links.",
-  robots: { index: false, follow: true },
+  title: SEO_CREATE_PAGES.grants.title,
+  description: SEO_CREATE_PAGES.grants.description,
+  robots: { index: true, follow: true },
 };
 
 export default function NewResearchGrantPage() {
   return (
     <CreateOrEditPageShell
-      title="Add Research Grant"
-      description="Share a grant opportunity and explain how scholars can apply."
+      title={SEO_CREATE_PAGES.grants.title}
+      description={SEO_CREATE_PAGES.grants.description}
       backHref="/grants"
       backLabel="Back to Research Grants"
     >

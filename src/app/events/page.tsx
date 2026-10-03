@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Research Events & Conference",
-  description: "Conferences, workshops, calls for papers, and academic gatherings worth tracking around the world.",
-  path: "/events",
-  section: "Events",
+  title: SEO_PAGES.events.title,
+  description: SEO_PAGES.events.description,
+  path: SEO_PAGES.events.path,
+  section: SEO_PAGES.events.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -41,8 +42,11 @@ export default async function EventsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingEvents()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingEvents()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -56,7 +60,9 @@ export default async function EventsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const events = await getEvents(q ?? "", 10);
             return { events, userId: user?.id };
           }}

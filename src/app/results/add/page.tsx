@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import ResultForm from "@/components/results/ResultForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { SEO_CREATE_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Add Result Information",
-  description:
-    "Share exam results, admission outcomes, vacancy results, and other important notifications for the research community.",
-  robots: { index: false, follow: true },
+  title: SEO_CREATE_PAGES.results.title,
+  description: SEO_CREATE_PAGES.results.description,
+  robots: { index: true, follow: true },
 };
 
 export default function NewResultPage() {
   return (
     <CreateOrEditPageShell
-      title="Add Result Information"
-      description="Share exam results, admission outcomes, vacancy results, and other important notifications for the research community."
+      title={SEO_CREATE_PAGES.results.title}
+      description={SEO_CREATE_PAGES.results.description}
       backHref="/results"
       backLabel="Back to Results"
     >

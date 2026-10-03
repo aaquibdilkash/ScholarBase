@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | ScholarBase",
-  description:
-    "Please read these Terms of Service carefully before using ScholarBase. Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms.",
+  title: SEO_PAGES.terms.title,
+  description: SEO_PAGES.terms.description,
 };
 
 export default function TermsOfServicePage() {
@@ -51,8 +51,8 @@ export default function TermsOfServicePage() {
               government embargo.
             </li>
             <li>
-              You will comply with these Terms and all applicable local, national,
-              and international laws and regulations.
+              You will comply with these Terms and all applicable local,
+              national, and international laws and regulations.
             </li>
           </ul>
 
@@ -133,13 +133,19 @@ export default function TermsOfServicePage() {
           </p>
 
           <h3>4.3 Content Representations and Warranties</h3>
-          <p>
-            You represent and warrant that:
-          </p>
+          <p>You represent and warrant that:</p>
           <ul>
-            <li>You own the Content or have the necessary licenses, rights, consents, and permissions.</li>
-            <li>Your Content does not infringe the intellectual property rights, privacy rights, or other rights of any third party.</li>
-            <li>Your Content complies with these Terms and all applicable laws.</li>
+            <li>
+              You own the Content or have the necessary licenses, rights,
+              consents, and permissions.
+            </li>
+            <li>
+              Your Content does not infringe the intellectual property rights,
+              privacy rights, or other rights of any third party.
+            </li>
+            <li>
+              Your Content complies with these Terms and all applicable laws.
+            </li>
           </ul>
 
           <h2>5. Prohibited Conduct</h2>
@@ -184,8 +190,8 @@ export default function TermsOfServicePage() {
           <p>
             ScholarBase respects the intellectual property rights of others. If
             you believe that your copyrighted work has been copied in a way that
-            constitutes copyright infringement, please provide us with a
-            written notice containing the following information:
+            constitutes copyright infringement, please provide us with a written
+            notice containing the following information:
           </p>
           <ul>
             <li>
@@ -216,24 +222,22 @@ export default function TermsOfServicePage() {
           </ul>
           <p>
             Send copyright infringement notices to:{" "}
-            <a href="mailto:connect@scholarbase.app">
-              connect@scholarbase.app
-            </a>
+            <a href="mailto:connect@scholarbase.app">connect@scholarbase.app</a>
           </p>
 
           <h2>7. Platform Content and Third-Party Links</h2>
           <p>
-            ScholarBase contains academic content, publications, and
-            information posted by its users. We do not verify, endorse, or
-            guarantee the accuracy, completeness, or usefulness of any Content.
-            You rely on Content at your own risk.
+            ScholarBase contains academic content, publications, and information
+            posted by its users. We do not verify, endorse, or guarantee the
+            accuracy, completeness, or usefulness of any Content. You rely on
+            Content at your own risk.
           </p>
           <p>
             The Service may contain links to third-party websites or resources.
             ScholarBase is not responsible for the availability, content, or
             practices of any third-party websites. Your use of third-party
-            websites is at your own risk and subject to their terms and
-            privacy policies.
+            websites is at your own risk and subject to their terms and privacy
+            policies.
           </p>
 
           <h2>8. Termination</h2>
@@ -242,9 +246,7 @@ export default function TermsOfServicePage() {
             at any time, without prior notice or liability, for any reason,
             including if you breach these Terms.
           </p>
-          <p>
-            Upon termination:
-          </p>
+          <p>Upon termination:</p>
           <ul>
             <li>Your right to use the Service will immediately cease.</li>
             <li>
@@ -273,10 +275,10 @@ export default function TermsOfServicePage() {
 
           <h2>10. Disclaimer of Warranties</h2>
           <p>
-            THE SERVICE IS PROVIDED ON AN &ldquo;AS IS&rdquo; AND
-            &ldquo;AS AVAILABLE&rdquo; BASIS. SCHOLARBASE MAKES NO
-            REPRESENTATIONS OR WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED,
-            INCLUDING BUT NOT LIMITED TO:
+            THE SERVICE IS PROVIDED ON AN &ldquo;AS IS&rdquo; AND &ldquo;AS
+            AVAILABLE&rdquo; BASIS. SCHOLARBASE MAKES NO REPRESENTATIONS OR
+            WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+            LIMITED TO:
           </p>
           <ul>
             <li>
@@ -295,9 +297,9 @@ export default function TermsOfServicePage() {
 
           <h2>11. Limitation of Liability</h2>
           <p>
-            TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT
-            SHALL SCHOLARBASE, ITS DIRECTORS, EMPLOYEES, PARTNERS, AGENTS,
-            SUPPLIERS, OR AFFILIATES BE LIABLE FOR ANY:
+            TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL
+            SCHOLARBASE, ITS DIRECTORS, EMPLOYEES, PARTNERS, AGENTS, SUPPLIERS,
+            OR AFFILIATES BE LIABLE FOR ANY:
           </p>
           <ul>
             <li>
@@ -310,15 +312,13 @@ export default function TermsOfServicePage() {
               DAMAGES ARISING FROM YOUR ACCESS TO OR USE OF OR INABILITY TO
               ACCESS OR USE THE SERVICE.
             </li>
-            <li>
-              CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE SERVICE.
-            </li>
+            <li>CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE SERVICE.</li>
           </ul>
           <p>
             OUR TOTAL LIABILITY TO YOU FOR ALL CLAIMS ARISING FROM OR RELATING
             TO THESE TERMS OR YOUR USE OF THE SERVICE SHALL NOT EXCEED THE
-            GREATER OF (A) THE AMOUNT YOU HAVE PAID US IN THE PAST 12 MONTHS,
-            OR (B) $100 USD. SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR
+            GREATER OF (A) THE AMOUNT YOU HAVE PAID US IN THE PAST 12 MONTHS, OR
+            (B) $100 USD. SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR
             LIMITATION OF CERTAIN DAMAGES, SO SOME OF THE ABOVE EXCLUSIONS MAY
             NOT APPLY TO YOU.
           </p>
@@ -346,17 +346,14 @@ export default function TermsOfServicePage() {
             <strong>Informal Resolution:</strong> Before filing a claim, you
             agree to attempt to resolve the dispute informally by contacting us
             at{" "}
-            <a href="mailto:connect@scholarbase.app">
-              connect@scholarbase.app
-            </a>
+            <a href="mailto:connect@scholarbase.app">connect@scholarbase.app</a>
             . We will attempt to resolve the dispute within 30 days.
           </p>
           <p>
             <strong>Jurisdiction:</strong> Any disputes arising out of or
             relating to these Terms that cannot be resolved informally shall be
-            resolved in the courts of{" "}
-            <strong>New Delhi, India</strong>. You consent to the personal
-            jurisdiction of these courts.
+            resolved in the courts of <strong>New Delhi, India</strong>. You
+            consent to the personal jurisdiction of these courts.
           </p>
           <p>
             <strong>International Users:</strong> If you access the Service from
@@ -369,9 +366,9 @@ export default function TermsOfServicePage() {
           <p>
             We reserve the right to modify these Terms at any time. If we make
             material changes, we will notify you by posting the updated Terms on
-            this page and, where appropriate, via email or platform notification.
-            Your continued use of the Service after the effective date of the
-            changes constitutes your acceptance of the new Terms.
+            this page and, where appropriate, via email or platform
+            notification. Your continued use of the Service after the effective
+            date of the changes constitutes your acceptance of the new Terms.
           </p>
           <p>
             We encourage you to review these Terms periodically for any updates.
@@ -433,7 +430,7 @@ export default function TermsOfServicePage() {
             service.
           </p>
         </div>
-    </div>
+      </div>
     </div>
   );
 }

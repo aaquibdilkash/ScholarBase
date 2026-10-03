@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Research Tools & Software for Academics",
-  description: "Discover and share software, apps, and digital tools that can help with your research.",
-  path: "/research-tools",
-  section: "Research Tools",
+  title: SEO_PAGES.researchTools.title,
+  description: SEO_PAGES.researchTools.description,
+  path: SEO_PAGES.researchTools.path,
+  section: SEO_PAGES.researchTools.section,
 });
 import ListPageShell from "@/components/layout/ListPageShell";
 import { createClient } from "@/utils/supabase/server";
@@ -39,8 +40,11 @@ export default async function ResearchToolsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingResearchTools()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingResearchTools()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function ResearchToolsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const tools = await getResearchTools(q ?? "", 10);
             return { tools, userId: user?.id };
           }}

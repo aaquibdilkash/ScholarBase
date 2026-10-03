@@ -31,12 +31,12 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { BrandMark } from "@/components/BrandMark";
 import { SBIcon } from "@/components/SBIcon";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "ScholarBase: A Quiet Workspace for the Noisy Academic Life",
-  description:
-    "Post your research, find honest PhD supervisors, and track admissions, events, and vacancies — all in one free, community-run workspace with no ads or paywalls.",
-  path: "/",
+  title: SEO_PAGES.home.title,
+  description: SEO_PAGES.home.description,
+  path: SEO_PAGES.home.path,
 });
 
 export default async function HomePage() {
@@ -66,13 +66,15 @@ export default async function HomePage() {
     },
     {
       title: "Journals",
-      description: "Explore journals, connect publications, and read scholar reviews.",
+      description:
+        "Explore journals, connect publications, and read scholar reviews.",
       href: "/journals",
       icon: <BookCopy className="h-8 w-8" />,
     },
     {
       title: "Supervisors",
-      description: "Find PhD supervisors, read recommendations, and connect with scholars.",
+      description:
+        "Find PhD supervisors, read recommendations, and connect with scholars.",
       href: "/supervisor",
       icon: <Star className="h-8 w-8" />,
     },
@@ -165,7 +167,8 @@ export default async function HomePage() {
               One quiet workspace for the noisy academic life
             </h1>
             <h2 className="mt-3 sm:mt-4 max-w-3xl text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-200">
-              The academic hub for scholars, supervisors, surveys, and opportunities.
+              The academic hub for scholars, supervisors, surveys, and
+              opportunities.
             </h2>
 
             <p className="sb-subtitle mt-5 sm:mt-6 max-w-2xl">
@@ -176,15 +179,27 @@ export default async function HomePage() {
 
             <div className="mt-7 sm:mt-8 flex flex-col gap-3 sm:flex-row">
               {user ? (
-                <Link prefetch={false} href="/feed" className="sb-button-accent">
+                <Link
+                  prefetch={false}
+                  href="/feed"
+                  className="sb-button-accent"
+                >
                   Go to Your Feed
                 </Link>
               ) : (
                 <>
-                  <Link prefetch={false} href="/login" className="sb-button-accent">
+                  <Link
+                    prefetch={false}
+                    href="/login"
+                    className="sb-button-accent"
+                  >
                     Join the Community
                   </Link>
-                  <Link prefetch={false} href="/blog" className="sb-button-soft">
+                  <Link
+                    prefetch={false}
+                    href="/blog"
+                    className="sb-button-soft"
+                  >
                     Read Research Blogs
                   </Link>
                 </>
@@ -194,7 +209,6 @@ export default async function HomePage() {
 
           {/* Top Right: Live Pulse Cards */}
           <div className="sb-surface-soft min-w-0 border-t p-6 sm:p-8 md:p-10 lg:border-l lg:border-t-0 dark:border-slate-800 dark:bg-slate-900/60">
-            
             <div className="grid gap-4">
               <StatCard
                 icon={<ClipboardList className="h-5 w-5" />}
@@ -236,16 +250,16 @@ export default async function HomePage() {
               <p>
                 We started ScholarBase after one too many evenings hunting PhD
                 deadlines across nine browser tabs, three WhatsApp groups, and a
-                PDF named <span className="italic">final_v3_REALFINAL.pdf</span>.
-                Turns out, the academic world doesn&apos;t need another social
+                PDF named <span className="italic">final_v3_REALFINAL.pdf</span>
+                . Turns out, the academic world doesn&apos;t need another social
                 network — it needs a single, calm room where the good stuff
                 actually floats to the top.
               </p>
               <p>
-                No investors. No ads. No &ldquo;premium research tier.&rdquo; Just an
-                open-source codebase, a stubborn belief in free knowledge, and
-                a community that, against all odds, keeps voting for the
-                useful stuff.
+                No investors. No ads. No &ldquo;premium research tier.&rdquo;
+                Just an open-source codebase, a stubborn belief in free
+                knowledge, and a community that, against all odds, keeps voting
+                for the useful stuff.
               </p>
               <p>
                 Bring your work, your weird niche, your unanswered question.
@@ -263,7 +277,8 @@ export default async function HomePage() {
         </h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {features.map((feature) => (
-            <Link prefetch={false}
+            <Link
+              prefetch={false}
               key={feature.title}
               href={feature.href}
               className="sb-card sb-card-hover group flex flex-col gap-4"
@@ -292,21 +307,35 @@ export default async function HomePage() {
             Our story
           </span>
           <h2 className="mt-5 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
-            Built by scholars, for scholars; because opportunity shouldn&apos;t depend on being in the right group chat.
+            Built by scholars, for scholars; because opportunity shouldn&apos;t
+            depend on being in the right group chat.
           </h2>
           <div className="mt-6 space-y-4 text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-400">
             <p>
-              Every researcher knows the struggle. PhD admissions, journal calls, conference deadlines, research vacancies scattered across dozens of websites, mailing lists, and screenshots that get lost in the noise.
+              Every researcher knows the struggle. PhD admissions, journal
+              calls, conference deadlines, research vacancies scattered across
+              dozens of websites, mailing lists, and screenshots that get lost
+              in the noise.
             </p>
             <p>
-              So we built one open place where the academic community itself shares, discovers, and discusses what matters and where the best contributions rise through community votes, not advertising budgets.
+              So we built one open place where the academic community itself
+              shares, discovers, and discusses what matters and where the best
+              contributions rise through community votes, not advertising
+              budgets.
             </p>
             <p>
-              We&apos;re <strong className="text-slate-900 dark:text-slate-200">fully open source</strong>, with no company, no investors, and no revenue engine. ScholarBase answers only to its users and every feature ships because the community asked for it.
+              We&apos;re{" "}
+              <strong className="text-slate-900 dark:text-slate-200">
+                fully open source
+              </strong>
+              , with no company, no investors, and no revenue engine.
+              ScholarBase answers only to its users and every feature ships
+              because the community asked for it.
             </p>
           </div>
           <div className="mt-7">
-            <Link prefetch={false}
+            <Link
+              prefetch={false}
               href="/about"
               className="inline-flex items-center gap-2 text-sm md:text-base font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
             >
@@ -333,32 +362,38 @@ export default async function HomePage() {
               icon: Code2,
               title: "Open source",
               desc: "Every line of code is public. Everyone can read it, contribute to it, or build on it.",
-              iconWrap: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
+              iconWrap:
+                "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
             },
             {
               icon: Sparkles,
               title: "Knowledge should be free",
               desc: "No paywalls. No premium tiers for core features. Ever.",
-              iconWrap: "bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300",
+              iconWrap:
+                "bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300",
             },
             {
               icon: Users,
               title: "Reputation is earned",
               desc: "Community votes decide what deserves attention — not ad budgets.",
-              iconWrap: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
+              iconWrap:
+                "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
             },
             {
               icon: Globe2,
               title: "Borderless access",
               desc: "From Mumbai to Nairobi to São Paulo — the same free platform, for every scholar.",
-              iconWrap: "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
+              iconWrap:
+                "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
             },
           ].map(({ icon: Icon, title, desc, iconWrap }) => (
             <div
               key={title}
               className="sb-card sb-card-hover flex flex-col gap-3 p-6"
             >
-              <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconWrap}`}>
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-xl ${iconWrap}`}
+              >
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="text-base font-semibold text-slate-950 dark:text-slate-50">
@@ -381,13 +416,22 @@ export default async function HomePage() {
               Join the team
             </span>
             <h2 className="mt-5 text-2xl md:text-3xl font-bold tracking-tight text-slate-950">
-              We can&apos;t pay you — yet. But we can teach you what your first job probably won&apos;t.
+              We can&apos;t pay you — yet. But we can teach you what your first
+              job probably won&apos;t.
             </h2>
             <p className="mt-4 text-slate-600 dark:text-slate-400 leading-relaxed">
-              ScholarBase is fully open-source with no revenue behind it — by design. So instead of a paycheck, we offer hands-on mentorship on a live platform used by scholars around the world. Your campaigns, curated listings, and bug reports are public, credited to you, and interview-ready.
+              ScholarBase is fully open-source with no revenue behind it — by
+              design. So instead of a paycheck, we offer hands-on mentorship on
+              a live platform used by scholars around the world. Your campaigns,
+              curated listings, and bug reports are public, credited to you, and
+              interview-ready.
             </p>
             <div className="mt-7 flex flex-col sm:flex-row gap-3">
-              <Link prefetch={false} href="/careers" className="sb-button-accent">
+              <Link
+                prefetch={false}
+                href="/careers"
+                className="sb-button-accent"
+              >
                 See open tracks
               </Link>
               <a
@@ -406,26 +450,28 @@ export default async function HomePage() {
                 icon: Megaphone,
                 title: "Growth & Marketing",
                 desc: "Reach scholars one campus at a time.",
-                iconWrap: "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
+                iconWrap:
+                  "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
               },
               {
                 icon: Bug,
                 title: "Testing & QA",
                 desc: "Hunt every bug before our users do.",
-                iconWrap: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
+                iconWrap:
+                  "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
               },
               {
                 icon: SearchCheck,
                 title: "Research & Curation",
                 desc: "Verify and build the directories scholars rely on.",
-                iconWrap: "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
+                iconWrap:
+                  "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
               },
             ].map(({ icon: Icon, title, desc, iconWrap }) => (
-              <div
-                key={title}
-                className="sb-card sb-card-hover p-5"
-              >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconWrap}`}>
+              <div key={title} className="sb-card sb-card-hover p-5">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconWrap}`}
+                >
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="mt-3 text-sm font-semibold text-slate-950 dark:text-slate-50">
@@ -463,12 +509,11 @@ export default async function HomePage() {
 
       {/* Asterisk note */}
       <p className="mt-12 text-center text-sm text-black dark:text-slate-300 italic">
-        * ScholarBase runs on chai, coffee, and the quiet belief that
-        academics deserve a homepage that doesn&apos;t try to sell them
-        something. The cards above are non-negotiable. The em dashes,
-        however, are a lifestyle choice — and yes, we are aware that one of
-        them is hiding in this very footnote. We&apos;re not telling which
-        one.
+        * ScholarBase runs on chai, coffee, and the quiet belief that academics
+        deserve a homepage that doesn&apos;t try to sell them something. The
+        cards above are non-negotiable. The em dashes, however, are a lifestyle
+        choice — and yes, we are aware that one of them is hiding in this very
+        footnote. We&apos;re not telling which one.
       </p>
     </div>
   );
@@ -489,17 +534,20 @@ function StatCard({
 }) {
   const accents: Record<string, string> = {
     blue: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
-    violet: "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300",
-    emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
-    amber: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
+    violet:
+      "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300",
+    emerald:
+      "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300",
+    amber:
+      "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-300",
   };
   return (
-    <div
-      className="group sb-card flex items-start gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-    >
+    <div className="group sb-card flex items-start gap-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start gap-3">
         {icon && (
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${accents[accent]}`}>
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${accents[accent]}`}
+          >
             {icon}
           </div>
         )}

@@ -1,4 +1,8 @@
 export function isProductionEnv(): boolean {
+    // GitHub Actions automatically provides CI="true"
+    if (process.env.CI === "true") {
+        return false;
+    }
     return process.env.NODE_ENV === "production";
 }
 

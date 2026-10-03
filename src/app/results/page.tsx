@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Academic Results - Admissions, Exams & Notifications",
-  description: "Admission results, exam outcomes, vacancy results, and other important academic notifications.",
-  path: "/results",
-  section: "Results",
+  title: SEO_PAGES.results.title,
+  description: SEO_PAGES.results.description,
+  path: SEO_PAGES.results.path,
+  section: SEO_PAGES.results.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -39,8 +40,11 @@ export default async function ResultsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingResults()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingResults()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function ResultsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const results = await getResults(q ?? "", 10);
             return { results, userId: user?.id };
           }}

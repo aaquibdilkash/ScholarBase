@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { buildMetadata } from "@/lib/seo";
-import { ArrowRight, BookOpen, Code2, Globe2, HeartHandshake, Sparkles, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Code2,
+  Globe2,
+  HeartHandshake,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata = buildMetadata({
-  title: "About Us | ScholarBase",
-  description:
-    "Learn about ScholarBase — a free, community-driven academic platform. Discover our motivation, our values, and how we help scholars and academia globally.",
-  path: "/about",
-  keywords: [
-    "about ScholarBase",
-    "academic networking platform",
-    "free platform for researchers",
-    "academic community",
-    "PhD admissions and research opportunities",
-  ],
+  title: SEO_PAGES.about.title,
+  description: SEO_PAGES.about.description,
+  path: SEO_PAGES.about.path,
+  keywords: SEO_PAGES.about.keywords,
 });
 
 const features = [
@@ -54,7 +56,8 @@ export default function AboutPage() {
               About ScholarBase
             </h1>
             <p className="text-xl sm:text-2xl text-slate-600 dark:text-slate-400">
-              A free, community-driven home for the global academic community — built by scholars, for scholars.
+              A free, community-driven home for the global academic community —
+              built by scholars, for scholars.
             </p>
           </div>
 
@@ -65,13 +68,37 @@ export default function AboutPage() {
             </h2>
             <div className="space-y-4 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
               <p>
-                Every researcher knows the struggle. Important opportunities — PhD admissions, journal calls, conference deadlines, research vacancies — are scattered across dozens of websites, WhatsApp groups, mailing lists, and screenshots that get lost in the noise. Meanwhile, academic social networks that do exist are either paywalled, ad-heavy, or designed for institutions rather than individuals.
+                Every researcher knows the struggle. Important opportunities —
+                PhD admissions, journal calls, conference deadlines, research
+                vacancies — are scattered across dozens of websites, WhatsApp
+                groups, mailing lists, and screenshots that get lost in the
+                noise. Meanwhile, academic social networks that do exist are
+                either paywalled, ad-heavy, or designed for institutions rather
+                than individuals.
               </p>
               <p>
-                ScholarBase started with a simple question: <strong className="text-slate-900 dark:text-slate-200">why should a brilliant student&apos;s access to opportunity depend on being in the right group chat?</strong> We decided the answer was to build one open platform where the academic community itself shares, discovers, and discusses what matters — and where the best contributions rise to the top through community votes, not advertising budgets.
+                ScholarBase started with a simple question:{" "}
+                <strong className="text-slate-900 dark:text-slate-200">
+                  why should a brilliant student&apos;s access to opportunity
+                  depend on being in the right group chat?
+                </strong>{" "}
+                We decided the answer was to build one open platform where the
+                academic community itself shares, discovers, and discusses what
+                matters — and where the best contributions rise to the top
+                through community votes, not advertising budgets.
               </p>
               <p>
-                And we are <strong className="text-slate-900 dark:text-slate-200">open source</strong> — built for the community, by the community. There is no company behind ScholarBase, no investors, and no revenue engine. Everything we write is public, and anyone can read it, contribute to it, or build on it. That independence is a feature: it means ScholarBase answers only to its users, and every feature we ship is chosen because the community asked for it — not because it pays.
+                And we are{" "}
+                <strong className="text-slate-900 dark:text-slate-200">
+                  open source
+                </strong>{" "}
+                — built for the community, by the community. There is no company
+                behind ScholarBase, no investors, and no revenue engine.
+                Everything we write is public, and anyone can read it,
+                contribute to it, or build on it. That independence is a
+                feature: it means ScholarBase answers only to its users, and
+                every feature we ship is chosen because the community asked for
+                it — not because it pays.
               </p>
             </div>
           </section>
@@ -83,14 +110,21 @@ export default function AboutPage() {
             </h2>
             <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
               {features.map(({ icon: Icon, title, description }) => (
-                <div key={title} className="sb-card-flush rounded-xl border p-5 sm:p-6">
+                <div
+                  key={title}
+                  className="sb-card-flush rounded-xl border p-5 sm:p-6"
+                >
                   <div className="flex items-center gap-3 mb-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
                       <Icon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {title}
+                    </h3>
                   </div>
-                  <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">{description}</p>
+                  <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -105,26 +139,38 @@ export default function AboutPage() {
               <li className="flex gap-3">
                 <Code2 className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <span>
-                  <strong className="text-slate-900 dark:text-slate-200">We are open source.</strong>{" "}
-                  Built for the community, by the community — every line of code is public and Everyone can contribute.
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    We are open source.
+                  </strong>{" "}
+                  Built for the community, by the community — every line of code
+                  is public and Everyone can contribute.
                 </span>
               </li>
               <li className="flex gap-3">
                 <Sparkles className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <span>
-                  <strong className="text-slate-900 dark:text-slate-200">Knowledge should be free.</strong> No paywalls, no premium tiers for core features, ever.
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    Knowledge should be free.
+                  </strong>{" "}
+                  No paywalls, no premium tiers for core features, ever.
                 </span>
               </li>
               <li className="flex gap-3">
                 <Users className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <span>
-                  <strong className="text-slate-900 dark:text-slate-200">Reputation is earned, not bought.</strong> Community votes decide what deserves attention.
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    Reputation is earned, not bought.
+                  </strong>{" "}
+                  Community votes decide what deserves attention.
                 </span>
               </li>
               <li className="flex gap-3">
                 <Globe2 className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <span>
-                  <strong className="text-slate-900 dark:text-slate-200">Opportunity should not depend on geography.</strong> A scholar anywhere deserves access to everything.
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    Opportunity should not depend on geography.
+                  </strong>{" "}
+                  A scholar anywhere deserves access to everything.
                 </span>
               </li>
             </ul>
@@ -136,14 +182,23 @@ export default function AboutPage() {
               Join the Community
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 max-w-xl mx-auto">
-              Whether you&apos;re a PhD aspirant, a professor, a journal editor, or simply curious — there&apos;s a place for you here.
+              Whether you&apos;re a PhD aspirant, a professor, a journal editor,
+              or simply curious — there&apos;s a place for you here.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link prefetch={false} href="/" className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-blue-700">
+              <Link
+                prefetch={false}
+                href="/"
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white transition hover:bg-blue-700"
+              >
                 Explore ScholarBase
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link prefetch={false} href="/contact" className="inline-flex items-center gap-2 rounded-xl border sb-soft px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-[var(--surface-strong)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800">
+              <Link
+                prefetch={false}
+                href="/contact"
+                className="inline-flex items-center gap-2 rounded-xl border sb-soft px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-[var(--surface-strong)] dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
                 Get in Touch
               </Link>
             </div>

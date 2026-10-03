@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Research Surveys - Participate & Contribute",
-  description: "Create and participate in research surveys built for the academic community.",
-  path: "/surveys",
-  section: "Surveys",
+  title: SEO_PAGES.surveys.title,
+  description: SEO_PAGES.surveys.description,
+  path: SEO_PAGES.surveys.path,
+  section: SEO_PAGES.surveys.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -39,8 +40,11 @@ export default async function SurveysPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingSurveys()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingSurveys()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function SurveysPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const surveys = await getSurveys(q ?? "", 10);
             return { surveys, userId: user?.id };
           }}

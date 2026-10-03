@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import ContributionForm from "@/components/contributions/ContributionForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { SEO_CREATE_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Make a Contribution",
-  description: "Support ScholarBase development by making a contribution.",
-  robots: { index: false, follow: true },
+  title: SEO_CREATE_PAGES.contributions.title,
+  description: SEO_CREATE_PAGES.contributions.description,
+  robots: { index: true, follow: true },
 };
 
 export default function NewContributionPage() {
   return (
     <CreateOrEditPageShell
-      title="Make a Contribution"
-      description="Support ScholarBase development by making a contribution."
+      title={SEO_CREATE_PAGES.contributions.title}
+      description={SEO_CREATE_PAGES.contributions.description}
       backHref="/contributions"
       backLabel="Back to Contributions"
     >

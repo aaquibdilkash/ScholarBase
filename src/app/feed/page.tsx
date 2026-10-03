@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Research Feed - Community Research Updates",
-  description: "Short research updates, news, and conversations from the academic community on ScholarBase.",
-  path: "/feed",
-  section: "Community",
+  title: SEO_PAGES.feed.title,
+  description: SEO_PAGES.feed.description,
+  path: SEO_PAGES.feed.path,
+  section: SEO_PAGES.feed.section,
 });
 import { fetchFeedPage } from "@/app/actions/feed";
 import { getCurrentUser } from "@/lib/auth";
@@ -24,7 +25,7 @@ export default async function FeedPage({
 }: {
   searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab, q } = await searchParams as { tab?: string; q?: string };
+  const { tab, q } = (await searchParams) as { tab?: string; q?: string };
   const pageSize = 10;
   const userPromise = getCurrentUser();
 

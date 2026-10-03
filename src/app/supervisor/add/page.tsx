@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import SupervisorForm from "@/components/supervisor/SupervisorForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { SEO_CREATE_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Add Supervisor",
-  description: "Add a PhD supervisor or mentor to help fellow researchers.",
-  robots: { index: false, follow: true },
+  title: SEO_CREATE_PAGES.supervisor.title,
+  description: SEO_CREATE_PAGES.supervisor.description,
+  robots: { index: true, follow: true },
 };
 
 export default function NewSupervisorPage() {
   return (
     <CreateOrEditPageShell
-      title="Add Supervisor"
-      description="Add a PhD supervisor or mentor to help fellow researchers."
+      title={SEO_CREATE_PAGES.supervisor.title}
+      description={SEO_CREATE_PAGES.supervisor.description}
       backHref="/supervisor"
       backLabel="Back to Supervisors"
     >

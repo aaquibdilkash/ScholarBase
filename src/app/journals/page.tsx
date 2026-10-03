@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Academic Journals Database - ISSN, Impact Factor & More",
-  description:
-    "Browse and discover academic journals reviewed by scholars along with their ISSN, impact factors, Scopus indexing, and publisher information.",
-  path: "/journals",
-  section: "Journals",
+  title: SEO_PAGES.journals.title,
+  description: SEO_PAGES.journals.description,
+  path: SEO_PAGES.journals.path,
+  section: SEO_PAGES.journals.section,
 });
 import { createClient } from "@/utils/supabase/server";
 

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Contributions - Support ScholarBase",
-  description: "Support ScholarBase and see how the community fuels its servers, infrastructure, and growth.",
-  path: "/contributions",
-  section: "Contributions",
+  title: SEO_PAGES.contributions.title,
+  description: SEO_PAGES.contributions.description,
+  path: SEO_PAGES.contributions.path,
+  section: SEO_PAGES.contributions.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -39,8 +40,11 @@ export default async function ContributionsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingContributions()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingContributions()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function ContributionsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const contributions = await getContributions(q ?? "", 10);
             return { contributions, userId: user?.id };
           }}

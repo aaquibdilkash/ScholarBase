@@ -1,10 +1,10 @@
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Clock, Mail, Send } from "lucide-react";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata = {
-  title: "Contact Us",
-  description:
-    "Get in touch with the ScholarBase team for business inquiries, platform support, and general questions.",
+  title: SEO_PAGES.contact.title,
+  description: SEO_PAGES.contact.description,
 };
 
 export default function ContactPage() {

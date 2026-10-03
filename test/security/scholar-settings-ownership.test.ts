@@ -12,7 +12,7 @@
  * and the guards are observed through the `redirect()` they throw. That is the
  * whole contract: who may see this page, and where everyone else is sent.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
@@ -88,6 +88,19 @@ const run = async (id: string) => {
     throw error;
   }
 };
+
+beforeAll(async () => {
+  // Warm the module graph OUTSIDE any test's timeout budget.
+  //
+  // This page statically imports eight client components (EditProfileForm,
+  // InstitutionVerificationForm, push, PWA, settings tabs, ...). Transforming
+  // that whole graph costs seconds under `--coverage` instrumentation, and
+  // because `run()` imports the page lazily, whichever test ran FIRST absorbed
+  // the entire cost and blew the 5s default — a flake that has nothing to do
+  // with the ownership guard this file exists to test. Paying it once here makes
+  // every test measure only the guard.
+  await import("@/app/scholars/[id]/settings/page");
+});
 
 beforeEach(() => {
   resetFakeDb();

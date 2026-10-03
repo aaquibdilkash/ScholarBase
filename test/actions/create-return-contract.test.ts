@@ -41,6 +41,23 @@ vi.mock("@/lib/db", async () => {
   return { default: fakeDb.client };
 });
 
+/**
+ * `createPublication` writes its linked co-authors with a nested
+ * `publicationAuthors: { create: [...] }`.
+ *
+ * Before the fake grew explicit relation support, that payload was stored on the
+ * publication row verbatim as a literal `{ create: [...] }` object and these
+ * tests still passed, because none of their assertions look at co-authors. The
+ * declaration below makes the write behave as Prisma does, so the relation is
+ * real if an assertion ever does look at it.
+ */
+fakeDb.link({
+  parent: "publication",
+  relation: "publicationAuthors",
+  child: "publicationAuthor",
+  fk: "publicationId",
+});
+
 const AUTHOR = "u-author";
 let mockCurrentUser: { id: string } | null = null;
 let mockIsAdmin = false;

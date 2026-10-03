@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
+import { SEO_NOINDEX } from "@/constants/seo";
 
-export const metadata: Metadata = buildNoindexMetadata("Sign in - ScholarBase");
+export const metadata: Metadata = buildNoindexMetadata(SEO_NOINDEX.login);
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";

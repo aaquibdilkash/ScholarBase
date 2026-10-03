@@ -1,5 +1,5 @@
 export { createFakePrisma, FakeStore } from "./store"
-export type { FakePrisma, FakePrismaClient } from "./store"
+export type { FakePrisma, FakePrismaClient, RelationLink } from "./store"
 export { FakeDelegate } from "./delegate"
 export type { Args, RecordedCall } from "./delegate"
 export { matchWhere } from "./match"

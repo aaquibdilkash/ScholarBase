@@ -41,7 +41,7 @@ export function PublicationCard({
     (publication.votes || [])[0]?.voteType ??
     null;
 
-  const authorLinks = publication.publicationAuthors?.length ? publication.publicationAuthors.map((pa) => {
+  const authorLinks = publication.publicationAuthors?.length ? publication.publicationAuthors.map((pa, index) => {
     const name = pa.user?.name || `@${pa.user?.handle}`;
     return (
       <span
@@ -63,6 +63,7 @@ export function PublicationCard({
         }}
         className="cursor-pointer font-semibold text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
       >
+        {index > 0 && ", "}
         {name}
       </span>
     );

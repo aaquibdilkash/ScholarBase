@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Publications - Research Papers, Conference Proceedings & Books",
-  description: "Browse and discover academic publications — research papers, conference proceedings, preprints, books, and more.",
-  path: "/publications",
-  section: "Publications",
+  title: SEO_PAGES.publications.title,
+  description: SEO_PAGES.publications.description,
+  path: SEO_PAGES.publications.path,
+  section: SEO_PAGES.publications.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -39,8 +40,11 @@ export default async function PublicationsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingPublications()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingPublications()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function PublicationsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const publications = await getPublications(q ?? "", 10);
             return { publications, userId: user?.id };
           }}

@@ -16,6 +16,7 @@ import { cookies, headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { IOS_STARTUP_IMAGES } from "@/lib/ios-startup-images";
 import { redirect } from "next/navigation";
+import { SEO_SITE } from "@/constants/seo";
 
 // In app/layout.tsx or your root SEO metadata config
 const isDev =
@@ -51,55 +52,37 @@ const INSTALL_PROMPT_CAPTURE = `
 `;
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://scholarbase.app"),
-  title: {
-    default: "ScholarBase - The Academic Hub for Scholars & Researchers",
-    template: "%s | ScholarBase",
-  },
-  description:
-    "Connect with peers, publish research, find PhD supervisors, discover admissions, academic events, and job vacancies. ScholarBase is the open-source academic community platform.",
-  keywords: [
-    "academic",
-    "research",
-    "phd",
-    "supervisor",
-    "phd admissions",
-    "research community",
-    "scholar platform",
-    "academic jobs",
-    "research publications",
-    "conference",
-    "university",
-  ],
-  authors: [{ name: "ScholarBase Community" }],
+  metadataBase: new URL(SEO_SITE.url),
+  title: SEO_SITE.title,
+  description: SEO_SITE.description,
+  keywords: SEO_SITE.keywords,
+  authors: SEO_SITE.authors,
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "ScholarBase",
-    title: "ScholarBase - The Academic Hub for Scholars & Researchers",
-    description:
-      "Connect with peers, publish your research, find PhD supervisors, and discover opportunities in academia.",
-    url: "https://scholarbase.app",
+    siteName: SEO_SITE.name,
+    title: SEO_SITE.title.default,
+    description: SEO_SITE.openGraphDescription,
+    url: SEO_SITE.url,
     images: [
       {
-        url: "/og-image.png",
+        url: SEO_SITE.defaultImage,
         width: 1200,
         height: 630,
-        alt: "ScholarBase - Academic Community Platform",
+        alt: SEO_SITE.imageAlt,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ScholarBase - The Academic Hub",
-    description:
-      "Connect with peers, publish research, find supervisors and opportunities.",
-    images: ["/og-image.png"],
+    title: SEO_SITE.twitterTitle,
+    description: SEO_SITE.twitterDescription,
+    images: [SEO_SITE.defaultImage],
   },
   alternates: {
-    canonical: "https://scholarbase.app",
+    canonical: SEO_SITE.url,
   },
-  category: "Education",
+  category: SEO_SITE.category,
   manifest: "/manifest.json",
   appleWebApp: {
     title: "ScholarBase",

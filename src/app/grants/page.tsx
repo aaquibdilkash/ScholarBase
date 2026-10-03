@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Research Grants",
-  description:
-    "Discover and share research grants, research scholarships, funding calls, application links, and guidance for scholars.",
-  path: "/grants",
-  section: "Grants",
+  title: SEO_PAGES.grants.title,
+  description: SEO_PAGES.grants.description,
+  path: SEO_PAGES.grants.path,
+  section: SEO_PAGES.grants.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -40,8 +40,11 @@ export default async function ResearchGrantsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingGrants()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingGrants()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -55,7 +58,9 @@ export default async function ResearchGrantsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const grants = await getResearchGrants(q ?? "", 10);
             return { grants, userId: user?.id };
           }}

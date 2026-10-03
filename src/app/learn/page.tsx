@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Courses",
-  description: "Find and share research learning courses from YouTube, Udemy, universities, and other learning platforms.",
-  path: "/learn",
-  section: "Courses",
+  title: SEO_PAGES.learn.title,
+  description: SEO_PAGES.learn.description,
+  path: SEO_PAGES.learn.path,
+  section: SEO_PAGES.learn.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -39,8 +40,11 @@ export default async function CoursesPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingCourses()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingCourses()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function CoursesPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const courses = await getCourses(q ?? "", 10);
             return { courses, userId: user?.id };
           }}

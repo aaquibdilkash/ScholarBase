@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-
-const SITE_NAME = "ScholarBase";
-const SITE_URL = "https://scholarbase.app";
-const DEFAULT_IMAGE = "/og-image.png";
+import {
+  DEFAULT_SEO_IMAGE,
+  SEO_SITE,
+  SITE_NAME,
+  SITE_URL,
+} from "@/constants/seo";
 
 /** Resolve a path (or absolute URL) to an absolute URL. */
 const absoluteUrl = (value: string): string =>
@@ -33,7 +35,7 @@ export interface BuildMetadataOptions {
 
 export function buildMetadata(options: BuildMetadataOptions): Metadata {
   const url = options.path ? absoluteUrl(options.path) : SITE_URL;
-  const image = options.image && options.image.trim() ? absoluteUrl(options.image) : absoluteUrl(DEFAULT_IMAGE);
+  const image = options.image && options.image.trim() ? absoluteUrl(options.image) : absoluteUrl(DEFAULT_SEO_IMAGE);
   const description = truncate(options.description);
   const type = options.type ?? "website";
   const publishedTime = options.publishedTime ? new Date(options.publishedTime).toISOString() : undefined;
@@ -47,7 +49,7 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
     openGraph: {
       type,
       locale: "en_US",
-      siteName: SITE_NAME,
+      siteName: SEO_SITE.name,
       title: options.title,
       description,
       url,
@@ -78,7 +80,7 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
 }
 
 /** Metadata for private / auth-gated / form pages that should never be indexed. */
-export function buildNoindexMetadata(title = "ScholarBase"): Metadata {
+export function buildNoindexMetadata(title = SITE_NAME): Metadata {
   return {
     title,
     robots: {

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Academic Vacancies - ScholarBase",
-  description:
-    "Find the latest academic job openings, research positions, and faculty vacancies from institutions around the world.",
-  path: "/vacancies",
-  section: "Academic Vacancies",
+  title: SEO_PAGES.vacancies.title,
+  description: SEO_PAGES.vacancies.description,
+  path: SEO_PAGES.vacancies.path,
+  section: SEO_PAGES.vacancies.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -40,8 +40,11 @@ export default async function VacanciesPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingVacancies()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingVacancies()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -55,7 +58,9 @@ export default async function VacanciesPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const vacancies = await getVacancies(q ?? "", 10);
             return { vacancies, userId: user?.id };
           }}

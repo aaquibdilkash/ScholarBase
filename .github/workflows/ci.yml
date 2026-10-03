@@ -46,20 +46,28 @@ jobs:
         env:
           DATABASE_URL: postgresql://localhost:5432/test
           DIRECT_URL: postgresql://localhost:5432/test
+          CRON_SECRET: mock_cron_secret_for_ci
           QSTASH_TOKEN: mock_qstash_token_for_ci
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci
           RESEND_API_KEY: re_mock_api_key_for_ci
+          NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock_supabase_anon_key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
       - name: Build application
         run: npm run build
         env:
           DATABASE_URL: postgresql://localhost:5432/test
           DIRECT_URL: postgresql://localhost:5432/test
+          CRON_SECRET: mock_cron_secret_for_ci_build
           QSTASH_TOKEN: mock_qstash_token_for_ci_build
           QSTASH_CURRENT_SIGNING_KEY: mock_current_signing_key_for_ci_build
           QSTASH_NEXT_SIGNING_KEY: mock_next_signing_key_for_ci_build
           RESEND_API_KEY: re_mock_api_key_for_ci_build
+          NEXT_PUBLIC_SUPABASE_URL: https://mock.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: mock_supabase_anon_key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
   integration:
     name: Integration (Postgres 17)

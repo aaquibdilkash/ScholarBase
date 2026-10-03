@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "Research Blog - Insights, Guides & Essays",
-  description: "Essays, guides, and longer-form research reflections on academia, publishing, and scholarly life.",
-  path: "/blog",
-  section: "Blog",
+  title: SEO_PAGES.blog.title,
+  description: SEO_PAGES.blog.description,
+  path: SEO_PAGES.blog.path,
+  section: SEO_PAGES.blog.section,
 });
 import ListPageShell from "@/components/layout/ListPageShell";
 import { getTrendingArticles } from "@/lib/trending";
@@ -39,8 +40,11 @@ export default async function BlogIndex({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingArticles()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingArticles()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -54,7 +58,9 @@ export default async function BlogIndex({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             // Viewer identity is resolved inside the action; the page does not
             // pass a userId down to the data layer.
             const articles = await getArticles(q ?? "", 10);

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: "PhD Admissions - ScholarBase",
-  description:
-    "Find and share PhD admission notifications from universities and research institutions worldwide.",
-  path: "/admissions",
-  section: "PhD Admissions",
+  title: SEO_PAGES.admissions.title,
+  description: SEO_PAGES.admissions.description,
+  path: SEO_PAGES.admissions.path,
+  section: SEO_PAGES.admissions.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
@@ -42,8 +42,11 @@ export default async function AdmissionsPage({
         <AsyncListRegion
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
-            const items = (await getTrendingAdmissions()) as unknown as TrendingItem[];
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const items =
+              (await getTrendingAdmissions()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -57,7 +60,9 @@ export default async function AdmissionsPage({
           key={q}
           fetcher={async () => {
             const supabase = await supabasePromise;
-            const { data: { user } } = await supabase.auth.getUser();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
             const admissions = await getAdmissions(q ?? "", 10);
             return { admissions, userId: user?.id };
           }}

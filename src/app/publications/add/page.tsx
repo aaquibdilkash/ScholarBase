@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import PublicationForm from "@/components/publications/PublicationForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { SEO_CREATE_PAGES } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Add Publication",
-  description:
-    "Add your research publication, paper, or academic work to your profile.",
-  robots: { index: false, follow: true },
+  title: SEO_CREATE_PAGES.publications.title,
+  description: SEO_CREATE_PAGES.publications.description,
+  robots: { index: true, follow: true },
 };
 
 export default function NewPublicationPage() {
   return (
     <CreateOrEditPageShell
-      title="Add Publication"
-      description="Add your research publication, paper, or academic work to your profile."
+      title={SEO_CREATE_PAGES.publications.title}
+      description={SEO_CREATE_PAGES.publications.description}
       backHref="/publications"
       backLabel="Back to Publications"
     >

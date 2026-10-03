@@ -9,9 +9,14 @@ import type { FakeStore } from "./store"
  * unit-test the RULE 3 voting matrix is to intercept that call and hand the
  * callback a fake `tx`. This module provides exactly that.
  *
- * Deliberately NOT implemented (these throw loudly instead of guessing):
- * relation writes (`connect`/nested `create`), raw SQL, session isolation.
- * Those belong to the integration tier, against real Postgres.
+ * Nested relation writes (`create`/`connect`) are supported ONLY for relations a
+ * test has explicitly declared via `store.link()` — see `RelationLink` in
+ * `./store`. This was added for the survey response path
+ * (`surveyResponse.create({ answers: { create: [...] } })`), which is what makes
+ * `submitSurveyResponse` unit-testable at all. Deliberately still NOT
+ * implemented (these throw loudly instead of guessing): `disconnect`,
+ * `connectOrCreate`, nested `delete`, raw SQL, and cross-table constraint
+ * enforcement. Those belong to the integration tier, against real Postgres.
  */
 
 const NUMERIC_OPS = new Set(["increment", "decrement", "multiply", "divide", "set"])
@@ -86,8 +91,54 @@ function project(row: Row, select: unknown): Row {
   return out
 }
 
-/** Apply Prisma's atomic update operators onto a mutable row. */
-function applyData(row: Row, data: Record<string, unknown>): void {
+/**
+ * Every nested relation-write verb Prisma accepts. Used ONLY to RECOGNISE that
+ * something is a relation write; the fake then permits just `NESTED_SUPPORTED`
+ * and refuses the rest loudly.
+ *
+ * Recognition must be by verb name rather than "any non-numeric object",
+ * because survey answers are JSONB: a matrix answer is a plain object like
+ * `{ row_c: 3 }` that has to be stored verbatim. Treating that as a relation
+ * write would throw on legitimate data.
+ */
+const NESTED_VERBS = new Set([
+  "create",
+  "createMany",
+  "createManyAndReturn",
+  "connect",
+  "connectOrCreate",
+  "disconnect",
+  "delete",
+  "deleteMany",
+  "set",
+  "upsert",
+  "update",
+  "updateMany",
+  "updateManyAndReturn",
+])
+
+/**
+ * Nested write verbs that mean "materialise a row on another table".
+ *
+ * `NESTED_SUPPORTED` is a WHITELIST on purpose. A blacklist has to enumerate
+ * every verb Prisma might add and silently stores anything it misses — which is
+ * how a broken write becomes a passing test. Anything outside this list throws.
+ */
+const NESTED_SUPPORTED = new Set(["create", "connect"])
+
+/**
+ * Apply Prisma's atomic update operators onto a mutable row.
+ *
+ * `model`/`store` are needed because a nested `create` writes to a DIFFERENT
+ * table than the row being updated, and the child must be attached back to the
+ * parent's materialised relation array so a later `include` can read it.
+ */
+function applyData(
+  row: Row,
+  data: Record<string, unknown>,
+  model: string,
+  store: FakeStore,
+): void {
   for (const [key, raw] of Object.entries(data)) {
     if (raw !== null && typeof raw === "object" && !(raw instanceof Date) && !Array.isArray(raw)) {
       const ops = raw as Record<string, unknown>
@@ -104,23 +155,61 @@ function applyData(row: Row, data: Record<string, unknown>): void {
         }
         continue
       }
-      for (const nested of ["connect", "disconnect", "create", "connectOrCreate", "delete"]) {
-        if (nested in ops) {
+
+      // Recognise a relation write by its verb name, then permit only the
+      // whitelisted verbs. A JSONB object that is not a relation write falls
+      // through and is stored verbatim.
+      const nestedVerb = Object.keys(ops).find((verb) => NESTED_VERBS.has(verb))
+      if (nestedVerb) {
+        if (!NESTED_SUPPORTED.has(nestedVerb)) {
           throw new Error(
-            `fake-prisma: nested relation writes (\`${key}.${nested}\`) are not ` +
-              "supported — use the integration tier",
+            `fake-prisma: nested relation write \`${key}.${nestedVerb}\` is not ` +
+              "supported — declare the relation with `link()` and use `create`/`connect`, " +
+              "or use the integration tier",
           )
         }
+        const link = store.findLink(model, key)
+        if (!link) throw undeclaredRelation(model, key, nestedVerb)
+
+        if (nestedVerb === "connect") {
+          // A bare `connect` on a to-one relation is a foreign key assignment:
+          // `question: { connect: { id } }` means "this answer belongs to question X".
+          row[link.fk] = clone((ops.connect as Record<string, unknown>).id)
+          continue
+        }
+
+        const specs = Array.isArray(ops.create) ? ops.create : [ops.create]
+        // Attach the new children so a later `include: { answers: true }` sees them.
+        row[key] = specs.map((spec) =>
+          store.createChild(link, row.id, spec as Record<string, unknown>),
+        )
+        continue
       }
     }
     row[key] = clone(raw)
   }
 }
 
+function undeclaredRelation(model: string, relation: string, verb: string): Error {
+  return new Error(
+    `fake-prisma: \`${model}.${relation}.${verb}\` has no declared relation. ` +
+      "The fake will not guess Prisma's naming conventions — a wrong guess would " +
+      "make a broken action look correct. Declare it first, e.g. " +
+      `fakeDb.link({ parent: "${model}", relation: "${relation}", ` +
+      'child: "<childModel>", fk: "<fkColumn>" }).',
+  )
+}
+
 export type Args = {
-  where?: unknown
+where?: unknown
   data?: Record<string, unknown>
+  /**
+   * Prisma projection. The fake implements `select` faithfully and treats
+   * `include` as "return the row whole", because its relation arrays are
+   * already materialised on the row (see `project`).
+   */
   select?: unknown
+  include?: unknown
   create?: Record<string, unknown>
   update?: Record<string, unknown>
   orderBy?: unknown
@@ -144,8 +233,8 @@ export class FakeDelegate {
     return this.store.rowsFor(this.model)
   }
 
-  private record(op: string, args: Args): void {
-    this.store.calls.push({ model: this.model, op, args })
+  private record(op: string, args: Args | { data: Array<Record<string, unknown>> }): void {
+    this.store.calls.push({ model: this.model, op, args: args as Args })
   }
 
   private findRow(where: unknown): Row | undefined {
@@ -217,16 +306,38 @@ export class FakeDelegate {
     if (this.rows.some((row) => equalsId(row.id, data.id))) {
       throw new Error(`fake-prisma: unique constraint violation on ${this.model}.id`)
     }
-    const row: Row = { createdAt: new Date(), updatedAt: new Date(), ...data }
+    const row: Row = { createdAt: new Date(), updatedAt: new Date(), id: data.id }
+    // `applyData` (not a raw spread) so nested `answers: { create: [...] }`
+    // materialises child rows instead of being stored verbatim as a literal
+    // `{ create: [...] }` object — which is what a bare spread did, silently
+    // producing a response whose `answers` were not answers at all.
+    applyData(row, data, this.model, this.store)
     this.store.put(this.model, row)
     return project(row, args.select)
+  }
+
+  /**
+   * Batch insert. `createSurvey` writes its questions and options this way, and
+   * options genuinely cannot be nested in the same call, which is why the fake
+   * mirrors the two-step shape rather than flattening it.
+   */
+  async createMany(args: { data: Array<Record<string, unknown>> }): Promise<{ count: number }> {
+    this.record("createMany", args)
+    const specs = args.data
+    if (!Array.isArray(specs)) {
+      throw new Error("fake-prisma: `createMany` requires `data` to be an array")
+    }
+    for (const spec of specs) {
+      await this.create({ data: spec })
+    }
+    return { count: specs.length }
   }
 
   async upsert(args: Args = {}): Promise<Row> {
     this.record("upsert", args)
     const existing = this.findRow(args.where)
     if (existing) {
-      applyData(existing, args.update ?? {})
+      applyData(existing, args.update ?? {}, this.model, this.store)
       existing.updatedAt = new Date()
       return project(existing, args.select)
     }
@@ -236,7 +347,7 @@ export class FakeDelegate {
   async update(args: Args = {}): Promise<Row> {
     this.record("update", args)
     const row = this.mustFind(args.where, "update")
-    applyData(row, args.data ?? {})
+    applyData(row, args.data ?? {}, this.model, this.store)
     row.updatedAt = new Date()
     return project(row, args.select)
   }
@@ -245,7 +356,7 @@ export class FakeDelegate {
     this.record("updateMany", args)
     const matches = this.rows.filter((candidate) => matchWhere(candidate, args.where))
     for (const row of matches) {
-      applyData(row, args.data ?? {})
+      applyData(row, args.data ?? {}, this.model, this.store)
       row.updatedAt = new Date()
     }
     return { count: matches.length }
@@ -255,6 +366,7 @@ export class FakeDelegate {
     this.record("delete", args)
     const row = this.mustFind(args.where, "delete")
     this.store.remove(this.model, row)
+    this.store.detachChildren(this.model, [row])
     return project(row, args.select)
   }
 
@@ -262,6 +374,7 @@ export class FakeDelegate {
     this.record("deleteMany", args)
     const matches = this.rows.filter((candidate) => matchWhere(candidate, args.where))
     for (const row of matches) this.store.remove(this.model, row)
+    this.store.detachChildren(this.model, matches)
     return { count: matches.length }
   }
 
