@@ -3,11 +3,14 @@ import type { Metadata } from "next";
 import { InstitutionDomainRequestForm } from "@/components/auth/InstitutionDomainRequestForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { MAX_INSTITUTION_REQUEST_EMAIL } from "@/lib/constants";
-import { buildNoindexMetadata } from "@/lib/seo";
+import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
-export const metadata: Metadata = buildNoindexMetadata(
-  "Request Institution Access - ScholarBase",
-);
+export const metadata: Metadata = buildMetadata({
+  title: SEO_PAGES.requestInstitution.title,
+  description: SEO_PAGES.requestInstitution.description,
+  path: SEO_PAGES.requestInstitution.path,
+});
 
 interface RequestInstitutionPageProps {
   searchParams: Promise<{ email?: string }>;
@@ -35,7 +38,10 @@ export default async function RequestInstitutionPage({
       // the form span the shell keeps header and card left edges aligned.
       className="flex min-h-[calc(100dvh-8rem)] flex-col justify-center"
     >
-      <InstitutionDomainRequestForm defaultEmail={defaultEmail} showHeader={false} />
+      <InstitutionDomainRequestForm
+        defaultEmail={defaultEmail}
+        showHeader={false}
+      />
     </CreateOrEditPageShell>
   );
 }

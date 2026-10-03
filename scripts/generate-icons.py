@@ -5,7 +5,7 @@ Both have dark background (#020617), no rounded border, with "SB" text.
 """
 
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUBLIC_DIR = os.path.join(ROOT, "public")
@@ -41,48 +41,58 @@ def load_font(font_size: int):
 
 
 def draw_centered_sb(draw: "ImageDraw.ImageDraw", size: int, font) -> None:
-    """Draw the two-tone "SB" glyph pair centred both ways.
+    """Draw the SB mark with an even square margin on every side.
 
-    The letters are drawn separately because they carry different colours, so
-    they cannot be drawn as one string. Centring is therefore measured from the
-    real per-glyph bounding boxes rather than assumed from the advance width.
+    The fix here is twofold: the S-B gap is deliberately reduced so the mark does
+    not look pushed to the right after circular cropping, and the whole symbol is
+    then scaled and centered inside the square with a fixed outer margin. That
+    keeps left/right padding equal to the top/bottom padding instead of letting
+    the font's natural width distort the icon.
     """
     text_s = "S"
     text_b = "B"
 
-    bbox_s = draw.textbbox((0, 0), text_s, font=font)
-    bbox_b = draw.textbbox((0, 0), text_b, font=font)
+    temp = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    temp_draw = ImageDraw.Draw(temp)
 
+    bbox_s = temp_draw.textbbox((0, 0), text_s, font=font)
     width_s = bbox_s[2] - bbox_s[0]
-    width_b = bbox_b[2] - bbox_b[0]
-    total_width = width_s + width_b
+    gap = 2
 
-    # Center horizontally
-    start_x = (size - total_width) // 2
+    temp_draw.text((0, 0), text_s, font=font, fill=(255, 255, 255, 255))
+    temp_draw.text((width_s + gap, 0), text_b, font=font, fill=(59, 130, 246, 255))
 
-    # Proper vertical centering using actual text bounding box
-    # bbox[1] = top (negative = above baseline), bbox[3] = bottom (positive = below baseline)
-    bbox_test = draw.textbbox((0, 0), "SB", font=font)
-    # bbox[1] = top (negative = above baseline), bbox[3] = bottom (positive = below baseline)
-    center_rel_baseline = (bbox_test[1] + bbox_test[3]) / 2
-    # We want: start_y + center_rel_baseline = size/2
-    # So: start_y = size/2 - center_rel_baseline
-    start_y = (size / 2) - center_rel_baseline
+    alpha = temp.getchannel("A")
+    rendered_bbox = alpha.getbbox()
+    if rendered_bbox is None:
+        return
 
-    # Draw "S" in white
-    draw.text((start_x, start_y), text_s, font=font, fill=WHITE)
+    mark = temp.crop(rendered_bbox)
 
-    # Draw "B" in blue
-    draw.text((start_x + width_s, start_y), text_b, font=font, fill=BLUE)
+    # Give the symbol the same margin on all four sides of the square. Using a
+    # fixed outer pad prevents the icon from collapsing horizontally while the
+    # top/bottom stay roomy.
+    pad = int(size * 0.22)
+    max_w = max(1, size - (pad * 2))
+    max_h = max(1, size - (pad * 2))
+    scale = min(max_w / mark.width, max_h / mark.height)
+    scaled = mark.resize((max(1, int(mark.width * scale)), max(1, int(mark.height * scale))), Image.Resampling.LANCZOS)
+
+    x = (size - scaled.width) // 2
+    y = (size - scaled.height) // 2
+
+    # Paste the final symbol into the dark square with explicit equal padding.
+    draw._image.paste(scaled, (x, y), scaled)
 
 
 def create_icon(size: int, output_path: str) -> None:
     """Create a square icon with dark background and SB text."""
-    # Create base image with dark background
+    # Keep the mark at a strong, readable size while centering the full group
+    # within the square so the padding is equal on all four sides.
     img = Image.new("RGB", (size, size), hex_to_rgb(BACKGROUND))
     draw = ImageDraw.Draw(img)
 
-    draw_centered_sb(draw, size, load_font(int(size * 0.55)))
+    draw_centered_sb(draw, size, load_font(int(size * 0.54)))
 
     # Save
     img.save(output_path, "PNG", optimize=True)

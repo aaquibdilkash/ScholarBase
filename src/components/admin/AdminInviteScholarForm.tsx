@@ -589,7 +589,7 @@ export function AdminInviteScholarForm() {
               <div>
                 <span className="text-slate-400">From:</span>{" "}
                 <span className="font-medium text-slate-700 dark:text-slate-200">
-                  ScholarBase &lt;invitations@scholarbase.app&gt;
+                  ScholarBase Updates &lt;updates@scholarbase.app&gt;
                 </span>
               </div>
               <div>

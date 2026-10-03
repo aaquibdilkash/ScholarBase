@@ -11,7 +11,7 @@ import { getInbox, searchInbox } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
 import { MessagesLayoutContext } from "./messages-context";
-import { ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
+import { Check, CheckCheck, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 import useMediaQuery from "@/hooks/useMediaQuery";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; isFrozen?: boolean; isDeleted?: boolean; }; lastReadAt: Date | string | null; };
@@ -47,6 +47,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
   const { isSidebarOpen, setIsSidebarOpen, mobileOpen } = useContext(MessagesLayoutContext)!;
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   // ⚡ Only the INLINE copy (mobile /messages) hides the collapse toggle — it
   // has no drawer to collapse. The desktop drawer on /messages keeps it, since
@@ -307,11 +308,14 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
     return () => clearTimeout(timer);
   }, [searchQuery, user]);
 
-  // ⚡ MIRRORS Sidebar.tsx: `if (!isDesktop) setMobileOpen(false)` on nav clicks.
-// Reached through the context, so this now targets mobile state only and never
-// disturbs the persisted desktop preference.
-const closeSidebarIfMobile = () => setIsSidebarOpen(false);
-const handleNewMessageClick = () => closeSidebarIfMobile();
+  // ⚡ Keep the laptop sidebar open on conversation selection. Only the mobile
+  // drawer should collapse after a click; desktop uses the persisted rail state.
+  const closeSidebarIfMobile = () => {
+    if (!isDesktop) {
+      setIsSidebarOpen(false);
+    }
+  };
+  const handleNewMessageClick = () => closeSidebarIfMobile();
 
   // ⚡ When searching, show the server results (from the whole database);
   // otherwise show the paginated inbox. No client-side filtering.
@@ -365,13 +369,26 @@ const handleNewMessageClick = () => closeSidebarIfMobile();
           ) : displayList.length > 0 ? (
             <div className="space-y-2 p-2 overflow-x-hidden">
               {displayList.map((conversation) => {
-                const otherParticipant = conversation.participants.find((p) => p.user.id !== user.id)?.user ?? conversation.participants[0]?.user;
+                const otherParticipantData = conversation.participants.find((p) => p.user.id !== user.id) ?? conversation.participants[0];
+                const otherParticipant = otherParticipantData?.user ?? conversation.participants[0]?.user;
                 const latestMessage = conversation.messages[0];
                 const participantData = conversation.participants.find((p) => p.user.id === user.id);
                 const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
                 const latestSenderId = latestMessage
                   ? (latestMessage.senderId || latestMessage.sender_id || latestMessage.sender?.id)
                   : undefined;
+                const latestMessageIsMine = latestSenderId === user.id;
+                const latestMessageCreatedAt = latestMessage
+                  ? new Date((latestMessage.createdAt ?? latestMessage.created_at ?? 0) as Date | string | number)
+                  : null;
+                const otherParticipantLastReadAt = otherParticipantData?.lastReadAt
+                  ? new Date(otherParticipantData.lastReadAt)
+                  : new Date(0);
+                const isLastMessageReadByOther = Boolean(
+                  latestMessageIsMine &&
+                  latestMessageCreatedAt &&
+                  latestMessageCreatedAt <= otherParticipantLastReadAt,
+                );
                 const isUnread =
                   conversation.unreadCount > 0 ||
                   (latestSenderId !== undefined &&
@@ -428,11 +445,19 @@ const handleNewMessageClick = () => closeSidebarIfMobile();
                       {showExpanded && (
                         <div className="flex shrink-0 flex-col items-end gap-1">
                           <div suppressHydrationWarning className={`text-xs ${isUnread ? "text-blue-600 font-semibold dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}`}>{<SidebarTimeAgo date={conversation.lastMessageAt} />}</div>
-                          {conversation.unreadCount > 0 && (
+                          {latestMessageIsMine ? (
+                            <div className="flex items-center text-slate-400 dark:text-slate-500">
+                              {isLastMessageReadByOther ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                              )}
+                            </div>
+                          ) : conversation.unreadCount > 0 ? (
                             <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-bold leading-none text-white">
                               {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       )}
                     </div>

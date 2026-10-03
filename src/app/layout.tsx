@@ -10,8 +10,7 @@ import { ensureUserProfile } from "@/lib/users";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/components/interactions/AppProviders";
-import { getUnreadMessageCount } from "@/app/actions/messages";
-import { getUnreadNotificationCount } from "@/app/actions/notifications";
+import { getUnreadCounts } from "@/app/actions/messages";
 import { cookies, headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { IOS_STARTUP_IMAGES } from "@/lib/ios-startup-images";
@@ -53,7 +52,7 @@ const INSTALL_PROMPT_CAPTURE = `
 
 export const metadata: Metadata = {
   metadataBase: new URL(SEO_SITE.url),
-  title: SEO_SITE.title,
+  title: SEO_SITE.title.default,
   description: SEO_SITE.description,
   keywords: SEO_SITE.keywords,
   authors: SEO_SITE.authors,
@@ -195,10 +194,10 @@ export default async function RootLayout({
       redirect("/login?error=account-deleted");
     }
 
-    const [messageCount, notificationCount] = await Promise.all([
-      getUnreadMessageCount(),
-      getUnreadNotificationCount(),
-    ]);
+    const {
+      unreadMessages: messageCount,
+      unreadNotifications: notificationCount,
+    } = await getUnreadCounts();
 
     isAdmin = dbUser?.isAdmin ?? false;
     isFrozen = dbUser?.isFrozen ?? false;

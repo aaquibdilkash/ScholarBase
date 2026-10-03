@@ -13,6 +13,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -21,7 +22,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const result = await getResult(id).catch(() => null);
-  if (!result) return { title: "Result" };
+  if (!result) {
+    return buildMetadata({
+      title: SEO_PAGES.results.title,
+      description: SEO_PAGES.results.description,
+      path: SEO_PAGES.results.path,
+      type: "website",
+      section: SEO_PAGES.results.section,
+    });
+  }
   return buildMetadata({
     title: result.title,
     description: result.description.slice(0, 160),
@@ -56,8 +65,7 @@ const ResultDetailPage = async ({
   };
 
   const userVote =
-    (result.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (result.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (
     <DetailPageCardShell
@@ -67,7 +75,8 @@ const ResultDetailPage = async ({
       authorHref={`/scholars/${result.author?.id}`}
       authorName={result.author?.name || "Scholar"}
       authorHandle={result.author?.handle || undefined}
-      authorAvatarUrl={result.author?.avatarUrl || undefined} authorVerified={!!(result.author?.institutionVerifiedAt)}
+      authorAvatarUrl={result.author?.avatarUrl || undefined}
+      authorVerified={!!result.author?.institutionVerifiedAt}
       managementControls={
         user?.id === result.author?.id ? (
           <OwnerActionsDropdown
@@ -93,7 +102,9 @@ const ResultDetailPage = async ({
       currentUserId={user?.id}
       createdDate={result.createdAt}
       editedDate={
-        result.editedAt && result.editedAt > result.createdAt ? result.editedAt : undefined
+        result.editedAt && result.editedAt > result.createdAt
+          ? result.editedAt
+          : undefined
       }
       footerVoteButton={
         <VoteButton
@@ -110,7 +121,9 @@ const ResultDetailPage = async ({
           targetId={result.id}
           module="RESULT"
           initialTotalBookmarks={result.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(result.bookmarks) && result.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(result.bookmarks) && result.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/results/${result.id}#comments`}
@@ -162,25 +175,31 @@ const ResultDetailPage = async ({
       {(result.conductingBody || result.session) && (
         <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-[#020617] dark:border-slate-700 dark:text-slate-300">
           {result.conductingBody && (
-              <div className="flex items-center gap-2 break-words">
-                <Building2 className="w-5 h-5" />
-                Conducting Body: {result.conductingBody}
-              </div>
-            )}
-            {result.session && (
-              <div className="flex items-center gap-2 break-words">
-                <Calendar className="w-5 h-5" />
-                Session: {result.session}
-              </div>
+            <div className="flex items-center gap-2 break-words">
+              <Building2 className="w-5 h-5" />
+              Conducting Body: {result.conductingBody}
+            </div>
+          )}
+          {result.session && (
+            <div className="flex items-center gap-2 break-words">
+              <Calendar className="w-5 h-5" />
+              Session: {result.session}
+            </div>
           )}
         </div>
       )}
 
       <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <SafeExternalLink url={result.notificationLink} className="flex-1 sb-button-soft">
+        <SafeExternalLink
+          url={result.notificationLink}
+          className="flex-1 sb-button-soft"
+        >
           View Notification
         </SafeExternalLink>
-        <SafeExternalLink url={result.resultLink} className="flex-1 sb-button-primary">
+        <SafeExternalLink
+          url={result.resultLink}
+          className="flex-1 sb-button-primary"
+        >
           Check Results
         </SafeExternalLink>
       </div>

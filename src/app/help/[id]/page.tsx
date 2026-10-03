@@ -12,6 +12,7 @@ import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -20,7 +21,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const post = await getHelpPost(id).catch(() => null);
-  if (!post) return { title: "Help Post" };
+  if (!post) {
+    return buildMetadata({
+      title: SEO_PAGES.help.title,
+      description: SEO_PAGES.help.description,
+      path: SEO_PAGES.help.path,
+      type: "website",
+      section: SEO_PAGES.help.section,
+    });
+  }
   return buildMetadata({
     title: post.title,
     description: `Help request: ${post.subject || post.category || ""}. ${(post.message || "").replace(/<[^>]*>/g, " ")}`,
@@ -46,8 +55,7 @@ export default async function HelpPostPage({
   }
 
   const userVote =
-    (post.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (post.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   // Define the delete action outside the JSX
   async function handleDelete() {
@@ -64,12 +72,17 @@ export default async function HelpPostPage({
       authorHref={`/scholars/${post.author?.id}`}
       authorName={post.author?.name || "Scholar"}
       authorHandle={post.author?.handle || undefined}
-      authorAvatarUrl={post.author?.avatarUrl || undefined} authorVerified={!!(post.author?.institutionVerifiedAt)}
+      authorAvatarUrl={post.author?.avatarUrl || undefined}
+      authorVerified={!!post.author?.institutionVerifiedAt}
       authorId={post.author?.id}
       isFollowing={!!post.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={post.createdAt}
-      editedDate={post.editedAt && post.editedAt > post.createdAt ? post.editedAt : undefined}
+      editedDate={
+        post.editedAt && post.editedAt > post.createdAt
+          ? post.editedAt
+          : undefined
+      }
       managementControls={
         user?.id === post.author?.id ? (
           <OwnerActionsDropdown
@@ -96,7 +109,9 @@ export default async function HelpPostPage({
           targetId={post.id}
           module="HELP_POST"
           initialTotalBookmarks={post.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(post.bookmarks) && post.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(post.bookmarks) && post.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/help/${post.id}#comments`}

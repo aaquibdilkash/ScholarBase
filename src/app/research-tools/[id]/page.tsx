@@ -12,6 +12,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -20,7 +21,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const tool = await getResearchToolById(id).catch(() => null);
-  if (!tool) return { title: "Research Tool" };
+  if (!tool) {
+    return buildMetadata({
+      title: SEO_PAGES.researchTools.title,
+      description: SEO_PAGES.researchTools.description,
+      path: SEO_PAGES.researchTools.path,
+      type: "website",
+      section: SEO_PAGES.researchTools.section,
+    });
+  }
   return buildMetadata({
     title: tool.name,
     description: `${tool.name} helps researchers with ${tool.use}.`,
@@ -47,14 +56,16 @@ const ResearchToolDetailPage = async ({
   }
 
   const userVote =
-    (tool.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (tool.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   // Define the delete action outside of the JSX
   async function handleDelete() {
     "use server";
     await deleteResearchTool(tool!.id);
-    return { redirect: "/research-tools", invalidateQueries: [["researchTools"]] };
+    return {
+      redirect: "/research-tools",
+      invalidateQueries: [["researchTools"]],
+    };
   }
 
   return (
@@ -65,12 +76,17 @@ const ResearchToolDetailPage = async ({
       authorHref={`/scholars/${tool.author?.id}`}
       authorName={tool.author?.name || "Scholar"}
       authorHandle={tool.author?.handle || undefined}
-      authorAvatarUrl={tool.author?.avatarUrl || undefined} authorVerified={!!(tool.author?.institutionVerifiedAt)}
+      authorAvatarUrl={tool.author?.avatarUrl || undefined}
+      authorVerified={!!tool.author?.institutionVerifiedAt}
       authorId={tool.author?.id}
       isFollowing={!!tool.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={tool.createdAt}
-      editedDate={tool.editedAt && tool.editedAt > tool.createdAt ? tool.editedAt : undefined}
+      editedDate={
+        tool.editedAt && tool.editedAt > tool.createdAt
+          ? tool.editedAt
+          : undefined
+      }
       managementControls={
         user?.id === tool.author?.id ? (
           <OwnerActionsDropdown
@@ -97,7 +113,9 @@ const ResearchToolDetailPage = async ({
           targetId={tool.id}
           module="RESEARCH_TOOL"
           initialTotalBookmarks={tool.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(tool.bookmarks) && tool.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(tool.bookmarks) && tool.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/research-tools/${tool.id}#comments`}

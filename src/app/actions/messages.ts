@@ -11,24 +11,23 @@ import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { queueMessagePush } from "@/lib/qstash";
 import { Prisma } from "@prisma/client";
 
+const sidebarUserSelect = {
+  id: true,
+  name: true,
+  handle: true,
+  avatarUrl: true,
+  institutionVerifiedAt: true,
+  isFrozen: true,
+  isDeleted: true,
+} as const;
+
 const directConversationSelect = {
   id: true,
   lastMessageAt: true,
   updatedAt: true,
   participants: {
     select: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          isFrozen: true,
-          isDeleted: true,
-          bio: true,
-          reputation: true,
-        },
-      },
+      user: { select: sidebarUserSelect },
       lastReadAt: true,
     },
   },
@@ -49,7 +48,7 @@ const directConversationSelect = {
       },
     },
   },
-};
+} as const;
 
 // ⚡ ZERO-COMPUTE: Attach unread counts for only the fetched page of
 // conversations, in one indexed raw query (Rule 2).
@@ -164,6 +163,38 @@ export async function getUnreadMessageCount() {
   return Number(result[0]?.count ?? 0);
 }
 
+export async function getUnreadCounts() {
+  const currentUser = await requireCurrentUser("Please log in to view your inbox.");
+  const userId = currentUser.id;
+
+  const rows = await prisma.$queryRaw<{ unreadMessages: bigint; unreadNotifications: bigint }[]>`
+    WITH message_counts AS (
+      SELECT COUNT(*)::int AS "unreadMessages"
+      FROM "Message" m
+      INNER JOIN "ConversationParticipant" cp
+        ON m."conversationId" = cp."conversationId"
+      WHERE cp."userId" = ${userId}
+        AND m."senderId" != ${userId}
+        AND m."createdAt" > COALESCE(cp."lastReadAt", ${new Date(0)})
+    ),
+    notification_counts AS (
+      SELECT COUNT(*)::int AS "unreadNotifications"
+      FROM "Notification"
+      WHERE "recipientId" = ${userId}
+        AND "readAt" IS NULL
+    )
+    SELECT
+      (SELECT "unreadMessages" FROM message_counts) AS "unreadMessages",
+      (SELECT "unreadNotifications" FROM notification_counts) AS "unreadNotifications";
+  `;
+
+  const row = rows[0];
+  return {
+    unreadMessages: Number(row?.unreadMessages ?? 0),
+    unreadNotifications: Number(row?.unreadNotifications ?? 0),
+  };
+}
+
 export async function findDirectConversation(otherUserId: string) {
   const currentUser = await requireCurrentUser("Please log in to view messages.");
 
@@ -194,24 +225,13 @@ export async function getConversation(conversationId: string) {
       lastMessageAt: true,
       participants: {
         select: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              handle: true,
-              avatarUrl: true, institutionVerifiedAt: true,
-              isFrozen: true,
-              isDeleted: true,
-              bio: true,
-              reputation: true,
-            },
-          },
+          user: { select: sidebarUserSelect },
           lastReadAt: true,
         },
       },
       messages: {
-        take: 40, // ⚡ INFINITE SCROLL: Only load latest 40 initially
-        orderBy: { createdAt: "desc" }, // ⚡ Must be descending to get newest
+        take: 20, // ⚡ Initial thread is enough for the first screen; older history loads on demand.
+        orderBy: { createdAt: "desc" },
         select: messageSelect,
       },
     },

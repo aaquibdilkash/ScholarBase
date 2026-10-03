@@ -13,6 +13,7 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -21,7 +22,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const admission = await getAdmission(id).catch(() => null);
-  if (!admission) return { title: "PhD Admission" };
+  if (!admission) {
+    return buildMetadata({
+      title: SEO_PAGES.admissions.title,
+      description: SEO_PAGES.admissions.description,
+      path: SEO_PAGES.admissions.path,
+      type: "website",
+      section: SEO_PAGES.admissions.section,
+    });
+  }
   return buildMetadata({
     title: `${admission.university} - ${admission.department} PhD Admission`,
     description: `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
@@ -50,8 +59,7 @@ const AdmissionDetailPage = async ({
   }
 
   const userVote =
-    (admission.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (admission.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -67,7 +75,8 @@ const AdmissionDetailPage = async ({
       authorHref={`/scholars/${admission.author?.id}`}
       authorName={admission.author?.name || "Scholar"}
       authorHandle={admission.author?.handle || undefined}
-      authorAvatarUrl={admission.author?.avatarUrl || undefined} authorVerified={!!(admission.author?.institutionVerifiedAt)}
+      authorAvatarUrl={admission.author?.avatarUrl || undefined}
+      authorVerified={!!admission.author?.institutionVerifiedAt}
       managementControls={
         user?.id === admission.author?.id ? (
           <OwnerActionsDropdown
@@ -103,7 +112,9 @@ const AdmissionDetailPage = async ({
           targetId={admission.id}
           module="PHD_ADMISSION"
           initialTotalBookmarks={admission.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(admission.bookmarks) && admission.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(admission.bookmarks) && admission.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/admissions/${admission.id}#comments`}

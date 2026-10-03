@@ -91,7 +91,7 @@ export async function sendScholarInviteEmail({
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'ScholarBase <invitations@scholarbase.app>',
+      from: OUTREACH_FROM_ADDRESS,
       to: [recipientEmail],
       subject: `${inviterName} invited you to join ScholarBase`,
       html: `

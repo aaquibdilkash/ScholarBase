@@ -16,6 +16,7 @@ import { RejectionReason } from "@/components/contributions/RejectionReason";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -24,7 +25,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const contribution = await getContribution(id).catch(() => null);
-  if (!contribution) return { title: "Contribution" };
+  if (!contribution) {
+    return buildMetadata({
+      title: SEO_PAGES.contributions.title,
+      description: SEO_PAGES.contributions.description,
+      path: SEO_PAGES.contributions.path,
+      type: "website",
+      section: SEO_PAGES.contributions.section,
+    });
+  }
   return buildMetadata({
     title: contribution.title || "ScholarBase Contribution",
     description:
@@ -56,13 +65,15 @@ const ContributionDetailPage = async ({
   }
 
   const userVote =
-    (contribution.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (contribution.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const handleDelete = async () => {
     "use server";
     await deleteContribution(id);
-    return { redirect: "/contributions", invalidateQueries: [["contributions"]] };
+    return {
+      redirect: "/contributions",
+      invalidateQueries: [["contributions"]],
+    };
   };
 
   return (
@@ -73,7 +84,8 @@ const ContributionDetailPage = async ({
       authorHref={`/scholars/${contribution.author?.id}`}
       authorName={contribution.author?.name || "Scholar"}
       authorHandle={contribution.author?.handle || undefined}
-      authorAvatarUrl={contribution.author?.avatarUrl || undefined} authorVerified={!!(contribution.author?.institutionVerifiedAt)}
+      authorAvatarUrl={contribution.author?.avatarUrl || undefined}
+      authorVerified={!!contribution.author?.institutionVerifiedAt}
       managementControls={
         user?.id === contribution.author?.id ? (
           <OwnerActionsDropdown
@@ -95,8 +107,7 @@ const ContributionDetailPage = async ({
       currentUserId={user?.id}
       createdDate={contribution.createdAt}
       editedDate={
-        contribution.editedAt &&
-        contribution.editedAt > contribution.createdAt
+        contribution.editedAt && contribution.editedAt > contribution.createdAt
           ? contribution.editedAt
           : undefined
       }
@@ -115,7 +126,10 @@ const ContributionDetailPage = async ({
           targetId={contribution.id}
           module="CONTRIBUTION"
           initialTotalBookmarks={contribution.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(contribution.bookmarks) && contribution.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(contribution.bookmarks) &&
+            contribution.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/contributions/${contribution.id}#comments`}

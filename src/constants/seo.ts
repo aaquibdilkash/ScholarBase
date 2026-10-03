@@ -2,70 +2,94 @@ export const SITE_NAME = "ScholarBase";
 export const SITE_URL = "https://scholarbase.app";
 export const DEFAULT_SEO_IMAGE = "/og-image.png";
 
+export const formatPageTitle = (title: string): string => {
+    const clean = title.trim();
+    if (!clean) return SITE_NAME;
+
+    const normalized = clean.replace(new RegExp(`\\s*\\|\\s*${SITE_NAME}$`, "i"), "").trim();
+    if (!normalized) return SITE_NAME;
+
+    return `${normalized} | ${SITE_NAME}`;
+};
+
 export const SEO_SITE = {
     name: SITE_NAME,
     url: SITE_URL,
     defaultImage: DEFAULT_SEO_IMAGE,
-    imageAlt: `${SITE_NAME} - Academic Community Platform`,
+    imageAlt: `${SITE_NAME} - Academic community for scholars and researchers`,
     category: "Education",
     description:
-        "Connect with peers, publish research, find PhD supervisors, discover admissions, academic events, and job vacancies. ScholarBase is the open-source academic community platform.",
+        "Discover research communities, PhD supervisors, admissions, academic events, and opportunities on ScholarBase.",
     keywords: [
-        "academic",
-        "research",
-        "phd",
-        "supervisor",
+        "academic community",
+        "research platform",
+        "scholar network",
+        "phd supervisors",
         "phd admissions",
-        "research community",
-        "scholar platform",
+        "research events",
         "academic jobs",
         "research publications",
-        "conference",
+        "scholars",
         "university",
     ],
     openGraphDescription:
-        "Connect with peers, publish your research, find PhD supervisors, and discover opportunities in academia.",
+        "Connect with scholars, share research, find supervisors, and discover new academic opportunities.",
     twitterDescription:
-        "Connect with peers, publish research, find supervisors and opportunities.",
+        "A research and academic community for scholars, supervisors, and institutions.",
     title: {
-        default: "ScholarBase - The Academic Hub for Scholars & Researchers",
+        default: "ScholarBase | Academic community for scholars and researchers",
         template: "%s | ScholarBase",
     },
-    twitterTitle: "ScholarBase - The Academic Hub",
+    twitterTitle: "ScholarBase | Academic community",
     authors: [{ name: "ScholarBase Community" }],
 };
 
 export const SEO_PAGES = {
     home: {
-        title: "ScholarBase: A Quiet Workspace for the Noisy Academic Life",
+        title: "ScholarBase | Academic community for scholars and researchers",
         description:
-            "Post your research, find honest PhD supervisors, and track admissions, events, and vacancies — all in one free, community-run workspace with no ads or paywalls.",
+            "Join ScholarBase to share research, find PhD supervisors, and discover admissions, events, vacancies, and academic opportunities.",
         path: "/",
     },
+    login: {
+        title: "Sign in | ScholarBase",
+        description: "Sign in to ScholarBase to join discussions, discover opportunities, and manage your research profile.",
+        path: "/login",
+    },
+    requestInstitution: {
+        title: "Request institution access | ScholarBase",
+        description: "Request institution access on ScholarBase to verify your academic affiliation and unlock institutional features.",
+        path: "/request-institution",
+    },
+    newMessage: {
+        title: "New message | ScholarBase",
+        description: "Send a new message to a scholar or collaborator on ScholarBase and keep your academic network connected.",
+        path: "/messages/new",
+    },
     about: {
-        title: "About Us | ScholarBase",
+        title: "About | ScholarBase",
         description:
-            "Learn about ScholarBase — a free, community-driven academic platform. Discover our motivation, our values, and how we help scholars and academia globally.",
+            "Learn about ScholarBase, a community platform for researchers, scholars, faculty, and academic teams.",
         path: "/about",
         keywords: [
             "about ScholarBase",
             "academic networking platform",
-            "free platform for researchers",
-            "academic community",
-            "PhD admissions and research opportunities",
+            "research community",
+            "academic platform",
+            "scholars and researchers",
         ],
     },
     blog: {
-        title: "Research Blog - Insights, Guides & Essays",
+        title: "Research Blog | ScholarBase",
         description:
-            "Essays, guides, and longer-form research reflections on academia, publishing, and scholarly life.",
+            "Read essays, research reflections, and academic insights from the ScholarBase community.",
         path: "/blog",
         section: "Blog",
     },
     careers: {
         title: "Careers | ScholarBase",
         description:
-            "Join ScholarBase — an unpaid early-career opportunity in growth marketing, software QA, or research curation on a live academic platform. Send your CV and grow with us.",
+            "Explore opportunities to help grow ScholarBase and contribute to a research-driven academic community.",
         path: "/careers",
         keywords: [
             "ScholarBase careers",
@@ -78,122 +102,122 @@ export const SEO_PAGES = {
         ],
     },
     feed: {
-        title: "Research Feed - Community Research Updates",
+        title: "Research Feed | ScholarBase",
         description:
-            "Short research updates, news, and conversations from the academic community on ScholarBase.",
+            "Follow research updates, academic discussions, and community posts from scholars on ScholarBase.",
         path: "/feed",
         section: "Community",
     },
     surveys: {
-        title: "Research Surveys - Participate & Contribute",
+        title: "Research Surveys | ScholarBase",
         description:
-            "Create and participate in research surveys built for the academic community.",
+            "Create or participate in academic surveys designed for scholars, students, and research communities.",
         path: "/surveys",
         section: "Surveys",
     },
     results: {
-        title: "Academic Results - Admissions, Exams & Notifications",
+        title: "Academic Results | ScholarBase",
         description:
-            "Admission results, exam outcomes, vacancy results, and other important academic notifications.",
+            "Track admissions, exam results, and academic updates shared by the ScholarBase community.",
         path: "/results",
         section: "Results",
     },
     researchTools: {
-        title: "Research Tools & Software for Academics",
+        title: "Research Tools | ScholarBase",
         description:
-            "Discover and share software, apps, and digital tools that can help with your research.",
+            "Discover software, workflows, and digital tools for academic research and scholarly work.",
         path: "/research-tools",
         section: "Research Tools",
     },
     scholars: {
-        title: "Scholars",
+        title: "Scholars | ScholarBase",
         description:
-            "Discover, search, and connect with scholars by reputation, expertise, and activity.",
+            "Explore scholars by expertise, reputation, and research interests on the ScholarBase network.",
         path: "/scholars",
         section: "Scholars",
     },
     contributions: {
-        title: "Contributions - Support ScholarBase",
+        title: "Contributions | ScholarBase",
         description:
-            "Support ScholarBase and see how the community fuels its servers, infrastructure, and growth.",
+            "Support ScholarBase and help sustain the research community, infrastructure, and platform growth.",
         path: "/contributions",
         section: "Contributions",
     },
     help: {
-        title: "Scholar Suggest - ScholarBase",
+        title: "Help & Feedback | ScholarBase",
         description:
-            "Share suggestions, bug reports, or new feature request for ScholarBase with the community.",
+            "Share feedback, report issues, or ask for help from the ScholarBase community.",
         path: "/help",
         section: "Help & Support",
     },
     publications: {
-        title: "Academic Publications - Research, Preprints & Books",
+        title: "Academic Publications | ScholarBase",
         description:
-            "Browse and discover academic publications — research papers, conference proceedings, preprints, books, and more.",
+            "Browse research papers, preprints, conference work, and academic publications on ScholarBase.",
         path: "/publications",
         section: "Publications",
     },
     admissions: {
-        title: "Admissions - PhD & Academic Programs",
+        title: "Admissions | ScholarBase",
         description:
-            "Explore PhD and research opportunities, admissions deadlines, and application guidance from the academic community.",
+            "Discover PhD admissions, funding opportunities, and academic intake information from the academic community.",
         path: "/admissions",
         section: "Admissions",
     },
     vacancies: {
-        title: "Academic Vacancies & Jobs",
+        title: "Academic Vacancies | ScholarBase",
         description:
-            "Find research positions, academic jobs, fellowships, and vacancies shared by the scholar community.",
+            "Find research roles, academic jobs, and opportunities shared across the ScholarBase network.",
         path: "/vacancies",
         section: "Vacancies",
     },
     events: {
-        title: "Academic Events & Conferences",
+        title: "Academic Events | ScholarBase",
         description:
-            "Conferences, workshops, calls for papers, and academic gatherings worth tracking around the world.",
+            "Discover conferences, workshops, calls for papers, and academic events from around the world.",
         path: "/events",
         section: "Events",
     },
     journals: {
-        title: "Academic Journals & Reviews",
+        title: "Academic Journals | ScholarBase",
         description:
-            "Explore journals, read peer reviews, and discover publication opportunities in academia.",
+            "Browse journals, publication opportunities, and peer review information across academia.",
         path: "/journals",
         section: "Journals",
     },
     learn: {
-        title: "Learn - Academic Courses & Resources",
+        title: "Learn | ScholarBase",
         description:
-            "Find and share research learning courses from YouTube, Udemy, universities, and other learning platforms.",
+            "Explore courses, learning resources, and research study material for scholars and academics.",
         path: "/learn",
         section: "Learn",
     },
     grants: {
-        title: "Research Grants & Funding",
+        title: "Research Grants | ScholarBase",
         description:
-            "Discover and apply for research grants, funding opportunities, and scholarly support.",
+            "Find funding opportunities and research grants for scholars, labs, and academic teams.",
         path: "/grants",
         section: "Grants",
     },
     supervisor: {
-        title: "Find PhD Supervisors & Mentors",
+        title: "PhD Supervisors | ScholarBase",
         description:
-            "Search for PhD supervisors by university and department, and read student ratings and recommendations.",
+            "Find supervisors, mentors, and research guidance by university, department, and academic expertise.",
         path: "/supervisor",
         section: "Supervisors",
     },
     privacy: {
-        title: "Privacy Policy - ScholarBase",
-        description: "Read the ScholarBase privacy policy and how data is handled on the platform.",
+        title: "Privacy Policy | ScholarBase",
+        description: "Read the ScholarBase privacy policy and how your data is handled on the platform.",
         path: "/privacy",
     },
     terms: {
-        title: "Terms & Conditions - ScholarBase",
-        description: "Review the terms that govern participation and use of the ScholarBase platform.",
+        title: "Terms & Conditions | ScholarBase",
+        description: "Review the terms governing use of the ScholarBase platform and community.",
         path: "/terms",
     },
     contact: {
-        title: "Contact ScholarBase",
+        title: "Contact | ScholarBase",
         description: "Get in touch with the ScholarBase team and community support channels.",
         path: "/contact",
     },
@@ -201,96 +225,79 @@ export const SEO_PAGES = {
 
 export const SEO_CREATE_PAGES = {
     blog: {
-        title: "Write a Blog Post",
+        title: "Write a blog post | ScholarBase",
         description:
             "Share your research insights, experiences, and academic perspectives with the ScholarBase community.",
     },
     contributions: {
-        title: "Make a Contribution",
-        description: "Support ScholarBase development by making a contribution.",
+        title: "Make a contribution | ScholarBase",
+        description: "Support ScholarBase development and help grow a research-first academic community.",
     },
     admissions: {
-        title: "Post PhD Admission Notification",
+        title: "Post a PhD admission | ScholarBase",
         description:
-            "Share PhD admissions, call for applications, and academic intake notifications with researchers.",
+            "Share PhD admissions, calls for applications, and intake notices with researchers and scholars.",
     },
     events: {
-        title: "List a Research Event / Conference",
+        title: "List an academic event | ScholarBase",
         description:
             "Add conferences, calls for papers, and academic events that matter to researchers.",
     },
     grants: {
-        title: "Add Research Grant",
+        title: "Add a research grant | ScholarBase",
         description:
-            "Share a research grant, funding amount, application guidance, and useful links.",
+            "Share a funding opportunity, application details, and research support with the community.",
     },
     help: {
-        title: "Post Help / Feedback",
+        title: "Post help or feedback | ScholarBase",
         description:
-            "Report bugs, request features, or provide feedback to improve ScholarBase.",
+            "Report bugs, request features, or share feedback to improve the ScholarBase platform.",
     },
     journals: {
-        title: "Add Journal",
-        description: "Add an academic journal with its rankings and impact factor.",
+        title: "Add a journal | ScholarBase",
+        description: "Add an academic journal, publication details, and its impact information.",
     },
     learn: {
-        title: "Add Course",
+        title: "Add a course | ScholarBase",
         description:
-            "Share a research learning course and its outcomes, instructor, provider, and link.",
+            "Share a learning resource, course, provider, and key details with the research community.",
     },
     publications: {
-        title: "Add a Publication",
+        title: "Add a publication | ScholarBase",
         description:
             "Share a research paper, article, or academic publication with the ScholarBase community.",
     },
     researchTools: {
-        title: "Add a Research Tool",
+        title: "Add a research tool | ScholarBase",
         description:
-            "Share a research method, software, toolkit, or scholarly resource with the academic community.",
+            "Share a software tool, workflow, or scholarly resource with the academic community.",
     },
     results: {
-        title: "Add a Result",
+        title: "Add a result | ScholarBase",
         description:
-            "Share a research result, outcome, or milestone with the ScholarBase community.",
+            "Share a research result, academic update, or milestone with the ScholarBase community.",
     },
     supervisor: {
-        title: "Add a Supervisor",
+        title: "Add a supervisor | ScholarBase",
         description:
-            "Create a supervisor profile and tell the academic community about your research mentorship interests.",
+            "Create a supervisor profile and highlight academic mentorship and research guidance.",
     },
     surveys: {
-        title: "Create a Survey",
+        title: "Create a survey | ScholarBase",
         description:
-            "Launch a survey to gather responses and insights from the ScholarBase community.",
+            "Launch a survey to gather responses and research insights from the ScholarBase community.",
     },
     vacancies: {
-        title: "Post a Vacancy",
+        title: "Post a vacancy | ScholarBase",
         description:
-            "Share an academic, research, or industry opportunity with the ScholarBase community.",
+            "Share a research or academic opportunity with scholars, students, and faculty on ScholarBase.",
     },
 } as const;
 
 export const SEO_NOINDEX = {
-    login: "Sign in - ScholarBase",
-    admin: "Admin - ScholarBase",
-    notifications: "Notifications - ScholarBase",
-    newMessage: "New Message - ScholarBase",
-    authCodeError: "Authentication - ScholarBase",
-    accountConfirmed: "Account Confirmed - ScholarBase",
-    updatePassword: "Update Password - ScholarBase",
-    requestInstitution: "Request Institution - ScholarBase",
-    reviewCreate: "Add Review - ScholarBase",
-    articleCreate: "Write New Article - ScholarBase",
-    publicationCreate: "Add Publication - ScholarBase",
-    researchToolCreate: "Add Research Tool - ScholarBase",
-    eventCreate: "Add Event - ScholarBase",
-    resultCreate: "Add Result - ScholarBase",
-    admissionCreate: "Add Admission - ScholarBase",
-    scholarshipCreate: "Add Scholarship - ScholarBase",
-    vacancyCreate: "Add Vacancy - ScholarBase",
-    grantCreate: "Add Grant - ScholarBase",
-    contributionCreate: "Support ScholarBase - ScholarBase",
-    journalCreate: "Add Journal - ScholarBase",
-    learnCreate: "Add Learning Resource - ScholarBase",
-    helpCreate: "Create Help Post - ScholarBase",
+    admin: "Admin | ScholarBase",
+    notifications: "Notifications | ScholarBase",
+    authCodeError: "Authentication | ScholarBase",
+    accountConfirmed: "Account Confirmed | ScholarBase",
+    updatePassword: "Update Password | ScholarBase",
 } as const;

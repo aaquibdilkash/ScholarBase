@@ -215,51 +215,60 @@ export default function ConversationPage({
   useEffect(() => {
     let isMounted = true;
     const fetchUserAndConversation = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (isMounted) {
-        setUser(user);
-        if (user) {
-          const conv = await getConversation(conversationId);
-          if (!conv) notFound();
-          setConversation(conv as unknown as Conversation);
-          // ⚡ ISSUE 5: Hydrate block state so the composer is disabled and the
-          // correct notice banner renders on load.
-          setBlockState({
-            blockedByMe: Boolean((conv as Conversation).blockedByMe),
-            blockedMe: Boolean((conv as Conversation).blockedMe),
-          });
+      const [authResult, conv] = await Promise.all([
+        supabase.auth.getUser(),
+        getConversation(conversationId),
+      ]);
 
-          const readResult = await markConversationAsRead(conversationId);
-          hasMarkedReadRef.current = true;
-          if (readResult?.lastReadAt) {
-            lastReadAtRef.current = new Date(readResult.lastReadAt);
-          }
+      if (!isMounted) return;
 
-          const currentParticipant = (conv as unknown as Conversation).participants.find(
-            (p) => p.user.id === user.id,
-          );
-          const unreadDelta = (conv as unknown as Conversation).messages.filter(
-            (m) => m.senderId !== user.id && new Date(m.createdAt) > new Date(currentParticipant?.lastReadAt || 0),
-          ).length;
+      const user = authResult.data.user;
+      setUser(user);
+      if (!user) {
+        notFound();
+        return;
+      }
 
-          window.dispatchEvent(new CustomEvent('conversation-read', {
-            detail: { conversationId, userId: user.id, delta: unreadDelta }
-          }));
+      if (!conv) {
+        notFound();
+        return;
+      }
 
-          const otherP = (conv as unknown as Conversation).participants.find(
-            (p) => p.user.id !== user.id,
-          );
-          if (otherP?.lastReadAt) {
-            setOtherParticipantLastReadAt(new Date(otherP.lastReadAt));
-          }
-        } else {
-          notFound();
-        }
+      setConversation(conv as unknown as Conversation);
+      setBlockState({
+        blockedByMe: Boolean((conv as Conversation).blockedByMe),
+        blockedMe: Boolean((conv as Conversation).blockedMe),
+      });
+
+      const [readResult] = await Promise.all([
+        markConversationAsRead(conversationId),
+      ]);
+
+      hasMarkedReadRef.current = true;
+      if (readResult?.lastReadAt) {
+        lastReadAtRef.current = new Date(readResult.lastReadAt);
+      }
+
+      const currentParticipant = (conv as unknown as Conversation).participants.find(
+        (p) => p.user.id === user.id,
+      );
+      const unreadDelta = (conv as unknown as Conversation).messages.filter(
+        (m) => m.senderId !== user.id && new Date(m.createdAt) > new Date(currentParticipant?.lastReadAt || 0),
+      ).length;
+
+      window.dispatchEvent(new CustomEvent('conversation-read', {
+        detail: { conversationId, userId: user.id, delta: unreadDelta }
+      }));
+
+      const otherP = (conv as unknown as Conversation).participants.find(
+        (p) => p.user.id !== user.id,
+      );
+      if (otherP?.lastReadAt) {
+        setOtherParticipantLastReadAt(new Date(otherP.lastReadAt));
       }
     };
-    fetchUserAndConversation();
+
+    void fetchUserAndConversation();
     return () => {
       isMounted = false;
     };

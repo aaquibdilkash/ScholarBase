@@ -26,6 +26,7 @@ const PRIVACY_LABELS: Record<string, string> = {
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -34,7 +35,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const survey = await getSurvey(id).catch(() => null);
-  if (!survey) return { title: "Research Survey" };
+  if (!survey) {
+    return buildMetadata({
+      title: SEO_PAGES.surveys.title,
+      description: SEO_PAGES.surveys.description,
+      path: SEO_PAGES.surveys.path,
+      type: "website",
+      section: SEO_PAGES.surveys.section,
+    });
+  }
   return buildMetadata({
     title: survey.title,
     description: survey.description || `Research survey: ${survey.title}.`,
@@ -67,8 +76,7 @@ const SurveyDetailPage = async ({
   const hasResponded = !!response;
 
   const userVote =
-    (survey.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (survey.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const isOwner = user?.id === survey.author?.id;
   const isOpen = survey.status === "OPEN";
@@ -88,7 +96,8 @@ const SurveyDetailPage = async ({
       authorHref={`/scholars/${survey.author?.id}`}
       authorName={survey.author?.name || "Scholar"}
       authorHandle={survey.author?.handle || undefined}
-      authorAvatarUrl={survey.author?.avatarUrl || undefined} authorVerified={!!(survey.author?.institutionVerifiedAt)}
+      authorAvatarUrl={survey.author?.avatarUrl || undefined}
+      authorVerified={!!survey.author?.institutionVerifiedAt}
       managementControls={
         isOwner ? (
           <OwnerActionsDropdown
@@ -114,7 +123,9 @@ const SurveyDetailPage = async ({
       currentUserId={user?.id}
       createdDate={survey.createdAt}
       editedDate={
-        survey.editedAt && survey.editedAt > survey.createdAt ? survey.editedAt : undefined
+        survey.editedAt && survey.editedAt > survey.createdAt
+          ? survey.editedAt
+          : undefined
       }
       footerVoteButton={
         <VoteButton
@@ -131,7 +142,9 @@ const SurveyDetailPage = async ({
           targetId={survey.id}
           module="RESEARCH_SURVEY"
           initialTotalBookmarks={survey.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(survey.bookmarks) && survey.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(survey.bookmarks) && survey.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/surveys/${survey.id}#comments`}
@@ -201,7 +214,8 @@ const SurveyDetailPage = async ({
           {survey.totalBlocks !== 1 ? "s" : ""}
         </div>
         {survey.shareData && (
-          <Link prefetch={false}
+          <Link
+            prefetch={false}
             href={`/surveys/${survey.id}/results`}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors dark:text-blue-400 dark:hover:text-blue-200"
           >
@@ -248,7 +262,8 @@ const SurveyDetailPage = async ({
             This survey is closed for responses.
           </p>
           {survey.shareData && (
-            <Link prefetch={false}
+            <Link
+              prefetch={false}
               href={`/surveys/${survey.id}/results`}
               className="mt-2 inline-block text-sm font-semibold text-blue-600 hover:text-blue-800"
             >

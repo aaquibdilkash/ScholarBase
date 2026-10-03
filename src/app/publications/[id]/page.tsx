@@ -25,6 +25,7 @@ const PUBLICATION_TYPE_LABELS: Record<string, string> = {
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -33,7 +34,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const p = await getPublicationById(id).catch(() => null);
-  if (!p) return { title: "Publication" };
+  if (!p) {
+    return buildMetadata({
+      title: SEO_PAGES.publications.title,
+      description: SEO_PAGES.publications.description,
+      path: SEO_PAGES.publications.path,
+      type: "website",
+      section: SEO_PAGES.publications.section,
+    });
+  }
   return buildMetadata({
     title: p.title,
     description: (p.abstract || p.title).replace(/<[^>]*>/g, " "),
@@ -69,8 +78,7 @@ const PublicationDetailPage = async ({
 
   const p = publication;
   const userVote =
-    (p.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (p.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -86,12 +94,15 @@ const PublicationDetailPage = async ({
       authorHref={`/scholars/${p.author?.id}`}
       authorName={p.author?.name || "Scholar"}
       authorHandle={p.author?.handle || undefined}
-      authorAvatarUrl={p.author?.avatarUrl || undefined} authorVerified={!!(p.author?.institutionVerifiedAt)}
+      authorAvatarUrl={p.author?.avatarUrl || undefined}
+      authorVerified={!!p.author?.institutionVerifiedAt}
       authorId={p.author?.id}
       isFollowing={!!p.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={p.createdAt}
-      editedDate={p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined}
+      editedDate={
+        p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined
+      }
       managementControls={
         user?.id === p.author?.id ? (
           <OwnerActionsDropdown
@@ -118,7 +129,9 @@ const PublicationDetailPage = async ({
           targetId={p.id}
           module="PUBLICATION"
           initialTotalBookmarks={p.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(p.bookmarks) && p.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(p.bookmarks) && p.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/publications/${p.id}#comments`}
@@ -203,9 +216,7 @@ const PublicationDetailPage = async ({
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Year
             </p>
-            <p className="text-sm font-semibold text-rose-800 mt-1">
-              {p.year}
-            </p>
+            <p className="text-sm font-semibold text-rose-800 mt-1">{p.year}</p>
           </div>
         )}
         {p.domain && (
@@ -233,9 +244,7 @@ const PublicationDetailPage = async ({
             <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
               Issue
             </p>
-            <p className="text-sm font-semibold text-sky-800 mt-1">
-              {p.issue}
-            </p>
+            <p className="text-sm font-semibold text-sky-800 mt-1">{p.issue}</p>
           </div>
         )}
         {p.pages && (

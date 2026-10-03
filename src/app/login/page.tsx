@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
-import { buildNoindexMetadata } from "@/lib/seo";
-import { SEO_NOINDEX } from "@/constants/seo";
+import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
-export const metadata: Metadata = buildNoindexMetadata(SEO_NOINDEX.login);
+export const metadata: Metadata = buildMetadata({
+  title: SEO_PAGES.login.title,
+  description: SEO_PAGES.login.description,
+  path: SEO_PAGES.login.path,
+});
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";

@@ -1,11 +1,14 @@
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Clock, Mail, Send } from "lucide-react";
 import { SEO_PAGES } from "@/constants/seo";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = buildMetadata({
   title: SEO_PAGES.contact.title,
   description: SEO_PAGES.contact.description,
-};
+  path: SEO_PAGES.contact.path,
+  section: SEO_PAGES.contact.title,
+});
 
 export default function ContactPage() {
   return (

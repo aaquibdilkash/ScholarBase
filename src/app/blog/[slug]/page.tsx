@@ -10,6 +10,7 @@ import { deleteArticle, getArticle } from "@/app/actions/blog";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -18,7 +19,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticle(slug).catch(() => null);
-  if (!article) return { title: "Article" };
+  if (!article) {
+    return buildMetadata({
+      title: SEO_PAGES.blog.title,
+      description: SEO_PAGES.blog.description,
+      path: SEO_PAGES.blog.path,
+      type: "website",
+      section: SEO_PAGES.blog.section,
+    });
+  }
   return buildMetadata({
     title: article.title,
     description: article.excerpt || article.title,
@@ -42,8 +51,7 @@ export default async function ArticlePage({
   const a = article;
 
   const userVote =
-    (a.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (a.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -59,7 +67,8 @@ export default async function ArticlePage({
       authorHref={`/scholars/${a.author?.id}`}
       authorName={a.author?.name || "Scholar"}
       authorHandle={a.author?.handle || undefined}
-      authorAvatarUrl={a.author?.avatarUrl || undefined} authorVerified={!!(a.author?.institutionVerifiedAt)}
+      authorAvatarUrl={a.author?.avatarUrl || undefined}
+      authorVerified={!!a.author?.institutionVerifiedAt}
       managementControls={
         user?.id === a.authorId ? (
           <OwnerActionsDropdown
@@ -80,7 +89,9 @@ export default async function ArticlePage({
       }
       currentUserId={user?.id}
       createdDate={a.createdAt}
-      editedDate={a.editedAt && a.editedAt > a.createdAt ? a.editedAt : undefined}
+      editedDate={
+        a.editedAt && a.editedAt > a.createdAt ? a.editedAt : undefined
+      }
       footerVoteButton={
         <VoteButton
           targetId={a.id}
@@ -96,7 +107,9 @@ export default async function ArticlePage({
           targetId={a.id}
           module="ARTICLE"
           initialTotalBookmarks={a.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(a.bookmarks) && a.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(a.bookmarks) && a.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/blog/${a.slug}#comments`}

@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { SEO_PAGES } from "@/constants/seo";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.terms.title,
   description: SEO_PAGES.terms.description,
-};
+  path: SEO_PAGES.terms.path,
+});
 
 export default function TermsOfServicePage() {
   return (

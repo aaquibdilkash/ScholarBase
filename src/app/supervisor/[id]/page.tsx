@@ -17,6 +17,7 @@ import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -25,7 +26,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const supervisor = await getSupervisor(id).catch(() => null);
-  if (!supervisor) return { title: "PhD Supervisor" };
+  if (!supervisor) {
+    return buildMetadata({
+      title: SEO_PAGES.supervisor.title,
+      description: SEO_PAGES.supervisor.description,
+      path: SEO_PAGES.supervisor.path,
+      type: "website",
+      section: SEO_PAGES.supervisor.section,
+    });
+  }
   const name = supervisor.name || "PhD Supervisor";
   const university = supervisor.university
     ? ` at ${supervisor.university}`
@@ -70,10 +79,7 @@ export default async function SupervisorPage({
   }
 
   const userVote =
-    (supervisor.votes?.[0]?.voteType as
-      | "UPVOTE"
-      | "DOWNVOTE"
-      | null) ?? null;
+    (supervisor.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   const hasUserRecommendation = recMeta.hasUserRecommendation;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
@@ -93,7 +99,8 @@ export default async function SupervisorPage({
       authorHref={`/scholars/${supervisor.authorId}`}
       authorName={supervisor.author?.name || "Scholar"}
       authorHandle={supervisor.author?.handle || undefined}
-      authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
+      authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
+      authorVerified={!!supervisor.author?.institutionVerifiedAt}
       createdDate={supervisor.createdAt}
       footerBookmarkButton={
         <BookmarkButton
@@ -101,7 +108,10 @@ export default async function SupervisorPage({
           targetId={supervisor.id}
           module="SUPERVISOR"
           initialTotalBookmarks={supervisor.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(supervisor.bookmarks) && supervisor.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(supervisor.bookmarks) &&
+            supervisor.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/supervisor/${supervisor.id}#comments`}
@@ -158,13 +168,13 @@ export default async function SupervisorPage({
 
             <div className="flex w-auto shrink-0 justify-end pt-1">
               <SupervisorHeaderActions
-              supervisorId={supervisor.id}
-              isSupervisorOwner={user?.id === supervisor.authorId}
-              supervisorEditHref={`/supervisor/${supervisor.id}/edit`}
-              onDeleteSupervisor={handleDelete}
-              initialHasRecommendation={hasUserRecommendation}
-              initialUserRecommendationId={recMeta.userRecommendationId}
-            />
+                supervisorId={supervisor.id}
+                isSupervisorOwner={user?.id === supervisor.authorId}
+                supervisorEditHref={`/supervisor/${supervisor.id}/edit`}
+                onDeleteSupervisor={handleDelete}
+                initialHasRecommendation={hasUserRecommendation}
+                initialUserRecommendationId={recMeta.userRecommendationId}
+              />
             </div>
           </div>
 

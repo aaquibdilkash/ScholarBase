@@ -14,6 +14,7 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -22,7 +23,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const event = await getEvent(id).catch(() => null);
-  if (!event) return { title: "Research Event" };
+  if (!event) {
+    return buildMetadata({
+      title: SEO_PAGES.events.title,
+      description: SEO_PAGES.events.description,
+      path: SEO_PAGES.events.path,
+      type: "website",
+      section: SEO_PAGES.events.section,
+    });
+  }
   const location = event.location ? ` at ${event.location}` : "";
   return buildMetadata({
     title: event.title,
@@ -52,8 +61,7 @@ const EventDetailPage = async ({
   }
 
   const userVote =
-    (event.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (event.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   return (
     <DetailPageCardShell
@@ -63,7 +71,8 @@ const EventDetailPage = async ({
       authorHref={`/scholars/${event.author?.id}`}
       authorName={event.author?.name || "Scholar"}
       authorHandle={event.author?.handle || undefined}
-      authorAvatarUrl={event.author?.avatarUrl || undefined} authorVerified={!!(event.author?.institutionVerifiedAt)}
+      authorAvatarUrl={event.author?.avatarUrl || undefined}
+      authorVerified={!!event.author?.institutionVerifiedAt}
       managementControls={
         user?.id === event.author?.id ? (
           <OwnerActionsDropdown
@@ -103,7 +112,9 @@ const EventDetailPage = async ({
           targetId={event.id}
           module="RESEARCH_EVENT"
           initialTotalBookmarks={event.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(event.bookmarks) && event.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(event.bookmarks) && event.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/events/${event.id}#comments`}

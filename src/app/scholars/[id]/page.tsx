@@ -13,11 +13,24 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { getProfile } from "@/app/actions/profile";
 import { formatTimeAgo } from "@/utils/time-ago";
+import { SEO_PAGES } from "@/constants/seo";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
   const { id } = await params;
   const profile = await getProfile(id).catch(() => null);
-  if (!profile) return { title: "Scholar Profile" };
+  if (!profile) {
+    return buildMetadata({
+      title: SEO_PAGES.scholars.title,
+      description: SEO_PAGES.scholars.description,
+      path: SEO_PAGES.scholars.path,
+      type: "website",
+      section: SEO_PAGES.scholars.section,
+    });
+  }
   return buildMetadata({
     title: `${profile.name || "Scholar"}${profile.handle ? ` (@${profile.handle})` : ""}`,
     description: profile.bio || `${profile.name || "Scholar"} on ScholarBase`,
@@ -48,38 +61,38 @@ export default async function ScholarProfile({
       <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-x-8 lg:gap-y-0">
         <div className="lg:row-span-2 lg:min-w-0">
           <div className="flex items-center gap-4 sm:gap-6">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
-            <ProfileAvatar
-              src={profile.avatarUrl}
-              name={profile.name}
-              size={96}
-              fallbackClassName="text-3xl font-bold text-slate-400 dark:text-slate-500"
-            />
-          </div>
-
-            <div className="min-w-0">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-              <span className="inline-flex items-center gap-2">
-                {profile.name}
-                {profile.institutionVerifiedAt && (
-                  <BadgeCheck
-                    className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
-                    aria-label="Institutional email verified"
-                  />
-                )}
-              </span>
-            </h1>
-            <p className="font-medium text-blue-700 dark:text-blue-300">
-              {profile.handle ? `@${profile.handle}` : "No handle set"}
-            </p>
-            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
-              <FollowerCount
-                followerCount={profile.followersCount}
-                followingCount={profile.followingCount}
-                profileId={profile.id}
-                currentUserId={currentUser?.id}
+            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
+              <ProfileAvatar
+                src={profile.avatarUrl}
+                name={profile.name}
+                size={96}
+                fallbackClassName="text-3xl font-bold text-slate-400 dark:text-slate-500"
               />
             </div>
+
+            <div className="min-w-0">
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+                <span className="inline-flex items-center gap-2">
+                  {profile.name}
+                  {profile.institutionVerifiedAt && (
+                    <BadgeCheck
+                      className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                      aria-label="Institutional email verified"
+                    />
+                  )}
+                </span>
+              </h1>
+              <p className="font-medium text-blue-700 dark:text-blue-300">
+                {profile.handle ? `@${profile.handle}` : "No handle set"}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                <FollowerCount
+                  followerCount={profile.followersCount}
+                  followingCount={profile.followingCount}
+                  profileId={profile.id}
+                  currentUserId={currentUser?.id}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -89,7 +102,9 @@ export default async function ScholarProfile({
             <Star className="h-3.5 w-3.5 text-amber-500" />
             {profile.reputation} reputation
           </span>
-          <span suppressHydrationWarning>Joined {formatTimeAgo(profile.createdAt)}</span>
+          <span suppressHydrationWarning>
+            Joined {formatTimeAgo(profile.createdAt)}
+          </span>
 
           <div className="flex shrink-0 items-center gap-1">
             <ReportMenu
@@ -104,14 +119,18 @@ export default async function ScholarProfile({
               hasActiveAppeal={profile.hasActiveAppeal}
               reportLabel="Report User"
             />
-            <ShareButton label="Share profile" href={`/scholars/${profile.id}`} />
+            <ShareButton
+              label="Share profile"
+              href={`/scholars/${profile.id}`}
+            />
           </div>
         </div>
 
         <div className="flex w-full justify-end lg:w-auto lg:justify-self-end">
           {isOwnProfile ? (
             <div className="flex w-full justify-end sm:w-auto">
-              <Link prefetch={false}
+              <Link
+                prefetch={false}
                 href={`/scholars/${profile.id}/settings`}
                 className="sb-button-soft w-full justify-center sm:w-auto"
               >

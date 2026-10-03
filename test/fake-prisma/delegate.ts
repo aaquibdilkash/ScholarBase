@@ -55,7 +55,25 @@ function project(row: Row, select: unknown): Row {
       if (key in row) out[key] = clone(row[key])
       continue
     }
-    if (!Array.isArray(row[key]) || typeof on !== "object" || on === null) continue
+
+    // A to-one relation materialised on the row, e.g. the export route's
+    // `respondent: { select: { name, handle } }`. Without this branch the value
+    // was silently DROPPED, so an owner's export came back with an empty
+    // `respondent_handle` column — a test asserting "the owner sees handles"
+    // then failed for a reason that looked like a product bug but was not one.
+    const target = row[key]
+    if (
+      target !== null &&
+      typeof target === "object" &&
+      !Array.isArray(target) &&
+      !(target instanceof Date)
+    ) {
+      const toOne = on as { select?: unknown }
+      out[key] = toOne.select ? project(target as Row, toOne.select) : clone(target)
+      continue
+    }
+
+    if (!Array.isArray(target) || typeof on !== "object" || on === null) continue
 
     const spec = on as {
       where?: unknown

@@ -4,6 +4,7 @@ import {
   SEO_SITE,
   SITE_NAME,
   SITE_URL,
+  formatPageTitle,
 } from "@/constants/seo";
 
 /** Resolve a path (or absolute URL) to an absolute URL. */
@@ -37,12 +38,13 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
   const url = options.path ? absoluteUrl(options.path) : SITE_URL;
   const image = options.image && options.image.trim() ? absoluteUrl(options.image) : absoluteUrl(DEFAULT_SEO_IMAGE);
   const description = truncate(options.description);
+  const title = formatPageTitle(options.title);
   const type = options.type ?? "website";
   const publishedTime = options.publishedTime ? new Date(options.publishedTime).toISOString() : undefined;
   const modifiedTime = options.modifiedTime ? new Date(options.modifiedTime).toISOString() : undefined;
 
   return {
-    title: options.title,
+    title,
     description,
     ...(options.keywords && options.keywords.length ? { keywords: options.keywords } : {}),
     alternates: { canonical: url },
@@ -50,7 +52,7 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
       type,
       locale: "en_US",
       siteName: SEO_SITE.name,
-      title: options.title,
+      title,
       description,
       url,
       ...(publishedTime ? { publishedTime } : {}),
@@ -61,7 +63,7 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: options.title,
+      title,
       description,
       images: [image],
     },

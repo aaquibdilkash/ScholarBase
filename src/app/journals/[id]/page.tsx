@@ -19,6 +19,7 @@ import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -27,7 +28,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const journal = await getJournalById(id).catch(() => null);
-  if (!journal) return { title: "Academic Journal" };
+  if (!journal) {
+    return buildMetadata({
+      title: SEO_PAGES.journals.title,
+      description: SEO_PAGES.journals.description,
+      path: SEO_PAGES.journals.path,
+      type: "website",
+      section: SEO_PAGES.journals.section,
+    });
+  }
   return buildMetadata({
     title: journal.title,
     description: (
@@ -66,8 +75,7 @@ const JournalDetailPage = async ({
 
   const j = journal;
   const userVote =
-    (j.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (j.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -83,7 +91,8 @@ const JournalDetailPage = async ({
       authorHref={`/scholars/${j.author?.id}`}
       authorName={j.author?.name || "Scholar"}
       authorHandle={j.author?.handle || undefined}
-      authorAvatarUrl={j.author?.avatarUrl || undefined} authorVerified={!!(j.author?.institutionVerifiedAt)}
+      authorAvatarUrl={j.author?.avatarUrl || undefined}
+      authorVerified={!!j.author?.institutionVerifiedAt}
       authorId={j.author?.id}
       isFollowing={!!j.author?.followers?.length}
       currentUserId={user?.id}
@@ -106,7 +115,9 @@ const JournalDetailPage = async ({
           targetId={j.id}
           module="JOURNAL"
           initialTotalBookmarks={j.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(j.bookmarks) && j.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(j.bookmarks) && j.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/journals/${j.id}#comments`}
@@ -170,9 +181,7 @@ const JournalDetailPage = async ({
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               ISSN
             </p>
-            <p className="text-sm font-semibold text-rose-800 mt-1">
-              {j.issn}
-            </p>
+            <p className="text-sm font-semibold text-rose-800 mt-1">{j.issn}</p>
           </div>
         )}
         {j.impactFactor && (

@@ -1,11 +1,13 @@
 import { Metadata } from "next";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { SEO_PAGES } from "@/constants/seo";
+import { buildMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.privacy.title,
   description: SEO_PAGES.privacy.description,
-};
+  path: SEO_PAGES.privacy.path,
+});
 
 export default function PrivacyPolicyPage() {
   return (

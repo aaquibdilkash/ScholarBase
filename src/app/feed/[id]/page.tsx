@@ -8,16 +8,13 @@ import { PostContent } from "@/components/feed/PostContent";
 import { FeedImage } from "@/components/feed/FeedImage";
 import type { CommentWithAuthorAndVotes } from "@/types/comments";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  deleteSocialPost,
-  getPost,
-  getPostMetadata,
-} from "@/app/actions/feed";
+import { deleteSocialPost, getPost, getPostMetadata } from "@/app/actions/feed";
 import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { SEO_PAGES } from "@/constants/seo";
 
 export async function generateMetadata({
   params,
@@ -26,7 +23,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const post = await getPostMetadata(id).catch(() => null);
-  if (!post) return { title: "Scholar Post" };
+  if (!post) {
+    return buildMetadata({
+      title: SEO_PAGES.feed.title,
+      description: SEO_PAGES.feed.description,
+      path: SEO_PAGES.feed.path,
+      type: "website",
+      section: SEO_PAGES.feed.section,
+    });
+  }
   const text = post.content.replace(/\s+/g, " ").trim();
   return buildMetadata({
     title: text.slice(0, 58) || "Scholar Post",
@@ -55,8 +60,7 @@ export default async function SinglePostPage({
 
   const p = post;
   const userVote =
-    (p.votes?.[0]?.voteType as
-      "UPVOTE" | "DOWNVOTE" | null) ?? null;
+    (p.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
   async function handleDelete() {
     "use server";
@@ -72,7 +76,8 @@ export default async function SinglePostPage({
       authorHref={`/scholars/${p.author?.id}`}
       authorName={p.author?.name || "Scholar"}
       authorHandle={p.author?.handle || undefined}
-      authorAvatarUrl={p.author?.avatarUrl || undefined} authorVerified={!!(p.author?.institutionVerifiedAt)}
+      authorAvatarUrl={p.author?.avatarUrl || undefined}
+      authorVerified={!!p.author?.institutionVerifiedAt}
       managementControls={
         user?.id === p.authorId ? (
           <OwnerActionsDropdown
@@ -93,7 +98,9 @@ export default async function SinglePostPage({
       }
       currentUserId={user?.id}
       createdDate={p.createdAt}
-      editedDate={p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined}
+      editedDate={
+        p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined
+      }
       footerVoteButton={
         <VoteButton
           targetId={p.id}
@@ -109,7 +116,9 @@ export default async function SinglePostPage({
           targetId={p.id}
           module="SOCIAL_POST"
           initialTotalBookmarks={p.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(p.bookmarks) && p.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(p.bookmarks) && p.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/feed/${p.id}#comments`}

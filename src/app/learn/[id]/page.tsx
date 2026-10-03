@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getCourseById, deleteCourse } from "@/app/actions/courses";
+import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
@@ -25,19 +27,23 @@ export async function generateMetadata({
     const description = bits
       ? `${course.title}: a research learning course from ${bits}.`
       : `Research learning course: ${course.title}.`;
-    return {
-      title: course.title,
+
+    return buildMetadata({
+      title: course.title || SEO_PAGES.learn.title,
       description,
-      alternates: { canonical: `/learn/${course.id}` },
-      openGraph: {
-        title: course.title,
-        description,
-        type: "article",
-        url: `/learn/${course.id}`,
-      },
-    };
+      path: `/learn/${course.id}`,
+      type: "article",
+      section: SEO_PAGES.learn.section,
+    });
   } catch {
-    return { title: "Course" };
+    return buildMetadata({
+      title: "Course",
+      description:
+        "Explore academic courses and learning resources on ScholarBase.",
+      path: "/learn",
+      type: "website",
+      section: SEO_PAGES.learn.section,
+    });
   }
 }
 
@@ -55,8 +61,7 @@ export default async function CourseDetailPage({
 
   if (!course) notFound();
 
-  const userVote =
-    course.votes?.[0]?.voteType ?? null;
+  const userVote = course.votes?.[0]?.voteType ?? null;
   const details = [
     ["Provider", course.provider],
     ["Instructor", course.instructor],
@@ -80,13 +85,16 @@ export default async function CourseDetailPage({
       authorHref={`/scholars/${course.author?.id}`}
       authorName={course.author?.name || "Scholar"}
       authorHandle={course.author?.handle || undefined}
-      authorAvatarUrl={course.author?.avatarUrl || undefined} authorVerified={!!(course.author?.institutionVerifiedAt)}
+      authorAvatarUrl={course.author?.avatarUrl || undefined}
+      authorVerified={!!course.author?.institutionVerifiedAt}
       authorId={course.author?.id}
       isFollowing={!!course.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={course.createdAt}
       editedDate={
-        course.editedAt && course.editedAt > course.createdAt ? course.editedAt : undefined
+        course.editedAt && course.editedAt > course.createdAt
+          ? course.editedAt
+          : undefined
       }
       managementControls={
         user?.id === course.author?.id ? (
@@ -114,7 +122,9 @@ export default async function CourseDetailPage({
           targetId={course.id}
           module="COURSE"
           initialTotalBookmarks={course.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(course.bookmarks) && course.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(course.bookmarks) && course.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/learn/${course.id}#comments`}

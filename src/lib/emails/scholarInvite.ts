@@ -320,7 +320,7 @@ Best regards,
 
 ${senderName}
 ${senderRole}
-invitations@scholarbase.app
+updates@scholarbase.app
 
 ${normalizedFooter}${unsubscribeLine}`;
 }
@@ -368,7 +368,7 @@ export function generateScholarInviteHtml({
       <p style="margin:0 0 18px;">${safeCtaLabel}: <a href="${safeInviteUrl}" target="_blank" rel="noreferrer" style="color:#1d4ed8;word-break:break-all;">${safeInviteUrl}</a></p>
       <p style="margin:0 0 2px;">Best regards,</p>
       <p style="margin:0;">${safeSenderName}</p>
-      <p style="margin:0 0 24px;">${safeSenderRole}<br /><a href="mailto:invitations@scholarbase.app" style="color:#1d4ed8;text-decoration:none;">invitations@scholarbase.app</a></p>
+      <p style="margin:0 0 24px;">${safeSenderRole}<br /><a href="mailto:updates@scholarbase.app" style="color:#1d4ed8;text-decoration:none;">updates@scholarbase.app</a></p>
       <p style="margin:0;border-top:1px solid #e5e7eb;padding-top:14px;font-size:12px;color:#6b7280;">${safeFooterText}</p>
       ${safeUnsubscribeUrl ? `<p style="margin:8px 0 0;font-size:12px;color:#6b7280;"><a href="${safeUnsubscribeUrl}" target="_blank" rel="noreferrer" style="color:#6b7280;text-decoration:underline;">Unsubscribe from ScholarBase outreach</a></p>` : ""}
     </div>

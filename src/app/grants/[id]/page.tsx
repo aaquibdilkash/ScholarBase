@@ -5,6 +5,8 @@ import {
   getResearchGrantById,
   deleteResearchGrant,
 } from "@/app/actions/grants";
+import { buildMetadata } from "@/lib/seo";
+import { SEO_PAGES } from "@/constants/seo";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
@@ -25,19 +27,22 @@ export async function generateMetadata({
     const description = grant.amount
       ? `${grant.title} funding opportunity: ${grant.amount}.`
       : `Research grant opportunity: ${grant.title}.`;
-    return {
-      title: grant.title,
+
+    return buildMetadata({
+      title: grant.title || SEO_PAGES.grants.title,
       description,
-      alternates: { canonical: `/grants/${grant.id}` },
-      openGraph: {
-        title: grant.title,
-        description,
-        type: "article",
-        url: `/grants/${grant.id}`,
-      },
-    };
+      path: `/grants/${grant.id}`,
+      type: "article",
+      section: SEO_PAGES.grants.section,
+    });
   } catch {
-    return { title: "Research Grant" };
+    return buildMetadata({
+      title: SEO_PAGES.grants.title,
+      description: SEO_PAGES.grants.description,
+      path: SEO_PAGES.grants.path,
+      type: "website",
+      section: SEO_PAGES.grants.section,
+    });
   }
 }
 
@@ -55,8 +60,7 @@ export default async function ResearchGrantDetailPage({
 
   if (!grant) notFound();
 
-  const userVote =
-    grant.votes?.[0]?.voteType ?? null;
+  const userVote = grant.votes?.[0]?.voteType ?? null;
 
   async function handleDelete() {
     "use server";
@@ -72,13 +76,16 @@ export default async function ResearchGrantDetailPage({
       authorHref={`/scholars/${grant.author?.id}`}
       authorName={grant.author?.name || "Scholar"}
       authorHandle={grant.author?.handle || undefined}
-      authorAvatarUrl={grant.author?.avatarUrl || undefined} authorVerified={!!(grant.author?.institutionVerifiedAt)}
+      authorAvatarUrl={grant.author?.avatarUrl || undefined}
+      authorVerified={!!grant.author?.institutionVerifiedAt}
       authorId={grant.author?.id}
       isFollowing={!!grant.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={grant.createdAt}
       editedDate={
-        grant.editedAt && grant.editedAt > grant.createdAt ? grant.editedAt : undefined
+        grant.editedAt && grant.editedAt > grant.createdAt
+          ? grant.editedAt
+          : undefined
       }
       managementControls={
         user?.id === grant.author?.id ? (
@@ -106,7 +113,9 @@ export default async function ResearchGrantDetailPage({
           targetId={grant.id}
           module="RESEARCH_GRANT"
           initialTotalBookmarks={grant.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(grant.bookmarks) && grant.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(grant.bookmarks) && grant.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/grants/${grant.id}#comments`}
