@@ -14,11 +14,14 @@
     "test:coverage": "vitest run --coverage",
     "test:all": "npm run test:coverage && npm run test:integration",
     "test:watch": "vitest",
+    "load:test:free-tier": "node scripts/free-tier-load-test.mjs",
+    "generate:icons": "python3 scripts/generate-icons.py",
+    "generate:ios-splash": "python3 scripts/generate-ios-splash.py",
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.9.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/typography": "^0.5.20",
@@ -42,6 +45,7 @@
     "react-markdown": "^10.1.0",
     "resend": "^6.18.1",
     "sanitize-html": "^2.17.5",
+    "uuid": "^11.1.1",
     "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
@@ -58,7 +62,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.7",
     "jsdom": "^25.0.1",
-    "prisma": "^7.9.0",
+    "prisma": "^7.10.0",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
     "tailwindcss-animate": "^1.0.7",
@@ -66,6 +70,7 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
-    "mysql2": "^3.24.5"
+    "mysql2": "^3.24.5",
+    "uuid": "^11.1.1"
   }
 }

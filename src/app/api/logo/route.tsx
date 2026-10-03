@@ -42,15 +42,13 @@ export async function GET() {
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: "#020617",
-          borderRadius: "50%",
-          border: "16px solid #1e293b",
-          boxSizing: "border-box",
+          borderRadius: 0,
         }}
       >
         <div
           style={{
             display: "flex",
-            fontSize: 220,
+            fontSize: 280,
             letterSpacing: "-0.05em",
             lineHeight: 1,
             fontFamily: fontData ? "DejaVu Sans" : "sans-serif",

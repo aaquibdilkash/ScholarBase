@@ -34,7 +34,14 @@ export default function CreateOrEditPageShell({
   return (
     <main
       className={clsx(
-        `mx-auto w-full ${maxWidthClass} py-8 px-0 sm:py-8 sm:px-6 lg:px-8`,
+        // ⚡ The root layout's <main> already carries `.sb-shell`
+        // (`w-full px-4 sm:px-6 lg:px-8`, globals.css), so this shell must NOT add
+        // horizontal padding again. It previously declared `px-0 sm:px-6 lg:px-8`,
+        // which double-padded every breakpoint from `sm` up (16 + 24 = 40px) and
+        // left the card bleeding to the viewport edges on mobile. Vertical rhythm
+        // only — matching Navbar/Footer, which also pair `.sb-shell` with `py-*`
+        // and no horizontal padding of their own.
+        `mx-auto w-full ${maxWidthClass} py-8 sm:py-8`,
         className,
       )}
     >
@@ -42,7 +49,12 @@ export default function CreateOrEditPageShell({
         <Link
           prefetch={false}
           href={backHref}
-          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 mb-8"
+          // ⚡ `-mx-3 px-3`: the padding exists only to give the hover background room,
+          // but plain `px-3` pushed the chevron and label 12px right of the
+          // title. The negative margin cancels it so the link's CONTENT lines up
+          // with the h1/description/form below while the hover hit-area still
+          // extends past the text edge.
+          className="-mx-3 mb-6 inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           <ChevronLeft className="h-4 w-4" />
           {backLabel}

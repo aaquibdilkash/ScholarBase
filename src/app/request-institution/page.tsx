@@ -29,14 +29,13 @@ export default async function RequestInstitutionPage({
       backHref="/login"
       backLabel="Back to sign in"
       maxWidth="sm"
+      // ⚡ No `max-w-md`/`mx-auto` wrapper: that capped the card at 448px on
+      // every screen wider than a phone, so it never grew with the viewport and
+      // its left edge drifted right of the shell's back-link and <h1>. Letting
+      // the form span the shell keeps header and card left edges aligned.
       className="flex min-h-[calc(100dvh-8rem)] flex-col justify-center"
     >
-      <div className="mx-auto w-full max-w-md space-y-6">
-        <InstitutionDomainRequestForm
-          defaultEmail={defaultEmail}
-          showHeader={false}
-        />
-      </div>
+      <InstitutionDomainRequestForm defaultEmail={defaultEmail} showHeader={false} />
     </CreateOrEditPageShell>
   );
 }

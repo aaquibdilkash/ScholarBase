@@ -1,8 +1,26 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
+import { requireEnv } from "@/lib/env";
 
 const OUTREACH_UNSUBSCRIBE_PURPOSE = "scholar-outreach-unsubscribe";
 
+function isConstantTimeEqual(expected: string, actual: string): boolean {
+  const expectedBytes = Buffer.from(expected);
+  const actualBytes = Buffer.from(actual);
+
+  if (expectedBytes.length !== actualBytes.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBytes, actualBytes);
+}
+
 function getSigningSecret(): string {
+  if (process.env.NODE_ENV === "production") {
+    return process.env.EMAIL_UNSUBSCRIBE_SECRET
+      ? requireEnv("EMAIL_UNSUBSCRIBE_SECRET")
+      : requireEnv("CRON_SECRET");
+  }
+
   return (
     process.env.EMAIL_UNSUBSCRIBE_SECRET ||
     process.env.CRON_SECRET ||
@@ -32,10 +50,7 @@ export function verifyOutreachUnsubscribeToken(
   if (!token) return false;
 
   const expected = signOutreachUnsubscribeToken(email);
-  return (
-    token.length === expected.length &&
-    [...token].every((char, index) => char === expected[index])
-  );
+  return isConstantTimeEqual(expected, token);
 }
 
 export function getOutreachUnsubscribeUrl(email: string): string {

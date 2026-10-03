@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { Resend } from "resend";
 import { z } from "zod";
+import { requireEnv } from "@/lib/env";
 import {
   checkRateLimit,
   getRequestFingerprint,
@@ -15,9 +16,15 @@ import {
   renderScholarBaseResponsiveStyles,
 } from "@/lib/emails/brand";
 
-const resend = new Resend(
-  process.env.RESEND_API_KEY || "re_dummy_key_for_build"
-);
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY?.trim() || (
+    process.env.NODE_ENV === "production"
+      ? requireEnv("RESEND_API_KEY")
+      : "dev-local-resend-key"
+  );
+
+  return new Resend(apiKey);
+}
 
 const contactSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -89,6 +96,7 @@ export async function sendContactMessage(
   const safeEmail = escapeHtml(email);
   const safeSubject = escapeHtml(subject);
   const safeMessage = escapeHtml(message);
+  const resend = getResendClient();
 
   try {
     await resend.emails.send({

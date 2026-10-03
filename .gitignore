@@ -52,3 +52,7 @@ brainstorm_plan.md
 REALTIME*.md
 
 
+
+# Python bytecode from the icon/splash generators in scripts/
+__pycache__/
+*.pyc

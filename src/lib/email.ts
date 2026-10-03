@@ -1,38 +1,46 @@
 // lib/email.ts
 import { Resend } from 'resend';
+import { requireEnv } from '@/lib/env';
 
-const resend = new Resend(
-  process.env.RESEND_API_KEY || "re_dummy_key_for_build"
-);
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY?.trim() || (
+    process.env.NODE_ENV === 'production'
+      ? requireEnv('RESEND_API_KEY')
+      : 'dev-local-resend-key'
+  );
+
+  return new Resend(apiKey);
+}
 
 import type { CommentNotificationProps, ScholarInviteProps } from '@/types/email';
 import {
-    generateScholarInviteHtml,
-    generateScholarInvitePlainText,
-    type ScholarInviteEmailProps,
+  generateScholarInviteHtml,
+  generateScholarInvitePlainText,
+  type ScholarInviteEmailProps,
 } from '@/lib/emails/scholarInvite';
 import { getOutreachUnsubscribeUrl } from '@/lib/emails/outreachUnsubscribe';
 import {
-    renderScholarBaseCompactHeader,
-    renderScholarBaseResponsiveStyles,
+  renderScholarBaseCompactHeader,
+  renderScholarBaseResponsiveStyles,
 } from '@/lib/emails/brand';
 
 export async function sendCommentNotification({
-    recipientEmail,
-    commenterName,
-    paperTitle,
-    commentSnippet,
+  recipientEmail,
+  commenterName,
+  paperTitle,
+  commentSnippet,
 }: CommentNotificationProps) {
-    const safeCommenterName = escapeHtml(commenterName);
-    const safePaperTitle = escapeHtml(paperTitle);
-    const safeCommentSnippet = escapeHtml(commentSnippet);
+  const safeCommenterName = escapeHtml(commenterName);
+  const safePaperTitle = escapeHtml(paperTitle);
+  const safeCommentSnippet = escapeHtml(commentSnippet);
+  const resend = getResendClient();
 
-    try {
-        const data = await resend.emails.send({
-            from: 'ScholarBase <notifications@scholarbase.app>',
-            to: [recipientEmail],
-            subject: `${commenterName} commented on your paper`,
-            html: `
+  try {
+    const data = await resend.emails.send({
+      from: 'ScholarBase <notifications@scholarbase.app>',
+      to: [recipientEmail],
+      subject: `${commenterName} commented on your paper`,
+      html: `
         ${renderScholarBaseResponsiveStyles()}
         <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
           ${renderScholarBaseCompactHeader("New activity on ScholarBase")}
@@ -51,31 +59,32 @@ export async function sendCommentNotification({
           </div>
         </div>
       `,
-        });
+    });
 
-        return { success: true, data };
-    } catch (error) {
-        console.error('Failed to send notification email:', error);
-        return { success: false, error };
-    }
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send notification email:', error);
+    return { success: false, error };
+  }
 }
 
 export async function sendScholarInviteEmail({
-    recipientEmail,
-    inviterName,
-    message,
-    inviteUrl,
+  recipientEmail,
+  inviterName,
+  message,
+  inviteUrl,
 }: ScholarInviteProps) {
-    const safeInviterName = escapeHtml(inviterName);
-    const safeMessage = escapeHtml(message);
-    const safeInviteUrl = escapeHtml(inviteUrl);
+  const safeInviterName = escapeHtml(inviterName);
+  const safeMessage = escapeHtml(message);
+  const safeInviteUrl = escapeHtml(inviteUrl);
+  const resend = getResendClient();
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'ScholarBase <invitations@scholarbase.app>',
-            to: [recipientEmail],
-            subject: `${inviterName} invited you to join ScholarBase`,
-            html: `
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'ScholarBase <invitations@scholarbase.app>',
+      to: [recipientEmail],
+      subject: `${inviterName} invited you to join ScholarBase`,
+      html: `
         ${renderScholarBaseResponsiveStyles()}
         <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
           ${renderScholarBaseCompactHeader("Collaboration Invitation")}
@@ -93,89 +102,91 @@ export async function sendScholarInviteEmail({
           </div>
         </div>
       `,
-        });
+    });
 
-        if (error) {
-            console.error('Failed to send scholar invite email:', error);
-            return { success: false, error };
-        }
-
-        return { success: true, data };
-    } catch (error) {
-        console.error('Failed to send scholar invite email:', error);
-        return { success: false, error };
+    if (error) {
+      console.error('Failed to send scholar invite email:', error);
+      return { success: false, error };
     }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Failed to send scholar invite email:', error);
+    return { success: false, error };
+  }
 }
 
 export async function sendScholarOutreachEmail({
-    recipientEmail,
-    isTestSend,
-    ...emailProps
+  recipientEmail,
+  isTestSend,
+  ...emailProps
 }: ScholarInviteEmailProps & {
-    recipientEmail: string;
-    isTestSend?: boolean;
+  recipientEmail: string;
+  isTestSend?: boolean;
 }) {
-    const unsubscribeUrl = getOutreachUnsubscribeUrl(recipientEmail);
+  const unsubscribeUrl = getOutreachUnsubscribeUrl(recipientEmail);
+  const resend = getResendClient();
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'ScholarBase <invitations@scholarbase.app>',
-            to: [recipientEmail],
-            replyTo: 'invitations@scholarbase.app',
-            subject: isTestSend
-                ? `[TEST] ${emailProps.subject}`
-                : emailProps.subject,
-            html: generateScholarInviteHtml({ ...emailProps, unsubscribeUrl }),
-            text: generateScholarInvitePlainText({ ...emailProps, unsubscribeUrl }),
-            headers: {
-                'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:invitations@scholarbase.app?subject=Unsubscribe>`,
-                'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-            },
-        });
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'ScholarBase <invitations@scholarbase.app>',
+      to: [recipientEmail],
+      replyTo: 'invitations@scholarbase.app',
+      subject: isTestSend
+        ? `[TEST] ${emailProps.subject}`
+        : emailProps.subject,
+      html: generateScholarInviteHtml({ ...emailProps, unsubscribeUrl }),
+      text: generateScholarInvitePlainText({ ...emailProps, unsubscribeUrl }),
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:invitations@scholarbase.app?subject=Unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
 
-        if (error) {
-            console.error('Failed to send scholar outreach email:', error);
-            return { success: false as const, error: error.message };
-        }
-
-        return { success: true as const, id: data?.id ?? null };
-    } catch (error) {
-        console.error('Failed to send scholar outreach email:', error);
-        return { success: false as const, error: 'Email provider unavailable.' };
+    if (error) {
+      console.error('Failed to send scholar outreach email:', error);
+      return { success: false as const, error: error.message };
     }
+
+    return { success: true as const, id: data?.id ?? null };
+  } catch (error) {
+    console.error('Failed to send scholar outreach email:', error);
+    return { success: false as const, error: 'Email provider unavailable.' };
+  }
 }
 
 function escapeHtml(value: string): string {
-    return value.replace(/[&<>'"]/g, (character) => {
-        const entities: Record<string, string> = {
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            "'": "&#39;",
-            '"': "&quot;",
-        };
-        return entities[character];
-    });
+  return value.replace(/[&<>'"]/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+    return entities[character];
+  });
 }
 
 export async function sendInstitutionVerificationEmail({
-    recipientEmail,
-    recipientName,
-    verificationUrl,
+  recipientEmail,
+  recipientName,
+  verificationUrl,
 }: {
-    recipientEmail: string;
-    recipientName: string | null;
-    verificationUrl: string;
+  recipientEmail: string;
+  recipientName: string | null;
+  verificationUrl: string;
 }) {
-    const safeName = escapeHtml(recipientName || "Scholar");
-    const safeUrl = escapeHtml(verificationUrl);
+  const safeName = escapeHtml(recipientName || "Scholar");
+  const safeUrl = escapeHtml(verificationUrl);
+  const resend = getResendClient();
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: "ScholarBase <system@scholarbase.app>",
-            to: [recipientEmail],
-            subject: "Verify your institutional email on ScholarBase",
-            html: `
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "ScholarBase <system@scholarbase.app>",
+      to: [recipientEmail],
+      subject: "Verify your institutional email on ScholarBase",
+      html: `
         ${renderScholarBaseResponsiveStyles()}
         <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
           ${renderScholarBaseCompactHeader("Institutional verification")}
@@ -190,18 +201,18 @@ export async function sendInstitutionVerificationEmail({
           </div>
         </div>
       `,
-        });
+    });
 
-        if (error) {
-            console.error("Failed to send institution verification email:", error);
-            return { success: false, error };
-        }
-
-        return { success: true, data };
-    } catch (error) {
-        console.error("Failed to send institution verification email:", error);
-        return { success: false, error };
+    if (error) {
+      console.error("Failed to send institution verification email:", error);
+      return { success: false, error };
     }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error("Failed to send institution verification email:", error);
+    return { success: false, error };
+  }
 }
 
 /** Sends the final decision for an institutional-domain review to the submitter's chosen contact. */
@@ -221,6 +232,7 @@ export async function sendInstitutionDomainDecisionEmail({
   const safeNote = escapeHtml(reviewNote || (approved
     ? "Your institution domain is now approved. You can use an email from this domain to register and receive the ScholarBase verification badge."
     : "We could not approve this request. You may update the request details and submit it again."));
+  const resend = getResendClient();
 
   try {
     const { error } = await resend.emails.send({

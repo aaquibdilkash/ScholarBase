@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { useUser } from "@/hooks/useUser";
 import { useAuthModal } from "@/components/interactions/AuthModal";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -150,8 +151,14 @@ export function NewMessageForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="sb-card space-y-5 p-6 md:p-8">
-      <div className="space-y-2">
+    // ⚡ Matches the sibling add/edit forms (EventForm, ResearchGrantForm, ...):
+    // `sb-surface-strong` with `p-4 sm:p-6 md:p-10`. It previously used
+    // `sb-card ... px-0 md:px-6`, so on phones the inputs sat flush against the
+    // viewport edges.
+    <form onSubmit={handleSubmit} className="sb-surface-strong flex flex-col gap-5 p-4 sm:p-6 md:p-10">
+      {/* ⚡ Matches SupervisorForm: a plain wrapper so the label sits flush against
+          the input. The `space-y-2` this replaced added gap the other forms lack. */}
+      <div>
         <label className="sb-label inline-flex items-center gap-1.5" htmlFor="recipientId">
           Recipient
           <InfoTooltip message={MESSAGE_SEARCH_TIP} />
@@ -238,9 +245,14 @@ export function NewMessageForm({
           {body.length}/{MAX_MESSAGE_BODY} characters
         </div>
       </div>
-      <button type="submit" className="sb-button-primary" disabled={submitting}>
-        {submitting ? "Sending..." : "Start conversation"}
-      </button>
+      {/* ⚡ Matches SupervisorForm: actions sit below a top border rule rather than
+          floating after a bare `mt-2`. */}
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+        <FormCancelButton href="/messages" />
+        <button type="submit" className="sb-button-primary" disabled={submitting}>
+          {submitting ? "Sending..." : "Start conversation"}
+        </button>
+      </div>
     </form>
   );
 }

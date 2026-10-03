@@ -1,8 +1,9 @@
 // src/lib/emails/digest.ts
 // Shared logic for the daily/weekly notification digest cron jobs.
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { Resend } from "resend";
 import prisma from "@/lib/db";
+import { requireEnv } from "@/lib/env";
 import { getModuleLabel, getNotificationLink } from "@/lib/notification-links";
 import { queueNotification } from "@/lib/qstash";
 import {
@@ -10,6 +11,16 @@ import {
   type DigestModuleGroup,
   type DigestNotification,
 } from "@/lib/emails/generateDigestHtml";
+
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY?.trim() || (
+    process.env.NODE_ENV === "production"
+      ? requireEnv("RESEND_API_KEY")
+      : "dev-local-resend-key"
+  );
+
+  return new Resend(apiKey);
+}
 
 const MODULE_ICONS: Record<string, string> = {
   Conversations: "💬",
@@ -34,7 +45,12 @@ export function getAppUrl(): string {
  * links cannot be forged. Uses CRON_SECRET as the signing key — no new env vars.
  */
 export function signPreferenceToken(userId: string, pref: string): string {
-  return createHmac("sha256", process.env.CRON_SECRET ?? "")
+  const secret =
+    process.env.NODE_ENV === "production"
+      ? requireEnv("CRON_SECRET")
+      : process.env.CRON_SECRET || "dev-local-cron-secret";
+
+  return createHmac("sha256", secret)
     .update(`${userId}:${pref}`)
     .digest("hex");
 }
@@ -45,11 +61,14 @@ export function verifyPreferenceToken(
   token: string
 ): boolean {
   const expected = signPreferenceToken(userId, pref);
-  return (
-    token.length === expected.length &&
-    // timing-safe-ish comparison without extra deps
-    [...token].every((char, i) => char === expected[i])
-  );
+  const expectedBytes = Buffer.from(expected);
+  const actualBytes = Buffer.from(token);
+
+  if (expectedBytes.length !== actualBytes.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBytes, actualBytes);
 }
 
 type NotificationRow = {
@@ -214,9 +233,7 @@ export async function sendDigestChunk(
     ),
   }));
 
-  const resend = new Resend(
-    process.env.RESEND_API_KEY || "re_dummy_key_for_build",
-  );
+  const resend = getResendClient();
 
   const { data, error } = await resend.batch.send(emails, {
     // `permissive` is REQUIRED here, not an optimisation. Under the default

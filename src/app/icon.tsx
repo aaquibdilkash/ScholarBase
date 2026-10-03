@@ -23,17 +23,17 @@ export default async function Icon() {
 
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#020617",
-          borderRadius: 10,
-        }}
-      >
+<div
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#020617",
+            borderRadius: 0,
+          }}
+        >
         <div
           style={{
             display: "flex",

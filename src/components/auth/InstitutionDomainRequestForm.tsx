@@ -4,6 +4,7 @@ import Script from "next/script";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { requestInstitutionDomain } from "@/app/actions/institution";
+import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import {
   MAX_INSTITUTION_NAME,
   MAX_INSTITUTION_REQUEST_DETAILS,
@@ -148,7 +149,9 @@ export function InstitutionDomainRequestForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-900/50 dark:bg-blue-950/20"
+      // ⚡ `px-4` on mobile: this was `px-0`, so on phones every input sat flush
+      // against the card edges. `md:px-4` is unchanged.
+      className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/70 px-4 py-4 md:px-4 dark:border-blue-900/50 dark:bg-blue-950/20"
     >
       {showHeader && (
         <div>
@@ -266,20 +269,23 @@ export function InstitutionDomainRequestForm({
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={submitting || !turnstileSiteKey || !turnstileToken}
-        className="sb-button-primary w-full"
-      >
-        {submitting ? (
-          <span className="inline-flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Sending request...
-          </span>
-        ) : (
-          "Request review"
-        )}
-      </button>
+      <div className="mt-2 flex justify-end gap-3">
+        <FormCancelButton href="/login" />
+        <button
+          type="submit"
+          disabled={submitting || !turnstileSiteKey || !turnstileToken}
+          className="sb-button-primary"
+        >
+          {submitting ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Sending request...
+            </span>
+          ) : (
+            "Request review"
+          )}
+        </button>
+      </div>
     </form>
   );
 }

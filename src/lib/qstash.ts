@@ -1,8 +1,9 @@
 import { Client } from "@upstash/qstash";
 import { z } from "zod";
+import { requireEnv } from "@/lib/env";
 
 export const qstashClient = new Client({
-  token: process.env.QSTASH_TOKEN!,
+  token: requireEnv("QSTASH_TOKEN"),
 });
 
 const notificationFields = {
@@ -101,8 +102,8 @@ export async function queueNotification(payload: NotificationPayload) {
     // partial unique index, so they need no queue-level key.
     ...(payload.mode === "DIGEST"
       ? {
-          deduplication: `digest-${payload.preference}-${payload.afterUserId ?? "start"}`,
-        }
+        deduplication: `digest-${payload.preference}-${payload.afterUserId ?? "start"}`,
+      }
       : {}),
   });
 }

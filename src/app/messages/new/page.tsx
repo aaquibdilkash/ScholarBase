@@ -8,6 +8,7 @@ import { supabase } from '@/utils/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { NewMessageForm } from '@/components/messages/NewMessageForm'
 import { useToast } from '@/components/ui/Toast'
+import CreateOrEditPageShell from '@/components/layout/CreateOrEditPageShell'
 
 type Scholar = NonNullable<Awaited<ReturnType<typeof getScholarById>>>
 
@@ -65,12 +66,18 @@ function NewConversationPageContent() {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold mb-4">New Message</h1>
-        <NewMessageForm initialRecipient={recipient} />
-      </div>
-    </div>
+    <CreateOrEditPageShell
+      title="New Message"
+      description="Start a new conversation with another scholar."
+      backHref="/messages"
+      backLabel="Back to Messages"
+      maxWidth="md"
+    >
+      {/* No width wrapper: the form spans the shell's max-w-4xl, so the card
+          aligns exactly with the title above it — same as every other add/edit
+          page (events, grants, blog, ...). */}
+      <NewMessageForm initialRecipient={recipient} />
+    </CreateOrEditPageShell>
   )
 }
 

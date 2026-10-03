@@ -63,6 +63,26 @@ html[data-theme="dark"] {
       radial-gradient(circle at top left, rgba(148, 163, 184, 0.14), transparent 28%),
       radial-gradient(circle at top right, rgba(96, 165, 250, 0.1), transparent 24%),
       linear-gradient(180deg, #0b0d10 0%, #0f1318 42%, #050607 100%));
+  /* Painted on the ROOT element, not just on `body`.
+   *
+   * `body` already paints `--page-grad`, but `html` had no background at all and
+   * so fell back to the UA's white. Everything `body` does not cover -- the
+   * overscroll bounce, and the frame between the web view booting and the
+   * stylesheet resolving -- therefore rendered white. On iOS that white frame is
+   * what the Home Screen icon flashes before the splash image takes over, so it
+   * is the same defect wearing a different hat.
+   *
+   * Overriding the light token (#c9d1de) here rather than hardcoding a colour
+   * in `html` keeps light mode intact -- the alternate would fix the dark flash
+   * by introducing a light one. `#020617` matches the splash images exactly, so
+   * the launch is seamless rather than dark-then-slightly-different-dark;
+   * `test/pwa-assets.test.ts` pins both ends of that agreement.
+   *
+   * Declared unlayered, alongside the other dark tokens: unlayered declarations
+   * beat layered ones regardless of specificity, so this MUST NOT move inside
+   * `@layer base` or the `:root` value below would win.
+   */
+  --background-deep: #020617;
 }
 
 @theme inline {
@@ -77,6 +97,19 @@ html[data-theme="dark"] {
     scroll-behavior: smooth;
     min-width: var(--sb-min-viewport-width);
     overflow-x: auto;
+    /* Reads the token rather than a literal so light mode is not sacrificed to
+     * kill a dark-mode flash. See the `html.dark` block above for why this
+     * paints `html` and not just `body`. */
+    background-color: var(--background-deep);
+    /* Makes the UA render native surfaces -- scrollbars, form controls, the
+     * canvas behind the page -- in light, instead of flashing a white backdrop
+     * while waiting on the app's own styles. */
+    color-scheme: light;
+  }
+
+  html.dark,
+  html[data-theme="dark"] {
+    color-scheme: dark;
   }
 
   body {
@@ -85,12 +118,18 @@ html[data-theme="dark"] {
     position: relative;
   }
 
-  /* Zero-out the root <main> padding on the /messages routes. Using :has()
+  /* Zero-out the ROOT <main> padding on the /messages routes. Using :has()
      makes this render-blocking: it applies on the very first paint from the
      server-rendered HTML, so there is no "space then snap" flicker on
      refresh (the old html.sb-route-messages class was only added after
-     hydration via useEffect). */
-  body:has(main .sb-messages-page) main {
+     hydration via useEffect).
+
+     Scoped to #sb-main-scroll on purpose: the bare descendant `main` also
+     matched NESTED <main> elements — notably CreateOrEditPageShell's own <main>
+     on /messages/new — and stripped their `py-8`, so that form sat ~32px higher
+     under the navbar than every other add/edit page. Only the root shell is
+     full-bleed here; nested page shells keep their own padding. */
+  body:has(main .sb-messages-page) main#sb-main-scroll {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     padding-left: 0 !important;
