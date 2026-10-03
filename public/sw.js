@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v10";
+const CACHE_NAME = "scholarbase-v11";
 // Precached so the installed app has a usable offline shell. `addAll` is
 // all-or-nothing — one failed entry aborts the entire install, the worker never
 // activates, and the app silently stops being installable. So each entry is
@@ -55,6 +55,24 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = event.request.url;
+
+  // Never touch cross-origin requests. Two reasons, and the second is the one
+  // that bit us in production-shaped dev:
+  //
+  //   1. They are not ours to cache. The cache holds our own app shell only.
+  //
+  //   2. Re-issuing one from the worker runs it under the WORKER's OWN CSP,
+  //      which by design does not enumerate every external host. A remote avatar
+  //      (lh3.googleusercontent.com, res.cloudinary.com) is then blocked by the
+  //      worker's `connect-src`: the browser logs
+  //        directive=connect-src blocked=https://lh3.googleusercontent.com/…
+  //        page=http://localhost:3000/sw.js
+  //      and the image silently fails to render. Handing the request back to the
+  //      browser means it loads under the PAGE's `img-src`, which is precisely
+  //      the directive that already lists those hosts.
+  if (new URL(url).origin !== self.location.origin) {
+    return;
+  }
 
   // NOTE: this handler used to bail out early on localhost/127.0.0.1 so that dev
   // never served stale bundles. That silently broke PWA *installability* in dev:

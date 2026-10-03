@@ -198,6 +198,27 @@ describe("InstallAppButton", () => {
     expect(container.textContent).toContain("Installing...");
   });
 
+  it("keeps showing Installing... even once the installed flag flips", () => {
+    // The exact complaint: clicking Install jumped straight to "Installed"
+    // before the user could see any progress. While a request is in flight the
+    // progress state must win over the terminal one.
+    isWorking = true;
+    installed = true;
+    draw(<InstallAppButton variant="settings" />);
+
+    expect(container.textContent).toContain("Installing...");
+    expect(container.textContent).not.toContain("installed on this device");
+  });
+
+  it("shows Installing... in the overflow menu instead of jumping to installed", () => {
+    isWorking = true;
+    installed = true;
+    draw(<InstallAppButton variant="menu" />);
+
+    expect(container.textContent).toContain("Installing...");
+    expect(container.textContent).not.toContain("ScholarBase installed");
+  });
+
   it("renders the compact variant too", () => {
     draw(<InstallAppButton />);
 

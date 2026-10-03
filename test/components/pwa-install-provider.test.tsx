@@ -322,6 +322,32 @@ describe("PwaInstallProvider (event timing)", () => {
     expect(status()).toBe("checking");
   });
 
+  it("keeps a recorded install when the browser reports no install", async () => {
+    // The regression the user hit: `getInstalledRelatedApps()` returning an
+    // EMPTY array was read as "not installed" and wiped the recorded state, so
+    // a genuinely installed app (installed from another origin — e.g. a
+    // production install viewed from a localhost dev tab — or simply a Chromium
+    // false negative) started showing "Install app" again. An empty result is
+    // NOT proof of absence, so it must leave the install state alone.
+    window.localStorage.setItem("sb:pwa-installed", "1");
+    patchNavigator({
+      serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
+      getInstalledRelatedApps: () => Promise.resolve([]),
+    });
+    draw();
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Still installed — the empty result changed nothing.
+    expect(status()).toBe("unavailable");
+    expect(text()).toContain("installed on this device");
+    expect(window.localStorage.getItem("sb:pwa-installed")).toBe("1");
+  });
+
   it("remembers an install recorded locally on a browser with no install API", () => {
     // Firefox and Safari expose neither getInstalledRelatedApps nor anything
     // else that can detect "installed but opened in a normal tab". The local

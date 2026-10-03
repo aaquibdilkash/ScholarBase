@@ -76,6 +76,8 @@ export function InstallAppButton({
   // One source of truth for the installed wording, shared by the tooltip and the
   // accessible name so they can never disagree.
   const installedLabel = "ScholarBase is installed on this device";
+  // The in-flight wording, kept next to the installed one for the same reason.
+  const installingLabel = "Installing ScholarBase…";
   const actionText = isWorking
     ? "Installing..."
     : isManualOnly
@@ -119,9 +121,9 @@ export function InstallAppButton({
           type="button"
           onClick={onClick}
           disabled={isWorking || isInstalled}
-          title={isInstalled ? installedLabel : label}
-          aria-label={isInstalled ? installedLabel : label}
-          aria-expanded={isInstalled ? undefined : showHelp}
+          title={isWorking ? installingLabel : isInstalled ? installedLabel : label}
+          aria-label={isWorking ? installingLabel : isInstalled ? installedLabel : label}
+          aria-expanded={isWorking || isInstalled ? undefined : showHelp}
           className="sb-menu-trigger h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
         >
           {renderIcon("h-4 w-4 sm:h-5 sm:w-5")}
@@ -160,7 +162,10 @@ export function InstallAppButton({
   // A row in the mobile overflow menu, styled like its neighbours. It has room
   // for words, so it states the action rather than relying on an icon.
   if (variant === "menu") {
-    if (isInstalled) {
+    // An install in flight must win over the installed row: otherwise the menu
+    // flips straight to "ScholarBase installed" and the user never sees that
+    // anything is happening.
+    if (isInstalled && !isWorking) {
       return (
         <span
           role="menuitem"
@@ -180,12 +185,16 @@ export function InstallAppButton({
           role="menuitem"
           onClick={onClick}
           disabled={isWorking}
-          aria-expanded={canInstallInOneClick ? undefined : showHelp}
+          aria-expanded={isWorking || canInstallInOneClick ? undefined : showHelp}
           className="sb-menu-item flex w-full items-center gap-2 px-3 py-1.5 text-[13px] disabled:opacity-50 sm:px-4 sm:py-2 sm:text-sm"
         >
           {renderIcon("h-4 w-4")}
           <span>
-            {isManualOnly ? "Add to Home Screen" : "Install ScholarBase"}
+            {isWorking
+              ? "Installing..."
+              : isManualOnly
+                ? "Add to Home Screen"
+                : "Install ScholarBase"}
           </span>
         </button>
 
@@ -205,10 +214,10 @@ export function InstallAppButton({
           type="button"
           // Inert once installed: a control that looks clickable but does
           // nothing is worse than a plain confirmation row.
-          onClick={isInstalled ? undefined : onClick}
+          onClick={isInstalled && !isWorking ? undefined : onClick}
           disabled={isWorking || isInstalled}
           aria-expanded={
-            isInstalled || canInstallInOneClick ? undefined : showHelp
+            isWorking || isInstalled || canInstallInOneClick ? undefined : showHelp
           }
           className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50 disabled:opacity-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
         >
@@ -220,14 +229,24 @@ export function InstallAppButton({
               Install app
             </span>
             <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
-              {isInstalled
-                ? "ScholarBase is installed on this device."
-                : isManualOnly
-                  ? "Add ScholarBase to your home screen for faster access."
-                  : "Add ScholarBase to your device for faster, offline-friendly access."}
+              {isWorking
+                ? "Adding ScholarBase to this device…"
+                : isInstalled
+                  ? "ScholarBase is installed on this device."
+                  : isManualOnly
+                    ? "Add ScholarBase to your home screen for faster access."
+                    : "Add ScholarBase to your device for faster, offline-friendly access."}
             </span>
           </span>
-          {isInstalled ? (
+          {/* Order matters: an install in flight is shown as "Installing…" even
+              if the installed flag has already flipped, so the transition is
+              never a silent jump straight to "Installed". */}
+          {isWorking ? (
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Installing...
+            </span>
+          ) : isInstalled ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-4 w-4" />
               Installed

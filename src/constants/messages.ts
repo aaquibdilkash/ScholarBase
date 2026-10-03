@@ -1,0 +1,1 @@
+export const MESSAGE_THREAD_PAGE_SIZE = 20;

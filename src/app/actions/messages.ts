@@ -10,6 +10,7 @@ import type { SubmitResult } from "@/types/form";
 import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { queueMessagePush } from "@/lib/qstash";
 import { Prisma } from "@prisma/client";
+import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
 
 const sidebarUserSelect = {
   id: true,
@@ -230,7 +231,7 @@ export async function getConversation(conversationId: string) {
         },
       },
       messages: {
-        take: 20, // ⚡ Initial thread is enough for the first screen; older history loads on demand.
+        take: MESSAGE_THREAD_PAGE_SIZE, // ⚡ Initial thread is enough for the first screen; older history loads on demand.
         orderBy: { createdAt: "desc" },
         select: messageSelect,
       },
@@ -278,7 +279,7 @@ export async function getMoreMessages(
       conversationId,
       conversation: { participants: { some: { userId: supabaseUser.id } } },
     },
-    take: 40,
+    take: MESSAGE_THREAD_PAGE_SIZE,
     skip: 1, // Skip the cursor message itself
     cursor: { id: cursorId },
     orderBy: { createdAt: "desc" },

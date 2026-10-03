@@ -95,6 +95,23 @@ describe("sw.js", () => {
     expect(bypass).toBeLessThan(cacheFirst);
   });
 
+  it("never intercepts cross-origin requests", () => {
+    // Regression: the worker re-issued remote avatar requests through its own
+    // `fetch`, which runs under the WORKER's CSP. That policy's `connect-src`
+    // does not list the avatar hosts, so the browser blocked them —
+    //   directive=connect-src blocked=https://lh3.googleusercontent.com/…,
+    //   page=http://localhost:3000/sw.js
+    // — and every avatar silently failed to render. Passing them back to the
+    // browser loads them under the page's `img-src`, which does list them.
+    expect(sw).toMatch(/origin\s*!==\s*self\.location\.origin/);
+    // Like the manifest bypass, it must sit BEFORE the cache-first fallback,
+    // otherwise the worker has already re-fetched the request by then.
+    const bypass = sw.indexOf("self.location.origin");
+    const cacheFirst = sw.indexOf("caches.match(event.request)");
+    expect(bypass).toBeGreaterThan(-1);
+    expect(bypass).toBeLessThan(cacheFirst);
+  });
+
   it("does not precache the manifest", () => {
     // Belt and braces: precaching it would re-introduce the stale-manifest bug
     // even if the fetch handler were fixed.

@@ -32,6 +32,12 @@ import { useToast } from "@/components/ui/Toast";
  *    browser's own menu at any time, so we listen for `appinstalled` and re-check
  *    on visibility change rather than trusting a one-shot probe at mount.
  *
+ * 4. **A negative is NOT reliable.** `getInstalledRelatedApps()` returning an
+ *    empty list does NOT mean "not installed": it only sees apps installed from
+ *    the exact same origin (so a `localhost` dev tab never sees a production
+ *    install), and Chromium produces false negatives in other cases too. So an
+ *    empty result must never clear a recorded install — only `true` is trusted.
+ *
  * This is entirely *device* state, exactly like the push subscription in
  * `PushNotificationProvider` — no server round-trip, nothing to persist.
  */
@@ -157,7 +163,14 @@ async function isInstalledAsRelatedApp(): Promise<boolean | null> {
  * cannot infer it either — an installed app and a never-installed one both just
  * report "no prompt available".
  *
- * This is a device-local hint, never sent anywhere, and it is deliberately
+ * It is trusted on EVERY browser, including Chromium. The API is not a usable
+ * negative: an empty result is returned both for "never installed" and for the
+ * many real installs it simply cannot see (a different origin such as
+ * `localhost` vs production, a different profile, a manifest-id mismatch). The
+ * moment this hint was treated as merely a fallback, genuinely installed users
+ * started seeing "Install app" again. Only a positive from the API is acted on.
+ *
+ * It is a device-local hint, never sent anywhere, and it is deliberately
  * allowed to be wrong: the user can clear it, and worst case we show the manual
  * instructions, which always work. It is strictly better than telling someone
  * who already installed the app that they need to install it.
@@ -234,8 +247,10 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   }, [deferredPrompt, isWorking, toast, markInstalled]);
 
   useEffect(() => {
-    // Seed from the local flag first, so a returning user on Firefox or Safari
-    // (where the install API does not exist) still sees the installed state.
+    // Seed from the local flag first, so a returning user on ANY browser still
+    // sees the installed state. It is not treated as a fallback: an empty
+    // `getInstalledRelatedApps` result is not proof of a missing install (see
+    // the note on INSTALLED_FLAG), so the hint is what the UI trusts.
     if (readInstalledFlag()) setInstalledState(true);
     if (isRunningStandalone()) setInstalledState(true);
 
@@ -297,21 +312,26 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     // install the app from the browser's own menu while this page sits in a
     // background tab, and nothing else would tell us.
     const syncInstalled = () => {
-      if (document.visibilityState === "visible") {
-        if (isRunningStandalone()) {
+      if (document.visibilityState !== "visible") return;
+
+      if (isRunningStandalone()) {
+        markInstalled(true);
+        setDeferredPrompt(null);
+      }
+
+      // Only a definitive `true` counts as an install signal. An EMPTY array is
+      // NOT "not installed": this API sees only apps installed from the exact
+      // same origin (a `localhost` tab cannot see a production install) and
+      // Chromium returns false negatives in other cases too. Clearing the state
+      // on an empty result is what made genuinely installed users see "Install
+      // app" again, so a negative is ignored rather than trusted. `null` (API
+      // absent — Firefox/Safari) is likewise left to the local hint.
+      void isInstalledAsRelatedApp().then((result) => {
+        if (result === true) {
           markInstalled(true);
           setDeferredPrompt(null);
         }
-        // Only a definitive `true` counts. `null` means "this browser cannot
-        // tell us", and treating that as "not installed" is what made Firefox
-        // and Safari lose the install option.
-        void isInstalledAsRelatedApp().then((result) => {
-          if (result === true) {
-            markInstalled(true);
-            setDeferredPrompt(null);
-          }
-        });
-      }
+      });
     };
     document.addEventListener("visibilitychange", syncInstalled);
 

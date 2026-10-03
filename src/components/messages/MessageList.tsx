@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/utils/supabase/client";
 import {
   getMessageDetails,
@@ -19,6 +19,7 @@ import {
   updatePendingMessageStatus,
 } from "@/utils/message-outbox";
 import { type MessageFailureCode } from "@/app/actions/messages";
+import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
 
 type MessageRow = {
   id: string;
@@ -30,7 +31,12 @@ type MessageRow = {
   editedAt?: string | null;
   isDeleted?: boolean | null;
   replyToId?: string | null;
-  sender?: { id: string; name: string | null; handle: string | null; avatarUrl: string | null };
+  sender?: {
+    id: string;
+    name: string | null;
+    handle: string | null;
+    avatarUrl: string | null;
+  };
 };
 
 type RealtimePayload = {
@@ -63,75 +69,110 @@ export function MessageList({
   const [messages, setMessages] = useState<SentMessage[]>(() =>
     [...initialMessages].reverse(),
   );
-  const [hasMore, setHasMore] = useState(initialMessages.length === 40);
+  const [hasMore, setHasMore] = useState(
+    initialMessages.length === MESSAGE_THREAD_PAGE_SIZE,
+  );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const observerTarget = useRef<HTMLDivElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const userId = user?.id;
-  const isSubscribedRef = useRef(false);
+   const observerTarget = useRef<HTMLDivElement | null>(null);
+   const containerRef = useRef<HTMLDivElement | null>(null);
+   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+   const sentinelWasVisibleRef = useRef(false);
+   const userId = user?.id;
+   const isSubscribedRef = useRef(false);
 
-  const initialRenderRef = useRef(true);
-  const previousMessageCount = useRef(initialMessages.length);
-  const currentMessagesRef = useRef<SentMessage[]>([]);
-  useEffect(() => {
-    currentMessagesRef.current = messages;
-  }, [messages]);
-
-  useEffect(() => {
-    if (initialRenderRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-      initialRenderRef.current = false;
-      return;
-    }
-
-    const diff = messages.length - previousMessageCount.current;
-    if (
-      !isLoadingMore &&
-      (diff === 1 || diff === 0 || previousMessageCount.current === 0)
-    ) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-    previousMessageCount.current = messages.length;
-  }, [messages, isLoadingMore]);
-
-  const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore || messages.length === 0) return;
-    setIsLoadingMore(true);
-
-    const scrollContainer = containerRef.current;
-    const previousScrollHeight = scrollContainer
-      ? scrollContainer.scrollHeight
-      : 0;
-
-    try {
-      const cursor = messages[0].id;
-      const olderMessages = await getMoreMessages(conversationId, cursor);
-      if (olderMessages.length < 40) setHasMore(false);
-
-      setMessages((prev) => {
-        const formattedOlder = [...olderMessages].reverse() as SentMessage[];
-        return [...formattedOlder, ...prev];
-      });
-
-      requestAnimationFrame(() => {
-        if (scrollContainer) {
-          const newScrollHeight = scrollContainer.scrollHeight;
-          scrollContainer.scrollTop = newScrollHeight - previousScrollHeight;
+    const getScrollContainer = useCallback(() => {
+      const container = containerRef.current;
+      if (!container) return null;
+      let el: HTMLElement | null = container.parentElement;
+      while (el) {
+        const style = getComputedStyle(el);
+        if (
+          style.overflowY === "auto" ||
+          style.overflowY === "scroll" ||
+          style.overflow === "auto" ||
+          style.overflow === "scroll"
+        ) {
+          return el;
         }
-      });
-    } catch (error) {
-      console.error("Failed to load more messages", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [isLoadingMore, hasMore, messages, conversationId]);
+        el = el.parentElement;
+      }
+      return null;
+    }, []);
+
+   const initialRenderRef = useRef(true);
+   const previousMessageCount = useRef(initialMessages.length);
+   const currentMessagesRef = useRef<SentMessage[]>([]);
+   const scrollHeightRef = useRef<number | null>(null);
+
+   useEffect(() => {
+     currentMessagesRef.current = messages;
+   }, [messages]);
+
+    useLayoutEffect(() => {
+      if (initialRenderRef.current) {
+        const scrollContainer = getScrollContainer();
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }
+        initialRenderRef.current = false;
+        scrollHeightRef.current = null;
+        return;
+      }
+
+      const scrollContainer = getScrollContainer();
+      if (!scrollContainer) return;
+
+      const wasPrepended =
+        scrollHeightRef.current !== null &&
+        messages.length > previousMessageCount.current;
+
+      if (wasPrepended) {
+        const oldScrollHeight = scrollHeightRef.current!;
+        const heightDiff = scrollContainer.scrollHeight - oldScrollHeight;
+        scrollContainer.scrollTop = heightDiff;
+        scrollHeightRef.current = null;
+      } else {
+        scrollHeightRef.current = scrollContainer.scrollHeight;
+      }
+
+      previousMessageCount.current = messages.length;
+    }, [messages, getScrollContainer]);
+
+    const loadMore = useCallback(async () => {
+      if (isLoadingMore || !hasMore || messages.length === 0) return;
+      setIsLoadingMore(true);
+
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        scrollHeightRef.current = scrollContainer.scrollHeight;
+      }
+
+      try {
+        const cursor = messages[0].id;
+        const olderMessages = await getMoreMessages(conversationId, cursor);
+        if (olderMessages.length < MESSAGE_THREAD_PAGE_SIZE) setHasMore(false);
+
+        setMessages((prev) => {
+          const formattedOlder = [...olderMessages].reverse() as SentMessage[];
+          return [...formattedOlder, ...prev];
+        });
+      } catch (error) {
+        scrollHeightRef.current = null;
+        console.error("Failed to load more messages", error);
+      } finally {
+        setIsLoadingMore(false);
+      }
+    }, [isLoadingMore, hasMore, messages, conversationId, getScrollContainer]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) loadMore();
+        const isVisible = entries[0].isIntersecting;
+        if (isVisible && !sentinelWasVisibleRef.current) {
+          void loadMore();
+        }
+        sentinelWasVisibleRef.current = isVisible;
       },
       { threshold: 1.0 },
     );
@@ -196,7 +237,9 @@ export function MessageList({
           removePendingMessage(conversationId, message.id);
           setMessages((current) =>
             current.map((m) =>
-              m.id === message.id ? { ...m, status: "failed", retryable: false } : m,
+              m.id === message.id
+                ? { ...m, status: "failed", retryable: false }
+                : m,
             ),
           );
           onMessageRejected?.(result.code);
@@ -274,7 +317,9 @@ export function MessageList({
       // Anything still PENDING never reached the server — retry it now.
       outbox
         .filter((p) => p.status === "PENDING")
-        .forEach((p) => retryMessage({ ...hydrated.find((h) => h.id === p.id)! }));
+        .forEach((p) =>
+          retryMessage({ ...hydrated.find((h) => h.id === p.id)! }),
+        );
     }
 
     const handleOnline = () => {
@@ -466,14 +511,23 @@ export function MessageList({
   if (!user || !userId) return null;
 
   return (
-    <div ref={containerRef} className="space-y-4 h-full overflow-y-auto px-0.5 sm:px-1.5">
+    <div
+      ref={containerRef}
+      className="space-y-4 h-full overflow-y-auto px-0.5 sm:px-1.5"
+    >
       {hasMore && (
         <div
           ref={observerTarget}
           className="flex h-8 w-full items-center justify-center"
         >
-          {isLoadingMore && (
-            <span className="text-xs text-slate-400">Loading history...</span>
+          {isLoadingMore ? (
+            <span className="text-xs text-slate-400">
+              Loading older messages...
+            </span>
+          ) : (
+            <span className="text-xs text-slate-500">
+              Scroll up to load older messages
+            </span>
           )}
         </div>
       )}
