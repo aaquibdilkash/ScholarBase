@@ -136,10 +136,33 @@ html[data-theme="dark"] {
     padding-right: 0 !important;
   }
 
+  body:has(main.sb-auth-shell) main#sb-main-scroll {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: hidden;
+  }
+
+  body:has(main.sb-auth-shell) {
+    overflow: hidden;
+  }
+
+  body:has(main.sb-auth-shell) html,
+  body:has(main.sb-auth-shell) body {
+    overflow: hidden;
+  }
+
   /* Desktop inner-scroll shell: the /messages page manages its own internal
      scroll regions, so the root <main> must not add a second scrollbar. */
   @media (min-width: 1024px) {
     body:has(main .sb-messages-page) main#sb-main-scroll {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body:has(main.sb-auth-shell) main#sb-main-scroll {
       overflow: hidden;
       display: flex;
       flex-direction: column;

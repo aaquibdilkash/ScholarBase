@@ -281,13 +281,7 @@ describe("the downloaded workbook is a usable dataset", () => {
   it("writes one row per respondent and one column per variable", async () => {
     const rows = await table(await roundTrip(), "Raw Data");
     expect(rows).toHaveLength(4);
-
-    const [header] = await table(await roundTrip(), "Raw Data").then(async (rows) => [
-      Object.keys(rows[0]),
-    ]);
-    // 5 metadata columns + consented_at + 2 identity columns = 8, then nine
-    // scalar questions plus one column per MATRIX ROW (not per matrix).
-    expect(header).toEqual([
+    expect(Object.keys(rows[0])).toEqual([
       "response_id",
       "submitted_at",
       "updated_at",
@@ -478,5 +472,202 @@ describe("a researcher can actually run analysis on the reloaded sheet", () => {
     // Timestamps are ISO 8601 and sort lexicographically as strings.
     const submitted = rows.map((row) => row.submitted_at);
     expect(submitted).toEqual([...submitted].sort());
+  });
+});
+
+describe("the Codebook documents the dataset", () => {
+  /**
+   * Raw Codebook rows, re-read from the written file.
+   *
+   * Rows are normalised to their own length rather than padded to the header
+   * width: `buildCodebook` appends a blank separator and then a two-column
+   * legend, and padding those out would assert a shape the file does not have.
+   */
+  async function codebookRows(workbook: ExcelJS.Workbook) {
+    const sheet = workbook.getWorksheet("Codebook")!;
+    const rows: string[][] = [];
+    sheet.eachRow({ includeEmpty: true }, (row) => {
+      const cells = (row.values as unknown[]).slice(1).map((cell) => String(cell ?? ""));
+      // Drop the blank separator row between the variables and the legend.
+      if (cells.every((cell) => cell === "")) return;
+      rows.push(cells);
+    });
+    return rows;
+  }
+
+  /** Only the variable entries, i.e. everything before the legend block. */
+  async function variableRows(workbook: ExcelJS.Workbook) {
+    const rows = await codebookRows(workbook);
+    const legendStart = rows.findIndex((row) => row[0] === "Convention");
+    return rows.slice(1, legendStart === -1 ? rows.length : legendStart);
+  }
+
+  it("documents every exported variable, including one entry per matrix row", async () => {
+    const rows = await variableRows(await roundTrip());
+
+    // Nine scalar questions, then the matrix flattened to one entry per row.
+    expect(rows.map((row) => row[0])).toEqual([
+      "Q1",
+      "Q2",
+      "Q3",
+      "Q4",
+      "Q5",
+      "Q6",
+      "Q7",
+      "Q8",
+      "Q9",
+      "Q10r1",
+      "Q10r2",
+    ]);
+  });
+
+  it("describes every shipped question type", async () => {
+    const rows = await variableRows(await roundTrip());
+    const types = rows.map((row) => row[2]);
+
+    // Each of the ten types appears, so a researcher never meets a variable
+    // whose meaning the dictionary does not state.
+    expect(new Set(types)).toEqual(
+      new Set([
+        "SHORT_TEXT",
+        "LONG_TEXT",
+        "MULTIPLE_CHOICE",
+        "CHECKBOXES",
+        "DROPDOWN",
+        "RATING",
+        "LINEAR_SCALE",
+        "LIKERT_SCALE",
+        "DATE",
+        "MATRIX_LIKERT",
+      ]),
+    );
+  });
+
+  it("records the option-to-label mapping a decoded cell needs", async () => {
+    const rows = await variableRows(await roundTrip());
+    const byVariable = Object.fromEntries(rows.map((row) => [row[0], row]));
+
+    expect(byVariable.Q3[4]).toBe(
+      "cs = Computer Science; bio = Biology; math = Mathematics",
+    );
+    // Likert exports raw codes, so the mapping is what makes them readable.
+    expect(byVariable.Q8[4]).toContain("sd = Strongly disagree");
+    expect(byVariable.Q8[4]).toContain("sa = Strongly agree");
+  });
+
+  it("records the scale bounds for every numeric question", async () => {
+    const rows = await variableRows(await roundTrip());
+    const byVariable = Object.fromEntries(rows.map((row) => [row[0], row]));
+
+    expect(byVariable.Q6[4]).toBe("Min 1 / Max 5");
+    expect(byVariable.Q7[4]).toBe("Min 1 / Max 5");
+  });
+
+  it("names the row each matrix variable came from", async () => {
+    const rows = await variableRows(await roundTrip());
+    const byVariable = Object.fromEntries(rows.map((row) => [row[0], row]));
+
+    expect(byVariable.Q10r1[1]).toBe("Rate each aspect — row: Teaching quality");
+    expect(byVariable.Q10r2[1]).toBe("Rate each aspect — row: Research output");
+  });
+
+  it("warns that a question uses skip logic, so NA_SKIPPED is expected", async () => {
+    const rows = await variableRows(await roundTrip());
+    const byVariable = Object.fromEntries(rows.map((row) => [row[0], row]));
+
+    expect(byVariable.Q1[5]).toContain("NA_SKIPPED");
+    expect(byVariable.Q1[5]).toContain("not applicable");
+  });
+
+  it("ends with the convention legend that defines the two empty-ish states", async () => {
+    const rows = await codebookRows(await roundTrip());
+    const legend = rows.slice(-3);
+
+    // This legend is the difference between "not applicable" and "missing" being
+    // distinguishable downstream. Without it, NA_SKIPPED and an empty cell look
+    // alike to anyone filtering the sheet.
+    expect(legend).toEqual([
+      ["Convention", "Meaning"],
+      [
+        NA_SKIPPED,
+        "Question hidden by skip logic — not applicable, not missing",
+      ],
+      [
+        "(empty cell)",
+        "Question shown but not answered (optional question)",
+      ],
+    ]);
+  });
+
+  it("flags an archived question so historical variables are explained", async () => {
+    const survey = allTypeSurvey();
+    survey.questions[1].archivedAt = new Date("2026-01-01T00:00:00.000Z");
+    const workbook = buildWorkbook(survey, respondents(), true, false);
+
+    const rows = await variableRows(await readWorkbook(await writeWorkbook(workbook)));
+    const byVariable = Object.fromEntries(rows.map((row) => [row[0], row]));
+
+    expect(byVariable.Q2[5]).toContain("Archived question");
+    expect(byVariable.Q1[5]).not.toContain("Archived question");
+  });
+
+  it("notes that a randomised question's option order differs per respondent", async () => {
+    const survey = allTypeSurvey();
+    survey.questions[3].shuffleOptions = true;
+    const workbook = buildWorkbook(survey, respondents(), true, false);
+
+    const rows = await variableRows(await readWorkbook(await writeWorkbook(workbook)));
+    const byVariable = Object.fromEntries(rows.map((row) => [row[0], row]));
+
+    expect(byVariable.Q4[5]).toContain("randomized per respondent");
+    expect(byVariable.Q4[5]).toContain("seed on response row");
+  });
+});
+
+describe("anonymisation is enforced in the file, not just the UI", () => {
+  const rawText = async (workbook: ExcelJS.Workbook) => {
+    const parts: string[] = [];
+    workbook.eachSheet((sheet) => {
+      sheet.eachRow({ includeEmpty: false }, (row) => {
+        row.eachCell({ includeEmpty: false }, (cell) =>
+          parts.push(String(cell.value ?? "")),
+        );
+      });
+    });
+    return parts.join("|");
+  };
+
+  it("drops the identity columns entirely for a shared export", async () => {
+    const workbook = await roundTrip(false, false);
+    const rows = await table(workbook, "Raw Data");
+
+    // `includeIdentity` false means the columns are absent, not merely empty:
+    // an empty column still implies an identity that was deliberately withheld.
+    expect(Object.keys(rows[0])).not.toContain("is_anonymous");
+    expect(Object.keys(rows[0])).not.toContain("respondent_handle");
+    expect(await rawText(workbook)).not.toContain("grace");
+  });
+
+  it("strips identity even when it is computed but forced to be anonymised", async () => {
+    // This is the shareData path: a NON-owner is allowed to download, but their
+    // copy must be force-anonymized regardless of what they asked for.
+    const workbook = await roundTrip(true, true);
+    const rows = await table(workbook, "Raw Data");
+
+    expect(Object.keys(rows[0])).not.toContain("respondent_handle");
+    const text = await rawText(workbook);
+    expect(text).not.toContain("grace");
+    expect(text).not.toContain("Katherine Johnson");
+  });
+
+  it("keeps every answer while anonymising the person", async () => {
+    // Anonymisation must strip identity only. Losing the data along with it
+    // would make a shared export useless, which is the opposite of the intent.
+    const workbook = await roundTrip(true, true);
+    const rows = await table(workbook, "Raw Data");
+
+    expect(rows).toHaveLength(4);
+    expect(rows.map((row) => row.Q7)).toEqual(["5", "4", "3", "2"]);
+    expect(rows[0].Q3).toBe(NA_SKIPPED);
   });
 });
