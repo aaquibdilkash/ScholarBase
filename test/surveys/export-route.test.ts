@@ -18,6 +18,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 import { NA_SKIPPED } from "@/lib/surveys/export";
 
+/**
+ * The response ceiling is lowered to 3 so the guard can be exercised with a
+ * handful of seeded rows instead of ten thousand. Everything else in the module
+ * is passed through untouched, and the tests below assert against THIS value, so
+ * raising the real cap does not silently turn them into no-ops.
+ */
+const TEST_EXPORT_LIMIT = 3;
+vi.mock("@/lib/constants", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/constants")>()),
+  MAX_SURVEY_EXPORT_RESPONSES: TEST_EXPORT_LIMIT,
+}));
+
 const OWNER = "u-owner";
 const STRANGER = "u-stranger";
 const ADMIN = "u-admin";
@@ -25,6 +37,7 @@ const SURVEY = "survey-1";
 
 let sessionUser: { id: string } | null = null;
 let isAdmin = false;
+let rateLimitAllowed = true;
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -37,6 +50,13 @@ vi.mock("@/utils/supabase/server", () => ({
 }));
 vi.mock("@/lib/auth", () => ({
   isUserAdmin: vi.fn(async () => isAdmin),
+}));
+vi.mock("@/lib/rate-limit", () => ({
+  checkRateLimit: vi.fn(async () => ({
+    allowed: rateLimitAllowed,
+    degraded: false,
+  })),
+  RATE_LIMIT_ERROR: "Too many requests. Please slow down.",
 }));
 
 /** A survey with two questions and two responses, one of them anonymous. */
@@ -143,9 +163,11 @@ async function cellsOf(response: Response): Promise<string> {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   resetFakeDb();
   sessionUser = { id: OWNER };
   isAdmin = false;
+  rateLimitAllowed = true;
   seedSurvey();
 });
 
@@ -368,5 +390,154 @@ describe("response format", () => {
     const text = await (await download("csv")).text();
 
     expect(text).toContain(NA_SKIPPED);
+  });
+});
+
+describe("rate limiting the export (denial-of-service guard)", () => {
+  // Building a workbook is O(responses) in both CPU and memory, so an endpoint
+  // without a limit is a resource-exhaustion vector, not just a download.
+  beforeEach(() => {
+    rateLimitAllowed = true;
+  });
+
+  it("returns 429 once the caller exceeds their download allowance", async () => {
+    rateLimitAllowed = false;
+
+    const response = await download();
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({
+      error: "Too many requests. Please slow down.",
+    });
+  });
+
+  it("never touches the database for a limited caller", async () => {
+    // The limit must be checked BEFORE the survey read, or a caller could still
+    // force the expensive queries on every rejected request — which would make
+    // the limit pointless.
+    rateLimitAllowed = false;
+
+    await download();
+
+    const reads = fakeDb
+      .calls()
+      .filter(
+        (call) =>
+          call.model === "researchSurvey" || call.model === "surveyResponse",
+      );
+    expect(reads).toEqual([]);
+  });
+
+  it("is keyed per authenticated user, so one researcher's limit is not another's", async () => {
+    const { checkRateLimit } = await import("@/lib/rate-limit");
+
+    sessionUser = { id: OWNER };
+    await download();
+    sessionUser = { id: STRANGER };
+    await download();
+
+    const keys = (checkRateLimit as unknown as { mock: { calls: unknown[][] } })
+      .mock.calls.map((call) => (call[0] as { key: string }).key);
+    expect(keys).toEqual([OWNER, STRANGER]);
+  });
+
+  it("does not rate limit an anonymous caller into a confusing state", async () => {
+    // The 401 must win: a caller with no session has no key to limit, so the
+    // limit check is skipped rather than rejecting them for the wrong reason.
+    sessionUser = null;
+    rateLimitAllowed = false;
+
+    expect((await download()).status).toBe(401);
+  });
+
+  it("still serves a normal download when the limiter is available", async () => {
+    expect((await download()).status).toBe(200);
+  });
+});
+
+describe("response-count ceiling (memory guard)", () => {
+  /** Grow the survey to exactly `n` responses. */
+  function seedResponseCount(n: number) {
+    // `fakeDb.seed` INSERTS rather than upserts, and `beforeEach` has already
+    // seeded two responses. Resetting first is what makes the final count
+    // exactly `n` instead of `n + 2`.
+    resetFakeDb();
+    seedSurvey();
+    const rows = fakeDb.rows("surveyResponse");
+    for (let i = rows.length; i < n; i += 1) {
+      fakeDb.seed("surveyResponse", {
+        id: `extra-${i}`,
+        surveyId: SURVEY,
+        respondentId: OWNER,
+        isAnonymous: false,
+        createdAt: new Date("2026-03-01T10:00:00.000Z"),
+        editedAt: null,
+        startedAt: new Date("2026-03-01T09:55:00.000Z"),
+        completedAt: new Date("2026-03-01T10:00:00.000Z"),
+        consentedAt: null,
+        randomizationSeed: null,
+        respondent: { name: "Owner", handle: "owner" },
+        answers: [{ questionId: "q_field", value: "cs" }],
+      });
+    }
+  }
+
+  it("refuses a survey above the export limit", async () => {
+    seedResponseCount(TEST_EXPORT_LIMIT + 1);
+
+    const response = await download();
+
+    expect(response.status).toBe(422);
+    const body = await response.json();
+    expect(body.limit).toBe(TEST_EXPORT_LIMIT);
+    expect(body.responseCount).toBe(TEST_EXPORT_LIMIT + 1);
+    expect(body.error).toMatch(/above the .*-response export limit/);
+  });
+
+  it("still exports at exactly the limit", async () => {
+    // The boundary must be inclusive: refusing AT the cap would make the
+    // documented number a lie, and the condition is `> limit`, not `>= limit`.
+    seedResponseCount(TEST_EXPORT_LIMIT);
+
+    expect((await download()).status).toBe(200);
+  });
+
+  it("refuses rather than truncating, so no dataset is silently shortened", async () => {
+    seedResponseCount(TEST_EXPORT_LIMIT * 3);
+
+    const response = await download();
+
+    // Not a 200 with fewer rows, and not an empty file: an explicit refusal.
+    expect(response.status).toBe(422);
+    expect(response.headers.get("Content-Type")).toMatch(/application\/json/);
+  });
+
+  it("checks the count before loading every response row", async () => {
+    // `count` is an indexed aggregate; the `findMany` that follows is not.
+    // Running the expensive read first would defeat the guard entirely.
+    seedResponseCount(TEST_EXPORT_LIMIT * 4);
+
+    await download();
+
+    const ops = fakeDb
+      .calls()
+      .filter((call) => call.model === "surveyResponse")
+      .map((call) => call.op);
+    expect(ops).toContain("count");
+    expect(ops).not.toContain("findMany");
+  });
+
+  it("applies the ceiling to a shared download too", async () => {
+    // A non-owner must not sidestep the guard on a public survey, and the owner
+    // must not sidestep it by sharing.
+    seedResponseCount(TEST_EXPORT_LIMIT + 1);
+    sessionUser = { id: STRANGER };
+    fakeDb.rows("researchSurvey")[0].shareData = true;
+
+    expect((await download()).status).toBe(422);
+  });
+
+  it("does not block a survey that simply has few responses", async () => {
+    expect((await download()).status).toBe(200);
   });
 });

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { isUserAdmin } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { MAX_SURVEY_EXPORT_RESPONSES } from "@/lib/constants";
 import {
   buildRawData,
   toCsv,
@@ -29,6 +31,22 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Generating a workbook is CPU- and memory-heavy and scales with the response
+  // count, so this endpoint is rate limited per authenticated user. Without it,
+  // anyone who can reach a shared survey could loop it and exhaust the function's
+  // memory — a denial-of-service that costs the project compute, not just their
+  // own download. Runs BEFORE the survey read so a limited caller never touches
+  // the database.
+  const exportLimit = await checkRateLimit({
+    namespace: "survey:export",
+    key: user.id,
+    limit: 5,
+    window: "10 m",
+  });
+  if (!exportLimit.allowed) {
+    return NextResponse.json({ error: RATE_LIMIT_ERROR }, { status: 429 });
   }
 
   const survey = await prisma.researchSurvey.findUnique({
@@ -62,6 +80,26 @@ export async function GET(
   }
 
   const anonymize = !isAuthorized;
+
+  // Bound the export BEFORE loading anything. `count` is a cheap indexed query;
+  // `findMany` without a `take` is not. Checking the ceiling first means a survey
+  // far over the limit is refused in milliseconds instead of after allocating
+  // gigabytes of response rows.
+  const responseCount = await prisma.surveyResponse.count({ where: { surveyId: id } });
+  if (responseCount > MAX_SURVEY_EXPORT_RESPONSES) {
+    // Refused, never truncated. A silently shortened dataset is the worst
+    // possible outcome here: the missing rows look exactly like respondents who
+    // did not answer, and nobody would discover it until the analysis was
+    // published.
+    return NextResponse.json(
+      {
+        error: `This survey has ${responseCount} responses, which is above the ${MAX_SURVEY_EXPORT_RESPONSES}-response export limit.`,
+        responseCount,
+        limit: MAX_SURVEY_EXPORT_RESPONSES,
+      },
+      { status: 422 },
+    );
+  }
 
   const responses = await prisma.surveyResponse.findMany({
     where: { surveyId: id },

@@ -12,15 +12,11 @@ function getResendClient(): Resend {
   return new Resend(apiKey);
 }
 
-const OUTREACH_FROM_ADDRESS =
-  process.env.EMAIL_OUTREACH_FROM?.trim() ||
-  'ScholarBase Updates <updates@scholarbase.app>';
+const OUTREACH_FROM_ADDRESS = 'ScholarBase Updates <updates@scholarbase.app>';
 
-const OUTREACH_REPLY_TO =
-  process.env.EMAIL_REPLY_TO?.trim() || 'updates@scholarbase.app';
+const OUTREACH_REPLY_TO = 'updates@scholarbase.app';
 
-const OUTREACH_LIST_ID =
-  process.env.EMAIL_OUTREACH_LIST_ID?.trim() || 'scholarbase-updates';
+const OUTREACH_LIST_ID = 'scholarbase-updates';
 
 import type { CommentNotificationProps, ScholarInviteProps } from '@/types/email';
 import {

@@ -21,7 +21,14 @@ import { MessageList } from "@/components/messages/MessageList";
 import { supabase } from "@/utils/supabase/client";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { useIsFrozen } from "@/components/interactions/FrozenUserProvider";
-import { MoreVertical, Ban, UserCheck, Loader2, Flag, ChevronsRight } from "lucide-react";
+import {
+  MoreVertical,
+  Ban,
+  UserCheck,
+  Loader2,
+  Flag,
+  ChevronsRight,
+} from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
 import { ReportModal } from "@/components/cards/ReportModal";
@@ -93,7 +100,9 @@ export default function ConversationPage({
   const lastTypedAt = useRef<number>(0);
   const roomRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const [otherParticipantLastReadAt, setOtherParticipantLastReadAt] =
     useState<Date>(new Date(0));
@@ -249,16 +258,20 @@ export default function ConversationPage({
         lastReadAtRef.current = new Date(readResult.lastReadAt);
       }
 
-      const currentParticipant = (conv as unknown as Conversation).participants.find(
-        (p) => p.user.id === user.id,
-      );
+      const currentParticipant = (
+        conv as unknown as Conversation
+      ).participants.find((p) => p.user.id === user.id);
       const unreadDelta = (conv as unknown as Conversation).messages.filter(
-        (m) => m.senderId !== user.id && new Date(m.createdAt) > new Date(currentParticipant?.lastReadAt || 0),
+        (m) =>
+          m.senderId !== user.id &&
+          new Date(m.createdAt) > new Date(currentParticipant?.lastReadAt || 0),
       ).length;
 
-      window.dispatchEvent(new CustomEvent('conversation-read', {
-        detail: { conversationId, userId: user.id, delta: unreadDelta }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("conversation-read", {
+          detail: { conversationId, userId: user.id, delta: unreadDelta },
+        }),
+      );
 
       const otherP = (conv as unknown as Conversation).participants.find(
         (p) => p.user.id !== user.id,
@@ -316,24 +329,37 @@ export default function ConversationPage({
       .on(
         "broadcast",
         { event: "CONVERSATION_BLOCKED" },
-        ({ payload }: { payload?: { blockerId?: string; blockedId?: string } }) => {
+        ({
+          payload,
+        }: {
+          payload?: { blockerId?: string; blockedId?: string };
+        }) => {
           if (!payload?.blockerId || !payload.blockedId || !userId) return;
-          if (payload.blockerId !== userId && payload.blockedId !== userId) return;
+          if (payload.blockerId !== userId && payload.blockedId !== userId)
+            return;
           setBlockState((state) => ({
             ...state,
             blockedByMe: payload.blockerId === userId || state.blockedByMe,
             blockedMe: payload.blockedId === userId || state.blockedMe,
           }));
           setIsTyping(false);
-          toast("Messaging is no longer available in this conversation.", "error");
+          toast(
+            "Messaging is no longer available in this conversation.",
+            "error",
+          );
         },
       )
       .on(
         "broadcast",
         { event: "CONVERSATION_UNBLOCKED" },
-        ({ payload }: { payload?: { blockerId?: string; blockedId?: string } }) => {
+        ({
+          payload,
+        }: {
+          payload?: { blockerId?: string; blockedId?: string };
+        }) => {
           if (!payload?.blockerId || !payload.blockedId || !userId) return;
-          if (payload.blockerId !== userId && payload.blockedId !== userId) return;
+          if (payload.blockerId !== userId && payload.blockedId !== userId)
+            return;
 
           // Update optimistically, then re-read the authoritative state so a
           // second block in the opposite direction is still respected.
@@ -341,18 +367,23 @@ export default function ConversationPage({
             ...state,
             blockedByMe:
               payload.blockerId === userId ? false : state.blockedByMe,
-            blockedMe:
-              payload.blockedId === userId ? false : state.blockedMe,
+            blockedMe: payload.blockedId === userId ? false : state.blockedMe,
           }));
           void getConversation(conversationId).then((next) => {
             if (!next) return;
-            const nextBlockState = next as { blockedByMe?: boolean; blockedMe?: boolean };
+            const nextBlockState = next as {
+              blockedByMe?: boolean;
+              blockedMe?: boolean;
+            };
             setBlockState({
               blockedByMe: Boolean(nextBlockState.blockedByMe),
               blockedMe: Boolean(nextBlockState.blockedMe),
             });
           });
-          toast("Messaging is available again in this conversation.", "default");
+          toast(
+            "Messaging is available again in this conversation.",
+            "default",
+          );
         },
       )
       .on(
@@ -377,11 +408,7 @@ export default function ConversationPage({
         "broadcast",
         { event: "read-receipt" },
         ({ payload }: { payload: ReadReceiptPayload }) => {
-          if (
-            !payload ||
-            payload.userId === userId ||
-            !payload.lastReadAt
-          ) {
+          if (!payload || payload.userId === userId || !payload.lastReadAt) {
             return;
           }
           updateOtherParticipantLastReadAt(new Date(payload.lastReadAt));
@@ -452,7 +479,8 @@ export default function ConversationPage({
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
-      if (typingClearTimerRef.current) clearTimeout(typingClearTimerRef.current);
+      if (typingClearTimerRef.current)
+        clearTimeout(typingClearTimerRef.current);
       supabase.removeChannel(channel);
       roomRef.current = null;
     };
@@ -536,12 +564,17 @@ export default function ConversationPage({
           return;
         }
         setBlockState((s) => ({ ...s, blockedByMe: false }));
-        roomRef.current?.send({
-          type: "broadcast",
-          event: "CONVERSATION_UNBLOCKED",
-          payload: { blockerId: userId, blockedId: otherParticipant.id },
-        }).catch(() => {});
-        toast(`${otherParticipant.name || "Scholar"} unblocked. You can message them again.`, "default");
+        roomRef.current
+          ?.send({
+            type: "broadcast",
+            event: "CONVERSATION_UNBLOCKED",
+            payload: { blockerId: userId, blockedId: otherParticipant.id },
+          })
+          .catch(() => {});
+        toast(
+          `${otherParticipant.name || "Scholar"} unblocked. You can message them again.`,
+          "default",
+        );
       } else {
         const result = await blockUser(otherParticipant.id);
         if (!result.success) {
@@ -549,12 +582,17 @@ export default function ConversationPage({
           return;
         }
         setBlockState((s) => ({ ...s, blockedByMe: true }));
-        roomRef.current?.send({
-          type: "broadcast",
-          event: "CONVERSATION_BLOCKED",
-          payload: { blockerId: userId, blockedId: otherParticipant.id },
-        }).catch(() => {});
-        toast(`${otherParticipant.name || "Scholar"} blocked. They can no longer message you.`, "default");
+        roomRef.current
+          ?.send({
+            type: "broadcast",
+            event: "CONVERSATION_BLOCKED",
+            payload: { blockerId: userId, blockedId: otherParticipant.id },
+          })
+          .catch(() => {});
+        toast(
+          `${otherParticipant.name || "Scholar"} blocked. They can no longer message you.`,
+          "default",
+        );
       }
     } catch (err) {
       console.error("Failed to update block status:", err);
@@ -570,7 +608,11 @@ export default function ConversationPage({
 
   // ⚡ ISSUE 5: A block in either direction disables the composer.
   const isPeerFrozen = Boolean(otherParticipant?.isFrozen);
-  const isChatDisabled = isCurrentUserFrozen || isPeerFrozen || blockState.blockedByMe || blockState.blockedMe;
+  const isChatDisabled =
+    isCurrentUserFrozen ||
+    isPeerFrozen ||
+    blockState.blockedByMe ||
+    blockState.blockedMe;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -583,7 +625,8 @@ export default function ConversationPage({
           <ChevronsRight className="h-6 w-6" />
         </button>
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link prefetch={false}
+          <Link
+            prefetch={false}
             href={otherParticipant ? `/scholars/${otherParticipant.id}` : "#"}
             className="flex shrink-0 items-center gap-3"
           >
@@ -623,7 +666,7 @@ export default function ConversationPage({
         <div className="relative" data-block-menu>
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 ${menuOpen ? 'invisible' : ''}`}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
           >
             <MoreVertical className="h-5 w-5" />
           </button>
@@ -660,23 +703,23 @@ export default function ConversationPage({
             </div>
           )}
         </div>
-        </div>
+      </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto pt-4 pb-6">
         <div className="px-2 sm:px-4">
-        <MessageList
-          conversationId={conversation.id}
-          initialMessages={conversation.messages}
-          user={user}
-          otherParticipantLastReadAt={otherParticipantLastReadAt}
-          registerAppend={handleAppendMessage}
-          registerAddFailed={handleRegisterAddFailed}
-          onMessageReceived={onMessageReceived}
-          onMessageRejected={handleMessageRejected}
-          onSetReplyingTo={setReplyingTo}
-        />
+          <MessageList
+            conversationId={conversation.id}
+            initialMessages={conversation.messages}
+            user={user}
+            otherParticipantLastReadAt={otherParticipantLastReadAt}
+            registerAppend={handleAppendMessage}
+            registerAddFailed={handleRegisterAddFailed}
+            onMessageReceived={onMessageReceived}
+            onMessageRejected={handleMessageRejected}
+            onSetReplyingTo={setReplyingTo}
+          />
         </div>
-        </div>
+      </div>
 
       {isChatDisabled && (
         <div
@@ -686,7 +729,10 @@ export default function ConversationPage({
           {isCurrentUserFrozen ? (
             <span>Your account is frozen. Messaging is disabled.</span>
           ) : isPeerFrozen ? (
-            <span>This scholar&apos;s account is currently frozen. Messaging is unavailable.</span>
+            <span>
+              This scholar&apos;s account is currently frozen. Messaging is
+              unavailable.
+            </span>
           ) : blockState.blockedMe ? (
             <span>You cannot send messages to this scholar.</span>
           ) : (

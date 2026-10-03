@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v9";
+const CACHE_NAME = "scholarbase-v10";
 // Precached so the installed app has a usable offline shell. `addAll` is
 // all-or-nothing — one failed entry aborts the entire install, the worker never
 // activates, and the app silently stops being installable. So each entry is
@@ -46,9 +46,9 @@ self.addEventListener("activate", (event) => {
           if (key !== CACHE_NAME) {
             return caches.delete(key);
           }
-        })
-      )
-    )
+        }),
+      ),
+    ),
   );
   event.waitUntil(self.clients.claim());
 });
@@ -83,16 +83,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (event.request.mode === "navigate") {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match("/"))
-    );
+    event.respondWith(fetch(event.request).catch(() => caches.match("/")));
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request);
-    })
+    }),
   );
 });
 
@@ -112,10 +110,13 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
       const tag = payload.tag || "scholarbase-chat";
-      
+
       // Query active notifications matching this conversation/channel
-      const activeNotifications = await self.registration.getNotifications({ tag });
-      const existingNotification = activeNotifications.length > 0 ? activeNotifications[0] : null;
+      const activeNotifications = await self.registration.getNotifications({
+        tag,
+      });
+      const existingNotification =
+        activeNotifications.length > 0 ? activeNotifications[0] : null;
 
       let messageHistory = [];
       const incomingSender = payload.title || "ScholarBase";
@@ -162,7 +163,7 @@ self.addEventListener("push", (event) => {
       };
 
       return self.registration.showNotification(displayTitle, options);
-    })()
+    })(),
   );
 });
 
@@ -207,7 +208,7 @@ self.addEventListener("notificationclick", (event) => {
       }
 
       await self.clients.openWindow(targetUrl);
-    })()
+    })(),
   );
 });
 

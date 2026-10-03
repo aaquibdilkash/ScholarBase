@@ -97,6 +97,30 @@ export const NEW_QUESTION_ID_PREFIX = "new_";
 export const MAX_MATRIX_ROWS = 10;
 export const MAX_MATRIX_COLUMNS = 10;
 
+/**
+ * Hard ceiling on the number of responses a single export may include.
+ *
+ * The export builds the ENTIRE workbook in memory before serialising it, so
+ * cost is linear in responses and there is no streaming path. Measured on this
+ * codebase: 5,000 responses is ~86MB of heap and ~385ms of exceljs work, which
+ * extrapolates to roughly 1.7GB at 100,000. That is an out-of-memory crash on a
+ * serverless function, not a slow request — and because the endpoint had no
+ * rate limit, any authenticated user could trigger it repeatedly on a shared
+ * survey. See `docs/security-scale-checklist.md`.
+ *
+ * 10,000 is a deliberate ceiling rather than a comfortable one: it is generous
+ * for an academic survey and still bounds the allocation to roughly 170MB. Above
+ * it the endpoint REFUSES with a clear message rather than silently truncating,
+ * because a truncated research dataset is worse than no download — the missing
+ * rows are indistinguishable from real non-response.
+ *
+ * The scalable answer for a survey that outgrows this is an asynchronous export
+ * (generate in a background job, e-mail a signed link), which is how the digest
+ * pipeline already works. That is a larger change; this constant is the floor
+ * that makes the current path safe in the meantime.
+ */
+export const MAX_SURVEY_EXPORT_RESPONSES = 10_000;
+
 export const TEMPLATE_CONSENT_TEXT = `By participating in this survey, you consent to the collection and use of your responses for research purposes.
 
 Purpose:
