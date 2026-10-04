@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.grants.title,
@@ -28,8 +28,8 @@ export default async function ResearchGrantsPage({
 
   return (
     <ListPageShell
-      title="Research Grants"
-      description="Share funding opportunities, application guidance, research scholarships, and useful grant information with scholars."
+      title={LIST_PAGE_TEXT.grants.title}
+      description={LIST_PAGE_TEXT.grants.description}
       addHref="/grants/add"
       addLabel="+ Add Research Grant"
       tab={tab}

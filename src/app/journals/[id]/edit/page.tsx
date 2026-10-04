@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import JournalForm from "@/components/journals/JournalForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditJournalPage({
   params,
@@ -53,8 +54,8 @@ export default async function EditJournalPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Journal Details"
-      description="Update metrics, descriptions, or links for this journal."
+      title={EDIT_PAGE_TEXT.journals.title}
+      description={EDIT_PAGE_TEXT.journals.description}
       backHref={`/journals/${journal.id}`}
       backLabel="Cancel and Back to Journal"
     >

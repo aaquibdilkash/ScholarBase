@@ -8,6 +8,7 @@ import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import SupervisorForm from "@/components/supervisor/SupervisorForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditSupervisorPage({
   params,
@@ -33,7 +34,7 @@ export default async function EditSupervisorPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Supervisor"
+      title={EDIT_PAGE_TEXT.supervisor.title}
       description={`Update the profile details for ${supervisor.name}.`}
       backHref={`/supervisor/${supervisor.id}`}
       backLabel="Cancel and Back to Supervisor"

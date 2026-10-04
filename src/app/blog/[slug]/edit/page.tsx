@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditArticlePage({
   params,
@@ -38,7 +39,7 @@ export default async function EditArticlePage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Article"
+      title={EDIT_PAGE_TEXT.blog.title}
       backHref={`/blog/${article.slug}`}
       backLabel="Cancel and Back to Article"
       maxWidth="lg"

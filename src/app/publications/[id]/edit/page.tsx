@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import PublicationForm from "@/components/publications/PublicationForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditPublicationPage({
   params,
@@ -56,8 +57,8 @@ export default async function EditPublicationPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Publication"
-      description="Update the publication details, metadata, or abstract."
+      title={EDIT_PAGE_TEXT.publications.title}
+      description={EDIT_PAGE_TEXT.publications.description}
       backHref={`/publications/${publication.id}`}
       backLabel="Cancel and Back to Publication"
     >

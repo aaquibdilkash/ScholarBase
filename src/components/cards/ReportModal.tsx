@@ -124,7 +124,7 @@ export function ReportModal({
     // Scrollable overlay: when the dialog is taller than the viewport
     // (small screens / zoomed in), the overlay scrolls instead of clipping
     // the top/bottom (and the submit button) out of reach.
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-modal overflow-y-auto">
       <div
         className="flex min-h-full items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
         onClick={(e) => {

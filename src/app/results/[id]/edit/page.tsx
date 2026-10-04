@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import ResultForm from "@/components/results/ResultForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditResultPage({
   params,
@@ -48,8 +49,8 @@ export default async function EditResultPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Result Information"
-      description="Update the result details, links, or description."
+      title={EDIT_PAGE_TEXT.results.title}
+      description={EDIT_PAGE_TEXT.results.description}
       backHref={`/results/${result.id}`}
       backLabel="Cancel and Back to Result"
     >

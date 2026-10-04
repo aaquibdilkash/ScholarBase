@@ -10,6 +10,10 @@ import { ensureUserProfile } from "@/lib/users";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import { AppProviders } from "@/components/interactions/AppProviders";
+import {
+  InertWhenDrawerOpen,
+  NavigationDrawerProvider,
+} from "@/components/layout/NavigationDrawerProvider";
 import { getUnreadCounts } from "@/app/actions/messages";
 import { cookies, headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
@@ -229,37 +233,45 @@ export default async function RootLayout({
       <body className="min-h-screen bg-background font-sans antialiased text-foreground">
         <NextTopLoader showSpinner={false} />
         <AppProviders isFrozen={isFrozen}>
-          <div className="relative flex min-h-screen w-full min-w-[var(--sb-min-viewport-width)] flex-col overflow-x-clip lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden">
-            <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
+          {/* Owns the mobile nav drawer's open state so the shell column can
+              mark itself `inert` while it is open. */}
+          <NavigationDrawerProvider>
+            <div className="relative flex min-h-screen w-full min-w-[var(--sb-min-viewport-width)] flex-col overflow-x-clip lg:h-dvh lg:min-h-0 lg:flex-row lg:overflow-hidden">
+              <Sidebar user={sidebarUser} defaultCollapsed={isSidebarCollapsed} />
 
-            <div className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip lg:min-h-0 lg:overflow-hidden">
-              {isFrozen && (
-                <div
-                  role="alert"
-                  className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+              {/* `inert` while the drawer is open: nothing in this column can be
+                  clicked, tabbed to, or read out — so a tap outside the drawer
+                  lands on the scrim and dismisses it, instead of activating a
+                  kebab menu or dropdown floating above the dimmed page. */}
+              <InertWhenDrawerOpen className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip lg:min-h-0 lg:overflow-hidden">
+                {isFrozen && (
+                  <div
+                    role="alert"
+                    className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+                  >
+                    <span aria-hidden>❄</span>
+                    Your account is frozen. You can still browse, but posting,
+                    commenting, voting, reporting and other interactions are
+                    disabled until a moderator reviews your account.
+                  </div>
+                )}
+
+                <Navbar user={user} unreadCount={unreadNotifications} />
+
+                {/* Desktop-only inner scroll: on md+ only this <main> scrolls, so the
+                    navbar + footer stay pinned and the scrollbar track spans just
+                    the middle column. Mobile keeps native window scroll. */}
+                <main
+                  id="sb-main-scroll"
+                  className="sb-shell w-full min-w-0 flex-1 grow py-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:py-10"
                 >
-                  <span aria-hidden>❄</span>
-                  Your account is frozen. You can still browse, but posting,
-                  commenting, voting, reporting and other interactions are
-                  disabled until a moderator reviews your account.
-                </div>
-              )}
+                  {children}
+                </main>
 
-              <Navbar user={user} unreadCount={unreadNotifications} />
-
-              {/* Desktop-only inner scroll: on md+ only this <main> scrolls, so the
-                  navbar + footer stay pinned and the scrollbar track spans just
-                  the middle column. Mobile keeps native window scroll. */}
-              <main
-                id="sb-main-scroll"
-                className="sb-shell w-full min-w-0 flex-1 grow py-4 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:py-10"
-              >
-                {children}
-              </main>
-
-              <ConditionalFooter />
-            </div>
+                <ConditionalFooter />
+              </InertWhenDrawerOpen>
           </div>
+          </NavigationDrawerProvider>
         </AppProviders>
         <SpeedInsights />
         <Analytics />

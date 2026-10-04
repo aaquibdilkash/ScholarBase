@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.learn.title,
@@ -28,8 +28,8 @@ export default async function CoursesPage({
 
   return (
     <ListPageShell
-      title="Courses"
-      description="Discover practical courses for research methods, writing, analysis, publishing, and scholarly skills."
+      title={LIST_PAGE_TEXT.learn.title}
+      description={LIST_PAGE_TEXT.learn.description}
       addHref="/learn/add"
       addLabel="+ Add Course"
       tab={tab}

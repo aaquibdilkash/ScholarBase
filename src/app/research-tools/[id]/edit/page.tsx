@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import ResearchToolForm from "@/components/research-tools/ResearchToolForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditResearchToolPage({
   params,
@@ -44,8 +45,8 @@ export default async function EditResearchToolPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Research Tool"
-      description="Update the description, use case, or website link for this tool."
+      title={EDIT_PAGE_TEXT.researchTools.title}
+      description={EDIT_PAGE_TEXT.researchTools.description}
       backHref={`/research-tools/${tool.id}`}
       backLabel="Cancel and Back to Research Tool"
     >

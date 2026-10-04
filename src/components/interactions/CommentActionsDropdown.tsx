@@ -88,7 +88,7 @@ export default function CommentActionsDropdown({
           <div
             ref={menuRef}
             role="menu"
-            className="sb-menu absolute right-0 z-50 mt-2 w-40"
+            className="sb-menu absolute right-0 z-menu mt-2 w-40"
           >
             <div>
               {onReply && (

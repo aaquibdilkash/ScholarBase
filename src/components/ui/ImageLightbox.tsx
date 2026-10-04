@@ -100,7 +100,7 @@ export function ImageLightbox({
       role="dialog"
       aria-modal="true"
       aria-label="Image preview"
-      className="fixed inset-0 z-[900] flex items-center justify-center bg-slate-100/95 backdrop-blur-sm dark:bg-black/80"
+      className="fixed inset-0 z-modal flex items-center justify-center bg-slate-100/95 backdrop-blur-sm dark:bg-black/80"
       onClick={(e) => {
         // Close only when the backdrop itself (not inner content) is clicked.
         if (e.target === e.currentTarget) onClose();

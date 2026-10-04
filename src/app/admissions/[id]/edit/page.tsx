@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import AdmissionForm from "@/components/admissions/AdmissionForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditAdmissionPage({
   params,
@@ -46,8 +47,8 @@ export default async function EditAdmissionPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit PhD Admission Notification"
-      description="Update the admission criteria, deadlines, or seat matrix requirements."
+      title={EDIT_PAGE_TEXT.admissions.title}
+      description={EDIT_PAGE_TEXT.admissions.description}
       backHref={`/admissions/${admission.id}`}
       backLabel="Cancel and Back to Detail"
     >

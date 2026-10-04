@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PublicationForm from "@/components/publications/PublicationForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
-import { SEO_CREATE_PAGES } from "@/constants/seo";
+import { SEO_CREATE_PAGES, CREATE_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = {
   title: SEO_CREATE_PAGES.publications.title,
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function NewPublicationPage() {
   return (
     <CreateOrEditPageShell
-      title={SEO_CREATE_PAGES.publications.title}
-      description={SEO_CREATE_PAGES.publications.description}
+      title={CREATE_PAGE_TEXT.publications.title}
+      description={CREATE_PAGE_TEXT.publications.description}
       backHref="/publications"
       backLabel="Back to Publications"
     >

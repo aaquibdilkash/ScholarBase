@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import CourseForm from "@/components/courses/CourseForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditCoursePage({
   params,
@@ -43,8 +44,8 @@ export default async function EditCoursePage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Course"
-      description="Update the course details, learning outcomes, or link."
+      title={EDIT_PAGE_TEXT.learn.title}
+      description={EDIT_PAGE_TEXT.learn.description}
       backHref={`/learn/${course.id}`}
       backLabel="Cancel and Back to Course"
     >

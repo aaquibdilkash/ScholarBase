@@ -85,7 +85,7 @@ export function AuthModalProvider({ children }: { children: ReactNode }) {
       {children}
       <dialog
         ref={dialogRef}
-        className="fixed inset-0 z-[100] m-auto rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+        className="fixed inset-0 z-modal m-auto rounded-2xl border border-slate-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
         onClose={handleClose}
         onClick={(e) => {
           if (e.target === dialogRef.current) handleClose();

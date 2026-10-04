@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.contributions.title,
@@ -28,8 +28,8 @@ export default async function ContributionsPage({
 
   return (
     <ListPageShell
-      title="Contributions"
-      description="Support ScholarBase and see who's contributing to the community."
+      title={LIST_PAGE_TEXT.contributions.title}
+      description={LIST_PAGE_TEXT.contributions.description}
       addHref="/contributions/add"
       addLabel="+ Add Contribution"
       tab={tab}

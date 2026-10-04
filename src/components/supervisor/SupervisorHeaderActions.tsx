@@ -143,7 +143,7 @@ export function SupervisorHeaderActions({
             <span className="sr-only">Open actions</span>
           </button>
           {open && !isDeleting && (
-            <div ref={menuRef} role="menu" className="sb-menu absolute right-0 z-50 mt-2 w-48">
+            <div ref={menuRef} role="menu" className="sb-menu absolute right-0 z-menu mt-2 w-48">
               <div>
                 {isSupervisorOwner && (
                   <>

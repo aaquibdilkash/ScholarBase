@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import ContributionForm from "@/components/contributions/ContributionForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
-import { SEO_CREATE_PAGES } from "@/constants/seo";
+import { SEO_CREATE_PAGES, CREATE_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = {
   title: SEO_CREATE_PAGES.contributions.title,
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function NewContributionPage() {
   return (
     <CreateOrEditPageShell
-      title={SEO_CREATE_PAGES.contributions.title}
-      description={SEO_CREATE_PAGES.contributions.description}
+      title={CREATE_PAGE_TEXT.contributions.title}
+      description={CREATE_PAGE_TEXT.contributions.description}
       backHref="/contributions"
       backLabel="Back to Contributions"
     >

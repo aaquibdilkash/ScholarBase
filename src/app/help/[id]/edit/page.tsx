@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import HelpPostForm from "@/components/help/HelpPostForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditHelpPostPage({
   params,
@@ -44,8 +45,8 @@ export default async function EditHelpPostPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Help Post"
-      description="Update your question, category, or message details."
+      title={EDIT_PAGE_TEXT.help.title}
+      description={EDIT_PAGE_TEXT.help.description}
       backHref={`/help/${post.id}`}
       backLabel="Cancel and Back to Post"
     >

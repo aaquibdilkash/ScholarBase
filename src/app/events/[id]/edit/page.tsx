@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import EventForm from "@/components/events/EventForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditEventPage({
   params,
@@ -47,8 +48,8 @@ export default async function EditEventPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Research Event"
-      description="Update the conference dates, links, or description."
+      title={EDIT_PAGE_TEXT.events.title}
+      description={EDIT_PAGE_TEXT.events.description}
       backHref={`/events/${event.id}`}
       backLabel="Cancel and Back to Event"
     >

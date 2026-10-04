@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import ResearchGrantForm from "@/components/grants/ResearchGrantForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditResearchGrantPage({
   params,
@@ -39,8 +40,8 @@ export default async function EditResearchGrantPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Research Grant"
-      description="Update funding details, application guidance, or links."
+      title={EDIT_PAGE_TEXT.grants.title}
+      description={EDIT_PAGE_TEXT.grants.description}
       backHref={`/grants/${grant.id}`}
       backLabel="Cancel and Back to Research Grant"
     >

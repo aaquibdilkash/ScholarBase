@@ -665,7 +665,7 @@ export default function ConversationPage({
             <MoreVertical className="h-5 w-5" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-12 z-50 w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900">
+            <div className="absolute right-0 top-12 z-menu w-56 origin-top-right rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900">
               <button
                 onClick={handleToggleBlock}
                 disabled={isBlocking}

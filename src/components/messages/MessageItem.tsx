@@ -357,7 +357,7 @@ export const MessageItem = React.memo(
           {(!isMine || message.status === "sent" || !message.status) && !isEditing && (
             <div
               ref={actionBarRef}
-              className="relative z-30 order-3 flex h-7 w-7 shrink-0 self-center items-center justify-center opacity-100 transition-opacity"
+              className="relative z-menu order-3 flex h-7 w-7 shrink-0 self-center items-center justify-center opacity-100 transition-opacity"
             >
               <button
                 type="button"
@@ -379,7 +379,7 @@ export const MessageItem = React.memo(
                 ref={menuRef}
                 role="menu"
                 style={{ top: menuPosition.top, left: menuPosition.left }}
-                className="fixed z-30 w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                className="fixed z-menu w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
               >
                 {isMine && (
                   <button

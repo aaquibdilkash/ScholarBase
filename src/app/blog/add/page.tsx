@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
-import { SEO_CREATE_PAGES } from "@/constants/seo";
+import { SEO_CREATE_PAGES, CREATE_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = {
   title: SEO_CREATE_PAGES.blog.title,
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export default function NewBlogPage() {
   return (
     <CreateOrEditPageShell
-      title={SEO_CREATE_PAGES.blog.title}
-      description={SEO_CREATE_PAGES.blog.description}
+      title={CREATE_PAGE_TEXT.blog.title}
+      description={CREATE_PAGE_TEXT.blog.description}
       backHref="/blog"
       backLabel="Back to Blog"
       maxWidth="lg"

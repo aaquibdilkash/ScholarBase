@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.surveys.title,
@@ -28,8 +28,8 @@ export default async function SurveysPage({
 
   return (
     <ListPageShell
-      title="Research Survey"
-      description="Create and participate in research surveys. Better than Google Forms — built for the academic community."
+      title={LIST_PAGE_TEXT.surveys.title}
+      description={LIST_PAGE_TEXT.surveys.description}
       addHref="/surveys/add"
       addLabel="+ Create Survey"
       tab={tab}

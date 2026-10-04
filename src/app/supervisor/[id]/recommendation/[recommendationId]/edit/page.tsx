@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import RecommendationForm from "@/components/supervisor/RecommendationForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditRecommendationPage({
   params,
@@ -46,8 +47,8 @@ export default async function EditRecommendationPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit your Recommendation"
-      description="Update your mentorship feedback for this supervisor."
+      title={EDIT_PAGE_TEXT.recommendation.title}
+      description={EDIT_PAGE_TEXT.recommendation.description}
       backHref={`/supervisor/${id}/recommendation/${recommendationId}`}
       backLabel="Cancel and Back to Recommendation"
       maxWidth="sm"

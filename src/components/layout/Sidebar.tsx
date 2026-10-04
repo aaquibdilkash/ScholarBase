@@ -36,6 +36,7 @@ import SignOutButton from "@/components/auth/SignOutButton";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/utils/supabase/client";
 import { privateChannelSync, userTopic, withRealtimeAuth } from "@/lib/realtime";
+import { useNavigationDrawer } from "@/components/layout/NavigationDrawerProvider";
 
 type SidebarUser = {
   id: string;
@@ -73,7 +74,11 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   
   const [desktopCollapsed, setDesktopCollapsed] = useState(defaultCollapsed);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  // Off-canvas (mobile) drawer state now lives in NavigationDrawerProvider so
+  // the app shell can mark itself `inert` while the drawer is open. Keeping it
+  // local would mean the shell could never learn the drawer is open, and taps
+  // outside it would keep reaching the page chrome and dropdowns behind it.
+  const { isOpen: mobileOpen, setOpen: setMobileOpen } = useNavigationDrawer();
   const [isScrollable, setIsScrollable] = useState(false);
   const [canScrollDown, setCanScrollDown] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
@@ -106,10 +111,6 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
 
   useEffect(() => {
     const navElement = navRef.current;
-    const handleToggle = () => {
-      setMobileOpen((current) => !current);
-      window.setTimeout(checkScrollable, 300);
-    };
 
     checkScrollable();
     if (navElement) {
@@ -130,7 +131,6 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
 
     navElement?.addEventListener("scroll", handleScroll);
     window.addEventListener("resize", checkScrollable);
-    window.addEventListener("sb-toggle-sidebar", handleToggle as EventListener);
 
     const observer = new MutationObserver(checkScrollable);
     if (navElement) {
@@ -140,13 +140,35 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
     return () => {
       navElement?.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", checkScrollable);
-      window.removeEventListener(
-        "sb-toggle-sidebar",
-        handleToggle as EventListener,
-      );
       observer.disconnect();
     };
   }, [checkScrollable]);
+
+  // A drawer is a modal surface, so it gets the two affordances every modal
+  // needs: Escape dismisses it, and the page behind it cannot scroll (without
+  // this, a touch-drag on the scrim scrolls the background instead of the
+  // drawer, which reads as the tap "missing").
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    // The slide-out is a CSS transition; re-measure once it has settled so the
+    // scroll-down affordance reflects the newly visible overflow.
+    const settle = window.setTimeout(checkScrollable, 300);
+
+    return () => {
+      window.clearTimeout(settle);
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen, setMobileOpen, checkScrollable]);
 
   const [optimisticUnreadMessages, setOptimisticUnreadMessages] = useState(user?.unreadMessages ?? 0);
   const pathnameRef = useRef(pathname);
@@ -335,12 +357,12 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       <button
         type="button"
         onClick={() => setMobileOpen(false)}
-        className={`fixed inset-0 z-40 bg-slate-950/25 backdrop-blur-[1px] lg:hidden dark:bg-black/60 transition-opacity duration-300 ${!mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        className={`fixed inset-0 z-drawer-scrim bg-slate-950/25 backdrop-blur-[1px] lg:hidden dark:bg-black/60 transition-opacity duration-300 ${!mobileOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         aria-label="Close navigation overlay"
       />
 
       <aside 
-        className={`fixed inset-y-0 left-0 z-[60] flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
+        className={`fixed inset-y-0 left-0 z-drawer flex flex-col border-r border-slate-200/70 sb-sidebar-bg py-6 shadow-2xl shadow-slate-900/10 backdrop-blur-xl transition-all duration-300 ease-in-out dark:border-slate-800 dark:shadow-black/20 
 
         lg:sticky lg:top-0 lg:z-20 lg:h-dvh lg:shrink-0 lg:gap-4 lg:py-6 lg:backdrop-blur-xl lg:shadow-sm
         ${mobileOpen ? "translate-x-0" : "-translate-x-full"} w-72 px-6 

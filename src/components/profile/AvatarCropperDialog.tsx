@@ -308,7 +308,7 @@ export default function AvatarCropperDialog({
 
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-modal overflow-y-auto">
       <div
         className="flex min-h-full items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
         onClick={(e) => {

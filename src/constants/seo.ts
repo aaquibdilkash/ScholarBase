@@ -294,6 +294,245 @@ export const SEO_CREATE_PAGES = {
     },
 } as const;
 
+export const CREATE_PAGE_TEXT = {
+    blog: {
+        title: "Write a Blog Post",
+        description:
+            "Share your research insights, experiences, and academic perspectives with the ScholarBase community.",
+    },
+    contributions: {
+        title: "Make a Contribution",
+        description: "Support ScholarBase development and help grow a research-first academic community.",
+    },
+    admissions: {
+        title: "Post a PhD Admission",
+        description:
+            "Share PhD admissions, calls for applications, and intake notices with researchers and scholars.",
+    },
+    events: {
+        title: "List an Academic Event",
+        description:
+            "Add conferences, calls for papers, and academic events that matter to researchers.",
+    },
+    grants: {
+        title: "Add a Research Grant",
+        description:
+            "Share a funding opportunity, application details, and research support with the community.",
+    },
+    help: {
+        title: "Post Help or Feedback",
+        description:
+            "Report bugs, request features, or share feedback to improve the ScholarBase platform.",
+    },
+    journals: {
+        title: "Add a Journal",
+        description: "Add an academic journal, publication details, and its impact information.",
+    },
+    learn: {
+        title: "Add a Course",
+        description:
+            "Share a learning resource, course, provider, and key details with the research community.",
+    },
+    publications: {
+        title: "Add a Publication",
+        description:
+            "Share a research paper, article, or academic publication with the ScholarBase community.",
+    },
+    researchTools: {
+        title: "Add a Research Tool",
+        description:
+            "Share a software tool, workflow, or scholarly resource with the academic community.",
+    },
+    results: {
+        title: "Add a Result",
+        description:
+            "Share a research result, academic update, or milestone with the ScholarBase community.",
+    },
+    supervisor: {
+        title: "Add a Supervisor",
+        description:
+            "Create a supervisor profile and highlight academic mentorship and research guidance.",
+    },
+    surveys: {
+        title: "Create a Survey",
+        description:
+            "Launch a survey to gather responses and research insights from the ScholarBase community.",
+    },
+    vacancies: {
+        title: "Post a Vacancy",
+        description:
+            "Share a research or academic opportunity with scholars, students, and faculty on ScholarBase.",
+    },
+} as const;
+
+export const EDIT_PAGE_TEXT = {
+    publications: {
+        title: "Edit Publication",
+        description:
+            "Update the publication details, metadata, or abstract.",
+    },
+    researchTools: {
+        title: "Edit Research Tool",
+        description:
+            "Update the description, use case, or website link for this tool.",
+    },
+    contributions: {
+        title: "Edit Contribution",
+        description: "Update your contribution details.",
+    },
+    learn: {
+        title: "Edit Course",
+        description:
+            "Update the course details, learning outcomes, or link.",
+    },
+    vacancies: {
+        title: "Edit Academic Vacancy",
+        description:
+            "Update the job details, application deadlines, or links.",
+    },
+    blog: {
+        title: "Edit Article",
+    },
+    events: {
+        title: "Edit Research Event",
+        description:
+            "Update the conference dates, links, or description.",
+    },
+    journals: {
+        title: "Edit Journal Details",
+        description:
+            "Update metrics, descriptions, or links for this journal.",
+    },
+    results: {
+        title: "Edit Result Information",
+        description:
+            "Update the result details, links, or description.",
+    },
+    grants: {
+        title: "Edit Research Grant",
+        description:
+            "Update funding details, application guidance, or links.",
+    },
+    help: {
+        title: "Edit Help Post",
+        description:
+            "Update your question, category, or message details.",
+    },
+    surveys: {
+        title: "Edit Research Survey",
+        description:
+            "Update your survey questions and settings.",
+    },
+    supervisor: {
+        title: "Edit Supervisor",
+    },
+    admissions: {
+        title: "Edit PhD Admission Notification",
+        description:
+            "Update the admission criteria, deadlines, or seat matrix requirements.",
+    },
+    feed: {
+        title: "Edit Post",
+        description: "Edit your social post.",
+    },
+    journalReview: {
+        title: "Edit your Journal Review",
+        description: "Update your review for this journal.",
+    },
+    recommendation: {
+        title: "Edit your Recommendation",
+        description:
+            "Update your mentorship feedback for this supervisor.",
+    },
+    settings: {
+        title: "Account Settings",
+        description: "Manage your profile and account security.",
+    },
+} as const;
+
+export const LIST_PAGE_TEXT = {
+    researchTools: {
+        title: "Research Tools",
+        description:
+            "Discover and share tools that can help with your research.",
+    },
+    results: {
+        title: "Results",
+        description:
+            "Admission results, vacancy outcomes, exam results, and other important notifications.",
+    },
+    blog: {
+        title: "Research Blog",
+        description:
+            "Essays, notes, and longer-form research reflections.",
+    },
+    surveys: {
+        title: "Research Survey",
+        description:
+            "Create and participate in research surveys. Better than Google Forms — built for the academic community.",
+    },
+    publications: {
+        title: "Publications",
+        description:
+            "Browse and discover academic publications — research papers, conference proceedings, books, and more.",
+    },
+    vacancies: {
+        title: "Academic Vacancies",
+        description:
+            "Contract, guest, and permanent openings across institutions.",
+    },
+    events: {
+        title: "Research Events & Conference",
+        description:
+            "Conferences, calls, and academic gatherings worth tracking.",
+    },
+    scholars: {
+        title: "Find Scholars",
+        description:
+            "Search researchers, collaborators, and peers across the community.",
+    },
+    journals: {
+        title: "Journals",
+        description:
+            "Browse and discover academic journals reviewed by scholars.",
+    },
+    help: {
+        title: "Scholar Suggest",
+        description:
+            "Share posts, suggestions, bug reports, or new feature ideas with the community.",
+    },
+    feed: {
+        title: "Research Feed",
+        description:
+            "Short research updates from the community.",
+    },
+    admissions: {
+        title: "PhD Admissions",
+        description:
+            "Admissions and seat notifications from universities.",
+    },
+    contributions: {
+        title: "Contributions",
+        description:
+            "Support ScholarBase and see who's contributing to the community.",
+    },
+    learn: {
+        title: "Courses",
+        description:
+            "Discover practical courses for research methods, writing, analysis, publishing, and scholarly skills.",
+    },
+    grants: {
+        title: "Research Grants",
+        description:
+            "Share funding opportunities, application guidance, research scholarships, and useful grant information with scholars.",
+    },
+    supervisor: {
+        title: "Find a Supervisor",
+        description:
+            "Read and share mentorship experiences from fellow scholars.",
+    },
+} as const;
+
 export const SEO_NOINDEX = {
     admin: "Admin | ScholarBase",
     notifications: "Notifications | ScholarBase",

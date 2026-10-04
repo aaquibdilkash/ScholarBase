@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.journals.title,
@@ -29,8 +29,8 @@ export default async function JournalsPage({
 
   return (
     <ListPageShell
-      title="Journals"
-      description="Browse and discover academic journals reviewed by scholars."
+      title={LIST_PAGE_TEXT.journals.title}
+      description={LIST_PAGE_TEXT.journals.description}
       addHref="/journals/add"
       addLabel="+ Add Journal"
       tab={tab}

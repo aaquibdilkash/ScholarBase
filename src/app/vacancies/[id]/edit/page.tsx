@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
 import VacancyForm from "@/components/vacancies/VacancyForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditVacancyPage({
   params,
@@ -45,8 +46,8 @@ export default async function EditVacancyPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Academic Vacancy"
-      description="Update the job details, application deadlines, or links."
+      title={EDIT_PAGE_TEXT.vacancies.title}
+      description={EDIT_PAGE_TEXT.vacancies.description}
       backHref={`/vacancies/${vacancy.id}`}
       backLabel="Cancel and Back to Vacancy"
     >

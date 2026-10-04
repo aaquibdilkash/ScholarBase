@@ -10,6 +10,7 @@ import { InstitutionVerificationForm } from "@/components/auth/InstitutionVerifi
 import { UpdateEmailForm } from "@/components/auth/UpdateEmailForm";
 import { DeleteAccountForm } from "@/components/auth/DeleteAccountForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 import EditProfileForm from "@/components/profile/EditProfileForm";
 import { DigestPreferenceForm } from "@/components/notifications/DigestPreferenceForm";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
@@ -57,8 +58,8 @@ export default async function ScholarSettingsPage({
 
   return (
     <CreateOrEditPageShell
-      title="Account Settings"
-      description="Manage your profile and account security."
+      title={EDIT_PAGE_TEXT.settings.title}
+      description={EDIT_PAGE_TEXT.settings.description}
       backHref={`/scholars/${id}`}
       backLabel="Back to Profile"
       maxWidth="lg"

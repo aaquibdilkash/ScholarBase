@@ -359,7 +359,7 @@ export function AdminActionsDropdown({
               <div
                 ref={menuRef}
                 role="menu"
-                className="sb-menu fixed z-[70] w-48"
+                className="sb-menu fixed z-menu w-48"
                 style={{ top: menuPos.top, right: menuPos.right }}
               >
                 <div>
@@ -463,12 +463,12 @@ export function AdminActionsDropdown({
       {/* Reports inspection drawer (QA #11) */}
       {inspectOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-modal flex items-center justify-center p-4">
             <div
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
               onClick={() => setInspectOpen(false)}
             />
-            <div className="relative z-[81] flex max-h-[500px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="relative z-modal flex max-h-[500px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900">
               <div className="flex items-center justify-between border-b border-slate-200 p-6 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 dark:bg-red-950/30">

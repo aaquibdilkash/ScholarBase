@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { getContributionForEdit } from "@/app/actions/contributions";
 import ContributionForm from "@/components/contributions/ContributionForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditContributionPage({
   params,
@@ -23,8 +24,8 @@ export default async function EditContributionPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Contribution"
-      description="Update your contribution details."
+      title={EDIT_PAGE_TEXT.contributions.title}
+      description={EDIT_PAGE_TEXT.contributions.description}
       backHref={`/contributions/${contribution.id}`}
       backLabel="Cancel and Back to Contribution"
     >

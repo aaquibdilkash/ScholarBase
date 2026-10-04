@@ -585,6 +585,26 @@ export default function MessagesClientLayout({
     };
   }, []);
 
+  // The conversations drawer is a modal surface on mobile: Escape dismisses it
+  // and the page behind it cannot scroll. Without the lock, a touch-drag on the
+  // scrim scrolls the background instead of the drawer.
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   return (
     <MessagesLayoutContext.Provider value={{ isSidebarOpen, setIsSidebarOpen, mobileOpen }}>
        <div className="sb-messages-page relative flex h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] min-h-[28rem] overflow-hidden lg:h-full lg:min-h-0 lg:flex-1">
@@ -596,7 +616,7 @@ export default function MessagesClientLayout({
           <div
             aria-hidden="true"
             onClick={() => setIsSidebarOpen(false)}
-            className={`fixed inset-0 z-30 bg-slate-950/25 backdrop-blur-[1px] transition-opacity duration-300 lg:hidden ${mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            className={`fixed inset-0 z-conversation-scrim bg-slate-950/25 backdrop-blur-[1px] transition-opacity duration-300 lg:hidden ${mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
           />
         )}
         {/* ⚡ ZERO CLS: ONE ConversationSidebar is mounted, never two.
@@ -609,7 +629,7 @@ export default function MessagesClientLayout({
           className={
             isInboxIndex
               ? `relative z-0 flex w-full min-h-0 flex-1 flex-col border-b border-slate-200 sb-sidebar-bg lg:static lg:z-auto lg:h-auto lg:w-80 lg:flex-none lg:border-b-0 lg:border-r dark:border-slate-800 ${isSidebarOpen ? "lg:w-80" : "lg:w-16"}`
-              : `fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-50 h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] shrink-0 lg:static lg:h-auto lg:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 w-80 max-w-[calc(var(--sb-min-viewport-width)-1.5rem)] ${isSidebarOpen ? "lg:w-80" : "lg:w-16"}`
+              : `fixed top-[var(--sb-navbar-h,3.5rem)] left-0 z-conversation-drawer h-[calc(100dvh-var(--sb-navbar-h,3.5rem))] shrink-0 lg:static lg:h-auto lg:z-auto flex-col border-r border-slate-200 sb-sidebar-bg transition-all duration-300 ease-in-out dark:border-slate-800 ${mobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 w-80 max-w-[calc(var(--sb-min-viewport-width)-1.5rem)] ${isSidebarOpen ? "lg:w-80" : "lg:w-16"}`
           }
         >
           <Suspense fallback={
@@ -627,7 +647,13 @@ export default function MessagesClientLayout({
             reset (needed so the drawer is full-bleed) strips the root gutter, so
             the standard `.sb-shell` spacing is re-applied on THIS column only.
             Same px-4 sm:px-6 lg:px-8 / py-4 lg:py-10 as every other form. */}
+        {/* `inert` while the drawer is open. The scrim alone is not enough: it
+            only wins clicks landing on its own pixels, so the pane behind it —
+            and any dropdown menu rendered above the scrim — stayed reachable.
+            `inert` makes the whole pane non-interactive by pointer, keyboard
+            and screen reader, so a tap outside the drawer always dismisses it. */}
         <div
+          inert={mobileOpen ? true : undefined}
           className={`min-w-0 flex-1 flex-col overflow-hidden ${
             isInboxIndex ? "max-lg:hidden" : "flex"
           } ${isStandaloneForm ? "overflow-y-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-10" : ""}`}

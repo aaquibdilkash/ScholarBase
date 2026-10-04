@@ -15,6 +15,7 @@ import {
   type MentionUser,
 } from "@/components/interactions/MentionComposer";
 import { FEED_CONTENT_TIP, FEED_IMAGE_TIP } from "@/constants/tooltips";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 import { MAX_SOCIAL_POST_CONTENT } from "@/lib/constants";
 
 export default function EditPostPage() {
@@ -130,8 +131,8 @@ export default function EditPostPage() {
 
   return (
     <CreateOrEditPageShell
-      title="Edit Post"
-      description="Edit your social post."
+      title={EDIT_PAGE_TEXT.feed.title}
+      description={EDIT_PAGE_TEXT.feed.description}
       backHref={`/feed`}
       backLabel="Back to Feed"
       maxWidth="lg"

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.events.title,
@@ -30,8 +30,8 @@ export default async function EventsPage({
 
   return (
     <ListPageShell
-      title="Research Events & Conference"
-      description="Conferences, calls, and academic gatherings worth tracking."
+      title={LIST_PAGE_TEXT.events.title}
+      description={LIST_PAGE_TEXT.events.description}
       addHref="/events/add"
       addLabel="+ Add Event"
       tab={tab}

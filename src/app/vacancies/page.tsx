@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.vacancies.title,
@@ -28,8 +28,8 @@ export default async function VacanciesPage({
 
   return (
     <ListPageShell
-      title="Academic Vacancies"
-      description="Contract, guest, and permanent openings across institutions."
+      title={LIST_PAGE_TEXT.vacancies.title}
+      description={LIST_PAGE_TEXT.vacancies.description}
       addHref="/vacancies/add"
       addLabel="+ Post Vacancy"
       tab={tab}

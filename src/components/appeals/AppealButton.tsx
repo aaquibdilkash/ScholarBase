@@ -100,7 +100,7 @@ export function AppealButton({
       {isModalOpen && (
         // Scrollable overlay: same pattern as ReportModal so the appeal
         // form is never clipped / unreachable on zoomed or short viewports.
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-modal overflow-y-auto">
           <div
             className="flex min-h-full items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
             onClick={(e) => {

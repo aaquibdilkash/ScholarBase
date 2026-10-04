@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.blog.title,
@@ -28,8 +28,8 @@ export default async function BlogIndex({
 
   return (
     <ListPageShell
-      title="Research Blog"
-      description="Essays, notes, and longer-form research reflections."
+      title={LIST_PAGE_TEXT.blog.title}
+      description={LIST_PAGE_TEXT.blog.description}
       addHref="/blog/add"
       addLabel="+ New Article"
       tab={tab}

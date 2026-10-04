@@ -85,6 +85,42 @@ html[data-theme="dark"] {
   --background-deep: #020617;
 }
 
+@theme {
+  /* ---- Overlay stacking scale -------------------------------------------
+     Every full-screen overlay reads this scale instead of inventing a number,
+     so they can never interleave by accident.
+
+     A drawer is a MODAL surface: it must swallow every click that lands
+     outside itself. That only holds while its scrim outranks all page chrome
+     and menus; previously the scrims were z-30/z-40 while dropdowns were
+     z-50..z-[100], so a tap "outside" the open drawer silently opened a kebab
+     menu floating above the dimmed backdrop instead of closing it.
+
+     The two drawers need DIFFERENT tiers because their geometry differs, and
+     that is the whole reason the navbar sits where it does:
+
+       - The main sidebar is `inset-y-0` — full height — so it deliberately
+         covers and dims the navbar.
+       - The conversations drawer starts BELOW the navbar
+         (`top-[var(--sb-navbar-h)]`), so the navbar must stay above its scrim
+         and drawer. The navbar is a sibling, not a child, of that drawer, so
+         raising it here leaves the navbar fully usable while the drawer is
+         open — otherwise the scrim would dim the header and block the
+         back/expand controls scholars need mid-conversation.
+
+     Ordering: menus < conversations scrim < conversations drawer
+               < navbar < main-sidebar scrim < main-sidebar < modal */
+  --z-index-menu: 100;
+  --z-index-conversation-scrim: 800;
+  --z-index-conversation-drawer: 810;
+  /* Sits above the conversations drawer/scrim but BELOW the main sidebar's,
+     which is full-height and is meant to cover the navbar. */
+  --z-index-navbar: 820;
+  --z-index-drawer-scrim: 830;
+  --z-index-drawer: 840;
+  --z-index-modal: 900;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

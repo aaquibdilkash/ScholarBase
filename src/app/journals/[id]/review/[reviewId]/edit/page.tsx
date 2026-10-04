@@ -9,6 +9,7 @@ import prisma from "@/lib/db";
 import { requireCurrentUser } from "@/lib/auth";
 import JournalReviewForm from "@/components/journals/JournalReviewForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditJournalReviewPage({
   params,
@@ -45,8 +46,8 @@ export default async function EditJournalReviewPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit your Journal Review"
-      description="Update your review for this journal."
+      title={EDIT_PAGE_TEXT.journalReview.title}
+      description={EDIT_PAGE_TEXT.journalReview.description}
       backHref={`/journals/${id}/review/${reviewId}`}
       backLabel="Cancel and Back to Review"
       maxWidth="sm"

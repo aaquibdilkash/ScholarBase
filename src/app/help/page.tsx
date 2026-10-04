@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
+import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.help.title,
@@ -28,8 +28,8 @@ export default async function HelpPage({
 
   return (
     <ListPageShell
-      title="Scholar Suggest"
-      description="Share posts, suggestions, bug reports, or new feature ideas with the community."
+      title={LIST_PAGE_TEXT.help.title}
+      description={LIST_PAGE_TEXT.help.description}
       addHref="/help/add"
       addLabel="+ New Post"
       tab={tab}

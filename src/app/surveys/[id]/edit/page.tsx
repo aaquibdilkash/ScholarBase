@@ -10,6 +10,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getSurvey } from "@/app/actions/surveys";
 import { parseSkipLogic, parseColumnLabels } from "@/lib/surveys/logic";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
+import { EDIT_PAGE_TEXT } from "@/constants/seo";
 
 export default async function EditSurveyPage({
   params,
@@ -52,8 +53,8 @@ export default async function EditSurveyPage({
 
   return (
     <CreateOrEditPageShell
-      title="Edit Research Survey"
-      description="Update your survey questions and settings."
+      title={EDIT_PAGE_TEXT.surveys.title}
+      description={EDIT_PAGE_TEXT.surveys.description}
       backHref={`/surveys/${id}`}
       backLabel="Back to Survey"
     >

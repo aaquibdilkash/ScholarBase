@@ -29,7 +29,7 @@ export default function Navbar({
   return (
     <nav
       id="sb-navbar"
-      className="sticky top-0 z-50 shrink-0 shadow-sm border-b border-slate-200/70 sb-navbar-bg backdrop-blur-xl dark:border-slate-800/80"
+      className="sticky top-0 z-navbar shrink-0 shadow-sm border-b border-slate-200/70 sb-navbar-bg backdrop-blur-xl dark:border-slate-800/80"
     >
       {/* Density steps with the viewport: phone -> tablet (`sm`) -> laptop (`md`). */}
       <div className="sb-shell relative flex min-h-14 items-center gap-2 py-2 sm:min-h-15 sm:py-2.5 md:min-h-16 md:py-3">
