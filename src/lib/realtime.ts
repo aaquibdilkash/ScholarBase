@@ -54,12 +54,5 @@ export async function privateChannel(
 export const conversationTopic = (conversationId: string) =>
   `conversation:${conversationId}`;
 
-/**
- * Topic carrying a user's unread-badge pings for ALL of their conversations.
- * Replaces a former unfiltered `postgres_changes` subscription on the whole
- * `Message` table.
- */
-export const userTopic = (userId: string) => `user:${userId}`;
-
 /** Topic carrying online status. */
 export const PRESENCE_TOPIC = "presence:global";

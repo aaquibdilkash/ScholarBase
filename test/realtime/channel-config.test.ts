@@ -53,13 +53,36 @@ describe("Realtime channels are private", () => {
     expect(sources.length).toBeGreaterThan(100);
   });
 
-  it("confines every supabase.channel() join to the realtime helper", () => {
-    // `src/lib/realtime.ts` is the single sanctioned join site. Any other file
-    // calling it directly has opted out of `private: true` by construction.
-    const offenders = sources
-      .filter((file) => file !== REALTIME_HELPER)
-      .filter((file) => /supabase\s*\.\s*channel\s*\(/.test(code(readFileSync(file, "utf8"))))
-      .map((file) => relative(ROOT, file));
+  it("only joins Broadcast/Presence through the realtime helper", () => {
+    // `src/lib/realtime.ts` is the single sanctioned join site for anything
+    // authorized against `realtime.messages`. A direct `supabase.channel()` is
+    // still correct for a Postgres Changes subscription, which is authorized by
+    // app-table RLS instead and does not need `private: true`.
+    //
+    // The unread badge is the one direct subscriber (src/components/layout/Sidebar.tsx).
+    // It must therefore never publish Broadcast or Presence on that channel —
+    // that would be an unauthorized public topic.
+    const offenders: string[] = [];
+
+    for (const file of sources) {
+      if (file === REALTIME_HELPER) continue;
+      const body = code(readFileSync(file, "utf8"));
+      if (!/supabase\s*\.\s*channel\s*\(/.test(body)) continue;
+
+      const relativePath = relative(ROOT, file);
+      const usesPostgresChanges = body.includes("postgres_changes");
+      const usesBroadcastOrPresence =
+        /type:\s*["']broadcast["']/.test(body) ||
+        /\.\s*track\s*\(/.test(body) ||
+        /presenceState\s*\(/.test(body);
+
+      if (!usesPostgresChanges || usesBroadcastOrPresence) {
+        offenders.push(
+          `${relativePath} — join Broadcast/Presence via privateChannel(), ` +
+            `or keep the channel to postgres_changes only.`,
+        );
+      }
+    }
 
     expect(offenders).toEqual([]);
   });
@@ -81,14 +104,13 @@ describe("Realtime channels are private", () => {
 
     // Each helper topic prefix must have a branch in the `case` expression, or
     // the policy's `else false` denies it and the topic silently receives nothing.
-    for (const prefix of ["conversation", "user", "presence"]) {
+    for (const prefix of ["conversation", "presence"]) {
       expect(helper).toContain(`${prefix}:`);
       expect(sql).toMatch(new RegExp(`when '${prefix}'`));
     }
 
-    // The trigger must publish to the same two message topics the client joins.
+    // The trigger must publish to the same message topic the client joins.
     expect(sql).toContain("'conversation:' || NEW.\"conversationId\"");
-    expect(sql).toContain("'user:' || recipient.\"userId\"");
   });
 
   it("documents the ConversationParticipant policy the realtime policy depends on", () => {
@@ -111,7 +133,7 @@ describe("Realtime channels are private", () => {
     const sql = code(readFileSync(SQL, "utf8")).replace(/--[^\n]*/g, "");
 
     const calls = [...sql.matchAll(/auth\.uid\(\)(\s*::\s*\w+)?/g)];
-    expect(calls.length).toBeGreaterThanOrEqual(7);
+    expect(calls.length).toBeGreaterThanOrEqual(5);
 
     const uncasted = calls.filter(([, cast]) => !cast);
     expect(uncasted).toEqual([]);

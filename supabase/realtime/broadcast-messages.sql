@@ -24,8 +24,13 @@
 -- TOPIC SCHEME
 --   conversation:<conversationId>  messages (INSERT/UPDATE), typing,
 --                                 read receipts, block/unblock
---   user:<userId>                 per-recipient badge / inbox ping
 --   presence:global               online status
+--
+-- NOTE: an earlier revision also published a per-recipient `user:<id>` ping to
+-- drive the unread badge. It was removed — the badge stayed on `postgres_changes`
+-- instead, because the Sidebar component's effect keys on a `user` object prop
+-- whose identity changes on every root-layout render, so a channel joined from
+-- there cannot be relied on to stay subscribed. See the note in Sidebar.tsx.
 --
 -- ROLLBACK IS AT THE BOTTOM OF THIS FILE. See README.md for the cutover order.
 -- =============================================================================
@@ -40,23 +45,15 @@
 --      `getMessageDetails` server action on every received message just to fill in
 --      `sender` and `replyTo`. Building it here removes one serverless invocation
 --      and one DB round-trip per received message.
---   b) A per-recipient `user:<id>` ping replaces the unfiltered global
---      subscription: one tiny insert per recipient instead of a table-wide fan-out.
+--   b) The unread badge stays on `postgres_changes` (see Sidebar.tsx), which the
+--      RLS policy on "Message" now scopes to each subscriber's own conversations.
 create or replace function public.broadcast_new_message()
 returns trigger
 security definer
 set search_path = public, pg_temp
 language plpgsql
 as $$
-declare
-  recipient record;
-  sender_name text;
 begin
-  -- Resolved once and reused by every recipient ping below, so the unread toast
-  -- can name the sender. The old postgres_changes payload was a bare row with no
-  -- relation fields, so this toast always said "New message".
-  select u.name into sender_name from "User" u where u.id = NEW."senderId";
-
   perform realtime.send(
     jsonb_strip_nulls(jsonb_build_object(
       'id',             NEW.id,
@@ -93,33 +90,12 @@ begin
     true                                         -- private topic
   );
 
-  -- Minimal ping for the unread badge and inbox preview. The sender is skipped:
-  -- they already have the optimistic bubble plus the server-action response.
-  for recipient in
-    select cp."userId"
-    from "ConversationParticipant" cp
-    where cp."conversationId" = NEW."conversationId"
-      and cp."userId" <> NEW."senderId"
-  loop
-    perform realtime.send(
-      jsonb_build_object(
-        'conversationId', NEW."conversationId",
-        'id',             NEW.id,
-        'senderId',       NEW."senderId",
-        'senderName',     sender_name,
-        'body',           NEW.body,
-        'createdAt',      to_char(NEW."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-      ),
-      TG_OP, 'user:' || recipient."userId", true
-    );
-  end loop;
-
   return null;
 end;
 $$;
 
 comment on function public.broadcast_new_message() is
-  'Broadcasts Message inserts/updates to private per-conversation and per-recipient Realtime topics.';
+  'Broadcasts Message inserts/updates to the private per-conversation Realtime topic.';
 
 drop trigger if exists broadcast_new_message_trigger on public."Message";
 
@@ -161,7 +137,6 @@ using (
       where cp."conversationId" = split_part(realtime.topic(), ':', 2)
         and cp."userId" = (select auth.uid()::text)
     )
-    when 'user'     then split_part(realtime.topic(), ':', 2) = (select auth.uid()::text)
     when 'presence' then true
     else false
   end
@@ -178,7 +153,6 @@ with check (
       where cp."conversationId" = split_part(realtime.topic(), ':', 2)
         and cp."userId" = (select auth.uid()::text)
     )
-    when 'user'     then split_part(realtime.topic(), ':', 2) = (select auth.uid()::text)
     when 'presence' then true
     else false
   end

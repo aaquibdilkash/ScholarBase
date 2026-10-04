@@ -35,8 +35,7 @@ import ThemeToggle from "@/components/layout/ThemeToggle";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/utils/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-import { privateChannel, userTopic } from "@/lib/realtime";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 type SidebarUser = {
   id: string;
@@ -52,17 +51,18 @@ type SidebarProps = {
 };
 
 /**
- * Minimal unread-badge ping pushed by the `Message` trigger
- * (`supabase/realtime/broadcast-messages.sql`) to the per-recipient `user:<id>`
- * topic. Deliberately small — this fires for every conversation the user is in,
- * not just the one they have open.
+ * Raw `Message` row as delivered by `postgres_changes` for the unread badge.
+ *
+ * `postgres_changes` sends only columns — never joined relations — so there is no
+ * sender name here and the toast falls back to "New message". That is pre-existing
+ * behaviour; the Broadcast-from-Database payload did carry a name, but its topic
+ * could not be relied on from this component (see the effect below).
  */
 type RealtimeMessageRow = {
   id: string;
   body: string;
   conversationId: string;
   senderId: string;
-  senderName: string | null;
   createdAt: string;
 };
 
@@ -199,7 +199,10 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       setOptimisticUnreadMessages((count) => count + 1);
     };
 
-    const handleBadgePing = (raw: RealtimeMessageRow) => {
+    const handleDatabaseMessage = (
+      payload: RealtimePostgresChangesPayload<RealtimeMessageRow>,
+    ) => {
+      const raw = payload.new as RealtimeMessageRow;
       if (!raw.conversationId || !raw.id || !raw.senderId) return;
 
       // One shared event feeds the conversation sidebar and the main badge.
@@ -211,9 +214,6 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
               id: raw.id,
               body: raw.body,
               senderId: raw.senderId,
-              // The trigger resolves this from "User" so the toast can name the
-              // sender. `postgres_changes` only ever delivered the bare row.
-              sender: { name: raw.senderName ?? null },
               createdAt: raw.createdAt,
             },
           },
@@ -221,29 +221,31 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       );
     };
 
-    // ⚡ UNREAD BADGE over Broadcast from Database.
+    // ⚡ UNREAD BADGE.
     //
-    // This used to be `postgres_changes` on `Message` with NO filter, so every
-    // message in the database was authorized against — and pushed to — every
-    // connected browser, then discarded here. The trigger now sends a small ping
-    // to a per-recipient `user:<id>` topic instead: one row per recipient, no
-    // table-wide fan-out.
-    let channel: RealtimeChannel | null = null;
-    let cancelled = false;
-
-    void privateChannel(userTopic(user.id)).then((ch) => {
-      if (cancelled) {
-        void supabase.removeChannel(ch);
-        return;
-      }
-      channel = ch;
-      ch.on(
-        "broadcast",
-        { event: "INSERT" },
-        ({ payload }: { payload: RealtimeMessageRow }) => {
-          if (payload) handleBadgePing(payload);
-        },
-      ).subscribe((status: string) => {
+    // This deliberately stays on `postgres_changes` rather than moving to the
+    // per-recipient `user:<id>` Broadcast topic. Two reasons:
+    //
+    //  1. CORRECTNESS. This effect's deps are `[user, toast]`, and `user` is a
+    //     fresh object literal from the root layout (see src/app/layout.tsx), so
+    //     the subscription is torn down and re-joined on every server render.
+    //     A join that churns cannot be relied on to deliver. The conversation
+    //     page keys on a primitive `userId` and is unaffected.
+    //
+    //  2. THIS IS NO LONGER A TABLE-WIDE FAN-OUT. RLS policy "participants read
+    //     their conversations" on "Message" restricts delivery to rows in the
+    //     subscriber's own conversations, so each subscriber receives only its
+    //     own messages and every per-subscriber authorization check is an indexed
+    //     two-column lookup. Before that policy existed this listener pushed every
+    //     message in the database to every connected browser.
+    const channel = supabase
+      .channel(`badge-messages:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "Message" },
+        handleDatabaseMessage,
+      )
+      .subscribe((status: string) => {
         if (
           status !== "SUBSCRIBED" &&
           process.env.NODE_ENV === "development"
@@ -251,15 +253,13 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
           console.warn(`Badge realtime status: ${status}`);
         }
       });
-    });
 
     window.addEventListener(
       "message-received",
       handleMessageReceived as EventListener,
     );
     return () => {
-      cancelled = true;
-      if (channel) void supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
       window.removeEventListener(
         "message-received",
         handleMessageReceived as EventListener,
