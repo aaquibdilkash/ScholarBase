@@ -112,41 +112,57 @@ export function MessageList({
    const initialRenderRef = useRef(true);
    const previousMessageCount = useRef(initialMessages.length);
    const currentMessagesRef = useRef<SentMessage[]>([]);
-   const scrollHeightRef = useRef<number | null>(null);
+   // Whether the NEXT messages update is a prepend of older history rather than
+   // an append. This used to be inferred from
+   // `messages.length > previousMessageCount`, which is true for BOTH a prepend
+   // and a newly arrived message — so an incoming message took the prepend
+   // branch and ran `scrollTop = heightDiff`, scrolling up by the height of the
+   // new bubble instead of down to it. loadMore() now sets the flag explicitly.
+   const pendingPrependRef = useRef(false);
+   const prependedScrollHeightRef = useRef<number | null>(null);
 
    useEffect(() => {
      currentMessagesRef.current = messages;
    }, [messages]);
 
-    useLayoutEffect(() => {
-      if (initialRenderRef.current) {
-        const scrollContainer = getScrollContainer();
-        if (scrollContainer) {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }
-        initialRenderRef.current = false;
-        scrollHeightRef.current = null;
-        return;
-      }
+   useLayoutEffect(() => {
+     const scrollContainer = getScrollContainer();
 
-      const scrollContainer = getScrollContainer();
-      if (!scrollContainer) return;
+     if (initialRenderRef.current) {
+       if (scrollContainer) {
+         scrollContainer.scrollTop = scrollContainer.scrollHeight;
+       }
+       initialRenderRef.current = false;
+       return;
+     }
 
-      const wasPrepended =
-        scrollHeightRef.current !== null &&
-        messages.length > previousMessageCount.current;
+     if (!scrollContainer) {
+       previousMessageCount.current = messages.length;
+       return;
+     }
 
-      if (wasPrepended) {
-        const oldScrollHeight = scrollHeightRef.current!;
-        const heightDiff = scrollContainer.scrollHeight - oldScrollHeight;
-        scrollContainer.scrollTop = heightDiff;
-        scrollHeightRef.current = null;
-      } else {
-        scrollHeightRef.current = scrollContainer.scrollHeight;
-      }
+     if (pendingPrependRef.current) {
+       // Older history was prepended above the viewport. Anchor the reader to
+       // the same message by compensating for the height added above them.
+       pendingPrependRef.current = false;
+       const oldScrollHeight = prependedScrollHeightRef.current;
+       prependedScrollHeightRef.current = null;
+       if (oldScrollHeight !== null) {
+         scrollContainer.scrollTop +=
+           scrollContainer.scrollHeight - oldScrollHeight;
+       }
+       previousMessageCount.current = messages.length;
+       return;
+     }
 
-      previousMessageCount.current = messages.length;
-    }, [messages, getScrollContainer]);
+     if (messages.length > previousMessageCount.current) {
+       // A message was appended — sent by us, or received from the other
+       // participant. Bring it into view instead of leaving it off-screen.
+       scrollContainer.scrollTop = scrollContainer.scrollHeight;
+     }
+
+     previousMessageCount.current = messages.length;
+   }, [messages, getScrollContainer]);
 
     const loadMore = useCallback(async () => {
       if (isLoadingMore || !hasMore || messages.length === 0) return;
@@ -154,7 +170,8 @@ export function MessageList({
 
       const scrollContainer = getScrollContainer();
       if (scrollContainer) {
-        scrollHeightRef.current = scrollContainer.scrollHeight;
+        prependedScrollHeightRef.current = scrollContainer.scrollHeight;
+        pendingPrependRef.current = true;
       }
 
       try {
@@ -167,7 +184,8 @@ export function MessageList({
           return [...formattedOlder, ...prev];
         });
       } catch (error) {
-        scrollHeightRef.current = null;
+        pendingPrependRef.current = false;
+        prependedScrollHeightRef.current = null;
         console.error("Failed to load more messages", error);
       } finally {
         setIsLoadingMore(false);
