@@ -51,27 +51,18 @@ describe("no table-wide Postgres Changes subscriptions", () => {
     expect(sources.length).toBeGreaterThan(100);
   });
 
-  it("has exactly one postgres_changes subscription, and it is RLS-scoped", () => {
-    // The unread badge is the one deliberate exception. It stays on
-    // `postgres_changes` because the Sidebar's effect keys on a `user` object prop
-    // whose identity changes on every root-layout render (src/app/layout.tsx), so
-    // a channel joined from there cannot be relied on to stay subscribed.
-    //
-    // It is safe because RLS policy "participants read their conversations" on
-    // "Message" restricts delivery to the subscriber's own conversations, and
-    // because that policy is installed by the same SQL file. Without it this
-    // subscription would push every message in the database to every browser.
-    const subscribers = sources
-      .filter((file) => /table:\s*["']Message["']/.test(code(readFileSync(file, "utf8"))))
+  it("has no postgres_changes subscription on Message anywhere", () => {
+    // Both realtime paths are Broadcast from Database now: the thread on
+    // `conversation:<id>` and the unread badge on `user:<id>`. A Message
+    // subscription would be authorized against every connected browser on every
+    // message write, which is the cost this migration exists to remove.
+    const offenders = sources
+      .filter((file) =>
+        /table:\s*["']Message["']/.test(code(readFileSync(file, "utf8"))),
+      )
       .map((file) => relative(ROOT, file));
 
-    expect(subscribers).toEqual([join("src", "components", "layout", "Sidebar.tsx")]);
-
-    const sql = readFileSync(join(ROOT, "supabase/realtime/broadcast-messages.sql"), "utf8");
-    expect(sql).toMatch(/create policy "participants read their conversations"/);
-    expect(sql).toMatch(
-      /"participants read their conversations"[\s\S]*?"conversationId" = "Message"\."conversationId"[\s\S]*?auth\.uid\(\)::text/,
-    );
+    expect(offenders).toEqual([]);
   });
 
   it("no longer subscribes to ConversationParticipant changes", () => {
@@ -89,19 +80,38 @@ describe("no table-wide Postgres Changes subscriptions", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("has no other unfiltered postgres_changes subscription", () => {
+  it("has no unfiltered postgres_changes subscription anywhere", () => {
+    // Any remaining postgres_changes must carry a `filter`, otherwise Realtime
+    // authorizes and delivers every row of the table to every subscriber.
     const unfiltered = sources
       .flatMap((file) => {
         const body = code(readFileSync(file, "utf8"));
         if (!body.includes("postgres_changes")) return [];
-        if (relative(ROOT, file) === join("src", "components", "layout", "Sidebar.tsx")) {
-          return []; // the RLS-scoped badge, asserted above
-        }
-        return body.includes("filter:") ? [] : [`${relative(ROOT, file)} (no filter)`];
+        return body.includes("filter:")
+          ? []
+          : [`${relative(ROOT, file)} (no filter)`];
       })
       .filter(Boolean);
 
     expect(unfiltered).toEqual([]);
+  });
+
+  it("keeps participant-scoped SELECT policies on the messaging tables", () => {
+    // Defence in depth. Prisma connects as the Supabase `postgres` role, which
+    // has BYPASSRLS, so these do not protect a single server action — they exist
+    // so that nothing reaching these tables through PostgREST or the anon key is
+    // ever wide open.
+    const sql = readFileSync(
+      join(ROOT, "supabase/realtime/broadcast-messages.sql"),
+      "utf8",
+    );
+    for (const policy of [
+      "participants read own membership",
+      "participants read their conversations",
+      "participants read their conversation",
+    ]) {
+      expect(sql).toContain(`create policy "${policy}"`);
+    }
   });
 
   it("no longer re-fetches a received message over the wire", () => {

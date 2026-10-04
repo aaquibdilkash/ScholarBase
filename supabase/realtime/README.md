@@ -40,15 +40,14 @@ the topic with `split_part(topic, ':', 2)`.
 4. Dashboard → **Realtime Settings** → disable **Allow public access**.
    *This is what enforces private channels.* Doing it before step 2, or while any
    channel is still public, breaks messaging.
-5. Optional, once 3 and 4 are confirmed — **drop `ConversationParticipant` only**:
+5. Optional, once 3 and 4 are confirmed — both tables can now be dropped,
+   because **no client code subscribes to Postgres Changes any more**:
    ```sql
-   alter publication supabase_realtime drop table "ConversationParticipant";
+   alter publication supabase_realtime drop table "Message", "ConversationParticipant";
    ```
-   Nothing subscribes to Postgres Changes for it any more. **Do NOT drop
-   `Message`** — the unread badge still listens to `Message` INSERT
-   (`Sidebar.tsx`), so removing it would silently kill the badge and the toast.
-   Removing it is the step that would expose a missed subscriber, which is why it
-   comes last.
+   Message delivery is a trigger on `realtime.messages`, not WAL decoding of
+   `Message`, so nothing breaks. This is the step that would expose a missed
+   subscriber, which is why it comes last.
 
 ## Verify
 

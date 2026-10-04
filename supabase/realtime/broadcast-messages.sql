@@ -24,13 +24,11 @@
 -- TOPIC SCHEME
 --   conversation:<conversationId>  messages (INSERT/UPDATE), typing,
 --                                 read receipts, block/unblock
+--   user:<userId>                 per-recipient unread badge
 --   presence:global               online status
 --
--- NOTE: an earlier revision also published a per-recipient `user:<id>` ping to
--- drive the unread badge. It was removed — the badge stayed on `postgres_changes`
--- instead, because the Sidebar component's effect keys on a `user` object prop
--- whose identity changes on every root-layout render, so a channel joined from
--- there cannot be relied on to stay subscribed. See the note in Sidebar.tsx.
+-- All three are joined with `private: true` (src/lib/realtime.ts), so disabling
+-- "Allow public access" in Realtime Settings is safe once the app is deployed.
 --
 -- ROLLBACK IS AT THE BOTTOM OF THIS FILE. See README.md for the cutover order.
 -- =============================================================================
@@ -45,8 +43,9 @@
 --      `getMessageDetails` server action on every received message just to fill in
 --      `sender` and `replyTo`. Building it here removes one serverless invocation
 --      and one DB round-trip per received message.
---   b) The unread badge stays on `postgres_changes` (see Sidebar.tsx), which the
---      RLS policy on "Message" now scopes to each subscriber's own conversations.
+--   b) A per-recipient `user:<id>` ping carries the unread badge: one tiny row
+--      per recipient instead of a table subscription every browser must be
+--      authorized against on every message write.
 create or replace function public.broadcast_new_message()
 returns trigger
 security definer
@@ -90,12 +89,34 @@ begin
     true                                         -- private topic
   );
 
+  -- Unread-badge ping for every participant except the sender. One tiny row per
+  -- recipient, versus a `postgres_changes` subscription that every connected
+  -- browser must be authorized against on every single message write.
+  for recipient in
+    select cp."userId"
+    from "ConversationParticipant" cp
+    where cp."conversationId" = NEW."conversationId"
+      and cp."userId" <> NEW."senderId"
+  loop
+    perform realtime.send(
+      jsonb_build_object(
+        'conversationId', NEW."conversationId",
+        'id',             NEW.id,
+        'senderId',       NEW."senderId",
+        'senderName',     (select u.name from "User" u where u.id = NEW."senderId"),
+        'body',           NEW.body,
+        'createdAt',      to_char(NEW."createdAt" AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+      ),
+      TG_OP, 'user:' || recipient."userId", true
+    );
+  end loop;
+
   return null;
 end;
 $$;
 
 comment on function public.broadcast_new_message() is
-  'Broadcasts Message inserts/updates to the private per-conversation Realtime topic.';
+  'Broadcasts Message inserts/updates to private per-conversation and per-recipient Realtime topics.';
 
 drop trigger if exists broadcast_new_message_trigger on public."Message";
 
@@ -137,6 +158,7 @@ using (
       where cp."conversationId" = split_part(realtime.topic(), ':', 2)
         and cp."userId" = (select auth.uid()::text)
     )
+    when 'user'     then split_part(realtime.topic(), ':', 2) = (select auth.uid()::text)
     when 'presence' then true
     else false
   end
@@ -153,6 +175,7 @@ with check (
       where cp."conversationId" = split_part(realtime.topic(), ':', 2)
         and cp."userId" = (select auth.uid()::text)
     )
+    when 'user'     then split_part(realtime.topic(), ':', 2) = (select auth.uid()::text)
     when 'presence' then true
     else false
   end
