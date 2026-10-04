@@ -51,42 +51,20 @@ describe("no table-wide Postgres Changes subscriptions", () => {
     expect(sources.length).toBeGreaterThan(100);
   });
 
-  it("subscribes to Message exactly once, on a private RLS-scoped channel", () => {
-    // The thread is Broadcast from Database on `conversation:<id>`. The unread
-    // badge is the one remaining Postgres Changes subscription: it needs every
-    // conversation the user is in, not just the one open, and the per-recipient
-    // `user:<id>` Broadcast topic never delivered. Two earlier attempts at that
-    // topic are recorded in the commit history; do not retry it blindly.
-    //
-    // Safety rests on two things, both asserted here:
-    //   1. it is joined through `privateChannel`, so `private: true` and a
-    //      dashboard "Allow public access" toggle cannot break it, and
-    //   2. RLS policy "participants read their conversations" scopes delivery to
-    //      the subscriber's own conversations, so it is not a table-wide fan-out.
-    const subscribers = sources
-      .filter((file) =>
-        /table:\s*["']Message["']/.test(code(readFileSync(file, "utf8"))),
-      )
-      .map((file) => relative(ROOT, file));
+  it("has no postgres_changes subscription on the messaging tables", () => {
+    // Both realtime paths are Broadcast from Database: the thread on
+    // `conversation:<id>` and the unread badge on `user:<id>`. A table
+    // subscription is authorized against every connected browser on every write,
+    // which is the cost this migration exists to remove.
+    const offenders = sources
+      .flatMap((file) => {
+        const body = code(readFileSync(file, "utf8"));
+        if (!/postgres_changes/.test(body)) return [];
+        const table = body.match(/table:\s*["']([A-Za-z]+)["']/)?.[1] ?? "?";
+        return [`${relative(ROOT, file)} -> ${table}`];
+      });
 
-    expect(subscribers).toEqual([
-      join("src", "components", "layout", "Sidebar.tsx"),
-    ]);
-
-    const sidebar = code(
-      readFileSync(join(ROOT, "src/components/layout/Sidebar.tsx"), "utf8"),
-    );
-    expect(sidebar).toContain("privateChannel(");
-    expect(sidebar).not.toMatch(/supabase\s*\.\s*channel\s*\(/);
-
-    const sql = readFileSync(
-      join(ROOT, "supabase/realtime/broadcast-messages.sql"),
-      "utf8",
-    );
-    expect(sql).toMatch(/create policy "participants read their conversations"/);
-    expect(sql).toMatch(
-      /"participants read their conversations"[\s\S]*?"conversationId" = "Message"\."conversationId"[\s\S]*?auth\.uid\(\)::text/,
-    );
+    expect(offenders).toEqual([]);
   });
 
   it("no longer subscribes to ConversationParticipant changes", () => {
@@ -106,17 +84,11 @@ describe("no table-wide Postgres Changes subscriptions", () => {
 
   it("has no unfiltered postgres_changes subscription", () => {
     // Any remaining postgres_changes must carry a `filter`, otherwise Realtime
-    // authorizes and delivers every row of the table to every subscriber — except
-    // the badge, which is safe because RLS scopes it (asserted above).
+    // authorizes and delivers every row of the table to every subscriber.
     const unfiltered = sources
       .flatMap((file) => {
         const body = code(readFileSync(file, "utf8"));
         if (!body.includes("postgres_changes")) return [];
-        if (
-          relative(ROOT, file) === join("src", "components", "layout", "Sidebar.tsx")
-        ) {
-          return []; // RLS-scoped badge, asserted above
-        }
         return body.includes("filter:")
           ? []
           : [`${relative(ROOT, file)} (no filter)`];

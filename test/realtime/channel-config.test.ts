@@ -124,6 +124,58 @@ describe("Realtime channels are private", () => {
     );
   });
 
+  it("gives every channel topic a matching authorization branch", () => {
+    // THE BUG THIS EXISTS TO PREVENT.
+    //
+    // `realtime.messages` policies end in `else false`, so any topic prefix not
+    // listed in the `case` is DENIED — and a denied private channel cannot join
+    // at all. Nothing errors, the channel never reaches SUBSCRIBED, and the
+    // feature is simply dead.
+    //
+    // That is what killed the unread badge: it once used `user:<id>`, then
+    // `badge-messages:<id>`, and neither prefix was ever added to the SQL. Three
+    // failed attempts, all of which looked identical from the browser.
+    //
+    // So: collect the topic prefixes the client actually joins and require a
+    // branch for each.
+    const sql = readFileSync(SQL, "utf8");
+    const branches = new Set(
+      [...sql.matchAll(/when '([^']+)'/g)].map((m) => m[1]),
+    );
+
+    const expected = new Set(["conversation", "user", "presence"]);
+
+    for (const prefix of expected) {
+      expect(branches).toContain(prefix);
+      expect(sql).toContain(`${prefix}:`);
+    }
+
+    // And the reverse: no branch may exist for a topic nothing joins.
+    for (const branch of branches) {
+      expect(expected).toContain(branch);
+    }
+
+    // The client must not join a prefix the policy cannot see. Only topic-shaped
+    // template literals count — `private: true` in the channel config is not one.
+    const helper = readFileSync(REALTIME_HELPER, "utf8");
+    const joined = new Set(
+      [...helper.matchAll(/`([a-z][a-z-]*):(?:\$\{|global)/g)].map((m) => m[1]),
+    );
+
+    expect(joined.size).toBeGreaterThan(0);
+    for (const prefix of joined) {
+      expect(branches).toContain(prefix);
+    }
+
+    // The badge channel is built inline in Sidebar.tsx rather than in the helper.
+    const sidebar = code(
+      readFileSync(join(ROOT, "src/components/layout/Sidebar.tsx"), "utf8"),
+    );
+    for (const [, prefix] of sidebar.matchAll(/privateChannel\(`([a-z-]+):/g)) {
+      expect(branches).toContain(prefix);
+    }
+  });
+
   it("casts auth.uid() to text everywhere it meets an id column", () => {
     // `auth.uid()` returns uuid, but `User.id` and `ConversationParticipant.userId`
     // are `String` (text) columns holding the Supabase auth id verbatim — see the

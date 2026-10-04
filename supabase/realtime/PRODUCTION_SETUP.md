@@ -89,12 +89,12 @@ live, this breaks messaging, because a public channel cannot join at all.
 Only after Steps 3 and 4 are green:
 
 ```sql
-alter publication supabase_realtime drop table "ConversationParticipant";
+alter publication supabase_realtime drop table "Message", "ConversationParticipant";
 ```
 
-⚠️ **Do NOT drop `"Message"` from the publication.** The unread badge is a
-`postgres_changes` subscription on `Message` INSERT (`Sidebar.tsx`). Removing it
-silently kills the badge and the toast, with no error anywhere.
+No client code subscribes to Postgres Changes any more — both the thread and the
+unread badge are Broadcast from Database — so this is pure savings. It is also the
+step that would expose a missed subscriber, hence last.
 
 ---
 
@@ -112,27 +112,24 @@ Plus re-enable "Allow public access" in the dashboard.
 
 ## If messages arrive but the badge does not
 
-Check these three, in order:
+The badge and the thread use the same mechanism now, so if the thread updates
+live and the badge does not, the difference is **which component joins**, not
+which transport.
 
-1. **`"Message"` is still in the publication** (Step 5 above). This is the most
-   common cause and produces no error — the badge just goes quiet.
-   ```sql
-   select tablename from pg_publication_tables where pubname = 'supabase_realtime';
-   ```
-2. **RLS policy `participants read their conversations` exists** on `"Message"`.
-   It is what scopes delivery to the subscriber's own conversations. Without it
-   the subscription is a table-wide fan-out.
-3. **The badge effect keys on `user?.id`, not on `user`.** `user` is a fresh
-   object literal from the root layout, so keying on it re-joins the channel on
-   every server render. `test/realtime/` asserts the shape but not this runtime
-   behaviour.
+`privateChannel()` in `src/lib/realtime.ts` resolves the session
+(`supabase.auth.getSession()`) and hands Realtime the access token before joining.
+That is load-bearing. `Sidebar` receives `user` as a **server prop**, so it renders
+before supabase-js has restored the session from cookies; a private channel
+joined without a token is authorized as `anon`, `auth.uid()` is null, and the
+policy's `else false` denies the join — silently, with no console error and no
+server log. `PresenceProvider` and the conversation page were unaffected because
+they gate on `supabase.auth.getUser()` and therefore waited.
 
-The badge channel is joined through `privateChannel()`, so it has
-`private: true` and survives Step 4.
+If the badge regresses again, check in this order:
 
-**Do not retry the per-recipient `user:<id>` Broadcast topic.** It never
-delivered across three attempts, including one where it was published by the same
-trigger, in the same transaction, with the same `realtime.send()` call as
-`conversation:<id>` — which works and drives the live thread. The cause was never
-identified. It is not worth more debugging time; the badge works on
-`postgres_changes`.
+1. `privateChannel()` still awaits `getSession()` before `setAuth()`.
+2. The topic prefix the Sidebar joins has a `when '…'` branch in
+   `broadcast-messages.sql` — an unlisted prefix is denied by `else false` and
+   cannot join at all.
+3. Browser console on the recipient: the Sidebar logs
+   `Badge realtime status: <status>` for any non-`SUBSCRIBED` state.

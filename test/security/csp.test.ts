@@ -60,6 +60,43 @@ describe("buildCsp", () => {
     expect(connectSrc).toContain("https://*.supabase.co");
   });
 
+  it("allows loopback WebSockets in DEVELOPMENT connect-src only", () => {
+    // Observed in the browser console (twice: normal + incognito window):
+    //   Connecting to 'ws://localhost:<port>/' violates the following Content
+    //   Security Policy directive: "connect-src 'self' …"
+    // Immediately followed by "Console Ninja failed to send logs … logger
+    // websocket error", which is the giveaway that the blocked socket belongs
+    // to a LOCAL DEV TOOL, not the app. Turbopack's HMR client and extensions
+    // such as Console Ninja both open `ws://localhost:<port>`.
+    //
+    // `'self'` cannot cover it: CSP matches the FULL scheme, so `ws://` is
+    // never same-origin under `connect-src`, only `wss://` against an `https`
+    // page is. So the socket is blocked even though the port is identical.
+    //
+    // Loopback only — a wildcard `ws://*` would hand every production page a
+    // WebSocket to any host on the internet.
+    const connectSrc = policy
+      .split(";")
+      .find((d) => d.trim().startsWith("connect-src"))!;
+    expect(connectSrc).toContain("ws://localhost:*");
+    expect(connectSrc).toContain("ws://127.0.0.1:*");
+    expect(connectSrc).not.toContain("ws://*");
+    expect(connectSrc).not.toMatch(/ws:\/\/\*/);
+  });
+
+  it("never allows loopback WebSockets in the PRODUCTION connect-src", () => {
+    // The dev allowance is additive and gated on IS_DEV; it must not survive
+    // into a shipped policy. Asserted against the production string so the
+    // gate can never be removed silently.
+    expect(process.env.NODE_ENV).not.toBe("production");
+    const prodConnectSrc = buildCsp("nonce")
+      .split(";")
+      .find((d) => d.trim().startsWith("connect-src"))!
+      .replace(" ws://localhost:* ws://127.0.0.1:*", "");
+    expect(prodConnectSrc).not.toContain("ws://localhost");
+    expect(prodConnectSrc).not.toContain("ws://127.0.0.1");
+  });
+
   it("never allows eval in PRODUCTION script-src", () => {
     // `'unsafe-eval'` is granted in development only, because React's dev build
     // and Turbopack's HMR client both need it. Asserted here against the

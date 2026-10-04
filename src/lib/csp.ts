@@ -95,7 +95,17 @@ export function buildCsp(nonce: string): string {
     // caught this as `directive=connect-src blocked=wss://…supabase.co/
     // realtime/v1/websocket`. Enforcing without this line would have silently
     // killed realtime in production while looking fine in every test.
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    // Dev-only loopback WebSockets: Turbopack's HMR client, and any local dev
+    // tool (Console Ninja, a debugger) that opens a `ws://localhost:<port>`
+    // socket. Production never gets these, and `'self'` is deliberately not
+    // relied on for `ws://` — CSP matches the whole scheme, so a loopback
+    // socket is NOT same-origin under `connect-src` and is blocked, producing
+    //   Connecting to 'ws://localhost:…/' violates … "connect-src 'self'"
+    // Pinned to loopback only, and stripped entirely from the production
+    // policy by the IS_DEV gate below.
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co${
+      IS_DEV ? " ws://localhost:* ws://127.0.0.1:*" : ""
+    }`,
     // Cloudflare Turnstile is an iframe widget.
     "frame-src https://challenges.cloudflare.com",
     // Explicit, because `worker-src` FALLS BACK to script-src when unset — the
