@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
-import { supabase } from "@/utils/supabase/client";
 import {
-  getMessageDetails,
   getMoreMessages,
   editMessage,
   deleteMessage,
@@ -21,14 +19,22 @@ import {
 import { type MessageFailureCode } from "@/app/actions/messages";
 import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
 
+/**
+ * Shape of a message row as delivered by the Realtime Broadcast from Database
+ * trigger (`supabase/realtime/broadcast-messages.sql`). The trigger sends the
+ * curated payload, so this is already the full `SentMessage` — which is what
+ * let the old `getMessageDetails` server-action round-trip be deleted.
+ */
 type MessageRow = {
   id: string;
   conversationId?: string;
   conversation_id?: string;
   body: string;
   senderId?: string;
-  createdAt: string;
-  editedAt?: string | null;
+  /** The trigger always emits an ISO-8601 string; widened so a `SentMessage`
+   *  (whose server-action round-trip yields a `Date`) also satisfies this. */
+  createdAt: Date | string;
+  editedAt?: Date | string | null;
   isDeleted?: boolean | null;
   replyToId?: string | null;
   sender?: {
@@ -39,10 +45,6 @@ type MessageRow = {
   };
 };
 
-type RealtimePayload = {
-  new: MessageRow;
-};
-
 export function MessageList({
   conversationId,
   initialMessages,
@@ -50,7 +52,7 @@ export function MessageList({
   otherParticipantLastReadAt,
   registerAppend,
   registerAddFailed,
-  onMessageReceived,
+  registerUpdate,
   onMessageRejected,
   onSetReplyingTo,
 }: {
@@ -60,7 +62,15 @@ export function MessageList({
   otherParticipantLastReadAt: Date;
   registerAppend?: (fn: (message: SentMessage) => void) => void;
   registerAddFailed?: (fn: (message: SentMessage) => void) => void;
-  onMessageReceived?: () => void;
+  /**
+   * Receives an edit / tombstone broadcast for a message already in the thread.
+   *
+   * This component no longer owns a Realtime channel of its own: the conversation
+   * page holds the single `conversation:<id>` channel and forwards both the
+   * INSERT and the UPDATE event here, so a message is delivered once rather than
+   * by three overlapping subscriptions.
+   */
+  registerUpdate?: (fn: (message: MessageRow) => void) => void;
   onMessageRejected?: (code: MessageFailureCode) => void;
   /** Marks a message as the active reply target in the composer. */
   onSetReplyingTo?: (message: SentMessage) => void;
@@ -79,7 +89,6 @@ export function MessageList({
    const messagesEndRef = useRef<HTMLDivElement | null>(null);
    const sentinelWasVisibleRef = useRef(false);
    const userId = user?.id;
-   const isSubscribedRef = useRef(false);
 
     const getScrollContainer = useCallback(() => {
       const container = containerRef.current;
@@ -218,6 +227,40 @@ export function MessageList({
       });
     }
   }, [registerAddFailed]);
+
+  // ⚡ EDITS + TOMBSTONES: the conversation page forwards the Realtime
+  // `UPDATE` broadcast here. A deleted message renders as a tombstone with an
+  // empty body, and every bubble quoting it flips its preview — same behaviour
+  // the removed `postgres_changes` UPDATE listener had, minus the channel.
+  useEffect(() => {
+    if (!registerUpdate) return;
+
+    registerUpdate((row: MessageRow) => {
+      setMessages((current) =>
+        current.map((m) => {
+          if (m.id === row.id) {
+            return {
+              ...m,
+              body: row.isDeleted ? "" : row.body,
+              editedAt: row.editedAt ?? m.editedAt,
+              isDeleted: row.isDeleted,
+            };
+          }
+          // ⚡ QUOTE SYNC: keep bubbles quoting a tombstoned message accurate.
+          if (m.replyToId === row.id && m.replyTo) {
+            return {
+              ...m,
+              replyTo: {
+                ...m.replyTo,
+                isDeleted: row.isDeleted ?? m.replyTo.isDeleted,
+              },
+            };
+          }
+          return m;
+        }),
+      );
+    });
+  }, [registerUpdate]);
 
   // ⚡ ISSUE 4: Offline outbox — retry a pending/failed message.
   const retryMessage = useCallback(
@@ -392,121 +435,6 @@ export function MessageList({
     },
     [toast],
   );
-
-  // ⚡ Stable Realtime subscription effect locked with primitive dependencies
-  useEffect(() => {
-    if (!conversationId || !userId) return;
-    if (isSubscribedRef.current) return;
-
-    const channel = supabase.channel(`realtime:messages:${conversationId}`);
-
-    const handleInsert = async (payload: RealtimePayload) => {
-      try {
-        const rawMessage = payload.new;
-        const msgConvId =
-          rawMessage.conversationId || rawMessage.conversation_id;
-
-        if (msgConvId !== conversationId) return;
-
-        const details = await getMessageDetails(rawMessage.id);
-        if (!details) return;
-
-        const fetchedMessage = details as SentMessage;
-        fetchedMessage.status = "sent";
-
-        setMessages((current) => {
-          // Reconcile by the server id first, while also removing a matching
-          // optimistic copy. This handles either arrival order: the server
-          // action response may beat Realtime, or Realtime may beat it.
-          const hasConfirmed = current.some((m) => m.id === fetchedMessage.id);
-          const filtered = current.filter(
-            (m) =>
-              !(
-                (m.status === "sending" || m.status === "failed") &&
-                m.body === fetchedMessage.body &&
-                m.senderId === fetchedMessage.senderId
-              ),
-          );
-          if (hasConfirmed) return filtered;
-          return [...filtered, fetchedMessage];
-        });
-
-        if (fetchedMessage.senderId !== userId && onMessageReceived) {
-          onMessageReceived();
-        }
-      } catch (error) {
-        console.error("Error handling realtime insert:", error);
-      }
-    };
-
-    // ⚡ ISSUE 6: Realtime sync of edits and tombstoned deletes — applies to
-    // both participants without any extra broadcast plumbing.
-    const handleUpdate = (payload: RealtimePayload) => {
-      const row = payload.new;
-      const rowConvId = row.conversationId || row.conversation_id;
-      if (rowConvId && rowConvId !== conversationId) return;
-
-      setMessages((current) =>
-        current.map((m) => {
-          if (m.id === row.id) {
-            return {
-              ...m,
-              body: row.isDeleted ? "" : row.body,
-              editedAt: row.editedAt ?? m.editedAt,
-              isDeleted: row.isDeleted,
-            };
-          }
-          // ⚡ QUOTE SYNC: When the original message is tombstoned, every
-          // bubble quoting it flips its preview to "Original message was
-          // deleted" without any extra fetches or page refresh.
-          if (m.replyToId === row.id && m.replyTo) {
-            return {
-              ...m,
-              replyTo: {
-                ...m.replyTo,
-                isDeleted: row.isDeleted ?? m.replyTo.isDeleted,
-              },
-            };
-          }
-          return m;
-        }),
-      );
-    };
-
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "Message",
-          filter: `conversationId=eq.${conversationId}`,
-        },
-        handleInsert,
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "Message",
-          filter: `conversationId=eq.${conversationId}`,
-        },
-        handleUpdate,
-      )
-      .subscribe((status: string) => {
-        if (status === "SUBSCRIBED") {
-          isSubscribedRef.current = true;
-        } else if (process.env.NODE_ENV === "development") {
-          console.warn(`Message realtime status: ${status}`);
-        }
-      });
-
-    return () => {
-      isSubscribedRef.current = false;
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, userId, onMessageReceived]);
 
   if (!user || !userId) return null;
 

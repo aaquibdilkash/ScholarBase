@@ -35,7 +35,8 @@ import ThemeToggle from "@/components/layout/ThemeToggle";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/utils/supabase/client";
-import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { privateChannel, userTopic } from "@/lib/realtime";
 
 type SidebarUser = {
   id: string;
@@ -50,15 +51,19 @@ type SidebarProps = {
   defaultCollapsed: boolean;
 };
 
+/**
+ * Minimal unread-badge ping pushed by the `Message` trigger
+ * (`supabase/realtime/broadcast-messages.sql`) to the per-recipient `user:<id>`
+ * topic. Deliberately small — this fires for every conversation the user is in,
+ * not just the one they have open.
+ */
 type RealtimeMessageRow = {
   id: string;
   body: string;
-  conversationId?: string;
-  conversation_id?: string;
-  senderId?: string;
-  sender_id?: string;
-  createdAt?: string;
-  created_at?: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string | null;
+  createdAt: string;
 };
 
 export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
@@ -194,52 +199,67 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       setOptimisticUnreadMessages((count) => count + 1);
     };
 
-    const handleDatabaseMessage = (
-      payload: RealtimePostgresChangesPayload<RealtimeMessageRow>,
-    ) => {
-      const raw = payload.new as RealtimeMessageRow;
-      const conversationId = raw.conversationId || raw.conversation_id;
-      const senderId = raw.senderId || raw.sender_id;
-      if (!conversationId || !raw.id || !senderId) return;
+    const handleBadgePing = (raw: RealtimeMessageRow) => {
+      if (!raw.conversationId || !raw.id || !raw.senderId) return;
 
       // One shared event feeds the conversation sidebar and the main badge.
       window.dispatchEvent(
         new CustomEvent("message-received", {
           detail: {
-            conversationId,
+            conversationId: raw.conversationId,
             message: {
               id: raw.id,
               body: raw.body,
-              senderId,
-              createdAt: raw.createdAt || raw.created_at,
+              senderId: raw.senderId,
+              // The trigger resolves this from "User" so the toast can name the
+              // sender. `postgres_changes` only ever delivered the bare row.
+              sender: { name: raw.senderName ?? null },
+              createdAt: raw.createdAt,
             },
           },
         }),
       );
     };
 
-    const channel = supabase
-      .channel(`main-sidebar-messages:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "Message" },
-        handleDatabaseMessage,
-      )
-      .subscribe((status: string) => {
+    // ⚡ UNREAD BADGE over Broadcast from Database.
+    //
+    // This used to be `postgres_changes` on `Message` with NO filter, so every
+    // message in the database was authorized against — and pushed to — every
+    // connected browser, then discarded here. The trigger now sends a small ping
+    // to a per-recipient `user:<id>` topic instead: one row per recipient, no
+    // table-wide fan-out.
+    let channel: RealtimeChannel | null = null;
+    let cancelled = false;
+
+    void privateChannel(userTopic(user.id)).then((ch) => {
+      if (cancelled) {
+        void supabase.removeChannel(ch);
+        return;
+      }
+      channel = ch;
+      ch.on(
+        "broadcast",
+        { event: "INSERT" },
+        ({ payload }: { payload: RealtimeMessageRow }) => {
+          if (payload) handleBadgePing(payload);
+        },
+      ).subscribe((status: string) => {
         if (
           status !== "SUBSCRIBED" &&
           process.env.NODE_ENV === "development"
         ) {
-          console.warn(`Main message realtime status: ${status}`);
+          console.warn(`Badge realtime status: ${status}`);
         }
       });
+    });
 
     window.addEventListener(
       "message-received",
       handleMessageReceived as EventListener,
     );
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
       window.removeEventListener(
         "message-received",
         handleMessageReceived as EventListener,

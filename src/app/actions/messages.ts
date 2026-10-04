@@ -288,19 +288,6 @@ export async function getMoreMessages(
   return messages;
 }
 
-// ⚡ REALTIME FIX: Safe fetcher for Prisma/Supabase conflicts
-export async function getMessageDetails(messageId: string) {
-  const currentUser = await requireCurrentUser("Please log in to view messages.");
-
-  return prisma.message.findFirst({
-    where: {
-      id: messageId,
-      conversation: { participants: { some: { userId: currentUser.id } } },
-    },
-    select: messageSelect,
-  });
-}
-
 export async function startConversation(
   formData: FormData,
 ): Promise<SubmitResult> {

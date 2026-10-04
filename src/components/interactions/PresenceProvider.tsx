@@ -4,11 +4,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { supabase } from "@/utils/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import { PRESENCE_TOPIC, privateChannel } from "@/lib/realtime";
+import type { RealtimeChannel, User } from "@supabase/supabase-js";
 import { useIsFrozen } from "./FrozenUserProvider";
 
 /**
@@ -45,6 +47,9 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const isFrozen = useIsFrozen();
+  // Held in a ref because `privateChannel` resolves asynchronously, while the
+  // visibilitychange/online handlers below need the channel immediately.
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
     supabase.auth
@@ -59,46 +64,59 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const channel = supabase.channel("presence:global", {
-      config: { presence: { key: user.id } },
-    });
-
+    // ⚡ The channel is joined asynchronously because `privateChannel` awaits
+    // `realtime.setAuth()` first. Presence state is authorization-relevant, so a
+    // public channel here would leak who is online to any anon-key holder.
     const syncPresence = () => {
-      const state = channel.presenceState() as PresenceState;
+      const state = channelRef.current?.presenceState() as
+        | PresenceState
+        | undefined;
+      if (!state) return;
       setOnlineUserIds(new Set(Object.keys(state)));
     };
 
-    channel
-      .on("presence", { event: "sync" }, syncPresence)
-      .on("presence", { event: "join" }, ({ key }: { key: string }) => {
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          next.add(key);
-          return next;
-        });
-      })
-      .on("presence", { event: "leave" }, ({ key }: { key: string }) => {
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      })
-      .subscribe(async (status: string) => {
-        if (status === "SUBSCRIBED") {
-          await channel
-            .track({ online_at: new Date().toISOString() })
-            .catch(() => {});
-          syncPresence();
-        }
-      });
-
-    // Re-sync presence when the tab wakes up or connectivity returns.
     const trackOnline = () => {
-      channel
-        .track({ online_at: new Date().toISOString() })
+      channelRef.current
+        ?.track({ online_at: new Date().toISOString() })
         .catch(() => {});
     };
+
+    let cancelled = false;
+
+    void privateChannel(PRESENCE_TOPIC, { presence: { key: user.id } }).then(
+      (channel) => {
+        if (cancelled) {
+          void supabase.removeChannel(channel);
+          return;
+        }
+        channelRef.current = channel;
+
+        channel
+          .on("presence", { event: "sync" }, syncPresence)
+          .on("presence", { event: "join" }, ({ key }: { key: string }) => {
+            setOnlineUserIds((prev) => {
+              const next = new Set(prev);
+              next.add(key);
+              return next;
+            });
+          })
+          .on("presence", { event: "leave" }, ({ key }: { key: string }) => {
+            setOnlineUserIds((prev) => {
+              const next = new Set(prev);
+              next.delete(key);
+              return next;
+            });
+          })
+          .subscribe(async (status: string) => {
+            if (status === "SUBSCRIBED") {
+              await channel
+                .track({ online_at: new Date().toISOString() })
+                .catch(() => {});
+              syncPresence();
+            }
+          });
+      },
+    );
 
     const handleVisibilityChange = () => {
       if (!document.hidden) trackOnline();
@@ -108,9 +126,11 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     window.addEventListener("online", trackOnline);
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", trackOnline);
-      supabase.removeChannel(channel);
+      if (channelRef.current) void supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
       setOnlineUserIds(new Set());
     };
   }, [user, isFrozen]);

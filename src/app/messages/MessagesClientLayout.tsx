@@ -6,7 +6,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { useTimeAgo } from "@/utils/use-time-ago";
-import type { User, RealtimePostgresChangesPayload, AuthChangeEvent, Session } from "@supabase/supabase-js";
+import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { getInbox, searchInbox } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
@@ -111,30 +111,12 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
 
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel('sidebar-global-listener')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ConversationParticipant' }, (payload: RealtimePostgresChangesPayload<{ conversationId: string; userId: string; lastReadAt: string | null }>) => {
-          const change = payload.new as { conversationId: string; userId: string; lastReadAt: string | null };
-          if (change.userId !== user.id) return; 
-          
-          // ⚡ ISSUE 1: This row only updates when the current user reads or
-          // sends in this conversation — either way nothing is unread anymore.
-          setInbox((currentInbox) => {
-            return currentInbox.map((conv) => {
-              if (conv.id !== change.conversationId) return conv;
-              return {
-                ...conv,
-                unreadCount: 0,
-                participants: conv.participants.map((p) =>
-                  p.user.id === user.id && change.lastReadAt
-                    ? { ...p, lastReadAt: change.lastReadAt }
-                    : p,
-                ),
-              };
-            });
-          });
-        }
-      ).subscribe();
 
+    // ⚡ The `postgres_changes` listener on `ConversationParticipant` that used to
+    // sit here was unfiltered — every participant-row write in the database was
+    // authorized against, and pushed to, every open inbox — and it was redundant:
+    // `conversation-read` already zeroes the count when a conversation is opened
+    // and `message-sent` already zeroes it after the user sends.
     // The active conversation already receives the confirmed message over
     // Broadcast. Reuse that event for the sidebar instead of fetching the
     // inbox again.
@@ -246,8 +228,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
     window.addEventListener('conversation-read', handleConversationRead as EventListener);
     window.addEventListener('message-sent', handleMessageSent as EventListener);
     window.addEventListener('message-received', handleMessageReceived as EventListener);
-    return () => { 
-      supabase.removeChannel(channel);
+    return () => {
       window.removeEventListener('conversation-read', handleConversationRead as EventListener);
       window.removeEventListener('message-sent', handleMessageSent as EventListener);
       window.removeEventListener('message-received', handleMessageReceived as EventListener);

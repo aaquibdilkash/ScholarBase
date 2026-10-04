@@ -56,10 +56,6 @@ const KNOWN_SAFE = new Map<string, string>([
     "Validates: throws unless `currentUser.id === userId`.",
   ],
   [
-    "getMessageDetails",
-    "Validates: throws unless the session user is a conversation participant.",
-  ],
-  [
     "getBlockedUserIds",
     "Scoped by `blockerId` from the session inside the function body.",
   ],

@@ -1,0 +1,119 @@
+/**
+ * Realtime channel guard.
+ *
+ * Every Supabase Realtime channel in this app must be joined through
+ * `privateChannel()` (src/lib/realtime.ts). Two separate things break if one
+ * isn't, and neither produces an error:
+ *
+ *  1. SECURITY. App-table RLS does not govern Broadcast or Presence. Supabase
+ *     authorizes those against the `realtime.messages` table, and only for
+ *     channels joined with `private: true`. A `supabase.channel(topic)` call is
+ *     public by default, so the message bodies, typing state and read receipts
+ *     broadcast on `conversation:<id>` are readable — and spoofable — by anyone
+ *     holding the public anon key who learns the topic id.
+ *
+ *  2. CORRECTNESS. `privateChannel` awaits `realtime.setAuth()` before joining.
+ *     Without it the policies are evaluated as `anon` and are denied, which
+ *     fails CLOSED and silently: the channel reports SUBSCRIBED and then
+ *     receives nothing, which looks like latency rather than a bug.
+ *
+ * This is a source scan rather than a runtime assertion because the failure mode
+ * is "the config object is missing a key", which no amount of mocking would
+ * catch — the real config only exists at the join call.
+ */
+import { readdirSync, readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+
+import { describe, expect, it } from "vitest";
+
+const ROOT = process.cwd();
+const SRC = join(ROOT, "src");
+const REALTIME_HELPER = join(SRC, "lib/realtime.ts");
+const SQL = join(ROOT, "supabase/realtime/broadcast-messages.sql");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) return walk(full);
+    return /\.(ts|tsx)$/.test(entry.name) ? [full] : [];
+  });
+}
+
+const sources = walk(SRC);
+
+/** Strip comments so prose about `supabase.channel(` cannot trip the scan. */
+function code(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+describe("Realtime channels are private", () => {
+  it("has a meaningful source tree to scan", () => {
+    expect(sources.length).toBeGreaterThan(100);
+  });
+
+  it("confines every supabase.channel() join to the realtime helper", () => {
+    // `src/lib/realtime.ts` is the single sanctioned join site. Any other file
+    // calling it directly has opted out of `private: true` by construction.
+    const offenders = sources
+      .filter((file) => file !== REALTIME_HELPER)
+      .filter((file) => /supabase\s*\.\s*channel\s*\(/.test(code(readFileSync(file, "utf8"))))
+      .map((file) => relative(ROOT, file));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("forces private + setAuth inside the helper", () => {
+    const helper = readFileSync(REALTIME_HELPER, "utf8");
+
+    // Without `private: true` the topic is world-readable.
+    expect(helper).toMatch(/private:\s*true/);
+    // Without setAuth the policies are evaluated as `anon` and deny everything.
+    expect(helper).toMatch(/realtime\.setAuth\(/);
+    // Defaults must not be overridable back to public by a caller.
+    expect(helper).toMatch(/broadcast:\s*\{\s*self:\s*false\s*\}/);
+  });
+
+  it("names topics so they match the SQL authorization policy", () => {
+    const helper = readFileSync(REALTIME_HELPER, "utf8");
+    const sql = readFileSync(SQL, "utf8");
+
+    // Each helper topic prefix must have a branch in the `case` expression, or
+    // the policy's `else false` denies it and the topic silently receives nothing.
+    for (const prefix of ["conversation", "user", "presence"]) {
+      expect(helper).toContain(`${prefix}:`);
+      expect(sql).toMatch(new RegExp(`when '${prefix}'`));
+    }
+
+    // The trigger must publish to the same two message topics the client joins.
+    expect(sql).toContain("'conversation:' || NEW.\"conversationId\"");
+    expect(sql).toContain("'user:' || recipient.\"userId\"");
+  });
+
+  it("documents the ConversationParticipant policy the realtime policy depends on", () => {
+    const sql = readFileSync(SQL, "utf8");
+    // The `realtime.messages` policies do a membership lookup on this table; that
+    // subquery is itself RLS-filtered, and without this policy the whole
+    // messaging feature fails closed with no error. See section 3 of the SQL.
+    expect(sql).toMatch(/create policy "participants read own membership"/);
+    expect(sql).toMatch(
+      /"participants read own membership"[\s\S]*?"userId" = \(select auth\.uid\(\)::text\)/,
+    );
+  });
+
+  it("casts auth.uid() to text everywhere it meets an id column", () => {
+    // `auth.uid()` returns uuid, but `User.id` and `ConversationParticipant.userId`
+    // are `String` (text) columns holding the Supabase auth id verbatim — see the
+    // User model and src/lib/users.ts. Comparing them uncast is
+    //   ERROR 42883: operator does not exist: text = uuid
+    // which aborts the whole script. Every occurrence must keep the cast.
+    const sql = code(readFileSync(SQL, "utf8")).replace(/--[^\n]*/g, "");
+
+    const calls = [...sql.matchAll(/auth\.uid\(\)(\s*::\s*\w+)?/g)];
+    expect(calls.length).toBeGreaterThanOrEqual(7);
+
+    const uncasted = calls.filter(([, cast]) => !cast);
+    expect(uncasted).toEqual([]);
+  });
+});

@@ -32,10 +32,10 @@ import {
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
 import { ReportModal } from "@/components/cards/ReportModal";
-import type { User } from "@supabase/supabase-js";
-import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import type { User, RealtimeChannel } from "@supabase/supabase-js";
 import type { SentMessage } from "@/components/messages/MessageInputForm";
 import type { MessageFailureCode } from "@/app/actions/messages";
+import { conversationTopic, privateChannel } from "@/lib/realtime";
 
 type TypingPayload = {
   userId?: string;
@@ -45,11 +45,6 @@ type TypingPayload = {
 type ReadReceiptPayload = {
   userId: string;
   lastReadAt: string;
-};
-
-type BroadcastMessagePayload = {
-  userId: string;
-  message: SentMessage;
 };
 
 type Participant = {
@@ -98,7 +93,7 @@ export default function ConversationPage({
 
   const [isTyping, setIsTyping] = useState(false);
   const lastTypedAt = useRef<number>(0);
-  const roomRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const roomRef = useRef<RealtimeChannel | null>(null);
   const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -130,6 +125,18 @@ export default function ConversationPage({
   const handleMessageFailed = useCallback((message: SentMessage) => {
     addFailedMessageRef.current?.(message);
   }, []);
+
+  // ⚡ EDITS + TOMBSTONES: MessageList registers a handler for the Realtime
+  // `UPDATE` broadcast, so this page can push a remote edit into the thread
+  // without MessageList owning a channel of its own.
+  const updateMessageRef = useRef<((msg: SentMessage) => void) | null>(null);
+  const handleRegisterUpdate = useCallback(
+    (fn: (msg: SentMessage) => void) => {
+      updateMessageRef.current = fn;
+    },
+    [],
+  );
+
   const handleMessageRejected = useCallback((code: MessageFailureCode) => {
     if (code === "BLOCKED") {
       setBlockState((state) => ({ ...state, blockedByMe: true }));
@@ -185,27 +192,23 @@ export default function ConversationPage({
       appendMessageRef.current?.(message);
       triggerMarkRead(true);
 
-      // Broadcast only the server-confirmed message. The initial optimistic
-      // message has a temporary id and must never reach the other participant.
-      if (message.status === "sent" && roomRef.current && userId) {
-        roomRef.current
-          .send({
-            type: "broadcast",
-            event: "message",
-            payload: { userId, message } satisfies BroadcastMessagePayload,
-          })
-          .catch(() => {});
-      }
-
+      // ⚡ NO client-side broadcast here. The `Message` AFTER INSERT trigger
+      // (supabase/realtime/broadcast-messages.sql) already publishes the
+      // confirmed row to this conversation's private topic. The client-sent
+      // copy that used to live here would have delivered every message twice.
       window.dispatchEvent(
         new CustomEvent("message-sent", {
           detail: { conversationId, message },
         }),
       );
     },
-    [triggerMarkRead, conversationId, userId],
+    [triggerMarkRead, conversationId],
   );
 
+  // ⚡ Incoming message. The trigger sends the fully-populated row (sender and
+  // replyTo included), so this no longer calls `getMessageDetails`. Appends go
+  // through MessageList's registerAppend, which already reconciles a matching
+  // optimistic bubble by body + sender when Realtime beats the server action.
   const handleBroadcastMessage = useCallback(
     (message: SentMessage) => {
       if (!userId || message.senderId === userId) return;
@@ -218,6 +221,16 @@ export default function ConversationPage({
       );
     },
     [conversationId, triggerMarkRead, userId],
+  );
+
+  // ⚡ Remote edit or tombstone. Skips the author's own devices, which already
+  // applied the change optimistically.
+  const handleBroadcastUpdate = useCallback(
+    (message: SentMessage) => {
+      if (!userId || message.senderId === userId) return;
+      updateMessageRef.current?.({ ...message, status: "sent" });
+    },
+    [userId],
   );
 
   // Initial fetch on mount only
@@ -298,37 +311,60 @@ export default function ConversationPage({
     ? onlineUserIds.has(otherParticipant.id)
     : false;
 
-  // Stable ref for the other participant so the realtime effect below does not
-  // re-subscribe every time the conversation object is set.
-  const otherUserIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    otherUserIdRef.current = otherParticipant?.id ?? null;
-  }, [otherParticipant?.id]);
-
   useEffect(() => {
     if (!isTyping) return;
     const timer = setTimeout(() => setIsTyping(false), 3000);
     return () => clearTimeout(timer);
   }, [isTyping]);
 
-  // ⚡ ISSUE 3: Scoped realtime channel for this conversation.
-  //  - Typing: broadcast events (debounced, self-filtered, auto-clear).
-  //  - Read receipts: Postgres Changes on ConversationParticipant — reliable
-  //    and independent of presence heartbeats.
+  // ⚡ ONE private channel per conversation (see supabase/realtime/README.md).
+  //  - Messages: Broadcast from Database. The `Message` AFTER INSERT/UPDATE
+  //    trigger publishes the confirmed row here, so a message is delivered
+  //    exactly once. This replaces two unfiltered `postgres_changes`
+  //    subscriptions plus a client-sent `message` broadcast, which between them
+  //    delivered every message three times and re-fetched it via
+  //    `getMessageDetails` — one extra serverless invocation per receipt.
+  //  - Typing / read receipts / block state: client broadcasts, debounced and
+  //    self-filtered.
   //  - Online status: global `presence:global` channel (PresenceProvider).
   // Full teardown on conversation switch prevents stale-channel leaks.
   useEffect(() => {
     if (!userId || !conversationId) return;
 
-    const channel = supabase.channel(`conversation:${conversationId}`, {
-      config: { broadcast: { self: false } },
-    });
-    roomRef.current = channel;
+    // `privateChannel` is async: it awaits realtime.setAuth() so the
+    // `realtime.messages` policies are evaluated as the signed-in user rather
+    // than as `anon`. The `cancelled` flag drops the channel if this effect is
+    // torn down (conversation switch) before that promise settles.
+    let channel: RealtimeChannel | null = null;
+    let cancelled = false;
 
-    channel
-      .on(
+    void privateChannel(conversationTopic(conversationId)).then((ch) => {
+      if (cancelled) {
+        void supabase.removeChannel(ch);
+        return;
+      }
+      channel = ch;
+      roomRef.current = ch;
+
+      ch.on(
         "broadcast",
-        { event: "CONVERSATION_BLOCKED" },
+        { event: "INSERT" },
+        ({ payload }: { payload: SentMessage }) => {
+          if (!payload?.id) return;
+          handleBroadcastMessage(payload);
+        },
+      )
+        .on(
+          "broadcast",
+          { event: "UPDATE" },
+          ({ payload }: { payload: SentMessage }) => {
+            if (!payload?.id) return;
+            handleBroadcastUpdate(payload);
+          },
+        )
+        .on(
+          "broadcast",
+          { event: "CONVERSATION_BLOCKED" },
         ({
           payload,
         }: {
@@ -414,46 +450,6 @@ export default function ConversationPage({
           updateOtherParticipantLastReadAt(new Date(payload.lastReadAt));
         },
       )
-      .on(
-        "broadcast",
-        { event: "message" },
-        ({ payload }: { payload: BroadcastMessagePayload }) => {
-          if (!payload || payload.userId === userId || !payload.message?.id) {
-            return;
-          }
-          handleBroadcastMessage(payload.message);
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "ConversationParticipant",
-          filter: `conversationId=eq.${conversationId}`,
-        },
-        (
-          payload: RealtimePostgresChangesPayload<{
-            conversationId: string;
-            userId: string;
-            lastReadAt: string | null;
-          }>,
-        ) => {
-          const row = payload.new as {
-            conversationId: string;
-            userId: string;
-            lastReadAt: string | null;
-          };
-          if (row.conversationId !== conversationId) return;
-          if (
-            row.userId === otherUserIdRef.current &&
-            row.userId !== userId &&
-            row.lastReadAt
-          ) {
-            updateOtherParticipantLastReadAt(new Date(row.lastReadAt));
-          }
-        },
-      )
       .subscribe((status: string) => {
         if (status === "SUBSCRIBED") {
           // The initial mark-read can happen before this channel is ready.
@@ -467,6 +463,7 @@ export default function ConversationPage({
           console.warn(`Conversation realtime status: ${status}`);
         }
       });
+    });
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -477,11 +474,12 @@ export default function ConversationPage({
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
       if (typingClearTimerRef.current)
         clearTimeout(typingClearTimerRef.current);
-      supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
       roomRef.current = null;
     };
   }, [
@@ -489,6 +487,7 @@ export default function ConversationPage({
     conversationId,
     broadcastReadReceipt,
     handleBroadcastMessage,
+    handleBroadcastUpdate,
     updateOtherParticipantLastReadAt,
     toast,
   ]);
@@ -520,11 +519,6 @@ export default function ConversationPage({
         .catch(() => {});
     }, 3000);
   }, [userId]);
-
-  // Stable callback to avoid re-subscribing realtime channel
-  const onMessageReceived = useCallback(() => {
-    triggerMarkRead(true);
-  }, [triggerMarkRead]);
 
   // Stable ref for broadcastTyping to avoid resetting typing timeout
   const broadcastTypingRef = useRef(broadcastTyping);
@@ -714,7 +708,7 @@ export default function ConversationPage({
             otherParticipantLastReadAt={otherParticipantLastReadAt}
             registerAppend={handleAppendMessage}
             registerAddFailed={handleRegisterAddFailed}
-            onMessageReceived={onMessageReceived}
+            registerUpdate={handleRegisterUpdate}
             onMessageRejected={handleMessageRejected}
             onSetReplyingTo={setReplyingTo}
           />
