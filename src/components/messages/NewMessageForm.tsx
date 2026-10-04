@@ -119,6 +119,10 @@ export function NewMessageForm({
   }, [search]);
 
   const handleSelectRecipient = async (recipient: Recipient) => {
+    if (recipient.id === user?.id) {
+      toast("You cannot message yourself.", "error");
+      return;
+    }
     if (user) {
       const conversationId = await findDirectConversation(recipient.id);
       if (conversationId) {

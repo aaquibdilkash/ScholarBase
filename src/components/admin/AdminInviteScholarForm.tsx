@@ -22,9 +22,9 @@ import {
   buildScholarOutreachBody,
   DEFAULT_SCHOLAR_OUTREACH_VARIANT,
   generateScholarInviteHtml,
+  getNextScholarInviteContextLine,
   getNextScholarOutreachFieldValue,
   getNextScholarOutreachVariant,
-  getScholarInvitationContextLine,
   type OutreachVariantField,
 } from "@/lib/emails/scholarInvite";
 
@@ -32,8 +32,6 @@ interface InviteDraft {
   [key: string]: string;
   scholarName: string;
   scholarEmail: string;
-  university: string;
-  department: string;
   subject: string;
   greeting: string;
   headline: string;
@@ -42,13 +40,12 @@ interface InviteDraft {
   senderName: string;
   senderRole: string;
   footerText: string;
+  inviteContext: string;
 }
 
 const INITIAL_DRAFT: InviteDraft = {
   scholarName: "",
   scholarEmail: "",
-  university: "",
-  department: "",
   subject: DEFAULT_SCHOLAR_OUTREACH_VARIANT.subject,
   greeting: DEFAULT_SCHOLAR_OUTREACH_VARIANT.greeting,
   headline: DEFAULT_SCHOLAR_OUTREACH_VARIANT.headline,
@@ -57,6 +54,8 @@ const INITIAL_DRAFT: InviteDraft = {
   senderName: "Outreach Team",
   senderRole: "ScholarBase",
   footerText: DEFAULT_SCHOLAR_OUTREACH_VARIANT.footerText,
+  inviteContext:
+    "At the moment, registrations on ScholarBase are invite only. You are being invited, and it would be great if you could invite your fellow scholars to our ScholarBase community.",
 };
 
 const previewUrl = (
@@ -135,8 +134,7 @@ export function AdminInviteScholarForm() {
       Extract<keyof InviteDraft, string>,
       | "scholarName"
       | "scholarEmail"
-      | "university"
-      | "department"
+      | "inviteContext"
       | OutreachVariantField
     >,
   ) => {
@@ -153,6 +151,10 @@ export function AdminInviteScholarForm() {
     updateField("footerText", variant.footerText);
   };
 
+  const applyNextInviteContext = () => {
+    updateField("inviteContext", getNextScholarInviteContextLine(draft.inviteContext));
+  };
+
   const previewHtml = useMemo(
     () =>
       generateScholarInviteHtml({
@@ -162,8 +164,7 @@ export function AdminInviteScholarForm() {
         headline: draft.headline.trim() || INITIAL_DRAFT.headline,
         body: buildScholarOutreachBody({
           body: draft.body.trim() || INITIAL_DRAFT.body,
-          university: draft.university,
-          department: draft.department,
+          inviteContext: draft.inviteContext.trim() || undefined,
         }),
         ctaLabel: draft.ctaLabel.trim() || INITIAL_DRAFT.ctaLabel,
         inviteUrl: previewUrl,
@@ -180,11 +181,6 @@ export function AdminInviteScholarForm() {
     draft.scholarEmail.trim().length > 0 &&
     draft.subject.trim().length > 0 &&
     draft.body.trim().length > 0;
-
-  const contextLine = getScholarInvitationContextLine({
-    university: draft.university,
-    department: draft.department,
-  });
 
   const executeSend = async (isTestSend: boolean) => {
     setIsConfirmOpen(false);
@@ -348,35 +344,6 @@ export function AdminInviteScholarForm() {
               </label>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="space-y-2">
-                <FieldLabel optional>University or college</FieldLabel>
-                <input
-                  type="text"
-                  value={draft.university}
-                  onChange={(event) =>
-                    updateField("university", event.target.value)
-                  }
-                  placeholder="e.g. IGNOU"
-                  maxLength={200}
-                  className={inputClassName}
-                />
-              </label>
-              <label className="space-y-2">
-                <FieldLabel optional>Department</FieldLabel>
-                <input
-                  type="text"
-                  value={draft.department}
-                  onChange={(event) =>
-                    updateField("department", event.target.value)
-                  }
-                  placeholder="e.g. PhD Research"
-                  maxLength={200}
-                  className={inputClassName}
-                />
-              </label>
-            </div>
-
             <label className="block space-y-2">
               <FieldHeader
                 label="Subject line"
@@ -451,12 +418,28 @@ export function AdminInviteScholarForm() {
               />
             </label>
 
-            {contextLine && (
-              <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-xs leading-5 text-violet-900 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-100">
-                <span className="font-semibold">Automatically added:</span>{" "}
-                {contextLine}
+            <label className="block space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <FieldHeader
+                  label="Invite-only context"
+                  showDefault
+                  onUseDefault={() => applyNextInviteContext()}
+                />
+                <span className="text-[11px] text-slate-400">
+                  {draft.inviteContext.length}/500
+                </span>
               </div>
-            )}
+              <textarea
+                rows={3}
+                value={draft.inviteContext}
+                onChange={(event) =>
+                  updateField("inviteContext", event.target.value)
+                }
+                placeholder="Invite-only note appended to the email body..."
+                maxLength={500}
+                className={`${inputClassName} resize-y leading-6`}
+              />
+            </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2">
@@ -555,15 +538,15 @@ export function AdminInviteScholarForm() {
                 )}
                 {isSendingTest ? "Sending test..." : "Send test to me"}
               </Button>
-              <Button
+              <button
                 type="button"
                 disabled={!canSend || isSending || isSendingTest}
                 onClick={() => setIsConfirmOpen(true)}
-                className="h-11 flex-1 gap-2 bg-slate-900 text-xs text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                className="sb-button-primary flex-1 gap-2"
               >
                 <Send className="h-4 w-4" />
                 Send official email
-              </Button>
+              </button>
             </div>
           </div>
         </section>

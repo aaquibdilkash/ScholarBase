@@ -30,23 +30,30 @@ export function CreateSocialPostForm() {
     { content: "", imageUrl: "" },
   );
 
-  // Restore image URL from draft once hydration completes
-  useEffect(() => {
-    if (isRestored && draftFields.imageUrl) {
-      setImageUrl(draftFields.imageUrl);
-    }
-  }, [isRestored, draftFields.imageUrl]);
+  // Restore image URL from the draft once hydration completes. The "have I
+  // already restored?" flag is a REF (not a value comparison like
+  // `draftFields.imageUrl && !imageUrl`) because a value comparison cannot tell
+  // "not restored yet" apart from "the user just removed the image" — both have
+  // an empty local state while the draft still holds a URL. That ambiguity made
+  // removals silently skip persistence and the image reappeared on refresh.
+  const restoredImageRef = useRef<string | null>(null);
 
-  // Persist image URL in draft — gated on isRestored so the initial mount
-  // does not clobber a restored draft image with the empty initial value.
   useEffect(() => {
     if (!isRestored) return;
-    // If the draft has an image but the state hasn't been synced yet, skip
-    // this render — the restore effect will set imageUrl and re-run.
-    if (draftFields.imageUrl && !imageUrl) return;
+
+    // First pass after hydration: adopt the draft value, never overwrite it.
+    if (restoredImageRef.current === null) {
+      const saved = draftFields.imageUrl ?? "";
+      restoredImageRef.current = saved;
+      if (saved) setImageUrl(saved);
+      return;
+    }
+
+    // Afterwards local state is the source of truth — including "" on removal,
+    // which MUST be written to the draft so it survives a refresh.
+    if (draftFields.imageUrl === imageUrl) return;
     updateDraftField("imageUrl", imageUrl);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrl, isRestored, draftFields.imageUrl]);
+  }, [isRestored, draftFields.imageUrl, imageUrl, updateDraftField]);
 
   // Save mentions to draft separately (useFormDraft only handles content and imageUrl)
   const draftMentionsKey = "draft_social_post_mentions";

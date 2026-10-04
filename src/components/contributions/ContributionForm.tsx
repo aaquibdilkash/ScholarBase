@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -85,23 +85,27 @@ export default function ContributionForm({
   const [screenshotUrl, setScreenshotUrl] = useState(
     initialValues?.screenshotUrl ?? "",
   );
-  // Restore screenshotUrl from draft once hydration completes
-  useEffect(() => {
-    if (isRestored && draftFields.screenshotUrl) {
-      setScreenshotUrl(draftFields.screenshotUrl);
-    }
-  }, [isRestored, draftFields.screenshotUrl]);
+  // Restore screenshotUrl from the draft once hydration completes. Uses a REF
+  // flag rather than a `draftFields.screenshotUrl && !screenshotUrl` value
+  // comparison: both "not restored yet" and "user just removed the image" look
+  // identical (empty state, non-empty draft), so the value comparison skipped
+  // the write and the image came back on refresh.
+  const restoredScreenshotRef = useRef<string | null>(null);
 
-  // Persist screenshotUrl in draft — gated on isRestored so the initial mount
-  // does not clobber a restored draft screenshot with the empty initial value.
   useEffect(() => {
     if (!isRestored) return;
-    // If the draft has a screenshot but the state hasn't been synced yet, skip
-    // this render — the restore effect will set screenshotUrl and re-run.
-    if (draftFields.screenshotUrl && !screenshotUrl) return;
+
+    if (restoredScreenshotRef.current === null) {
+      const saved = draftFields.screenshotUrl ?? "";
+      restoredScreenshotRef.current = saved;
+      if (saved) setScreenshotUrl(saved);
+      return;
+    }
+
+    // Local state is authoritative from here on — "" on removal must persist.
+    if (draftFields.screenshotUrl === screenshotUrl) return;
     updateDraftField("screenshotUrl", screenshotUrl);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screenshotUrl, isRestored, draftFields.screenshotUrl]);
+  }, [isRestored, draftFields.screenshotUrl, screenshotUrl, updateDraftField]);
 
   const isMessageOverLimit =
     getRichTextLength(draftFields.message) > MAX_CONTRIBUTION_MESSAGE;

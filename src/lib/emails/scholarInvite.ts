@@ -256,38 +256,49 @@ export function applyScholarOutreachVariant<T extends OutreachVariant>(
   };
 }
 
-export function getScholarInvitationContextLine({
-  university,
-  department,
-}: {
-  university?: string;
-  department?: string;
-}): string {
-  const cleanUniversity = university?.trim();
-  const cleanDepartment = department?.trim();
+export const SCHOLAR_INVITE_CONTEXT_LINES: string[] = [
+  "At the moment, registrations on ScholarBase are invite only. You are being invited, and it would be great if you could invite your fellow scholars to our ScholarBase community.",
+  "Right now, ScholarBase sign-ups are invite only. You're on the list, and it would mean a lot if you could also invite your fellow scholars to join our community.",
+  "ScholarBase is currently invite only for new sign-ups. Since you're being invited, we'd love your help in inviting your fellow scholars to our growing community.",
+  "New registrations on ScholarBase are invite only at this stage. You're being invited personally, and it would be great if you could invite your fellow scholars to our community as well.",
+];
 
-  if (!cleanUniversity && !cleanDepartment) return "";
+export function getNextScholarInviteContextLine(
+  current?: string,
+): string {
+  const normalized = current?.trim();
+  if (!normalized) return SCHOLAR_INVITE_CONTEXT_LINES[0];
 
-  const target = cleanUniversity && cleanDepartment
-    ? `from the ${cleanDepartment} at ${cleanUniversity}`
-    : cleanUniversity
-      ? `from ${cleanUniversity}`
-      : `in ${cleanDepartment}`;
+  const currentIndex = SCHOLAR_INVITE_CONTEXT_LINES.findIndex(
+    (line) => line === normalized,
+  );
 
-  return `At the moment, we're inviting only PhD scholars ${target}.`;
+  const nextIndex =
+    currentIndex >= 0
+      ? (currentIndex + 1) % SCHOLAR_INVITE_CONTEXT_LINES.length
+      : Math.floor(Math.random() * SCHOLAR_INVITE_CONTEXT_LINES.length);
+
+  return SCHOLAR_INVITE_CONTEXT_LINES[nextIndex] ?? SCHOLAR_INVITE_CONTEXT_LINES[0];
+}
+
+export function getScholarInvitationContextLine(
+  inviteContext?: string,
+): string {
+  const trimmed = inviteContext?.trim();
+  if (trimmed) return trimmed;
+
+  return SCHOLAR_INVITE_CONTEXT_LINES[0];
 }
 
 export function buildScholarOutreachBody({
   body,
-  university,
-  department,
+  inviteContext,
 }: {
   body: string;
-  university?: string;
-  department?: string;
+  inviteContext?: string;
 }): string {
-  const contextLine = getScholarInvitationContextLine({ university, department });
-  return contextLine ? `${body.trim()}\n\n${contextLine}` : body.trim();
+  const contextLine = getScholarInvitationContextLine(inviteContext);
+  return `${body.trim()}\n\n${contextLine}`;
 }
 
 export function generateScholarInvitePlainText({

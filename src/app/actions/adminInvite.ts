@@ -16,12 +16,11 @@ const MAX_SUBJECT_LENGTH = 150;
 const MAX_GREETING_LENGTH = 50;
 const MAX_HEADLINE_LENGTH = 150;
 const MAX_BODY_LENGTH = 8_000;
-const MAX_UNIVERSITY_LENGTH = 200;
-const MAX_DEPARTMENT_LENGTH = 200;
 const MAX_CTA_LENGTH = 80;
 const MAX_SENDER_NAME_LENGTH = 120;
 const MAX_SENDER_ROLE_LENGTH = 160;
 const MAX_FOOTER_LENGTH = 300;
+const MAX_INVITE_CONTEXT_LENGTH = 500;
 
 const sendInviteSchema = z.object({
   scholarName: z.string().trim().max(MAX_NAME_LENGTH),
@@ -30,12 +29,11 @@ const sendInviteSchema = z.object({
   greeting: z.string().trim().min(1).max(MAX_GREETING_LENGTH),
   headline: z.string().trim().min(1).max(MAX_HEADLINE_LENGTH),
   body: z.string().trim().min(1).max(MAX_BODY_LENGTH),
-  university: z.string().trim().max(MAX_UNIVERSITY_LENGTH).optional().default(""),
-  department: z.string().trim().max(MAX_DEPARTMENT_LENGTH).optional().default(""),
   ctaLabel: z.string().trim().min(1).max(MAX_CTA_LENGTH),
   senderName: z.string().trim().min(1).max(MAX_SENDER_NAME_LENGTH),
   senderRole: z.string().trim().max(MAX_SENDER_ROLE_LENGTH),
   footerText: z.string().trim().max(MAX_FOOTER_LENGTH),
+  inviteContext: z.string().trim().max(MAX_INVITE_CONTEXT_LENGTH).optional().default(""),
   isTestSend: z.boolean().optional().default(false),
 });
 
@@ -148,8 +146,7 @@ export async function sendAdminScholarInviteAction(
     headline: data.headline,
     body: buildScholarOutreachBody({
       body: data.body,
-      university: data.university,
-      department: data.department,
+      inviteContext: data.inviteContext.trim() || undefined,
     }),
     ctaLabel: data.ctaLabel,
     inviteUrl: getSiteUrl(),

@@ -10,7 +10,8 @@ import { useAuthModal } from "@/components/interactions/AuthModal";
 import { useUser } from "@/hooks/useUser";
 import { useToast } from "@/components/ui/Toast";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { MAX_FILE_BYTES } from "@/lib/image-constants";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
+import { isValidImageUrl, MAX_FILE_BYTES } from "@/lib/image-constants";
 
 export type ImageUploadKind = "social" | "contribution" | "avatar";
 
@@ -42,6 +43,11 @@ type ImageUploadFieldProps = {
  * asset, and the remove button (with spinner) deletes the asset when it is
  * still a draft and clears the field for published assets — whose server-side
  * deletion is deferred to the authorized save mutation.
+ *
+ * Removal is ONLY reachable via the ✕ badge in the top-right corner of the
+ * preview; clicking anywhere else on the preview opens the shared
+ * ImageLightbox (same as the feed, profile avatar, etc.) so a stray click can
+ * never destroy a draft.
  */
 export function ImageUploadField({
   kind,
@@ -62,6 +68,8 @@ export function ImageUploadField({
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  // Lightbox visibility for the preview thumbnail.
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   // Raw file pending crop in the dialog; the upload only starts after the
   // user confirms their crop selection.
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -139,6 +147,7 @@ export function ImageUploadField({
         return;
       }
       onChange("");
+      setLightboxOpen(false);
       setUploadError("");
     } finally {
       setRemoving(false);
@@ -183,25 +192,38 @@ export function ImageUploadField({
       </div>
 
       {value && (
-        <div className="relative group mt-2 w-fit">
-          <Image
-            src={value}
-            alt="Uploaded image preview"
-            width={previewSize}
-            height={previewSize}
-            unoptimized
-            style={{ width: previewSize, height: previewSize }}
-            className={`object-cover border ${
-              circular ? "rounded-full border-2" : "rounded-lg"
-            } border-slate-200 dark:border-slate-700`}
-          />
-          {/* Always-visible remove button (works on touch/mobile) */}
+        <div className="relative mt-2 w-fit">
+          {/* Clicking the preview opens the shared lightbox. The ✕ badge is a
+              SIBLING (not nested) so its click can never bubble into this. */}
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label="Open image preview"
+            title="Click to enlarge"
+            className={`block cursor-zoom-in border border-slate-200 transition hover:opacity-90 dark:border-slate-700 ${
+              circular ? "rounded-full" : "rounded-lg"
+            }`}
+          >
+            <Image
+              src={value}
+              alt="Uploaded image preview"
+              width={previewSize}
+              height={previewSize}
+              unoptimized
+              style={{ width: previewSize, height: previewSize }}
+              className={`block object-cover ${
+                circular ? "rounded-full" : "rounded-lg"
+              }`}
+            />
+          </button>
+          {/* Only removal affordance: the ✕ badge in the top-right corner. */}
           <button
             type="button"
             onClick={handleRemove}
             aria-label="Remove image"
+            title="Remove image"
             disabled={removing}
-            className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm hover:bg-red-600 disabled:opacity-80"
+            className="absolute -top-1.5 -right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition hover:bg-red-600 disabled:opacity-80"
           >
             {removing ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -209,16 +231,15 @@ export function ImageUploadField({
               <span className="text-xs font-bold">×</span>
             )}
           </button>
-          {/* Hover overlay: Remove image (desktop) */}
-          <div
-            onClick={handleRemove}
-            className={`absolute inset-0 flex cursor-pointer items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100 ${
-              circular ? "rounded-full" : "rounded-lg"
-            }`}
-          >
-            <span className="text-xs font-semibold text-white">Remove</span>
-          </div>
         </div>
+      )}
+
+      {lightboxOpen && isValidImageUrl(value) && (
+        <ImageLightbox
+          images={[value]}
+          index={0}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
 
       {value && successHint && (
