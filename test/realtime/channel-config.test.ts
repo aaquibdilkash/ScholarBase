@@ -104,14 +104,13 @@ describe("Realtime channels are private", () => {
 
     // Each helper topic prefix must have a branch in the `case` expression, or
     // the policy's `else false` denies it and the topic silently receives nothing.
-    for (const prefix of ["conversation", "user", "presence"]) {
+    for (const prefix of ["conversation", "presence"]) {
       expect(helper).toContain(`${prefix}:`);
       expect(sql).toMatch(new RegExp(`when '${prefix}'`));
     }
 
     // The trigger must publish to the same message topics the client joins.
     expect(sql).toContain("'conversation:' || NEW.\"conversationId\"");
-    expect(sql).toContain("'user:' || recipient.\"userId\"");
   });
 
   it("documents the ConversationParticipant policy the realtime policy depends on", () => {
@@ -134,7 +133,7 @@ describe("Realtime channels are private", () => {
     const sql = code(readFileSync(SQL, "utf8")).replace(/--[^\n]*/g, "");
 
     const calls = [...sql.matchAll(/auth\.uid\(\)(\s*::\s*\w+)?/g)];
-    expect(calls.length).toBeGreaterThanOrEqual(7);
+    expect(calls.length).toBeGreaterThanOrEqual(5);
 
     const uncasted = calls.filter(([, cast]) => !cast);
     expect(uncasted).toEqual([]);

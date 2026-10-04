@@ -35,8 +35,11 @@ import ThemeToggle from "@/components/layout/ThemeToggle";
 import SignOutButton from "@/components/auth/SignOutButton";
 import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/utils/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
-import { privateChannel, userTopic } from "@/lib/realtime";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import { privateChannel } from "@/lib/realtime";
 
 type SidebarUser = {
   id: string;
@@ -52,17 +55,17 @@ type SidebarProps = {
 };
 
 /**
- * Minimal unread-badge ping pushed by the `Message` trigger
- * (`supabase/realtime/broadcast-messages.sql`) to the per-recipient `user:<id>`
- * topic. Deliberately small — it fires for every conversation the user is in,
- * not just the one they have open.
+ * Raw `Message` row as delivered by `postgres_changes` for the unread badge.
+ *
+ * Columns only — `postgres_changes` never sends joined relations — so there is no
+ * sender name and the toast falls back to "New message". That matches the
+ * behaviour before the Broadcast migration.
  */
 type RealtimeMessageRow = {
   id: string;
   body: string;
   conversationId: string;
   senderId: string;
-  senderName: string | null;
   createdAt: string;
 };
 
@@ -199,7 +202,10 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       setOptimisticUnreadMessages((count) => count + 1);
     };
 
-    const handleBadgePing = (raw: RealtimeMessageRow) => {
+    const handleDatabaseMessage = (
+      payload: RealtimePostgresChangesPayload<RealtimeMessageRow>,
+    ) => {
+      const raw = payload.new as RealtimeMessageRow;
       if (!raw.conversationId || !raw.id || !raw.senderId) return;
 
       // One shared event feeds the conversation sidebar and the main badge.
@@ -211,7 +217,6 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
               id: raw.id,
               body: raw.body,
               senderId: raw.senderId,
-              sender: { name: raw.senderName ?? null },
               createdAt: raw.createdAt,
             },
           },
@@ -219,41 +224,50 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       );
     };
 
-    // ⚡ UNREAD BADGE over Broadcast from Database.
+    // ⚡ UNREAD BADGE — postgres_changes, on a PRIVATE channel.
     //
-    // One small ping per recipient, instead of a `postgres_changes` subscription
-    // that every connected browser has to be authorized against on every write.
+    // Two earlier attempts used the per-recipient `user:<id>` Broadcast topic.
+    // It never delivered, even though `conversation:<id>` — published by the same
+    // trigger, in the same transaction, with the same realtime.send() call — works
+    // and drives the live thread. Rather than keep guessing at that, the badge uses
+    // the mechanism that is known to deliver and is made private instead.
     //
-    // ⚠️ THE DEP ARRAY BELOW IS THE WHOLE REASON THIS WORKS. It must key on
-    // `user?.id` — a primitive — and never on `user`. `user` is a fresh object
-    // literal built in the root layout (src/app/layout.tsx), so its identity
-    // changes on every server render; an effect keyed on it tears down and
-    // re-joins the channel too often to be relied on to deliver, which is what
-    // silently killed the badge when this was first written.
+    // `private: true` matters twice over: private channels can subscribe to
+    // Postgres Changes, and it is what lets "Allow public access" be disabled in
+    // the dashboard without taking the badge down with it.
+    //
+    // This is NOT a table-wide fan-out. RLS policy "participants read their
+    // conversations" (installed by supabase/realtime/broadcast-messages.sql)
+    // restricts delivery to rows in the subscriber's own conversations, so each
+    // per-subscriber authorization check is an indexed two-column lookup and no
+    // user ever receives another user's messages.
+    //
+    // The dependency is `user?.id`, a primitive, NOT `user`. `user` is a fresh
+    // object literal from the root layout (src/app/layout.tsx), so keying on it
+    // re-joins this channel on every server render.
     let channel: RealtimeChannel | null = null;
     let cancelled = false;
 
-    void privateChannel(userTopic(user.id)).then((ch) => {
-      if (cancelled) {
-        void supabase.removeChannel(ch);
-        return;
-      }
-      channel = ch;
-      ch.on(
-        "broadcast",
-        { event: "INSERT" },
-        ({ payload }: { payload: RealtimeMessageRow }) => {
-          if (payload) handleBadgePing(payload);
-        },
-      ).subscribe((status: string) => {
-        if (
-          status !== "SUBSCRIBED" &&
-          process.env.NODE_ENV === "development"
-        ) {
-          console.warn(`Badge realtime status: ${status}`);
+    void privateChannel(`badge-messages:${user.id}`)
+      .then((ch) => {
+        if (cancelled) {
+          void supabase.removeChannel(ch);
+          return;
         }
+        channel = ch;
+        ch.on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "Message" },
+          handleDatabaseMessage,
+        ).subscribe((status: string) => {
+          if (
+            status !== "SUBSCRIBED" &&
+            process.env.NODE_ENV === "development"
+          ) {
+            console.warn(`Badge realtime status: ${status}`);
+          }
+        });
       });
-    });
 
     window.addEventListener(
       "message-received",
