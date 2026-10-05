@@ -129,6 +129,13 @@ export const SEO_PAGES = {
         path: "/research-tools",
         section: "Research Tools",
     },
+    shield: {
+        title: "Scholar Shield AI Detector | ScholarBase",
+        description:
+            "Check AI writing risk locally in your browser and restructure flagged academic prose.",
+        path: "/shield",
+        section: "Scholar Shield",
+    },
     scholars: {
         title: "Scholars | ScholarBase",
         description:

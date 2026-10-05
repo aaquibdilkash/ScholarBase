@@ -45,28 +45,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ toast }}>
       {children}
 
-      {/* Toast container – fixed top-center */}
-      <div className="fixed top-6 left-1/2 z-9999 flex flex-col gap-2 pointer-events-none -translate-x-1/2 w-[90%] sm:w-auto max-w-md items-center">
+      {/* Toast container – fixed top-center, widened on laptop so text fits in 1-2 lines */}
+      <div className="fixed top-6 left-1/2 z-9999 flex flex-col gap-2 pointer-events-none -translate-x-1/2 w-[calc(100%-2rem)] sm:w-[520px] lg:w-[600px] sm:max-w-[520px] lg:max-w-[600px] items-center">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto animate-in slide-in-from-top-4 fade-in rounded-2xl border px-5 py-3 text-sm font-medium shadow-[0_12px_32px_rgba(15,23,42,0.15)] backdrop-blur-xl dark:shadow-black/30 ${
+            className={`pointer-events-auto w-full animate-in slide-in-from-top-4 fade-in rounded-2xl border px-5 py-3.5 text-sm font-medium shadow-[0_12px_32px_rgba(15,23,42,0.15)] backdrop-blur-xl dark:shadow-black/30 ${
               t.variant === "destructive"
                 ? "border-red-200/70 bg-red-50 text-red-900 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-100"
                 : "border-slate-200/70 bg-white text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
             }`}
           >
-            <span className="inline-flex items-center gap-2">
+            <div className="flex items-start gap-2.5 text-left">
               {t.variant === "destructive" ? (
-                <XCircle className="w-4 h-4 shrink-0 text-red-500 dark:text-red-300" />
+                <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500 dark:text-red-300" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-green-500 dark:text-green-300" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-500 dark:text-green-300" />
               )}
-              {t.title}
-              {t.description && (
-                <span className="block text-xs opacity-80">{t.description}</span>
-              )}
-            </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold leading-snug">{t.title}</div>
+                {t.description && (
+                  <p className="mt-0.5 text-[13px] font-normal leading-snug opacity-80">{t.description}</p>
+                )}
+              </div>
+            </div>
           </div>
         ))}
       </div>

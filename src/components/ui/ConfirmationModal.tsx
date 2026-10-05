@@ -15,6 +15,7 @@ interface ConfirmationModalProps {
   confirmLabel?: string;
   confirmVariant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   confirmingLabel?: string;
+  confirmClassName?: string;
 }
 
 export function ConfirmationModal({
@@ -27,6 +28,7 @@ export function ConfirmationModal({
   confirmLabel = "Delete",
   confirmVariant = "destructive",
   confirmingLabel = "Deleting...",
+  confirmClassName,
 }: ConfirmationModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -54,16 +56,31 @@ export function ConfirmationModal({
             <Button onClick={onClose} variant="outline" disabled={isConfirming}>
               Cancel
             </Button>
-            <Button onClick={onConfirm} variant={confirmVariant} disabled={isConfirming}>
-              {isConfirming ? (
-                <span className="inline-flex items-center gap-2">
-                  <Loader2 className="animate-spin h-4 w-4" />
-                  {confirmingLabel}
-                </span>
-              ) : (
-                confirmLabel
-              )}
-            </Button>
+            {confirmClassName ? (
+              /* Raw button so sb-button-primary wins outright (clsx-only cn
+                 cannot merge away the Button variant's utility classes). */
+              <button type="button" onClick={onConfirm} disabled={isConfirming} className={confirmClassName}>
+                {isConfirming ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    {confirmingLabel}
+                  </span>
+                ) : (
+                  confirmLabel
+                )}
+              </button>
+            ) : (
+              <Button onClick={onConfirm} variant={confirmVariant} disabled={isConfirming}>
+                {isConfirming ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="animate-spin h-4 w-4" />
+                    {confirmingLabel}
+                  </span>
+                ) : (
+                  confirmLabel
+                )}
+              </Button>
+            )}
           </div>
         </div>
       </div>

@@ -319,6 +319,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Research Feed", href: "/feed", icon: <Newspaper className="h-6 w-6 shrink-0" /> },
       { name: "Research Scholars", href: "/scholars", icon: <Users className="h-6 w-6 shrink-0" /> },
       { name: "Messages", href: "/messages", icon: <MessageSquare className="h-6 w-6 shrink-0" />, badge: optimisticUnreadMessages },
+      { name: "Scholar Shield", href: "/shield", icon: <Shield className="h-6 w-6 shrink-0" /> },
       { name: "Supervisor Suggest", href: "/supervisor", icon: <Star className="h-6 w-6 shrink-0" /> },
       { name: "Research Journals", href: "/journals", icon: <List className="h-6 w-6 shrink-0" /> },
       { name: "Research Survey", href: "/surveys", icon: <ClipboardList className="h-6 w-6 shrink-0" /> },

@@ -240,3 +240,48 @@ export const AUTH_EMAIL_TIP = "Your registered email address for login.";
 export const AUTH_PASSWORD_TIP = "Your account password (minimum 8 characters).";
 export const AUTH_NEW_PASSWORD_TIP = "Choose a strong password for your account.";
 export const AUTH_CONFIRM_PASSWORD_TIP = "Re-enter your new password to confirm.";
+
+
+// -----------------------------------------------------------------------------
+// SCHOLAR SHIELD MODULE
+// -----------------------------------------------------------------------------
+export const SHIELD_LOCAL_INPUT_TIP =
+    "Your draft is analyzed only inside this browser. The text is never uploaded to any server.";
+export const SHIELD_UPLOAD_TIP =
+    "Load a PDF, DOCX, or TXT file. Text is extracted in your browser only and is never transmitted anywhere.";
+export const SHIELD_FREE_CACHE_TIP =
+    "Deletes the downloaded neural model weights (~130 MB) stored in this browser to free space. Quick Audit keeps working instantly; Deep Scan simply re-downloads the weights later.";
+export const SHIELD_QUICK_AUDIT_TIP =
+    "Instant check with zero downloads that measures sentence rhythm: burstiness, uniform sentence lengths, and formulaic transitions. Cadence only — it does not read vocabulary.";
+export const SHIELD_DEEP_SCAN_TIP =
+    "Runs the on-device neural AI model (RoBERTa via WebAssembly). Weights are cached in this browser; your text never leaves the device.";
+export const SHIELD_BURSTINESS_TIP =
+    "Sigma (σ) measures how much sentence lengths vary. Human writing usually scores above 7.0; a low value means machine-like, uniform sentence rhythm.";
+export const SHIELD_ENTROPY_TIP =
+    "Shannon entropy (H) measures variety in word usage. Higher values mean more varied, natural vocabulary.";
+export const SHIELD_GUIRAUD_TIP =
+    "Guiraud richness (R) divides unique words by the square root of total words. Higher R means denser academic vocabulary, which can mask rhythm signals.";
+export const SHIELD_CADENCE_TIP =
+    "Cadence result: the rhythm-only risk score from sentence statistics, before any neural analysis runs.";
+export const SHIELD_NEURAL_TIP =
+    "Neural result: the AI probability produced by the local language model. 'Not run' means only the Quick Audit has been used.";
+export const SHIELD_BALANCED_TIP =
+    "Balanced result: cadence and neural signals fused with vocabulary-aware damping. This combined verdict is the one to trust.";
+export const SHIELD_FLAG_RISK_TIP =
+    "Overall likelihood that the text shows AI-writing patterns, combining the cadence and neural signals.";
+export const SHIELD_HEATMAP_TIP =
+    "Each sentence is shaded by its risk level. Hover a shaded sentence to see which structural patterns triggered it.";
+export const SHIELD_DELTA_TIP =
+    "Delta (Δ) is the word-count difference between a sentence and its neighbours. Small deltas mean a monotonous rhythm.";
+export const SHIELD_PDF_TIP =
+    "Downloads a multi-page report (cover, overview, highlighted transcript, audit table) compiled entirely in this browser.";
+export const SHIELD_HUMANIZE_TIP =
+    "Sends only the flagged paragraph to the Groq 120B model for restructuring. The rest of your draft is never sent.";
+export const SHIELD_REWRITE_INPUT_TIP =
+    "Paste the flagged paragraph here. This exact text is what will be sent to the humanizer.";
+export const SHIELD_REWRITE_OUTPUT_TIP =
+    "The restructured text, with the local risk score before and after humanizing.";
+export const SHIELD_DRAFT_TIP =
+    "Your text is saved in this browser automatically, so it is still here after a refresh until you clear it.";
+export const SHIELD_MODEL_CONSENT_TIP =
+    "The neural model is downloaded once and cached in this browser so future scans run instantly and offline.";
