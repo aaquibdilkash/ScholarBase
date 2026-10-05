@@ -38,6 +38,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 48,
     fontSize: 9.5,
     color: C.body,
+    // CSS-style multiplier: 1.5 x fontSize = ~14.25pt line box (safe).
+    // NOTE: a unitless lineHeight is a RATIO in react-pdf — a value like 32
+    // would mean 32 x 27pt = 864pt > page height and loops page-splitting
+    // forever (diegomura/react-pdf#2884) — hangs "Generating PDF...".
     lineHeight: 1.5,
     backgroundColor: C.white,
   },
@@ -73,7 +77,7 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 7.5, color: C.faint },
   // ---- Cover ----------------------------------------------------------------
   eyebrow: { fontSize: 8, letterSpacing: 2.4, color: C.blue, fontWeight: "bold" },
-  coverTitle: { fontSize: 27, fontWeight: "bold", color: C.ink, marginTop: 10, lineHeight: 32 },
+  coverTitle: { fontSize: 27, fontWeight: "bold", color: C.ink, marginTop: 10, lineHeight: 1.2 },
   rule: { width: 56, height: 4, backgroundColor: C.blue, marginVertical: 14 },
   coverSubtitle: { fontSize: 11, color: C.slate, marginBottom: 26, maxWidth: "80%" },
   verdictCard: {

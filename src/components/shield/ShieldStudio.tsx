@@ -341,8 +341,8 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
                 <InfoTooltip message={SHIELD_FREE_CACHE_TIP} />
               </div>
             </div>
-            <div className="relative">
-            <textarea value={inputText} onChange={(e) => { setInputText(e.target.value); updateDraftField("detector", e.target.value); setStatReport(null); setNeuralScore(null); }} placeholder="Paste confidential draft, thesis chapter... or drag & drop a PDF / DOCX here" rows={18} className="h-[460px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-relaxed text-slate-900 placeholder-slate-400 focus:border-slate-950 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:placeholder-slate-600 dark:focus:border-slate-100" />
+            <div className="relative min-h-[460px] flex-1">
+            <textarea value={inputText} onChange={(e) => { setInputText(e.target.value); updateDraftField("detector", e.target.value); setStatReport(null); setNeuralScore(null); }} placeholder="Paste confidential draft, thesis chapter... or drag & drop a PDF / DOCX here" rows={18} className="h-full min-h-[460px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-relaxed text-slate-900 placeholder-slate-400 focus:border-slate-950 focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:placeholder-slate-600 dark:focus:border-slate-100" />
             {isDragging && (
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-500 bg-white/85 backdrop-blur-sm dark:bg-slate-950/85">
                 <UploadCloud className="h-10 w-10 animate-bounce text-slate-500" />
