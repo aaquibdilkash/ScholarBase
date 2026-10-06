@@ -392,4 +392,74 @@ describe("PwaInstallProvider (event timing)", () => {
 
     expect(container.innerHTML).toBe(before);
   });
+
+  it("re-offers the install after the user deletes the installed app", async () => {
+    // The reported bug: uninstalling ScholarBase leaves `sb:pwa-installed`
+    // behind, so the site keeps saying "installed" until site data is cleared.
+    // When THIS origin previously saw the install through
+    // getInstalledRelatedApps, an empty result from the same API on the same
+    // origin IS the uninstall signal — the only case where a negative proves
+    // absence.
+    let installed = true;
+    patchNavigator({
+      serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
+      getInstalledRelatedApps: () =>
+        Promise.resolve(installed ? [{ platform: "web", id: "/", url: "/feed" }] : []),
+    });
+    draw();
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Positive sighting: installed state + the confirmation flag this fix keys on.
+    expect(status()).toBe("unavailable");
+    expect(window.localStorage.getItem("sb:pwa-installed")).toBe("1");
+    expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe("1");
+
+    // The user deletes the app; returning to the tab re-probes.
+    installed = false;
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(status()).toBe("checking");
+    expect(text()).toContain("Install app");
+    expect(window.localStorage.getItem("sb:pwa-installed")).toBe(null);
+    expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe(null);
+  });
+
+  it("also re-checks when the window regains focus", async () => {
+    // Desktop: the tab never hides while the user deletes the app from
+    // chrome://apps or the OS in another window, so visibilitychange never
+    // fires — window focus is the only in-session uninstall signal.
+    let installed = true;
+    patchNavigator({
+      serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
+      getInstalledRelatedApps: () =>
+        Promise.resolve(installed ? [{ platform: "web", id: "/" }] : []),
+    });
+    draw();
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(status()).toBe("unavailable");
+
+    installed = false;
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(status()).toBe("checking");
+    expect(text()).toContain("Install app");
+  });
 });

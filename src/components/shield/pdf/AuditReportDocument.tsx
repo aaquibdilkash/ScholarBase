@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
   },
   bandText: { color: "#e2e8f0", fontSize: 7.5, letterSpacing: 1.4 },
   bandId: { color: C.faint, fontSize: 7.5, letterSpacing: 0.6 },
+  bandPowered: { color: C.faint, fontSize: 6.5, letterSpacing: 0.4 },
   footer: {
     position: "absolute",
     bottom: 0,
@@ -83,14 +84,15 @@ const styles = StyleSheet.create({
   verdictCard: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: C.line,
     borderRadius: 6,
     padding: 16,
     marginBottom: 24,
   },
-  verdictScore: { fontSize: 40, fontWeight: "bold", width: 110, textAlign: "center" },
-  verdictDivider: { width: 1, height: 46, backgroundColor: C.line, marginHorizontal: 14 },
+  verdictScore: { fontSize: 40, fontWeight: "bold", width: 110, textAlign: "center", lineHeight: 1 },
+  verdictDivider: { width: 1, height: 36, backgroundColor: C.line, marginHorizontal: 14 },
   verdictLabel: { fontSize: 10, fontWeight: "bold", letterSpacing: 1.2 },
   verdictHint: { fontSize: 8.5, color: C.muted, marginTop: 4 },
   // ---- Tables ---------------------------------------------------------------
@@ -119,13 +121,14 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
     borderRadius: 6,
     padding: 16,
     marginBottom: 18,
   },
-  bannerScore: { fontSize: 34, fontWeight: "bold", width: 96, textAlign: "center" },
-  bannerDivider: { width: 1, height: 40, marginHorizontal: 14, opacity: 0.3 },
+  bannerScore: { fontSize: 34, fontWeight: "bold", width: 96, textAlign: "center", lineHeight: 1 },
+  bannerDivider: { width: 1, height: 30, marginHorizontal: 14, opacity: 0.3 },
   bannerLabel: { fontSize: 10, fontWeight: "bold", letterSpacing: 1 },
   bannerSub: { fontSize: 8.5, marginTop: 3 },
   noteBox: {
@@ -139,12 +142,39 @@ const styles = StyleSheet.create({
     lineHeight: 1.45,
   },
   sectionEyebrow: { fontSize: 7.5, letterSpacing: 2, color: C.blue, fontWeight: "bold", marginBottom: 3 },
+  // ---- Branding --------------------------------------------------------------
+  brandLockup: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  brandIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 7,
+    backgroundColor: "#020617",
+    borderWidth: 0.5,
+    borderColor: "#334155",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+    flexShrink: 0,
+    alignSelf: "center",
+  },
+  brandIconS: { color: "#ffffff", fontSize: 15, fontWeight: "bold", lineHeight: 1 },
+  brandIconB: { color: "#3b82f6", fontSize: 15, fontWeight: "bold", lineHeight: 1 },
+  brandText: { flexDirection: "column", justifyContent: "center" },
+  brandName: { fontSize: 16, fontWeight: "bold", color: "#0f172a", letterSpacing: -0.3, lineHeight: 1.1 },
+  brandNameAccent: { color: "#2563eb" },
+  brandByline: { fontSize: 7.5, letterSpacing: 0.4, color: "#64748b", marginTop: 1.5, lineHeight: 1.2 },
   sectionTitle: { fontSize: 15, fontWeight: "bold", color: C.ink, marginBottom: 12 },
+  appendixDesc: { fontSize: 10, color: "#334155", lineHeight: 1.5, marginBottom: 14 },
+  appendixLegendContainer: { flexDirection: "row", flexWrap: "wrap", backgroundColor: "#f8fafc", borderWidth: 0.5, borderColor: "#e2e8f0", borderRadius: 4, padding: 8, marginTop: 4, marginBottom: 10 },
+  appendixLegendItem: { flexDirection: "row", alignItems: "center", marginRight: 8 },
+  appendixLegendLabel: { fontSize: 9, fontWeight: "bold", color: "#1e293b", marginRight: 3 },
+  appendixLegendValue: { fontSize: 9, color: "#334155" },
   legend: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  swatch: { width: 14, height: 9, backgroundColor: "#fee2e2", marginRight: 6 },
-  legendText: { fontSize: 8, color: C.muted },
+  swatch: { width: 14, height: 9, backgroundColor: "#fee2e2", marginRight: 6, alignSelf: "center" },
+  legendText: { fontSize: 9.5, color: "#1e293b", lineHeight: 1.35 },
   paragraph: { marginBottom: 10, textAlign: "justify" },
-  flagged: { backgroundColor: "#fee2e2", color: "#991b1b" },
+  flagged: { backgroundColor: "#fee2e2", color: "#991b1b", paddingTop: 1.5, paddingBottom: 1.5 },
   plain: { color: C.body },
 });
 
@@ -171,12 +201,25 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
     : "Cadence-weighted — neural model not run";
 
   return (
-    <Document title={`ScholarShield Report — ${title}`} author="ScholarShield" subject="On-device AI writing risk report" creator="ScholarShield (computed locally)" producer="@react-pdf/renderer — generated in-browser">
+    <Document title={`ScholarShield Report — ${title}`} author="ScholarShield · ScholarBase" subject="ScholarShield AI writing risk report — powered by ScholarBase" creator="ScholarShield (computed locally by ScholarBase)" producer="@react-pdf/renderer — generated in-browser">
       {/* ------------------------------------------------------------ COVER */}
       <Page size="A4" style={styles.page}>
         <View style={styles.band} fixed>
           <Text style={styles.bandText}>SCHOLARSHIELD</Text>
+          <Text style={styles.bandPowered}>powered by ScholarBase</Text>
           <Text style={styles.bandId}>{submissionId}</Text>
+        </View>
+        <View style={styles.brandLockup}>
+          <View style={styles.brandIcon}>
+            <Text style={styles.brandIconS}>S</Text>
+            <Text style={styles.brandIconB}>B</Text>
+          </View>
+          <View style={styles.brandText}>
+            <Text style={styles.brandName}>
+              Scholar<Text style={styles.brandNameAccent}>Base</Text>
+            </Text>
+            <Text style={styles.brandByline}>Research Community Platform</Text>
+          </View>
         </View>
         <Text style={styles.eyebrow}>ON-DEVICE AI WRITING RISK REPORT</Text>
         <Text style={styles.coverTitle}>{title}</Text>
@@ -189,7 +232,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           <View style={{ flex: 1 }}>
             <Text style={[styles.verdictLabel, { color: riskColor(overallScore) }]}>{riskLabel(overallScore)}</Text>
             <Text style={styles.verdictHint}>Balanced result — cadence {cadenceScore}% · neural {neuralScore !== null ? `${neuralScore}%` : "not run"}</Text>
-            <Text style={styles.verdictHint}>Burstiness σ {statProfile.burstinessSigma} · vocabulary R {statProfile.guiraudIndex}</Text>
+            <Text style={styles.verdictHint}>Burstiness sigma {statProfile.burstinessSigma} · vocabulary R {statProfile.guiraudIndex}</Text>
           </View>
         </View>
 
@@ -206,7 +249,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           <Text>HOW TO READ THIS REPORT — the balanced result on the cover is the headline verdict. Page 2 reports the cadence and neural signals separately before showing the balanced result, page 3 highlights flagged sentences in your own text, and page 4 lists each flag with its trigger.</Text>
         </View>
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Compiled locally · no data left this device</Text>
+          <Text style={styles.footerText}>powered by ScholarBase · compiled locally, no data left this device</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
@@ -215,6 +258,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
       <Page size="A4" style={styles.page}>
         <View style={styles.band} fixed>
           <Text style={styles.bandText}>SCHOLARSHIELD · DIAGNOSTIC OVERVIEW</Text>
+          <Text style={styles.bandPowered}>powered by ScholarBase</Text>
           <Text style={styles.bandId}>{submissionId}</Text>
         </View>
         <Text style={styles.sectionEyebrow}>SECTION 01</Text>
@@ -260,7 +304,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           <Text style={styles.cardTitle}>Supporting statistics</Text>
           <View style={styles.cardRule} />
           {[
-            ["Burstiness sigma (σ)", `${statProfile.burstinessSigma} — human target > 7.0`],
+            ["Burstiness sigma", `${statProfile.burstinessSigma} — human target > 7.0`],
             ["Shannon entropy (H)", `${statProfile.shannonEntropy} bits/token`],
             ["Guiraud richness (R)", `${statProfile.guiraudIndex}`],
             ["Mean sentence length", `${statProfile.meanSentenceLength} words`],
@@ -273,11 +317,31 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           ))}
         </View>
 
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Terms & Definitions</Text>
+          <View style={styles.cardRule} />
+          {[
+            ["Cadence result", "How monotonous or varied sentence lengths are. Higher = more human-like rhythm. No vocabulary analysis."],
+            ["Neural result", "On-device RoBERTa model probability that the text is machine-written. Only available in Deep Scan mode."],
+            ["Balanced result", "Fusion of cadence and neural signals. This is the headline verdict — trust it over either single signal."],
+            ["Burstiness sigma", "Statistical spread of sentence lengths. Human prose typically scores above 7.0."],
+            ["Shannon entropy (H)", "Vocabulary unpredictability in bits per token. Higher = richer word choice."],
+            ["Guiraud richness (R)", "Type-token ratio scaled by vocabulary size. Higher = more diverse vocabulary."],
+            ["|Delta| (cadence delta)", "Word-count difference between neighbouring sentences. Small values mean monotonous rhythm."],
+            ["Flagged sentence", "A sentence that tripped one or more structural patterns associated with machine writing."],
+          ].map(([label, value], i) => (
+            <View key={label} style={[styles.metaRow, i % 2 === 1 ? styles.metaRowAlt : undefined]}>
+              <Text style={[styles.metaLabel, { width: "38%" }]}>{label}</Text>
+              <Text style={[styles.cell, { width: "62%" }]}>{value}</Text>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.noteBox}>
           <Text>CAUTION — disciplined academic prose can present uniform rhythms, and rich jargon can mask machine writing from rhythm checks. Review these results alongside your own judgment; never decide authorship on this report alone.</Text>
         </View>
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>ScholarShield · Diagnostic overview</Text>
+          <Text style={styles.footerText}>ScholarShield · powered by ScholarBase · Diagnostic overview</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
@@ -286,6 +350,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
       <Page size="A4" style={styles.page}>
         <View style={styles.band} fixed>
           <Text style={styles.bandText}>SCHOLARSHIELD · HIGHLIGHTED TRANSCRIPT</Text>
+          <Text style={styles.bandPowered}>powered by ScholarBase</Text>
           <Text style={styles.bandId}>{submissionId}</Text>
         </View>
         <Text style={styles.sectionEyebrow}>SECTION 02</Text>
@@ -300,7 +365,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           ))}
         </Text>
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>ScholarShield · Transcript</Text>
+          <Text style={styles.footerText}>ScholarShield · powered by ScholarBase · Transcript</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
@@ -309,15 +374,31 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
       <Page size="A4" style={styles.page}>
         <View style={styles.band} fixed>
           <Text style={styles.bandText}>SCHOLARSHIELD · AUDIT APPENDIX</Text>
+          <Text style={styles.bandPowered}>powered by ScholarBase</Text>
           <Text style={styles.bandId}>{submissionId}</Text>
         </View>
         <Text style={styles.sectionEyebrow}>SECTION 03</Text>
         <Text style={styles.sectionTitle}>Flag audit table</Text>
-        <Text style={[styles.legendText, { marginBottom: 12 }]}>Words = sentence length · Δ = word-count difference versus neighbouring sentences (small Δ = monotonous rhythm) · Trigger = structural pattern that raised the flag.</Text>
+        <View style={styles.appendixLegendContainer}>
+          <View style={styles.appendixLegendItem}>
+            <Text style={styles.appendixLegendLabel}>Words:</Text>
+            <Text style={styles.appendixLegendValue}>Sentence length (word count)</Text>
+          </View>
+          <View style={{ width: 1, height: 10, backgroundColor: "#cbd5e1", alignSelf: "center", marginHorizontal: 6 }} />
+          <View style={styles.appendixLegendItem}>
+            <Text style={styles.appendixLegendLabel}>|Delta| (Delta):</Text>
+            <Text style={styles.appendixLegendValue}>Word-count delta vs. adjacent sentences (low |Delta| = monotonous rhythm)</Text>
+          </View>
+          <View style={{ width: 1, height: 10, backgroundColor: "#cbd5e1", alignSelf: "center", marginHorizontal: 6 }} />
+          <View style={styles.appendixLegendItem}>
+            <Text style={styles.appendixLegendLabel}>Trigger:</Text>
+            <Text style={styles.appendixLegendValue}>Structural pattern that raised the flag</Text>
+          </View>
+        </View>
         <View style={styles.headRow}>
           <Text style={[styles.headCell, { width: "8%" }]}>#</Text>
           <Text style={[styles.headCell, { width: "14%" }]}>WORDS</Text>
-          <Text style={[styles.headCell, { width: "14%" }]}>Δ</Text>
+          <Text style={[styles.headCell, { width: "14%" }]}>|Delta|</Text>
           <Text style={[styles.headCell, { width: "64%" }]}>TRIGGER</Text>
         </View>
         {flagged.length === 0 && (
@@ -329,15 +410,15 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           <View key={sent.id} style={[styles.bodyRow, i % 2 === 1 ? styles.bodyRowAlt : undefined]}>
             <Text style={[styles.cell, { width: "8%" }]}>{i + 1}</Text>
             <Text style={[styles.cell, { width: "14%" }]}>{sent.wordCount}w</Text>
-            <Text style={[styles.cell, { width: "14%" }]}>±{sent.cadenceDelta}</Text>
+            <Text style={[styles.cell, { width: "14%" }]}>+/-{sent.cadenceDelta}</Text>
             <Text style={[styles.cell, { width: "64%" }]}>{sent.reasons.join("; ")}</Text>
           </View>
         ))}
         <View style={[styles.noteBox, { marginTop: 18 }]}>
-          <Text>METHOD — detection runs entirely in this browser: cadence statistics are computed locally and, for a Deep Scan, the RoBERTa weights execute via WebAssembly. Neither your text nor this report was uploaded anywhere.</Text>
+          <Text>METHOD — ScholarShield runs entirely in this browser: cadence statistics are computed locally and, for a Deep Scan, the RoBERTa weights execute via WebAssembly. Neither your text nor this report was uploaded anywhere.</Text>
         </View>
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>ScholarShield · Audit appendix</Text>
+          <Text style={styles.footerText}>ScholarShield · powered by ScholarBase · Audit appendix</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>

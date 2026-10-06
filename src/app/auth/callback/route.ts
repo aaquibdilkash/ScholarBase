@@ -41,11 +41,22 @@ export async function GET(request: NextRequest) {
 
   // Missing code or token hash
   if (!code && !(tokenHash && type)) {
-    return NextResponse.redirect(new URL("/auth/auth-code-error", publicOrigin));
+    const errorUrl = new URL("/auth/auth-code-error", publicOrigin);
+    if (type) {
+      errorUrl.searchParams.set("type", type);
+    }
+    return NextResponse.redirect(errorUrl);
   }
 
+  // Carry the auth flow type into success and error pages so they can render
+  // flow-specific UI instead of generic signup copy.
+  const finalDestination =
+    type && destination === "/auth/confirmed"
+      ? `${destination}?type=${encodeURIComponent(type)}`
+      : destination;
+
   // Pre-instantiate response to capture session cookies
-  const response = NextResponse.redirect(new URL(destination, publicOrigin));
+  const response = NextResponse.redirect(new URL(finalDestination, publicOrigin));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,7 +81,24 @@ export async function GET(request: NextRequest) {
       });
 
   if (error) {
-    return NextResponse.redirect(new URL("/auth/auth-code-error", publicOrigin));
+    // If the token was already used or expired but the user already has an
+    // active session, they most likely already completed this flow (or
+    // Supabase auto-confirmed the account). Send them forward instead of
+    // landing on a dead-end error page.
+    try {
+      const { data: { user: existingUser } } = await supabase.auth.getUser();
+      if (existingUser) {
+        return response;
+      }
+    } catch {
+      // Intentionally swallow — fall through to the error page below.
+    }
+
+    const errorUrl = new URL("/auth/auth-code-error", publicOrigin);
+    if (type) {
+      errorUrl.searchParams.set("type", type);
+    }
+    return NextResponse.redirect(errorUrl);
   }
 
   // Email signup and OAuth can both create a Supabase user without passing

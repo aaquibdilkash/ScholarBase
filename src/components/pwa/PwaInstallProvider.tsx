@@ -29,14 +29,20 @@ import { useToast } from "@/components/ui/Toast";
  *    install we cannot deliver — we show the manual steps instead.
  *
  * 3. **Install state can change without us.** The user can install from the
- *    browser's own menu at any time, so we listen for `appinstalled` and re-check
- *    on visibility change rather than trusting a one-shot probe at mount.
+ *    browser's own menu at any time — or DELETE the installed app later — so we
+ *    listen for `appinstalled` and re-probe on visibility change and window
+ *    focus rather than trusting a one-shot probe at mount.
  *
- * 4. **A negative is NOT reliable.** `getInstalledRelatedApps()` returning an
- *    empty list does NOT mean "not installed": it only sees apps installed from
- *    the exact same origin (so a `localhost` dev tab never sees a production
- *    install), and Chromium produces false negatives in other cases too. So an
- *    empty result must never clear a recorded install — only `true` is trusted.
+ * 4. **A negative is NOT reliable — on its own.** `getInstalledRelatedApps()`
+ *    returning an empty list does NOT mean "not installed": it only sees apps
+ *    installed from the exact same origin (so a `localhost` dev tab never sees
+ *    a production install), and Chromium produces false negatives in other
+ *    cases too. An empty result may clear the install state ONLY when this
+ *    origin previously confirmed that install through this very API
+ *    (`sb:pwa-gira-install`) — same origin, same API, so a flip to empty then
+ *    means the user actually deleted the app. That is the uninstall case that
+ *    would otherwise require clearing site data before the install button
+ *    returns.
  *
  * This is entirely *device* state, exactly like the push subscription in
  * `PushNotificationProvider` — no server round-trip, nothing to persist.
@@ -195,6 +201,36 @@ function writeInstalledFlag(value: boolean) {
   }
 }
 
+/**
+ * Records that THIS origin's `getInstalledRelatedApps()` positively reported
+ * the install.
+ *
+ * The counterpart to doc note 4: an empty result may only clear the recorded
+ * install when the install was first confirmed through the same API on the same
+ * origin. A flag written by `appinstalled` alone is never enough — that event
+ * exists on installs this API cannot see (different profile, manifest-id drift),
+ * where an empty list is meaningless.
+ */
+const GIRA_INSTALLED_FLAG = "sb:pwa-gira-install";
+
+function readGiraInstalledFlag(): boolean {
+  try {
+    return window.localStorage.getItem(GIRA_INSTALLED_FLAG) === "1";
+  } catch {
+    // Private mode / storage disabled: uninstall detection simply stays off.
+    return false;
+  }
+}
+
+function writeGiraInstalledFlag(value: boolean) {
+  try {
+    if (value) window.localStorage.setItem(GIRA_INSTALLED_FLAG, "1");
+    else window.localStorage.removeItem(GIRA_INSTALLED_FLAG);
+  } catch {
+    // Non-fatal: we degrade to the pre-existing conservative behaviour.
+  }
+}
+
 function detectIOS(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
@@ -319,21 +355,41 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
         setDeferredPrompt(null);
       }
 
-      // Only a definitive `true` counts as an install signal. An EMPTY array is
-      // NOT "not installed": this API sees only apps installed from the exact
-      // same origin (a `localhost` tab cannot see a production install) and
-      // Chromium returns false negatives in other cases too. Clearing the state
-      // on an empty result is what made genuinely installed users see "Install
-      // app" again, so a negative is ignored rather than trusted. `null` (API
-      // absent — Firefox/Safari) is likewise left to the local hint.
+      // Three outcomes from the related-app probe:
+      //
+      //  * `true` — a definitive install. Record it, plus that THIS origin saw
+      //    it through this API, so a later disappearance can be recognised.
+      //  * `false` — an EMPTY array is not "not installed" on its own: this API
+      //    sees only apps installed from the exact same origin (a `localhost`
+      //    tab cannot see a production install) and Chromium returns false
+      //    negatives in other cases too. It may clear the install state ONLY
+      //    when this origin previously confirmed the install through this very
+      //    API (`sb:pwa-gira-install`): same origin, same API, so a flip to
+      //    empty then means the user actually deleted the app — the uninstall
+      //    case that used to require clearing site data before the install
+      //    button came back.
+      //  * `null` — API absent (Firefox/Safari): leave the local hint alone.
       void isInstalledAsRelatedApp().then((result) => {
         if (result === true) {
           markInstalled(true);
           setDeferredPrompt(null);
+          writeGiraInstalledFlag(true);
+        } else if (result === false && readGiraInstalledFlag() && !isRunningStandalone()) {
+          // Uninstall confirmed by the same-origin API flip. Clear both flags
+          // but KEEP any held `beforeinstallprompt`: after a deletion Chromium
+          // may re-issue one, and holding it makes the button one-click again.
+          setInstalledState(false);
+          writeInstalledFlag(false);
+          writeGiraInstalledFlag(false);
         }
       });
     };
     document.addEventListener("visibilitychange", syncInstalled);
+    // Window focus covers the desktop case visibilitychange misses: the tab
+    // never hides while the user deletes the app from chrome://apps or the OS
+    // in another window, so the only in-session signal is this window
+    // regaining focus.
+    window.addEventListener("focus", syncInstalled);
 
     // Run once on mount, after a short delay so it does not compete with
     // hydration for the main thread on a slow device.
@@ -344,6 +400,7 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("appinstalled", onInstalled);
       window.removeEventListener("sb:beforeinstallprompt", onCaptured);
       document.removeEventListener("visibilitychange", syncInstalled);
+      window.removeEventListener("focus", syncInstalled);
       window.clearTimeout(initialCheck);
     };
   }, [markInstalled]);

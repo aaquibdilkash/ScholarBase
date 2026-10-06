@@ -142,12 +142,12 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `ScholarShield_Report_${submissionId.replace(/[:]/g, "_")}.pdf`;
+      link.download = `ScholarShield_by_ScholarBase_Report_${submissionId.replace(/[:]/g, "_")}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast({ title: "AI report downloaded", description: "Vector PDF compiled in this browser — paper never left the device." });
+      toast({ title: "ScholarShield report downloaded", description: "Powered by ScholarBase — vector PDF compiled in this browser, paper never left the device." });
     } catch {
       toast({ title: "PDF generation failed", description: "Could not compile the audit report on this device.", variant: "destructive" });
     } finally {
@@ -332,10 +332,6 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
                 )}
               </span>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isParsingDoc} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                  {isParsingDoc ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />Extracting locally...</>) : (<><UploadCloud className="h-3.5 w-3.5" />Upload PDF / DOCX</>)}
-                </button>
-                <InfoTooltip message={SHIELD_UPLOAD_TIP} />
                 <span className="text-xs text-slate-500 dark:text-slate-400">{words} words | {inputText.length} chars</span>
                 <button type="button" onClick={() => setClearConfirm(true)} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:text-rose-300"><HardDrive className="h-3.5 w-3.5" />Free ~130 MB</button>
                 <InfoTooltip message={SHIELD_FREE_CACHE_TIP} />
@@ -352,7 +348,13 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
             )}
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
-              <button type="button" onClick={() => { setInputText(""); updateDraftField("detector", ""); setUploadedFilename(null); setDocumentTitle("Academic Manuscript"); setStatReport(null); setNeuralScore(null); setErr(null); }} disabled={!inputText} className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800"><RotateCcw className="h-3.5 w-3.5" />Clear</button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => { setInputText(""); updateDraftField("detector", ""); setUploadedFilename(null); setDocumentTitle("Academic Manuscript"); setStatReport(null); setNeuralScore(null); setErr(null); }} disabled={!inputText} className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800"><RotateCcw className="h-3.5 w-3.5" />Clear</button>
+                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isParsingDoc} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                  {isParsingDoc ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />Extracting locally...</>) : (<><UploadCloud className="h-3.5 w-3.5" />Upload PDF / DOCX</>)}
+                </button>
+                <InfoTooltip message={SHIELD_UPLOAD_TIP} />
+              </div>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={quickAudit} disabled={!inputText.trim()} className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Quick Audit (0 MB)</button>
                 <InfoTooltip message={SHIELD_QUICK_AUDIT_TIP} />
