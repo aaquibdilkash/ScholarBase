@@ -32,8 +32,8 @@ export function UpdatePasswordForm() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       setSubmitting(false);
       return;
     }
@@ -72,7 +72,7 @@ export function UpdatePasswordForm() {
            name="password"
            placeholder="••••••••"
            required
-           minLength={6}
+           minLength={8}
            maxLength={MAX_AUTH_PASSWORD}
            value={password}
            onChange={(e) => setPassword(e.target.value)}
@@ -88,7 +88,7 @@ export function UpdatePasswordForm() {
            name="confirmPassword"
            placeholder="••••••••"
            required
-           minLength={6}
+           minLength={8}
            maxLength={MAX_AUTH_PASSWORD}
            value={confirmPassword}
            onChange={(e) => setConfirmPassword(e.target.value)}

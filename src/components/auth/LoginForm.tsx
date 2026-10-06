@@ -2,10 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
-import { login, signup, signInWithGoogle } from "@/app/actions/auth";
+import { useEffect, useState } from "react";
+import {
+  login,
+  signup,
+  verifySignupOtp,
+  resendSignupOtp,
+  signInWithGoogle,
+} from "@/app/actions/auth";
 import { BrandMark } from "@/components/BrandMark";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { OtpInput, OTP_LENGTH } from "@/components/auth/OtpInput";
 import { useToast } from "@/components/ui/Toast";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -28,6 +35,47 @@ export function LoginForm({
   const [showDomainRequest, setShowDomainRequest] = useState(
     initialError === "email-domain-not-allowed",
   );
+  const [authStep, setAuthStep] = useState<"form" | "otp">("form");
+  const [otpError, setOtpError] = useState<string | null>(null);
+
+  // Restore OTP step if the page reloads mid-verification (same tab).
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem("sb_pending_otp_email");
+      if (pending && authStep === "form") {
+        setEmail(pending);
+        setAuthStep("otp");
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const submitOtp = async (codeToVerify: string) => {
+    if (codeToVerify.length !== OTP_LENGTH || pendingAction !== null) return;
+    setPendingAction("register");
+    setOtpError(null);
+    const result = await verifySignupOtp(email, codeToVerify);
+    if (!result.success) {
+      setOtpError(result.error || "Invalid verification code.");
+      setPendingAction(null);
+      return;
+    }
+    try {
+      sessionStorage.removeItem("sb_pending_otp_email");
+    } catch {}
+    toast("Account verified!", "success");
+    router.push(result.redirect ?? returnUrl);
+  };
+
+  const handleResend = async () => {
+    if (pendingAction !== null) return;
+    setPendingAction("register");
+    setOtpError(null);
+    const result = await resendSignupOtp(email);
+    setPendingAction(null);
+    if (!result.success) setOtpError(result.error);
+    else toast(result.message || "A new 6-digit code has been sent.", "success");
+  };
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-2 sm:mx-0 sm:mt-0 sm:p-6">
@@ -147,6 +195,24 @@ export function LoginForm({
           </div>
         </div>
 
+        {authStep === "otp" ? (
+          <OtpInput
+            email={email}
+            title="Enter the code"
+            subtitle="sent to"
+            submitLabel="Verify & Activate Account"
+            verifyingLabel="Verifying..."
+            backLabel="← Change email"
+            busy={pendingAction !== null}
+            error={otpError}
+            onVerify={submitOtp}
+            onResend={handleResend}
+            onBack={() => {
+              setAuthStep("form");
+              setOtpError(null);
+            }}
+          />
+        ) : (
         <form
           className="flex flex-col gap-4"
           onSubmit={async (event) => {
@@ -155,12 +221,39 @@ export function LoginForm({
             const action = submitter?.value === "register" ? "register" : "signin";
             setPendingAction(action);
 
-            const result = await (action === "register" ? signup : login)(new FormData(event.currentTarget));
+            if (action === "register") {
+              let result;
+              try {
+                result = await signup(new FormData(event.currentTarget));
+              } catch (err) {
+                console.error("[register] signup threw:", err);
+                toast("Something went wrong. Please try again.", "error");
+                setPendingAction(null);
+                return;
+              }
+              if (!result.success) {
+                toast(result.error, "error");
+                setShowDomainRequest(result.code === "EMAIL_DOMAIN_NOT_ALLOWED");
+                setPendingAction(null);
+                return;
+              }
+              setShowDomainRequest(false);
+              try {
+                sessionStorage.setItem("sb_pending_otp_email", email);
+              } catch {}
+              toast(
+                result.message || "A verification code has been sent to your email.",
+                "success",
+              );
+              setOtpError(null);
+              setAuthStep("otp");
+              setPendingAction(null);
+              return;
+            }
+
+            const result = await login(new FormData(event.currentTarget));
             if (!result.success) {
               toast(result.error, "error");
-              setShowDomainRequest(
-                action === "register" && result.code === "EMAIL_DOMAIN_NOT_ALLOWED",
-              );
               setPendingAction(null);
               return;
             }
@@ -203,6 +296,7 @@ export function LoginForm({
                name="password"
                placeholder="••••••••"
                required
+               minLength={8}
                maxLength={MAX_AUTH_PASSWORD}
                value={password}
                onChange={(e) => setPassword(e.target.value)}
@@ -242,6 +336,7 @@ export function LoginForm({
             </button>
           </div>
         </form>
+        )}
 
         {showDomainRequest && (
           <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-sm dark:border-blue-900/50 dark:bg-blue-950/20">
@@ -289,7 +384,7 @@ export function LoginForm({
 
         <p className="-mb-2 text-center text-sm text-slate-600 dark:text-slate-400">
           Forgot your password? Or want to set a password for your account
-          continued with Google? Enter your email to get a recovery link.
+          continued with Google? Enter your email to get a 6-digit recovery code.
         </p>
 
         <ForgotPasswordForm callbackUrl={returnUrl} />

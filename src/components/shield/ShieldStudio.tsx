@@ -304,6 +304,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/10 text-blue-500 dark:text-blue-400"><ShieldAlert className="h-5 w-5" /></span>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl dark:text-slate-50">Scholar Shield</h1>
             <span className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"><Lock className="h-3 w-3" />100% On-Device Detection</span>
+            <span className="flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">AI Detection: Unlimited & Free</span>
           </div>
           <p className="mt-2 text-sm text-slate-600 sm:text-base dark:text-slate-400">Papers never leave your browser. Local DeBERTa/RoBERTa + Groq 120B humanizer.</p>
           {err && <p className="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-600 dark:text-rose-300">{err}</p>}

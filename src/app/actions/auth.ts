@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getBaseUrl } from "@/lib/url";
 import prisma from "@/lib/db";
+import { ensureUserProfile } from "@/lib/users";
 import type { Duration } from "@upstash/ratelimit";
 import {
   checkRateLimit,
@@ -34,7 +35,7 @@ function mapAuthError(message: string): string {
     return "An account with this email already exists. Try signing in instead.";
   }
   if (lower.includes("password") && lower.includes("weak")) {
-    return "Password is too weak. Use at least 6 characters with a mix of letters and numbers.";
+    return "Password is too weak. Use at least 8 characters with a mix of letters and numbers.";
   }
   if (lower.includes("invalid") && lower.includes("email")) {
     return "Please enter a valid email address.";
@@ -166,7 +167,6 @@ export async function login(formData: FormData): Promise<AuthResult> {
 
 export async function signup(formData: FormData): Promise<AuthResult> {
   const supabase = await createClient();
-  const baseUrl = await getBaseUrl();
 
   const email = normalizeEmail(readAuthField(formData, "email"));
   const password = readAuthField(formData, "password");
@@ -198,33 +198,24 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     return rateLimitResult;
   }
 
-  if (password.length < 6) {
-    return { success: false, error: "Password must be at least 6 characters." };
+  if (password.length < 8) {
+    return { success: false, error: "Password must be at least 8 characters." };
   }
   if (password.length > MAX_AUTH_PASSWORD) {
     return { success: false, error: "Password is too long." };
   }
 
-  const confirmUrl = new URL(`${baseUrl}/auth/callback`);
-  confirmUrl.searchParams.set("next", "/auth/confirmed");
-  confirmUrl.searchParams.set("type", "signup");
-
+  // Calling signUp without emailRedirectTo triggers the numeric OTP {{ .Token }} dispatch
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      emailRedirectTo: confirmUrl.toString(),
-    },
   });
 
   if (error) {
-    const message = mapAuthError(error.message);
-    return { success: false, error: message };
+    return { success: false, error: mapAuthError(error.message) };
   }
 
-  // Detect existing user under Supabase Email Enumeration Protection
-  // When enabled, Supabase returns a user with empty identities array
-  // instead of an error to prevent email enumeration attacks
+  // Catch email enumeration protection returning empty identities
   if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
     return {
       success: false,
@@ -234,14 +225,79 @@ export async function signup(formData: FormData): Promise<AuthResult> {
 
   return {
     success: true,
-    message: "Check your email to confirm your account.",
+    message: "A 6-digit verification code has been sent to your email.",
   };
+}
+
+export async function verifySignupOtp(
+  email: string,
+  token: string,
+): Promise<AuthResult> {
+  const supabase = await createClient();
+  const cleanEmail = normalizeEmail(email);
+  const cleanToken = token.trim();
+
+  if (!/^\d{6}$/.test(cleanToken)) {
+    return { success: false, error: "Please enter the complete 6-digit code." };
+  }
+
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: cleanEmail,
+    token: cleanToken,
+    type: "signup",
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: "Invalid or expired code. Please try again.",
+    };
+  }
+
+  if (data.user) {
+    try {
+      await ensureUserProfile(data.user);
+    } catch {
+      // Profile creation is best-effort here; the root layout's
+      // ensureUserProfile call will retry on the next authenticated request.
+    }
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true, redirect: "/feed" };
+}
+
+export async function resendSignupOtp(email: string): Promise<AuthResult> {
+  const supabase = await createClient();
+  const cleanEmail = normalizeEmail(email);
+
+  const rateLimitResult = await limitByEmailAndIp(
+    "auth:resend-otp",
+    cleanEmail,
+    3,
+    10,
+    "1 h",
+  );
+  if (rateLimitResult) {
+    return rateLimitResult;
+  }
+
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: cleanEmail,
+  });
+
+  if (error) {
+    return { success: false, error: mapAuthError(error.message) };
+  }
+
+  return { success: true, message: "A new 6-digit code has been sent." };
 }
 
 export async function requestEmailChange(
   formData: FormData,
 ): Promise<
-  | { success: true; message: string }
+  | { success: true; message: string; newEmail: string }
   | { success: false; error: string; code?: "EMAIL_DOMAIN_NOT_ALLOWED" }
 > {
   const supabase = await createClient();
@@ -295,15 +351,9 @@ export async function requestEmailChange(
     };
   }
 
-  const baseUrl = await getBaseUrl();
-  const confirmUrl = new URL(`${baseUrl}/auth/callback`);
-  confirmUrl.searchParams.set("next", "/auth/confirmed");
-  confirmUrl.searchParams.set("type", "email_change");
-
-  const { error } = await supabase.auth.updateUser(
-    { email: newEmail },
-    { emailRedirectTo: confirmUrl.toString() },
-  );
+  // Without emailRedirectTo, Supabase populates {{ .Token }} in the
+  // "Change Email Address" template so the user gets a numeric OTP.
+  const { error } = await supabase.auth.updateUser({ email: newEmail });
 
   if (error) {
     return { success: false, error: mapAuthError(error.message) };
@@ -311,9 +361,54 @@ export async function requestEmailChange(
 
   return {
     success: true,
-    message:
-      "Confirmation links were sent. Confirm the change from the required email inboxes.",
+    newEmail,
+    message: "A 6-digit confirmation code has been sent to your new email address.",
   };
+}
+
+export async function verifyEmailChangeOtp(
+  newEmail: string,
+  token: string,
+): Promise<AuthResult> {
+  const supabase = await createClient();
+  const cleanEmail = normalizeEmail(newEmail);
+  const cleanToken = token.trim();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "Session expired. Please sign in again." };
+  }
+
+  if (!/^\d{6}$/.test(cleanToken)) {
+    return { success: false, error: "Please enter a complete 6-digit code." };
+  }
+
+  const { error } = await supabase.auth.verifyOtp({
+    email: cleanEmail,
+    token: cleanToken,
+    type: "email_change",
+  });
+
+  if (error) {
+    return { success: false, error: "Invalid or expired code. Please try again." };
+  }
+
+  // Sync the updated primary email into Prisma.
+  const updatedEmail = cleanEmail;
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { email: updatedEmail },
+    });
+  } catch {
+    // Best-effort: auth email already changed; layout profile sync retries later.
+  }
+
+  revalidatePath("/", "layout");
+  return { success: true, message: "Primary email updated successfully." };
 }
 
 export async function signInWithGoogle(
@@ -344,9 +439,8 @@ export async function signInWithGoogle(
 
 export async function forgotPassword(
   formData: FormData,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; email?: string }> {
   const supabase = await createClient();
-  const baseUrl = await getBaseUrl();
 
   const email = normalizeEmail(readAuthField(formData, "email"));
 
@@ -375,16 +469,37 @@ export async function forgotPassword(
   // Checking our local DB would leak information about registered emails
   // and could fail for users who exist in Supabase Auth but not yet in our DB.
 
-  const redirectUrl = new URL(`${baseUrl}/auth/callback`);
-  redirectUrl.searchParams.set("next", "/auth/update-password");
-  redirectUrl.searchParams.set("type", "recovery");
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: redirectUrl.toString(),
-  });
+  // Dropping redirectTo instructs Supabase to dispatch the numeric {{ .Token }}
+  // OTP instead of a clickable recovery link (avoids mail-scanner prefetch burn).
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
 
   if (error) {
     return { success: false, error: mapAuthError(error.message) };
+  }
+
+  return { success: true, email };
+}
+
+export async function verifyRecoveryOtp(
+  email: string,
+  token: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const cleanEmail = normalizeEmail(email);
+  const cleanToken = token.trim();
+
+  if (!/^\d{6}$/.test(cleanToken)) {
+    return { success: false, error: "Please enter a complete 6-digit code." };
+  }
+
+  const { error } = await supabase.auth.verifyOtp({
+    email: cleanEmail,
+    token: cleanToken,
+    type: "recovery",
+  });
+
+  if (error) {
+    return { success: false, error: "Invalid or expired recovery code." };
   }
 
   return { success: true };

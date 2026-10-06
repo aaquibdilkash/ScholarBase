@@ -18,16 +18,19 @@ interface LoginPageProps {
     error?: string;
     callbackUrl?: string;
     type?: string;
+    flow?: string;
   }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();
-  if (user) {
+  const { callbackUrl, error, flow } = await searchParams;
+  // Skip the redirect during password recovery: verifying the recovery OTP
+  // signs the user in, but they must stay on /login to set a new password.
+  if (user && flow !== "recovery") {
     redirect("/");
   }
 
-  const { callbackUrl, error } = await searchParams;
   let returnUrl = callbackUrl || "/";
 
   if (returnUrl === "/") {
