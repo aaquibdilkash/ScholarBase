@@ -4,7 +4,7 @@ import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { handleFollowTransaction } from "@/lib/transactions";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 
 export async function toggleFollow(
   followingId: string,
@@ -28,10 +28,15 @@ export async function toggleFollow(
     key: authUser.id,
     limit: 30,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, isFollowing: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      isFollowing: false,
+      error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   try {

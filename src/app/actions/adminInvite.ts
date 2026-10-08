@@ -91,6 +91,7 @@ export async function sendAdminScholarInviteAction(
     key: currentUser.id,
     limit: isTestSend ? 5 : 30,
     window: "1 h",
+    onDegraded: "closed",
   });
 
   if (rateLimit.degraded) {

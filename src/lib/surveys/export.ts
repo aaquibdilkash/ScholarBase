@@ -41,6 +41,31 @@ export interface ExportSurvey {
   questions: ExportQuestion[];
 }
 
+/**
+ * Strip respondent identity from a response that must not reveal it.
+ *
+ * THE shared redaction: the CSV/XLSX export route and `getSurveyResponses`
+ * both call this, so a third read path cannot be added later that forgets the
+ * rule. `forceAnonymous` covers survey-level anonymity (`privacy ===
+ * "ANONYMOUS"`), where the per-response flag may have been submitted as false
+ * by a client that ignored the UI.
+ *
+ * `respondentId` is nulled alongside the joined `respondent` relation —
+ * nulling only the relation would still ship the raw user id, which is
+ * identity. The `isAnonymous` flag itself is preserved: callers still need
+ * to know a response IS anonymous.
+ */
+export function redactRespondentIdentity<
+  T extends { isAnonymous: boolean; respondent: unknown },
+>(response: T, forceAnonymous: boolean = false): T {
+  if (!forceAnonymous && !response.isAnonymous) return response;
+  const redacted = { ...response, respondent: null } as T;
+  if ("respondentId" in redacted) {
+    (redacted as { respondentId: unknown }).respondentId = null;
+  }
+  return redacted;
+}
+
 /** One codebook entry per exported variable (matrix rows are flattened). */
 export function buildCodebook(survey: ExportSurvey): string[][] {
   const rows: string[][] = [

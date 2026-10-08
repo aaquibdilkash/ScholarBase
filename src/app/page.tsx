@@ -17,6 +17,7 @@ import {
   MessageCircle,
   HandCoins,
   Code2,
+  Shield,
   Sparkles,
   Globe2,
   Users,
@@ -46,6 +47,12 @@ export default async function HomePage() {
   } = await supabase.auth.getUser();
 
   const features = [
+    {
+      title: "Scholar Shield",
+      description: "Check AI writing risk on-device and restructure flagged prose.",
+      href: "/shield",
+      icon: <Shield className="h-8 w-8" />,
+    },
     {
       title: "Feed",
       description: "Short research updates from the community.",
@@ -175,7 +182,21 @@ export default async function HomePage() {
               Post your research, find honest PhD supervisors, track admissions
               and conferences, and surface what the community actually finds
               useful, all without ads, paywalls, or another inbox to babysit.
+              Check AI writing risk with Scholar Shield &mdash; detection runs
+              entirely on your device.
             </p>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium text-emerald-700 dark:text-emerald-300">
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1">
+                100% On-Device Detection
+              </span>
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1">
+                No Uploads
+              </span>
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1">
+                PDF Report
+              </span>
+            </div>
 
             <div className="mt-7 sm:mt-8 flex flex-col gap-3 sm:flex-row">
               {user ? (

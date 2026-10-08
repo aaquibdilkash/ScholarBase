@@ -73,6 +73,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
   const [copied, setCopied] = useState(false);
   const [clearConfirm, setClearConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(true);
   const ensemble = useCallback((): number => {
     if (!statReport) return 0;
     return calculateBalancedEnsemble(
@@ -310,6 +311,26 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
           {err && <p className="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-600 dark:text-rose-300">{err}</p>}
         </div>
       </div>
+      {showDisclaimer && (
+        <div className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 sm:text-sm dark:text-amber-200">
+          <p>
+            <strong>Diagnostic only:</strong> Shield scores are statistical
+            estimates, not proof of AI authorship or plagiarism. Never use a
+            score as the sole basis for an academic decision — always verify
+            with human review. Detector scans stay on your device; Humanizer
+            text is sent to our AI sub-processor as described in our{" "}
+            <a href="/privacy" className="underline">Privacy Policy</a>.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowDisclaimer(false)}
+            aria-label="Dismiss disclaimer"
+            className="shrink-0 rounded-lg px-2 py-1 font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-300"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="mb-8 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm sm:inline-flex sm:w-auto sm:gap-0 dark:border-slate-800 dark:bg-slate-950/80">
         <button type="button" onClick={() => setTab("detector")} className={clsx("rounded-xl px-6 py-2 font-semibold transition-all", currentTab === "detector" ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100")}>AI Detector</button>
         <button type="button" onClick={() => setTab("rewriter")} className={clsx("flex items-center gap-2 rounded-xl px-6 py-2 font-semibold transition-all", currentTab === "rewriter" ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100")}><Sparkles className="h-4 w-4" />120B Humanizer</button>

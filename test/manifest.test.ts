@@ -94,16 +94,19 @@ function norm(value: string): string {
  * Pruned 2026-09-30: `messages` and `scholars` — both are now imported by
  * `test/security/search-surfaces.test.ts`, which asserts the P0-3 search
  * throttle reaches the inbox search and the scholar picker.
+ *
+ * Pruned with the launch-audit H3 fix: `contact` — the public contact form
+ * now has `test/actions/contact-turnstile.test.ts` (Turnstile gate, the
+ * unconditional rate limits, and the no-send guarantees).
  */
 const PENDING_ACTION_TESTS = [
   // Still untested: the login/signup/oauth surface itself, the outreach and
-  // push-admin paths, the contact form, and the client-side comment wrappers.
+  // push-admin paths, and the client-side comment wrappers.
   // Everything else that used to sit here now has a test; the gate below fails
   // if one of these gains a test and is not removed from this list.
   "adminInvite",
   "cloudinary",
   "comments.clientWrappers",
-  "contact",
   "notifications",
 ]
 

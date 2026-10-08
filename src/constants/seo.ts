@@ -48,7 +48,7 @@ export const SEO_PAGES = {
     home: {
         title: "ScholarBase | Academic community for scholars and researchers",
         description:
-            "Join ScholarBase to share research, find PhD supervisors, and discover admissions, events, vacancies, and academic opportunities.",
+            "Join ScholarBase to share research, find PhD supervisors, and discover admissions, events, vacancies, and academic opportunities — including on-device AI detection with Scholar Shield.",
         path: "/",
     },
     login: {
@@ -69,7 +69,7 @@ export const SEO_PAGES = {
     about: {
         title: "About | ScholarBase",
         description:
-            "Learn about ScholarBase, a community platform for researchers, scholars, faculty, and academic teams.",
+            "Learn about ScholarBase, a community platform for researchers, scholars, faculty, and academic teams — with on-device AI detection via Scholar Shield.",
         path: "/about",
         keywords: [
             "about ScholarBase",

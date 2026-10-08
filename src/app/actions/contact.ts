@@ -8,8 +8,10 @@ import {
   checkRateLimit,
   getRequestFingerprint,
   hashRateLimitKey,
+  RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
+import { verifyContactFormTurnstile } from "@/lib/turnstile";
 import type { ContactFormState } from "@/types/contact";
 import {
   renderScholarBaseCompactHeader,
@@ -50,32 +52,6 @@ export async function sendContactMessage(
   prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  const contactEmail = formData.get("email");
-  if (typeof contactEmail === "string" && contactEmail.trim().length > 0) {
-    const headersList = await headers();
-    const [emailRateLimit, ipRateLimit] = await Promise.all([
-      checkRateLimit({
-        namespace: "contact:email",
-        key: hashRateLimitKey(contactEmail.trim().toLowerCase()),
-        limit: 3,
-        window: "1 h",
-      }),
-      checkRateLimit({
-        namespace: "contact:ip",
-        key: getRequestFingerprint(headersList),
-        limit: 10,
-        window: "1 h",
-      }),
-    ])
-
-    if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
-      return {
-        success: false,
-        message: RATE_LIMIT_ERROR,
-      }
-    }
-  }
-
   const validatedFields = contactSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -91,6 +67,60 @@ export async function sendContactMessage(
   }
 
   const { name, email, subject, message } = validatedFields.data;
+
+  // Rate limits run UNCONDITIONALLY. They used to sit behind a check on the
+  // raw "email" form field, which is attacker-controlled — an empty value
+  // skipped both limiters entirely. Validation has already run, so `email`
+  // here is guaranteed non-empty.
+  const headersList = await headers();
+  const [emailRateLimit, ipRateLimit] = await Promise.all([
+    checkRateLimit({
+      namespace: "contact:email",
+      key: hashRateLimitKey(email.trim().toLowerCase()),
+      limit: 3,
+      window: "1 h",
+      onDegraded: "closed",
+    }),
+    checkRateLimit({
+      namespace: "contact:ip",
+      key: getRequestFingerprint(headersList),
+      limit: 10,
+      window: "1 h",
+      onDegraded: "closed",
+    }),
+  ]);
+
+  if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+    if (emailRateLimit.degraded || ipRateLimit.degraded) {
+      return {
+        success: false,
+        message: RATE_LIMIT_DEGRADED_ERROR,
+      };
+    }
+    return {
+      success: false,
+      message: RATE_LIMIT_ERROR,
+    };
+  }
+
+  // CAPTCHA: the two keys above are both fully attacker-controlled (the email
+  // is self-reported, the IP fingerprint rides a spoofable header), so without
+  // this they are the only thing standing between a script and Resend's
+  // 100-emails/day free-tier cap — which would take down password resets and
+  // digests for every real user. Fails closed: a missing secret or token
+  // rejects the submission.
+  const turnstileToken = formData.get("turnstileToken");
+  if (
+    !(await verifyContactFormTurnstile(
+      typeof turnstileToken === "string" ? turnstileToken : "",
+    ))
+  ) {
+    return {
+      success: false,
+      message: "Security verification failed. Please try again.",
+    };
+  }
+
   const replyToEmail = email;
   const safeName = escapeHtml(name);
   const safeEmail = escapeHtml(email);

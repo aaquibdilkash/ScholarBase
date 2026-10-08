@@ -8,7 +8,7 @@ import {
 import { getActiveUser } from "@/lib/auth";
 import { VoteType } from "@prisma/client";
 import type { CommentEntityType } from "@/types/comments";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { queueNotification } from "@/lib/qstash";
 
 export async function voteOnContent(
@@ -38,10 +38,14 @@ export async function voteOnContent(
     key: user.id,
     limit: 120,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   try {
@@ -96,10 +100,14 @@ export async function toggleCommentVote(
     key: user.id,
     limit: 120,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   try {

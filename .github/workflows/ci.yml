@@ -8,7 +8,7 @@ on:
 
 jobs:
   verify:
-    name: Verify & Build
+    name: Verify & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -47,7 +47,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: mock-anon-key-ci
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
-      - name: Build application
+      # Run dry-run build ONLY on PRs to verify compilation without wasting push build time
+      - name: Dry-run build (PR only)
+        if: github.event_name == 'pull_request'
         run: npm run build
         env:
           DATABASE_URL: postgresql://localhost:5432/test
@@ -66,10 +68,6 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
 
-    # Ephemeral, throwaway database — never a Supabase connection. The real
-    # project is reached only by the app at runtime; tests get a local container
-    # so raw-SQL behaviour (pg_trgm, to_tsvector, pg_class, cron procs) can be
-    # exercised without touching the free tier's compute or connection pool.
     services:
       postgres:
         image: postgres:17
@@ -105,9 +103,6 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      # The tier activates itself: with no files under test/integration the
-      # migration and test steps are skipped rather than quietly passing, so the
-      # first real integration test turns this job on with no CI edits.
       - name: Detect integration tests
         id: detect
         run: |
@@ -127,8 +122,8 @@ jobs:
         run: npm run test:integration
 
   deploy:
-    name: Deploy to Vercel
-    needs: verify
+    name: Build & Deploy to Vercel
+    needs: [verify, integration] # Critical fix: blocks deploy if integration fails
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development')
     runs-on: ubuntu-latest
 
@@ -140,14 +135,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
-      - name: Remove stale Vercel metadata
-        run: rm -rf .vercel
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Deploy to Vercel
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Pull Vercel Environment Information
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npx vercel@latest deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN --yes
+          npx vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=$VERCEL_TOKEN
+
+      - name: Build Project Artifacts via Vercel CLI
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN
+
+      - name: Deploy Prebuilt Artifacts to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN --yes

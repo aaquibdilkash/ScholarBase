@@ -1,7 +1,7 @@
 "use server";
 
 import { getActiveUser } from "@/lib/auth";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { revalidateProfileBookmarks } from "@/lib/tri-split/modules/profile-tab";
 import {
   handleBookmarkTransaction,
@@ -28,10 +28,14 @@ export async function toggleBookmark(entityId: string, module: ModuleKey) {
     key: user.id,
     limit: 120,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   try {

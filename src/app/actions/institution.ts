@@ -95,13 +95,15 @@ export async function requestInstitutionDomain(
       key: hashRateLimitKey(requesterEmail),
       limit: 2,
       window: "1 h",
-    }),
+    onDegraded: "closed",
+  }),
     checkRateLimit({
       namespace: "auth:institution-domain-request:ip",
       key: requestFingerprint,
       limit: 5,
       window: "1 h",
-    }),
+    onDegraded: "closed",
+  }),
   ]);
 
   if (

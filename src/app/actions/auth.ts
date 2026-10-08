@@ -12,6 +12,7 @@ import {
   checkRateLimit,
   getRequestIpKey,
   hashRateLimitKey,
+  RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import {
@@ -24,6 +25,21 @@ import {
 } from "@/lib/email-normalizer";
 import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
 import { recoverDeletedAccount } from "@/lib/account-recovery";
+
+/**
+ * The ONE response both branches of signup() return.
+ *
+ * Supabase replies to signUp() for an already-registered email with an
+ * ambiguous signal (a user with `identities: []`) specifically to prevent
+ * account enumeration. Detecting it and replying "an account with this email
+ * already exists" handed anyone a definitive yes/no — free reconnaissance for
+ * phishing aimed at researchers and institutions. The wording below is true
+ * whether or not an account existed, so the two outcomes are indistinguishable.
+ * (An existing email receives no OTP, so the OTP step will not complete — the
+ * message already tells that user to sign in instead.)
+ */
+const AMBIGUOUS_SIGNUP_MESSAGE =
+  "Check your email for a 6-digit verification code. If this address already has an account, no new code was sent — sign in instead.";
 
 type AuthResult =
   | { success: true; redirect?: string; message?: string; url?: string }
@@ -77,16 +93,21 @@ async function limitByEmailAndIp(
       key: emailKey,
       limit: emailLimit,
       window,
+      onDegraded: "closed",
     }),
     checkRateLimit({
       namespace: `${namespace}:ip`,
       key: requestKey,
       limit: ipLimit,
       window,
+      onDegraded: "closed",
     }),
   ]);
 
   if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+    if (emailRateLimit.degraded || ipRateLimit.degraded) {
+      return { success: false, error: RATE_LIMIT_DEGRADED_ERROR };
+    }
     return { success: false, error: RATE_LIMIT_ERROR };
   }
 
@@ -206,27 +227,26 @@ export async function signup(formData: FormData): Promise<AuthResult> {
   }
 
   // Calling signUp without emailRedirectTo triggers the numeric OTP {{ .Token }} dispatch
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
   });
 
   if (error) {
+    // Some Supabase configurations surface the duplicate as an ERROR instead
+    // of the ambiguous empty-identities signal. Replying with a distinct
+    // error here would re-open the enumeration hole this function closes, so
+    // it gets the same ambiguous success — no code was sent either way, which
+    // is exactly what the message says.
+    if (error.message.toLowerCase().includes("already")) {
+      return { success: true, message: AMBIGUOUS_SIGNUP_MESSAGE };
+    }
     return { success: false, error: mapAuthError(error.message) };
   }
 
-  // Catch email enumeration protection returning empty identities
-  if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
-    return {
-      success: false,
-      error: "An account with this email already exists. Please sign in.",
-    };
-  }
-
-  return {
-    success: true,
-    message: "A 6-digit verification code has been sent to your email.",
-  };
+  // Both outcomes — a fresh signup, and Supabase's ambiguous empty-identities
+  // signal for an already-registered email — return the identical response.
+  return { success: true, message: AMBIGUOUS_SIGNUP_MESSAGE };
 }
 
 export async function verifySignupOtp(

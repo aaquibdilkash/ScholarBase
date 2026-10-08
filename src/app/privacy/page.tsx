@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
       <div className="mx-auto max-w-4xl px-2 sm:px-4">
         <h1 className="sb-heading text-center">Privacy Policy</h1>
         <p className="sb-subtitle mt-4 text-center">
-          Last updated: July 29, 2026
+          Last updated: October 6, 2026
         </p>
         <div className="prose prose-lg prose-slate mx-auto mt-8 dark:prose-invert dark:prose-a:text-blue-300 dark:prose-strong:text-slate-100">
           <p>
@@ -100,6 +100,34 @@ export default function PrivacyPolicyPage() {
             </li>
           </ul>
 
+          <h3>1.4 Scholar Shield Data</h3>
+          <p>
+            Scholar Shield has two modes with different privacy implications:
+          </p>
+          <ul>
+            <li>
+              <strong>AI Detector (on-device):</strong> Text you paste and
+              documents you open (PDF, DOCX, TXT, Markdown) are parsed and
+              analysed entirely in your browser. Quick Audit statistics and
+              Deep Scan neural inference run locally via WebAssembly. Your
+              text never leaves your device, is never uploaded to our
+              servers, and generates no server logs. PDF reports are
+              generated locally in your browser. The Deep Scan model weights
+              (~130 MB) are cached in your browser storage so future scans
+              work offline &mdash; you can clear them at any time with the
+              &ldquo;Free ~130 MB&rdquo; button.
+            </li>
+            <li>
+              <strong>Humanizer / Rewriter (server-processed):</strong> Text
+              you submit for restructuring is transmitted to our server and
+              forwarded to our AI sub-processor Groq Cloud
+              (model openai/gpt-oss-120b) to generate the rewrite. We retain
+              only minimal rate-limit and abuse-prevention logs. We do not
+              use your submitted text for advertising or to train models.
+              Do not submit text you do not have the right to process.
+            </li>
+          </ul>
+
           <h2>2. How We Use Your Information</h2>
           <p>We use your personal information for the following purposes:</p>
           <ul>
@@ -120,6 +148,11 @@ export default function PrivacyPolicyPage() {
             <li>
               <strong>To Moderate Content:</strong> Review content for
               compliance with our Terms of Service and applicable laws.
+            </li>
+            <li>
+              <strong>To Provide Scholar Shield:</strong> Run AI detection
+              locally in your browser and process rewrite requests via our
+              AI sub-processor to restructure flagged prose.
             </li>
             <li>
               <strong>To Ensure Security:</strong> Detect and prevent
@@ -179,6 +212,11 @@ export default function PrivacyPolicyPage() {
                 <li>
                   <strong>Google</strong> &mdash; OAuth authentication services
                 </li>
+                <li>
+                  <strong>Groq Cloud</strong> &mdash; AI sub-processor for
+                  Scholar Shield Humanizer rewrites only (Detector scans never
+                  leave your device)
+                </li>
               </ul>
             </li>
             <li>
@@ -204,6 +242,11 @@ export default function PrivacyPolicyPage() {
             remain visible even after account deletion, though it will be
             anonymized (attributed to &ldquo;Deleted User&rdquo;). You can
             request complete removal of your content by contacting us.
+          </p>
+          <p>
+            Scholar Shield Detector scans are never stored on our servers.
+            Scholar Shield Humanizer submissions are retained only in minimal
+            rate-limit and abuse-prevention logs.
           </p>
 
           <h2>6. Data Security</h2>
@@ -315,7 +358,10 @@ export default function PrivacyPolicyPage() {
           <p>
             We use essential cookies for authentication and security purposes.
             These cookies are necessary for the platform to function. We do not
-            use third-party tracking cookies for advertising. You can control
+            use third-party tracking cookies for advertising. Scholar Shield
+            Deep Scan caches model weights in your browser storage (IndexedDB
+            / Cache API) so future scans work offline &mdash; clearing site
+            data removes this cache. You can control
             cookie settings through your browser preferences.
           </p>
 

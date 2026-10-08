@@ -16,11 +16,16 @@ function isConstantTimeEqual(expected: string, actual: string): boolean {
 
 function getSigningSecret(): string {
   if (process.env.NODE_ENV === "production") {
-    return process.env.EMAIL_UNSUBSCRIBE_SECRET
-      ? requireEnv("EMAIL_UNSUBSCRIBE_SECRET")
-      : requireEnv("CRON_SECRET");
+    // Dedicated secret, HARD-FAIL if missing (requireEnv throws in production).
+    // The old fallback silently borrowed CRON_SECRET: two unrelated systems
+    // sharing one secret by accident means rotating either one invalidates the
+    // other's tokens, and a leak of either one forges the other's credentials.
+    // Set EMAIL_UNSUBSCRIBE_SECRET in production (any long random value).
+    return requireEnv("EMAIL_UNSUBSCRIBE_SECRET");
   }
 
+  // Non-production fallbacks only — local dev and tests never reach the branch
+  // above.
   return (
     process.env.EMAIL_UNSUBSCRIBE_SECRET ||
     process.env.CRON_SECRET ||

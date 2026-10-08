@@ -103,7 +103,13 @@ export function buildCsp(nonce: string): string {
     //   Connecting to 'ws://localhost:…/' violates … "connect-src 'self'"
     // Pinned to loopback only, and stripped entirely from the production
     // policy by the IS_DEV gate below.
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co${
+    // Sentry envelope endpoint. Three explicit region wildcards, not one broad
+    // `https://*.sentry.io`: the browser only ever POSTs envelopes to
+    // `o<org>.ingest.<region>.sentry.io`, and the region follows the Sentry
+    // org (this project lives in EU -> `.de`). A region move changes the DSN
+    // host and silently re-breaks reporting - `sentry-wiring.test.ts` asserts
+    // all three, so that fails in CI instead of in a user's console.
+    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io${
       IS_DEV ? " ws://localhost:* ws://127.0.0.1:*" : ""
     }`,
     // Cloudflare Turnstile is an iframe widget.

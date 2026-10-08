@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
       <div className="mx-auto max-w-4xl px-2 sm:px-4">
         <h1 className="sb-heading text-center">Terms of Service</h1>
         <p className="sb-subtitle mt-4 text-center">
-          Last updated: July 29, 2026
+          Last updated: October 6, 2026
         </p>
 
         <div className="prose prose-lg prose-slate mx-auto mt-8 dark:prose-invert dark:prose-a:text-blue-300 dark:prose-strong:text-slate-100">
@@ -188,7 +188,45 @@ export default function TermsOfServicePage() {
             </li>
           </ul>
 
-          <h2>6. Copyright and DMCA Compliance</h2>
+          <h2>6. Scholar Shield and AI Tools</h2>
+          <p>
+            Scholar Shield provides an on-device AI writing-risk detector and
+            a server-assisted humanizer/rewriter. By using Scholar Shield you
+            agree to the following:
+          </p>
+          <ul>
+            <li>
+              <strong>Diagnostic only:</strong> Shield scores are statistical
+              estimates, not proof of AI authorship or plagiarism. Do not use
+              a score as the sole basis for academic discipline, rejection,
+              or public accusation. Always verify with human review.
+            </li>
+            <li>
+              <strong>Your rights to the text:</strong> Only scan or rewrite
+              text you own or have permission to process. Detector scans stay
+              on your device; Humanizer submissions are transmitted to our AI
+              sub-processor (Groq Cloud) as described in our{" "}
+              <a href="/privacy">Privacy Policy</a>.
+            </li>
+            <li>
+              <strong>No misuse:</strong> Do not use Shield to facilitate
+              academic dishonesty, evade detection systems, harass scholars
+              with scores, or process others&apos; confidential work without
+              consent.
+            </li>
+            <li>
+              <strong>Rewrites need review:</strong> AI restructures may
+              introduce errors or change meaning. You are responsible for
+              accuracy, citations, and originality of anything you submit
+              after rewriting.
+            </li>
+          </ul>
+          <p>
+            Scholar Shield requires a signed-in account. We may rate-limit or
+            suspend Shield access for abuse.
+          </p>
+
+          <h2>7. Copyright and DMCA Compliance</h2>
           <p>
             ScholarBase respects the intellectual property rights of others. If
             you believe that your copyrighted work has been copied in a way that
@@ -227,7 +265,7 @@ export default function TermsOfServicePage() {
             <a href="mailto:connect@scholarbase.app">connect@scholarbase.app</a>
           </p>
 
-          <h2>7. Platform Content and Third-Party Links</h2>
+          <h2>8. Platform Content and Third-Party Links</h2>
           <p>
             ScholarBase contains academic content, publications, and information
             posted by its users. We do not verify, endorse, or guarantee the
@@ -242,7 +280,7 @@ export default function TermsOfServicePage() {
             policies.
           </p>
 
-          <h2>8. Termination</h2>
+          <h2>9. Termination</h2>
           <p>
             We may terminate or suspend your account and access to the Service
             at any time, without prior notice or liability, for any reason,
@@ -267,7 +305,7 @@ export default function TermsOfServicePage() {
             account deletion features where available.
           </p>
 
-          <h2>9. Service Modifications</h2>
+          <h2>10. Service Modifications</h2>
           <p>
             We reserve the right to modify, suspend, or discontinue the Service
             (or any part thereof) at any time with or without notice. We will
@@ -275,7 +313,7 @@ export default function TermsOfServicePage() {
             suspension, or discontinuance of the Service.
           </p>
 
-          <h2>10. Disclaimer of Warranties</h2>
+          <h2>11. Disclaimer of Warranties</h2>
           <p>
             THE SERVICE IS PROVIDED ON AN &ldquo;AS IS&rdquo; AND &ldquo;AS
             AVAILABLE&rdquo; BASIS. SCHOLARBASE MAKES NO REPRESENTATIONS OR
@@ -297,7 +335,7 @@ export default function TermsOfServicePage() {
             </li>
           </ul>
 
-          <h2>11. Limitation of Liability</h2>
+          <h2>12. Limitation of Liability</h2>
           <p>
             TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL
             SCHOLARBASE, ITS DIRECTORS, EMPLOYEES, PARTNERS, AGENTS, SUPPLIERS,
@@ -325,7 +363,7 @@ export default function TermsOfServicePage() {
             NOT APPLY TO YOU.
           </p>
 
-          <h2>12. Indemnification</h2>
+          <h2>13. Indemnification</h2>
           <p>
             You agree to indemnify, defend, and hold harmless ScholarBase, its
             directors, employees, and agents from and against any claims,
@@ -338,7 +376,7 @@ export default function TermsOfServicePage() {
             <li>Your violation of any rights of another person or entity.</li>
           </ul>
 
-          <h2>13. Governing Law and Dispute Resolution</h2>
+          <h2>14. Governing Law and Dispute Resolution</h2>
           <p>
             These Terms shall be governed by and construed in accordance with
             the laws of <strong>India</strong>, without regard to its conflict
@@ -364,7 +402,7 @@ export default function TermsOfServicePage() {
             statutory rights under the laws of your country of residence.
           </p>
 
-          <h2>14. Changes to Terms</h2>
+          <h2>15. Changes to Terms</h2>
           <p>
             We reserve the right to modify these Terms at any time. If we make
             material changes, we will notify you by posting the updated Terms on
@@ -378,7 +416,7 @@ export default function TermsOfServicePage() {
             indicates when these Terms were last revised.
           </p>
 
-          <h2>15. Contact Information</h2>
+          <h2>16. Contact Information</h2>
           <p>
             For any questions, concerns, or notices relating to these Terms,
             please contact us:
@@ -395,7 +433,7 @@ export default function TermsOfServicePage() {
             </li>
           </ul>
 
-          <h2>16. Miscellaneous</h2>
+          <h2>17. Miscellaneous</h2>
           <ul>
             <li>
               <strong>Entire Agreement:</strong> These Terms, together with our

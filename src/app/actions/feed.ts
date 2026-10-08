@@ -6,7 +6,11 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getCurrentUser, requireCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  RATE_LIMIT_DEGRADED_ERROR,
+  RATE_LIMIT_ERROR,
+} from "@/lib/rate-limit";
 import { isSearchableQuery } from "@/lib/search-guard";
 import { allowSearchRequest } from "@/lib/search-rate-limit";
 
@@ -246,10 +250,11 @@ export async function createSocialPost(formData: FormData) {
     key: authUser.id,
     limit: 10,
     window: "10 m",
+    onDegraded: "closed",
   });
 
     if (!rateLimit.allowed) {
-      return { success: false, error: RATE_LIMIT_ERROR };
+      return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
     }
 
   const [content, user] = await Promise.all([
@@ -359,10 +364,11 @@ export async function updateSocialPost(formData: FormData, postId: string) {
     key: user.id,
     limit: 20,
     window: "10 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, message: RATE_LIMIT_ERROR };
+    return { success: false, message: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   const content = readFormValue(formData, "content");
@@ -474,10 +480,11 @@ export async function deleteSocialPost(postId: string) {
     key: user.id,
     limit: 20,
     window: "10 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   const post = await prisma.socialPost.findUnique({
@@ -528,10 +535,11 @@ export async function voteOnSocialPost(postId: string, voteType: VoteType) {
     key: user.id,
     limit: 120,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
   const { notification } = await handleVoteTransaction("SOCIAL_POST", postId, user.id, voteType);
   if (notification) {
@@ -559,10 +567,11 @@ export async function createSocialPostComment(
     key: user.id,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
   await createCommentTransaction(
     "SOCIAL_POST",
@@ -582,10 +591,11 @@ export async function deleteSocialPostComment(commentId: string) {
     key: user.id,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
   const { parentId } = await deleteCommentTransaction(
     "SOCIAL_POST",

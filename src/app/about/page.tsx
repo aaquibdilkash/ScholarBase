@@ -6,6 +6,7 @@ import {
   Code2,
   Globe2,
   HeartHandshake,
+  Shield,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -42,6 +43,12 @@ const features = [
     title: "Built With the Community",
     description:
       "ScholarBase improves because its users speak up. Feature requests, feedback, and contributions directly shape the roadmap.",
+  },
+  {
+    icon: Shield,
+    title: "Integrity by Design",
+    description:
+      "Scholar Shield checks AI writing risk right in your browser — your text is never uploaded — and helps you restructure flagged prose before you publish.",
   },
 ];
 
@@ -86,6 +93,15 @@ export default function AboutPage() {
                 academic community itself shares, discovers, and discusses what
                 matters — and where the best contributions rise to the top
                 through community votes, not advertising budgets.
+              </p>
+              <p>
+                The AI era made this worse. Writing tools now produce fluent
+                academic prose in seconds, so scholars face a double bind:
+                professors suspect machine-written text, and honest writers
+                struggle to prove their own voice is their own. Scholar Shield
+                came out of that gap — an AI writing-risk checker that runs
+                entirely in your browser, so you can audit your own drafts
+                without handing your unpublished research to anyone else.
               </p>
               <p>
                 And we are{" "}
@@ -171,6 +187,16 @@ export default function AboutPage() {
                     Opportunity should not depend on geography.
                   </strong>{" "}
                   A scholar anywhere deserves access to everything.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <Shield className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <span>
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    Privacy is a feature.
+                  </strong>{" "}
+                  Scholar Shield analyses your drafts on your own device —
+                  your unpublished work never leaves it.
                 </span>
               </li>
             </ul>

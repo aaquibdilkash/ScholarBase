@@ -4,6 +4,7 @@ import {
   checkRateLimit,
   getRequestFingerprint,
   hashRateLimitKey,
+  RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 
@@ -31,17 +32,22 @@ export async function POST(req: NextRequest) {
       key: requestKey,
       limit: 10,
       window: "1 h",
+      onDegraded: "closed",
     }),
     checkRateLimit({
       namespace: "auth:update-password:password",
       key: hashRateLimitKey(password ?? ""),
       limit: 5,
       window: "1 h",
+      onDegraded: "closed",
     }),
-  ])
+  ]);
 
   if (!ipLimit.allowed || !passwordLimit.allowed) {
-    return NextResponse.json({ error: RATE_LIMIT_ERROR }, { status: 429 })
+    if (ipLimit.degraded || passwordLimit.degraded) {
+      return NextResponse.json({ error: RATE_LIMIT_DEGRADED_ERROR }, { status: 503 });
+    }
+    return NextResponse.json({ error: RATE_LIMIT_ERROR }, { status: 429 });
   }
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();

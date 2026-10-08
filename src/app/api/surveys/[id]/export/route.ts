@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { isUserAdmin } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { MAX_SURVEY_EXPORT_RESPONSES } from "@/lib/constants";
 import {
   buildRawData,
+  redactRespondentIdentity,
   toCsv,
   type ExportSurvey,
 } from "@/lib/surveys/export";
@@ -44,8 +45,14 @@ export async function GET(
     key: user.id,
     limit: 5,
     window: "10 m",
+    onDegraded: "closed",
   });
   if (!exportLimit.allowed) {
+    // Degraded means Redis is down and we denied the expensive export — that
+    // is an infrastructure outage, so surface 503 rather than a throttle 429.
+    if (exportLimit.degraded) {
+      return NextResponse.json({ error: RATE_LIMIT_DEGRADED_ERROR }, { status: 503 });
+    }
     return NextResponse.json({ error: RATE_LIMIT_ERROR }, { status: 429 });
   }
 
@@ -117,6 +124,17 @@ export async function GET(
     orderBy: { createdAt: "asc" },
   });
 
+  // Defense in depth: `buildRawData` already blanks anonymous identities
+  // cell-by-cell, but the rows are also redacted at the source here — the
+  // same `redactRespondentIdentity` call `getSurveyResponses` makes — so no
+  // code past this point ever holds a respondent object for a row that must
+  // stay anonymous. ANONYMOUS-survey rows are force-redacted regardless of
+  // the per-response flag.
+  const forceAnonymous = survey.privacy === "ANONYMOUS";
+  const safeResponses = responses.map((response) =>
+    redactRespondentIdentity(response, forceAnonymous),
+  );
+
   const exportSurvey: ExportSurvey = {
     title: survey.title,
     privacy: survey.privacy,
@@ -143,14 +161,14 @@ export async function GET(
   // Identity columns are stripped for anonymous surveys at the source.
   const includeIdentity =
     survey.privacy !== "ANONYMOUS" &&
-    responses.some((r) => !r.isAnonymous);
+    safeResponses.some((r) => !r.isAnonymous);
 
   const format = new URL(request.url).searchParams.get("format") ?? "xlsx";
   const fileBase =
     survey.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_") || "survey";
 
   if (format === "csv") {
-    const csv = toCsv(buildRawData(exportSurvey, responses, includeIdentity, anonymize));
+    const csv = toCsv(buildRawData(exportSurvey, safeResponses, includeIdentity, anonymize));
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
@@ -165,7 +183,7 @@ export async function GET(
   // this handler stays async end to end.
   const workbook = buildWorkbook(
     exportSurvey,
-    responses,
+    safeResponses,
     includeIdentity,
     anonymize,
   );

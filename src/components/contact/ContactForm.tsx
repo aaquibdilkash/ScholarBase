@@ -1,7 +1,8 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useActionState } from "react";
+import Script from "next/script";
+import { useCallback, useEffect, useRef, useState, useActionState } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { useAuthModal } from "@/components/interactions/AuthModal";
@@ -67,21 +68,73 @@ export function ContactForm() {
 
   const { name, email, subject, message } = draftFields;
 
+  // Cloudflare Turnstile (server-verified before any email is sent — see
+  // `sendContactMessage`). Mirrors the institution domain-request widget.
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken("");
+    if (turnstileWidgetIdRef.current && window.turnstile) {
+      window.turnstile.reset(turnstileWidgetIdRef.current);
+    }
+  }, []);
+
+  const renderTurnstile = useCallback(() => {
+    if (
+      !turnstileSiteKey ||
+      !window.turnstile ||
+      !turnstileContainerRef.current ||
+      turnstileWidgetIdRef.current
+    ) {
+      return;
+    }
+
+    turnstileWidgetIdRef.current = window.turnstile.render(
+      turnstileContainerRef.current,
+      {
+        sitekey: turnstileSiteKey,
+        action: "contact-form",
+        size: "flexible",
+        callback: (token) => setTurnstileToken(token),
+        "expired-callback": resetTurnstile,
+        "error-callback": resetTurnstile,
+      },
+    );
+  }, [resetTurnstile, turnstileSiteKey]);
+
+  useEffect(() => {
+    renderTurnstile();
+  }, [renderTurnstile]);
+
   useEffect(() => {
     if (state.message && state.message !== lastShownRef.current) {
       lastShownRef.current = state.message;
       toast(state.message, state.success ? "success" : "error");
       if (state.success) {
         resetDraft();
+        resetTurnstile();
       }
     }
-  }, [state, toast, resetDraft]);
+  }, [state, toast, resetDraft, resetTurnstile]);
 
   const handleFormAction = (formData: FormData) => {
     if (!user) {
       openAuthModal();
       return;
     }
+    if (!turnstileSiteKey || !turnstileToken) {
+      toast(
+        turnstileSiteKey
+          ? "Please complete the security check before submitting."
+          : "Security verification is temporarily unavailable. Please try again later.",
+        "error",
+      );
+      return;
+    }
+    formData.set("turnstileToken", turnstileToken);
     formAction(formData);
   };
 
@@ -176,6 +229,13 @@ export function ContactForm() {
           {String(message.length).replace(/(\d+)(?=.(\d{3})*$)/g, "$1,")}/{MAX_CONTACT_MESSAGE} characters
         </div>
       </div>
+
+      <div ref={turnstileContainerRef} className="flex justify-center" />
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={renderTurnstile}
+      />
 
       <SubmitButton />
 

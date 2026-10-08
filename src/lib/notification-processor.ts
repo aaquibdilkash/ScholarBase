@@ -104,6 +104,20 @@ export async function processNotificationPayload(payload: NotificationPayload) {
         : null;
 
       if (existingNotification) {
+        // SAME-ACTOR GUARD. `count` is presented as "Alice and N others" —
+        // i.e. distinct people — but the rollup query never looked at who
+        // triggered the previous event. One person re-triggering the same
+        // rollup while the row is still unread (a vote toggle storm, or an
+        // unfollow/refollow loop) used to increment the count every time.
+        // The same actor contributes at most once per unread rollup now.
+        // Applies to every rollup type — votes, follows, comments, replies.
+        // Known limit: A, B, A interleaves to 3 (the row tracks only the most
+        // recent actor); the single-actor inflation this fixes is gone, and
+        // the remainder needs a contributor set to be exact.
+        if (existingNotification.actorId === payload.actorId) {
+          return true;
+        }
+
         const count = existingNotification.count + 1;
         await tx.notification.update({
           where: { id: existingNotification.id },

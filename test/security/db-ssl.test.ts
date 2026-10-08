@@ -1,21 +1,25 @@
 /**
- * P1-5 — database TLS.
+ * Database TLS — fail-closed in production (M6 of the launch-readiness audit).
  *
- * What this pins is narrower than the checklist's original "throw at startup",
- * and the difference matters:
+ * The policy CHANGED from the original P1-5 wording, and the history matters:
  *
- * - **Do NOT test the `Pool` construction directly.** `src/lib/db.ts` builds a
- *   real `pg.Pool` at module import, which would try to open sockets in CI. So
- *   the decision is re-derived here from the same inputs the module uses, and
- *   asserted as a policy. This is a proxy for the module's branch, not the
- *   branch itself — which is stated plainly rather than dressed up.
- * - **Throwing was rejected on purpose.** `prisma` is created at import time, so
- *   a throw on a misconfigured env would fail `next build` and every cold
- *   serverless start. A hardening measure that takes the app down is not a
- *   hardening measure.
- * - **The assertion that matters is the happy path**: with a CA present, in
- *   production, verification must be ON. That is the configuration production
- *   actually runs, and the one where a regression would be silent.
+ * - Originally a startup throw was requested, then rejected, because `prisma`
+ *   is constructed at module import and a missing secret would fail
+ *   `next build` and every cold start.
+ * - The launch audit (M6) accepted the throw anyway — a misconfigured
+ *   production deployment silently querying with verification DISABLED is
+ *   worse than a loud cold-start failure — and solved the build problem with
+ *   an explicit `NEXT_PHASE === "phase-production-build"` exemption.
+ *
+ * So the shipped policy is now threefold:
+ *   production, runtime     -> THROW (fail closed)
+ *   production, `next build` -> warn + degraded SSL (secrets not required to build)
+ *   dev/test                -> warn + degraded SSL (local development works)
+ *
+ * As before, the `Pool` is NEVER constructed here (it would open sockets in
+ * CI): the decision is re-derived from the same inputs as a policy proxy, and
+ * the branch itself is additionally asserted against the real source with
+ * comments stripped.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -23,18 +27,21 @@ import { join } from "node:path";
 
 const DB_SOURCE = readFileSync(join(process.cwd(), "src", "lib", "db.ts"), "utf8");
 
+class MissingCASignal extends Error {}
+
 /**
  * Mirrors the decision in `getPool()` in src/lib/db.ts.
  *
- * `isProduction` is accepted but NOT branched on, deliberately: the real module
- * decides purely from the connection string and the CA cert, so this helper must
- * not invent a NODE_ENV branch that does not exist. It is optional purely
- * because callers naturally describe a scenario as local-vs-production.
+ * Unlike the previous version, `isProduction` and `isBuildPhase` ARE branched
+ * on now — because the real module branches on them too (NODE_ENV and
+ * NEXT_PHASE). A proxy that ignored them would no longer model the shipped
+ * behaviour.
  */
 function resolveSsl(input: {
   databaseUrl?: string;
   caCert?: string;
   isProduction?: boolean;
+  isBuildPhase?: boolean;
 }): { rejectUnauthorized: boolean; ca?: string } | undefined {
   const isLocalDb =
     input.databaseUrl?.includes("localhost") ||
@@ -42,10 +49,13 @@ function resolveSsl(input: {
 
   if (isLocalDb) return undefined;
   if (input.caCert) return { rejectUnauthorized: true, ca: input.caCert };
+  if (input.isProduction && !input.isBuildPhase) {
+    throw new MissingCASignal();
+  }
   return { rejectUnauthorized: false };
 }
 
-describe("P1-5 database TLS", () => {
+describe("database TLS (fail-closed in production)", () => {
   it("verifies the server certificate when a CA is configured", () => {
     // The real production shape: pooler host, CA present.
     const ssl = resolveSsl({
@@ -70,50 +80,62 @@ describe("P1-5 database TLS", () => {
     expect(ssl?.rejectUnauthorized).toBe(true);
   });
 
-  it("disables verification only when no CA exists", () => {
-    // The downgrade still happens (nothing else can connect without a CA), but
-    // it is a last resort rather than the default.
-    expect(
+  it("THROWS in production runtime when no CA exists", () => {
+    // The M6 fix. The old behaviour returned { rejectUnauthorized: false } with
+    // only a console.error — a misconfigured deployment stayed silently
+    // downgraded for its entire life.
+    expect(() =>
       resolveSsl({
         databaseUrl: "postgres://u:p@aws-0-ap-south-1.pooler.supabase.com:6543/db",
         isProduction: true,
       }),
+    ).toThrow(MissingCASignal);
+  });
+
+  it("does NOT throw during `next build` (secrets are not required to build)", () => {
+    // NEXT_PHASE=phase-production-build is the documented escape hatch: CI can
+    // build without runtime secrets, while a real production cold start still
+    // fails closed.
+    expect(
+      resolveSsl({
+        databaseUrl: "postgres://u:p@aws-0-ap-south-1.pooler.supabase.com:6543/db",
+        isProduction: true,
+        isBuildPhase: true,
+      }),
     ).toEqual({ rejectUnauthorized: false });
   });
 
-  it("the REAL db.ts warns loudly on that downgrade", () => {
-    // The branch above is only a proxy re-derived from db.ts. What actually
-    // matters is that the shipped module emits a visible warning, so that is
-    // asserted against the real source rather than manufactured by this test —
-    // an earlier version of this test called console.error itself and asserted
-    // on the spy, which would have passed even with db.ts completely unchanged.
-    const dbSource = DB_SOURCE;
-
-    expect(dbSource).toContain("REFUSING TO VERIFY");
-    expect(dbSource).toContain("DISABLED");
+  it("the REAL db.ts warns loudly whenever it degrades", () => {
+    // The degraded branch still exists (build phase, dev, test) and still
+    // screams, so a degraded connection can never scroll past unnoticed in
+    // logs. Asserted against the real source rather than a spy so the test
+    // cannot pass with db.ts unchanged.
+    expect(DB_SOURCE).toContain("REFUSING TO VERIFY");
+    expect(DB_SOURCE).toContain("DISABLED");
     // Names the variable that fixes it, so the log is actionable.
-    expect(dbSource).toContain("SUPABASE_CA_CERT_BASE64");
-    // And it must be an error, not a warn that scrolls past.
-    expect(dbSource).toMatch(/console\.error\([\s\S]{0,200}REFUSING TO VERIFY/);
+    expect(DB_SOURCE).toContain("SUPABASE_CA_CERT_BASE64");
+    expect(DB_SOURCE).toMatch(/console\.error\([\s\S]{0,200}REFUSING TO VERIFY/);
   });
 
-  it("does NOT throw on a missing CA, so builds and cold starts survive", () => {
-    // P1-5 originally asked for a startup throw. `prisma` is constructed at
-    // module import, so throwing here would fail `next build` and every cold
-    // serverless start on a misconfigured env.
-    // Comments are stripped before the check: the branch's own comment explains
-    // why throwing was REJECTED and necessarily uses the word, so a naive scan
-    // fails on correct code. (Same trap as the sw.js precache test.)
+  it("the REAL db.ts throws only behind the production + non-build guard", () => {
+    // Comments are stripped first: the branch's own comment explains the
+    // policy and necessarily uses the word "throw", so a naive scan fails on
+    // correct code.
     const codeOnly = DB_SOURCE.replace(/\/\*[\s\S]*?\*\//g, "").replace(
       /^\s*\/\/.*$/gm,
       "",
     );
-    const sslBranch = codeOnly.slice(
-      codeOnly.indexOf("} else {"),
-      codeOnly.indexOf("sslConfig = { rejectUnauthorized: false }"),
-    );
-    expect(sslBranch.length).toBeGreaterThan(0);
-    expect(sslBranch).not.toMatch(/\bthrow\b/);
+    const start = codeOnly.indexOf("} else {");
+    const end = codeOnly.indexOf("sslConfig = { rejectUnauthorized: false }");
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    const sslBranch = codeOnly.slice(start, end);
+
+    // The throw exists...
+    expect(sslBranch).toMatch(/\bthrow new Error\(/);
+    // ...and ONLY inside this exact guard.
+    expect(sslBranch).toContain('process.env.NODE_ENV === "production"');
+    expect(sslBranch).toContain('process.env.NEXT_PHASE !== "phase-production-build"');
   });
 
   it("leaves local development unencrypted and unreported", () => {
@@ -123,7 +145,5 @@ describe("P1-5 database TLS", () => {
     ]) {
       expect(resolveSsl({ databaseUrl: url })).toBeUndefined();
     }
-    // A local DB is not a downgrade, so it must not be treated as one.
-    expect(resolveSsl({ databaseUrl: "postgres://u:p@localhost:5432/db" })).toBeUndefined();
   });
 });

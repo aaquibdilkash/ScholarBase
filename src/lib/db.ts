@@ -40,20 +40,34 @@ const getPool = () => {
       if (caCert) {
         sslConfig = { rejectUnauthorized: true, ca: caCert };
       } else {
-        // No CA configured, so certificate verification has to be disabled to
-        // connect at all. That is a real downgrade — an on-path attacker could
-        // read or tamper with every query — so it is LOUD rather than silent.
+        // No CA configured, so certificate verification would have to be
+        // disabled to connect at all — an on-path attacker could read or
+        // tamper with every query.
         //
-        // P1-5 originally specified "throw at startup". That was rejected: `prisma`
-        // is constructed at module import (below), so throwing here would fail
-        // `next build` and every cold serverless start on a misconfigured env,
-        // converting a hardening measure into an outage.
+        // PRODUCTION FAILS CLOSED. This used to log and continue
+        // (rejectUnauthorized: false), which left a misconfigured deployment
+        // silently downgraded forever. The guard below makes that impossible:
+        // the pool is built at module import, so a missing CA stops the
+        // serverless function at cold start instead of querying in the clear.
         //
-        // It is also NOT a live vulnerability today: production sets
-        // SUPABASE_CA_CERT_BASE64, so the branch above is taken and verification
-        // is on. This only fires if that variable is missing or undecodable, and
-        // the log exists so that shows up in monitoring instead of passing
-        // unnoticed.
+        // The two escape hatches are deliberate:
+        //  - NEXT_PHASE=phase-production-build: `next build` runs with
+        //    NODE_ENV=production but must not require runtime secrets, or a
+        //    docs-only change could not be built in CI.
+        //  - non-production (dev/test): loud warning + degraded SSL keeps
+        //    local development working; the log is an error, not a warn, so
+        //    it cannot scroll past unnoticed.
+        if (
+          process.env.NODE_ENV === "production" &&
+          process.env.NEXT_PHASE !== "phase-production-build"
+        ) {
+          throw new Error(
+            "[Database SSL] Missing SUPABASE_CA_CERT_BASE64 (or SUPABASE_CA_CERT): " +
+              "refusing to start in production with TLS certificate verification " +
+              "disabled. Set SUPABASE_CA_CERT_BASE64 to the base64-encoded Supabase " +
+              "CA certificate.",
+          );
+        }
         console.error(
           "[Database SSL] REFUSING TO VERIFY: no SUPABASE_CA_CERT_BASE64 or " +
             "SUPABASE_CA_CERT found, so TLS certificate verification is " +

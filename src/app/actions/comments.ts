@@ -20,7 +20,7 @@ import {
   deleteCommentTransaction,
   ENTITY_CONFIG,
 } from "@/lib/transactions";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { visibleParentCommentWhere } from "@/lib/comment-visibility";
 
 // ============================================
@@ -156,10 +156,14 @@ export async function createComment(
     key: user.id,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!createRateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      error: createRateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   const content = readFormValue(formData, "content");
@@ -233,10 +237,14 @@ export async function editComment(
     key: user.id,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!editRateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      error: editRateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   const content = readFormValue(formData, "content");
@@ -318,10 +326,14 @@ export async function deleteComment(
     key: userId,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!deleteRateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return {
+      success: false,
+      error: deleteRateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
   }
 
   const moduleKey = COMMENT_TYPE_TO_MODULE[type];

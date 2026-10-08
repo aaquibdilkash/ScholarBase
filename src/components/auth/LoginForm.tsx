@@ -382,7 +382,7 @@ export function LoginForm({
           </div>
         </div>
 
-        <p className="-mb-2 text-center text-sm text-slate-600 dark:text-slate-400">
+        <p className="text-center text-sm text-slate-600 dark:text-slate-400">
           Forgot your password? Or want to set a password for your account
           continued with Google? Enter your email to get a 6-digit recovery code.
         </p>

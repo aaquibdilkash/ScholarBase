@@ -7,7 +7,11 @@ import { requireCurrentUser, requireActiveUser, getActiveUser } from "@/lib/auth
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { messageSelect } from "@/lib/message-select";
 import type { SubmitResult } from "@/types/form";
-import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+import {
+  checkRateLimit,
+  RATE_LIMIT_DEGRADED_ERROR,
+  RATE_LIMIT_ERROR,
+} from "@/lib/rate-limit";
 import { queueMessagePush } from "@/lib/qstash";
 import { Prisma } from "@prisma/client";
 import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
@@ -300,10 +304,11 @@ export async function startConversation(
     key: supabaseUser.id,
     limit: 15,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   const recipientId = readFormValue(formData, "recipientId");
@@ -449,10 +454,11 @@ export async function sendMessage(
     key: supabaseUser.id,
     limit: 60,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR, code: "UNKNOWN" };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR, code: "UNKNOWN" };
   }
 
   const body = readFormValue(formData, "body");
@@ -573,10 +579,11 @@ export async function editMessage(
     key: supabaseUser.id,
     limit: 30,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   const trimmed = newBody?.trim();
@@ -640,10 +647,11 @@ export async function deleteMessage(
     key: supabaseUser.id,
     limit: 30,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   const message = await prisma.message.findUnique({
@@ -691,10 +699,11 @@ export async function blockUser(blockedId: string): Promise<SubmitResult> {
     key: user.id,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   if (user.id === blockedId) {
@@ -723,10 +732,11 @@ export async function unblockUser(blockedId: string): Promise<SubmitResult> {
     key: user.id,
     limit: 20,
     window: "1 m",
+    onDegraded: "closed",
   });
 
   if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
+    return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
   await prisma.block.deleteMany({

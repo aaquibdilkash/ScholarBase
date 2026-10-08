@@ -13,33 +13,12 @@ import {
 } from "@/lib/constants";
 import { useToast } from "@/components/ui/Toast";
 
-type TurnstileWidget = {
-  render: (
-    container: HTMLElement,
-    options: {
-      sitekey: string;
-      action: string;
-      size: "flexible";
-      callback: (token: string) => void;
-      "expired-callback": () => void;
-      "error-callback": () => void;
-    },
-  ) => string;
-  reset: (widgetId: string) => void;
-};
-
 function CharacterCount({ value, max }: { value: string; max: number }) {
   return (
     <p className="text-right text-xs text-slate-500 dark:text-slate-400" aria-live="polite">
       {value.length}/{max}
     </p>
   );
-}
-
-declare global {
-  interface Window {
-    turnstile?: TurnstileWidget;
-  }
 }
 
 export function InstitutionDomainRequestForm({

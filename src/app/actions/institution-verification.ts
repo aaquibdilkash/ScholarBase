@@ -20,6 +20,7 @@ import {
   checkRateLimit,
   getRequestFingerprint,
   hashRateLimitKey,
+  RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 
@@ -124,16 +125,21 @@ export async function requestInstitutionVerification(
       key: hashRateLimitKey(supabaseUser.id),
       limit: 3,
       window: "1 h",
-    }),
+    onDegraded: "closed",
+  }),
     checkRateLimit({
       namespace: "profile:institution-verification:ip",
       key: getRequestFingerprint(headersList),
       limit: 10,
       window: "1 h",
-    }),
+    onDegraded: "closed",
+  }),
   ]);
 
   if (!userRateLimit.allowed || !ipRateLimit.allowed) {
+    if (userRateLimit.degraded || ipRateLimit.degraded) {
+      return { success: false, error: RATE_LIMIT_DEGRADED_ERROR };
+    }
     return { success: false, error: RATE_LIMIT_ERROR };
   }
 

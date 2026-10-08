@@ -17,6 +17,7 @@ import { getCurrentUser, requireActiveUser, isAuthorizedOrAdmin, isUserAdmin } f
 import {
   checkRateLimit,
   enforceRateLimit,
+  RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
@@ -24,6 +25,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE, NEW_QUESTION_ID_PREFIX } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
+import { redactRespondentIdentity } from "@/lib/surveys/export";
 import type { SurveyBlockInput } from "@/types/survey";
 
 const MAX_RESPONSE_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -910,8 +912,13 @@ export async function submitSurveyResponse(
     key: user.id,
     limit: 30,
     window: "10 m",
+    onDegraded: "closed",
   });
-  if (!responseRateLimit.allowed) return { error: RATE_LIMIT_ERROR };
+  if (!responseRateLimit.allowed) {
+    return {
+      error: responseRateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR,
+    };
+  }
 
   const isAnonymous = formData.get("isAnonymous") === "true";
 
@@ -1157,12 +1164,12 @@ export async function getSurveyResponses(surveyId: string, userId?: string) {
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
-    select: { authorId: true },
+    select: { authorId: true, privacy: true },
   });
   if (!survey) return null;
   if (survey.authorId !== userId) return null;
 
-  return prisma.surveyResponse.findMany({
+  const responses = await prisma.surveyResponse.findMany({
     where: { surveyId },
     include: {
       respondent: {
@@ -1178,6 +1185,20 @@ export async function getSurveyResponses(surveyId: string, userId?: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  // ANONYMITY IS NOT OPTIONAL FOR THE AUTHOR EITHER. The CSV/XLSX export
+  // path has always blanked identity for anonymous responses; this sibling
+  // read path returned full identity (name, handle, avatar, verification
+  // badge — and the raw respondentId in the row) regardless of the
+  // isAnonymous flag. For human-subjects research that is an ethics
+  // exposure, not a display bug. Redaction is shared with the export
+  // (`redactRespondentIdentity`) so the rule exists in exactly one place.
+  // Survey-level ANONYMOUS privacy forces it even if a client submitted
+  // isAnonymous=false.
+  const forceAnonymous = survey.privacy === "ANONYMOUS";
+  return responses.map((response) =>
+    redactRespondentIdentity(response, forceAnonymous),
+  );
 }
 
 export async function getSurveyResults(surveyId: string) {
