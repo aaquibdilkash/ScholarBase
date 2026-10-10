@@ -46,7 +46,7 @@ export function ScholarSuggestionDropdown<T extends ScholarSuggestion>({
               <span className="block truncate text-xs text-slate-500 dark:text-slate-400">@{user.handle || "scholar"}</span>
             </span>
           </button>
-          {showShareAction ? <ShareButton href={`/scholars/${user.id}`} label={`Invite ${user.name || "scholar"} to ScholarBase`} icon={UserPlus} /> : null}
+          {showShareAction ? <ShareButton href={`/scholars/${user.id}`} label={`Invite ${user.name || "scholar"} to ScholarBase`} title={`Invite ${user.name || "a scholar"} to ScholarBase`} text={`Connect with ${user.name || "this scholar"} on ScholarBase — an academic community for scholars and researchers.`} icon={UserPlus} /> : null}
         </div>
       )) : <p className="px-3 py-3 text-sm text-slate-500 dark:text-slate-400">{emptyMessage}</p>}
     </div>

@@ -17,12 +17,24 @@ import { RejectionReason } from "@/components/contributions/RejectionReason";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { ComingSoon } from "@/components/contributions/ComingSoon";
+import { isComingSoon } from "@/lib/feature-flags";
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
+  if (isComingSoon) {
+    return buildMetadata({
+      title: SEO_PAGES.contributions.title,
+      description: SEO_PAGES.contributions.description,
+      path: SEO_PAGES.contributions.path,
+      type: "website",
+      section: SEO_PAGES.contributions.section,
+    });
+  }
+
   const { id } = await params;
   const contribution = await getContribution(id).catch(() => null);
   if (!contribution) {
@@ -52,6 +64,10 @@ const ContributionDetailPage = async ({
 }: {
   params: Promise<{ id: string }>;
 }) => {
+  if (isComingSoon) {
+    return <ComingSoon />;
+  }
+
   const { id } = await params;
   const supabase = await createClient();
   const {

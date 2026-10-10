@@ -112,19 +112,20 @@ export default function PrivacyPolicyPage() {
               Deep Scan neural inference run locally via WebAssembly. Your
               text never leaves your device, is never uploaded to our
               servers, and generates no server logs. PDF reports are
-              generated locally in your browser. The Deep Scan model weights
-              (~130 MB) are cached in your browser storage so future scans
-              work offline &mdash; you can clear them at any time with the
-              &ldquo;Free ~130 MB&rdquo; button.
+              generated locally in your browser. The TMR RAID detector
+              weights are cached in your browser storage so future scans work
+              offline &mdash; the Scholar Shield cache control shows the
+              measured size and lets you clear them at any time.
             </li>
             <li>
-              <strong>Humanizer / Rewriter (server-processed):</strong> Text
-              you submit for restructuring is transmitted to our server and
-              forwarded to our AI sub-processor Groq Cloud
-              (model openai/gpt-oss-120b) to generate the rewrite. We retain
-              only minimal rate-limit and abuse-prevention logs. We do not
-              use your submitted text for advertising or to train models.
-              Do not submit text you do not have the right to process.
+              <strong>Rewriter:</strong> Gemini Nano and Local CPU
+              (Transformers.js) rewrites stay in your browser and are not sent
+              to ScholarBase or a model provider. If you choose Groq, the text
+              in the rewrite box is sent to our server and forwarded to Groq Cloud (model
+              openai/gpt-oss-120b). We retain only minimal rate-limit and
+              abuse-prevention logs. We do not use submitted text for
+              advertising or to train models. Do not submit text you do not
+              have the right to process.
             </li>
           </ul>
 
@@ -245,8 +246,9 @@ export default function PrivacyPolicyPage() {
           </p>
           <p>
             Scholar Shield Detector scans are never stored on our servers.
-            Scholar Shield Humanizer submissions are retained only in minimal
-            rate-limit and abuse-prevention logs.
+            Scholar Shield Groq rewrite submissions are retained only in
+            minimal rate-limit and abuse-prevention logs. Gemini Nano and Local
+            CPU rewrites are processed locally in the browser.
           </p>
 
           <h2>6. Data Security</h2>

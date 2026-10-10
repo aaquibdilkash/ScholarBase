@@ -15,6 +15,8 @@ import { getTrendingContributions } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
 import { getContributions } from "@/app/actions/contributions";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
+import { ComingSoon } from "@/components/contributions/ComingSoon";
+import { isComingSoon } from "@/lib/feature-flags";
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 
@@ -23,6 +25,10 @@ export default async function ContributionsPage({
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
 }) {
+  if (isComingSoon) {
+    return <ComingSoon />;
+  }
+
   const { q, tab } = await searchParams;
   const supabasePromise = createClient();
 

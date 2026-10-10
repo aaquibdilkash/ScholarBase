@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { lockAcademicEntities, unlockAcademicEntities } from "@/lib/shield/masking";
-export const runtime = "edge";
-const PROMPT = `Rewrite academic text to human scholarly rhythm. Alternate 4-8 word assertions with 30+ word clauses. Ban furthermore, moreover, pivotal, delve, testament, crucial, underscores, interplay, fosters. Preserve masked tokens like __REF_0__ exactly. Return ONLY rewritten text.`;
+import { createClient } from "@/utils/supabase/server";
+import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
+// This route uses the shared rate-limit helper, which intentionally uses
+// Node's crypto implementation for stable hashed keys.
+export const runtime = "nodejs";
+// Server-side floor mirroring the UI (ShieldStudio MIN_REWRITE_WORDS): rewriting
+// needs at least a few sentences to vary cadence, and this is the one paid path
+// (Groq), so tiny inputs are refused here too — the UI check is not trusted.
+const MIN_REWRITE_WORDS = 40;
+const PROMPT = `Rewrite academic prose for clarity, coherence, and the author's natural scholarly voice. Preserve the meaning, claims, uncertainty, citations, numbers, equations, names, and paragraph structure. Do not invent evidence, remove caveats, or attempt to conceal authorship or evade AI detection. Preserve masked tokens like __REF_0__ exactly. Return ONLY the rewritten prose.`;
 async function groq(prompt: string, temperature: number) {
   const key = process.env.GROQ_API_KEY;
   if (!key) throw new Error("GROQ_API_KEY not configured");
@@ -12,31 +21,25 @@ async function groq(prompt: string, temperature: number) {
   if (!out) throw new Error("Empty Groq response");
   return String(out).trim();
 }
-function sigmaOf(text: string) {
-  const ss = text.split(/(?<=[.?!])\s+/).filter(Boolean);
-  const ls = ss.map((s) => s.split(/\s+/).length);
-  const mean = ls.reduce((a, b) => a + b, 0) / (ls.length || 1);
-  return { sigma: Math.sqrt(ls.reduce((a, b) => a + (b - mean) ** 2, 0) / (ls.length || 1)), count: ss.length };
-}
+const requestSchema = z.object({ paragraph: z.string().trim().min(1).max(30_000).refine((v) => v.split(/\s+/).filter(Boolean).length >= MIN_REWRITE_WORDS, { message: `Provide at least ${MIN_REWRITE_WORDS} words to rewrite.` }) });
+
 export async function POST(req: Request) {
   try {
-    const { paragraph, initialRiskScore = 80 } = await req.json();
-    if (!paragraph || typeof paragraph !== "string" || !paragraph.trim()) return NextResponse.json({ error: "Paragraph required." }, { status: 400 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const limit = await checkRateLimit({ namespace: "shield:rewrite", key: user.id, limit: 10, window: "10 m", onDegraded: "closed" });
+    if (!limit.allowed) {
+      return NextResponse.json({ error: limit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR }, { status: limit.degraded ? 503 : 429 });
+    }
+    const parsed = requestSchema.safeParse(await req.json());
+    if (!parsed.success) return NextResponse.json({ error: `Provide at least ${MIN_REWRITE_WORDS} words and no more than 30,000 characters.` }, { status: 400 });
+    const { paragraph } = parsed.data;
     const { maskedText, restoreMap } = lockAcademicEntities(paragraph.trim());
     const raw = await groq(maskedText, 0.82);
-    let finalText = unlockAcademicEntities(raw, restoreMap);
-    let attemptsUsed = 1;
-    const v = sigmaOf(finalText);
-    if (v.sigma < 4.2 && v.count > 2) {
-      attemptsUsed++;
-      try {
-        const r = await groq(`Radically vary lengths (short punchy + complex clauses):\n${maskedText}`, 0.92);
-        finalText = unlockAcademicEntities(r, restoreMap);
-      } catch { /* keep first */ }
-    }
-    const s = sigmaOf(finalText).sigma;
-    const verified = Math.max(3, Math.round(12 - Math.min(s, 9)));
-    return NextResponse.json({ originalText: paragraph, rewrittenText: finalText, originalRiskScore: initialRiskScore, verifiedRiskScore: verified, providerUsed: "Groq Cloud", modelUsed: "openai/gpt-oss-120b", attemptsUsed });
+    const finalText = unlockAcademicEntities(raw, restoreMap);
+    const attemptsUsed = 1;
+    return NextResponse.json({ originalText: paragraph, rewrittenText: finalText, providerUsed: "Groq Cloud", modelUsed: "openai/gpt-oss-120b", attemptsUsed });
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Rewrite failed" }, { status: 500 });
   }

@@ -9,12 +9,18 @@ import { getContributionForEdit } from "@/app/actions/contributions";
 import ContributionForm from "@/components/contributions/ContributionForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { EDIT_PAGE_TEXT } from "@/constants/seo";
+import { ComingSoon } from "@/components/contributions/ComingSoon";
+import { isComingSoon } from "@/lib/feature-flags";
 
 export default async function EditContributionPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (isComingSoon) {
+    return <ComingSoon />;
+  }
+
   const { id } = await params;
   const contribution = await getContributionForEdit(id);
 

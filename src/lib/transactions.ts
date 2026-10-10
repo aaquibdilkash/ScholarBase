@@ -678,8 +678,51 @@ export async function createCommentTransaction(
     if ((parentEntity as any).isFrozen) throw new Error('This content is frozen by moderators and cannot be commented on.')
     const entityTitle = (parentEntity as any)[config.titleField] as string
 
+    // Comments are rendered as one flat reply thread. A caller may reply to
+    // an existing reply, but the persisted parent must always be the
+    // top-level comment so refreshes fetch it through the normal reply query.
+    // Resolve that root inside the transaction: the server, not the client,
+    // is the source of truth for the thread shape.
+    let replyParentId = parentId
+    let parentCommentContent: string | undefined
+    if (parentId) {
+      const visited = new Set<string>()
+      let currentId: string | undefined = parentId
+
+      while (currentId) {
+        if (visited.has(currentId)) throw new Error('Invalid comment thread.')
+        visited.add(currentId)
+
+        const currentComment = await commentModel.findUnique({
+          where: { id: currentId },
+          select: {
+            parentId: true,
+            isFrozen: true,
+            isDeleted: true,
+            content: true,
+            [config.commentFk]: true,
+          },
+        })
+
+        if (!currentComment || (currentComment as any)[config.commentFk] !== entityId) {
+          throw new Error('The comment you are replying to no longer exists.')
+        }
+        if ((currentComment as any).isDeleted) {
+          throw new Error('The comment you are replying to no longer exists.')
+        }
+        if ((currentComment as any).isFrozen) {
+          throw new Error('This comment is frozen by moderators and cannot be replied to.')
+        }
+
+        // Preserve the selected comment's content for the activity record.
+        if (currentId === parentId) parentCommentContent = (currentComment as any).content
+        replyParentId = currentId
+        currentId = (currentComment as any).parentId ?? undefined
+      }
+    }
+
     const createdComment = await commentModel.create({
-      data: { content, authorId, [config.parentFk]: entityId, parentId, mentions: mentions ?? undefined },
+      data: { content, authorId, [config.parentFk]: entityId, parentId: replyParentId, mentions: mentions ?? undefined },
     })
 
     await parent.update({
@@ -687,26 +730,18 @@ export async function createCommentTransaction(
       data: { totalComments: { increment: 1 } },
     })
 
-    let parentCommentContent: string | undefined
-    if (parentId) {
-      const parentComment = await commentModel.findUnique({
-        where: { id: parentId },
-        select: { isFrozen: true, isDeleted: true, content: true },
-      })
-      if (!parentComment || parentComment.isDeleted) throw new Error('The comment you are replying to no longer exists.')
-      if (parentComment.isFrozen) throw new Error('This comment is frozen by moderators and cannot be replied to.')
+    if (replyParentId) {
 
       await commentModel.update({
-        where: { id: parentId },
+        where: { id: replyParentId },
         data: { totalReplies: { increment: 1 } },
       })
-      parentCommentContent = parentComment.content
     }
 
     await tx.userActivity.create({
       data: {
         userId: authorId,
-        action: parentId ? 'REPLIED' : 'COMMENTED',
+        action: replyParentId ? 'REPLIED' : 'COMMENTED',
         moduleType: moduleName,
         entityId,
         entityTitle: formatCommentActivityTitle(entityTitle, content, parentCommentContent),
@@ -728,7 +763,7 @@ export async function createCommentTransaction(
       // raw optional here made a just-posted root comment the one comment in the
       // list carrying `undefined`, so any `parentId === null` filter would drop
       // it until the next refetch.
-      parentId: parentId ?? null,
+      parentId: replyParentId ?? null,
       [config.parentFk]: entityId,
       createdAt: (createdComment as any).createdAt,
       totalVotes: 0,

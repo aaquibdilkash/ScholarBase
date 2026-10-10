@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 2200);
+      }, Math.max(1000, normalized.duration ?? 2200));
     },
     [],
   );

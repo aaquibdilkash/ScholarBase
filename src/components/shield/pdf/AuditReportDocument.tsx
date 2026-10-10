@@ -289,7 +289,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
             <Text style={[styles.cell, { width: "38%" }]}>Sentence-length variation and uniformity — no vocabulary read.</Text>
           </View>
           <View style={[styles.bodyRow, styles.bodyRowAlt]}>
-            <Text style={[styles.cell, { width: "44%" }]}>Neural result (RoBERTa)</Text>
+            <Text style={[styles.cell, { width: "44%" }]}>Neural result (TMR RAID)</Text>
             <Text style={[styles.cellBold, { width: "18%", color: neuralScore !== null ? riskColor(neuralScore) : C.muted }]}>{neuralScore !== null ? `${neuralScore}%` : "Not run"}</Text>
             <Text style={[styles.cell, { width: "38%" }]}>{neuralScore !== null ? "On-device language model probability that the text is machine-written." : "Run a Deep Neural Scan to add the on-device vocabulary signal."}</Text>
           </View>
@@ -304,7 +304,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           <Text style={styles.cardTitle}>Supporting statistics</Text>
           <View style={styles.cardRule} />
           {[
-            ["Burstiness sigma", `${statProfile.burstinessSigma} — human target > 7.0`],
+            ["Burstiness sigma", `${statProfile.burstinessSigma} — descriptive signal only`],
             ["Shannon entropy (H)", `${statProfile.shannonEntropy} bits/token`],
             ["Guiraud richness (R)", `${statProfile.guiraudIndex}`],
             ["Mean sentence length", `${statProfile.meanSentenceLength} words`],
@@ -322,9 +322,9 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           <View style={styles.cardRule} />
           {[
             ["Cadence result", "How monotonous or varied sentence lengths are. Higher = more human-like rhythm. No vocabulary analysis."],
-            ["Neural result", "On-device RoBERTa model probability that the text is machine-written. Only available in Deep Scan mode."],
+            ["Neural result", "On-device TMR RAID detector signal that the text is machine-written. Only available in Deep Scan mode."],
             ["Balanced result", "Fusion of cadence and neural signals. This is the headline verdict — trust it over either single signal."],
-            ["Burstiness sigma", "Statistical spread of sentence lengths. Human prose typically scores above 7.0."],
+            ["Burstiness sigma", "Statistical spread of sentence lengths; descriptive signal only."],
             ["Shannon entropy (H)", "Vocabulary unpredictability in bits per token. Higher = richer word choice."],
             ["Guiraud richness (R)", "Type-token ratio scaled by vocabulary size. Higher = more diverse vocabulary."],
             ["|Delta| (cadence delta)", "Word-count difference between neighbouring sentences. Small values mean monotonous rhythm."],
@@ -415,7 +415,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           </View>
         ))}
         <View style={[styles.noteBox, { marginTop: 18 }]}>
-          <Text>METHOD — ScholarShield runs entirely in this browser: cadence statistics are computed locally and, for a Deep Scan, the RoBERTa weights execute via WebAssembly. Neither your text nor this report was uploaded anywhere.</Text>
+          <Text>METHOD — ScholarShield runs entirely in this browser: cadence statistics are computed locally and, for a Deep Scan, the TMR RAID detector weights execute via WebAssembly. Neither your text nor this report was uploaded anywhere.</Text>
         </View>
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>ScholarShield · powered by ScholarBase · Audit appendix</Text>

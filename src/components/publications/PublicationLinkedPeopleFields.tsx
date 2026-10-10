@@ -197,6 +197,8 @@ export function PublicationLinkedPeopleFields({
           <ShareButton
             href="/"
             label="Invite the author on ScholarBase"
+            title="Invite an author to ScholarBase"
+            text="Invite this author to join ScholarBase — an academic community for scholars and researchers."
             icon={UserPlus}
             iconClassName="h-3.5 w-3.5"
             className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300"

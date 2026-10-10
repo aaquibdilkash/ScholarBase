@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import ContributionForm from "@/components/contributions/ContributionForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { SEO_CREATE_PAGES, CREATE_PAGE_TEXT } from "@/constants/seo";
+import { ComingSoon } from "@/components/contributions/ComingSoon";
+import { isComingSoon } from "@/lib/feature-flags";
 
 export const metadata: Metadata = {
   title: SEO_CREATE_PAGES.contributions.title,
@@ -10,6 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default function NewContributionPage() {
+  if (isComingSoon) {
+    return <ComingSoon />;
+  }
+
   return (
     <CreateOrEditPageShell
       title={CREATE_PAGE_TEXT.contributions.title}

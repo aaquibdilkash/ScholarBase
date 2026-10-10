@@ -33,6 +33,7 @@ import { buildMetadata } from "@/lib/seo";
 import { BrandMark } from "@/components/BrandMark";
 import { SBIcon } from "@/components/SBIcon";
 import { SEO_PAGES } from "@/constants/seo";
+import { isComingSoon } from "@/lib/feature-flags";
 
 export const metadata: Metadata = buildMetadata({
   title: SEO_PAGES.home.title,
@@ -139,12 +140,17 @@ export default async function HomePage() {
       href: "/messages",
       icon: <MessageCircle className="h-8 w-8" />,
     },
-    {
-      title: "Contributions",
-      description: "Support the platform and track contributions.",
-      href: "/contributions",
-      icon: <CreditCard className="h-8 w-8" />,
-    },
+    // Hidden while the Contributions feature is behind the "Coming Soon" gate.
+    ...(!isComingSoon
+      ? [
+          {
+            title: "Contributions",
+            description: "Support the platform and track contributions.",
+            href: "/contributions",
+            icon: <CreditCard className="h-8 w-8" />,
+          },
+        ]
+      : []),
     {
       title: "Grants",
       description: "Discover and apply for research grants.",

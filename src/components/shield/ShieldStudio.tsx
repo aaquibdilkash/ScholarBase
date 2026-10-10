@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Check, Copy, Cpu, Download, FileText, HardDrive, Loader2, Lock, RotateCcw, ShieldAlert, Sparkles, UploadCloud } from "lucide-react";
-import { analyzeCadenceAndEntropy, calculateBalancedEnsemble, type StatisticalProfile } from "@/lib/shield/statistical-analyzer";
+import { analyzeCadenceAndEntropy, boostBurstiness, calculateBalancedEnsemble, forceBurstiness, type StatisticalProfile } from "@/lib/shield/statistical-analyzer";
 import { parseDocumentClientSide } from "@/lib/shield/document-parser";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useUser } from "@/hooks/useUser";
@@ -26,11 +26,24 @@ import {
   SHIELD_UPLOAD_TIP,
 } from "@/constants/tooltips";
 import { ModelDownloadModal } from "@/components/shield/ModelDownloadModal";
+import { getChromeRewriterAvailability, rewriteWithChrome } from "@/lib/shield/chrome-rewriter";
+import { checkLocalModelCache, clearLocalModelCache, initializeLocalModel, isLocalGpuAvailable, rewriteWithLocalModel, type LocalDevice } from "@/lib/shield/local-rewriter";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { useToast } from "@/components/ui/Toast";
 type ShieldTab = "detector" | "rewriter";
+type DetectionMode = "quick" | "deep";
+type RewriteProvider = "chrome" | "local-cpu" | "local-gpu" | "groq";
 type ModelStatus = "idle" | "downloading" | "ready";
 const clsx = (...i: Array<string | false | null | undefined>) => i.filter(Boolean).join(" ");
+const countWords = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
+// Rewriting varies sentence length to raise burstiness σ, which is a standard
+// deviation — meaningless on a tiny fragment and impossible to push past the
+// σ>7 floor with fewer than a few sentences. The detector uses a higher bar
+// (50 words) because its entropy/cadence signals need more text to be
+// statistically valid; rewriting only needs enough to rephrase, so the floors
+// differ on purpose. Keep in sync with MIN_REWRITE_WORDS in the rewrite API.
+const MIN_REWRITE_WORDS = 40;
+const formatBytes = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(0, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: ShieldTab }) {
   const { toast } = useToast();
   const { user } = useUser();
@@ -48,6 +61,18 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
   const searchParams = useSearchParams();
   const urlTab = searchParams.get("tab");
   const currentTab: ShieldTab = urlTab === "rewriter" ? "rewriter" : urlTab === "detector" ? "detector" : initialTab;
+  const activeTabRef = useRef(currentTab);
+  useEffect(() => {
+    activeTabRef.current = currentTab;
+  }, [currentTab]);
+  const startupToastKeys = useRef(new Set<string>());
+  const toastForTab = useCallback((tab: ShieldTab, options: Parameters<typeof toast>[0]) => {
+    if (activeTabRef.current !== tab) return;
+    const key = `${tab}:${typeof options === "string" ? options : options.title ?? ""}`;
+    if (startupToastKeys.current.has(key)) return;
+    startupToastKeys.current.add(key);
+    toast(typeof options === "string" ? options : { ...options, duration: options.duration ?? 6000 });
+  }, [toast]);
   const setTab = useCallback((tab: ShieldTab) => {
     const p = new URLSearchParams(searchParams.toString());
     p.set("tab", tab);
@@ -56,6 +81,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
   const [inputText, setInputText] = useState("");
   const [statReport, setStatReport] = useState<StatisticalProfile | null>(null);
   const [neuralScore, setNeuralScore] = useState<number | null>(null);
+  const [detectionMode, setDetectionMode] = useState<DetectionMode>("quick");
   const [isScanning, setIsScanning] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -64,16 +90,54 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     textRef.current = inputText;
   }, [inputText]);
   const [modelStatus, setModelStatus] = useState<ModelStatus>("idle");
+  const [modelCached, setModelCached] = useState(false);
+  const [detectorCacheBytes, setDetectorCacheBytes] = useState(0);
+  const [detectorCacheMeasured, setDetectorCacheMeasured] = useState(false);
   const [progress, setProgress] = useState(0);
   const [consent, setConsent] = useState(false);
   const [rewriteInput, setRewriteInput] = useState("");
   const [rewriteOutput, setRewriteOutput] = useState<string | null>(null);
   const [isRewriting, setIsRewriting] = useState(false);
-  const [rewriteMeta, setRewriteMeta] = useState<{ originalScore: number; verifiedScore: number; provider: string } | null>(null);
+  const [rewriteMeta, setRewriteMeta] = useState<{ originalScore: number | null; postRewriteCadence: number; originalSigma: number | null; postRewriteSigma: number; provider: string } | null>(null);
+  const [rewriteProvider, setRewriteProvider] = useState<RewriteProvider>("local-cpu");
+  const [chromeAvailability, setChromeAvailability] = useState<Awaited<ReturnType<typeof getChromeRewriterAvailability>>>("unavailable");
+  const [chromeProgress, setChromeProgress] = useState(0);
+  const [localProgress, setLocalProgress] = useState(0);
+  const [localModelStatus, setLocalModelStatus] = useState<ModelStatus>("idle");
+  const [localModelCached, setLocalModelCached] = useState(false);
+  const [localCacheBytes, setLocalCacheBytes] = useState(0);
+  const [localCacheMeasured, setLocalCacheMeasured] = useState(false);
+  const [localConsent, setLocalConsent] = useState(false);
+  const [localGpuAvailable, setLocalGpuAvailable] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearTarget, setClearTarget] = useState<"detector" | "rewriter" | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(true);
+  useEffect(() => {
+    void getChromeRewriterAvailability().then((availability) => {
+      setChromeAvailability(availability);
+      if (availability === "available" || availability === "downloadable" || availability === "downloading") {
+        setRewriteProvider((current) => current === "local-cpu" ? "chrome" : current);
+        toastForTab("rewriter", { title: "Gemini Nano available", description: "Chrome can rewrite locally on-device. You can still choose Local CPU, Local GPU, or Groq.", duration: 6000 });
+      } else {
+        setRewriteProvider((current) => current === "chrome" ? "local-cpu" : current);
+        toastForTab("rewriter", { title: "Gemini Nano unavailable", description: "Defaulting to the private Local CPU rewriter.", duration: 6000 });
+      }
+    });
+    void isLocalGpuAvailable().then((gpuAvailable) => {
+      setLocalGpuAvailable(gpuAvailable);
+      toastForTab("rewriter", { title: gpuAvailable ? "Local GPU available" : "Local GPU unavailable", description: gpuAvailable ? "Transformers.js WebGPU rewriting is available on this device." : "The Local GPU option is disabled; Local CPU remains available.", duration: 6000 });
+    });
+    void checkLocalModelCache().then(({ cached, bytes }) => {
+      setLocalCacheBytes(bytes);
+      setLocalCacheMeasured(true);
+      setLocalModelCached(cached);
+      if (cached) {
+        setLocalModelStatus("ready");
+        toastForTab("rewriter", { title: "Local rewriter found in cache", description: "No download is needed. The cached FLAN-T5 model is ready when you rewrite.", duration: 6000 });
+      }
+    });
+  }, [toast, toastForTab]);
   const ensemble = useCallback((): number => {
     if (!statReport) return 0;
     return calculateBalancedEnsemble(
@@ -166,6 +230,10 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     const t = textRef.current;
     if (!t.trim()) return;
     if (!requireAuth()) return;
+    if (t.trim().split(/\s+/).length < 50) {
+      toast({ title: "Short sample — inconclusive", description: "Quick Audit is more meaningful with at least 50 words. Add more text before interpreting the result." });
+      return;
+    }
     setErr(null);
     const report = analyzeCadenceAndEntropy(t);
     setStatReport(report);
@@ -183,29 +251,67 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     const t = textRef.current;
     if (!t.trim() || isScanning) return;
     if (!requireAuth()) return;
-    if (modelStatus !== "ready") { setConsent(true); return; }
+    const wordCount = t.trim().split(/\s+/).length;
+    if (wordCount < 50) {
+      toast({ title: "Short sample — inconclusive", description: "The neural detector is intended for English samples of at least 50 words. Add more text before using Deep Scan." });
+      return;
+    }
+    if (modelStatus !== "ready") {
+      if (modelCached) {
+        // The weights are cached, but the worker still needs to instantiate
+        // the classifier after a page reload. This must not show consent or
+        // trigger a network download.
+        setModelStatus("downloading");
+        setIsScanning(true);
+        workerRef.current?.postMessage({ type: "INIT_MODEL" });
+      } else {
+        setConsent(true);
+      }
+      return;
+    }
     doDeepScan(t);
-  }, [isScanning, modelStatus, doDeepScan, requireAuth]);
+  }, [isScanning, modelStatus, modelCached, doDeepScan, requireAuth, toast]);
   useEffect(() => {
     const w = new Worker(new URL("../../workers/detector.worker.ts", import.meta.url), { type: "module" });
     workerRef.current = w;
     w.onmessage = (e: MessageEvent) => {
-      const { status, progress: pg, scores, error, deleted } = e.data ?? {};
+      const { status, progress: pg, scores, totalWords, weightedSum, chunkCount, error, deleted, bytes, perWindow } = e.data ?? {};
       if (status === "downloading") { setModelStatus("downloading"); setProgress(pg ?? 0); }
+      else if (status === "cache") {
+        setDetectorCacheBytes(Number(bytes ?? 0));
+        setDetectorCacheMeasured(true);
+        if (e.data.cached) {
+          setModelCached(true);
+          setModelStatus("idle");
+          setProgress(100);
+          toastForTab("detector", { title: "Neural detector found in cache", description: "No download is needed. Deep Scan can use the cached model.", duration: 6000 });
+        }
+      }
       else if (status === "ready") {
-        setModelStatus("ready"); setConsent(false); doDeepScan(textRef.current);
+        setModelStatus("ready"); setModelCached(true); setConsent(false); doDeepScan(textRef.current);
         toast({ title: "Neural engine ready", description: "Weights cached on-device. Running deep scan." });
       }
       else if (status === "cleared") {
-        setIsClearing(false); setClearConfirm(false);
-        setModelStatus("idle"); setProgress(0); setNeuralScore(null);
-        toast({ title: "Model cache cleared", description: deleted ? `Freed ${deleted} cached weight bundle(s) from this device.` : "Neural weights evicted. Storage freed on this device." });
+        setIsClearing(false); setClearTarget(null);
+        setModelStatus("idle"); setModelCached(false); setDetectorCacheBytes(0); setDetectorCacheMeasured(true); setProgress(0); setNeuralScore(null);
+        toast({ title: "Detector cache cleared", description: bytes ? `Freed ${formatBytes(Number(bytes))} from ${deleted ?? 0} cached file(s).` : "Neural detector weights evicted." });
       }
       else if (status === "completed") {
         setIsScanning(false);
         const arr: number[] = scores ?? [];
-        const avg = arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 100) : 0;
+        const avg = arr.length
+          ? Math.round(((typeof weightedSum === "number" && totalWords ? weightedSum / totalWords : arr.reduce((a, b) => a + b, 0) / arr.length)) * 100)
+          : 0;
         setNeuralScore(avg);
+        // Diagnostic breadcrumb mirroring the worker: a flat neural score with a
+        // high-confidence "human" argmax on academic prose is domain
+        // miscalibration (H1), not proof the text is human. Logged once per scan.
+        if (Array.isArray(perWindow) && perWindow.length && typeof console !== "undefined") {
+          const rep = perWindow[0] as { argmaxLabel?: string; aiProb?: number; humanProb?: number | null };
+          console.debug(
+            `[Shield/UI] neural=${avg}% over ${chunkCount ?? arr.length} windows — sample argmax="${rep.argmaxLabel ?? "?"}" P(ai)=${(rep.aiProb ?? 0).toFixed(3)} P(human)=${rep.humanProb?.toFixed(3) ?? "n/a"}`,
+          );
+        }
         // Balanced fusion: lexical damping + divergence-aware blend.
         // Cadence NEVER overrides the neural score — disagreement lands amber.
         const report = analyzeCadenceAndEntropy(textRef.current);
@@ -213,17 +319,18 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         if (fused.classification === "amber" && (fused.signalDivergence ?? 0) > 40) {
           toast({ title: "Mixed signals — inconclusive, not AI-confirmed", description: `Neural ${avg}% vs damped cadence ${fused.dampedCadenceScore}% (σ=${report.burstinessSigma}, R=${report.guiraudIndex}). ${fused.explanation}` });
         } else {
-          toast({ title: "Deep scan complete", description: `Neural ${avg}% + cadence → balanced ${fused.finalScore}% (${fused.classification}). ${fused.explanation}` });
+          toast({ title: "Deep scan complete", description: `${chunkCount ?? arr.length} windows / ${totalWords ?? 0} words analyzed. Neural ${avg}% + cadence → balanced ${fused.finalScore}% (${fused.classification}). ${fused.explanation}` });
         }
       } else if (status === "error") {
-        setIsScanning(false); setIsClearing(false);
+        setIsScanning(false); setIsClearing(false); setClearTarget(null); setModelCached(false);
         const msg = String(error ?? "Worker error");
         setErr(msg);
         toast({ title: "Scholar Shield error", description: msg, variant: "destructive" });
       }
     };
+    w.postMessage({ type: "CHECK_CACHE" });
     return () => { w.terminate(); workerRef.current = null; };
-  }, [doDeepScan, toast]);
+  }, [doDeepScan, toast, toastForTab]);
   // Amber "mixed signals" band: strong neural↔cadence disagreement stays
   // inconclusive — it must NEVER be forced red by cadence alone.
   const ensembleDetail = statReport
@@ -236,26 +343,31 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
       )
     : null;
   const clearModelCache = useCallback(() => {
+    if (!clearTarget) return;
     setIsClearing(true);
-    try {
+    if (clearTarget === "detector") {
       workerRef.current?.postMessage({ type: "CLEAR_CACHE" });
-      // Fallback: if worker never responds (e.g. terminated), reset locally after 3s.
       setTimeout(() => {
         setIsClearing((clearing) => {
           if (clearing) {
-            setModelStatus("idle"); setProgress(0); setNeuralScore(null); setClearConfirm(false);
-            toast({ title: "Model cache cleared", description: "Neural weights evicted. Storage freed on this device." });
+            setModelStatus("idle"); setModelCached(false); setDetectorCacheBytes(0); setDetectorCacheMeasured(true); setProgress(0); setNeuralScore(null); setClearTarget(null);
+            toast({ title: "Detector cache cleared", description: "Neural detector weights evicted from this browser." });
           }
           return false;
         });
       }, 3000);
-    } catch (err: unknown) {
-      setIsClearing(false);
-      const msg = err instanceof Error ? err.message : "Cache clear failed.";
-      setErr(msg);
-      toast({ title: "Cache clear failed", description: msg, variant: "destructive" });
+      return;
     }
-  }, [toast]);
+    void clearLocalModelCache().then(({ bytes, deleted }) => {
+      setIsClearing(false); setClearTarget(null); setLocalModelStatus("idle"); setLocalModelCached(false); setLocalCacheBytes(0); setLocalCacheMeasured(true); setLocalProgress(0);
+      toast({ title: "Rewriter cache cleared", description: bytes ? `Freed ${formatBytes(bytes)} from ${deleted} cached file(s).` : "FLAN-T5 rewriter weights evicted." });
+    }).catch((error: unknown) => {
+      setIsClearing(false); setClearTarget(null);
+      const msg = error instanceof Error ? error.message : "Rewriter cache clear failed.";
+      setErr(msg);
+      toast({ title: "Rewriter cache clear failed", description: msg, variant: "destructive" });
+    });
+  }, [clearTarget, toast]);
   const sendToRewriter = () => {
     const paras = inputText.split(/\n\s*\n/).filter((p) => p.trim());
     const flagged = (statReport?.sentences ?? []).filter((s) => s.reasons.length).map((s) => s.text);
@@ -267,22 +379,82 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
   const humanize = async () => {
     if (!requireAuth()) return;
     if (!rewriteInput.trim() || isRewriting) return;
+    const rewriteWordCount = rewriteInput.trim().split(/\s+/).filter(Boolean).length;
+    if (rewriteWordCount < MIN_REWRITE_WORDS) {
+      toast({ title: "Add more text to humanize", description: `The rewriter needs at least ${MIN_REWRITE_WORDS} words (a few sentences) to vary sentence cadence meaningfully. Add more text and try again.` });
+      return;
+    }
+    const requestedLocalDevice: LocalDevice | null = rewriteProvider === "local-gpu" ? "webgpu" : rewriteProvider === "local-cpu" ? "wasm" : null;
+    if (requestedLocalDevice && !localModelCached) {
+      setLocalConsent(true);
+      return;
+    }
+    // Capture the cadence of the exact text being rewritten so we can show a
+    // real sigma before→after delta (not a diagnostic-only post number).
+    const originalSigma = analyzeCadenceAndEntropy(rewriteInput).burstinessSigma;
     setIsRewriting(true); setRewriteOutput(null); setRewriteMeta(null); setErr(null);
+    setChromeProgress(0);
     try {
-      const res = await fetch("/api/shield/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paragraph: rewriteInput, initialRiskScore: ensemble() || 85 }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Rewrite failed");
-      setRewriteOutput(data.rewrittenText);
-      setRewriteMeta({ originalScore: data.originalRiskScore, verifiedScore: data.verifiedRiskScore, provider: `${data.providerUsed} ${data.modelUsed}` });
-      toast(
-      { title: "Humanized successfully", description: `Risk ${data.originalRiskScore}% → ${data.verifiedRiskScore}%. Academic entities preserved.` });
+      let rewrittenText: string;
+      let provider: string;
+      if (rewriteProvider === "chrome") {
+        rewrittenText = await rewriteWithChrome(rewriteInput, setChromeProgress);
+        provider = "Gemini Nano (on-device)";
+      } else if (rewriteProvider === "local-cpu" || rewriteProvider === "local-gpu") {
+        const device: LocalDevice = rewriteProvider === "local-gpu" ? "webgpu" : "wasm";
+        rewrittenText = await rewriteWithLocalModel(rewriteInput, device, setLocalProgress);
+        provider = `FLAN-T5 Small (experimental on-device ${device === "webgpu" ? "GPU" : "CPU"})`;
+      } else {
+        const res = await fetch("/api/shield/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paragraph: rewriteInput }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Rewrite failed");
+        rewrittenText = data.rewrittenText;
+        provider = `${data.providerUsed} ${data.modelUsed}`;
+      }
+      // Deterministic burstiness pass for EVERY provider, applied per paragraph
+      // so the `\n\n` structure survives (the passes re-punctuate sentences, and
+      // flattening them would collapse paragraphs). Gemini Nano and Groq never
+      // touched sentence-length variation; boostBurstiness nudges CV and
+      // forceBurstiness pushes absolute σ above the >7 floor by building
+      // long-vs-short sentence spread at clause boundaries. Protected tokens and
+      // every word are preserved — only punctuation moves.
+      rewrittenText = rewrittenText
+        .split(/\n\s*\n/)
+        .map((para) => {
+          if (!para.trim()) return para;
+          const boosted = boostBurstiness(para, 0.34, 2).text;
+          return forceBurstiness(boosted, 7.5, 8).text;
+        })
+        .join("\n\n");
+      const postRewriteReport = analyzeCadenceAndEntropy(rewrittenText);
+      setRewriteOutput(rewrittenText);
+      setRewriteMeta({ originalScore: statReport ? ensemble() : null, postRewriteCadence: postRewriteReport.overallCadenceRisk, originalSigma, postRewriteSigma: postRewriteReport.burstinessSigma, provider });
+      const sigmaDelta = (postRewriteReport.burstinessSigma - originalSigma).toFixed(1);
+      toast({ title: "Rewrite complete", description: `Cadence raised σ ${originalSigma} → ${postRewriteReport.burstinessSigma} (${sigmaDelta.startsWith("-") ? "" : "+"}${sigmaDelta}). Review every factual change; the cadence number is a diagnostic, not proof of authorship.`, duration: 6000 });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Rewrite failed";
       setErr(msg);
       toast({ title: "Humanizer failed", description: msg, variant: "destructive" });
     } finally { setIsRewriting(false); }
   };
+  const prepareLocalModel = useCallback(() => {
+    const device: LocalDevice = rewriteProvider === "local-gpu" ? "webgpu" : "wasm";
+    setLocalModelStatus("downloading");
+    setLocalProgress(0);
+    void initializeLocalModel(device, (value) => setLocalProgress(value)).then(() => {
+      setLocalModelStatus("ready");
+      setLocalModelCached(true);
+      setLocalConsent(false);
+      toast({ title: "Local CPU rewriter ready", description: "FLAN-T5 weights are cached in this browser. Your text will stay on-device." });
+    }).catch((error: unknown) => {
+      setLocalModelStatus("idle");
+      setErr(error instanceof Error ? error.message : "Local rewriter model failed to load.");
+      toast({ title: "Local rewriter download failed", description: "Try again on an unmetered connection or choose Gemini Nano/Groq.", variant: "destructive" });
+    });
+  }, [rewriteProvider, toast]);
   const words = inputText.trim() ? inputText.trim().split(/\s+/).length : 0;
+  const rewriteWords = countWords(rewriteInput);
+  const outputWords = countWords(rewriteOutput ?? "");
   const score = ensemble();
   return (
     <div>
@@ -307,7 +479,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
             <span className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"><Lock className="h-3 w-3" />100% On-Device Detection</span>
             <span className="flex items-center gap-1 rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">AI Detection: Unlimited & Free</span>
           </div>
-          <p className="mt-2 text-sm text-slate-600 sm:text-base dark:text-slate-400">Papers never leave your browser. Local DeBERTa/RoBERTa + Groq 120B humanizer.</p>
+          <p className="mt-2 text-sm text-slate-600 sm:text-base dark:text-slate-400">Detection runs locally. Rewrite with Gemini Nano on-device, or Groq Cloud when you choose.</p>
           {err && <p className="mt-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-600 dark:text-rose-300">{err}</p>}
         </div>
       </div>
@@ -317,8 +489,9 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
             <strong>Diagnostic only:</strong> Shield scores are statistical
             estimates, not proof of AI authorship or plagiarism. Never use a
             score as the sole basis for an academic decision — always verify
-            with human review. Detector scans stay on your device; Humanizer
-            text is sent to our AI sub-processor as described in our{" "}
+            with human review. Detector scans, Gemini Nano rewrites, and Local
+            CPU rewrites stay on your device; only Groq rewrites are sent to
+            our AI sub-processor as described in our{" "}
             <a href="/privacy" className="underline">Privacy Policy</a>.
           </p>
           <button
@@ -333,7 +506,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
       )}
       <div className="mb-8 flex w-full flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-1.5 shadow-sm sm:inline-flex sm:w-auto sm:gap-0 dark:border-slate-800 dark:bg-slate-950/80">
         <button type="button" onClick={() => setTab("detector")} className={clsx("rounded-xl px-6 py-2 font-semibold transition-all", currentTab === "detector" ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100")}>AI Detector</button>
-        <button type="button" onClick={() => setTab("rewriter")} className={clsx("flex items-center gap-2 rounded-xl px-6 py-2 font-semibold transition-all", currentTab === "rewriter" ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100")}><Sparkles className="h-4 w-4" />120B Humanizer</button>
+        <button type="button" onClick={() => setTab("rewriter")} className={clsx("flex items-center gap-2 rounded-xl px-6 py-2 font-semibold transition-all", currentTab === "rewriter" ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950" : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100")}><Sparkles className="h-4 w-4" />AI Rewriter</button>
       </div>
       {currentTab === "detector" ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -355,7 +528,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500 dark:text-slate-400">{words} words | {inputText.length} chars</span>
-                <button type="button" onClick={() => setClearConfirm(true)} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:text-rose-300"><HardDrive className="h-3.5 w-3.5" />Free ~130 MB</button>
+                <button type="button" onClick={() => setClearTarget("detector")} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:text-rose-300"><HardDrive className="h-3.5 w-3.5" />Detector cache · {detectorCacheMeasured ? formatBytes(detectorCacheBytes) : "measuring…"}</button>
                 <InfoTooltip message={SHIELD_FREE_CACHE_TIP} />
               </div>
             </div>
@@ -369,7 +542,15 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               </div>
             )}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
+            <div className="mt-4 border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
+              <div className="mb-3 flex justify-end">
+                <div className="flex rounded-lg border border-slate-300 p-0.5 text-[11px] dark:border-slate-700">
+                  <button type="button" onClick={() => setDetectionMode("quick")} className={clsx("rounded-md px-2.5 py-1.5", detectionMode === "quick" && "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900")}>Quick Audit · 0 MB</button>
+                  <button type="button" onClick={() => setDetectionMode("deep")} className={clsx("rounded-md px-2.5 py-1.5", detectionMode === "deep" && "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900")}>Deep Neural · local</button>
+                </div>
+                <InfoTooltip message={detectionMode === "quick" ? SHIELD_QUICK_AUDIT_TIP : SHIELD_DEEP_SCAN_TIP} />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => { setInputText(""); updateDraftField("detector", ""); setUploadedFilename(null); setDocumentTitle("Academic Manuscript"); setStatReport(null); setNeuralScore(null); setErr(null); }} disabled={!inputText} className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800"><RotateCcw className="h-3.5 w-3.5" />Clear</button>
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isParsingDoc} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
@@ -378,12 +559,10 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
                 <InfoTooltip message={SHIELD_UPLOAD_TIP} />
               </div>
               <div className="flex items-center gap-2">
-                <button type="button" onClick={quickAudit} disabled={!inputText.trim()} className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">Quick Audit (0 MB)</button>
-                <InfoTooltip message={SHIELD_QUICK_AUDIT_TIP} />
-                <button type="button" onClick={deepScan} disabled={!inputText.trim() || isScanning} className="sb-button-accent flex items-center gap-2 disabled:opacity-50">{isScanning ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />Scanning on-device...</>) : (<><Cpu className="h-4 w-4" />Deep Neural Scan</>)}</button>
-                <InfoTooltip message={SHIELD_DEEP_SCAN_TIP} />
+                <button type="button" onClick={detectionMode === "quick" ? quickAudit : deepScan} disabled={!inputText.trim() || isScanning} className="sb-button-accent flex items-center gap-2 disabled:opacity-50">{isScanning ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />Scanning on-device...</>) : detectionMode === "quick" ? (<><Cpu className="h-4 w-4" />Run Quick Audit</>) : (<><Cpu className="h-4 w-4" />Run Deep Scan</>)}</button>
               </div>
             </div>
+          </div>
           </div>
           <div className="flex flex-col gap-4 lg:col-span-5">
             <div className="flex items-center justify-between">
@@ -401,7 +580,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950/80">
                 <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">Neural result<InfoTooltip message={SHIELD_NEURAL_TIP} /></span>
                 <div className="mt-3 text-3xl font-extrabold"><span className={clsx(neuralScore === null ? "text-slate-300 dark:text-slate-600" : neuralScore >= 70 ? "text-rose-500" : neuralScore >= 40 ? "text-amber-500" : "text-emerald-500")}>{neuralScore !== null ? `${neuralScore}%` : "--"}</span></div>
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{neuralScore !== null ? "RoBERTa · runs fully on-device" : "Not run yet — start Deep Scan"}</p>
+                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{neuralScore !== null ? "TMR RAID detector · runs on-device" : "Not run yet — start Deep Scan"}</p>
               </div>
               <div className="rounded-2xl border border-slate-300 bg-slate-100/80 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
                 <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">Balanced AI risk<InfoTooltip message={SHIELD_BALANCED_TIP} /></span>
@@ -422,29 +601,39 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               <div className="h-[310px] overflow-y-auto rounded-xl border border-slate-200/80 bg-slate-50 p-3 text-sm leading-relaxed dark:border-slate-800/80 dark:bg-slate-900">
                 {statReport ? (<div>{statReport.sentences.map((s) => (<span key={s.id} title={s.reasons.join(" | ") || "Normal cadence"} className={clsx("mr-1.5 inline cursor-help rounded px-1 py-0.5", s.reasons.length ? "bg-rose-500/20 text-rose-700 dark:text-rose-200" : "text-slate-700 dark:text-slate-300")}>{s.text} </span>))}</div>) : (<p className="flex h-full items-center justify-center text-center text-xs text-slate-500">No scan yet. Quick Audit is instant; Deep Scan downloads the model once.</p>)}
               </div>
-              {statReport && (<button type="button" onClick={sendToRewriter} className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 py-2.5 text-xs font-semibold text-blue-300 hover:bg-slate-700">Send Flagged to 120B Humanizer <ArrowRight className="h-3.5 w-3.5" /></button>)}
+              {statReport && (<button type="button" onClick={sendToRewriter} className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 py-2.5 text-xs font-semibold text-blue-300 hover:bg-slate-700">Send Flagged to Rewriter <ArrowRight className="h-3.5 w-3.5" /></button>)}
             </div>
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <div className="flex flex-col rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm lg:col-span-6 dark:border-slate-800 dark:bg-slate-950/80">
-            <span className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Flagged text (only this leaves device)<InfoTooltip message={SHIELD_REWRITE_INPUT_TIP} /></span>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Text to rewrite<InfoTooltip message={SHIELD_REWRITE_INPUT_TIP} /></span><div className="flex items-center gap-2"><span className="text-xs text-slate-500 dark:text-slate-400">{rewriteWords} words | {rewriteInput.length} chars</span><button type="button" onClick={() => setClearTarget("rewriter")} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:text-rose-300"><HardDrive className="h-3.5 w-3.5" />Rewriter cache · {localCacheMeasured ? formatBytes(localCacheBytes) : "measuring…"}</button></div></div>
             <textarea value={rewriteInput} onChange={(e) => { setRewriteInput(e.target.value); updateDraftField("rewriter", e.target.value); }} placeholder="Paste flagged paragraph..." rows={16} className="h-[430px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-sm leading-relaxed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200" />
-            <div className="mt-4 flex items-center justify-between border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
+            <div className="mt-4 border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
+              <div className="mb-3 flex justify-end">
+                <div className="flex flex-wrap rounded-lg border border-slate-300 p-0.5 text-[11px] dark:border-slate-700">
+                  <button type="button" onClick={() => setRewriteProvider("chrome")} disabled={chromeAvailability === "unavailable"} className={clsx("rounded-md px-2 py-1.5", rewriteProvider === "chrome" && "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900", chromeAvailability === "unavailable" && "cursor-not-allowed opacity-40")}>Gemini Nano</button>
+                  <button type="button" onClick={() => setRewriteProvider("local-cpu")} className={clsx("rounded-md px-2 py-1.5", rewriteProvider === "local-cpu" && "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900")}>Local CPU</button>
+                  <button type="button" onClick={() => setRewriteProvider("local-gpu")} disabled={!localGpuAvailable} className={clsx("rounded-md px-2 py-1.5", rewriteProvider === "local-gpu" && "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900", !localGpuAvailable && "cursor-not-allowed opacity-40")}>Local GPU</button>
+                  <button type="button" onClick={() => setRewriteProvider("groq")} className={clsx("rounded-md px-2 py-1.5", rewriteProvider === "groq" && "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900")}>Groq</button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => setTab("detector")} className="text-xs font-medium text-slate-500 dark:text-slate-400">Back to Detector</button>
               </div>
               <div className="flex items-center gap-2">
                 <InfoTooltip message={SHIELD_HUMANIZE_TIP} />
-                <button type="button" onClick={humanize} disabled={!rewriteInput.trim() || isRewriting} className="sb-button-accent flex items-center gap-2 disabled:opacity-50">{isRewriting ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />Restructuring...</>) : (<><Sparkles className="h-4 w-4" />Humanize Prose</>)}</button>
+                <button type="button" onClick={humanize} disabled={!rewriteInput.trim() || isRewriting || (rewriteProvider === "chrome" && chromeAvailability === "unavailable") || (rewriteProvider === "local-gpu" && !localGpuAvailable)} className="sb-button-accent flex items-center gap-2 disabled:opacity-50">{isRewriting ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />{rewriteProvider === "chrome" && chromeAvailability === "downloading" && chromeProgress ? `Downloading ${chromeProgress}%` : (rewriteProvider === "local-cpu" || rewriteProvider === "local-gpu") && localModelStatus === "downloading" && localProgress ? `Downloading ${localProgress}%` : "Rewriting..."}</>) : (<><Sparkles className="h-4 w-4" />Rewrite with {rewriteProvider === "chrome" ? "Gemini Nano" : rewriteProvider === "local-cpu" ? "Local CPU" : rewriteProvider === "local-gpu" ? "Local GPU" : "Groq"}</>)}</button>
               </div>
             </div>
+          </div>
           </div>
           <div className="flex flex-col rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm lg:col-span-6 dark:border-slate-800 dark:bg-slate-950/80">
             <div className="mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Restructured output<InfoTooltip message={SHIELD_REWRITE_OUTPUT_TIP} /></span>
-              {rewriteMeta && <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">{rewriteMeta.originalScore}% to {rewriteMeta.verifiedScore}% | {rewriteMeta.provider}</span>}
+              <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400"><span>{outputWords} words | {rewriteOutput?.length ?? 0} chars</span>{rewriteMeta && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-700 dark:text-emerald-300" title="Burstiness sigma (sentence-length variation) before → after humanization">σ {rewriteMeta.originalSigma === null ? "--" : rewriteMeta.originalSigma} → {rewriteMeta.postRewriteSigma}</span>}{rewriteMeta && <span>Before {rewriteMeta.originalScore === null ? "—" : `${rewriteMeta.originalScore}%`} · cadence after {rewriteMeta.postRewriteCadence}% · {rewriteMeta.provider}</span>}</div>
             </div>
             <div className="h-[430px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-serif text-sm leading-relaxed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">{rewriteOutput ? <p className="whitespace-pre-wrap">{rewriteOutput}</p> : <p className="flex h-full items-center justify-center text-xs text-slate-500">No output yet.</p>}</div>
             <div className="mt-4 flex items-center justify-end border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
@@ -453,14 +642,14 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
           </div>
         </div>
       )}
-      <ConfirmationModal
-        isOpen={clearConfirm}
-        onClose={() => !isClearing && setClearConfirm(false)}
+        <ConfirmationModal
+        isOpen={clearTarget !== null}
+        onClose={() => !isClearing && setClearTarget(null)}
         onConfirm={clearModelCache}
-        title="Free device storage?"
-        message="This deletes the downloaded neural weights (~130 MB) from this browser. Quick Audit keeps working instantly; Deep Scan will re-download once on Wi-Fi."
+        title={`Free ${clearTarget === "detector" ? "detector" : "rewriter"} cache?`}
+        message={`This deletes only the cached ${clearTarget === "detector" ? "TMR detector" : "FLAN-T5 rewriter"} model (${formatBytes(clearTarget === "detector" ? detectorCacheBytes : localCacheBytes)}). ${clearTarget === "detector" ? "Quick Audit keeps working instantly." : "The rewriter will download the model again when you choose it."}`}
         isConfirming={isClearing}
-        confirmLabel="Delete Model Cache"
+        confirmLabel={`Delete ${clearTarget === "detector" ? "Detector" : "Rewriter"} Cache`}
         confirmingLabel="Clearing..."
         confirmVariant="destructive"
         confirmClassName="sb-button-primary min-w-44"
@@ -473,6 +662,20 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
           if (modelStatus !== "downloading") setConsent(false);
         }}
         onConfirm={() => workerRef.current?.postMessage({ type: "INIT_MODEL" })}
+        modelSize="~125 MB quantized ONNX"
+      />
+      <ModelDownloadModal
+        isOpen={localConsent}
+        progress={localProgress}
+        isDownloading={localModelStatus === "downloading"}
+        title={`Load Local ${rewriteProvider === "local-gpu" ? "GPU" : "CPU"} Rewriter`}
+        description={`The local FLAN-T5 rewriter runs through Transformers.js on your ${rewriteProvider === "local-gpu" ? "GPU with WebGPU" : "CPU with WebAssembly"}. It is slower than Gemini Nano or Groq, but your text never leaves this browser.`}
+        modelSize="~110 MB quantized ONNX"
+        confirmLabel="Download Local Rewriter"
+        onClose={() => {
+          if (localModelStatus !== "downloading") setLocalConsent(false);
+        }}
+        onConfirm={prepareLocalModel}
       />
     </div>
   );

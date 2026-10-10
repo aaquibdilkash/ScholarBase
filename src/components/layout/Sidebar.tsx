@@ -37,6 +37,7 @@ import { useToast } from "@/components/ui/Toast";
 import { supabase } from "@/utils/supabase/client";
 import { privateChannelSync, userTopic, withRealtimeAuth } from "@/lib/realtime";
 import { useNavigationDrawer } from "@/components/layout/NavigationDrawerProvider";
+import { isComingSoon } from "@/lib/feature-flags";
 
 type SidebarUser = {
   id: string;
@@ -332,7 +333,10 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Research Tools", href: "/research-tools", icon: <Search className="h-6 w-6 shrink-0" /> },
       { name: "Learning Zone", href: "/learn", icon: <BookMarked className="h-6 w-6 shrink-0" /> },
       { name: "Research Publications", href: "/publications", icon: <File className="h-6 w-6 shrink-0" /> },
-      { name: "Contributions", href: "/contributions", icon: <Gift className="h-6 w-6 shrink-0" /> },
+      // Hidden while the Contributions feature is behind the "Coming Soon" gate.
+      ...(!isComingSoon
+        ? [{ name: "Contributions", href: "/contributions", icon: <Gift className="h-6 w-6 shrink-0" /> }]
+        : []),
       { name: "Scholar Suggest", href: "/help", icon: <HelpCircle className="h-6 w-6 shrink-0" /> },
       ...(user?.isAdmin ? [{ name: "Admin", href: "/admin", icon: <Shield className="h-6 w-6 shrink-0" /> }] : []),
     ],

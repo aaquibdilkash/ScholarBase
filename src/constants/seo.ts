@@ -547,3 +547,15 @@ export const SEO_NOINDEX = {
     accountConfirmed: "Account Confirmed | ScholarBase",
     updatePassword: "Update Password | ScholarBase",
 } as const;
+
+// Copy for "invite to ScholarBase" share buttons. These share the app home
+// (`href="/"`) rather than the current page, so the page's own og:tags would
+// describe the wrong thing — the invite needs its own title/message instead.
+export const SHARE_INVITE = {
+    home: {
+        title: "ScholarBase | Academic community",
+        text: "Join me on ScholarBase — connect with scholars, share research, and discover academic opportunities.",
+    },
+} as const;
+
+

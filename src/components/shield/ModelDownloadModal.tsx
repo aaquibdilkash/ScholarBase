@@ -13,6 +13,10 @@ interface ModelDownloadModalProps {
   isDownloading: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  title?: string;
+  description?: string;
+  modelSize?: string;
+  confirmLabel?: string;
 }
 
 export function ModelDownloadModal({
@@ -21,6 +25,10 @@ export function ModelDownloadModal({
   isDownloading,
   onClose,
   onConfirm,
+  title = "Load Local Neural Engine",
+  description = "Your paper never leaves your device. Neural weights download once to browser cache.",
+  modelSize = "~126 MB ONNX",
+  confirmLabel = "Download & Initialize",
 }: ModelDownloadModalProps) {
   const [mounted, setMounted] = useState(false);
 
@@ -47,7 +55,7 @@ export function ModelDownloadModal({
               <DownloadCloud className="h-5 w-5" />
             </span>
             <div>
-              <h2 className="text-xl font-bold">Load Local Neural Engine</h2>
+              <h2 className="text-xl font-bold">{title}</h2>
               <p className="flex items-center gap-1.5 text-xs text-slate-500">
                 Zero-knowledge in-browser inference
                 <InfoTooltip message={SHIELD_MODEL_CONSENT_TIP} />
@@ -55,10 +63,8 @@ export function ModelDownloadModal({
             </div>
           </div>
 
-          <p className="text-sm text-slate-600">
-            Your paper <strong>never leaves your device</strong>. Neural
-            weights (~130 MB ONNX) download once to browser cache.
-          </p>
+          <p className="text-sm text-slate-600">{description}</p>
+          <p className="text-xs text-slate-500"><strong>Your text stays local.</strong> The {modelSize} model is downloaded from Hugging Face only after you approve and remains in this browser&apos;s cache.</p>
 
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-600">
             <Wifi className="h-4 w-4 shrink-0 text-blue-600" />
@@ -83,13 +89,9 @@ export function ModelDownloadModal({
           ) : null}
 
           <div className="mt-4 flex justify-end gap-4">
-            <Button
-              onClick={onClose}
-              variant="outline"
-              disabled={isDownloading}
-            >
-              Cancel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={onClose} variant="outline" disabled={isDownloading}>Cancel</Button>
+            </div>
             {/* Sign-in style: solid slate-950 pill (matches LoginForm sb-button-primary) */}
             <button
               type="button"
@@ -105,7 +107,7 @@ export function ModelDownloadModal({
               ) : (
                 <span className="inline-flex items-center gap-2">
                   <DownloadCloud className="h-4 w-4" />
-                  Download & Initialize
+                  {confirmLabel}
                 </span>
               )}
             </button>

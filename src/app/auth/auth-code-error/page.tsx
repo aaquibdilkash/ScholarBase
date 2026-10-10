@@ -1,5 +1,10 @@
 
+import type { Metadata } from "next";
 import Link from "next/link";
+import { buildNoindexMetadata } from "@/lib/seo";
+import { SEO_NOINDEX } from "@/constants/seo";
+
+export const metadata: Metadata = buildNoindexMetadata(SEO_NOINDEX.authCodeError);
 
 type FlowType = "signup" | "email_change" | "recovery" | "unknown";
 

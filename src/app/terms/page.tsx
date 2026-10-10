@@ -191,8 +191,10 @@ export default function TermsOfServicePage() {
           <h2>6. Scholar Shield and AI Tools</h2>
           <p>
             Scholar Shield provides an on-device AI writing-risk detector and
-            a server-assisted humanizer/rewriter. By using Scholar Shield you
-            agree to the following:
+            three optional rewriting paths: local Gemini Nano in supported
+            Chrome installations, Local CPU through Transformers.js, and
+            server-assisted Groq. By using Scholar Shield you agree to the
+            following:
           </p>
           <ul>
             <li>

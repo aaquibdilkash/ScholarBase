@@ -8,6 +8,8 @@ export interface ToastOptions {
   title?: string;
   description?: string;
   variant?: ToastVariant;
+  /** How long the toast remains visible, in milliseconds. */
+  duration?: number;
 }
 
 export interface Toast {

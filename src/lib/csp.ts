@@ -80,7 +80,7 @@ export function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
     // `strict-dynamic` lets the nonced bootstrap script load Next's chunks.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://challenges.cloudflare.com${
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' 'strict-dynamic' https://challenges.cloudflare.com${
       IS_DEV ? " 'unsafe-eval'" : ""
     }`,
     // See the note above: required by Tailwind/React attributes and TopLoader.

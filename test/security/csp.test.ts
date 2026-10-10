@@ -105,7 +105,10 @@ describe("buildCsp", () => {
     expect(process.env.NODE_ENV).not.toBe("production");
 
     const prodPolicy = buildCsp("nonce").replace(/ 'unsafe-eval'/, "");
-    expect(prodPolicy).not.toMatch(/script-src[^;]*\beval\b/);
+    // `wasm-unsafe-eval` is intentionally allowed for in-browser PDF/model
+    // WebAssembly. It must not be confused with the broader JavaScript
+    // `unsafe-eval` directive.
+    expect(prodPolicy).not.toMatch(/script-src[^;]*[' ]unsafe-eval[' ]/);
   });
 
   it("states worker-src so it cannot silently inherit a tightened script-src", () => {
