@@ -120,7 +120,7 @@ export default function DetailPageCardShell({
           <div className="flex items-center gap-3">
             {authorHref ? (
               <Link prefetch={false} href={authorHref} className="shrink-0">
-                <div className="w-12 h-12 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-blue-100 transition">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
                   {authorAvatarUrl ? (
                     <UserAvatar src={authorAvatarUrl} name={authorName} />
                   ) : (
@@ -131,7 +131,7 @@ export default function DetailPageCardShell({
                 </div>
               </Link>
             ) : (
-              <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+              <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden dark:border dark:border-slate-700 dark:bg-slate-800">
                 <span className="font-semibold text-slate-400 text-lg">?</span>
               </div>
             )}

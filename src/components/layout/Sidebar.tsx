@@ -483,7 +483,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
                   `}
                   onClick={() => { if (!isDesktop) setMobileOpen(false); }}
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white transition-colors dark:bg-white dark:text-slate-950">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700 transition-colors dark:bg-slate-800 dark:text-slate-200">
                     <UserAvatar
                       src={user?.avatarUrl}
                       email={user?.email}

@@ -11,9 +11,9 @@
  * Why a nonce at all: the App Router emits inline bootstrap scripts for the RSC
  * payload and hydration. `'unsafe-inline'` would permit an injected inline
  * script, which defeats most of the point — a nonce makes the policy actually
- * constrain script execution. `'strict-dynamic'` then lets Next.js load its own
- * dynamically-generated chunk scripts without enumerating every hashed filename,
- * which is impossible to keep in sync across builds.
+ * constrain script execution. Same-origin scripts remain allowed so Next.js and
+ * Cloudflare's same-origin email decoder can run without weakening the policy
+ * with `'unsafe-inline'`.
  *
  * `style-src` keeps `'unsafe-inline'` for now. Tailwind and React both emit
  * style attributes, and `nextjs-toploader` injects a `<style>` element at
@@ -79,8 +79,9 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 export function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
-    // `strict-dynamic` lets the nonced bootstrap script load Next's chunks.
-    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' 'strict-dynamic' https://challenges.cloudflare.com${
+    // Same-origin scripts cover Next's chunks and Cloudflare's same-origin
+    // email decoder. Do not add `unsafe-inline`; the nonce protects inline code.
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://challenges.cloudflare.com${
       IS_DEV ? " 'unsafe-eval'" : ""
     }`,
     // See the note above: required by Tailwind/React attributes and TopLoader.
@@ -113,7 +114,9 @@ export function buildCsp(nonce: string): string {
       IS_DEV ? " ws://localhost:* ws://127.0.0.1:*" : ""
     }`,
     // Cloudflare Turnstile is an iframe widget.
-    "frame-src https://challenges.cloudflare.com",
+    `frame-src https://challenges.cloudflare.com${
+      IS_DEV ? " https://vercel.live" : ""
+    }`,
     // Explicit, because `worker-src` FALLS BACK to script-src when unset — the
     // headless sweep surfaced this as:
     //   Creating a worker from '/sw.js' violates ... "script-src"

@@ -143,7 +143,7 @@ export function UserListModal({
                 className="flex items-center gap-3 min-w-0"
                 onClick={handleClose}
               >
-                <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 border flex items-center justify-center overflow-hidden dark:border-slate-700 dark:bg-slate-800">
+                <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden dark:border dark:border-slate-700 dark:bg-slate-800">
                   {u.avatarUrl ? (
                     <UserAvatar src={u.avatarUrl} name={u.name} />
                   ) : (

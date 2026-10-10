@@ -393,7 +393,7 @@ function CommentCard({
       <div className="group flex gap-1 md:gap-2">
         <div className="shrink-0 pt-1">
           <div
-            className={`overflow-hidden rounded-full border bg-slate-100 dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"}`}
+            className={`overflow-hidden rounded-full bg-slate-100 dark:border dark:border-slate-800 dark:bg-slate-900 ${isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"}`}
           >
             <div
               className={`flex h-full w-full items-center justify-center font-bold text-slate-500 dark:text-slate-300 ${isReply ? "text-[10px] md:text-xs" : "text-xs md:text-sm"}`}
@@ -425,7 +425,7 @@ function CommentCard({
         className="shrink-0 pt-1"
       >
         <div
-          className={`overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-200 dark:border-slate-800 dark:bg-slate-900 ${
+          className={`overflow-hidden rounded-full bg-slate-100 transition hover:ring-2 hover:ring-blue-200 dark:border dark:border-slate-800 dark:bg-slate-900 ${
             isReply ? "h-8 w-8" : "h-9 w-9 md:h-10 md:w-10"
           }`}
         >

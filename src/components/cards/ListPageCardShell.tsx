@@ -99,7 +99,7 @@ export default function ListPageCardShell({
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {authorHref ? (
             <Link href={authorHref} prefetch={false} className="shrink-0">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border-slate-700 dark:bg-slate-800">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
                 {authorAvatarUrl ? (
                   <UserAvatar src={authorAvatarUrl} name={authorName} />
                 ) : (
@@ -110,7 +110,7 @@ export default function ListPageCardShell({
               </div>
             </Link>
           ) : (
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 dark:border dark:border-slate-700 dark:bg-slate-800">
               <span className="font-semibold text-slate-400 text-lg">?</span>
             </div>
           )}

@@ -41,6 +41,7 @@ describe("buildCsp", () => {
 
   it("allows the third parties the app actually loads", () => {
     expect(policy).toContain("https://challenges.cloudflare.com");
+    expect(policy).toContain("https://vercel.live");
     expect(policy).toContain("https://res.cloudinary.com");
     expect(policy).toContain("https://lh3.googleusercontent.com");
     expect(policy).toContain("https://*.supabase.co");
