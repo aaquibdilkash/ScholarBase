@@ -16,6 +16,7 @@ import { queueMessagePush } from "@/lib/qstash";
 import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
+import { MAX_MESSAGE_BODY } from "@/lib/constants";
 
 const sidebarUserSelect = {
   id: true,
@@ -112,6 +113,30 @@ export async function getInbox(
 // ⚡ SERVER-SIDE SEARCH: Searches ALL of the user's conversations in the
 // database by the other participant's name or handle — not just the 10
 // currently loaded in the sidebar.
+// ⚡ SIDEBAR SYNC: single-row fetch for a just-created conversation.
+// The sender's sidebar is missing this ID (its `getInbox` page predates the
+// insert), so after `startConversation` it fetches exactly one PK row — never
+// a page, never a scan. Membership is enforced (`participants.some`); a
+// stranger's ID yields `null`. `unreadCount` is hardcoded 0 because the
+// creator's `lastReadAt` was just set inside the same transaction.
+export async function getConversationPreview(conversationId: string) {
+  const currentUser = await requireCurrentUser("Please log in to view messages.");
+
+  // `findFirst` (not `findUnique`): the membership check is a relation
+  // filter, which Prisma only allows alongside a non-unique lookup.
+  const conversation = await prisma.conversation.findFirst({
+    where: {
+      id: conversationId,
+      participants: { some: { userId: currentUser.id } },
+    },
+    select: directConversationSelect,
+  });
+
+  if (!conversation) return null;
+
+  return { ...conversation, unreadCount: 0 };
+}
+
 export async function searchInbox(userId: string, query: string, limit = 30) {
   const currentUser = await requireCurrentUser("Please log in to view messages.");
   if (currentUser.id !== userId) throw new Error("Not authorized.");
@@ -317,8 +342,42 @@ export async function startConversation(
 
   if (!recipientId || !body)
     return { success: false, error: "Recipient and message are required." };
+
+  // ⚡ SERVER-SIDE LENGTH CAP: `maxLength` on the textarea is bypassable —
+  // never trust the client to enforce it (defense-in-depth).
+  if (body.length > MAX_MESSAGE_BODY)
+    return {
+      success: false,
+      error: `Message exceeds the ${MAX_MESSAGE_BODY}-character limit.`,
+    };
   if (recipientId === supabaseUser.id)
     return { success: false, error: "You cannot message yourself." };
+
+  // ⚡ RECIPIENT STATUS: mirrors `sendMessage` — a frozen/deleted scholar can
+  // neither be started fresh with nor replied to. Checked up-front so no
+  // conversation row is created for an undeliverable thread.
+  const recipientStatus = await prisma.user.findUnique({
+    where: { id: recipientId },
+    select: { id: true, isFrozen: true, isDeleted: true },
+  });
+
+  if (!recipientStatus) {
+    return { success: false, error: "Recipient not found." };
+  }
+
+  if (recipientStatus.isFrozen) {
+    return {
+      success: false,
+      error: "RECIPIENT_FROZEN: This scholar's account is currently frozen.",
+    };
+  }
+
+  if (recipientStatus.isDeleted) {
+    return {
+      success: false,
+      error: "CONVERSATION_DELETED: This conversation is no longer available.",
+    };
+  }
 
   // ⚡ BLOCK ENFORCEMENT (Issue 5): Check BOTH directions — the recipient may
   // have blocked the sender, or the sender may have blocked the recipient.
@@ -368,19 +427,27 @@ export async function startConversation(
       })
     ).id;
 
-  const createdMessage = await prisma.message.create({
-    data: { conversationId, senderId: user.id, body },
-    select: { id: true },
-  });
+  // ⚡ ATOMIC (Rule 3): message insert + `lastMessageAt` bump + sender
+  // `lastReadAt` must commit together — a crash between them would leave an
+  // orphan conversation row or a stale sidebar timestamp. All three ride one
+  // pooled connection inside `$transaction`.
+  const createdMessage = await prisma.$transaction(async (tx) => {
+    const newMessage = await tx.message.create({
+      data: { conversationId, senderId: user.id, body },
+      select: { id: true },
+    });
 
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { lastMessageAt: new Date() },
-  });
+    await tx.conversation.update({
+      where: { id: conversationId },
+      data: { lastMessageAt: new Date() },
+    });
 
-  await prisma.conversationParticipant.update({
-    where: { conversationId_userId: { conversationId, userId: user.id } },
-    data: { lastReadAt: new Date() },
+    await tx.conversationParticipant.update({
+      where: { conversationId_userId: { conversationId, userId: user.id } },
+      data: { lastReadAt: new Date() },
+    });
+
+    return newMessage;
   });
 
   // ⚡ `after()`: runs after the response is sent, so messaging stays instant,
@@ -397,7 +464,19 @@ export async function startConversation(
     }).catch((error) => console.error("Message push enqueue error:", error)),
   );
 
-  return { success: true, redirect: `/messages/${conversationId}` };
+  return {
+    success: true,
+    redirect: `/messages/${conversationId}`,
+    // ⚡ RULE 1: return the created row so the sender's sidebar can surgically
+    // prepend it (`setInbox`) instead of refetching or waiting for realtime.
+    // The sender just marked themselves read, so `unreadCount` is provably 0 —
+    // no `attachUnreadCounts` query needed (zero-compute, Rule 2).
+    data: {
+      id: conversationId,
+      messageId: createdMessage.id,
+      body,
+    },
+  };
 }
 
 export interface CreatedMessage {
@@ -471,6 +550,15 @@ export async function sendMessage(
   const replyToId = readOptionalFormValue(formData, "replyToId");
 
   if (!body) return { success: false, error: "Message body is required.", code: "VALIDATION" };
+
+  // ⚡ SERVER-SIDE LENGTH CAP: `maxLength` on the composer is bypassable —
+  // never trust the client to enforce it (defense-in-depth).
+  if (body.length > MAX_MESSAGE_BODY)
+    return {
+      success: false,
+      error: `Message exceeds the ${MAX_MESSAGE_BODY}-character limit.`,
+      code: "VALIDATION",
+    };
 
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },

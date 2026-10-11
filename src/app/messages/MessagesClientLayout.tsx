@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { useTimeAgo } from "@/utils/use-time-ago";
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
-import { getInbox, searchInbox } from "@/app/actions/messages";
+import { getInbox, searchInbox, getConversationPreview } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
 import { MessagesLayoutContext } from "./messages-context";
@@ -225,13 +225,116 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
       });
     };
 
+    // ⚡ NEW-CONVERSATION SYNC (Rule 1): `NewMessageForm` dispatches
+    // `conversation-created` with the new id *before* `router.push` navigates.
+    // New thread = optimistic prepend from the event payload (zero queries),
+    // reconciled with one PK `getConversationPreview` (deduped via the
+    // in-flight ref), never a page refetch. Existing thread (e.g. double-
+    // submit resolved server-side to the old id) = single-row fetch + merge
+    // to top. `unreadCount` stays 0 — the creator just marked themselves read
+    // inside the same transaction.
+    const handleConversationCreated = (event: CustomEvent) => {
+      const detail = event.detail as
+        | {
+            conversationId?: string;
+            messageId?: string;
+            body?: string;
+            recipient?: {
+              id: string;
+              name: string | null;
+              handle: string | null;
+              avatarUrl: string | null;
+            } | null;
+          }
+        | undefined;
+      const conversationId = detail?.conversationId;
+      if (!conversationId) return;
+
+      setSearchQuery("");
+      setSearchResults(null);
+
+      if (inboxRef.current.some((c) => c.id === conversationId)) {
+        setInbox((prev) => {
+          const idx = prev.findIndex((c) => c.id === conversationId);
+          if (idx <= 0) return prev;
+          const next = [...prev];
+          const [existing] = next.splice(idx, 1);
+          return [existing, ...next];
+        });
+        return;
+      }
+
+      const mergePreview = () => {
+        if (inboxRefreshInFlightRef.current.has(conversationId)) return;
+        inboxRefreshInFlightRef.current.add(conversationId);
+        getConversationPreview(conversationId)
+          .then((preview) => {
+            if (!preview) {
+              // Rejected post-creation (e.g. block raced the insert): drop the
+              // optimistic row rather than leaving a phantom conversation.
+              setInbox((prev) => prev.filter((c) => c.id !== conversationId));
+              return;
+            }
+            setInbox((prev) =>
+              prev.some((c) => c.id === preview.id)
+                ? prev.map((c) =>
+                    c.id === preview.id ? (preview as InboxConversation) : c,
+                  )
+                : [preview as InboxConversation, ...prev],
+            );
+          })
+          .catch(() => {})
+          .finally(() => {
+            inboxRefreshInFlightRef.current.delete(conversationId);
+          });
+      };
+
+      // No recipient payload (existing thread): fetch the single row directly.
+      if (!detail?.recipient) {
+        mergePreview();
+        return;
+      }
+
+      const now = new Date();
+      const optimistic: InboxConversation = {
+        id: conversationId,
+        lastMessageAt: now,
+        unreadCount: 0,
+        participants: [
+          {
+            user: {
+              id: detail.recipient.id,
+              name: detail.recipient.name,
+              handle: detail.recipient.handle,
+              avatarUrl: detail.recipient.avatarUrl,
+            },
+            lastReadAt: now,
+          },
+        ],
+        messages: [
+          {
+            id: detail.messageId,
+            body: detail.body ?? "",
+            createdAt: now,
+            senderId: user.id,
+          },
+        ],
+      };
+      setInbox((prev) =>
+        prev.some((c) => c.id === conversationId) ? prev : [optimistic, ...prev],
+      );
+      mergePreview();
+    };
+
     window.addEventListener('conversation-read', handleConversationRead as EventListener);
     window.addEventListener('message-sent', handleMessageSent as EventListener);
     window.addEventListener('message-received', handleMessageReceived as EventListener);
+    window.addEventListener('conversation-created', handleConversationCreated as EventListener);
     return () => {
       window.removeEventListener('conversation-read', handleConversationRead as EventListener);
       window.removeEventListener('message-sent', handleMessageSent as EventListener);
       window.removeEventListener('message-received', handleMessageReceived as EventListener);
+      window.removeEventListener('conversation-created', handleConversationCreated as EventListener);
     };
   }, [user]);
 

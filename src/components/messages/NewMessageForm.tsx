@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getScholars } from "@/app/actions/scholars";
 import {
@@ -74,6 +74,27 @@ export function NewMessageForm({
   const { submitting, submit } = useFormSubmit(undefined, {
     successMessage: "Message sent successfully!",
     resetOnSuccess: false,
+    // ⚡ SIDEBAR SYNC (Rule 1): `startConversation` returns the new
+    // conversation id in `data`. Broadcast it *before* `useFormSubmit`'s
+    // delayed `router.push` unmounts this form, so the sidebar (mounted in
+    // `MessagesClientLayout` behind this page) can prepend the row instantly.
+    onSuccess: (result) => {
+      const data = result.data as
+        | { id?: string; messageId?: string; body?: string }
+        | undefined;
+      if (data?.id) {
+        window.dispatchEvent(
+          new CustomEvent("conversation-created", {
+            detail: {
+              conversationId: data.id,
+              messageId: data.messageId,
+              body: data.body,
+              recipient: selectedRecipientRef.current,
+            },
+          }),
+        );
+      }
+    },
   });
 
   const [search, setSearch] = useState("");
@@ -83,6 +104,14 @@ export function NewMessageForm({
   );
   const [isSearching, setIsSearching] = useState(false);
   const [body, setBody] = useState("");
+
+  // ⚡ Ref mirror of the recipient: `onSuccess` fires async after the server
+  // round-trip, so the closure must read `.current` — not a stale render
+  // snapshot — to name the sidebar row correctly.
+  const selectedRecipientRef = useRef<Recipient | null>(initialRecipient);
+  useEffect(() => {
+    selectedRecipientRef.current = selectedRecipient;
+  }, [selectedRecipient]);
 
   // ⚡ DRAFT: Restore unsent message + recipient from localStorage on mount.
   // This survives page reloads AND the re-login redirect via callbackUrl,
