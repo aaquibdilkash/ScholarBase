@@ -26,7 +26,7 @@ export interface BalancedEnsembleResult {
   finalScore: number;
   classification: EnsembleClassification;
   explanation: string;
-  dampedCadenceScore: number;
+  cadenceScore: number;
   signalDivergence: number | null;
   perplexityRisk: number | null;
 }
@@ -41,8 +41,8 @@ export function computeLexicalRichness(words: string[]): number {
 /**
  * Balanced fusion — NEVER a hard override.
  * - Quick-only (neural null): lightly damp cadence when vocabulary is rich.
- * - Ensemble: neural 60% + damped cadence 40%; when signals diverge (>45),
- *   weight neural 65% + damped cadence 35% and return amber "mixed signals".
+ * - Ensemble: neural 30% + cadence 70%; strong divergence remains
+ *   explicitly mixed instead of letting either signal veto the other.
  */
 export function splitAcademicSentences(text: string): string[] {
   return text.split(/(?<=[.?!])\s+/).map((s) => s.trim()).filter(Boolean);
@@ -150,8 +150,8 @@ export function analyzeCadenceAndEntropy(text: string): StatisticalProfile {
 
 /**
  * Institution-calibrated multi-signal fusion. Cadence can NEVER force 100% over a
- * low neural score — dense scholarly vocabulary damps the structure penalty,
- * and strong disagreement lands in an amber "mixed signals" band.
+ * low neural score, and strong disagreement lands in an amber "mixed signals"
+ * band. The normal ensemble is the explicit 30% neural + 70% cadence blend.
  *
  * Jargon-mask guard: when the neural model returns near-zero on text with a
  * severe cadence collapse (sigma<3.4, 5+ sentences) and rich vocabulary
@@ -197,20 +197,17 @@ export function calculateBalancedEnsemble(
         guiraudIndex >= 6.5
           ? "Cadence metric only — rich scholarly vocabulary applied as a damping factor. Run Deep Neural Scan for balanced validation."
           : "Cadence metric only. Run Deep Neural Scan for balanced validation.",
-      dampedCadenceScore: finalScore,
+      cadenceScore: finalScore,
       signalDivergence: null,
       perplexityRisk,
     };
   }
 
-  // Mode 2 — Ensemble: lexical damping shrinks the cadence penalty for dense
-  // academic prose (R>6.8 → up to 40% reduction), never amplifies it.
-  const academicDamping = Math.min(
-    1.0,
-    Math.max(0.6, 1.0 - (guiraudIndex - 5.5) * 0.15),
-  );
-  const dampedCadenceScore = Math.round(cadenceScore * academicDamping);
-  const signalDivergence = Math.abs(effectiveNeural - dampedCadenceScore);
+  // Mode 2 — Ensemble: use the displayed cadence result directly. The
+  // requested weighting is neural 30% + cadence 70%; academic vocabulary must
+  // not silently change the meaning of that score.
+  const ensembleCadenceScore = cadenceScore;
+  const signalDivergence = Math.abs(effectiveNeural - ensembleCadenceScore);
 
   // Jargon-mask guard: blind near-zero learned signal on severely uniform rhythm
   // with rich vocabulary is inconclusive — anchor amber, never collapse to green.
@@ -240,11 +237,11 @@ export function calculateBalancedEnsemble(
     explanation =
       "Low-confidence classifier on synthetic cadence: the neural model reported near-zero AI risk (likely out-of-domain humanized prose), but syntactic rhythm is uniformly synthetic. Inconclusive — review flagged sentences.";
   } else if (signalDivergence > 40) {
-    // Standard divergence: balanced 50/50 blend — neither signal gets veto.
-    finalScore = Math.round(effectiveNeural * 0.5 + dampedCadenceScore * 0.5);
+    // Standard divergence: 30/70 neural/cadence blend — neither signal gets veto.
+    finalScore = Math.round(effectiveNeural * 0.3 + ensembleCadenceScore * 0.7);
     explanation = "Mixed signals: cadence and model probabilities diverge. Review flagged sentences.";
   } else {
-    finalScore = Math.round(effectiveNeural * 0.6 + dampedCadenceScore * 0.4);
+    finalScore = Math.round(effectiveNeural * 0.3 + ensembleCadenceScore * 0.7);
     explanation =
       perplexityRisk !== null && neuralScore !== null
         ? "Neural classifier, perplexity-burstiness, and structural metrics aligned."
@@ -256,7 +253,7 @@ export function calculateBalancedEnsemble(
     finalScore: bounded,
     classification: classify(bounded),
     explanation,
-    dampedCadenceScore,
+    cadenceScore: ensembleCadenceScore,
     signalDivergence: Math.round(signalDivergence),
     perplexityRisk,
   };

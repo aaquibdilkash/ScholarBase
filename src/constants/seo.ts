@@ -6,7 +6,9 @@ export const formatPageTitle = (title: string): string => {
     const clean = title.trim();
     if (!clean) return SITE_NAME;
 
-    const normalized = clean.replace(new RegExp(`\\s*\\|\\s*${SITE_NAME}$`, "i"), "").trim();
+    let normalized = clean.replace(new RegExp(`\\s*\\|\\s*${SITE_NAME}$`, "i"), "").trim();
+    // Strip a leading brand prefix too, so brand-first titles never get double-branded.
+    normalized = normalized.replace(new RegExp(`^${SITE_NAME}\\s*\\|\\s*`, "i"), "").trim();
     if (!normalized) return SITE_NAME;
 
     return `${normalized} | ${SITE_NAME}`;
@@ -37,7 +39,7 @@ export const SEO_SITE = {
     twitterDescription:
         "A research and academic community for scholars, supervisors, and institutions.",
     title: {
-        default: "ScholarBase | Academic community for scholars and researchers",
+        default: "Research Community Platform | ScholarBase",
         template: "%s | ScholarBase",
     },
     twitterTitle: "ScholarBase | Academic community",
@@ -46,7 +48,7 @@ export const SEO_SITE = {
 
 export const SEO_PAGES = {
     home: {
-        title: "ScholarBase | Academic community for scholars and researchers",
+        title: "Research Community Platform | ScholarBase",
         description:
             "Join ScholarBase to share research, find PhD supervisors, and discover admissions, events, vacancies, and academic opportunities — including on-device AI detection with Scholar Shield.",
         path: "/",

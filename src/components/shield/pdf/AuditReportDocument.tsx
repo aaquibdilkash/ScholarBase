@@ -415,7 +415,7 @@ export function AuditReportDocument({ title, submissionId, timestamp, overallSco
           </View>
         ))}
         <View style={[styles.noteBox, { marginTop: 18 }]}>
-          <Text>METHOD — ScholarShield runs entirely in this browser: cadence statistics are computed locally and, for a Deep Scan, the TMR RAID detector weights execute via WebAssembly. Neither your text nor this report was uploaded anywhere.</Text>
+          <Text>METHOD — ScholarShield runs entirely in this browser: cadence statistics are computed locally and, for a Deep Scan, the TMR RAID detector weights execute via WebAssembly. Equations and citation markers are normalized locally before inference. Neither your text nor this report was uploaded anywhere.</Text>
         </View>
         <View style={styles.footer} fixed>
           <Text style={styles.footerText}>ScholarShield · powered by ScholarBase · Audit appendix</Text>

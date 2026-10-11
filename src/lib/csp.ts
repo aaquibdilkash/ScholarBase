@@ -81,7 +81,7 @@ export function buildCsp(nonce: string): string {
     "default-src 'self'",
     // Same-origin scripts cover Next's chunks and Cloudflare's same-origin
     // email decoder. Do not add `unsafe-inline`; the nonce protects inline code.
-    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://challenges.cloudflare.com${
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://va.vercel-scripts.com${
       IS_DEV ? " 'unsafe-eval'" : ""
     }`,
     // See the note above: required by Tailwind/React attributes and TopLoader.

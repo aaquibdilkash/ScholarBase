@@ -150,12 +150,12 @@ describe("forceBurstiness", () => {
 
 describe("calculateBalancedEnsemble — three-signal fusion", () => {
   it("ignores perplexity when null (historical two-signal behavior)", () => {
-    // Aligned inputs (neural 80 vs damped cadence 65) land in the standard
-    // 60/40 blend: 80*0.6 + 65*0.4 = 74 → high. A null perplexity must not
+    // Aligned inputs (neural 80 vs cadence 65) land in the standard
+    // 30/70 neural/cadence blend: 80*0.3 + 65*0.7 = 69.5 → 70. A null perplexity must not
     // perturb this at all.
     const noPerplexity = calculateBalancedEnsemble(80, 65, 5, 5, 10, null);
     expect(noPerplexity.perplexityRisk).toBeNull();
-    expect(noPerplexity.finalScore).toBe(74);
+    expect(noPerplexity.finalScore).toBe(70);
     expect(noPerplexity.classification).toBe("high");
   });
 
@@ -164,7 +164,7 @@ describe("calculateBalancedEnsemble — three-signal fusion", () => {
     const fused = calculateBalancedEnsemble(90, 50, 5, 6, 10, 10);
     // The explanation should acknowledge the perplexity signal on the aligned path.
     expect(fused.perplexityRisk).toBe(10);
-    // 50*0.6 + damped(50)*0.4 should land mid-band, not the near-certain high
+    // 50*0.3 + cadence(50)*0.7 should land mid-band, not the near-certain high
     // that neural-only 90 would have produced.
     expect(fused.finalScore).toBeLessThan(90);
   });
@@ -189,7 +189,7 @@ describe("calculateBalancedEnsemble — three-signal fusion", () => {
   it("lands strong disagreement in the amber mixed-signals band", () => {
     const divergent = calculateBalancedEnsemble(95, 30, 6, 5, 10, null);
     expect(divergent.signalDivergence).not.toBeNull();
-    // 50/50 blend, never a hard override to either extreme.
+    // 30/70 blend, never a hard override to either extreme.
     expect(divergent.finalScore).toBeGreaterThan(30);
     expect(divergent.finalScore).toBeLessThan(95);
   });

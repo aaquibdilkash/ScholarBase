@@ -12,6 +12,7 @@ interface ModelDownloadModalProps {
   progress: number;
   isDownloading: boolean;
   onClose: () => void;
+  onCancel?: () => void;
   onConfirm: () => void;
   title?: string;
   description?: string;
@@ -24,6 +25,7 @@ export function ModelDownloadModal({
   progress,
   isDownloading,
   onClose,
+  onCancel,
   onConfirm,
   title = "Load Local Neural Engine",
   description = "Your paper never leaves your device. Neural weights download once to browser cache.",
@@ -90,7 +92,7 @@ export function ModelDownloadModal({
 
           <div className="mt-4 flex justify-end gap-4">
             <div className="flex items-center gap-2">
-              <Button onClick={onClose} variant="outline" disabled={isDownloading}>Cancel</Button>
+              <Button onClick={isDownloading ? onCancel : onClose} variant="outline" disabled={isDownloading && !onCancel}>Cancel</Button>
             </div>
             {/* Sign-in style: solid slate-950 pill (matches LoginForm sb-button-primary) */}
             <button

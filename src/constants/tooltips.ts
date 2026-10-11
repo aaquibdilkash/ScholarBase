@@ -250,7 +250,7 @@ export const SHIELD_LOCAL_INPUT_TIP =
 export const SHIELD_UPLOAD_TIP =
     "Load a PDF, DOCX, or TXT file. Text is extracted in your browser only and is never transmitted anywhere.";
 export const SHIELD_FREE_CACHE_TIP =
-    "Deletes the locally cached TMR detector and FLAN-T5 rewriter weights from this browser to free space. Quick Audit keeps working instantly; local models download again when you choose them.";
+    "Deletes the locally cached TMR RAID detector and FLAN-T5 rewriter weights from this browser to free space. Quick Audit keeps working instantly; local models download again when you choose them.";
 export const SHIELD_QUICK_AUDIT_TIP =
     "Instant check with zero downloads that measures sentence rhythm: burstiness, uniform sentence lengths, and formulaic transitions. It needs about 50 words and is cadence-only — it does not read vocabulary.";
 export const SHIELD_DEEP_SCAN_TIP =
@@ -264,9 +264,9 @@ export const SHIELD_GUIRAUD_TIP =
 export const SHIELD_CADENCE_TIP =
     "Cadence result: the rhythm-only risk score from sentence statistics, before any neural analysis runs.";
 export const SHIELD_NEURAL_TIP =
-    "Neural result: a model signal from the local TMR RAID detector. It is calibrated on benchmark data, not a universal probability; 'Not run' means only the Quick Audit has been used.";
+    "Neural result: a model signal from the local TMR RAID detector; 'Not run' means only the Quick Audit has been used.";
 export const SHIELD_BALANCED_TIP =
-    "Balanced result: cadence and neural signals fused with vocabulary-aware damping. This combined verdict is the one to trust.";
+    "Balanced result: the cadence score contributes 70% and the neural score contributes 30%. This combined verdict is the one to trust.";
 export const SHIELD_FLAG_RISK_TIP =
     "Overall likelihood that the text shows AI-writing patterns, combining the cadence and neural signals.";
 export const SHIELD_HEATMAP_TIP =

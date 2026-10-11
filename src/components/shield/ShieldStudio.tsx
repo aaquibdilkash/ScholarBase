@@ -288,8 +288,16 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         }
       }
       else if (status === "ready") {
-        setModelStatus("ready"); setModelCached(true); setConsent(false); doDeepScan(textRef.current);
+        setModelStatus("ready"); setModelCached(true); setConsent(false);
+        // The initial cache probe runs before a consented download starts.
+        // Probe again now so the cache badge reflects the newly stored weights.
+        workerRef.current?.postMessage({ type: "CHECK_CACHE" });
+        doDeepScan(textRef.current);
         toast({ title: "Neural engine ready", description: "Weights cached on-device. Running deep scan." });
+      }
+      else if (status === "cancelled") {
+        setIsScanning(false); setModelStatus("idle"); setModelCached(false); setConsent(false); setProgress(0); setDetectorCacheBytes(0); setDetectorCacheMeasured(true);
+        toast({ title: "Download cancelled", description: "The partial detector download was removed. You can start a fresh download any time." });
       }
       else if (status === "cleared") {
         setIsClearing(false); setClearTarget(null);
@@ -312,12 +320,12 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
             `[Shield/UI] neural=${avg}% over ${chunkCount ?? arr.length} windows — sample argmax="${rep.argmaxLabel ?? "?"}" P(ai)=${(rep.aiProb ?? 0).toFixed(3)} P(human)=${rep.humanProb?.toFixed(3) ?? "n/a"}`,
           );
         }
-        // Balanced fusion: lexical damping + divergence-aware blend.
+        // Balanced fusion: 70% cadence + 30% neural, with divergence-aware guards.
         // Cadence NEVER overrides the neural score — disagreement lands amber.
         const report = analyzeCadenceAndEntropy(textRef.current);
         const fused = calculateBalancedEnsemble(avg, report.overallCadenceRisk, report.burstinessSigma, report.guiraudIndex, report.sentences.length);
         if (fused.classification === "amber" && (fused.signalDivergence ?? 0) > 40) {
-          toast({ title: "Mixed signals — inconclusive, not AI-confirmed", description: `Neural ${avg}% vs damped cadence ${fused.dampedCadenceScore}% (σ=${report.burstinessSigma}, R=${report.guiraudIndex}). ${fused.explanation}` });
+          toast({ title: "Mixed signals — inconclusive, not AI-confirmed", description: `Neural ${avg}% vs cadence ${fused.cadenceScore}% (σ=${report.burstinessSigma}, R=${report.guiraudIndex}). ${fused.explanation}` });
         } else {
           toast({ title: "Deep scan complete", description: `${chunkCount ?? arr.length} windows / ${totalWords ?? 0} words analyzed. Neural ${avg}% + cadence → balanced ${fused.finalScore}% (${fused.classification}). ${fused.explanation}` });
         }
@@ -368,6 +376,14 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
       toast({ title: "Rewriter cache clear failed", description: msg, variant: "destructive" });
     });
   }, [clearTarget, toast]);
+  const cancelDetectorDownload = useCallback(() => {
+    workerRef.current?.postMessage({ type: "CANCEL_MODEL" });
+    setModelStatus("idle");
+    setModelCached(false);
+    setConsent(false);
+    setProgress(0);
+    setIsScanning(false);
+  }, []);
   const sendToRewriter = () => {
     const paras = inputText.split(/\n\s*\n/).filter((p) => p.trim());
     const flagged = (statReport?.sentences ?? []).filter((s) => s.reasons.length).map((s) => s.text);
@@ -647,7 +663,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         onClose={() => !isClearing && setClearTarget(null)}
         onConfirm={clearModelCache}
         title={`Free ${clearTarget === "detector" ? "detector" : "rewriter"} cache?`}
-        message={`This deletes only the cached ${clearTarget === "detector" ? "TMR detector" : "FLAN-T5 rewriter"} model (${formatBytes(clearTarget === "detector" ? detectorCacheBytes : localCacheBytes)}). ${clearTarget === "detector" ? "Quick Audit keeps working instantly." : "The rewriter will download the model again when you choose it."}`}
+        message={`This deletes only the cached ${clearTarget === "detector" ? "TMR RAID detector" : "FLAN-T5 rewriter"} model (${formatBytes(clearTarget === "detector" ? detectorCacheBytes : localCacheBytes)}). ${clearTarget === "detector" ? "Quick Audit keeps working instantly; Deep Scan will download the modern detector when needed." : "The rewriter will download the model again when you choose it."}`}
         isConfirming={isClearing}
         confirmLabel={`Delete ${clearTarget === "detector" ? "Detector" : "Rewriter"} Cache`}
         confirmingLabel="Clearing..."
@@ -661,8 +677,9 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         onClose={() => {
           if (modelStatus !== "downloading") setConsent(false);
         }}
+        onCancel={cancelDetectorDownload}
         onConfirm={() => workerRef.current?.postMessage({ type: "INIT_MODEL" })}
-        modelSize="~125 MB quantized ONNX"
+        modelSize="~128 MB quantized ONNX"
       />
       <ModelDownloadModal
         isOpen={localConsent}
