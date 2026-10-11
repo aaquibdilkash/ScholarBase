@@ -13,6 +13,12 @@ import { sendMessagePush } from "@/lib/push-server";
  * ⚡ The gate: if the recipient currently has a visible ScholarBase tab, the
  * push is skipped — the in-app realtime toast/badge already covers them. Only
  * when they have stepped away does the OS notification fire.
+ *
+ * Exactly-once semantics: QStash retries 5xx responses, so a *transient*
+ * push-service failure (429/503/timeout on every endpoint) returns 500 to
+ * trigger a retry. The Service Worker dedupes by `messageId`, so the retry
+ * renders no duplicate. Skips (ACTIVE / NO_SUBSCRIPTIONS / NOT_CONFIGURED)
+ * and partial deliveries stay 200 — retrying those would only double-notify.
  */
 async function handler(request: Request) {
   try {
@@ -27,6 +33,12 @@ async function handler(request: Request) {
     }
 
     const result = await sendMessagePush(payload);
+    if (result.transientFailure) {
+      return NextResponse.json(
+        { error: "Push service temporarily unavailable", ...result },
+        { status: 500 },
+      );
+    }
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
     console.error("QStash message push worker error:", error);

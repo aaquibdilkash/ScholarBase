@@ -2,9 +2,24 @@ import { Client } from "@upstash/qstash";
 import { z } from "zod";
 import { requireEnv } from "@/lib/env";
 
-export const qstashClient = new Client({
-  token: requireEnv("QSTASH_TOKEN"),
-});
+let cachedQstashClient: Client | null = null;
+
+/**
+ * Lazy QStash client.
+ *
+ * Constructing `new Client()` at module import time throws in production when
+ * `QSTASH_TOKEN` is missing — which would break *every* import of this module
+ * (including message sends). Lazily constructing keeps messaging alive and
+ * surfaces the error only on the failing enqueue, where it is logged.
+ */
+function getQstashClient(): Client {
+  if (!cachedQstashClient) {
+    cachedQstashClient = new Client({
+      token: requireEnv("QSTASH_TOKEN"),
+    });
+  }
+  return cachedQstashClient;
+}
 
 const notificationFields = {
   type: z.string().min(1).max(64),
@@ -92,7 +107,7 @@ export async function queueNotification(payload: NotificationPayload) {
     throw new Error("QStash destination must be publicly reachable in production.");
   }
 
-  return qstashClient.publishJSON({
+  return getQstashClient().publishJSON({
     url: `${destination.toString().replace(/\/$/, "")}/api/jobs/process-notifications`,
     body: payload,
     retries: 3,
@@ -112,8 +127,16 @@ export async function queueNotification(payload: NotificationPayload) {
  * Message-only Web Push payload. Kept intentionally tiny: QStash forwards it
  * to `/api/jobs/send-push`, which checks whether the recipient is currently
  * using the app before touching their subscriptions.
+ *
+ * `messageId` is the DB id of the message that triggered this push. It makes
+ * retries idempotent at two layers:
+ *  - QStash `deduplicationId` (`msg-{messageId}-{recipientId}`) collapses a
+ *    double-enqueue at the queue;
+ *  - the Service Worker ignores a `messageId` it already rendered, so a
+ *    redelivered payload never buzzes twice.
  */
 export const messagePushPayloadSchema = z.object({
+  messageId: z.string().min(1),
   recipientId: z.string().min(1),
   conversationId: z.string().min(1),
   senderName: z.string().min(1).max(120),
@@ -153,9 +176,13 @@ export async function queueMessagePush(payload: MessagePushPayload) {
     throw new Error("QStash destination must be publicly reachable in production.");
   }
 
-  return qstashClient.publishJSON({
+  return getQstashClient().publishJSON({
     url: `${destination.toString().replace(/\/$/, "")}/api/jobs/send-push`,
     body: payload,
     retries: 3,
+    // Idempotency: `sendMessage`/`startConversation` may (via `after()`) hand
+    // the same logical message to QStash more than once. The queue then
+    // collapses the duplicate instead of delivering it twice.
+    deduplicationId: `msg-${payload.messageId}-${payload.recipientId}`,
   });
 }

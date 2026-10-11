@@ -13,6 +13,7 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { queueMessagePush } from "@/lib/qstash";
+import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { MESSAGE_THREAD_PAGE_SIZE } from "@/constants/messages";
 
@@ -367,8 +368,9 @@ export async function startConversation(
       })
     ).id;
 
-  await prisma.message.create({
+  const createdMessage = await prisma.message.create({
     data: { conversationId, senderId: user.id, body },
+    select: { id: true },
   });
 
   await prisma.conversation.update({
@@ -381,15 +383,19 @@ export async function startConversation(
     data: { lastReadAt: new Date() },
   });
 
-  // ⚡ FIRE-AND-FORGET: the push gate + delivery happen off the request path.
-  // Never awaited — messaging must stay instant and must never break if the
-  // push infrastructure (Redis / QStash / web-push) is unavailable.
-  void queueMessagePush({
-    recipientId,
-    conversationId,
-    senderName: (user.name?.trim() || "A researcher").slice(0, 120),
-    body,
-  }).catch((error) => console.error("Message push enqueue error:", error));
+  // ⚡ `after()`: runs after the response is sent, so messaging stays instant,
+  // but — unlike a bare `void` promise — the platform keeps the runtime alive
+  // until the QStash publish finishes. QStash `deduplicationId` + SW
+  // `messageId` dedupe make a double-enqueue a no-op, never a double buzz.
+  after(() =>
+    queueMessagePush({
+      messageId: createdMessage.id,
+      recipientId,
+      conversationId,
+      senderName: (user.name?.trim() || "A researcher").slice(0, 120),
+      body,
+    }).catch((error) => console.error("Message push enqueue error:", error)),
+  );
 
   return { success: true, redirect: `/messages/${conversationId}` };
 }
@@ -552,15 +558,19 @@ export async function sendMessage(
     return newMessage;
   });
 
-  // ⚡ FIRE-AND-FORGET: mirrors `startConversation`. Only the *other*
-  // participant is notified, and only after the transaction above committed.
+  // ⚡ `after()`: mirrors `startConversation`. Only the *other* participant is
+  // notified, and only after the transaction above committed. Runs after the
+  // response, so the send stays instant, and survives serverless freeze.
   if (otherParticipant) {
-    void queueMessagePush({
-      recipientId: otherParticipant.userId,
-      conversationId,
-      senderName: (createdMessage.sender.name?.trim() || "A researcher").slice(0, 120),
-      body: createdMessage.body,
-    }).catch((error) => console.error("Message push enqueue error:", error));
+    after(() =>
+      queueMessagePush({
+        messageId: createdMessage.id,
+        recipientId: otherParticipant.userId,
+        conversationId,
+        senderName: (createdMessage.sender.name?.trim() || "A researcher").slice(0, 120),
+        body: createdMessage.body,
+      }).catch((error) => console.error("Message push enqueue error:", error)),
+    );
   }
 
   return createdMessage;

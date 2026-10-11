@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v11";
+const CACHE_NAME = "scholarbase-v12";
 // Precached so the installed app has a usable offline shell. `addAll` is
 // all-or-nothing — one failed entry aborts the entire install, the worker never
 // activates, and the app silently stops being installable. So each entry is
@@ -114,7 +114,76 @@ self.addEventListener("fetch", (event) => {
 
 /**
  * WhatsApp-Style Expandable Web Push with iOS Badge Sync
+ *
+ * Exactly-once rendering: QStash may redeliver the same logical message
+ * (retry after a transient push-service failure). Every payload carries
+ * `messageId`; an id already present in the visible notification's
+ * `data.seenIds` OR in the 24h IndexedDB ledger is dropped before
+ * `showNotification` — no second buzz, no duplicate `• Sender: hi` line.
+ * The per-conversation `tag` still collapses N distinct messages into one OS
+ * notification.
  */
+const SEEN_PUSH_DB = "scholarbase-push-seen";
+const SEEN_PUSH_STORE = "seen-message-ids";
+const SEEN_PUSH_TTL_MS = 24 * 60 * 60 * 1000;
+
+function openSeenPushDb() {
+  return new Promise((resolve) => {
+    try {
+      const request = indexedDB.open(SEEN_PUSH_DB, 1);
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(SEEN_PUSH_STORE);
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+async function hasSeenPushMessage(db, messageId) {
+  if (!db || !messageId) return false;
+  try {
+    const entry = await new Promise((resolve) => {
+      try {
+        const tx = db.transaction(SEEN_PUSH_STORE, "readonly");
+        const get = tx.objectStore(SEEN_PUSH_STORE).get(messageId);
+        get.onsuccess = () => resolve(get.result);
+        get.onerror = () => resolve(undefined);
+      } catch {
+        resolve(undefined);
+      }
+    });
+    return !!entry && Date.now() - entry.seenAt < SEEN_PUSH_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
+async function markPushMessageSeen(db, messageId) {
+  if (!db || !messageId) return;
+  try {
+    await new Promise((resolve) => {
+      try {
+        const tx = db.transaction(SEEN_PUSH_STORE, "readwrite");
+        tx.objectStore(SEEN_PUSH_STORE).put(
+          { seenAt: Date.now() },
+          messageId,
+        );
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+        tx.onabort = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  } catch {
+    // Best-effort ledger — a failure just means this device relies on the
+    // in-notification `seenIds` instead.
+  }
+}
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
@@ -128,6 +197,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
       const tag = payload.tag || "scholarbase-chat";
+      const incomingId = payload.messageId || null;
 
       // Query active notifications matching this conversation/channel
       const activeNotifications = await self.registration.getNotifications({
@@ -135,6 +205,24 @@ self.addEventListener("push", (event) => {
       });
       const existingNotification =
         activeNotifications.length > 0 ? activeNotifications[0] : null;
+
+      const seenIds = Array.isArray(existingNotification?.data?.seenIds)
+        ? existingNotification.data.seenIds
+        : [];
+
+      // Fast path: duplicate still attached to the visible notification.
+      if (incomingId && seenIds.includes(incomingId)) return;
+
+      // Slow path: notification was dismissed, but the retry arrives within
+      // 24h — the ledger remembers it.
+      let seenDb = null;
+      if (incomingId && !seenIds.includes(incomingId)) {
+        seenDb = await openSeenPushDb();
+        if (await hasSeenPushMessage(seenDb, incomingId)) {
+          if (seenDb) seenDb.close();
+          return;
+        }
+      }
 
       let messageHistory = [];
       const incomingSender = payload.title || "ScholarBase";
@@ -147,6 +235,12 @@ self.addEventListener("push", (event) => {
         ];
       } else {
         messageHistory = [{ sender: incomingSender, text: incomingText }];
+      }
+
+      const nextSeenIds = incomingId ? [...seenIds, incomingId].slice(-50) : seenIds;
+      if (seenDb) {
+        await markPushMessageSeen(seenDb, incomingId);
+        seenDb.close();
       }
 
       // WhatsApp format: Single line for 1 message, bulleted multiline for 2+ messages
@@ -177,6 +271,7 @@ self.addEventListener("push", (event) => {
         data: {
           url: payload.url || "/messages",
           messages: messageHistory,
+          seenIds: nextSeenIds,
         },
       };
 

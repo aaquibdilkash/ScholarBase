@@ -14,6 +14,7 @@ import { usePresence } from "@/components/interactions/PresenceProvider";
 import {
   disableMessagePush,
   enableMessagePush,
+  getExistingSubscription,
   hasMessagePushEnabled,
   isPushSupported,
 } from "@/lib/push";
@@ -48,6 +49,30 @@ interface PushNotificationContextValue {
 
 const PushNotificationContext =
   createContext<PushNotificationContextValue | null>(null);
+
+/**
+ * Re-posts the browser's existing subscription so the server row points at
+ * the currently signed-in user. Endpoints are globally unique per browser,
+ * so without this a second account on the same device silently steals
+ * delivery from the first.
+ */
+async function reassertSubscriptionOwnership(): Promise<void> {
+  const subscription = await getExistingSubscription();
+  if (!subscription) return;
+  const serialized = subscription.toJSON();
+  const p256dh = serialized.keys?.p256dh;
+  const auth = serialized.keys?.auth;
+  if (!serialized.endpoint || !p256dh || !auth) return;
+  await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "subscribe",
+      endpoint: serialized.endpoint,
+      keys: { p256dh, auth },
+    }),
+  }).catch(() => {});
+}
 
 export function usePushNotifications(): PushNotificationContextValue {
   const ctx = useContext(PushNotificationContext);
@@ -93,6 +118,14 @@ export function PushNotificationProvider({
     hasMessagePushEnabled()
       .then((enabled) => {
         if (!cancelled) setStatus(enabled ? "enabled" : "disabled");
+        if (!cancelled && enabled) {
+          // Re-assert ownership: endpoints are keyed per browser. If another
+          // account used this device, the row now points at them and this
+          // user silently receives nothing. Re-posting reassigns
+          // `endpoint -> currentUserId` with no UI change. Fire-and-forget —
+          // the local subscription already proves the state.
+          void reassertSubscriptionOwnership().catch(() => {});
+        }
       })
       .catch(() => {
         if (!cancelled) setStatus("disabled");

@@ -12,6 +12,7 @@ import { MESSAGE_PUSH_TAG_PREFIX, PUSH_BODY_MAX_LENGTH } from "@/lib/push-consta
  */
 
 export type MessagePushInput = {
+  messageId: string;
   recipientId: string;
   conversationId: string;
   senderName: string;
@@ -21,6 +22,8 @@ export type MessagePushInput = {
 export type MessagePushResult = {
   delivered: number;
   removed: number;
+  /** True when every endpoint failed with a retryable (non-410) error. */
+  transientFailure?: boolean;
   skipped?: "NOT_CONFIGURED" | "NO_SUBSCRIPTIONS";
 };
 
@@ -78,6 +81,7 @@ export async function sendMessagePush(
   }
 
   const payload = JSON.stringify({
+    messageId: input.messageId,
     title: input.senderName,
     body: truncatePushBody(input.body),
     url: `/messages/${input.conversationId}`,
@@ -86,6 +90,7 @@ export async function sendMessagePush(
 
   const deliveredIds: string[] = [];
   const expiredIds: string[] = [];
+  let transientFailures = 0;
 
   await Promise.all(
     subscriptions.map(async (subscription) => {
@@ -104,6 +109,7 @@ export async function sendMessagePush(
           expiredIds.push(subscription.id);
           return;
         }
+        transientFailures += 1;
         console.error("[Push] sendNotification failed.", error);
       }
     }),
@@ -124,5 +130,17 @@ export async function sendMessagePush(
       .catch((error) => console.error("[Push] stale subscription cleanup failed.", error));
   }
 
-  return { delivered: deliveredIds.length, removed: expiredIds.length };
+  // `transientFailure` lets the QStash worker return 500 so the message is
+  // retried — the Service Worker dedupes by `messageId`, so the retry can
+  // never render a duplicate notification. Only set when *nothing* was
+  // delivered and nothing was pruned: a partial delivery already reached the
+  // user, and retrying it would only re-buzz devices that already got it.
+  const transientFailure =
+    deliveredIds.length === 0 && expiredIds.length === 0 && transientFailures > 0;
+
+  return {
+    delivered: deliveredIds.length,
+    removed: expiredIds.length,
+    ...(transientFailure ? { transientFailure: true as const } : {}),
+  };
 }
