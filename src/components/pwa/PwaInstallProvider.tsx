@@ -30,8 +30,12 @@ import { useToast } from "@/components/ui/Toast";
  *
  * 3. **Install state can change without us.** The user can install from the
  *    browser's own menu at any time — or DELETE the installed app later — so we
- *    listen for `appinstalled` and re-probe on visibility change and window
- *    focus rather than trusting a one-shot probe at mount.
+ *    listen for `appinstalled` and re-probe on visibility change, window
+ *    focus, AND `pageshow` (the mobile bfcache return path that fires with
+ *    neither of the first two) rather than trusting a one-shot probe at
+ *    mount. A fresh `beforeinstallprompt` arriving while we claim "installed"
+ *    is itself an uninstall signal: Chromium only re-issues it when the app
+ *    becomes installable again, so the stale local flag yields to it.
  *
  * 4. **A negative is NOT reliable — on its own.** `getInstalledRelatedApps()`
  *    returning an empty list does NOT mean "not installed": it only sees apps
@@ -88,6 +92,13 @@ interface PwaInstallContextValue {
   isManualOnly: boolean;
   /** Opens the browser install prompt. No-op unless `canPrompt` is true. */
   install: () => Promise<void>;
+  /**
+   * Forgets a recorded install. The escape hatch for uninstalls no API can
+   * see (iOS Safari/Firefox) and for installs recorded before the manifest
+   * fix, where the confirmation flag was never set. UI-only + localStorage;
+   * no server round-trip.
+   */
+  resetInstall: () => void;
 }
 
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
@@ -261,6 +272,17 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   // support). Deliberately NOT set by any timer.
   const [canNeverInstall, setCanNeverInstall] = useState(false);
 
+  /**
+   * Clears every local trace of a recorded install. Shared by the
+   * uninstall probes below and the manual "not on this device anymore"
+   * affordance, so they can never disagree about what "forget" means.
+   */
+  const resetInstalledState = useCallback(() => {
+    setInstalledState(false);
+    writeInstalledFlag(false);
+    writeGiraInstalledFlag(false);
+  }, []);
+
   const onInstall = useCallback(async () => {
     if (!deferredPrompt || isWorking) return;
     setIsWorking(true);
@@ -305,7 +327,21 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       const event = (
         window as Window & { __sbInstallPrompt?: BeforeInstallPromptEvent | null }
       ).__sbInstallPrompt;
-      if (event) setDeferredPrompt(event);
+      if (event) {
+        // A fresh prompt while we claim "installed" means the app was deleted
+        // without any API telling us (or was installed before the manifest
+        // fix, so no API can confirm it). Chromium re-issues the event after
+        // a deletion; the stale flag must yield to it, not suppress it.
+        setInstalledState((wasInstalled) => {
+          if (wasInstalled) {
+            writeInstalledFlag(false);
+            writeGiraInstalledFlag(false);
+            return false;
+          }
+          return wasInstalled;
+        });
+        setDeferredPrompt(event);
+      }
     };
     window.addEventListener("sb:beforeinstallprompt", onCaptured);
 
@@ -313,6 +349,15 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       // Chromium's default would show its own mini-infobar — exactly the prompt
       // we are being asked to replace with a persistent button.
       event.preventDefault();
+      // Same uninstall signal as above, for prompts that arrive after mount.
+      setInstalledState((wasInstalled) => {
+        if (wasInstalled) {
+          writeInstalledFlag(false);
+          writeGiraInstalledFlag(false);
+          return false;
+        }
+        return wasInstalled;
+      });
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
 
@@ -378,9 +423,7 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
           // Uninstall confirmed by the same-origin API flip. Clear both flags
           // but KEEP any held `beforeinstallprompt`: after a deletion Chromium
           // may re-issue one, and holding it makes the button one-click again.
-          setInstalledState(false);
-          writeInstalledFlag(false);
-          writeGiraInstalledFlag(false);
+          resetInstalledState();
         }
       });
     };
@@ -390,6 +433,12 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     // in another window, so the only in-session signal is this window
     // regaining focus.
     window.addEventListener("focus", syncInstalled);
+    // Mobile return path: deleting the PWA from the launcher then reopening
+    // the browser tab often restores the page from bfcache, which fires
+    // `pageshow` WITHOUT a preceding `visibilitychange`/`focus` pair the
+    // handlers above would catch. Without this the stale install state
+    // survives until the next manual tab switch.
+    window.addEventListener("pageshow", syncInstalled);
 
     // Run once on mount, after a short delay so it does not compete with
     // hydration for the main thread on a slow device.
@@ -401,9 +450,10 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("sb:beforeinstallprompt", onCaptured);
       document.removeEventListener("visibilitychange", syncInstalled);
       window.removeEventListener("focus", syncInstalled);
+      window.removeEventListener("pageshow", syncInstalled);
       window.clearTimeout(initialCheck);
     };
-  }, [markInstalled]);
+  }, [markInstalled, resetInstalledState]);
 
   const value = useMemo<PwaInstallContextValue>(() => {
     const status: InstallStatus = installed
@@ -426,8 +476,9 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       canNeverInstall,
       isManualOnly: status === "manual",
       install: onInstall,
+      resetInstall: resetInstalledState,
     };
-  }, [installed, deferredPrompt, isManualOnlyPlatform, canNeverInstall, isWorking, onInstall]);
+  }, [installed, deferredPrompt, isManualOnlyPlatform, canNeverInstall, isWorking, onInstall, resetInstalledState]);
   return (
     <PwaInstallContext.Provider value={value}>
       {children}

@@ -33,7 +33,7 @@ export function InstallAppButton({
 }: {
   variant?: InstallAppButtonVariant;
 }) {
-  const { status, isWorking, install, isManualOnly, canPrompt, isInstalled } =
+  const { status, isWorking, install, isManualOnly, canPrompt, isInstalled, resetInstall } =
     usePwaInstall();
   const [showHelp, setShowHelp] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -95,6 +95,25 @@ export function InstallAppButton({
       <Download className={iconClass} />
     );
 
+  /**
+   * The only uninstall signal on browsers with no install API (iOS Safari,
+   * Firefox) is the user telling us. Also rescues installs recorded before
+   * the manifest fix, where the confirmation flag was never set and no probe
+   * can clear the stale `sb:pwa-installed`. Rendered next to every installed
+   * confirmation so a deleted app never requires clearing site data.
+   */
+  const renderResetAction = (className: string) => (
+    <button
+      type="button"
+      onClick={resetInstall}
+      title="Show the install option again"
+      aria-label="App deleted? Show the install option again"
+      className={className}
+    >
+      Deleted it? Re-offer install
+    </button>
+  );
+
   /** The manual route. Shown in a popover from the navbar, inline in settings. */
   const helpBody = isManualOnly ? (
     <>
@@ -115,15 +134,20 @@ export function InstallAppButton({
   // of the message-alert bell. When there is nothing to install with, the click
   // opens this popover rather than doing nothing.
   if (variant === "navbar") {
+    // Installed icons stay clickable (but never reinstall): the click only
+    // opens the tiny recovery popover below, which is the single place the
+    // icon-only slot can offer the "deleted it?" reset.
+    const navbarOnClick =
+      isInstalled && !isWorking ? () => setShowHelp((v) => !v) : onClick;
     return (
       <div ref={popoverRef} className="relative">
         <button
           type="button"
-          onClick={onClick}
-          disabled={isWorking || isInstalled}
+          onClick={navbarOnClick}
+          disabled={isWorking}
           title={isWorking ? installingLabel : isInstalled ? installedLabel : label}
           aria-label={isWorking ? installingLabel : isInstalled ? installedLabel : label}
-          aria-expanded={isWorking || isInstalled ? undefined : showHelp}
+          aria-expanded={isWorking ? undefined : showHelp}
           className="sb-menu-trigger h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10"
         >
           {renderIcon("h-4 w-4 sm:h-5 sm:w-5")}
@@ -155,6 +179,20 @@ export function InstallAppButton({
             {helpBody}
           </div>
         )}
+
+        {/* Icon-only navbar slot has no room for a second control, so the
+            reset lives in the popover: click the (disabled-as-installed) icon
+            and the row offers the uninstall recovery without clearing data. */}
+        {showHelp && isInstalled && !isWorking && (
+          <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              ScholarBase installed
+            </p>
+            {renderResetAction(
+              "mt-1 text-[11px] font-medium text-slate-400 underline underline-offset-2 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300",
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -170,10 +208,15 @@ export function InstallAppButton({
         <span
           role="menuitem"
           aria-disabled="true"
-          className="sb-menu-item flex w-full items-center gap-2 px-3 py-1.5 text-[13px] text-emerald-600 sm:px-4 sm:py-2 sm:text-sm dark:text-emerald-400"
+          className="sb-menu-item flex w-full flex-col items-start gap-1 px-3 py-1.5 text-[13px] sm:px-4 sm:py-2 sm:text-sm"
         >
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          ScholarBase installed
+          <span className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            ScholarBase installed
+          </span>
+          {renderResetAction(
+            "ml-6 text-[11px] font-medium text-slate-400 underline underline-offset-2 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300",
+          )}
         </span>
       );
     }
@@ -208,17 +251,42 @@ export function InstallAppButton({
   }
 
   if (variant === "settings") {
+    // Installed settings row is a NON-button container: nesting the reset
+    // <button> inside a disabled <button> would make it unclickable (and is
+    // invalid HTML). The row keeps the same card styling, minus the
+    // hover/click affordance.
+    if (isInstalled && !isWorking) {
+      return (
+        <div className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left dark:border-slate-700 dark:bg-slate-900">
+          <span className="text-slate-500 dark:text-slate-400">
+            {renderIcon("h-5 w-5")}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Install app
+            </span>
+            <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
+              ScholarBase is installed on this device.
+            </span>
+            {renderResetAction(
+              "mt-1 block text-[11px] font-medium text-slate-400 underline underline-offset-2 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300",
+            )}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            Installed
+          </span>
+        </div>
+      );
+    }
+
     return (
       <div>
         <button
           type="button"
-          // Inert once installed: a control that looks clickable but does
-          // nothing is worse than a plain confirmation row.
-          onClick={isInstalled && !isWorking ? undefined : onClick}
-          disabled={isWorking || isInstalled}
-          aria-expanded={
-            isWorking || isInstalled || canInstallInOneClick ? undefined : showHelp
-          }
+          onClick={onClick}
+          disabled={isWorking}
+          aria-expanded={canInstallInOneClick ? undefined : showHelp}
           className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50 disabled:opacity-100 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
         >
           <span className="text-slate-500 dark:text-slate-400">
@@ -231,11 +299,9 @@ export function InstallAppButton({
             <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">
               {isWorking
                 ? "Adding ScholarBase to this device…"
-                : isInstalled
-                  ? "ScholarBase is installed on this device."
-                  : isManualOnly
-                    ? "Add ScholarBase to your home screen for faster access."
-                    : "Add ScholarBase to your device for faster, offline-friendly access."}
+                : isManualOnly
+                  ? "Add ScholarBase to your home screen for faster access."
+                  : "Add ScholarBase to your device for faster, offline-friendly access."}
             </span>
           </span>
           {/* Order matters: an install in flight is shown as "Installing…" even

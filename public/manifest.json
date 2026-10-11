@@ -27,9 +27,9 @@
   "lang": "en-US",
   "related_applications": [
     {
-      "platform": "web",
+      "platform": "webapp",
       "id": "/",
-      "url": "/feed"
+      "url": "https://scholarbase.app/manifest.json"
     }
   ]
 }

@@ -61,11 +61,16 @@ describe("manifest.json", () => {
 
   // Without this entry `getInstalledRelatedApps` cannot report an existing
   // install, so the app keeps offering a download for something already
-  // installed. The entry MUST reference a file that exists.
+  // installed. The entry MUST reference this origin's own manifest by absolute
+  // URL with `platform: "webapp"` — that exact shape is what Chromium matches
+  // for self-detection; `platform: "web"` with a relative URL never reports,
+  // which is why uninstalls stayed invisible even after the probe was added.
   it("declares related_applications so install detection can match", () => {
     const related = manifest.related_applications ?? [];
     expect(related.length).toBeGreaterThan(0);
-    expect(related.some((entry) => entry.platform === "web")).toBe(true);
+    const selfEntry = related.find((entry) => entry.platform === "webapp");
+    expect(selfEntry).toBeTruthy();
+    expect(selfEntry?.url).toBe("https://scholarbase.app/manifest.json");
   });
 });
 

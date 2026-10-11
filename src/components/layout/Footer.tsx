@@ -14,25 +14,25 @@ export default function Footer() {
             href="/privacy"
             className="text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
           >
-            Privacy Policy
+            Privacy
           </Link>
           <Link prefetch={false}
             href="/terms"
             className="text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
           >
-            Terms of Service
+            Terms
           </Link>
           <Link prefetch={false}
             href="/contact"
             className="text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
           >
-            Contact Us
+            Contact
           </Link>
           <Link prefetch={false}
             href="/about"
             className="text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
           >
-            About Us
+            About
           </Link>
           <Link prefetch={false}
             href="/careers"
