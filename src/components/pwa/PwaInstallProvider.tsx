@@ -37,16 +37,16 @@ import { useToast } from "@/components/ui/Toast";
  *    is itself an uninstall signal: Chromium only re-issues it when the app
  *    becomes installable again, so the stale local flag yields to it.
  *
- * 4. **A negative is NOT reliable — on its own.** `getInstalledRelatedApps()`
- *    returning an empty list does NOT mean "not installed": it only sees apps
- *    installed from the exact same origin (so a `localhost` dev tab never sees
- *    a production install), and Chromium produces false negatives in other
- *    cases too. An empty result may clear the install state ONLY when this
- *    origin previously confirmed that install through this very API
- *    (`sb:pwa-gira-install`) — same origin, same API, so a flip to empty then
- *    means the user actually deleted the app. That is the uninstall case that
- *    would otherwise require clearing site data before the install button
- *    returns.
+ * 4. **An empty result IS authoritative — where the API exists.** `localStorage`
+ *    is per-origin, so a `localhost`/dev tab can never wipe a production
+ *    install, and with the manifest's `webapp` + absolute-URL entry a
+ *    same-origin empty list means the app is genuinely gone (deleted or never
+ *    installed). So when `getInstalledRelatedApps()` resolves to `[]` and we
+ *    are not `standalone`, the recorded install is cleared unconditionally —
+ *    no prior-positive flag, no user tap, no site-data clear needed.
+ *    Where the API is ABSENT (Firefox/Safari) the local flag is ignored
+ *    entirely and only `standalone` counts, so a deleted iOS app opened in a
+ *    normal tab automatically falls back to the share-sheet instructions.
  *
  * This is entirely *device* state, exactly like the push subscription in
  * `PushNotificationProvider` — no server round-trip, nothing to persist.
@@ -92,13 +92,6 @@ interface PwaInstallContextValue {
   isManualOnly: boolean;
   /** Opens the browser install prompt. No-op unless `canPrompt` is true. */
   install: () => Promise<void>;
-  /**
-   * Forgets a recorded install. The escape hatch for uninstalls no API can
-   * see (iOS Safari/Firefox) and for installs recorded before the manifest
-   * fix, where the confirmation flag was never set. UI-only + localStorage;
-   * no server round-trip.
-   */
-  resetInstall: () => void;
 }
 
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
@@ -216,22 +209,12 @@ function writeInstalledFlag(value: boolean) {
  * Records that THIS origin's `getInstalledRelatedApps()` positively reported
  * the install.
  *
- * The counterpart to doc note 4: an empty result may only clear the recorded
- * install when the install was first confirmed through the same API on the same
- * origin. A flag written by `appinstalled` alone is never enough — that event
- * exists on installs this API cannot see (different profile, manifest-id drift),
- * where an empty list is meaningless.
+ * Kept for diagnostics only: the uninstall probe below clears the recorded
+ * install on ANY same-origin empty result, so this flag is no longer a
+ * precondition for forgetting. Written on positive sightings, cleared on
+ * empty ones, never read for decisions.
  */
 const GIRA_INSTALLED_FLAG = "sb:pwa-gira-install";
-
-function readGiraInstalledFlag(): boolean {
-  try {
-    return window.localStorage.getItem(GIRA_INSTALLED_FLAG) === "1";
-  } catch {
-    // Private mode / storage disabled: uninstall detection simply stays off.
-    return false;
-  }
-}
 
 function writeGiraInstalledFlag(value: boolean) {
   try {
@@ -305,11 +288,20 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   }, [deferredPrompt, isWorking, toast, markInstalled]);
 
   useEffect(() => {
-    // Seed from the local flag first, so a returning user on ANY browser still
-    // sees the installed state. It is not treated as a fallback: an empty
-    // `getInstalledRelatedApps` result is not proof of a missing install (see
-    // the note on INSTALLED_FLAG), so the hint is what the UI trusts.
-    if (readInstalledFlag()) setInstalledState(true);
+    // Seed from the local flag ONLY where the install API exists to correct
+    // us. Where it is absent (Firefox/Safari) the flag is ignored entirely:
+    // nothing can confirm or refute it, and trusting it is what stuck the UI
+    // on "installed" after an iOS deletion. There only `standalone` counts.
+    const hasInstallApi =
+      typeof navigator !== "undefined" &&
+      typeof (
+        navigator as Navigator & {
+          getInstalledRelatedApps?: () => Promise<
+            { platform?: string; id?: string; url?: string }[]
+          >;
+        }
+      ).getInstalledRelatedApps === "function";
+    if (hasInstallApi && readInstalledFlag()) setInstalledState(true);
     if (isRunningStandalone()) setInstalledState(true);
 
     // Pick up anything the inline `<head>` capture script already stashed. The
@@ -402,27 +394,25 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
 
       // Three outcomes from the related-app probe:
       //
-      //  * `true` — a definitive install. Record it, plus that THIS origin saw
-      //    it through this API, so a later disappearance can be recognised.
-      //  * `false` — an EMPTY array is not "not installed" on its own: this API
-      //    sees only apps installed from the exact same origin (a `localhost`
-      //    tab cannot see a production install) and Chromium returns false
-      //    negatives in other cases too. It may clear the install state ONLY
-      //    when this origin previously confirmed the install through this very
-      //    API (`sb:pwa-gira-install`): same origin, same API, so a flip to
-      //    empty then means the user actually deleted the app — the uninstall
-      //    case that used to require clearing site data before the install
-      //    button came back.
-      //  * `null` — API absent (Firefox/Safari): leave the local hint alone.
+      //  * `true` — a definitive install. Record it and drop any held prompt.
+      //  * `false` — NO related app on this same origin, and we are not
+      //    `standalone`: the app is gone (deleted or never installed), so any
+      //    recorded install is cleared unconditionally. `localStorage` is
+      //    per-origin, so this cannot wipe another origin's state, and no
+      //    prior-positive flag is needed — the empty result itself is the
+      //    uninstall signal. Both flags are cleared but any held prompt is
+      //    kept: after a deletion Chromium may re-issue one, making the
+      //    button one-click again.
+      //  * `null` — API absent (Firefox/Safari): do nothing here. The seed
+      //    above already ignored the local flag, and only `standalone`
+      //    marks installed, so a deleted iOS app in a normal tab
+      //    automatically falls back to the share-sheet instructions.
       void isInstalledAsRelatedApp().then((result) => {
         if (result === true) {
           markInstalled(true);
           setDeferredPrompt(null);
           writeGiraInstalledFlag(true);
-        } else if (result === false && readGiraInstalledFlag() && !isRunningStandalone()) {
-          // Uninstall confirmed by the same-origin API flip. Clear both flags
-          // but KEEP any held `beforeinstallprompt`: after a deletion Chromium
-          // may re-issue one, and holding it makes the button one-click again.
+        } else if (result === false && !isRunningStandalone()) {
           resetInstalledState();
         }
       });
@@ -476,9 +466,8 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       canNeverInstall,
       isManualOnly: status === "manual",
       install: onInstall,
-      resetInstall: resetInstalledState,
     };
-  }, [installed, deferredPrompt, isManualOnlyPlatform, canNeverInstall, isWorking, onInstall, resetInstalledState]);
+  }, [installed, deferredPrompt, isManualOnlyPlatform, canNeverInstall, isWorking, onInstall]);
   return (
     <PwaInstallContext.Provider value={value}>
       {children}

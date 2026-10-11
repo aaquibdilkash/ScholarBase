@@ -12,7 +12,6 @@ import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 // matters — that the button offers the right affordance per status, calls the
 // right handler, and disappears rather than rendering a dead control.
 const install = vi.fn();
-const resetInstall = vi.fn();
 let status: InstallStatus = "installable";
 let isWorking = false;
 // Kept separate from `status` so a test can express "installed" without also
@@ -29,7 +28,6 @@ vi.mock("@/components/pwa/PwaInstallProvider", () => ({
     canNeverInstall: !canInstall,
     isManualOnly: status === "manual",
     install,
-    resetInstall,
   }),
 }));
 
@@ -42,7 +40,6 @@ describe("InstallAppButton", () => {
       globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }
     ).IS_REACT_ACT_ENVIRONMENT = true;
     install.mockClear();
-    resetInstall.mockClear();
     status = "installable";
     isWorking = false;
     installed = false;
@@ -111,10 +108,12 @@ describe("InstallAppButton", () => {
     draw(<InstallAppButton variant="settings" />);
 
     // Installed confirmation is a plain div, not a button: a row that looks
-    // clickable but does nothing is the exact complaint. The only action is
-    // the explicit uninstall-recovery affordance beside it.
-    expect(container.querySelector("button")?.textContent).toContain("Re-offer install");
+    // clickable but does nothing is the exact complaint. Uninstall recovery
+    // is fully automatic (authoritative-empty probe), so no manual reset is
+    // rendered anywhere.
+    expect(container.querySelector("button")).toBeNull();
     expect(container.textContent).toContain("Installed");
+    expect(container.textContent).not.toContain("Re-offer install");
   });
 
   // The installed state used to REPLACE the download glyph with a lone check,
@@ -155,9 +154,9 @@ describe("InstallAppButton", () => {
     expect(control()!.querySelector("span.absolute")).toBeNull();
   });
 
-  it("opens the uninstall recovery instead of install help once installed", async () => {
-    // The navbar icon stays clickable when installed, but only to reveal the
-    // "deleted it?" reset — never the generic install instructions.
+  it("cannot open the help popover once installed", async () => {
+    // The control is disabled when installed, so no dead popover can appear.
+    // Uninstall recovery is fully automatic — no manual reset anywhere.
     status = "unavailable";
     installed = true;
     draw(<InstallAppButton variant="navbar" />);
@@ -167,8 +166,8 @@ describe("InstallAppButton", () => {
     });
 
     expect(container.textContent).not.toContain("address bar");
-    expect(container.textContent).toContain("Re-offer install");
-    expect(control()!.hasAttribute("disabled")).toBe(false);
+    expect(container.textContent).not.toContain("Re-offer install");
+    expect(control()!.hasAttribute("disabled")).toBe(true);
   });
 
   it("shows a non-interactive installed row in the overflow menu", () => {
@@ -395,61 +394,18 @@ describe("InstallAppButton", () => {
     expect(container.querySelectorAll("button")).toHaveLength(3);
   });
 
-  // The uninstall escape hatch: deleting the OS app leaves the site's local
-  // flag behind, and on browsers with no install API (iOS/Firefox) nothing
-  // else can clear it. Every installed confirmation must offer the reset so
-  // the user never has to clear site data.
-  it("offers the uninstall reset next to the settings confirmation", async () => {
-    status = "unavailable";
-    installed = true;
-    draw(<InstallAppButton variant="settings" />);
+  // No manual uninstall affordance anywhere: recovery is fully automatic via
+  // the authoritative-empty probe, and a user-tapped reset is what produced
+  // the false uninstall (app still on device, button offering a dead
+  // install). Installed confirmations render zero buttons.
+  it("renders no manual reset in any installed confirmation", () => {
+    for (const variant of ["navbar", "menu", "settings"] as const) {
+      status = "unavailable";
+      installed = true;
+      draw(<InstallAppButton variant={variant} />);
 
-    const reset = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Re-offer install"),
-    );
-    expect(reset).toBeTruthy();
-
-    await act(async () => {
-      reset!.click();
-    });
-    expect(resetInstall).toHaveBeenCalledTimes(1);
-  });
-
-  it("offers the uninstall reset in the overflow-menu row", async () => {
-    status = "unavailable";
-    installed = true;
-    draw(<InstallAppButton variant="menu" />);
-
-    const reset = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Re-offer install"),
-    );
-    expect(reset).toBeTruthy();
-
-    await act(async () => {
-      reset!.click();
-    });
-    expect(resetInstall).toHaveBeenCalledTimes(1);
-  });
-
-  it("opens the uninstall reset from the installed navbar icon", async () => {
-    status = "unavailable";
-    installed = true;
-    draw(<InstallAppButton variant="navbar" />);
-
-    // Icon-only slot: the reset hides behind a click, not always visible.
-    expect(container.textContent).not.toContain("Re-offer install");
-
-    await act(async () => {
-      control()!.click();
-    });
-    expect(container.textContent).toContain("Re-offer install");
-
-    const reset = Array.from(container.querySelectorAll("button")).find((b) =>
-      b.textContent?.includes("Re-offer install"),
-    );
-    await act(async () => {
-      reset!.click();
-    });
-    expect(resetInstall).toHaveBeenCalledTimes(1);
+      expect(container.textContent).not.toContain("Re-offer install");
+      expect(container.textContent).not.toContain("Deleted it?");
+    }
   });
 });

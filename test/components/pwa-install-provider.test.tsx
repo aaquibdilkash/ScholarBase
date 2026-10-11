@@ -322,13 +322,11 @@ describe("PwaInstallProvider (event timing)", () => {
     expect(status()).toBe("checking");
   });
 
-  it("keeps a recorded install when the browser reports no install", async () => {
-    // The regression the user hit: `getInstalledRelatedApps()` returning an
-    // EMPTY array was read as "not installed" and wiped the recorded state, so
-    // a genuinely installed app (installed from another origin — e.g. a
-    // production install viewed from a localhost dev tab — or simply a Chromium
-    // false negative) started showing "Install app" again. An empty result is
-    // NOT proof of absence, so it must leave the install state alone.
+  it("clears ANY recorded install on a same-origin empty result", async () => {
+    // Fully automatic uninstall: no prior-positive flag, no user tap. An
+    // empty same-origin result IS the uninstall signal (localStorage is
+    // per-origin, so this cannot wipe another origin's state). This also
+    // migrates installs recorded before the confirmation flag existed.
     window.localStorage.setItem("sb:pwa-installed", "1");
     patchNavigator({
       serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
@@ -342,23 +340,25 @@ describe("PwaInstallProvider (event timing)", () => {
       await Promise.resolve();
     });
 
-    // Still installed — the empty result changed nothing.
-    expect(status()).toBe("unavailable");
-    expect(text()).toContain("installed on this device");
-    expect(window.localStorage.getItem("sb:pwa-installed")).toBe("1");
+    // Stale flag cleared — the install is offered again, no site-data clear.
+    expect(status()).toBe("checking");
+    expect(text()).toContain("Install app");
+    expect(window.localStorage.getItem("sb:pwa-installed")).toBe(null);
+    expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe(null);
   });
 
-  it("remembers an install recorded locally on a browser with no install API", () => {
-    // Firefox and Safari expose neither getInstalledRelatedApps nor anything
-    // else that can detect "installed but opened in a normal tab". The local
-    // flag, written when `appinstalled` fired, is the only signal available, so
-    // it has to survive across page loads.
+  it("ignores a stale local flag where the install API is absent", () => {
+    // Firefox and Safari expose no getInstalledRelatedApps, so nothing can
+    // confirm or refute the flag — and trusting it is what stuck the UI on
+    // "installed" after an iOS deletion. Only `standalone` counts there: a
+    // deleted app opened in a normal tab automatically falls back to the
+    // share-sheet instructions.
     window.localStorage.setItem("sb:pwa-installed", "1");
     stubWorkerThatNeverActivates();
     draw();
 
-    expect(status()).toBe("unavailable");
-    expect(text()).toContain("installed on this device");
+    expect(status()).toBe("checking");
+    expect(text()).toContain("Install app");
   });
 
   it("persists the flag when the browser reports a successful install", async () => {
@@ -396,15 +396,13 @@ describe("PwaInstallProvider (event timing)", () => {
   it("re-offers the install after the user deletes the installed app", async () => {
     // The reported bug: uninstalling ScholarBase leaves `sb:pwa-installed`
     // behind, so the site keeps saying "installed" until site data is cleared.
-    // When THIS origin previously saw the install through
-    // getInstalledRelatedApps, an empty result from the same API on the same
-    // origin IS the uninstall signal — the only case where a negative proves
-    // absence.
+    // A same-origin empty result IS the uninstall signal — cleared
+    // automatically on the next probe, no user tap needed.
     let installed = true;
     patchNavigator({
       serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
       getInstalledRelatedApps: () =>
-        Promise.resolve(installed ? [{ platform: "web", id: "/", url: "/feed" }] : []),
+        Promise.resolve(installed ? [{ platform: "webapp", id: "/", url: "/feed" }] : []),
     });
     draw();
 
@@ -414,7 +412,7 @@ describe("PwaInstallProvider (event timing)", () => {
       await Promise.resolve();
     });
 
-    // Positive sighting: installed state + the confirmation flag this fix keys on.
+    // Positive sighting: installed state.
     expect(status()).toBe("unavailable");
     expect(window.localStorage.getItem("sb:pwa-installed")).toBe("1");
     expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe("1");
@@ -495,17 +493,24 @@ describe("PwaInstallProvider (event timing)", () => {
     expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe(null);
   });
 
-  it("clears a stale install when a fresh prompt arrives after deletion", async () => {
-    // The migration case: installs recorded BEFORE the manifest fix never set
-    // `sb:pwa-gira-install`, so the empty-array probe can never clear them.
-    // Chromium re-issues `beforeinstallprompt` once the app is deletable
+  it("clears a stale install when a fresh prompt arrives after deletion", () => {
+    // Chromium re-issues `beforeinstallprompt` once the app is installable
     // again — that prompt must win over the stale flag, not be suppressed.
+    // No install API here, so the probe cannot clear first: this isolates the
+    // prompt path as the clearer.
     window.localStorage.setItem("sb:pwa-installed", "1");
-    stubWorkerThatNeverActivates();
+    patchNavigator({
+      serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
+    });
+    // Seed the in-memory installed state directly: without the API the seed
+    // ignores the flag, so set it via the prompt-independent path — mount as
+    // standalone first is wrong here; instead dispatch appinstalled.
     draw();
+    act(() => {
+      window.dispatchEvent(new Event("appinstalled"));
+    });
 
     expect(status()).toBe("unavailable");
-    expect(text()).toContain("ScholarBase is installed on this device.");
 
     act(() => {
       window.dispatchEvent(makeBeforeInstallPromptEvent());
@@ -515,43 +520,5 @@ describe("PwaInstallProvider (event timing)", () => {
     expect(text()).toContain("Install app");
     expect(window.localStorage.getItem("sb:pwa-installed")).toBe(null);
     expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe(null);
-  });
-
-  it("exposes a manual reset for uninstalls no API can see", async () => {
-    // iOS Safari / Firefox: no getInstalledRelatedApps, no
-    // beforeinstallprompt. The user's own tap is the only uninstall signal,
-    // so the provider must expose a forget-everything action for the UI's
-    // "Deleted it?" affordance.
-    function ResetHarness() {
-      const { status, resetInstall } = usePwaInstall();
-      return (
-        <>
-          <span data-testid="status">{status}</span>
-          <button type="button" onClick={resetInstall}>
-            reset
-          </button>
-        </>
-      );
-    }
-    window.localStorage.setItem("sb:pwa-installed", "1");
-    stubWorkerThatNeverActivates();
-    act(() => {
-      root.render(
-        <ToastProvider>
-          <PwaInstallProvider>
-            <ResetHarness />
-          </PwaInstallProvider>
-        </ToastProvider>,
-      );
-    });
-    expect(status()).toBe("unavailable");
-
-    await act(async () => {
-      container.querySelector("button")!.click();
-    });
-
-    expect(window.localStorage.getItem("sb:pwa-installed")).toBe(null);
-    expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe(null);
-    expect(status()).toBe("checking");
   });
 });
