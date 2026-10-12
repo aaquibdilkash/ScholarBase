@@ -10,12 +10,12 @@ import { AuthModalProvider } from "./AuthModal";
 import { FrozenUserProvider } from "./FrozenUserProvider";
 import { PushActivitySignal } from "@/components/push/PushActivitySignal";
 import { PushNotificationProvider } from "@/components/push/PushNotificationProvider";
+import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
 
 // Exact message thrown by Next.js's Server Action client when the response is
 // neither an RSC payload nor a redirect.
 const UNEXPECTED_ACTION_RESPONSE =
   "An unexpected response was received from the server.";
-import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
 
 export function AppProviders({
   children,

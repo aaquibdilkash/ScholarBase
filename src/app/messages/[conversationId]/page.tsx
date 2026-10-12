@@ -415,12 +415,12 @@ export default function ConversationPage({
               blockedByMe?: boolean;
               blockedMe?: boolean;
             };
-          }).catch((error) => {
-            console.error("Failed to refresh conversation block state:", error);
             setBlockState({
               blockedByMe: Boolean(nextBlockState.blockedByMe),
               blockedMe: Boolean(nextBlockState.blockedMe),
             });
+          }).catch((error) => {
+            console.error("Failed to refresh conversation block state:", error);
           });
           toast(
             "Messaging is available again in this conversation.",
