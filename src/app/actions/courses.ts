@@ -200,7 +200,7 @@ export async function getCourses(
 
 export const getCourseById = cache(
   async (courseId: string, userId?: string) => {
-    return prisma.course.findUniqueOrThrow({
+    return prisma.course.findUnique({
       where: { id: courseId, isDeleted: false },
       select: {
         id: true,

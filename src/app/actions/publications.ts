@@ -294,7 +294,7 @@ export async function getPublications(
 
 export const getPublicationById = cache(
   async (publicationId: string, userId?: string) => {
-    return prisma.publication.findUniqueOrThrow({
+    return prisma.publication.findUnique({
       where: {
         id: publicationId,
         isDeleted: false,
