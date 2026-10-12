@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import {
@@ -47,10 +47,13 @@ const Editor = ({
     codeBlock: false,
   });
 
+  const isEditorDriven = useRef(false);
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
     onUpdate: ({ editor }) => {
+      isEditorDriven.current = true;
       onChange(editor.getHTML());
     },
     editorProps: {
@@ -64,6 +67,11 @@ const Editor = ({
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) {
+      return;
+    }
+
+    if (isEditorDriven.current) {
+      isEditorDriven.current = false;
       return;
     }
 
