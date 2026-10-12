@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { notFound } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   getConversation,
   blockUser,
@@ -72,6 +72,7 @@ export default function ConversationPage({
   params: Promise<{ conversationId: string }>;
 }) {
   const { conversationId } = React.use(params);
+  const router = useRouter();
   const context = useContext(MessagesLayoutContext);
   if (!context)
     throw new Error("ConversationPage must be used within a MessagesLayout");
@@ -251,12 +252,12 @@ export default function ConversationPage({
       const user = authResult.data.user;
       setUser(user);
       if (!user) {
-        notFound();
+        router.replace("/not-found");
         return;
       }
 
       if (!conv) {
-        notFound();
+        router.replace("/not-found");
         return;
       }
 
