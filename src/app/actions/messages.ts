@@ -857,8 +857,18 @@ export async function getBlockedUserIds(blockerId: string): Promise<string[]> {
 
 // ⚡ NEW: Automatically mark conversation as read when opened
 export async function markConversationAsRead(conversationId: string) {
-  const supabaseUser = await requireActiveUser();
+  // Read receipts are private state, not a community mutation, and this runs
+  // automatically when a conversation is opened. Frozen users must still be
+  // able to read their conversations, so do NOT use requireActiveUser (which
+  // throws ACCOUNT_FROZEN). Only deleted accounts are skipped — silently.
+  const supabaseUser = await requireCurrentUser();
   if (!supabaseUser) return;
+
+  const accountState = await prisma.user.findUnique({
+    where: { id: supabaseUser.id },
+    select: { isDeleted: true },
+  });
+  if (accountState?.isDeleted) return;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:read",

@@ -267,9 +267,13 @@ export default function ConversationPage({
         blockedMe: Boolean((conv as Conversation).blockedMe),
       });
 
-      const [readResult] = await Promise.all([
-        markConversationAsRead(conversationId),
-      ]);
+      // A failed read-marker must never break loading the conversation.
+      const readResult = await markConversationAsRead(conversationId).catch(
+        (error) => {
+          console.error("Failed to mark conversation as read:", error);
+          return undefined;
+        },
+      );
 
       hasMarkedReadRef.current = true;
       if (readResult?.lastReadAt) {
