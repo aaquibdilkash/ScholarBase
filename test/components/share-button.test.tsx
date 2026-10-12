@@ -83,7 +83,8 @@ describe("ShareButton", () => {
     // Brand suffix is stripped so the shared title reads naturally.
     expect(payload.title).toBe("A great post");
     expect(payload.text).toBe("The body of the post.");
-    expect(payload.url).toContain("/feed/abc");
+    // Relative hrefs resolve to absolute URLs so chat apps can unfurl them.
+    expect(payload.url).toBe(`${window.location.origin}/feed/abc`);
   });
 
   it("prefers explicit title/text props over the Open Graph tags", async () => {
@@ -127,5 +128,37 @@ describe("ShareButton", () => {
     expect(payload.title).toBeUndefined();
     expect(payload.text).toBeUndefined();
     expect(payload.url).toContain("/feed/abc");
+  });
+
+  it("shares the directory scholar's payload instead of the list page meta", async () => {
+    // Regression: ScholarCard lives on /scholars, whose og:tags describe the
+    // directory ("Find Scholars"). Without explicit props the shared message
+    // carried the wrong title/text and WhatsApp showed a plain link.
+    setMeta("og:title", "Find Scholars | ScholarBase");
+    setMeta("og:description", "Search researchers, collaborators, and peers.");
+    draw(
+      <ShareButton
+        href="/scholars/xyz"
+        title="Samida Khatoon (@samida_khatoon)"
+        text="Samida Khatoon on ScholarBase"
+      />,
+    );
+    await click();
+
+    const payload = share.mock.calls[0][0] as SharePayload;
+    expect(payload.title).toBe("Samida Khatoon (@samida_khatoon)");
+    expect(payload.text).toBe("Samida Khatoon on ScholarBase");
+    expect(payload.url).toBe(`${window.location.origin}/scholars/xyz`);
+  });
+
+  it("copies an absolute url in the clipboard fallback", async () => {
+    delete (window.navigator as unknown as { share?: unknown }).share;
+    setMeta("og:title", "Samida Khatoon | ScholarBase");
+    setMeta("og:description", "Scholar bio.");
+    draw(<ShareButton href="/scholars/xyz" copySuccessMessage="Link copied!" />);
+    await click();
+
+    const copied = writeText.mock.calls[0][0] as string;
+    expect(copied).toContain(`${window.location.origin}/scholars/xyz`);
   });
 });

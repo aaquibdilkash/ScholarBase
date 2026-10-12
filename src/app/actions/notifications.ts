@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireActiveUser, requireCurrentUser } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/auth";
 
 const notificationInclude = {
   actor: true,
@@ -39,7 +39,19 @@ export async function getNotifications(
 }
 
 export async function markNotificationRead(notificationId: string) {
-  const user = await requireActiveUser("Log in to view your notifications.");
+  // Reads are allowed for frozen accounts — marking a notification read is
+  // private state, not community interaction. Only deleted accounts stay
+  // blocked (they are signed out in layout anyway).
+  const user = await requireCurrentUser("Log in to view your notifications.");
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { isDeleted: true },
+  });
+  if (dbUser?.isDeleted) {
+    throw new Error(
+      "ACCOUNT_DELETED: This account has been deleted and this action is disabled.",
+    );
+  }
 
   const notification = await prisma.notification.update({
     where: { id: notificationId, recipientId: user.id },
@@ -53,7 +65,18 @@ export async function markNotificationRead(notificationId: string) {
 }
 
 export async function markAllNotificationsRead() {
-  const user = await requireActiveUser("Log in to view your notifications.");
+  // Same as markNotificationRead: frozen accounts can still clear their own
+  // inbox; only deleted accounts are refused.
+  const user = await requireCurrentUser("Log in to view your notifications.");
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { isDeleted: true },
+  });
+  if (dbUser?.isDeleted) {
+    throw new Error(
+      "ACCOUNT_DELETED: This account has been deleted and this action is disabled.",
+    );
+  }
 
   const result = await prisma.notification.updateMany({
     where: { recipientId: user.id, readAt: null },

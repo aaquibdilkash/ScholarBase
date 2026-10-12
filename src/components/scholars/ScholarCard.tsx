@@ -3,6 +3,7 @@ import Link from "next/link";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ShareButton } from "@/components/interactions/ShareButton";
 import { ReportMenu } from "@/components/cards/ReportMenu";
+import { stripHtmlTags } from "@/lib/html";
 
 type ScholarCardProps = {
   scholar: {
@@ -32,6 +33,15 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
   // still select it (profile page, trending).
   const isFollowing =
     scholar.isFollowed ?? (scholar.followers?.length ?? 0) > 0;
+  // Share payload: the card lives on the /scholars list page, so falling back
+  // to the page's og:tags would share "Find Scholars" instead of this scholar.
+  // Pass explicit title/text mirroring the profile generateMetadata().
+  const displayName = scholar.name || "Scholar";
+  const shareTitle = scholar.handle
+    ? `${displayName} (@${scholar.handle})`
+    : displayName;
+  const shareText =
+    stripHtmlTags(scholar.bio || "").trim() || `${displayName} on ScholarBase`;
 
   return (
     <ListPageCardShell
@@ -73,7 +83,11 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
             ) : null}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-            <ShareButton href={`/scholars/${scholar.id}`} />
+            <ShareButton
+              href={`/scholars/${scholar.id}`}
+              title={shareTitle}
+              text={shareText}
+            />
             {scholar.id !== currentUserId ? (
               <ReportMenu
                 entityId={scholar.id}

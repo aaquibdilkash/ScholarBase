@@ -39,8 +39,14 @@ export async function requireCurrentUser(message = 'Please log in to continue.')
 /**
  * Same as requireCurrentUser, but additionally rejects accounts that have
  * been frozen by moderation (`user.isFrozen === true`). Use this in all
- * mutation entry points (creating posts, comments, surveys, tools, reports,
- * appeals, ...) so frozen users cannot create new content anywhere.
+ * community-interaction mutation entry points (creating posts, comments,
+ * surveys, tools, reports, votes, ...).
+ *
+ * Do NOT use this for remedy / private-state paths: appeals
+ * (`submitAppeal`), notification reads (`markNotificationRead`,
+ * `markAllNotificationsRead`) and freeze-context reads use
+ * `requireCurrentUser` + an explicit `isDeleted` check so frozen owners can
+ * still see why they were frozen and appeal.
  */
 export async function requireActiveUser(message = 'Please log in to continue.'): Promise<SupabaseUser> {
     const user = await requireCurrentUser(message)

@@ -7,6 +7,7 @@ import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
 import { ReportMenu } from "@/components/cards/ReportMenu";
+import { FrozenProfileAppealCard } from "@/components/moderation/FrozenProfileAppealCard";
 import { BadgeCheck, Star } from "lucide-react";
 import { FollowerCount } from "./FollowerCount";
 import type { Metadata } from "next";
@@ -14,6 +15,7 @@ import { buildMetadata } from "@/lib/seo";
 import { getProfile } from "@/app/actions/profile";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { SEO_PAGES } from "@/constants/seo";
+import { stripHtmlTags } from "@/lib/html";
 
 export async function generateMetadata({
   params,
@@ -31,9 +33,10 @@ export async function generateMetadata({
       section: SEO_PAGES.scholars.section,
     });
   }
+  const plainBio = stripHtmlTags(profile.bio || "").replace(/\s+/g, " ").trim();
   return buildMetadata({
     title: `${profile.name || "Scholar"}${profile.handle ? ` (@${profile.handle})` : ""}`,
-    description: profile.bio || `${profile.name || "Scholar"} on ScholarBase`,
+    description: plainBio || `${profile.name || "Scholar"} on ScholarBase`,
     path: `/scholars/${profile.id}`,
     type: "profile",
   });
@@ -168,6 +171,14 @@ export default async function ScholarProfile({
         profileId={profile.id}
         currentUserId={currentUser?.id}
       />
+      {/* Frozen owners landing here from the USER_FROZEN notification get the
+          same reason+appeal entry as the banner — the flag-menu AppealButton
+          above is kept as a secondary path. */}
+      {isOwnProfile && profile.isFrozen && (
+        <div className="mt-6">
+          <FrozenProfileAppealCard userId={profile.id} />
+        </div>
+      )}
     </main>
   );
 }

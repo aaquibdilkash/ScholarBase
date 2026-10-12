@@ -17,6 +17,25 @@ function readMeta(name: string): string {
 }
 
 /**
+ * Resolve a share target to an absolute URL.
+ * Callers pass relative paths like `/scholars/<id>`; pasting or sharing a
+ * relative path produces a plain-text link that chat apps (WhatsApp, etc.)
+ * cannot unfurl into a rich preview card. Resolving against the current
+ * origin keeps one central fix for every list/detail card.
+ */
+function resolveShareUrl(href: string | undefined, pathname: string): string {
+  if (href) {
+    if (/^https?:\/\//i.test(href)) return href;
+    if (href.startsWith("/") && typeof window !== "undefined") {
+      return `${window.location.origin}${href}`;
+    }
+    return href;
+  }
+  if (typeof window !== "undefined") return `${window.location.origin}${pathname}`;
+  return "";
+}
+
+/**
  * Strip the " | ScholarBase" brand suffix so a shared title reads naturally in
  * the destination app instead of repeating a brand the user already knows.
  */
@@ -51,8 +70,7 @@ export function ShareButton({
   const { toast } = useToast();
 
   const onShare = useCallback(async () => {
-    const shareUrl =
-      href || (typeof window !== "undefined" ? `${window.location.origin}${pathname}` : "");
+    const shareUrl = resolveShareUrl(href, pathname);
 
     // Resolve title/text: explicit props win, otherwise read the page's Open
     // Graph tags (already emitted by generateMetadata) so detail/list pages get

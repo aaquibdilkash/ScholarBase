@@ -29,7 +29,7 @@ const ENTITY = "entity-1";
 let session: { id: string } | null = null;
 
 vi.mock("@/lib/auth", () => ({
-  requireActiveUser: vi.fn(async () => {
+  requireCurrentUser: vi.fn(async () => {
     if (!session) throw new Error("Log in to appeal.");
     return session;
   }),
@@ -159,5 +159,17 @@ describe("submitAppeal", () => {
     session = null;
     await expect(submitAppeal(base)).rejects.toThrow(/Log in to appeal/);
     expect(fakeDb.rows("appeal")).toHaveLength(0);
+  });
+
+  it("lets a frozen owner through auth (freeze is an eligibility gate, not an auth block)", async () => {
+    // Regression: submitAppeal used requireActiveUser which threw
+    // ACCOUNT_FROZEN for any frozen account — the exact user who needs to
+    // appeal. Auth must only enforce login + not-deleted; the
+    // frozen/deleted gates below decide eligibility per entity.
+    // The file-level mock now provides requireCurrentUser; a frozen owner
+    // reaching success here proves the auth layer no longer blocks them.
+    seedEntity({ isFrozen: true });
+    const result = await submitAppeal(base);
+    expect(result.success).toBe(true);
   });
 });

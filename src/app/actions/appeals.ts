@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireActiveUser } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { AppealStatus } from "@prisma/client";
 import {
@@ -94,7 +94,20 @@ export async function submitAppeal({
   details: string;
   path?: string;
 }) {
-  const currentUser = await requireActiveUser("Log in to appeal.");
+  // An appeal is the frozen user's ONLY route back — so this entry point must
+  // NOT use requireActiveUser (which throws ACCOUNT_FROZEN). Only deleted
+  // accounts stay blocked; frozen owners are explicitly allowed through and
+  // the frozen/deleted gates below decide eligibility per entity.
+  const currentUser = await requireCurrentUser("Log in to appeal.");
+  const accountState = await prisma.user.findUnique({
+    where: { id: currentUser.id },
+    select: { isDeleted: true },
+  });
+  if (accountState?.isDeleted) {
+    throw new Error(
+      "ACCOUNT_DELETED: This account has been deleted and this action is disabled.",
+    );
+  }
 
   // Validate the structured category against the shared APPEAL_CATEGORIES
   // list (mirrors the AppealReason enum) — unknown values fall back to OTHER.
@@ -114,18 +127,30 @@ export async function submitAppeal({
   if (trimmed.length === 0) throw new Error("Appeal reason is required.");
   if (trimmed.length > MAX_APPEAL_REASON) throw new Error(`Appeal reason is too long (max ${MAX_APPEAL_REASON} characters).`);
 
+  const isProfileAppeal = contentType === "SCHOLAR_PROFILE";
   const fetched = (await delegate.findUnique({
     where: { id: entityId },
-    select: { authorId: true, isFrozen: true, isDeleted: true, hasActiveAppeal: true },
+    // User rows (SCHOLAR_PROFILE appeals) carry no authorId — the row id IS
+    // the owner. Select id always; authorId only for non-profile content.
+    select: {
+      id: true,
+      ...(isProfileAppeal ? {} : { authorId: true }),
+      isFrozen: true,
+      isDeleted: true,
+      hasActiveAppeal: true,
+    },
   })) as {
-    authorId: string | null;
+    id: string;
+    authorId?: string | null;
     isFrozen: boolean;
     isDeleted: boolean;
     hasActiveAppeal: boolean;
   } | null;
 
   if (!fetched) throw new Error("Content not found.");
-  if (fetched.authorId !== currentUser.id) {
+  // Profiles have no authorId column: owner is the row itself.
+  const ownerId = fetched.authorId ?? fetched.id;
+  if (ownerId !== currentUser.id) {
     throw new Error("Only the owner can appeal this content.");
   }
   if (!fetched.isFrozen && !fetched.isDeleted) {

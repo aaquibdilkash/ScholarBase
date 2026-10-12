@@ -19,6 +19,7 @@ import { cookies, headers } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { IOS_STARTUP_IMAGES } from "@/lib/ios-startup-images";
 import { redirect } from "next/navigation";
+import { FrozenAccountBanner } from "@/components/moderation/FrozenAccountBanner";
 import { SEO_SITE } from "@/constants/seo";
 
 // In app/layout.tsx or your root SEO metadata config
@@ -243,19 +244,14 @@ export default async function RootLayout({
                   lands on the scrim and dismisses it, instead of activating a
                   kebab menu or dropdown floating above the dimmed page. */}
               <InertWhenDrawerOpen className="flex min-w-0 w-full flex-1 flex-col overflow-x-clip lg:min-h-0 lg:overflow-hidden">
-                {isFrozen && (
-                  <div
-                    role="alert"
-                    className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-sm font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
-                  >
-                    <span aria-hidden>❄</span>
-                    Your account is frozen. You can still browse, but posting,
-                    commenting, voting, reporting and other interactions are
-                    disabled until a moderator reviews your account.
-                  </div>
-                )}
-
                 <Navbar user={user} unreadCount={unreadNotifications} />
+
+                {/* Frozen strip lives BELOW the sticky navbar so the navbar
+                    keeps its top-0 pinning. user.id doubles as the profile
+                    entityId for SCHOLAR_PROFILE appeals in the dialog. */}
+                {isFrozen && user && (
+                  <FrozenAccountBanner userId={user.id} />
+                )}
 
                 {/* Desktop-only inner scroll: on md+ only this <main> scrolls, so the
                     navbar + footer stay pinned and the scrollbar track spans just
