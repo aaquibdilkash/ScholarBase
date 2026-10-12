@@ -187,7 +187,7 @@ export async function getResearchTools(
 
 export const getResearchToolById = cache(
   async (toolId: string, userId?: string) => {
-    return prisma.researchTool.findUniqueOrThrow({
+    return prisma.researchTool.findUnique({
       where: { id: toolId, isDeleted: false },
       select: {
         id: true,

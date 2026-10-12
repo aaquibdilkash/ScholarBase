@@ -207,7 +207,7 @@ export async function getResearchGrants(
 
 export const getResearchGrantById = cache(
   async (grantId: string, userId?: string) => {
-    return prisma.researchGrant.findUniqueOrThrow({
+    return prisma.researchGrant.findUnique({
       where: { id: grantId, isDeleted: false },
       select: {
         id: true,
