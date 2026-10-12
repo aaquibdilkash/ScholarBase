@@ -49,9 +49,14 @@ export function MentionComposer({
     }
     let active = true;
     const handle = window.setTimeout(() => {
-      searchScholarsForPicker(term, 5).then((users) => {
-        if (active) setSuggestions(users);
-      });
+      searchScholarsForPicker(term, 5)
+        .then((users) => {
+          if (active) setSuggestions(users);
+        })
+        .catch((error) => {
+          console.error("Failed to load mention suggestions:", error);
+          if (active) setSuggestions([]);
+        });
     }, 300);
     return () => {
       active = false;

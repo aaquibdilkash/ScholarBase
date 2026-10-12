@@ -34,6 +34,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pins client bundles to the deployment that served them so Server Action
+  // requests from an already-open tab are routed to the matching build after a
+  // redeploy (pairs with Vercel Skew Protection).
+  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
   turbopack: {
     root: __dirname,
   },

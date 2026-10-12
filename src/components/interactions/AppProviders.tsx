@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FollowProvider } from "./FollowProvider";
 import { PresenceProvider } from "./PresenceProvider";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -10,6 +11,11 @@ import { FrozenUserProvider } from "./FrozenUserProvider";
 import { PushActivitySignal } from "@/components/push/PushActivitySignal";
 import { PushNotificationProvider } from "@/components/push/PushNotificationProvider";
 import { PwaInstallProvider } from "@/components/pwa/PwaInstallProvider";
+
+// Exact message thrown by Next.js's Server Action client when the response is
+// neither an RSC payload nor a redirect.
+const UNEXPECTED_ACTION_RESPONSE =
+  "An unexpected response was received from the server.";
 
 export function AppProviders({
   children,
@@ -29,6 +35,36 @@ export function AppProviders({
         },
       }),
   );
+
+  const router = useRouter();
+
+  // Recover from Next.js Server Action responses that are not RSC payloads
+  // (e.g. a stale action after a redeploy, or an action that raced a client
+  // navigation). Instead of an unhandled crash, re-sync the router; if it
+  // happens again shortly after, fall back to one hard reload.
+  useEffect(() => {
+    const RELOAD_FLAG = "sb:unexpected-action-response";
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const message =
+        event.reason instanceof Error ? event.reason.message : String(event.reason ?? "");
+      if (message !== UNEXPECTED_ACTION_RESPONSE) return;
+
+      event.preventDefault();
+      const last = Number(sessionStorage.getItem(RELOAD_FLAG) ?? 0);
+      const now = Date.now();
+      if (now - last < 10_000) {
+        sessionStorage.removeItem(RELOAD_FLAG);
+        window.location.reload();
+        return;
+      }
+      sessionStorage.setItem(RELOAD_FLAG, String(now));
+      router.refresh();
+    };
+
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    return () =>
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+  }, [router]);
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;

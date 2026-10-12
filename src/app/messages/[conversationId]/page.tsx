@@ -175,6 +175,10 @@ export default function ConversationPage({
           const lastReadAt = new Date(result.lastReadAt);
           lastReadAtRef.current = lastReadAt;
           broadcastReadReceipt(lastReadAt);
+        }).catch((error) => {
+          // Allow a later retry instead of an unhandled rejection.
+          hasMarkedReadRef.current = false;
+          console.error("Failed to mark conversation as read:", error);
         });
       }
     },
@@ -415,6 +419,8 @@ export default function ConversationPage({
               blockedByMe: Boolean(nextBlockState.blockedByMe),
               blockedMe: Boolean(nextBlockState.blockedMe),
             });
+          }).catch((error) => {
+            console.error("Failed to refresh conversation block state:", error);
           });
           toast(
             "Messaging is available again in this conversation.",
