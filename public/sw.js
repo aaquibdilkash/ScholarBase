@@ -1,4 +1,4 @@
-const CACHE_NAME = "scholarbase-v12";
+const CACHE_NAME = "scholarbase-v13";
 // Precached so the installed app has a usable offline shell. `addAll` is
 // all-or-nothing — one failed entry aborts the entire install, the worker never
 // activates, and the app silently stops being installable. So each entry is
@@ -97,6 +97,23 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.includes("/api/")) {
+    return;
+  }
+
+  // Never touch non-GET requests or Next.js RSC / Server Action traffic.
+  // Server Actions are POSTs to the page URL carrying a `Next-Action` header,
+  // and client navigations fetch RSC payloads (`RSC` header / `_rsc` param).
+  // Re-issuing these from the worker — or matching them against the cached
+  // HTML shell — can hand Next.js a non-RSC response, which surfaces as
+  // "An unexpected response was received from the server."
+  const headers = event.request.headers;
+  if (
+    event.request.method !== "GET" ||
+    headers.has("Next-Action") ||
+    headers.has("RSC") ||
+    headers.has("Next-Router-State-Tree") ||
+    new URL(url).searchParams.has("_rsc")
+  ) {
     return;
   }
 

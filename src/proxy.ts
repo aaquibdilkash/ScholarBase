@@ -73,9 +73,14 @@ export async function proxy(request: NextRequest) {
             request.cookies.set(name, value),
           );
 
-          // 2. Re-create the response with the updated request headers
+          // 2. Re-create the response with the updated request headers,
+          //    keeping the forwarded nonce/CSP request headers (a bare
+          //    `{ request }` silently drops them).
+          const forwarded = new Headers(request.headers);
+          forwarded.set("x-nonce", nonce);
+          forwarded.set("Content-Security-Policy", csp);
           response = NextResponse.next({
-            request,
+            request: { headers: forwarded },
           });
 
           // 3. Write the cookies to the response for the browser

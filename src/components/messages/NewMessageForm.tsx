@@ -136,10 +136,17 @@ export function NewMessageForm({
     if (search.length > 2) {
       setIsSearching(true);
       const debounce = setTimeout(() => {
-        getScholars(search).then((users) => {
-          setSearchResults(users);
-          setIsSearching(false);
-        });
+        getScholars(search)
+          .then((users) => {
+            setSearchResults(users);
+          })
+          .catch((error) => {
+            console.error("Failed to search scholars:", error);
+            setSearchResults([]);
+          })
+          .finally(() => {
+            setIsSearching(false);
+          });
       }, 500);
       return () => clearTimeout(debounce);
     } else {
