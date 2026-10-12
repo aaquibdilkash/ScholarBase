@@ -21,6 +21,7 @@ export async function generateMetadata({
   const { id } = await params;
   try {
     const course = await getCourseById(id);
+    if (!course) throw new Error("not found");
     const bits = [course.provider, course.instructor]
       .filter(Boolean)
       .join(" by ");

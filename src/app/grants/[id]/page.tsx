@@ -24,6 +24,7 @@ export async function generateMetadata({
   const { id } = await params;
   try {
     const grant = await getResearchGrantById(id);
+    if (!grant) throw new Error("not found");
     const description = grant.amount
       ? `${grant.title} funding opportunity: ${grant.amount}.`
       : `Research grant opportunity: ${grant.title}.`;
