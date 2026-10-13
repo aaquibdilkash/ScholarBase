@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
@@ -135,9 +135,9 @@ export async function getContributionForEdit(id: string) {
 }
 
 export async function createContribution(formData: FormData) {
-  const user = await requireActiveUser(
-    "Please log in to submit a contribution.",
-  );
+  const auth = await getActiveUser("Please log in to submit a contribution.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "contribution:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");

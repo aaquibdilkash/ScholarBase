@@ -12,7 +12,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
@@ -37,9 +37,9 @@ async function resolvePublicationPeople(formData: FormData) {
 }
 
 export async function createPublication(formData: FormData) {
-  const user = await requireActiveUser(
-    "Please log in to submit a publication.",
-  );
+  const auth = await getActiveUser("Please log in to submit a publication.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "publication:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
