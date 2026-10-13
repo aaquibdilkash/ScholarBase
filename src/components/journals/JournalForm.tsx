@@ -16,11 +16,7 @@ import {
   MAX_JOURNAL_DESCRIPTION,
   MAX_JOURNAL_PUBLISHER,
   MAX_JOURNAL_WEBSITE,
-  MAX_JOURNAL_IMPACT_FACTOR,
-  MAX_JOURNAL_CITESCORE,
-  MAX_JOURNAL_SJR_SCORE,
   MAX_JOURNAL_SUBJECT_AREA,
-  MAX_JOURNAL_FREQUENCY,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import {
@@ -28,6 +24,8 @@ import {
   WOS_INDEX_OPTIONS,
   ABDC_OPTIONS,
   OA_OPTIONS,
+  FREQUENCY_OPTIONS,
+  METRIC_BOUNDS,
 } from "@/constants/journal-metrics";
 import type { JournalWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -308,14 +306,24 @@ export default function JournalForm({
           </label>
           <input
             name="sjrScore"
-            placeholder="e.g., 2.5"
+            type="number"
+            min={METRIC_BOUNDS.sjrScore.min}
+            max={METRIC_BOUNDS.sjrScore.max}
+            step="0.001"
+            inputMode="decimal"
+            placeholder="e.g., 2.456"
             className="sb-input"
-            maxLength={MAX_JOURNAL_SJR_SCORE}
             value={draftFields.sjrScore}
-            onChange={(e) => updateDraftField("sjrScore", e.target.value)}
+            onChange={(e) =>
+              updateDraftField(
+                "sjrScore",
+                e.target.value.slice(0, METRIC_BOUNDS.sjrScore.maxLength),
+              )
+            }
           />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.sjrScore.length}/{MAX_JOURNAL_SJR_SCORE} characters
+            {draftFields.sjrScore.length}/{METRIC_BOUNDS.sjrScore.maxLength}{" "}
+            characters
           </div>
         </div>
         <div>
@@ -325,14 +333,24 @@ export default function JournalForm({
           </label>
           <input
             name="citeScore"
-            placeholder="e.g., 8.3"
+            type="number"
+            min={METRIC_BOUNDS.citeScore.min}
+            max={METRIC_BOUNDS.citeScore.max}
+            step="0.1"
+            inputMode="decimal"
+            placeholder="e.g., 6.3"
             className="sb-input"
-            maxLength={MAX_JOURNAL_CITESCORE}
             value={draftFields.citeScore}
-            onChange={(e) => updateDraftField("citeScore", e.target.value)}
+            onChange={(e) =>
+              updateDraftField(
+                "citeScore",
+                e.target.value.slice(0, METRIC_BOUNDS.citeScore.maxLength),
+              )
+            }
           />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.citeScore.length}/{MAX_JOURNAL_CITESCORE} characters
+            {draftFields.citeScore.length}/{METRIC_BOUNDS.citeScore.maxLength}{" "}
+            characters
           </div>
         </div>
 
@@ -343,15 +361,24 @@ export default function JournalForm({
           </label>
           <input
             name="impactFactor"
+            type="number"
+            min={METRIC_BOUNDS.impactFactor.min}
+            max={METRIC_BOUNDS.impactFactor.max}
+            step="0.001"
+            inputMode="decimal"
             placeholder="e.g., 5.467"
             className="sb-input"
-            maxLength={MAX_JOURNAL_IMPACT_FACTOR}
             value={draftFields.impactFactor}
-            onChange={(e) => updateDraftField("impactFactor", e.target.value)}
+            onChange={(e) =>
+              updateDraftField(
+                "impactFactor",
+                e.target.value.slice(0, METRIC_BOUNDS.impactFactor.maxLength),
+              )
+            }
           />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.impactFactor.length}/{MAX_JOURNAL_IMPACT_FACTOR}{" "}
-            characters
+            {draftFields.impactFactor.length}/
+            {METRIC_BOUNDS.impactFactor.maxLength} characters
           </div>
         </div>
       </div>
@@ -380,17 +407,42 @@ export default function JournalForm({
             <label className="sb-label">Frequency</label>
             <InfoTooltip message={JOURNAL_FREQUENCY_TIP} />
           </div>
-          <input
+          <select
             name="frequency"
-            placeholder="e.g., Monthly, Quarterly"
-            className="sb-input"
-            maxLength={MAX_JOURNAL_FREQUENCY}
-            value={draftFields.frequency}
-            onChange={(e) => updateDraftField("frequency", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.frequency.length}/{MAX_JOURNAL_FREQUENCY} characters
-          </div>
+            className="sb-select"
+            value={
+              FREQUENCY_OPTIONS.some(
+                (opt) => opt.value === draftFields.frequency,
+              )
+                ? draftFields.frequency
+                : draftFields.frequency
+                  ? "__legacy__"
+                  : ""
+            }
+            onChange={(e) =>
+              updateDraftField(
+                "frequency",
+                e.target.value === "__legacy__"
+                  ? draftFields.frequency
+                  : e.target.value,
+              )
+            }
+          >
+            {FREQUENCY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+            {/* Legacy free-text rows stay readable/editable without data loss. */}
+            {draftFields.frequency &&
+              !FREQUENCY_OPTIONS.some(
+                (opt) => opt.value === draftFields.frequency,
+              ) && (
+                <option value="__legacy__">
+                  {draftFields.frequency} (legacy)
+                </option>
+              )}
+          </select>
         </div>
       </div>
 

@@ -158,7 +158,7 @@ const EventDetailPage = async ({
         />
       }
     >
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
+      <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
         {event.title}
       </h1>
 
@@ -176,17 +176,17 @@ const EventDetailPage = async ({
           </span>
         </div>
         {event.location && (
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+          <div className="flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
             <MapPin className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
-            <span className="font-semibold">Location:</span>
-            <span>{event.location}</span>
+            <span className="shrink-0 font-semibold">Location:</span>
+            <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">{event.location}</span>
           </div>
         )}
         {event.deadline && (
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+          <div className="flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
             <Clock className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
-            <span>Registration Deadline:</span>
-            <span className="font-medium">
+            <span className="shrink-0">Registration Deadline:</span>
+            <span className="min-w-0 flex-1 break-words font-medium [overflow-wrap:anywhere]">
               {new Date(event.deadline).toLocaleDateString("en-US", {
                 weekday: "long",
                 month: "long",

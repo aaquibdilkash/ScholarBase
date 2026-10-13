@@ -3,7 +3,7 @@
 import prisma from "@/lib/db";
 import { isSearchableQuery } from "@/lib/search-guard";
 import { allowSearchRequest } from "@/lib/search-rate-limit";
-import { requireCurrentUser, requireActiveUser, getActiveUser } from "@/lib/auth";
+import { requireCurrentUser, getActiveUser } from "@/lib/auth";
 import { readFormValue, readOptionalFormValue } from "@/lib/form";
 import { messageSelect } from "@/lib/message-select";
 import type { SubmitResult } from "@/types/form";

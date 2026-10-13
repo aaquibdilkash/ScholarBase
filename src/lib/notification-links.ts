@@ -1,4 +1,4 @@
-import { Notification } from "@prisma/client";
+import type { Notification } from "@prisma/client";
 
 /**
  * Everything we know about a notification target, in ONE registry.

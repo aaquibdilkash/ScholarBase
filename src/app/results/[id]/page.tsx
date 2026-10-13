@@ -163,7 +163,7 @@ const ResultDetailPage = async ({
         )}
       </div>
 
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
+      <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
         {result.title}
       </h1>
 
@@ -175,15 +175,15 @@ const ResultDetailPage = async ({
       {(result.conductingBody || result.session) && (
         <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-[#020617] dark:border-slate-700 dark:text-slate-300">
           {result.conductingBody && (
-            <div className="flex items-center gap-2 break-words">
-              <Building2 className="w-5 h-5" />
-              Conducting Body: {result.conductingBody}
+            <div className="flex min-w-0 items-center gap-2 break-words [overflow-wrap:anywhere]">
+              <Building2 className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">Conducting Body: {result.conductingBody}</span>
             </div>
           )}
           {result.session && (
-            <div className="flex items-center gap-2 break-words">
-              <Calendar className="w-5 h-5" />
-              Session: {result.session}
+            <div className="flex min-w-0 items-center gap-2 break-words [overflow-wrap:anywhere]">
+              <Calendar className="h-5 w-5 shrink-0" />
+              <span className="min-w-0 flex-1">Session: {result.session}</span>
             </div>
           )}
         </div>

@@ -497,18 +497,18 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                     }}
                     className={`block rounded-lg transition ${showExpanded ? "p-3" : "p-2 flex justify-center"} ${isActive ? "bg-slate-100 dark:bg-slate-800" : isUnread ? "bg-blue-50 dark:bg-blue-950/40" : "hover:bg-slate-100 dark:hover:bg-slate-800/70"}`}
                   >
-                    <div className={`flex items-center ${showExpanded ? "justify-between" : "justify-center"}`}>
-                      <div className={`flex items-center ${showExpanded ? "gap-3" : ""}`}>
+                    <div className={`flex min-w-0 items-center overflow-hidden ${showExpanded ? "justify-between gap-2" : "justify-center"}`}>
+                      <div className={`flex min-w-0 items-center ${showExpanded ? "flex-1 gap-3" : ""}`}>
                         <div className="relative h-10 w-10 shrink-0">
                           {otherParticipant?.avatarUrl ? (
                             <UserAvatar
                               src={otherParticipant.avatarUrl}
                               name={otherParticipant?.name}
                               imageClassName="rounded-full"
-                              fallbackClassName="rounded-full bg-slate-200 text-sm font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+                              fallbackClassName="rounded-full bg-slate-300 text-sm font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-200 text-sm font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+                            <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
                               {otherParticipant?.name?.charAt(0).toUpperCase() || otherParticipant?.handle?.charAt(0).toUpperCase() || "@"}
                             </div>
                           )}
@@ -516,10 +516,10 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                           {!isOtherUserOnline && isUnread && <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-950"></div>}
                         </div>
                         {showExpanded && ( 
-                          <div className="min-w-0">
-                            <div className="font-semibold text-slate-800 dark:text-slate-100">{otherParticipant?.name || "Scholar"}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{otherParticipant?.name || "Scholar"}</div>
                             {latestMessage && (
-                              <p className={`mt-0.5 line-clamp-1 text-sm ${isUnread ? "text-slate-800 font-medium dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
+                              <p className={`mt-0.5 min-w-0 max-w-full break-all line-clamp-1 text-sm [overflow-wrap:anywhere] ${isUnread ? "text-slate-800 font-medium dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
                                 {latestMessage.body}
                               </p>
                             )}

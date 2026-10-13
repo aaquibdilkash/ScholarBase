@@ -307,7 +307,7 @@ export default function ConversationPage({
     return () => {
       isMounted = false;
     };
-  }, [conversationId]);
+  }, [conversationId, router]);
 
   const otherParticipantData = conversation?.participants.find(
     (p) => p.user.id !== userId,
@@ -643,7 +643,7 @@ export default function ConversationPage({
                   imageClassName="rounded-full"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-500">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-sm font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">
                   {otherParticipant?.name?.charAt(0).toUpperCase() || "@"}
                 </div>
               )}

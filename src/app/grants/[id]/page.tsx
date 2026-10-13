@@ -145,11 +145,11 @@ export default async function ResearchGrantDetailPage({
         />
       }
     >
-      <h1 className="mb-2 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">
+      <h1 className="mb-2 min-w-0 max-w-full break-words text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl [overflow-wrap:anywhere]">
         {grant.title}
       </h1>
       {grant.amount && (
-        <p className="mb-4 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+        <p className="mb-4 min-w-0 max-w-full break-words text-sm text-slate-600 dark:text-slate-300 sm:text-base [overflow-wrap:anywhere]">
           <span className="font-semibold text-slate-800 dark:text-slate-100">
             Amount:
           </span>{" "}

@@ -526,7 +526,7 @@ export const LIST_PAGE_TEXT = {
             "Support ScholarBase and see who's contributing to the community.",
     },
     learn: {
-        title: "Courses",
+        title: "Learning Zone",
         description:
             "Discover practical courses for research methods, writing, analysis, publishing, and scholarly skills.",
     },

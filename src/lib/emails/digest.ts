@@ -28,7 +28,7 @@ const MODULE_ICONS: Record<string, string> = {
   Feed: "💬",
   Blog: "🎓",
   Admissions: "🎓",
-  Courses: "🎓",
+  "Learning Zone": "🎓",
   "Research Grants": "🎓",
 };
 

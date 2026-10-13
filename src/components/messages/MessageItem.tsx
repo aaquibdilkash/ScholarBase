@@ -298,7 +298,7 @@ export const MessageItem = React.memo(
           className={`flex items-center gap-3 rounded-2xl ${isMine ? "flex-row-reverse" : ""}`}
         >
           <div
-            className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${isMine ? "hidden" : ""}`}
+            className={`h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-300 dark:bg-slate-700 ${isMine ? "hidden" : ""}`}
           >
             {message.sender?.avatarUrl ? (
               <UserAvatar
@@ -307,7 +307,7 @@ export const MessageItem = React.memo(
                 imageClassName="rounded-full"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
                 {message.sender?.name?.charAt(0).toUpperCase() || "@"}
               </div>
             )}
@@ -335,7 +335,7 @@ export const MessageItem = React.memo(
         className={`group flex min-w-0 w-full items-center gap-3 rounded-2xl ${isMine ? "flex-row-reverse" : ""}`}
       >
         <div
-          className={`h-8 w-8 shrink-0 rounded-full bg-slate-200 ${isMine ? "hidden" : ""}`}
+          className={`h-8 w-8 shrink-0 overflow-hidden rounded-full bg-slate-300 dark:bg-slate-700 ${isMine ? "hidden" : ""}`}
         >
           {message.sender.avatarUrl ? (
             <UserAvatar
@@ -344,7 +344,7 @@ export const MessageItem = React.memo(
               imageClassName="rounded-full"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-slate-300 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">
               {message.sender.name?.charAt(0).toUpperCase() || "@"}
             </div>
           )}
@@ -481,8 +481,8 @@ export const MessageItem = React.memo(
             <div
               className={
                 emojiOnly
-                  ? `min-w-0 max-w-full scroll-mt-32 bg-transparent px-1 py-1 ${message.status === "sending" ? "opacity-70" : ""}`
-                  : `min-w-0 max-w-full rounded-lg ${
+                  ? `min-w-0 max-w-full overflow-hidden scroll-mt-32 bg-transparent px-1 py-1 [overflow-wrap:anywhere] ${message.status === "sending" ? "opacity-70" : ""}`
+                  : `min-w-0 max-w-full overflow-hidden rounded-lg [overflow-wrap:anywhere] ${
                       message.replyTo ? "px-2 py-2" : "px-4 py-2"
                     } ${
                       isMine
@@ -510,13 +510,13 @@ export const MessageItem = React.memo(
                         Original message was deleted
                       </span>
                     ) : (
-                      <span className="block line-clamp-1 text-[11px] text-slate-700 dark:text-white">
+                      <span className="block line-clamp-1 min-w-0 max-w-full break-all text-[11px] [overflow-wrap:anywhere] text-slate-700 dark:text-white">
                         {renderBodyWithEmoji(message.replyTo.body, false)}
                       </span>
                     )}
                   </button>
                 )}
-                <p className={emojiOnly ? "text-4xl leading-snug break-words whitespace-pre-wrap" : "text-sm break-words whitespace-pre-wrap"}>
+                <p className={emojiOnly ? "text-4xl leading-snug break-all whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 max-w-full" : "text-sm break-all whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 max-w-full"}>
                   {renderBodyWithEmoji(message.body, emojiOnly)}
                 </p>
                 <div className="mt-1 flex items-center justify-end gap-1.5">

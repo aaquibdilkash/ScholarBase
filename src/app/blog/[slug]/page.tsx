@@ -138,10 +138,10 @@ export default async function ArticlePage({
         />
       }
     >
-      <h1 className="text-2xl md:text-3xl font-bold text-slate-950 dark:text-slate-100 mb-2">
+      <h1 className="mb-2 min-w-0 max-w-full break-words text-2xl md:text-3xl font-bold text-slate-950 dark:text-slate-100 [overflow-wrap:anywhere]">
         {article.title}
       </h1>
-      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 line-clamp-3">
+      <p className="min-w-0 max-w-full break-words text-sm leading-relaxed text-slate-600 dark:text-slate-400 line-clamp-3 [overflow-wrap:anywhere]">
         {article.excerpt}
       </p>
 

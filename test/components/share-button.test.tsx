@@ -104,7 +104,7 @@ describe("ShareButton", () => {
     expect(payload.text).toBe("Connect on ScholarBase.");
   });
 
-  it("falls back to copying a composed message when Web Share is unavailable", async () => {
+  it("falls back to copying the URL only when Web Share is unavailable", async () => {
     // `"share" in navigator` is what the component checks, so the property must
     // be removed (not set to undefined) to exercise the clipboard fallback.
     delete (window.navigator as unknown as { share?: unknown }).share;
@@ -115,8 +115,10 @@ describe("ShareButton", () => {
 
     expect(writeText).toHaveBeenCalledTimes(1);
     const copied = writeText.mock.calls[0][0] as string;
-    expect(copied).toContain("Post body.");
-    expect(copied).toContain("/feed/abc");
+    // Clipboard payload is URL-only so chat apps (WhatsApp) unfurl a rich
+    // preview card instead of rendering title/body as raw-text duplication.
+    expect(copied).toBe("http://localhost:3000/feed/abc");
+    expect(copied).not.toContain("Post body.");
     expect(toast).toHaveBeenCalledWith("Link copied!");
   });
 

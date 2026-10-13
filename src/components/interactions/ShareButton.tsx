@@ -77,9 +77,14 @@ export function ShareButton({
     // a rich share with zero call-site changes.
     const shareTitle = stripBrandSuffix(title ?? readMeta("og:title"));
     const shareText = (text ?? readMeta("og:description")).trim();
-    // Compose a friendly message body; fall back to the title when no
-    // description exists, and always keep the URL so the link survives.
-    const composedText = [shareText || shareTitle, shareUrl].filter(Boolean).join("\n");
+    // WhatsApp (and most chat apps) unfurl ONLY the first URL in the payload
+    // into a rich preview card; every extra host/path line above it renders as
+    // the raw-text duplication in the bug report (site name, bare path, then
+    // the link). Share the canonical URL alone so the card renders instead.
+    // The og:title/og:description feed the preview card on the native path and
+    // are dropped on the clipboard path for the same reason.
+    // NOTE: shareTitle/shareText are still read (above) so the native share
+    // sheet keeps its rich title/text; only the clipboard payload is URL-only.
 
     try {
       if (typeof navigator !== "undefined" && "share" in navigator) {
@@ -98,7 +103,7 @@ export function ShareButton({
         };
 
         if (typeof navigator !== "undefined" && nav.clipboard?.writeText) {
-          await nav.clipboard.writeText(composedText || shareUrl);
+          await nav.clipboard.writeText(shareUrl);
           toast(copySuccessMessage);
         }
       }

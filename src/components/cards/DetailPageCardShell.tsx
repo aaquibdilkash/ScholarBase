@@ -106,7 +106,7 @@ export default function DetailPageCardShell({
         {backLabel}
       </Link>
 
-      <div className={clsx(bodyClassName ?? "sb-card p-6 sm:p-6 md:p-8")}>
+      <div className={clsx(bodyClassName ?? "sb-card min-w-0 w-full overflow-x-clip p-6 sm:p-6 md:p-8")}>
         {/* Moderation banner — frozen content is visible but read-only */}
         {isFrozen && (
           <div className="mb-5 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
@@ -180,7 +180,7 @@ export default function DetailPageCardShell({
         {/* Body — clipping is handled by child components (e.g. Carousel
             uses its own overflow-x-hidden) so positioned overlays like
             carousel arrows are never cut off. */}
-        <div>
+        <div className="min-w-0 max-w-full">
           {children}
 
           {bodyBottomContent}

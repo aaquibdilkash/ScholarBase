@@ -26,6 +26,40 @@ import type {
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { validateExternalUrl } from "@/lib/external-url";
+import { METRIC_BOUNDS } from "@/constants/journal-metrics";
+
+// Strict numeric-only metric parsing (SJR Score, CiteScore, Impact Factor).
+// Rejects "2.4abc"/"abc" instead of silently coercing via parseFloat, and
+// enforces the industry bounds shared with the form (METRIC_BOUNDS).
+// Accepts string | null because readOptionalFormValue returns null when absent.
+function parseOptionalMetric(
+  raw: string | null | undefined,
+  fieldLabel: string,
+  max: number,
+): number | null {
+  if (raw == null) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    throw new Error(`${fieldLabel} must be a number (e.g., 2.4).`);
+  }
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 0 || value > max) {
+    throw new Error(
+      `${fieldLabel} must be a number between 0 and ${max}.`,
+    );
+  }
+  return value;
+}
+
+// Frequency allowlist — new writes constrained to dropdown; legacy free-text
+// values pass through untouched so old rows are never wiped on edit.
+function sanitizeFrequency(raw: string | null | undefined): string | undefined {
+  if (raw == null) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  return trimmed;
+}
 
 export async function createJournal(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
@@ -35,29 +69,44 @@ export async function createJournal(formData: FormData) {
 
   const title = readFormValue(formData, "title");
   const issn = readOptionalFormValue(formData, "issn");
-  const impactFactor = readOptionalFormValue(formData, "impactFactor");
   const scopusQuartile = readOptionalFormValue(formData, "scopusQuartile");
   const abdcRanking = readOptionalFormValue(formData, "abdcRanking");
   const wosIndex = readOptionalFormValue(formData, "wosIndex");
   const wosQuartile = readOptionalFormValue(formData, "wosQuartile");
   const sjrQuartile = readOptionalFormValue(formData, "sjrQuartile");
-  const sjrScore = readOptionalFormValue(formData, "sjrScore");
-  const citeScore = readOptionalFormValue(formData, "citeScore");
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
   const safeWebsite = validateExternalUrl(website, "Website");
   const about = readOptionalFormValue(formData, "about");
   assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
-  const frequency = readOptionalFormValue(formData, "frequency");
+  const frequency = sanitizeFrequency(
+    readOptionalFormValue(formData, "frequency"),
+  );
   const openAccess = readOptionalFormValue(formData, "openAccess");
+
+  const impactFactor = parseOptionalMetric(
+    readOptionalFormValue(formData, "impactFactor"),
+    "Impact Factor",
+    METRIC_BOUNDS.impactFactor.max,
+  );
+  const sjrScore = parseOptionalMetric(
+    readOptionalFormValue(formData, "sjrScore"),
+    "SJR Score",
+    METRIC_BOUNDS.sjrScore.max,
+  );
+  const citeScore = parseOptionalMetric(
+    readOptionalFormValue(formData, "citeScore"),
+    "CiteScore",
+    METRIC_BOUNDS.citeScore.max,
+  );
 
   const journal = await prisma.$transaction(async (tx) => {
     const newJournal = await tx.journal.create({
       data: {
         title,
         issn,
-        impactFactor: impactFactor ? parseFloat(impactFactor) : null,
+        impactFactor,
         scopusQuartile: scopusQuartile
           ? (scopusQuartile as Quartile)
           : undefined,
@@ -65,8 +114,8 @@ export async function createJournal(formData: FormData) {
         wosIndex: wosIndex ? (wosIndex as WosIndex) : undefined,
         wosQuartile: wosQuartile ? (wosQuartile as Quartile) : undefined,
         sjrQuartile: sjrQuartile ? (sjrQuartile as Quartile) : undefined,
-        sjrScore: sjrScore ? parseFloat(sjrScore) : null,
-        citeScore: citeScore ? parseFloat(citeScore) : null,
+        sjrScore,
+        citeScore,
         publisher,
         website: safeWebsite,
         about,
@@ -117,22 +166,37 @@ export async function updateJournal(formData: FormData, journalId: string) {
 
   const title = readFormValue(formData, "title");
   const issn = readOptionalFormValue(formData, "issn");
-  const impactFactor = readOptionalFormValue(formData, "impactFactor");
   const scopusQuartile = readOptionalFormValue(formData, "scopusQuartile");
   const abdcRanking = readOptionalFormValue(formData, "abdcRanking");
   const wosIndex = readOptionalFormValue(formData, "wosIndex");
   const wosQuartile = readOptionalFormValue(formData, "wosQuartile");
   const sjrQuartile = readOptionalFormValue(formData, "sjrQuartile");
-  const sjrScore = readOptionalFormValue(formData, "sjrScore");
-  const citeScore = readOptionalFormValue(formData, "citeScore");
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
   const safeWebsite = validateExternalUrl(website, "Website");
   const about = readOptionalFormValue(formData, "about");
   assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
-  const frequency = readOptionalFormValue(formData, "frequency");
+  const frequency = sanitizeFrequency(
+    readOptionalFormValue(formData, "frequency"),
+  );
   const openAccess = readOptionalFormValue(formData, "openAccess");
+
+  const impactFactor = parseOptionalMetric(
+    readOptionalFormValue(formData, "impactFactor"),
+    "Impact Factor",
+    METRIC_BOUNDS.impactFactor.max,
+  );
+  const sjrScore = parseOptionalMetric(
+    readOptionalFormValue(formData, "sjrScore"),
+    "SJR Score",
+    METRIC_BOUNDS.sjrScore.max,
+  );
+  const citeScore = parseOptionalMetric(
+    readOptionalFormValue(formData, "citeScore"),
+    "CiteScore",
+    METRIC_BOUNDS.citeScore.max,
+  );
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },
@@ -151,14 +215,14 @@ export async function updateJournal(formData: FormData, journalId: string) {
     data: {
       title,
       issn,
-      impactFactor: impactFactor ? parseFloat(impactFactor) : null,
+      impactFactor,
       scopusQuartile: scopusQuartile ? (scopusQuartile as Quartile) : undefined,
       abdcRanking: abdcRanking ? (abdcRanking as AbdcTier) : undefined,
       wosIndex: wosIndex ? (wosIndex as WosIndex) : undefined,
       wosQuartile: wosQuartile ? (wosQuartile as Quartile) : undefined,
       sjrQuartile: sjrQuartile ? (sjrQuartile as Quartile) : undefined,
-      sjrScore: sjrScore ? parseFloat(sjrScore) : null,
-      citeScore: citeScore ? parseFloat(citeScore) : null,
+      sjrScore,
+      citeScore,
       publisher,
       website: safeWebsite,
       about,

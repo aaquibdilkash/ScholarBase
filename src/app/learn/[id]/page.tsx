@@ -82,7 +82,7 @@ export default async function CourseDetailPage({
     <DetailPageCardShell
       isFrozen={course.isFrozen ?? false}
       backHref="/learn"
-      backLabel="Back to Courses"
+      backLabel="Back to Learning Zone"
       authorHref={`/scholars/${course.author?.id}`}
       authorName={course.author?.name || "Scholar"}
       authorHandle={course.author?.handle || undefined}
