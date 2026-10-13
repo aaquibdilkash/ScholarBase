@@ -1,6 +1,7 @@
 import { Suspense, use } from "react";
 import type { ReactNode } from "react";
 import { ListSkeleton } from "./ListSkeleton";
+import { ListErrorBoundary } from "./ListErrorBoundary";
 
 /**
  * Suspends *only* around an async data fetch (the Supabase-backed query that
@@ -35,9 +36,11 @@ export function AsyncListRegion<T>({
   count?: number;
 }) {
   return (
-    <Suspense fallback={<ListSkeleton count={count} />}>
-      <AsyncList fetcher={fetcher}>{children}</AsyncList>
-    </Suspense>
+    <ListErrorBoundary>
+      <Suspense fallback={<ListSkeleton count={count} />}>
+        <AsyncList fetcher={fetcher}>{children}</AsyncList>
+      </Suspense>
+    </ListErrorBoundary>
   );
 }
 
