@@ -5,7 +5,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
@@ -91,9 +91,11 @@ export async function createRecommendation(
   formData: FormData,
   supervisorId: string,
 ) {
-  const user = await requireActiveUser(
+  const auth = await getActiveUser(
     "Log in to share your recommendation and help other scholars!",
   );
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "recommendation:create", key: user.id, limit: 10, window: "10 m" });
 
   const feedback = readFormValue(formData, "feedback");

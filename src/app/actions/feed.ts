@@ -570,7 +570,9 @@ export async function createSocialPostComment(
   content: string,
   parentId?: string,
 ) {
-  const user = await requireActiveUser("You must be logged in to comment.");
+  const auth = await getActiveUser("You must be logged in to comment.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   const rateLimit = await checkRateLimit({
     namespace: "post-comment",
     key: user.id,

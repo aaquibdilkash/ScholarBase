@@ -13,7 +13,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma, SurveyQuestionType } from "@prisma/client";
 import type { SurveyQuestionInput } from "@/types/survey";
-import { getCurrentUser, requireActiveUser, isAuthorizedOrAdmin, isUserAdmin } from "@/lib/auth";
+import { getCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin, isUserAdmin } from "@/lib/auth";
 import {
   checkRateLimit,
   enforceRateLimit,
@@ -240,7 +240,9 @@ export async function getSurveyResponse(surveyId: string, userId: string) {
 }
 
 export async function createSurvey(formData: FormData) {
-  const user = await requireActiveUser("Please log in to create a survey.");
+  const auth = await getActiveUser("Please log in to create a survey.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "survey:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");

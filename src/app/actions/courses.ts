@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -20,7 +20,9 @@ import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function createCourse(formData: FormData) {
-  const user = await requireActiveUser("Please log in to share a course.");
+  const auth = await getActiveUser("Please log in to share a course.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "course:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
