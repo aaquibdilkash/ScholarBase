@@ -211,6 +211,7 @@ export function SocialPostCard({
           ownerId={post.author?.id ?? post.authorId ?? null}
           currentUserId={currentUserId ?? null}
           isFrozen={post.isFrozen ?? false}
+          isDeleted={post.isDeleted ?? false}
           hasActiveAppeal={post.hasActiveAppeal ?? false}
         />
       }

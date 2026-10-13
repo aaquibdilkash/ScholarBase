@@ -77,6 +77,12 @@ function getModelDelegate(
 }
 
 
+/** Expected, user-facing validation failures returned as structured results. */
+type AppealError = { success: false; error: string };
+/** Successful appeal creation. */
+type AppealSuccess = { success: true; data: Awaited<ReturnType<typeof prisma.appeal.create>> };
+type AppealResult = AppealError | AppealSuccess;
+
 export async function submitAppeal({
   entityId,
   module,
@@ -93,7 +99,7 @@ export async function submitAppeal({
   /** Free-text details explaining the appeal. */
   details: string;
   path?: string;
-}) {
+}): Promise<AppealResult> {
   // An appeal is the frozen user's ONLY route back — so this entry point must
   // NOT use requireActiveUser (which throws ACCOUNT_FROZEN). Only deleted
   // accounts stay blocked; frozen owners are explicitly allowed through and
@@ -104,6 +110,7 @@ export async function submitAppeal({
     select: { isDeleted: true },
   });
   if (accountState?.isDeleted) {
+    // Account deletion is a hard block — not a recoverable user error.
     throw new Error(
       "ACCOUNT_DELETED: This account has been deleted and this action is disabled.",
     );
@@ -124,8 +131,8 @@ export async function submitAppeal({
   if (!delegate) throw new Error("Invalid content type.");
 
   const trimmed = details.trim();
-  if (trimmed.length === 0) throw new Error("Appeal reason is required.");
-  if (trimmed.length > MAX_APPEAL_REASON) throw new Error(`Appeal reason is too long (max ${MAX_APPEAL_REASON} characters).`);
+  if (trimmed.length === 0) return { success: false, error: "Appeal reason is required." };
+  if (trimmed.length > MAX_APPEAL_REASON) return { success: false, error: `Appeal reason is too long (max ${MAX_APPEAL_REASON} characters).` };
 
   const isProfileAppeal = contentType === "SCHOLAR_PROFILE";
   const fetched = (await delegate.findUnique({
@@ -147,46 +154,65 @@ export async function submitAppeal({
     hasActiveAppeal: boolean;
   } | null;
 
-  if (!fetched) throw new Error("Content not found.");
+  // Return structured errors for expected user-facing validation failures so
+  // Next.js does not treat them as unhandled server exceptions (which would
+  // surface in Sentry as crashes rather than user input errors).
+  if (!fetched) return { success: false, error: "Content not found." };
   // Profiles have no authorId column: owner is the row itself.
   const ownerId = fetched.authorId ?? fetched.id;
   if (ownerId !== currentUser.id) {
-    throw new Error("Only the owner can appeal this content.");
+    return { success: false, error: "Only the owner can appeal this content." };
   }
   if (!fetched.isFrozen && !fetched.isDeleted) {
-    throw new Error("Only frozen or deleted content can be appealed.");
+    // The content's moderation state changed after the page loaded (e.g. it
+    // was unfrozen by a moderator between render and submit). Return a clear
+    // message rather than throwing so Sentry doesn't capture this as a crash.
+    return { success: false, error: "This content is no longer frozen or deleted — no appeal is needed." };
   }
   if (fetched.hasActiveAppeal) {
-    throw new Error("An appeal is already pending for this content.");
+    return { success: false, error: "An appeal is already pending for this content." };
   }
 
-  const appeal = await prisma.$transaction(async (tx) => {
-    const existing = await tx.appeal.findFirst({
-      where: { entityId, ownerId: currentUser.id, status: AppealStatus.PENDING },
+  // Race-condition safety net: re-check inside the transaction. The pre-check
+  // above covers the common case; this covers concurrent duplicate submissions.
+  let appeal: Awaited<ReturnType<typeof prisma.appeal.create>>;
+  try {
+    appeal = await prisma.$transaction(async (tx) => {
+      const existing = await tx.appeal.findFirst({
+        where: { entityId, ownerId: currentUser.id, status: AppealStatus.PENDING },
+      });
+      if (existing) {
+        throw new Error("An appeal is already pending for this content.");
+      }
+
+      const created = await tx.appeal.create({
+        data: {
+          entityId,
+          entityType,
+          module,
+          category,
+          details: trimmed,
+          status: AppealStatus.PENDING,
+          ownerId: currentUser.id,
+        },
+      });
+
+      await getModelDelegate(tx, contentType)!.update({
+        where: { id: entityId },
+        data: { hasActiveAppeal: true },
+      });
+
+      return created;
     });
-    if (existing) {
-      throw new Error("An appeal is already pending for this content.");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to submit appeal.";
+    // Only the duplicate-appeal check inside the transaction is an expected
+    // failure; re-throw anything else so real DB errors surface normally.
+    if (message === "An appeal is already pending for this content.") {
+      return { success: false, error: message };
     }
-
-    const created = await tx.appeal.create({
-      data: {
-        entityId,
-        entityType,
-        module,
-        category,
-        details: trimmed,
-        status: AppealStatus.PENDING,
-        ownerId: currentUser.id,
-      },
-    });
-
-    await getModelDelegate(tx, contentType)!.update({
-      where: { id: entityId },
-      data: { hasActiveAppeal: true },
-    });
-
-    return created;
-  });
+    throw err;
+  }
 
   if (path) revalidatePath(path);
   return { success: true, data: appeal };
