@@ -138,11 +138,20 @@ export async function fetchFeedPage(
   // registry-wide capability rather than a feed-only special case.
   void tab;
 
-  return loadContentPage("FEED", {
-    query,
-    pageSize,
-    cursor,
-  }) as Promise<SocialPostFeedItem[]>;
+  try {
+    return (await loadContentPage("FEED", {
+      query,
+      pageSize,
+      cursor,
+    })) as SocialPostFeedItem[];
+  } catch (err) {
+    // Return an empty page rather than throwing: this function feeds a server
+    // component and an exception would tear down the whole feed to communicate
+    // a transient database or network failure. The empty state already reads
+    // as "nothing matched".
+    console.error("[fetchFeedPage] unexpected error loading feed:", err);
+    return [];
+  }
 }
 
 export const getPost = cache(async (id: string, userId?: string) => {
