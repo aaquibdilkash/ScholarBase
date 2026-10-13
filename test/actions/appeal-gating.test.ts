@@ -87,46 +87,46 @@ describe("submitAppeal", () => {
 
   it("refuses an appeal from someone who does not own the content", async () => {
     session = { id: STRANGER };
-    await expect(submitAppeal(base)).rejects.toThrow(
-      /Only the owner can appeal/,
-    );
+    const result = await submitAppeal(base);
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/Only the owner can appeal/);
     expect(fakeDb.rows("appeal")).toHaveLength(0);
   });
 
   it("refuses an appeal on content that is neither frozen nor deleted", async () => {
     seedEntity({ isFrozen: false, isDeleted: false });
-    await expect(submitAppeal(base)).rejects.toThrow(
-      /Only frozen or deleted content can be appealed/,
-    );
+    const result = await submitAppeal(base);
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/no longer frozen or deleted/);
     expect(fakeDb.rows("appeal")).toHaveLength(0);
   });
 
   it("refuses a second appeal while one is pending", async () => {
     await submitAppeal(base);
-    await expect(submitAppeal(base)).rejects.toThrow(
-      /already pending for this content/,
-    );
+    const result = await submitAppeal(base);
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/already pending for this content/);
     expect(fakeDb.rows("appeal")).toHaveLength(1);
   });
 
   it("refuses an appeal on content that does not exist", async () => {
-    await expect(
-      submitAppeal({ ...base, entityId: "does-not-exist" }),
-    ).rejects.toThrow(/Content not found/);
+    const result = await submitAppeal({ ...base, entityId: "does-not-exist" });
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/Content not found/);
     expect(fakeDb.rows("appeal")).toHaveLength(0);
   });
 
   it("requires a non-empty reason", async () => {
-    await expect(submitAppeal({ ...base, details: "   " })).rejects.toThrow(
-      /Appeal reason is required/,
-    );
+    const result = await submitAppeal({ ...base, details: "   " });
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/Appeal reason is required/);
     expect(fakeDb.rows("appeal")).toHaveLength(0);
   });
 
   it("rejects an over-long reason rather than truncating it", async () => {
-    await expect(
-      submitAppeal({ ...base, details: "x".repeat(5000) }),
-    ).rejects.toThrow(/too long/);
+    const result = await submitAppeal({ ...base, details: "x".repeat(5000) });
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/too long/);
     expect(fakeDb.rows("appeal")).toHaveLength(0);
   });
 

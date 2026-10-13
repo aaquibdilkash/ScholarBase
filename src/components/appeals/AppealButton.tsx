@@ -35,15 +35,24 @@ export function AppealButton({
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: () =>
-      submitAppeal({
+    mutationFn: async () => {
+      const result = await submitAppeal({
         entityId,
         module,
         entityType,
         reasonCategory: selectedReason,
         details,
         path,
-      }),
+      });
+      // submitAppeal returns structured errors for expected validation failures
+      // (e.g. stale frozen state) rather than throwing, so React Query routes
+      // them to onError and they display as a toast without being treated as
+      // unhandled server exceptions.
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
     onMutate: () => {
       queryClient.setQueriesData(
         { queryKey: ["appeal", entityId] },
