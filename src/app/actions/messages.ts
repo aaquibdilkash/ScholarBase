@@ -322,7 +322,7 @@ export async function startConversation(
   formData: FormData,
 ): Promise<SubmitResult> {
   const auth = await getActiveUser("Please log in to send a message.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message };
   const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
@@ -669,7 +669,7 @@ export async function editMessage(
   newBody: string,
 ): Promise<SubmitResult | (CreatedMessage & { editedAt: Date | null })> {
   const auth = await getActiveUser("Please log in to edit a message.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message };
   const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
@@ -737,7 +737,7 @@ export async function deleteMessage(
   messageId: string,
 ): Promise<SubmitResult> {
   const auth = await getActiveUser("Please log in to delete a message.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message };
   const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
