@@ -13,7 +13,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -111,7 +111,9 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
 });
 
 export async function createJobVacancy(formData: FormData) {
-  const user = await requireActiveUser("Please log in to submit details.");
+  const auth = await getActiveUser("Please log in to submit details.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "vacancy:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");

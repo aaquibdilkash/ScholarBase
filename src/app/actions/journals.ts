@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isSearchableQuery } from "@/lib/search-guard";
 import { allowSearchRequest } from "@/lib/search-rate-limit";
@@ -28,7 +28,9 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { validateExternalUrl } from "@/lib/external-url";
 
 export async function createJournal(formData: FormData) {
-  const user = await requireActiveUser("Please log in to submit details.");
+  const auth = await getActiveUser("Please log in to submit details.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "journal:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");

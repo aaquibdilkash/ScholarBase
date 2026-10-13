@@ -321,9 +321,9 @@ export async function getMoreMessages(
 export async function startConversation(
   formData: FormData,
 ): Promise<SubmitResult> {
-  const supabaseUser = await requireActiveUser(
-    "Please log in to send a message.",
-  );
+  const auth = await getActiveUser("Please log in to send a message.");
+  if (auth.frozen) return { success: false, error: auth.message };
+  const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:start",
@@ -668,9 +668,9 @@ export async function editMessage(
   messageId: string,
   newBody: string,
 ): Promise<SubmitResult | (CreatedMessage & { editedAt: Date | null })> {
-  const supabaseUser = await requireActiveUser(
-    "Please log in to edit a message.",
-  );
+  const auth = await getActiveUser("Please log in to edit a message.");
+  if (auth.frozen) return { success: false, error: auth.message };
+  const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:edit",
@@ -736,9 +736,9 @@ export async function editMessage(
 export async function deleteMessage(
   messageId: string,
 ): Promise<SubmitResult> {
-  const supabaseUser = await requireActiveUser(
-    "Please log in to delete a message.",
-  );
+  const auth = await getActiveUser("Please log in to delete a message.");
+  if (auth.frozen) return { success: false, error: auth.message };
+  const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:delete",

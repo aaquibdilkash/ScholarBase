@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma, JournalOutcome } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
@@ -217,9 +217,11 @@ export async function createJournalReview(
   formData: FormData,
   journalId: string,
 ) {
-  const user = await requireActiveUser(
+  const auth = await getActiveUser(
     "Log in to share a journal review and help other scholars!",
   );
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({
     namespace: "journalReview:create",
     key: user.id,

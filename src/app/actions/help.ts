@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
@@ -115,9 +115,9 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
 });
 
 export async function createHelpPost(formData: FormData) {
-  const user = await requireActiveUser(
-    "You must be logged in to create a post.",
-  );
+  const auth = await getActiveUser("You must be logged in to create a post.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "help:create", key: user.id, limit: 10, window: "10 m" });
   const title = formData.get("title") as string;
   const subject = formData.get("subject") as string;

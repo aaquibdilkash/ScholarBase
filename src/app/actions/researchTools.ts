@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -20,7 +20,9 @@ import { COMMENT_PAGE_SIZE, MAX_RESEARCH_TOOL_DESCRIPTION } from "@/lib/constant
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function createResearchTool(formData: FormData) {
-  const user = await requireActiveUser("Please log in to submit details.");
+  const auth = await getActiveUser("Please log in to submit details.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "research-tool:create", key: user.id, limit: 10, window: "10 m" });
 
   const name = readFormValue(formData, "name");
