@@ -83,7 +83,8 @@ const ResultDetailPage = async ({
             editHref={`/results/${result.id}/edit`}
             onDelete={async () => {
               "use server";
-              await deleteResult(result.id);
+              const res = await deleteResult(result.id);
+              if (res?.success === false) return res;
               return { redirect: "/results", invalidateQueries: [["results"]] };
             }}
             isOwner={true}

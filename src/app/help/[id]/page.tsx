@@ -60,7 +60,8 @@ export default async function HelpPostPage({
   // Define the delete action outside the JSX
   async function handleDelete() {
     "use server";
-    await deleteHelpPost(post!.id);
+    const res = await deleteHelpPost(post!.id);
+    if (res?.success === false) return res;
     return { redirect: "/help", invalidateQueries: [["helpPosts"]] };
   }
 

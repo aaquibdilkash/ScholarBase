@@ -64,7 +64,8 @@ export default async function SinglePostPage({
 
   async function handleDelete() {
     "use server";
-    await deleteSocialPost(p.id);
+    const res = await deleteSocialPost(p.id);
+    if (res?.success === false) return res;
     return { redirect: "/feed", invalidateQueries: [["feed"]] };
   }
 

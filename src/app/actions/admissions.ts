@@ -13,7 +13,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -180,7 +180,9 @@ export async function updatePhdAdmission(
   formData: FormData,
   admissionId: string,
 ) {
-  const user = await requireActiveUser("Log in to edit this admission.");
+  const auth = await getActiveUser("Log in to edit this admission.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "admission:edit", key: user.id, limit: 20, window: "10 m" });
 
   const university = readFormValue(formData, "university");
@@ -229,7 +231,9 @@ export async function updatePhdAdmission(
 }
 
 export async function deletePhdAdmission(admissionId: string) {
-  const user = await requireActiveUser("Log in to delete this admission.");
+  const auth = await getActiveUser("Log in to delete this admission.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "admission:delete", key: user.id, limit: 20, window: "10 m" });
 
   const admission = await prisma.phdAdmission.findUnique({

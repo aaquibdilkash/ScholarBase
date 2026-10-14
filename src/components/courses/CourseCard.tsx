@@ -53,7 +53,11 @@ export function CourseCard({
               try {
                 const response = await deleteCourse(course.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete course.", "error");
+                  toast(
+                    (response && "message" in response && response.message) ||
+                      "Failed to delete course.",
+                    "error",
+                  );
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

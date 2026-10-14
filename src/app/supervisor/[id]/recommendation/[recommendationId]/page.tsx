@@ -52,7 +52,8 @@ export default async function RecommendationDetailPage({
 
   async function handleDelete() {
     "use server";
-    await deleteRecommendation(recommendation!.id);
+    const res = await deleteRecommendation(recommendation!.id);
+    if (res?.success === false) return res;
     return {
       redirect: `/supervisor/${id}`,
       invalidateQueries: [["recommendations", id]],

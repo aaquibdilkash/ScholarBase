@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -88,7 +88,9 @@ export async function createCourse(formData: FormData) {
 }
 
 export async function updateCourse(formData: FormData, courseId: string) {
-  const user = await requireActiveUser("Log in to edit this course.");
+  const auth = await getActiveUser("Log in to edit this course.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "course:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
@@ -136,7 +138,9 @@ export async function updateCourse(formData: FormData, courseId: string) {
 
   return { success: true, data: updatedCourse };
 }
-
+  const auth = await getActiveUser("Log in to delete this course.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
 export async function deleteCourse(courseId: string) {
   const user = await requireActiveUser("Log in to delete this course.");
   await enforceRateLimit({ namespace: "course:delete", key: user.id, limit: 20, window: "10 m" });

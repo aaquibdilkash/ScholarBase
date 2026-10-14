@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma, JournalOutcome } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
@@ -349,7 +349,11 @@ export async function updateJournalReview(
   formData: FormData,
   reviewId: string,
 ) {
-  const user = await requireActiveUser("Log in to edit this review.");
+  const auth = await getActiveUser("Log in to edit this review.");
+  if (auth.frozen) {
+    return { success: false as const, error: auth.message, message: auth.message };
+  }
+  const user = auth.user;
   await enforceRateLimit({
     namespace: "journalReview:edit",
     key: user.id,
@@ -488,7 +492,11 @@ export async function updateJournalReview(
 // DELETE (soft) — mirrors deleteRecommendation
 // ============================================
 export async function deleteJournalReview(reviewId: string) {
-  const user = await requireActiveUser("Log in to delete this review.");
+  const auth = await getActiveUser("Log in to delete this review.");
+  if (auth.frozen) {
+    return { success: false as const, error: auth.message, message: auth.message };
+  }
+  const user = auth.user;
   await enforceRateLimit({
     namespace: "journalReview:delete",
     key: user.id,

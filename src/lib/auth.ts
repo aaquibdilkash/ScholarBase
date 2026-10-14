@@ -38,9 +38,12 @@ export async function requireCurrentUser(message = 'Please log in to continue.')
 
 /**
  * Same as requireCurrentUser, but additionally rejects accounts that have
- * been frozen by moderation (`user.isFrozen === true`). Use this in all
- * community-interaction mutation entry points (creating posts, comments,
- * surveys, tools, reports, votes, ...).
+ * been frozen by moderation (`user.isFrozen === true`) by THROWING.
+ *
+ * Prefer `getActiveUser` for any user-facing server action (create / edit /
+ * delete): a thrown error here surfaces as an unhandled server-action crash
+ * and a redacted generic toast. Reserve this for paths where a hard failure
+ * is intended (e.g. admin-only moderation).
  *
  * Do NOT use this for remedy / private-state paths: appeals
  * (`submitAppeal`), notification reads (`markNotificationRead`,

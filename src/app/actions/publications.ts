@@ -12,7 +12,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
@@ -154,7 +154,9 @@ export async function updatePublication(
   formData: FormData,
   publicationId: string,
 ) {
-  const user = await requireActiveUser("Log in to edit this publication.");
+  const auth = await getActiveUser("Log in to edit this publication.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "publication:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
@@ -230,7 +232,9 @@ export async function updatePublication(
 }
 
 export async function deletePublication(publicationId: string) {
-  const user = await requireActiveUser("Log in to delete this publication.");
+  const auth = await getActiveUser("Log in to delete this publication.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "publication:delete", key: user.id, limit: 20, window: "10 m" });
 
   const publication = await prisma.publication.findUnique({
