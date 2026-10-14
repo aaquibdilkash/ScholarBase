@@ -69,9 +69,21 @@ export default function OwnerActionsDropdown({
       startDeleteTransition(async () => {
         const result = await onDelete();
         const res = (result ?? undefined) as
-          | { redirect?: string; refresh?: boolean; invalidateQueries?: unknown[][] }
+          | {
+              redirect?: string;
+              refresh?: boolean;
+              invalidateQueries?: unknown[][];
+              success?: boolean;
+              message?: string;
+            }
           | undefined;
         setIsModalOpen(false);
+        // A delete action can refuse gracefully (e.g. the account is frozen)
+        // by returning `{ success: false, message }` instead of throwing.
+        if (res?.success === false) {
+          toast(res.message || "Failed to delete item.", "error");
+          return;
+        }
         // The deleted row was on the author's Content and Activity tabs. The
         // server cache is purged by the action, so marking the client entry is
         // enough and costs no round trip while the tab is shut.

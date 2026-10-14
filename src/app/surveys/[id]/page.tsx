@@ -104,7 +104,8 @@ const SurveyDetailPage = async ({
             editHref={`/surveys/${survey.id}/edit`}
             onDelete={async () => {
               "use server";
-              await deleteSurvey(survey.id);
+              const res = await deleteSurvey(survey.id);
+              if (res?.success === false) return res;
               return { redirect: "/surveys", invalidateQueries: [["surveys"]] };
             }}
             isOwner={true}

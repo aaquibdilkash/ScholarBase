@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
@@ -190,9 +190,9 @@ export async function createHelpPost(formData: FormData) {
 }
 
 export async function updateHelpPost(formData: FormData, helpPostId: string) {
-  const user = await requireActiveUser(
-    "You must be logged in to update a post.",
-  );
+  const auth = await getActiveUser("You must be logged in to update a post.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "help:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = formData.get("title") as string;
@@ -229,7 +229,9 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 }
 
 export async function deleteHelpPost(helpPostId: string) {
-  const user = await requireActiveUser("Log in to delete this help post.");
+  const auth = await getActiveUser("Log in to delete this help post.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "help:delete", key: user.id, limit: 20, window: "10 m" });
 
   const post = await prisma.helpPost.findUnique({

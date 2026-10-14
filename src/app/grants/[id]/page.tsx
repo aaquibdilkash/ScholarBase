@@ -65,7 +65,8 @@ export default async function ResearchGrantDetailPage({
 
   async function handleDelete() {
     "use server";
-    await deleteResearchGrant(grant!.id);
+    const res = await deleteResearchGrant(grant!.id);
+    if (res?.success === false) return res;
     return { redirect: "/grants", invalidateQueries: [["grants"]] };
   }
 

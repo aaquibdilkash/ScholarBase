@@ -68,7 +68,8 @@ export default async function JournalReviewDetailPage({
 
   async function handleDelete() {
     "use server";
-    await deleteJournalReview(review!.id);
+    const res = await deleteJournalReview(review!.id);
+    if (res?.success === false) return res;
     return {
       redirect: `/journals/${id}`,
       invalidateQueries: [["journalReviews", id]],

@@ -482,7 +482,9 @@ export async function getPostEditData(id: string) {
 }
 
 export async function deleteSocialPost(postId: string) {
-  const user = await requireActiveUser("Log in to delete this post.");
+  const auth = await getActiveUser("Log in to delete this post.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "post:delete",

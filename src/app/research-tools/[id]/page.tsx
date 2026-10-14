@@ -61,7 +61,8 @@ const ResearchToolDetailPage = async ({
   // Define the delete action outside of the JSX
   async function handleDelete() {
     "use server";
-    await deleteResearchTool(tool!.id);
+    const res = await deleteResearchTool(tool!.id);
+    if (res?.success === false) return res;
     return {
       redirect: "/research-tools",
       invalidateQueries: [["researchTools"]],

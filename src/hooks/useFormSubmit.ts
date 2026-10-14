@@ -74,7 +74,15 @@ export function useFormSubmit(
                         return true;
                     } else {
                         // Server returned error
-                        toast(r.error || errorMessage, "error");
+                        // Frozen / deleted account refusals come back as
+                        // `{ success: false, message }` from getActiveUser.
+                        const serverMessage = (r as { message?: unknown }).message;
+                        toast(
+                            r.error ||
+                                (typeof serverMessage === "string" ? serverMessage : "") ||
+                                errorMessage,
+                            "error",
+                        );
                     }
                 }
                 // If no result (action did redirect or threw), the catch block handles it

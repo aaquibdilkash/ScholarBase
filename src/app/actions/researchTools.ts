@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -91,7 +91,9 @@ export async function createResearchTool(formData: FormData) {
 }
 
 export async function updateResearchTool(formData: FormData, toolId: string) {
-  const user = await requireActiveUser("Log in to edit this research tool.");
+  const auth = await getActiveUser("Log in to edit this research tool.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "research-tool:edit", key: user.id, limit: 20, window: "10 m" });
 
   const name = readFormValue(formData, "name");
@@ -125,7 +127,9 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 }
 
 export async function deleteResearchTool(toolId: string) {
-  const user = await requireActiveUser("Log in to delete this research tool.");
+  const auth = await getActiveUser("Log in to delete this research tool.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "research-tool:delete", key: user.id, limit: 20, window: "10 m" });
 
   const tool = await prisma.researchTool.findUnique({

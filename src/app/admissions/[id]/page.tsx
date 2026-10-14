@@ -63,7 +63,8 @@ const AdmissionDetailPage = async ({
 
   async function handleDelete() {
     "use server";
-    await deletePhdAdmission(admission!.id);
+    const res = await deletePhdAdmission(admission!.id);
+    if (res?.success === false) return res;
     return { redirect: "/admissions", invalidateQueries: [["admissions"]] };
   }
 

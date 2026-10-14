@@ -74,7 +74,8 @@ export default async function CourseDetailPage({
 
   async function handleDelete() {
     "use server";
-    await deleteCourse(course!.id);
+    const res = await deleteCourse(course!.id);
+    if (res?.success === false) return res;
     return { redirect: "/learn", invalidateQueries: [["courses"]] };
   }
 

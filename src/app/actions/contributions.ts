@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
@@ -223,7 +223,9 @@ export async function updateContribution(
   contributionId: string,
   formData: FormData,
 ) {
-  const user = await requireActiveUser("Log in to edit this contribution.");
+  const auth = await getActiveUser("Log in to edit this contribution.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "contribution:edit", key: user.id, limit: 20, window: "10 m" });
 
   const existingContribution = await prisma.contribution.findUnique({
@@ -299,7 +301,9 @@ export async function updateContribution(
 }
 
 export async function deleteContribution(contributionId: string) {
-  const user = await requireActiveUser("Log in to delete this contribution.");
+  const auth = await getActiveUser("Log in to delete this contribution.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "contribution:delete", key: user.id, limit: 20, window: "10 m" });
 
   const contribution = await prisma.contribution.findUnique({

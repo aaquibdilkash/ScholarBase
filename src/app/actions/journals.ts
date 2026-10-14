@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isSearchableQuery } from "@/lib/search-guard";
 import { allowSearchRequest } from "@/lib/search-rate-limit";
@@ -161,7 +161,9 @@ export async function createJournal(formData: FormData) {
 }
 
 export async function updateJournal(formData: FormData, journalId: string) {
-  const user = await requireActiveUser("Log in to edit this journal.");
+  const auth = await getActiveUser("Log in to edit this journal.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "journal:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
@@ -240,7 +242,9 @@ export async function updateJournal(formData: FormData, journalId: string) {
 }
 
 export async function deleteJournal(journalId: string) {
-  const user = await requireActiveUser("Log in to delete this journal.");
+  const auth = await getActiveUser("Log in to delete this journal.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "journal:delete", key: user.id, limit: 20, window: "10 m" });
 
   const journal = await prisma.journal.findUnique({

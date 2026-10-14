@@ -69,7 +69,8 @@ const VacancyDetailPage = async ({
             editHref={`/vacancies/${vacancy.id}/edit`}
             onDelete={async () => {
               "use server";
-              await deleteJobVacancy(vacancy.id);
+              const res = await deleteJobVacancy(vacancy.id);
+              if (res?.success === false) return res;
               return {
                 redirect: "/vacancies",
                 invalidateQueries: [["vacancies"]],

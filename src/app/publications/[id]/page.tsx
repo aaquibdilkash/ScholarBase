@@ -82,7 +82,8 @@ const PublicationDetailPage = async ({
 
   async function handleDelete() {
     "use server";
-    await deletePublication(p.id);
+    const res = await deletePublication(p.id);
+    if (res?.success === false) return res;
     return { redirect: "/publications", invalidateQueries: [["publications"]] };
   }
 

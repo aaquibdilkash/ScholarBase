@@ -55,7 +55,8 @@ export default async function ArticlePage({
 
   async function handleDelete() {
     "use server";
-    await deleteArticle(a.id);
+    const res = await deleteArticle(a.id);
+    if (res?.success === false) return res;
     return { redirect: "/blog", invalidateQueries: [["articles"]] };
   }
 

@@ -79,7 +79,8 @@ const JournalDetailPage = async ({
 
   async function handleDelete() {
     "use server";
-    await deleteJournal(j.id);
+    const res = await deleteJournal(j.id);
+    if (res?.success === false) return res;
     return { redirect: "/journals", invalidateQueries: [["journals"]] };
   }
 

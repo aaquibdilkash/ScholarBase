@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
@@ -174,7 +174,9 @@ export async function createResult(formData: FormData) {
 }
 
 export async function updateResult(formData: FormData, resultId: string) {
-  const user = await requireActiveUser("Log in to edit this result.");
+  const auth = await getActiveUser("Log in to edit this result.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "result:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
@@ -223,7 +225,9 @@ export async function updateResult(formData: FormData, resultId: string) {
 }
 
 export async function deleteResult(resultId: string) {
-  const user = await requireActiveUser("Log in to delete this result.");
+  const auth = await getActiveUser("Log in to delete this result.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "result:delete", key: user.id, limit: 20, window: "10 m" });
 
   const result = await prisma.result.findUnique({
