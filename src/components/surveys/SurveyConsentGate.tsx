@@ -23,7 +23,7 @@ export function SurveyConsentGate({
           Informed Consent
         </h3>
       </div>
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-indigo-800 dark:text-indigo-300">
+      <p className="whitespace-pre-wrap break-words break-all text-sm leading-relaxed text-indigo-800 dark:text-indigo-300">
         {consentText ||
           "By participating, you agree that your responses may be used for research purposes."}
       </p>

@@ -111,7 +111,7 @@ export function SurveyQuestionInput({
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                 required={question.required}
               />
-              <span className="break-words text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="break-words break-all text-sm font-medium text-slate-700 dark:text-slate-300">
                 {opt.label}
               </span>
             </label>
@@ -140,7 +140,7 @@ export function SurveyQuestionInput({
                   onChange={(e) => onCheckboxChange(opt.value, e.target.checked)}
                   className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500"
                 />
-                <span className="break-words text-sm font-medium text-slate-700 dark:text-slate-300">
+                <span className="break-words break-all text-sm font-medium text-slate-700 dark:text-slate-300">
                   {opt.label}
                 </span>
               </label>
@@ -190,7 +190,7 @@ case "DROPDOWN":
                   key={row.id ?? row.value}
                   className="border-t border-slate-100 dark:border-slate-700"
                 >
-                  <td className="py-2 pr-2 break-words text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <td className="py-2 pr-2 break-words break-all text-sm font-medium text-slate-700 dark:text-slate-300">
                     {row.label}
                   </td>
                   {columns.map((_, ci) => (
@@ -280,7 +280,7 @@ case "LINEAR_SCALE": {
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
                 required={question.required}
               />
-              <span className="break-words text-sm font-medium text-slate-700 dark:text-slate-300">
+              <span className="break-words break-all text-sm font-medium text-slate-700 dark:text-slate-300">
                 {opt.label}
               </span>
             </label>
