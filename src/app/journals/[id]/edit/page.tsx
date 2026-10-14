@@ -39,6 +39,9 @@ export default async function EditJournalPage({
       publisher: true,
       website: true,
       about: true,
+      subjectArea: true,
+      frequency: true,
+      openAccess: true,
       authorId: true,
     },
   });
@@ -76,6 +79,9 @@ export default async function EditJournalPage({
           publisher: journal.publisher ?? "",
           website: journal.website ?? "",
           about: journal.about ?? "",
+          subjectArea: journal.subjectArea ?? "",
+          frequency: journal.frequency ?? "",
+          openAccess: journal.openAccess ?? "UNKNOWN",
         }}
       />
     </CreateOrEditPageShell>

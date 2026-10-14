@@ -514,8 +514,13 @@ html[data-theme="dark"] {
   .border-slate-300 { border-color: var(--border-strong) !important; }
 
   .metric-card {
-    @apply rounded-xl border border-transparent p-3;
+    @apply rounded-xl border border-transparent p-3 min-w-0;
     background: var(--surface-grad-metric);
+    /* A long unbroken value (e.g. a URL pasted into Publisher) must wrap
+       inside the 2-col grid instead of spilling over the neighbour card.
+       `anywhere` (not `break-word`) is required because it also shrinks the
+       min-content contribution, letting the grid item actually wrap. */
+    overflow-wrap: anywhere;
   }
 
   html.dark .sb-surface,

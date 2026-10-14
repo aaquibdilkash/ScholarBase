@@ -168,6 +168,11 @@ export function JournalCard({
         )}
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+          {journal.subjectArea && (
+            <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+              {journal.subjectArea}
+            </span>
+          )}
           {journal.publisher && (
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
               {journal.publisher}

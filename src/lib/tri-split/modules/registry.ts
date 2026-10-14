@@ -399,6 +399,7 @@ export const CONTENT_LIST_CONFIGS = {
       id: true,
       title: true,
       publisher: true,
+      subjectArea: true,
       impactFactor: true,
       website: true,
       createdAt: true,

@@ -167,6 +167,16 @@ const JournalDetailPage = async ({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {j.subjectArea && (
+          <div className="metric-card bg-indigo-50">
+            <p className="text-xs text-indigo-500 font-medium uppercase tracking-wider">
+              Subject Area
+            </p>
+            <p className="text-sm font-semibold text-indigo-800 mt-1">
+              {j.subjectArea}
+            </p>
+          </div>
+        )}
         {j.publisher && (
           <div className="metric-card bg-cyan-50">
             <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
