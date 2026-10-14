@@ -841,7 +841,15 @@ export function CommentThread({
                           : replies.length === 0
                             ? "View replies"
                             : "View all replies"
-                    } (${comment.totalReplies ?? 0})`}
+                    } (${
+                      // While another page exists, count DOWN what's left
+                      // (total minus loaded) so the badge shrinks with every
+                      // page fetched; once every reply is in, settle on the
+                      // full total.
+                      hasMoreReplies
+                        ? Math.max(0, (comment.totalReplies ?? 0) - replies.length)
+                        : (comment.totalReplies ?? 0)
+                    })`}
               </button>
             )}
 
