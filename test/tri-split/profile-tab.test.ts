@@ -28,6 +28,9 @@ vi.mock("@/lib/auth", () => ({
   requireActiveUser: vi.fn(async () => {
     throw new Error("not used");
   }),
+  getActiveUser: vi.fn(async () => {
+    throw new Error("not used");
+  }),
 }));
 
 const userFindUnique = vi.fn(async () => ({ articleCount: 4, socialPostCount: 2 }));

@@ -20,6 +20,9 @@ vi.mock("@/lib/auth", () => ({
   requireActiveUser: vi.fn(async () => {
     throw new Error("not used");
   }),
+  getActiveUser: vi.fn(async () => {
+    throw new Error("not used");
+  }),
 }));
 
 // `profile.ts` imports these for the edit-profile path, which none of these

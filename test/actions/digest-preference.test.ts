@@ -35,6 +35,14 @@ vi.mock("@/lib/auth", () => ({
     if (!session) throw new Error("Not logged in");
     return session;
   }),
+  requireCurrentUser: vi.fn(async () => {
+    if (!session) throw new Error("Not logged in");
+    return session;
+  }),
+  getActiveUser: vi.fn(async () => {
+    if (!session) throw new Error("Not logged in");
+    return { frozen: false, user: session };
+  }),
 }));
 
 const row = (id = USER) => fakeDb.rows("user").find((u) => u.id === id)!;
