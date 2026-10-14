@@ -138,11 +138,11 @@ export async function updateCourse(formData: FormData, courseId: string) {
 
   return { success: true, data: updatedCourse };
 }
+
+export async function deleteCourse(courseId: string) {
   const auth = await getActiveUser("Log in to delete this course.");
   if (auth.frozen) return { success: false, message: auth.message };
   const user = auth.user;
-export async function deleteCourse(courseId: string) {
-  const user = await requireActiveUser("Log in to delete this course.");
   await enforceRateLimit({ namespace: "course:delete", key: user.id, limit: 20, window: "10 m" });
 
   const course = await prisma.course.findUnique({

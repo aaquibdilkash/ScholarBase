@@ -813,11 +813,11 @@ export async function deleteSurvey(surveyId: string) {
 
   return { success: true, data: { deletedId: surveyId } };
 }
+
+export async function closeSurvey(surveyId: string) {
   const auth = await getActiveUser("Log in to close this survey.");
   if (auth.frozen) return { success: false, message: auth.message };
   const user = auth.user;
-export async function closeSurvey(surveyId: string) {
-  const user = await requireActiveUser("Log in to close this survey.");
   await enforceRateLimit({ namespace: "survey:edit", key: user.id, limit: 20, window: "10 m" });
 
   const survey = await prisma.researchSurvey.findUnique({

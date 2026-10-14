@@ -133,7 +133,9 @@ export default function ContributionForm({
             );
           }
           toast("Contribution updated successfully!");
-          router.push(`/contributions/${result.data.id}`);
+          router.push(`/contributions/${result.data?.id ?? contributionId}`);
+        } else if (result && "message" in result && result.message) {
+          toast(result.message, "error");
         }
       } else {
         const result = await createContribution(formData);
