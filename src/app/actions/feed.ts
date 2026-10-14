@@ -361,11 +361,8 @@ export async function createSocialPost(formData: FormData) {
 }
 
 export async function updateSocialPost(formData: FormData, postId: string) {
-  const auth = await getActiveUser("Log in to edit this post.");
-  if (auth.frozen) {
-    return { success: false, message: "Your account is frozen. Editing is disabled." };
-  }
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this post.");
 
   try {
     const rateLimit = await checkRateLimit({

@@ -668,9 +668,8 @@ export async function editMessage(
   messageId: string,
   newBody: string,
 ): Promise<SubmitResult | (CreatedMessage & { editedAt: Date | null })> {
-  const auth = await getActiveUser("Please log in to edit a message.");
-  if (auth.frozen) return { success: false, error: auth.message };
-  const supabaseUser = auth.user;
+  // Frozen users may edit (to correct content before appealing).
+  const supabaseUser = await requireCurrentUser("Please log in to edit a message.");
 
   const rateLimit = await checkRateLimit({
     namespace: "message:edit",

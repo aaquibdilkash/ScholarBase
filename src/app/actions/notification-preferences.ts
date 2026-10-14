@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { getActiveUser, requireCurrentUser } from "@/lib/auth";
+import { requireCurrentUser } from "@/lib/auth";
 
 /**
  * The three digest cadences. Mirrors the `DigestPreference` enum, but as a
@@ -33,13 +33,10 @@ type DigestPreferenceResult =
 export async function updateDigestPreference(
   preference: string,
 ): Promise<DigestPreferenceResult> {
-  const auth = await getActiveUser(
+  // An update to the caller's own settings: frozen users are allowed.
+  const user = await requireCurrentUser(
     "You must be logged in to change your digest preference.",
   );
-  if (auth.frozen) {
-    return { success: false, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
 
   const normalized = preference?.trim().toUpperCase() as DigestPreferenceInput;
   if (!VALID_PREFERENCES.includes(normalized)) {

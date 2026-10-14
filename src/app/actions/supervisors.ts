@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
@@ -304,9 +304,8 @@ export async function updateSupervisor(
   formData: FormData,
   supervisorId: string,
 ) {
-  const auth = await getActiveUser("Log in to edit this supervisor.");
-  if (auth.frozen) return { success: false as const, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this supervisor.");
   await enforceRateLimit({ namespace: "supervisor:edit", key: user.id, limit: 20, window: "10 m" });
 
   const name = readFormValue(formData, "name");

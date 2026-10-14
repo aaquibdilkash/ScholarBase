@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
@@ -190,9 +190,8 @@ export async function createHelpPost(formData: FormData) {
 }
 
 export async function updateHelpPost(formData: FormData, helpPostId: string) {
-  const auth = await getActiveUser("You must be logged in to update a post.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("You must be logged in to update a post.");
   await enforceRateLimit({ namespace: "help:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = formData.get("title") as string;

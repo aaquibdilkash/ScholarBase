@@ -2,7 +2,7 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
 import {
@@ -266,11 +266,8 @@ export async function editComment(
   commentId: string,
   type: CommentEntityType,
 ) {
-  const auth = await getActiveUser("Log in to edit this comment.");
-  if (auth.frozen) {
-    return { success: false, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this comment.");
 
   const editRateLimit = await checkRateLimit({
     namespace: `comment:edit:${type}`,
