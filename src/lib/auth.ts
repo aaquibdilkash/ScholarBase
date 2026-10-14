@@ -37,6 +37,11 @@ export async function requireCurrentUser(message = 'Please log in to continue.')
 }
 
 /**
+ * @internal ADMIN-ONLY. Do NOT use in user-facing server actions — use
+ * `getActiveUser` and return `{ success: false, message }` when
+ * `auth.frozen` is true. A throw here surfaces as an unhandled server-action
+ * error (see Sentry SCHOLARBASE-H).
+ *
  * Same as requireCurrentUser, but additionally rejects accounts that have
  * been frozen by moderation (`user.isFrozen === true`) by THROWING.
  *

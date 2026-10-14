@@ -64,6 +64,7 @@ export function DigestPreferenceForm({
           toast("Digest preference updated", "success");
         } else {
           setError(result.error);
+          toast(result.message || result.error, "error");
           setSelected(current);
         }
       } catch {

@@ -38,6 +38,14 @@ vi.mock("@/lib/auth", () => ({
     if (!session) throw new Error("Not logged in");
     return session;
   }),
+  requireCurrentUser: vi.fn(async () => {
+    if (!session) throw new Error("Not logged in");
+    return session;
+  }),
+  getActiveUser: vi.fn(async () => {
+    if (!session) throw new Error("Not logged in");
+    return { frozen: false, user: session };
+  }),
 }));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ "x-forwarded-for": "203.0.113.7" }),

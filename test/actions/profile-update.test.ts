@@ -34,6 +34,14 @@ vi.mock("@/lib/auth", () => ({
     if (!mockCurrentUser) throw new Error("Not logged in");
     return mockCurrentUser;
   }),
+  requireCurrentUser: vi.fn(async () => {
+    if (!mockCurrentUser) throw new Error("Not logged in");
+    return mockCurrentUser;
+  }),
+  getActiveUser: vi.fn(async () => {
+    if (!mockCurrentUser) throw new Error("Not logged in");
+    return { frozen: false, user: mockCurrentUser };
+  }),
   getCurrentUser: vi.fn(async () => mockCurrentUser),
   isUserAdmin: vi.fn(async () => false),
 }));

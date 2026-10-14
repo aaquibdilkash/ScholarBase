@@ -74,7 +74,8 @@ export default async function SupervisorPage({
 
   async function handleDelete() {
     "use server";
-    await deleteSupervisor(supervisor!.id);
+    const res = await deleteSupervisor(supervisor!.id);
+    if (res?.success === false) return res;
     return { redirect: "/supervisor", invalidateQueries: [["supervisors"]] };
   }
 

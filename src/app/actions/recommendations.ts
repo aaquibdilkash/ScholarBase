@@ -5,7 +5,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { Prisma } from "@prisma/client";
-import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
@@ -225,11 +225,8 @@ export async function updateRecommendation(
   formData: FormData,
   recommendationId: string,
 ) {
-  const auth = await getActiveUser("Log in to edit this recommendation.");
-  if (auth.frozen) {
-    return { success: false as const, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this recommendation.");
   await enforceRateLimit({ namespace: "recommendation:edit", key: user.id, limit: 20, window: "10 m" });
 
   const feedback = readFormValue(formData, "feedback");

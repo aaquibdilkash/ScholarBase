@@ -35,6 +35,14 @@ vi.mock("@/lib/auth", () => ({
     if (!session) throw new Error("You must be logged in.");
     return { id: session.id };
   }),
+  requireCurrentUser: vi.fn(async () => {
+    if (!session) throw new Error("You must be logged in.");
+    return { id: session.id };
+  }),
+  getActiveUser: vi.fn(async () => {
+    if (!session) throw new Error("You must be logged in.");
+    return { frozen: false, user: { id: session.id } };
+  }),
 }));
 
 vi.mock("@/utils/supabase/server", () => ({

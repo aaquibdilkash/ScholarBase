@@ -1,7 +1,7 @@
 "use server";
 
 import { v2 as cloudinary } from "cloudinary";
-import { requireActiveUser } from "@/lib/auth";
+import { getActiveUser } from "@/lib/auth";
 import {
   deleteCloudinaryAsset,
   getCloudinaryPublicId,
@@ -30,11 +30,15 @@ export type UploadResult = {
   format: string;
 };
 
+export type FrozenActionResult = { success: false; message: string };
+
 export async function uploadImage(
   formData: FormData,
   kind: UploadKind,
-): Promise<UploadResult> {
-  const user = await requireActiveUser();
+): Promise<UploadResult | FrozenActionResult> {
+  const auth = await getActiveUser();
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
 
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("No file provided");
@@ -140,10 +144,12 @@ export async function uploadImage(
 
 export async function deleteDraftImage(
   imageUrl: string | null | undefined,
-): Promise<boolean> {
+): Promise<boolean | FrozenActionResult> {
   if (!imageUrl) return true;
 
-  const user = await requireActiveUser("Log in to delete draft images.");
+  const auth = await getActiveUser("Log in to delete draft images.");
+  if (auth.frozen) return { success: false, message: auth.message };
+  const user = auth.user;
   const publicId = getCloudinaryPublicId(imageUrl);
   const draftFolders = [
     getUserImageFolder(user.id, "avatar", true),

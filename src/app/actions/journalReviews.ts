@@ -5,7 +5,7 @@ import { cache } from "react";
 import { Prisma, JournalOutcome } from "@prisma/client";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
@@ -349,11 +349,8 @@ export async function updateJournalReview(
   formData: FormData,
   reviewId: string,
 ) {
-  const auth = await getActiveUser("Log in to edit this review.");
-  if (auth.frozen) {
-    return { success: false as const, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this review.");
   await enforceRateLimit({
     namespace: "journalReview:edit",
     key: user.id,
