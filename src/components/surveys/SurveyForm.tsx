@@ -456,11 +456,11 @@ export default function SurveyForm({
                 <ChevronUp className="h-4 w-4" />
               )}
             </button>
-            <h3 className="break-words text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+            <h3 className="min-w-0 break-words text-sm font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">
               {block ? block.title : "General questions"}
             </h3>
           </div>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
             {sectionQuestions.length === 1
               ? "1 question"
               : `${sectionQuestions.length} questions`}
