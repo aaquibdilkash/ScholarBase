@@ -302,11 +302,11 @@ export async function createSupervisor(formData: FormData) {
 
 export async function updateSupervisor(
   formData: FormData,
+  supervisorId: string,
+) {
   const auth = await getActiveUser("Log in to edit this supervisor.");
   if (auth.frozen) return { success: false as const, message: auth.message };
   const user = auth.user;
-) {
-  const user = await requireCurrentUser("Log in to edit this supervisor.");
   await enforceRateLimit({ namespace: "supervisor:edit", key: user.id, limit: 20, window: "10 m" });
 
   const name = readFormValue(formData, "name");
@@ -353,11 +353,11 @@ export async function updateSupervisor(
 
   return { success: true as const, data: updatedSupervisor };
 }
+
+export async function deleteSupervisor(supervisorId: string) {
   const auth = await getActiveUser("Log in to delete this supervisor.");
   if (auth.frozen) return { success: false as const, message: auth.message };
   const user = auth.user;
-export async function deleteSupervisor(supervisorId: string) {
-  const user = await requireCurrentUser("Log in to delete this supervisor.");
   await enforceRateLimit({ namespace: "supervisor:delete", key: user.id, limit: 20, window: "10 m" });
 
   const supervisor = await prisma.supervisor.findUnique({
