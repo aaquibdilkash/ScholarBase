@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { requireActiveUser } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser } from "@/lib/auth";
 
 /**
  * The three digest cadences. Mirrors the `DigestPreference` enum, but as a
@@ -14,7 +14,7 @@ type DigestPreferenceInput = (typeof VALID_PREFERENCES)[number];
 
 type DigestPreferenceResult =
   | { success: true; data: { digestPreference: DigestPreferenceInput } }
-  | { success: false; error: string };
+  | { success: false; error: string; message?: string };
 
 /**
  * Sets the caller's own digest cadence.
@@ -33,9 +33,13 @@ type DigestPreferenceResult =
 export async function updateDigestPreference(
   preference: string,
 ): Promise<DigestPreferenceResult> {
-  const user = await requireActiveUser(
+  const auth = await getActiveUser(
     "You must be logged in to change your digest preference.",
   );
+  if (auth.frozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const user = auth.user;
 
   const normalized = preference?.trim().toUpperCase() as DigestPreferenceInput;
   if (!VALID_PREFERENCES.includes(normalized)) {
@@ -65,7 +69,9 @@ export async function updateDigestPreference(
 
 /** The current caller's cadence, for rendering the initial radio state. */
 export async function getDigestPreference(): Promise<DigestPreferenceInput> {
-  const user = await requireActiveUser(
+  // Read-only private state: frozen users may still view their own settings
+  // (throwing here would crash the settings page render for them).
+  const user = await requireCurrentUser(
     "You must be logged in to view your digest preference.",
   );
   const row = await prisma.user.findUnique({

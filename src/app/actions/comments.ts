@@ -2,7 +2,7 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth";
-import { requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { readFormValue } from "@/lib/form";
 import {
@@ -266,7 +266,11 @@ export async function editComment(
   commentId: string,
   type: CommentEntityType,
 ) {
-  const user = await requireActiveUser("Log in to edit this comment.");
+  const auth = await getActiveUser("Log in to edit this comment.");
+  if (auth.frozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const user = auth.user;
 
   const editRateLimit = await checkRateLimit({
     namespace: `comment:edit:${type}`,
@@ -354,9 +358,11 @@ export async function deleteComment(
   commentId: string,
   type: CommentEntityType,
 ) {
-  const { id: userId } = await requireActiveUser(
-    "You must be logged in to delete comments.",
-  );
+  const auth = await getActiveUser("You must be logged in to delete comments.");
+  if (auth.frozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const userId = auth.user.id;
 
   const deleteRateLimit = await checkRateLimit({
     namespace: `comment:delete:${type}`,

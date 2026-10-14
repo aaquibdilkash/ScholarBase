@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 
 import prisma from "@/lib/db";
-import { requireActiveUser } from "@/lib/auth";
+import { getActiveUser } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/url";
 import { sendInstitutionVerificationEmail } from "@/lib/email";
 import {
@@ -29,7 +29,12 @@ const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
 
 type InstitutionVerificationResult =
   | { success: true; message: string }
-  | { success: false; error: string; code?: "EMAIL_DOMAIN_NOT_ALLOWED" };
+  | {
+      success: false;
+      error: string;
+      message?: string;
+      code?: "EMAIL_DOMAIN_NOT_ALLOWED";
+    };
 
 function readField(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -43,9 +48,13 @@ function hashToken(token: string): string {
 export async function requestInstitutionVerification(
   formData: FormData,
 ): Promise<InstitutionVerificationResult> {
-  const supabaseUser = await requireActiveUser(
+  const auth = await getActiveUser(
     "You must be logged in to verify an institutional email.",
   );
+  if (auth.frozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const supabaseUser = auth.user;
   const institutionEmail = normalizeEmail(readField(formData, "institutionEmail"));
 
   if (

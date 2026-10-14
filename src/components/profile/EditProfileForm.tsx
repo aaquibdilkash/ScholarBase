@@ -120,7 +120,13 @@ export default function EditProfileForm({ user }: { user: UserData }) {
     if (h.length > 2) {
       setIsCheckingHandle(true);
       const available = await checkHandle(h);
-      setIsHandleAvailable(available);
+      if (typeof available === "object") {
+        // Graceful rejection (e.g. frozen account).
+        setIsHandleAvailable(null);
+        toast(available.message, "error");
+      } else {
+        setIsHandleAvailable(available);
+      }
       setIsCheckingHandle(false);
     } else {
       setIsHandleAvailable(null);

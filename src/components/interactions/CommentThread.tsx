@@ -336,9 +336,15 @@ function CommentCard({
     try {
       const response = await editComment(formData, comment.id, module);
       if (!response?.success || !response.data) {
+        const serverMessage =
+          response && "message" in response && typeof response.message === "string"
+            ? response.message
+            : response && "error" in response && typeof response.error === "string"
+              ? response.error
+              : "";
         toast({
           title: "Error",
-          description: "Failed to update comment. Please try again.",
+          description: serverMessage || "Failed to update comment. Please try again.",
           variant: "destructive",
         });
         return;
@@ -377,7 +383,13 @@ function CommentCard({
         onCountDelta(-1);
         toast({ title: "Success", description: "Comment Deleted!" });
       } else {
-        throw new Error("Unknown error");
+        const serverMessage =
+          response && "message" in response && typeof response.message === "string"
+            ? response.message
+            : response && "error" in response && typeof response.error === "string"
+              ? response.error
+              : "";
+        throw new Error(serverMessage || "Unknown error");
       }
     } catch (e: unknown) {
       const message =

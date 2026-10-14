@@ -3,7 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
-import { getCurrentUser, requireActiveUser } from "@/lib/auth";
+import { getCurrentUser, getActiveUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
   deleteCloudinaryAsset,
@@ -316,9 +316,11 @@ export async function getProfileActivity(
 }
 
 export async function updateProfile(formData: FormData) {
-  const supabaseUser = await requireActiveUser(
+  const auth = await getActiveUser(
     "You must be logged in to update your profile.",
   );
+  if (auth.frozen) return { success: false, message: auth.message };
+  const supabaseUser = auth.user;
 
   const user = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
@@ -348,6 +350,7 @@ export async function updateProfile(formData: FormData) {
 
   if (newHandle) {
     const handleAvailable = await isHandleAvailable(newHandle);
+    if (typeof handleAvailable === "object") return handleAvailable;
     if (!handleAvailable) {
       return {
         success: false,
@@ -406,10 +409,14 @@ export async function updateProfile(formData: FormData) {
   };
 }
 
-export async function isHandleAvailable(handle: string) {
-  const supabaseUser = await requireActiveUser(
+export async function isHandleAvailable(
+  handle: string,
+): Promise<boolean | { success: false; message: string }> {
+  const auth = await getActiveUser(
     "You must be logged in to check handle availability.",
   );
+  if (auth.frozen) return { success: false, message: auth.message };
+  const supabaseUser = auth.user;
   const normalizedHandle = normalizeHandle(handle);
   const user = await prisma.user.findFirst({
     where: {
