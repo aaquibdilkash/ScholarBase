@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { requireCurrentUser, requireActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
@@ -239,7 +239,9 @@ export async function getSupervisorRecommendationMeta(
 }
 
 export async function createSupervisor(formData: FormData) {
-  const user = await requireActiveUser("Log in to add a supervisor entry.");
+  const auth = await getActiveUser("Log in to add a supervisor entry.");
+  if (auth.frozen) return { success: false as const, message: auth.message };
+  const user = auth.user;
   await enforceRateLimit({ namespace: "supervisor:create", key: user.id, limit: 10, window: "10 m" });
 
   const name = readFormValue(formData, "name");
@@ -295,12 +297,14 @@ export async function createSupervisor(formData: FormData) {
   // Purge the cached supervisor pages: publish must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", user.id);
 
-  return { success: true, data: supervisor };
+  return { success: true as const, data: supervisor };
 }
 
 export async function updateSupervisor(
   formData: FormData,
-  supervisorId: string,
+  const auth = await getActiveUser("Log in to edit this supervisor.");
+  if (auth.frozen) return { success: false as const, message: auth.message };
+  const user = auth.user;
 ) {
   const user = await requireCurrentUser("Log in to edit this supervisor.");
   await enforceRateLimit({ namespace: "supervisor:edit", key: user.id, limit: 20, window: "10 m" });
@@ -347,9 +351,11 @@ export async function updateSupervisor(
   // Purge the cached supervisor pages: edit must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", supervisor.authorId);
 
-  return { success: true, data: updatedSupervisor };
+  return { success: true as const, data: updatedSupervisor };
 }
-
+  const auth = await getActiveUser("Log in to delete this supervisor.");
+  if (auth.frozen) return { success: false as const, message: auth.message };
+  const user = auth.user;
 export async function deleteSupervisor(supervisorId: string) {
   const user = await requireCurrentUser("Log in to delete this supervisor.");
   await enforceRateLimit({ namespace: "supervisor:delete", key: user.id, limit: 20, window: "10 m" });
@@ -389,5 +395,5 @@ export async function deleteSupervisor(supervisorId: string) {
   // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", supervisor.authorId);
 
-  return { success: true, data: { deletedId: supervisorId } };
+  return { success: true as const, data: { deletedId: supervisorId } };
 }

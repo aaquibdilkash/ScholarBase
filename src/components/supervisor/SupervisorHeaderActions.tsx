@@ -78,9 +78,20 @@ export function SupervisorHeaderActions({
     if (pendingDelete === "supervisor") {
       startDeleteTransition(async () => {
         const result = (await onDeleteSupervisor()) as
-          | { redirect?: string; refresh?: boolean; invalidateQueries?: unknown[][] }
+          | {
+              redirect?: string;
+              refresh?: boolean;
+              invalidateQueries?: unknown[][];
+              success?: boolean;
+              message?: string;
+            }
           | undefined;
         setPendingDelete(null);
+        if (result?.success === false) {
+          // e.g. frozen account: server returned a graceful rejection.
+          toast(result.message || "Failed to delete supervisor.", "error");
+          return;
+        }
         invalidateProfileTabs(queryClient, "content", "activity");
         if (result?.redirect) {
           result.invalidateQueries?.forEach((key) =>
