@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getCurrentUser, requireCurrentUser, requireActiveUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getCurrentUser, requireCurrentUser, getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { readFormValue } from "@/lib/form";
 import {
   checkRateLimit,
@@ -361,11 +361,8 @@ export async function createSocialPost(formData: FormData) {
 }
 
 export async function updateSocialPost(formData: FormData, postId: string) {
-  const auth = await getActiveUser("Log in to edit this post.");
-  if (auth.frozen) {
-    return { success: false, message: "Your account is frozen. Editing is disabled." };
-  }
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this post.");
 
   try {
     const rateLimit = await checkRateLimit({
@@ -596,9 +593,11 @@ export async function createSocialPostComment(
 }
 
 export async function deleteSocialPostComment(commentId: string) {
-  const user = await requireActiveUser(
-    "You must be logged in to delete comments.",
-  );
+  const auth = await getActiveUser("You must be logged in to delete comments.");
+  if (auth.frozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const user = auth.user;
   const rateLimit = await checkRateLimit({
     namespace: "post-comment:delete",
     key: user.id,

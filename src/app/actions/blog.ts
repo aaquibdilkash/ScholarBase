@@ -6,7 +6,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, slugify, assertRichTextWithinLimit } from "@/lib/form";
 import {
@@ -205,9 +205,8 @@ export async function createArticle(formData: FormData) {
 }
 
 export async function updateArticle(formData: FormData, articleId: string) {
-  const auth = await getActiveUser("Log in to edit this article.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this article.");
   await enforceRateLimit({ namespace: "article:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");

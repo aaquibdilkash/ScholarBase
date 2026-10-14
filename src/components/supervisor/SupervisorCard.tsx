@@ -50,8 +50,12 @@ export function SupervisorCard({
             onDelete={async () => {
               try {
                 const response = await deleteSupervisor(supervisor.id);
-                if (!response?.success || !response.data) {
-                  toast("Failed to delete supervisor.", "error");
+                if (!response?.success) {
+                  toast(
+                    (response && "message" in response && response.message) ||
+                      "Failed to delete supervisor.",
+                    "error",
+                  );
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

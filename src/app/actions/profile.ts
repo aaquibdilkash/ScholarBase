@@ -3,7 +3,7 @@
 import { cache } from "react";
 
 import prisma from "@/lib/db";
-import { getCurrentUser, requireActiveUser } from "@/lib/auth";
+import { getCurrentUser, requireCurrentUser } from "@/lib/auth";
 import { normalizeHandle, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import {
   deleteCloudinaryAsset,
@@ -316,7 +316,8 @@ export async function getProfileActivity(
 }
 
 export async function updateProfile(formData: FormData) {
-  const supabaseUser = await requireActiveUser(
+  // Frozen users may edit their profile (to correct it before appealing).
+  const supabaseUser = await requireCurrentUser(
     "You must be logged in to update your profile.",
   );
 
@@ -406,8 +407,8 @@ export async function updateProfile(formData: FormData) {
   };
 }
 
-export async function isHandleAvailable(handle: string) {
-  const supabaseUser = await requireActiveUser(
+export async function isHandleAvailable(handle: string): Promise<boolean> {
+  const supabaseUser = await requireCurrentUser(
     "You must be logged in to check handle availability.",
   );
   const normalizedHandle = normalizeHandle(handle);

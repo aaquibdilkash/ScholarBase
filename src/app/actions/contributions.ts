@@ -223,9 +223,8 @@ export async function updateContribution(
   contributionId: string,
   formData: FormData,
 ) {
-  const auth = await getActiveUser("Log in to edit this contribution.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this contribution.");
   await enforceRateLimit({ namespace: "contribution:edit", key: user.id, limit: 20, window: "10 m" });
 
   const existingContribution = await prisma.contribution.findUnique({

@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { deleteAccount } from "@/app/actions/account";
 import { ACCOUNT_RECOVERY_DAYS } from "@/lib/constants";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
+import { useToast } from "@/components/ui/Toast";
 
 export function DeleteAccountForm() {
   const router = useRouter();
+  const { toast } = useToast();
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -41,6 +43,7 @@ export function DeleteAccountForm() {
       }
       setIsModalOpen(false);
       setError(result.error);
+      toast(result.message || result.error, "error");
     } catch {
       setIsModalOpen(false);
       setError("We could not delete your account. Please try again later.");

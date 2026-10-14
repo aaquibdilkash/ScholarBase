@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { requestInstitutionVerification } from "@/app/actions/institution-verification";
 import { MAX_INSTITUTION_VERIFICATION_EMAIL } from "@/lib/constants";
+import { useToast } from "@/components/ui/Toast";
 
 const VERIFICATION_TTL_MS = 20 * 60 * 1000;
 const VERIFICATION_RESEND_COOLDOWN_MS = 60 * 1000;
@@ -22,6 +23,7 @@ export function InstitutionVerificationForm({
   pendingInstitutionEmail,
   institutionVerificationExpiresAt,
 }: InstitutionVerificationFormProps) {
+  const { toast } = useToast();
   const [institutionEmail, setInstitutionEmail] = useState(
     pendingInstitutionEmail ?? "",
   );
@@ -79,6 +81,7 @@ export function InstitutionVerificationForm({
           setNow(Date.now());
         }
       } else {
+        toast(result.message || result.error, "error");
         setError(result.error);
       }
     } catch {

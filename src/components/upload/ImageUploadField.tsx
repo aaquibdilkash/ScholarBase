@@ -87,6 +87,12 @@ export function ImageUploadField({
       fd.append("file", uploadFile);
 
       const data = await uploadImage(fd, kind);
+      if ("success" in data) {
+        // Graceful rejection (e.g. frozen account) — surface, don't throw.
+        setUploadError(data.message);
+        toast(data.message, "error");
+        return;
+      }
 
       // Replace flow: the previously selected draft is deleted. The strict
       // folder check makes this a no-op for published assets (they live
@@ -139,6 +145,11 @@ export function ImageUploadField({
     setRemoving(true);
     try {
       const deleted = await deleteDraftImage(value);
+      if (typeof deleted === "object" && deleted.success === false) {
+        // Graceful rejection (e.g. frozen account) — keep the image.
+        toast(deleted.message, "error");
+        return;
+      }
       // False means "not in the user's draft folders" — published asset whose
       // deletion is deferred to the save mutation — unless it looks like a
       // draft, in which case surface the failure and keep the image.

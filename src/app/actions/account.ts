@@ -2,19 +2,23 @@
 
 import prisma from "@/lib/db";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
-import { requireActiveUser } from "@/lib/auth";
+import { getActiveUser } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 
 type DeleteAccountResult =
   | { success: true; message: string }
-  | { success: false; error: string };
+  | { success: false; error: string; message?: string };
 
 export async function deleteAccount(
   formData: FormData,
 ): Promise<DeleteAccountResult> {
-  const user = await requireActiveUser(
+  const auth = await getActiveUser(
     "You must be logged in to delete your account.",
   );
+  if (auth.frozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const user = auth.user;
   const confirmation = formData.get("confirmation");
 
   if (confirmation !== "DELETE") {

@@ -144,8 +144,13 @@ export function AdminActionsDropdown({
   }, [inspectOpen, hasNextPage, handleLoadMore]);
 
   const mutation = useMutation({
-    mutationFn: (action: ModerationAction) =>
-      moderateContent(action, contentType, contentId),
+    mutationFn: async (action: ModerationAction) => {
+      const res = await moderateContent(action, contentType, contentId);
+      // Graceful server rejection (e.g. frozen account): route through
+      // onError so optimistic patches roll back and the message is shown.
+      if (!("data" in res)) throw new Error(res.message);
+      return res;
+    },
     // RULE 1 + Optimistic UI: patch the cached rows instantly, then sync
     // with the server truth returned by the Server Action. No refetch.
     onMutate: async (action) => {

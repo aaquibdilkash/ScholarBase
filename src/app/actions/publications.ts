@@ -12,7 +12,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, isAuthorizedOrAdmin } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
@@ -154,9 +154,8 @@ export async function updatePublication(
   formData: FormData,
   publicationId: string,
 ) {
-  const auth = await getActiveUser("Log in to edit this publication.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this publication.");
   await enforceRateLimit({ namespace: "publication:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");

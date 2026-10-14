@@ -11,7 +11,7 @@ import { cache } from "react";
 
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
-import { getActiveUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { isSearchableQuery } from "@/lib/search-guard";
 import { allowSearchRequest } from "@/lib/search-rate-limit";
@@ -161,9 +161,8 @@ export async function createJournal(formData: FormData) {
 }
 
 export async function updateJournal(formData: FormData, journalId: string) {
-  const auth = await getActiveUser("Log in to edit this journal.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may edit (to correct content before appealing).
+  const user = await requireCurrentUser("Log in to edit this journal.");
   await enforceRateLimit({ namespace: "journal:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
