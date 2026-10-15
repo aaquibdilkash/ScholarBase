@@ -164,9 +164,9 @@ describe("updateProfile", () => {
   });
 
   it("rejects an external link that is not a valid URL", async () => {
-    await expect(
-      updateProfile(form({ githubUrl: "javascript:alert(1)" })),
-    ).rejects.toThrow();
+    const result = await updateProfile(form({ githubUrl: "javascript:alert(1)" }));
+    expect(result).toMatchObject({ success: false });
+    expect(typeof (result as { success: false; message: string }).message).toBe("string");
   });
 
   it("deletes the replaced avatar from Cloudinary", async () => {
