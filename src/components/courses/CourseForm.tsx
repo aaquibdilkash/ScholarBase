@@ -259,6 +259,7 @@ export default function CourseForm({
         <input
           name="link"
           type="url"
+          pattern="https?://.+"
           placeholder="https://..."
           className="sb-input"
           required

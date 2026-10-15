@@ -159,6 +159,7 @@ export default function ResearchGrantForm({
             <input
               name="applyLink"
               type="url"
+              pattern="https?://.+"
               placeholder="https://..."
               className="sb-input"
               maxLength={MAX_RESEARCH_GRANT_APPLY_LINK}
@@ -177,6 +178,7 @@ export default function ResearchGrantForm({
             <input
               name="infoLink"
               type="url"
+              pattern="https?://.+"
               placeholder="https://..."
               className="sb-input"
               maxLength={MAX_RESEARCH_GRANT_INFO_LINK}

@@ -251,6 +251,7 @@ export default function ResultForm({
         </label>
         <input
           type="url"
+          pattern="https?://.+"
           name="notificationLink"
           placeholder="https://ugc.ac.in/notification.pdf"
           className="sb-input"
@@ -270,6 +271,7 @@ export default function ResultForm({
         </label>
         <input
           type="url"
+          pattern="https?://.+"
           name="resultLink"
           placeholder="https://ntaresults.nic.in/..."
           className="sb-input"

@@ -196,6 +196,7 @@ export default function AdmissionForm({
         </label>
         <input
           type="url"
+          pattern="https?://.+"
           name="notificationLink"
           placeholder="https://university.edu/admission-notice.pdf"
           className="sb-input"
@@ -216,6 +217,7 @@ export default function AdmissionForm({
         </label>
         <input
           type="url"
+          pattern="https?://.+"
           name="applyLink"
           placeholder="https://jmicoe.in"
           className="sb-input"

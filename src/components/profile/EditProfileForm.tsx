@@ -313,6 +313,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="githubUrl"
+              type="url"
+              pattern="https?://.+"
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
               className="sb-input px-3 py-2 sm:px-3 sm:py-2"
@@ -330,6 +332,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="orcidUrl"
+              type="url"
+              pattern="https?://.+"
               value={orcidUrl}
               onChange={(e) => setOrcidUrl(e.target.value)}
               className="sb-input px-3 py-2 sm:px-3 sm:py-2"
@@ -347,6 +351,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="linkedinUrl"
+              type="url"
+              pattern="https?://.+"
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
               className="sb-input px-3 py-2 sm:px-3 sm:py-2"
@@ -364,6 +370,8 @@ export default function EditProfileForm({ user }: { user: UserData }) {
              </label>
             <input
               name="googleScholarUrl"
+              type="url"
+              pattern="https?://.+"
               value={googleScholarUrl}
               onChange={(e) => setGoogleScholarUrl(e.target.value)}
               className="sb-input px-3 py-2 sm:px-3 sm:py-2"

@@ -122,8 +122,14 @@ export async function createPhdAdmission(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  let safeNotificationLink: string | null;
+  let safeApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -191,8 +197,14 @@ export async function updatePhdAdmission(
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  let safeNotificationLink: string | null;
+  let safeApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");

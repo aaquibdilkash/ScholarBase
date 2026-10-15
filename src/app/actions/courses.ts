@@ -33,7 +33,12 @@ export async function createCourse(formData: FormData) {
   const price = readFormValue(formData, "price");
   const duration = readFormValue(formData, "duration");
   const link = readFormValue(formData, "link");
-  const safeLink = validateExternalUrl(link, "Course link");
+  let safeLink: string | null;
+  try {
+    safeLink = validateExternalUrl(link, "Course link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
@@ -100,7 +105,12 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const price = readFormValue(formData, "price");
   const duration = readFormValue(formData, "duration");
   const link = readFormValue(formData, "link");
-  const safeLink = validateExternalUrl(link, "Course link");
+  let safeLink: string | null;
+  try {
+    safeLink = validateExternalUrl(link, "Course link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
