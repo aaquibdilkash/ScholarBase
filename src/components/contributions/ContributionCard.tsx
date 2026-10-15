@@ -11,6 +11,7 @@ import { deleteContribution } from "@/app/actions/contributions";
 import { useToast } from "@/components/ui/Toast";
 import { RichContent } from "@/components/content/RichContent";
 import type { ContributionWithAuthor } from "@/types/cards";
+import { stripHtmlTags } from "@/lib/html";
 
 export function ContributionCard({
   contribution,
@@ -26,6 +27,11 @@ export function ContributionCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (contribution.votes || [])[0]?.voteType ??
     null;
+  // Share payload: mirror contributions/[id]/page.tsx generateMetadata().
+  const shareTitle = contribution.title || "ScholarBase Contribution";
+  const shareText =
+    stripHtmlTags(contribution.message || "").trim() ||
+    "A community contribution supporting ScholarBase.";
 
   return (
     <ListPageCardShell
@@ -37,6 +43,8 @@ export function ContributionCard({
       authorHandle={contribution.author?.handle || undefined}
       authorAvatarUrl={contribution.author?.avatarUrl || undefined} authorVerified={!!(contribution.author?.institutionVerifiedAt)}
       detailPageHref={`/contributions/${contribution.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

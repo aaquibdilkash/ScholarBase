@@ -29,6 +29,15 @@ export function VacancyCard({ vacancy,
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (vacancy.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(vacancy.deadline);
+  // Share payload: mirror vacancies/[id]/page.tsx generateMetadata().
+  const shareTitle = `${vacancy.title} at ${vacancy.institution}`;
+  const shareText = `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${
+    new Date(vacancy.deadline).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }.`;
 
   return (
     <ListPageCardShell
@@ -40,6 +49,8 @@ export function VacancyCard({ vacancy,
       authorHandle={vacancy.author?.handle || undefined}
       authorAvatarUrl={vacancy.author?.avatarUrl || undefined} authorVerified={!!(vacancy.author?.institutionVerifiedAt)}
       detailPageHref={`/vacancies/${vacancy.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

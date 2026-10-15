@@ -84,6 +84,11 @@ export function JournalReviewCard({
   return (
     <ListPageCardShell
       detailPageHref={`/journals/${review.journalId}/review/${review.id}`}
+      // Share payload: mirror the review detail page generateMetadata().
+      shareTitle={`Review of ${review.journal?.title || "Journal"}`}
+      shareText={`A ${Number(review.rating).toFixed(1)}/5 peer review of ${
+        review.journal?.title || "a journal"
+      }.`}
       // The card renders its own <Link> below (star rating + feedback body),
       // so the shell's generic body link must be disabled to avoid nesting
       // <a> inside <a> (hydration error).

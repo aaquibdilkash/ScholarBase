@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import Link from "next/link";
 import { BarChart2 } from "lucide-react";
 import type { SurveyWithAuthor } from "@/types/cards";
+import { stripHtmlTags } from "@/lib/html";
 
 const PRIVACY_LABELS: Record<string, string> = {
   ANONYMOUS: "Anonymous",
@@ -36,6 +37,11 @@ export function SurveyCard({
   const isOwner = currentUserId === survey.authorId;
   const isFollowing = (survey.author?.followers?.length ?? 0) > 0;
   const userVote = (survey.votes || [])[0]?.voteType ?? null;
+  // Share payload: mirror surveys/[id]/page.tsx generateMetadata().
+  const shareTitle = survey.title;
+  const shareText =
+    stripHtmlTags(survey.description || "").trim() ||
+    `Research survey: ${survey.title}.`;
 
   return (
     <ListPageCardShell
@@ -47,6 +53,8 @@ export function SurveyCard({
       authorHandle={survey.author?.handle || undefined}
       authorAvatarUrl={survey.author?.avatarUrl || undefined} authorVerified={!!(survey.author?.institutionVerifiedAt)}
       detailPageHref={`/surveys/${survey.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       noBodyLink={true}
       managementControls={
         isOwner && (

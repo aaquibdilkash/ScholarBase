@@ -30,6 +30,16 @@ export function EventCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (event.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(event.deadline);
+  // Share payload: mirror events/[id]/page.tsx generateMetadata().
+  const shareTitle = event.title;
+  const eventLocation = event.location ? ` at ${event.location}` : "";
+  const shareText = `Academic event / conference${eventLocation}. ${new Date(
+    event.date,
+  ).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })}.`;
 
   return (
     <ListPageCardShell
@@ -41,6 +51,8 @@ export function EventCard({
       authorHandle={event.author?.handle || undefined}
       authorAvatarUrl={event.author?.avatarUrl || undefined} authorVerified={!!(event.author?.institutionVerifiedAt)}
       detailPageHref={`/events/${event.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

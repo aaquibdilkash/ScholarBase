@@ -153,6 +153,10 @@ export function SocialPostCard({
       authorHandle={post.author?.handle || undefined}
       authorAvatarUrl={post.author?.avatarUrl || undefined} authorVerified={!!(post.author?.institutionVerifiedAt)}
       detailPageHref={`/feed/${post.id}`}
+      // Share payload: mirror feed/[id]/page.tsx generateMetadata() — the
+      // first 58 chars of the post body.
+      shareTitle={(post.content ?? "").replace(/\s+/g, " ").trim().slice(0, 58) || "Scholar Post"}
+      shareText={(post.content ?? "").replace(/\s+/g, " ").trim()}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

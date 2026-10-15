@@ -6,6 +6,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
+import { stripHtmlTags } from "@/lib/html";
 import { deleteSupervisor } from "@/app/actions/supervisors";
 import { useToast } from "@/components/ui/Toast";
 import { StarRating } from "@/components/ui/StarRating";
@@ -29,6 +30,14 @@ export function SupervisorCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (supervisor.votes || [])[0]?.voteType ?? null;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
+  // Share payload: mirror supervisor/[id]/page.tsx generateMetadata().
+  const supervisorName = supervisor.name || "PhD Supervisor";
+  const shareTitle = `${supervisorName}${
+    supervisor.university ? ` at ${supervisor.university}` : ""
+  } - PhD Supervisor`;
+  const shareText =
+    stripHtmlTags(supervisor.about || "").trim() ||
+    `Profiles, ratings, and recommendations for PhD supervisor ${supervisor.name || ""}.`;
 
   return (
     <ListPageCardShell
@@ -40,6 +49,8 @@ export function SupervisorCard({
       authorHandle={supervisor.author?.handle || undefined}
       authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
       detailPageHref={`/supervisor/${supervisor.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

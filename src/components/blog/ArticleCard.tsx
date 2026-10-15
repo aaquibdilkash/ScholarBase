@@ -24,6 +24,9 @@ export function ArticleCard({
   const isFollowing = (article.author?.followers?.length ?? 0) > 0;
 
   const initialUserVote = article.votes && article.votes.length > 0 ? article.votes[0].voteType : null;
+  // Share payload: mirror blog/[slug]/page.tsx generateMetadata().
+  const shareTitle = article.title;
+  const shareText = article.excerpt || article.title;
 
   return (
     <ListPageCardShell
@@ -35,6 +38,8 @@ export function ArticleCard({
       authorHandle={article.author?.handle || undefined}
       authorAvatarUrl={article.author?.avatarUrl || undefined} authorVerified={!!(article.author?.institutionVerifiedAt)}
       detailPageHref={`/blog/${article.slug}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

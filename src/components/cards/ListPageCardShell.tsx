@@ -49,6 +49,14 @@ export type ListPageCardShellProps = {
   detailPageHref: string;
   bodyBottomContent?: ReactNode;
 
+  // Share payload for the footer share button. The card lives on a LIST page,
+  // so falling back to the page's og:tags would share the directory's
+  // title/description instead of this item's. Callers that pass these mirror
+  // their detail page's generateMetadata(); when omitted the ShareButton
+  // falls back to og:tags (correct on detail pages).
+  shareTitle?: string;
+  shareText?: string;
+
   editedDate?: Date | string;
   createdDate: Date | string;
   createdLabel?: string;
@@ -85,6 +93,8 @@ export default function ListPageCardShell({
   bodyClassName,
   detailPageHref,
   bodyBottomContent,
+  shareTitle,
+  shareText,
   editedDate,
   createdDate,
   noBodyLink = false,
@@ -207,7 +217,12 @@ export default function ListPageCardShell({
 
             <div className="flex items-center gap-2">
               {footerBookmarkButton}
-              <ShareButton href={detailPageHref} label="Share" />
+              <ShareButton
+                href={detailPageHref}
+                label="Share"
+                title={shareTitle}
+                text={shareText}
+              />
               {footerReportMenu}
             </div>
           </>

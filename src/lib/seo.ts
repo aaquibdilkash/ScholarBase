@@ -13,9 +13,18 @@ const absoluteUrl = (value: string): string =>
     ? value
     : `${SITE_URL}${value.startsWith("/") ? value : `/${value}`}`;
 
-/** Normalise whitespace and clamp a description to avoid truncated meta tags. */
+/**
+ * Normalise whitespace, strip rich-text HTML, and clamp a description to
+ * avoid truncated meta tags.
+ *
+ * The HTML strip is load-bearing: several detail pages pass their rich-text
+ * body (`survey.description`, `post.content`, ...) straight into
+ * `buildMetadata`. Without it the og:description tag renders literal
+ * `<p>`/`<a>` markup in the link-preview card that WhatsApp / Slack unfurl.
+ * Pages that already strip manually are unaffected (stripping is idempotent).
+ */
 const truncate = (text: string, max = 158): string => {
-  const clean = (text || "").replace(/\s+/g, " ").trim();
+  const clean = (text || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   if (!clean) return "";
   if (clean.length <= max) return clean;
   return `${clean.slice(0, max).trimEnd()}…`;

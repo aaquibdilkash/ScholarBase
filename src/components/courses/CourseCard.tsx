@@ -34,6 +34,10 @@ export function CourseCard({
     course.price,
     course.duration,
   ].filter(Boolean);
+  // Share payload: title + the same detail line the card renders.
+  const shareTitle = course.title;
+  const shareText =
+    details.join(" · ") || `Course on ScholarBase: ${course.title}.`;
 
   return (
     <ListPageCardShell
@@ -45,6 +49,8 @@ export function CourseCard({
       authorHandle={course.author?.handle || undefined}
       authorAvatarUrl={course.author?.avatarUrl || undefined} authorVerified={!!(course.author?.institutionVerifiedAt)}
       detailPageHref={`/learn/${course.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

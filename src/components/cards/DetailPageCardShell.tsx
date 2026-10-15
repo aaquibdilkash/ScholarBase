@@ -58,6 +58,12 @@ export type DetailPageCardShellProps = {
   createdDate: Date | string;
   createdLabel?: string;
   editedLabel?: string;
+
+  // Share payload for the footer share button. Optional: when omitted the
+  // ShareButton reads the page's og:tags, which detail pages already emit
+  // correctly via generateMetadata().
+  shareTitle?: string;
+  shareText?: string;
 };
 
 export default function DetailPageCardShell({
@@ -87,6 +93,8 @@ export default function DetailPageCardShell({
   bodyBottomContent,
   editedDate,
   createdDate,
+  shareTitle,
+  shareText,
 }: DetailPageCardShellProps) {
   // In current usage, `managementControls` is only passed for owners.
   const isOwner = Boolean(managementControls);
@@ -228,7 +236,7 @@ export default function DetailPageCardShell({
                   { frozen: true },
                 )
               : footerBookmarkButton}
-            <ShareButton label="Share" />
+            <ShareButton label="Share" title={shareTitle} text={shareText} />
             {/* Report menu is always visible — on frozen posts it also hosts
                 the owner's "Appeal Removal" option. */}
             {footerReportMenu}

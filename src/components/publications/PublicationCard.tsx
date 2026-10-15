@@ -13,6 +13,7 @@ import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { PublicationWithAuthor } from "@/types/cards";
+import { stripHtmlTags } from "@/lib/html";
 
 const PUBLICATION_TYPE_LABELS: Record<string, string> = {
   RESEARCH_PAPER: "Research Paper",
@@ -40,6 +41,10 @@ export function PublicationCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (publication.votes || [])[0]?.voteType ??
     null;
+  // Share payload: mirror publications/[id]/page.tsx generateMetadata().
+  const shareTitle = publication.title;
+  const shareText =
+    stripHtmlTags(publication.abstract || "").trim() || publication.title;
 
   const authorLinks = publication.publicationAuthors?.length ? publication.publicationAuthors.map((pa, index) => {
     const name = pa.user?.name || `@${pa.user?.handle}`;
@@ -79,6 +84,8 @@ export function PublicationCard({
       authorHandle={publication.author?.handle || undefined}
       authorAvatarUrl={publication.author?.avatarUrl || undefined} authorVerified={!!(publication.author?.institutionVerifiedAt)}
       detailPageHref={`/publications/${publication.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

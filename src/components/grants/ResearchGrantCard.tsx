@@ -26,6 +26,11 @@ export function ResearchGrantCard({
   const isFollowing = (grant.author?.followers?.length ?? 0) > 0;
   const userVote =
     (grant.votes || [])[0]?.voteType ?? null;
+  // Share payload: mirror grants/[id]/page.tsx generateMetadata().
+  const shareTitle = grant.title;
+  const shareText = grant.amount
+    ? `${grant.title} funding opportunity: ${grant.amount}.`
+    : `Research grant opportunity: ${grant.title}.`;
 
   return (
     <ListPageCardShell
@@ -37,6 +42,8 @@ export function ResearchGrantCard({
       authorHandle={grant.author?.handle || undefined}
       authorAvatarUrl={grant.author?.avatarUrl || undefined} authorVerified={!!(grant.author?.institutionVerifiedAt)}
       detailPageHref={`/grants/${grant.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

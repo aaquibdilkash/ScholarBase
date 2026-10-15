@@ -26,6 +26,11 @@ export function HelpPostCard({
   const isFollowing = (helpPost.author?.followers?.length ?? 0) > 0;
   
   const initialUserVote = helpPost.votes && helpPost.votes.length > 0 ? helpPost.votes[0].voteType : null;
+  // Share payload: mirror help/[id]/page.tsx generateMetadata().
+  const shareTitle = helpPost.subject || helpPost.category;
+  const shareText = `Help request: ${helpPost.subject || helpPost.category}. ${(
+    helpPost.message || ""
+  ).replace(/<[^>]*>/g, " ")}`;
 
   return (
     <ListPageCardShell
@@ -37,6 +42,8 @@ export function HelpPostCard({
       authorHandle={helpPost.author?.handle || undefined}
       authorAvatarUrl={helpPost.author?.avatarUrl || undefined} authorVerified={!!(helpPost.author?.institutionVerifiedAt)}
       detailPageHref={`/help/${helpPost.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

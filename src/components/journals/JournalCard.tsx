@@ -13,6 +13,7 @@ import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { JournalWithAuthor } from "@/types/cards";
+import { stripHtmlTags } from "@/lib/html";
 
 export function JournalCard({
   journal,
@@ -38,6 +39,13 @@ export function JournalCard({
     typeof viewWebsiteHref === "string"
       ? viewWebsiteHref
       : (journal.website as string | null | undefined);
+  // Share payload: mirror journals/[id]/page.tsx generateMetadata().
+  const shareTitle = journal.title;
+  const shareText =
+    stripHtmlTags(journal.about || "").trim() ||
+    `${journal.title}${journal.publisher ? ` by ${journal.publisher}` : ""}${
+      journal.issn ? ` (ISSN ${journal.issn})` : ""
+    }`;
 
   return (
     <ListPageCardShell
@@ -49,6 +57,8 @@ export function JournalCard({
       authorHandle={journal.author?.handle || undefined}
       authorAvatarUrl={journal.author?.avatarUrl || undefined} authorVerified={!!(journal.author?.institutionVerifiedAt)}
       detailPageHref={`/journals/${journal.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       noBodyLink={true}
       managementControls={
         isOwner && (

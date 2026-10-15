@@ -31,6 +31,15 @@ export function AdmissionCard({
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (admission.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(admission.deadline);
+  // Share payload: mirror admissions/[id]/page.tsx generateMetadata().
+  const shareTitle = `${admission.university} - ${admission.department} PhD Admission`;
+  const shareText = `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(
+    admission.deadline,
+  ).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })}.`;
 
   return (
     <ListPageCardShell
@@ -42,6 +51,8 @@ export function AdmissionCard({
       authorHandle={admission.author?.handle || undefined}
       authorAvatarUrl={admission.author?.avatarUrl || undefined} authorVerified={!!(admission.author?.institutionVerifiedAt)}
       detailPageHref={`/admissions/${admission.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

@@ -34,6 +34,11 @@ export function ResultCard({
   const isFollowing = (result.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (result.votes || [])[0]?.voteType ?? null;
+  // Share payload: mirror results/[id]/page.tsx generateMetadata().
+  const shareTitle = result.title;
+  const shareText =
+    (result.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() ||
+    result.title;
 
   return (
     <ListPageCardShell
@@ -45,6 +50,8 @@ export function ResultCard({
       authorHandle={result.author?.handle || undefined}
       authorAvatarUrl={result.author?.avatarUrl || undefined} authorVerified={!!(result.author?.institutionVerifiedAt)}
       detailPageHref={`/results/${result.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown

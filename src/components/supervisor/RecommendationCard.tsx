@@ -104,6 +104,11 @@ export function RecommendationCard({
           : recommendation.author?.avatarUrl || undefined
       } authorVerified={!recommendation.isAnonymous && !!(recommendation.author?.institutionVerifiedAt)}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
+      // Share payload: mirror the recommendation detail page generateMetadata().
+      shareTitle={`Recommendation for ${supervisor.name || "Supervisor"}`}
+      shareText={`A ${
+        recommendation.rating ? `${recommendation.rating}/5 ` : ""
+      }mentorship recommendation.`}
       noBodyLink={true}
       managementControls={
         isOwner && (

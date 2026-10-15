@@ -26,6 +26,9 @@ export function ResearchToolCard({
   const isFollowing = (tool.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (tool.votes || [])[0]?.voteType ?? null;
+  // Share payload: mirror research-tools/[id]/page.tsx generateMetadata().
+  const shareTitle = tool.name;
+  const shareText = `${tool.name} helps researchers with ${tool.use}.`;
 
   return (
     <ListPageCardShell
@@ -37,6 +40,8 @@ export function ResearchToolCard({
       authorHandle={tool.author?.handle || undefined}
       authorAvatarUrl={tool.author?.avatarUrl || undefined} authorVerified={!!(tool.author?.institutionVerifiedAt)}
       detailPageHref={`/research-tools/${tool.id}`}
+      shareTitle={shareTitle}
+      shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
