@@ -355,7 +355,7 @@ export async function updateProfile(formData: FormData) {
   } catch (e) {
     return {
       success: false,
-      message: e instanceof Error ? e.message : "One or more URLs are invalid.",
+      message: e instanceof Error ? e.message : "Invalid URL.",
     };
   }
 
