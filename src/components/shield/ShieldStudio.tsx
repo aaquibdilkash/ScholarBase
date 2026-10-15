@@ -274,6 +274,20 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
   useEffect(() => {
     const w = new Worker(new URL("../../workers/detector.worker.ts", import.meta.url), { type: "module" });
     workerRef.current = w;
+    // Set by the cleanup below. Terminating a worker while its bundler bootstrap
+    // is still inside importScripts aborts the chunk fetch and raises a
+    // "failed to load" NetworkError. That is expected teardown noise, not a crash.
+    let disposed = false;
+    w.onerror = (e: ErrorEvent) => {
+      // Handle it here so it never bubbles to window.onerror as an uncaught error.
+      e.preventDefault();
+      if (disposed || workerRef.current !== w) return;
+      setIsScanning(false); setIsClearing(false); setClearTarget(null);
+      setModelStatus("idle");
+      const msg = "The neural detector failed to load. Please reload the page and try again.";
+      setErr(msg);
+      toast({ title: "Scholar Shield error", description: msg, variant: "destructive" });
+    };
     w.onmessage = (e: MessageEvent) => {
       const { status, progress: pg, scores, totalWords, weightedSum, chunkCount, error, deleted, bytes, perWindow } = e.data ?? {};
       if (status === "downloading") { setModelStatus("downloading"); setProgress(pg ?? 0); }
@@ -323,7 +337,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         // Balanced fusion: 70% cadence + 30% neural, with divergence-aware guards.
         // Cadence NEVER overrides the neural score — disagreement lands amber.
         const report = analyzeCadenceAndEntropy(textRef.current);
-        const fused = calculateBalancedEnsemble(avg, report.overallCadenceRisk, report.burstinessSigma, report.guiraudIndex, report.sentences.length);
+    return () => { disposed = true; w.terminate(); workerRef.current = null; };
         if (fused.classification === "amber" && (fused.signalDivergence ?? 0) > 40) {
           toast({ title: "Mixed signals — inconclusive, not AI-confirmed", description: `Neural ${avg}% vs cadence ${fused.cadenceScore}% (σ=${report.burstinessSigma}, R=${report.guiraudIndex}). ${fused.explanation}` });
         } else {
