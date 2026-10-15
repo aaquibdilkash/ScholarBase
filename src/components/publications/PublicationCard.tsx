@@ -97,7 +97,8 @@ export function PublicationCard({
               try {
                 const response = await deletePublication(publication.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete publication.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete publication.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

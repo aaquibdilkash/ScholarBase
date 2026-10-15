@@ -116,7 +116,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
 
 export async function createHelpPost(formData: FormData) {
   const auth = await getActiveUser("You must be logged in to create a post.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "help:create", key: user.id, limit: 10, window: "10 m" });
   const title = formData.get("title") as string;
@@ -228,9 +228,8 @@ export async function updateHelpPost(formData: FormData, helpPostId: string) {
 }
 
 export async function deleteHelpPost(helpPostId: string) {
-  const auth = await getActiveUser("Log in to delete this help post.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this help post.");
   await enforceRateLimit({ namespace: "help:delete", key: user.id, limit: 20, window: "10 m" });
 
   const post = await prisma.helpPost.findUnique({

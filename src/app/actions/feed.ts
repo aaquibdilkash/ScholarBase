@@ -249,7 +249,7 @@ export async function getPostMetadata(id: string) {
 export async function createSocialPost(formData: FormData) {
   const auth = await getActiveUser("You must be logged in to post.");
   if (auth.frozen) {
-    return { success: false, message: auth.message };
+    return { success: false, error: auth.message, message: auth.message };
   }
   const authUser = auth.user;
 
@@ -479,9 +479,8 @@ export async function getPostEditData(id: string) {
 }
 
 export async function deleteSocialPost(postId: string) {
-  const auth = await getActiveUser("Log in to delete this post.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this post.");
 
   const rateLimit = await checkRateLimit({
     namespace: "post:delete",
@@ -570,7 +569,7 @@ export async function createSocialPostComment(
   parentId?: string,
 ) {
   const auth = await getActiveUser("You must be logged in to comment.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   const rateLimit = await checkRateLimit({
     namespace: "post-comment",
@@ -593,11 +592,8 @@ export async function createSocialPostComment(
 }
 
 export async function deleteSocialPostComment(commentId: string) {
-  const auth = await getActiveUser("You must be logged in to delete comments.");
-  if (auth.frozen) {
-    return { success: false, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("You must be logged in to delete comments.");
   const rateLimit = await checkRateLimit({
     namespace: "post-comment:delete",
     key: user.id,

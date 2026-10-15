@@ -24,7 +24,7 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function createResearchGrant(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a research grant.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "grant:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -154,9 +154,8 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
 }
 
 export async function deleteResearchGrant(grantId: string) {
-  const auth = await getActiveUser("Log in to delete this research grant.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this research grant.");
   await enforceRateLimit({ namespace: "grant:delete", key: user.id, limit: 20, window: "10 m" });
 
   const grant = await prisma.researchGrant.findUnique({

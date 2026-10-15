@@ -52,7 +52,8 @@ export function ResearchGrantCard({
               try {
                 const response = await deleteResearchGrant(grant.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete grant.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete grant.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

@@ -65,7 +65,8 @@ export function SurveyCard({
               try {
                 const response = await deleteSurvey(survey.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete survey.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete survey.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

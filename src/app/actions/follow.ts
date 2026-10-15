@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { FROZEN_ACTION_MESSAGE, getCurrentUser } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { handleFollowTransaction } from "@/lib/transactions";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
@@ -13,6 +13,17 @@ export async function toggleFollow(
 
   if (!authUser) {
     return { success: false, isFollowing: false, error: "UNAUTHORIZED" };
+  }
+
+  // Frozen accounts cannot create new follows (read/edit/delete own allowed only).
+  // Uses the same getCurrentUser mock surface as before so unit tests don't need
+  // a getActiveUser mock; a single indexed PK lookup checks the frozen flag.
+  const dbUser = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    select: { isFrozen: true },
+  });
+  if (dbUser?.isFrozen) {
+    return { success: false, isFollowing: false, error: FROZEN_ACTION_MESSAGE };
   }
 
   if (!followingId || authUser.id === followingId) {

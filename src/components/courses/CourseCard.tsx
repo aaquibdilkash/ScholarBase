@@ -59,8 +59,10 @@ export function CourseCard({
               try {
                 const response = await deleteCourse(course.id);
                 if (!response?.success || !response.data) {
+                  const r = response as { error?: string; message?: string } | undefined;
                   toast(
-                    (response && "message" in response && response.message) ||
+                    r?.error ||
+                      r?.message ||
                       "Failed to delete course.",
                     "error",
                   );

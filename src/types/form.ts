@@ -16,6 +16,7 @@ export interface SubmitResult {
     success: boolean;
     redirect?: string;
     error?: string;
+    message?: string;
     /** Full payload returned by the server action (e.g. created record). */
     data?: unknown;
 }

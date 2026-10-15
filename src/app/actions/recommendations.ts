@@ -94,7 +94,7 @@ export async function createRecommendation(
   const auth = await getActiveUser(
     "Log in to share your recommendation and help other scholars!",
   );
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "recommendation:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -356,11 +356,8 @@ export async function updateRecommendation(
 }
 
 export async function deleteRecommendation(recommendationId: string) {
-  const auth = await getActiveUser("Log in to delete this recommendation.");
-  if (auth.frozen) {
-    return { success: false as const, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this recommendation.");
   await enforceRateLimit({ namespace: "recommendation:delete", key: user.id, limit: 20, window: "10 m" });
 
   const recommendation = await prisma.recommendation.findUnique({

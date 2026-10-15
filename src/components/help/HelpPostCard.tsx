@@ -55,7 +55,8 @@ export function HelpPostCard({
               try {
                 const response = await deleteHelpPost(helpPost.id);
                 if (!response?.success || !response.data) {
-                  toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast({ title: "Error", description: r?.error || r?.message || "Failed to delete post.", variant: "destructive" });
                   return { refresh: false };
                 }
                 removeFromList<HelpPostWithAuthor>(

@@ -136,7 +136,7 @@ export async function getContributionForEdit(id: string) {
 
 export async function createContribution(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit a contribution.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "contribution:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -300,9 +300,8 @@ export async function updateContribution(
 }
 
 export async function deleteContribution(contributionId: string) {
-  const auth = await getActiveUser("Log in to delete this contribution.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this contribution.");
   await enforceRateLimit({ namespace: "contribution:delete", key: user.id, limit: 20, window: "10 m" });
 
   const contribution = await prisma.contribution.findUnique({

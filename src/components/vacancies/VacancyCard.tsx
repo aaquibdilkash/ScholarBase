@@ -62,7 +62,8 @@ export function VacancyCard({ vacancy,
               try {
                 const response = await deleteJobVacancy(vacancy.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete vacancy.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete vacancy.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

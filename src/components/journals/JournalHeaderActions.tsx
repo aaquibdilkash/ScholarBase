@@ -102,7 +102,8 @@ export function JournalHeaderActions({
         try {
           const response = await deleteReviewMutation.mutateAsync(reviewId);
           if (!response?.success || !response.data) {
-            toast("Failed to delete review.", "error");
+            const r = response as { error?: string; message?: string } | undefined;
+            toast(r?.error || r?.message || "Failed to delete review.", "error");
             return;
           }
           // Remove from every cached list slice instantly.

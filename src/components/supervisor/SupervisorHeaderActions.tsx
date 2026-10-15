@@ -83,13 +83,14 @@ export function SupervisorHeaderActions({
               refresh?: boolean;
               invalidateQueries?: unknown[][];
               success?: boolean;
+              error?: string;
               message?: string;
             }
           | undefined;
         setPendingDelete(null);
         if (result?.success === false) {
           // e.g. frozen account: server returned a graceful rejection.
-          toast(result.message || "Failed to delete supervisor.", "error");
+          toast(result.error || result.message || "Failed to delete supervisor.", "error");
           return;
         }
         invalidateProfileTabs(queryClient, "content", "activity");

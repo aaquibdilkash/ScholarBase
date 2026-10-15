@@ -30,14 +30,14 @@ export type UploadResult = {
   format: string;
 };
 
-export type FrozenActionResult = { success: false; message: string };
+export type FrozenActionResult = { success: false; error: string; message: string };
 
 export async function uploadImage(
   formData: FormData,
   kind: UploadKind,
 ): Promise<UploadResult | FrozenActionResult> {
   const auth = await getActiveUser();
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
 
   const file = formData.get("file");
@@ -148,7 +148,7 @@ export async function deleteDraftImage(
   if (!imageUrl) return true;
 
   const auth = await getActiveUser("Log in to delete draft images.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   const publicId = getCloudinaryPublicId(imageUrl);
   const draftFolders = [

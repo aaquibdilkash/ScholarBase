@@ -21,7 +21,7 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 export async function createCourse(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a course.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "course:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -149,9 +149,8 @@ export async function updateCourse(formData: FormData, courseId: string) {
 }
 
 export async function deleteCourse(courseId: string) {
-  const auth = await getActiveUser("Log in to delete this course.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this course.");
   await enforceRateLimit({ namespace: "course:delete", key: user.id, limit: 20, window: "10 m" });
 
   const course = await prisma.course.findUnique({

@@ -38,7 +38,7 @@ async function resolvePublicationPeople(formData: FormData) {
 
 export async function createPublication(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit a publication.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "publication:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -231,9 +231,8 @@ export async function updatePublication(
 }
 
 export async function deletePublication(publicationId: string) {
-  const auth = await getActiveUser("Log in to delete this publication.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this publication.");
   await enforceRateLimit({ namespace: "publication:delete", key: user.id, limit: 20, window: "10 m" });
 
   const publication = await prisma.publication.findUnique({

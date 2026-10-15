@@ -53,7 +53,8 @@ export function ResearchToolCard({
               try {
                 const response = await deleteResearchTool(tool.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete tool.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete tool.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

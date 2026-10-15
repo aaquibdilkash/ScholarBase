@@ -240,7 +240,7 @@ export async function getSupervisorRecommendationMeta(
 
 export async function createSupervisor(formData: FormData) {
   const auth = await getActiveUser("Log in to add a supervisor entry.");
-  if (auth.frozen) return { success: false as const, message: auth.message };
+  if (auth.frozen) return { success: false as const, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "supervisor:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -354,9 +354,8 @@ export async function updateSupervisor(
 }
 
 export async function deleteSupervisor(supervisorId: string) {
-  const auth = await getActiveUser("Log in to delete this supervisor.");
-  if (auth.frozen) return { success: false as const, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this supervisor.");
   await enforceRateLimit({ namespace: "supervisor:delete", key: user.id, limit: 20, window: "10 m" });
 
   const supervisor = await prisma.supervisor.findUnique({
@@ -394,5 +393,7 @@ export async function deleteSupervisor(supervisorId: string) {
   // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", supervisor.authorId);
 
-  return { success: true as const, data: { deletedId: supervisorId } };
+  return { success: true as const, data: { deletedId: supervisorId } } as unknown as
+    | { success: true; data: { deletedId: string } }
+    | { success: false; error: string; message: string };
 }

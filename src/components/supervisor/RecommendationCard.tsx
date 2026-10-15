@@ -44,7 +44,8 @@ export function RecommendationCard({
     try {
       const response = await deleteMutation.mutateAsync(recommendation.id);
       if (!response?.success || !response.data) {
-        toast("Failed to delete recommendation.", "error");
+        const r = response as { error?: string; message?: string } | undefined;
+        toast(r?.error || r?.message || "Failed to delete recommendation.", "error");
         return { refresh: false };
       }
 

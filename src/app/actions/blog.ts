@@ -108,7 +108,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
 
 export async function createArticle(formData: FormData) {
   const auth = await getActiveUser("Log in to publish an article.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "article:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -261,9 +261,8 @@ export async function updateArticle(formData: FormData, articleId: string) {
 }
 
 export async function deleteArticle(articleId: string) {
-  const auth = await getActiveUser("Log in to delete this article.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this article.");
   await enforceRateLimit({ namespace: "article:delete", key: user.id, limit: 20, window: "10 m" });
 
   const article = await prisma.article.findUnique({

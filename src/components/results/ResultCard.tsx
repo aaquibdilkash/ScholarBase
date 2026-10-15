@@ -61,7 +61,8 @@ export function ResultCard({
               try {
                 const response = await deleteResult(result.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete result.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete result.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

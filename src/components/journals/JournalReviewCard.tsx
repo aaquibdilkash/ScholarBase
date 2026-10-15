@@ -42,7 +42,8 @@ export function JournalReviewCard({
     try {
       const response = await deleteMutation.mutateAsync(review.id);
       if (!response?.success || !response.data) {
-        toast("Failed to delete review.", "error");
+        const r = response as { error?: string; message?: string } | undefined;
+        toast(r?.error || r?.message || "Failed to delete review.", "error");
         return { refresh: false };
       }
 

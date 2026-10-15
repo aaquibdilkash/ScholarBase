@@ -71,7 +71,8 @@ export function JournalCard({
               try {
                 const response = await deleteJournal(journal.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete journal.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete journal.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

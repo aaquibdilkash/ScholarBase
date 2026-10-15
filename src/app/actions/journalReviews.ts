@@ -220,7 +220,7 @@ export async function createJournalReview(
   const auth = await getActiveUser(
     "Log in to share a journal review and help other scholars!",
   );
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({
     namespace: "journalReview:create",
@@ -489,11 +489,8 @@ export async function updateJournalReview(
 // DELETE (soft) — mirrors deleteRecommendation
 // ============================================
 export async function deleteJournalReview(reviewId: string) {
-  const auth = await getActiveUser("Log in to delete this review.");
-  if (auth.frozen) {
-    return { success: false as const, error: auth.message, message: auth.message };
-  }
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this review.");
   await enforceRateLimit({
     namespace: "journalReview:delete",
     key: user.id,

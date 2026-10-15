@@ -75,7 +75,10 @@ export function useFormSubmit(
                     } else {
                         // Server returned error
                         // Frozen / deleted account refusals come back as
-                        // `{ success: false, message }` from getActiveUser.
+                        // `{ success: false, error, message }` from getActiveUser.
+                        // Prefer the explicit server message so frozen users see
+                        // "Your account is frozen..." instead of a generic fallback
+                        // like "Failed to add journal."
                         const serverMessage = (r as { message?: unknown }).message;
                         toast(
                             r.error ||

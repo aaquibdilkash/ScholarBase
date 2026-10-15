@@ -62,7 +62,8 @@ export function EventCard({
               try {
                 const response = await deleteResearchEvent(event.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete event.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete event.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

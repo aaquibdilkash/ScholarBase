@@ -247,6 +247,7 @@ export async function submitReport(
     if (auth.frozen) {
       return {
         success: false,
+        error: "Your account is frozen. Reporting is disabled.",
         message: "Your account is frozen. Reporting is disabled.",
       };
     }

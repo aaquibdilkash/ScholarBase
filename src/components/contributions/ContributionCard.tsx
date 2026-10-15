@@ -56,7 +56,8 @@ export function ContributionCard({
               try {
                 const response = await deleteContribution(contribution.id);
                 if (!response?.success || !response.data) {
-                  toast("Failed to delete contribution.", "error");
+                  const r = response as { error?: string; message?: string } | undefined;
+                  toast(r?.error || r?.message || "Failed to delete contribution.", "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

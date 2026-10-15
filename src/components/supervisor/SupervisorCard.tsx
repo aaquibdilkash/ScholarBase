@@ -62,8 +62,10 @@ export function SupervisorCard({
               try {
                 const response = await deleteSupervisor(supervisor.id);
                 if (!response?.success) {
+                  const r = response as { error?: string; message?: string } | undefined;
                   toast(
-                    (response && "message" in response && response.message) ||
+                    r?.error ||
+                      r?.message ||
                       "Failed to delete supervisor.",
                     "error",
                   );

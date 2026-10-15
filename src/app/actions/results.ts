@@ -109,7 +109,7 @@ export const getResult = cache(async (id: string, userId?: string) => {
 
 export async function createResult(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
-  if (auth.frozen) return { success: false, message: auth.message };
+  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "result:create", key: user.id, limit: 10, window: "10 m" });
 
@@ -236,9 +236,8 @@ export async function updateResult(formData: FormData, resultId: string) {
 }
 
 export async function deleteResult(resultId: string) {
-  const auth = await getActiveUser("Log in to delete this result.");
-  if (auth.frozen) return { success: false, message: auth.message };
-  const user = auth.user;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("Log in to delete this result.");
   await enforceRateLimit({ namespace: "result:delete", key: user.id, limit: 20, window: "10 m" });
 
   const result = await prisma.result.findUnique({

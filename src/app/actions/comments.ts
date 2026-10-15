@@ -175,7 +175,7 @@ export async function createComment(
 ) {
   const auth = await getActiveUser("Log in to join the academic discussion.");
   if (auth.frozen) {
-    return { success: false, message: auth.message };
+    return { success: false, error: auth.message, message: auth.message };
   }
   const user = auth.user;
 
@@ -355,11 +355,9 @@ export async function deleteComment(
   commentId: string,
   type: CommentEntityType,
 ) {
-  const auth = await getActiveUser("You must be logged in to delete comments.");
-  if (auth.frozen) {
-    return { success: false, error: auth.message, message: auth.message };
-  }
-  const userId = auth.user.id;
+  // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
+  const user = await requireCurrentUser("You must be logged in to delete comments.");
+  const userId = user.id;
 
   const deleteRateLimit = await checkRateLimit({
     namespace: `comment:delete:${type}`,
