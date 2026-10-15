@@ -337,7 +337,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         // Balanced fusion: 70% cadence + 30% neural, with divergence-aware guards.
         // Cadence NEVER overrides the neural score — disagreement lands amber.
         const report = analyzeCadenceAndEntropy(textRef.current);
-    return () => { disposed = true; w.terminate(); workerRef.current = null; };
+        const fused = calculateBalancedEnsemble(avg, report.overallCadenceRisk, report.burstinessSigma, report.guiraudIndex, report.sentences.length);
         if (fused.classification === "amber" && (fused.signalDivergence ?? 0) > 40) {
           toast({ title: "Mixed signals — inconclusive, not AI-confirmed", description: `Neural ${avg}% vs cadence ${fused.cadenceScore}% (σ=${report.burstinessSigma}, R=${report.guiraudIndex}). ${fused.explanation}` });
         } else {
@@ -351,7 +351,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
       }
     };
     w.postMessage({ type: "CHECK_CACHE" });
-    return () => { w.terminate(); workerRef.current = null; };
+    return () => { disposed = true; w.terminate(); workerRef.current = null; };
   }, [doDeepScan, toast, toastForTab]);
   // Amber "mixed signals" band: strong neural↔cadence disagreement stays
   // inconclusive — it must NEVER be forced red by cadence alone.
