@@ -20,7 +20,26 @@ export async function isLocalGpuAvailable(): Promise<boolean> {
 }
 
 function getWorker(): Worker {
-  if (!worker) worker = new Worker(new URL("../../workers/rewriter.worker.ts", import.meta.url), { type: "module" });
+  if (!worker) {
+    const created = new Worker(new URL("../../workers/rewriter.worker.ts", import.meta.url), { type: "module" });
+    created.addEventListener("error", (event: ErrorEvent) => {
+      // A failed chunk load during worker startup (e.g. an importScripts
+      // NetworkError) must not bubble to window.onerror as an uncaught error.
+      event.preventDefault();
+      if (worker !== created) return;
+      // Drop the broken worker so the next call starts a fresh one.
+      worker = null;
+      loading = null;
+      loadedDevice = null;
+      loadingDevice = null;
+      created.terminate();
+      // Let any pending listeners (the INIT promise) settle with an error.
+      created.dispatchEvent(new MessageEvent("message", {
+        data: { status: "error", error: "The local rewriter failed to load. Please reload the page and try again." },
+      }));
+    });
+    worker = created;
+  }
   return worker;
 }
 
