@@ -213,6 +213,7 @@ export default function EventForm({
         </label>
 <input
             type="url"
+            pattern="https?://.+"
             name="notificationLink"
             placeholder="https://university.edu/brochure.pdf"
             className="sb-input"
@@ -233,6 +234,7 @@ export default function EventForm({
           </label>
           <input
             type="url"
+            pattern="https?://.+"
             name="applyLink"
             placeholder="https://easychair.org/cfp/..."
             className="sb-input"

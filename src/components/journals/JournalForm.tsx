@@ -471,6 +471,8 @@ export default function JournalForm({
         </label>
         <input
           name="website"
+          type="url"
+          pattern="https?://.+"
           placeholder="https://www.sciencedirect.com/journal/..."
           className="sb-input"
           maxLength={MAX_JOURNAL_WEBSITE}

@@ -34,8 +34,14 @@ export async function createResearchGrant(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
   const infoLink = readFormValue(formData, "infoLink");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
-  const safeInfoLink = validateExternalUrl(infoLink, "Information link");
+  let safeApplyLink: string | null;
+  let safeInfoLink: string | null;
+  try {
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+    safeInfoLink = validateExternalUrl(infoLink, "Information link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   const grant = await prisma.$transaction(async (tx) => {
     const newGrant = await tx.researchGrant.create({
@@ -108,8 +114,14 @@ export async function updateResearchGrant(formData: FormData, grantId: string) {
   assertRichTextWithinLimit(description, MAX_RESEARCH_GRANT_DESCRIPTION, "Description");
   const applyLink = readFormValue(formData, "applyLink");
   const infoLink = readFormValue(formData, "infoLink");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
-  const safeInfoLink = validateExternalUrl(infoLink, "Information link");
+  let safeApplyLink: string | null;
+  let safeInfoLink: string | null;
+  try {
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+    safeInfoLink = validateExternalUrl(infoLink, "Information link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   const grant = await prisma.researchGrant.findUnique({
     where: { id: grantId },

@@ -226,6 +226,7 @@ return (
         </label>
         <input
           type="url"
+          pattern="https?://.+"
           name="notificationLink"
           placeholder="https://institution.org/jobs/advt-2026.pdf"
           className="sb-input"

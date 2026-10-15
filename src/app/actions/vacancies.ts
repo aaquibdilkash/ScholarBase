@@ -123,8 +123,14 @@ export async function createJobVacancy(formData: FormData) {
   assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
+  let safeNotificationLink: string | null;
+  let safeApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -209,8 +215,14 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
   assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
+  let safeNotificationLink: string | null;
+  let safeApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");

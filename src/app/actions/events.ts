@@ -125,8 +125,14 @@ export async function createResearchEvent(formData: FormData) {
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  let safeNotificationLink: string | null;
+  let safeApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
@@ -208,8 +214,14 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  let safeNotificationLink: string | null;
+  let safeApplyLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");

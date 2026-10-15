@@ -122,8 +122,14 @@ export async function createResult(formData: FormData) {
   const session = readOptionalFormValue(formData, "session");
   const notificationLink = readOptionalFormValue(formData, "notificationLink");
   const resultLink = readOptionalFormValue(formData, "resultLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeResultLink = validateExternalUrl(resultLink, "Result link");
+  let safeNotificationLink: string | null;
+  let safeResultLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeResultLink = validateExternalUrl(resultLink, "Result link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     const newResult = await tx.result.create({
@@ -187,8 +193,14 @@ export async function updateResult(formData: FormData, resultId: string) {
   const session = readOptionalFormValue(formData, "session");
   const notificationLink = readOptionalFormValue(formData, "notificationLink");
   const resultLink = readOptionalFormValue(formData, "resultLink");
-  const safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-  const safeResultLink = validateExternalUrl(resultLink, "Result link");
+  let safeNotificationLink: string | null;
+  let safeResultLink: string | null;
+  try {
+    safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
+    safeResultLink = validateExternalUrl(resultLink, "Result link");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   const result = await prisma.result.findUnique({
     where: { id: resultId },

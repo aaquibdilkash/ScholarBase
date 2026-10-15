@@ -342,10 +342,18 @@ export async function updateProfile(formData: FormData) {
     "googleScholarUrl",
   );
 
-  const safeGithubUrl = newGithubUrl === null ? null : newGithubUrl === "" ? null : validateExternalUrl(newGithubUrl, "GitHub URL");
-  const safeOrcidUrl = newOrcidUrl === null ? null : newOrcidUrl === "" ? null : validateExternalUrl(newOrcidUrl, "ORCID URL");
-  const safeLinkedinUrl = newLinkedinUrl === null ? null : newLinkedinUrl === "" ? null : validateExternalUrl(newLinkedinUrl, "LinkedIn URL");
-  const safeGoogleScholarUrl = newGoogleScholarUrl === null ? null : newGoogleScholarUrl === "" ? null : validateExternalUrl(newGoogleScholarUrl, "Google Scholar URL");
+  let safeGithubUrl: string | null;
+  let safeOrcidUrl: string | null;
+  let safeLinkedinUrl: string | null;
+  let safeGoogleScholarUrl: string | null;
+  try {
+    safeGithubUrl = newGithubUrl === null ? null : newGithubUrl === "" ? null : validateExternalUrl(newGithubUrl, "GitHub URL");
+    safeOrcidUrl = newOrcidUrl === null ? null : newOrcidUrl === "" ? null : validateExternalUrl(newOrcidUrl, "ORCID URL");
+    safeLinkedinUrl = newLinkedinUrl === null ? null : newLinkedinUrl === "" ? null : validateExternalUrl(newLinkedinUrl, "LinkedIn URL");
+    safeGoogleScholarUrl = newGoogleScholarUrl === null ? null : newGoogleScholarUrl === "" ? null : validateExternalUrl(newGoogleScholarUrl, "Google Scholar URL");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
 
   if (newHandle) {
     const handleAvailable = await isHandleAvailable(newHandle);

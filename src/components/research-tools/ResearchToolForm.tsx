@@ -138,6 +138,8 @@ export default function ResearchToolForm({
         </label>
         <input
           name="website"
+          type="url"
+          pattern="https?://.+"
           placeholder="e.g., https://www.zotero.org/"
           className="sb-input"
           required

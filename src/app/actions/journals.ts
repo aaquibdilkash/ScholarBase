@@ -76,7 +76,12 @@ export async function createJournal(formData: FormData) {
   const sjrQuartile = readOptionalFormValue(formData, "sjrQuartile");
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
-  const safeWebsite = validateExternalUrl(website, "Website");
+  let safeWebsite: string | null;
+  try {
+    safeWebsite = validateExternalUrl(website, "Website");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
   const about = readOptionalFormValue(formData, "about");
   assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");
@@ -174,7 +179,12 @@ export async function updateJournal(formData: FormData, journalId: string) {
   const sjrQuartile = readOptionalFormValue(formData, "sjrQuartile");
   const publisher = readOptionalFormValue(formData, "publisher");
   const website = readOptionalFormValue(formData, "website");
-  const safeWebsite = validateExternalUrl(website, "Website");
+  let safeWebsite: string | null;
+  try {
+    safeWebsite = validateExternalUrl(website, "Website");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
   const about = readOptionalFormValue(formData, "about");
   assertRichTextWithinLimit(about ?? "", MAX_JOURNAL_DESCRIPTION, "About");
   const subjectArea = readOptionalFormValue(formData, "subjectArea");

@@ -27,7 +27,12 @@ export async function createResearchTool(formData: FormData) {
 
   const name = readFormValue(formData, "name");
   const website = readFormValue(formData, "website");
-  const safeWebsite = validateExternalUrl(website, "Website");
+  let safeWebsite: string | null;
+  try {
+    safeWebsite = validateExternalUrl(website, "Website");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
   const use = readFormValue(formData, "use");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESEARCH_TOOL_DESCRIPTION, "Description");
@@ -97,7 +102,12 @@ export async function updateResearchTool(formData: FormData, toolId: string) {
 
   const name = readFormValue(formData, "name");
   const website = readFormValue(formData, "website");
-  const safeWebsite = validateExternalUrl(website, "Website");
+  let safeWebsite: string | null;
+  try {
+    safeWebsite = validateExternalUrl(website, "Website");
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
+  }
   const use = readFormValue(formData, "use");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_RESEARCH_TOOL_DESCRIPTION, "Description");
