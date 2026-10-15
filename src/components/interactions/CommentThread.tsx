@@ -313,7 +313,10 @@ function CommentCard({
   // (authorId: null) both render the muted "[deleted]" placeholder card.
   const isTombstone = comment.isDeleted || !comment.authorId || !comment.author;
   // Frozen comments stay visible but read-only: no voting, reporting,
-  // editing or replying until an admin unfreezes them.
+  // editing or replying until an admin unfreezes them. NOTE: this is the
+  // CONTENT-level freeze (comment.isFrozen), not the ACCOUNT-level freeze
+  // (viewer isFrozen). Account-frozen owners CAN still edit/delete their own
+  // comments via editComment/deleteComment (requireCurrentUser only).
   const isFrozen = comment.isFrozen === true;
 
   const [editedContent, setEditedContent] = useState(comment.content);
@@ -359,10 +362,14 @@ function CommentCard({
       });
       toast({ title: "Success", description: "Comment updated!" });
       setEditingId(null);
-    } catch {
+    } catch (e: unknown) {
+      // Surface the real guard (Not authorized / Comment not found / rate limit)
+      // instead of masking it behind a generic fallback.
+      const message =
+        e instanceof Error && e.message ? e.message : "Failed to update comment. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to update comment. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
