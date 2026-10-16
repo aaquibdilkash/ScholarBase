@@ -35,6 +35,14 @@ if (dsn) {
       "ResizeObserver loop limit exceeded",
       "Network request failed",
       "Load failed",
+      // Turbopack worker bootstrap: when the user navigates away from /shield
+      // while the detector/rewriter worker is still inside importScripts loading
+      // its chunks, the fetch is aborted and this NetworkError fires on the main
+      // thread. The worker's own onerror handler (ShieldStudio / local-rewriter)
+      // already handles genuine failures with a user-facing toast and reset; this
+      // copy reaching window.onerror is teardown noise, not a real crash. Users
+      // on stale cached bundles (before PR #13's onerror fix) also hit this path.
+      /Failed to execute 'importScripts' on 'WorkerGlobalScope'/,
     ],
   });
 }
