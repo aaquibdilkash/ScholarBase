@@ -24,16 +24,27 @@ function readLinkedIds(formData: FormData, key: string): string[] {
   return [...new Set((readOptionalFormValue(formData, key) ?? "").split(",").map((id) => id.trim()).filter(Boolean))].slice(0, 20);
 }
 
-async function resolvePublicationPeople(formData: FormData) {
+type ResolvedPublicationPeople =
+  | { ok: true; authorIds: string[]; authors: string[]; journalId: string | null }
+  | { ok: false; error: string };
+
+// Missing or stale author/journal selections are user-input validation failures,
+// so they are returned as a result (shown to the user as a toast) rather than
+// thrown — throwing would surface as an unhandled server error.
+async function resolvePublicationPeople(formData: FormData): Promise<ResolvedPublicationPeople> {
   const authorIds = readLinkedIds(formData, "authorIds");
   const journalId = readOptionalFormValue(formData, "journalId");
-  if (authorIds.length === 0) throw new Error("Select at least one ScholarBase author for this publication.");
+  if (authorIds.length === 0) {
+    return { ok: false, error: "Select at least one ScholarBase author for this publication." };
+  }
   const [authors, journal] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: authorIds }, isDeleted: false }, select: { id: true, name: true, handle: true } }),
     journalId ? prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } }) : null,
   ]);
-  if (authors.length !== authorIds.length || (journalId && !journal)) throw new Error("One or more selected authors or journals are no longer available. Please select them again.");
-  return { authorIds, authors: authors.map((author) => author.name || `@${author.handle}`), journalId: journal?.id ?? null };
+  if (authors.length !== authorIds.length || (journalId && !journal)) {
+    return { ok: false, error: "One or more selected authors or journals are no longer available. Please select them again." };
+  }
+  return { ok: true, authorIds, authors: authors.map((author) => author.name || `@${author.handle}`), journalId: journal?.id ?? null };
 }
 
 export async function createPublication(formData: FormData) {
@@ -44,6 +55,9 @@ export async function createPublication(formData: FormData) {
 
   const title = readFormValue(formData, "title");
   const linkedPeople = await resolvePublicationPeople(formData);
+  if (!linkedPeople.ok) {
+    return { success: false, error: linkedPeople.error, message: linkedPeople.error };
+  }
   const authors = linkedPeople.authors.join(", ");
   const publicationType = readFormValue(
     formData,
@@ -160,6 +174,9 @@ export async function updatePublication(
 
   const title = readFormValue(formData, "title");
   const linkedPeople = await resolvePublicationPeople(formData);
+  if (!linkedPeople.ok) {
+    return { success: false, error: linkedPeople.error, message: linkedPeople.error };
+  }
   const authors = linkedPeople.authors.join(", ");
   const publicationType = readFormValue(
     formData,

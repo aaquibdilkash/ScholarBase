@@ -184,6 +184,13 @@ export function PublicationLinkedPeopleFields({
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
           Selected: {authors || "No authors selected"}
         </p>
+        {selectedAuthorIds.length === 0 && (
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-400" role="status">
+            {authorSearch.trim().length > 0
+              ? "Select a scholar from the search results to add them as an author."
+              : "Select at least one ScholarBase author to submit this publication."}
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           {selectedAuthorIds.length > 0 && (
             <button

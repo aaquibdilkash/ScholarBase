@@ -11,6 +11,7 @@ import { useFormSubmit } from "@/hooks/useFormSubmit";
 import { Editor } from "@/components/ui/Editor";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/Toast";
 import { upsertToList } from "@/utils/cacheMutation";
 import { CautionNote } from "@/components/ui/CautionNote";
 import {
@@ -116,6 +117,7 @@ export default function PublicationForm({
     initial,
   );
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { submitting, submit } = useFormSubmit(
     mode !== "edit" ? resetDraft : undefined,
@@ -145,10 +147,15 @@ export default function PublicationForm({
   );
 
   const isAbstractOverLimit =
+  const hasNoAuthors = (draftFields.authorIds ?? []).length === 0;
     getRichTextLength(draftFields.abstract ?? "") > MAX_PUBLICATION_ABSTRACT;
   const isFormOverLimit = isAbstractOverLimit;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (hasNoAuthors) {
+      toast("Select at least one ScholarBase author for this publication.", "error");
+      return;
+    }
     e.preventDefault();
     if (isFormOverLimit) return;
 
@@ -454,7 +461,7 @@ export default function PublicationForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
+        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit || hasNoAuthors}>
           {mode === "edit" ? "Save Changes" : "Add Publication"}
         </SubmitBtnWithAuth>
       </div>
