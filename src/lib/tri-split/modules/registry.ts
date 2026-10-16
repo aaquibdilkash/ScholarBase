@@ -267,6 +267,7 @@ export const CONTENT_LIST_CONFIGS = {
       journalId: true,
       journal: { select: { id: true, title: true } },
       publicationType: true,
+      keywords: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,

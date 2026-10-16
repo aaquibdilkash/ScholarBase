@@ -191,34 +191,45 @@ export function PublicationCard({
         )}
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-          {(publication.journal?.title || publication.journalOrConference) && (
-            <span className="max-w-full break-words rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 [overflow-wrap:anywhere] dark:bg-slate-800 dark:text-slate-300">
+          {publication.journal?.title || publication.journalOrConference ? (
+            <span className="max-w-full break-words rounded-full border border-slate-200 bg-slate-200 px-2.5 py-1 text-slate-800 [overflow-wrap:anywhere] dark:bg-slate-800 dark:border-slate-800 dark:text-slate-300">
               {publication.journal ? (
-                <Link
-                  href={`/journals/${publication.journal.id}`}
-                  prefetch={false}
-                  onClick={(e) => e.stopPropagation()}
-                  className="hover:underline"
+                <span
+                  role="link"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    router.push(`/journals/${publication.journal!.id}`);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      router.push(`/journals/${publication.journal!.id}`);
+                    }
+                  }}
+                  className="cursor-pointer hover:underline"
                 >
                   {publication.journal.title || publication.journalOrConference}
-                </Link>
+                </span>
               ) : (
                 publication.journalOrConference
               )}
             </span>
-          )}
+          ) : null}
           {publication.year && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            <span className="rounded-full border border-slate-200 bg-slate-200 px-2.5 py-1 text-slate-800 dark:bg-slate-800 dark:border-slate-800 dark:text-slate-300">
               {publication.year}
             </span>
           )}
           {publication.domain && (
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+            <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-300">
               {publication.domain}
             </span>
           )}
           {publication.isUserAuthor && (
-            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            <span className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-300">
               Co-author
             </span>
           )}
@@ -232,7 +243,7 @@ export function PublicationCard({
             .map((kw) => (
               <span
                 key={kw.toLowerCase()}
-                className="max-w-full break-words rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 [overflow-wrap:anywhere] dark:bg-slate-800 dark:text-slate-300"
+                className="max-w-full break-words rounded-full border border-slate-200 bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-800 [overflow-wrap:anywhere] dark:bg-slate-800 dark:border-slate-800 dark:text-slate-300"
               >
                 {kw}
               </span>

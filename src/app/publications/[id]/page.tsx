@@ -193,11 +193,11 @@ const PublicationDetailPage = async ({
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
         {(p.journal || p.journalOrConference) && (
-          <div className="metric-card min-w-0 overflow-hidden bg-indigo-50">
-            <p className="text-xs text-indigo-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-indigo-50 dark:bg-indigo-900/20">
+            <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium uppercase tracking-wider">
               Journal / Conference
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-indigo-800 [overflow-wrap:anywhere]">
+            <p className="mt-1 break-words text-sm font-semibold text-indigo-800 dark:text-indigo-200 [overflow-wrap:anywhere]">
               {p.journal ? (
                 <Link
                   href={`/journals/${p.journal.id}`}
@@ -213,67 +213,67 @@ const PublicationDetailPage = async ({
           </div>
         )}
         {p.publisher && (
-          <div className="metric-card min-w-0 overflow-hidden bg-cyan-50">
-            <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-cyan-50 dark:bg-cyan-900/20">
+            <p className="text-xs text-cyan-500 dark:text-cyan-400 font-medium uppercase tracking-wider">
               Publisher
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-cyan-800 [overflow-wrap:anywhere]">
+            <p className="mt-1 break-words text-sm font-semibold text-cyan-800 dark:text-cyan-200 [overflow-wrap:anywhere]">
               {p.publisher}
             </p>
           </div>
         )}
         {p.year && (
-          <div className="metric-card min-w-0 overflow-hidden bg-rose-50">
-            <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-rose-50 dark:bg-rose-900/20">
+            <p className="text-xs text-rose-500 dark:text-rose-400 font-medium uppercase tracking-wider">
               Year
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-rose-800 [overflow-wrap:anywhere]">{p.year}</p>
+            <p className="mt-1 break-words text-sm font-semibold text-rose-800 dark:text-rose-200 [overflow-wrap:anywhere]">{p.year}</p>
           </div>
         )}
         {p.domain && (
-          <div className="metric-card min-w-0 overflow-hidden bg-emerald-50">
-            <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-emerald-50 dark:bg-emerald-900/20">
+            <p className="text-xs text-emerald-500 dark:text-emerald-400 font-medium uppercase tracking-wider">
               Domain
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-emerald-800 [overflow-wrap:anywhere]">
+            <p className="mt-1 break-words text-sm font-semibold text-emerald-800 dark:text-emerald-200 [overflow-wrap:anywhere]">
               {p.domain}
             </p>
           </div>
         )}
         {p.volume && (
-          <div className="metric-card min-w-0 overflow-hidden bg-blue-50">
-            <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-blue-50 dark:bg-blue-900/20">
+            <p className="text-xs text-blue-500 dark:text-blue-400 font-medium uppercase tracking-wider">
               Volume
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-blue-800 [overflow-wrap:anywhere]">
+            <p className="mt-1 break-words text-sm font-semibold text-blue-800 dark:text-blue-200 [overflow-wrap:anywhere]">
               {p.volume}
             </p>
           </div>
         )}
         {p.issue && (
-          <div className="metric-card min-w-0 overflow-hidden bg-sky-50">
-            <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-sky-50 dark:bg-sky-900/20">
+            <p className="text-xs text-sky-500 dark:text-sky-400 font-medium uppercase tracking-wider">
               Issue
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-sky-800 [overflow-wrap:anywhere]">{p.issue}</p>
+            <p className="mt-1 break-words text-sm font-semibold text-sky-800 dark:text-sky-200 [overflow-wrap:anywhere]">{p.issue}</p>
           </div>
         )}
         {p.pages && (
-          <div className="metric-card min-w-0 overflow-hidden bg-teal-50">
-            <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-teal-50 dark:bg-teal-900/20">
+            <p className="text-xs text-teal-500 dark:text-teal-400 font-medium uppercase tracking-wider">
               Pages
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-teal-800 [overflow-wrap:anywhere]">
+            <p className="mt-1 break-words text-sm font-semibold text-teal-800 dark:text-teal-200 [overflow-wrap:anywhere]">
               {p.pages}
             </p>
           </div>
         )}
         {p.isUserAuthor && (
-          <div className="metric-card min-w-0 overflow-hidden bg-amber-50">
-            <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
+          <div className="metric-card min-w-0 overflow-hidden bg-amber-50 dark:bg-amber-900/20">
+            <p className="text-xs text-rose-500 dark:text-rose-400 font-medium uppercase tracking-wider">
               Author Status
             </p>
-            <p className="mt-1 break-words text-sm font-semibold text-rose-800 [overflow-wrap:anywhere]">
+            <p className="mt-1 break-words text-sm font-semibold text-rose-800 dark:text-rose-200 [overflow-wrap:anywhere]">
               Co-author
             </p>
           </div>
@@ -308,7 +308,7 @@ const PublicationDetailPage = async ({
             .map((kw) => (
               <span
                 key={kw.toLowerCase()}
-                className="max-w-full break-words rounded-full bg-purple-50 px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-purple-700 [overflow-wrap:anywhere]"
+                className="max-w-full break-words rounded-full border border-purple-200 bg-purple-100 px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-purple-800 [overflow-wrap:anywhere] dark:border-purple-800/30 dark:bg-purple-900/20 dark:text-purple-300"
               >
                 {kw}
               </span>

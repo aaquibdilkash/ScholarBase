@@ -386,6 +386,7 @@ export default function PublicationForm({
           value={draftFields.keywords}
           onChange={(joined) => updateDraftField("keywords", joined)}
         />
+        <input type="hidden" name="keywords" value={draftFields.keywords} />
       </div>
 
       {/* Domain / Area */}
