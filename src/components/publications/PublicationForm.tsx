@@ -147,17 +147,17 @@ export default function PublicationForm({
   );
 
   const isAbstractOverLimit =
-  const hasNoAuthors = (draftFields.authorIds ?? []).length === 0;
     getRichTextLength(draftFields.abstract ?? "") > MAX_PUBLICATION_ABSTRACT;
   const isFormOverLimit = isAbstractOverLimit;
+  const hasNoAuthors = (draftFields.authorIds ?? []).length === 0;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (isFormOverLimit) return;
     if (hasNoAuthors) {
       toast("Select at least one ScholarBase author for this publication.", "error");
       return;
     }
-    e.preventDefault();
-    if (isFormOverLimit) return;
 
     const formData = new FormData(e.currentTarget);
 
