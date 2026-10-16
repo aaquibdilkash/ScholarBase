@@ -264,6 +264,8 @@ export const CONTENT_LIST_CONFIGS = {
       authors: true,
       year: true,
       journalOrConference: true,
+      journalId: true,
+      journal: { select: { id: true, title: true } },
       publicationType: true,
       createdAt: true,
       updatedAt: true,

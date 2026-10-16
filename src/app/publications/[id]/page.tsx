@@ -192,78 +192,88 @@ const PublicationDetailPage = async ({
       </p>
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-4 sm:mb-6">
-        {p.journalOrConference && (
-          <div className="metric-card bg-indigo-50">
+        {(p.journal || p.journalOrConference) && (
+          <div className="metric-card min-w-0 overflow-hidden bg-indigo-50">
             <p className="text-xs text-indigo-500 font-medium uppercase tracking-wider">
               Journal / Conference
             </p>
-            <p className="text-sm font-semibold text-indigo-800 mt-1">
-              {p.journalOrConference}
+            <p className="mt-1 break-words text-sm font-semibold text-indigo-800 [overflow-wrap:anywhere]">
+              {p.journal ? (
+                <Link
+                  href={`/journals/${p.journal.id}`}
+                  prefetch={false}
+                  className="hover:underline"
+                >
+                  {p.journal.title || p.journalOrConference}
+                </Link>
+              ) : (
+                p.journalOrConference
+              )}
             </p>
           </div>
         )}
         {p.publisher && (
-          <div className="metric-card bg-cyan-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-cyan-50">
             <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
               Publisher
             </p>
-            <p className="text-sm font-semibold text-cyan-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-cyan-800 [overflow-wrap:anywhere]">
               {p.publisher}
             </p>
           </div>
         )}
         {p.year && (
-          <div className="metric-card bg-rose-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-rose-50">
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Year
             </p>
-            <p className="text-sm font-semibold text-rose-800 mt-1">{p.year}</p>
+            <p className="mt-1 break-words text-sm font-semibold text-rose-800 [overflow-wrap:anywhere]">{p.year}</p>
           </div>
         )}
         {p.domain && (
-          <div className="metric-card bg-emerald-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-emerald-50">
             <p className="text-xs text-emerald-500 font-medium uppercase tracking-wider">
               Domain
             </p>
-            <p className="text-sm font-semibold text-emerald-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-emerald-800 [overflow-wrap:anywhere]">
               {p.domain}
             </p>
           </div>
         )}
         {p.volume && (
-          <div className="metric-card bg-blue-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-blue-50">
             <p className="text-xs text-blue-500 font-medium uppercase tracking-wider">
               Volume
             </p>
-            <p className="text-sm font-semibold text-blue-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-blue-800 [overflow-wrap:anywhere]">
               {p.volume}
             </p>
           </div>
         )}
         {p.issue && (
-          <div className="metric-card bg-sky-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-sky-50">
             <p className="text-xs text-sky-500 font-medium uppercase tracking-wider">
               Issue
             </p>
-            <p className="text-sm font-semibold text-sky-800 mt-1">{p.issue}</p>
+            <p className="mt-1 break-words text-sm font-semibold text-sky-800 [overflow-wrap:anywhere]">{p.issue}</p>
           </div>
         )}
         {p.pages && (
-          <div className="metric-card bg-teal-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-teal-50">
             <p className="text-xs text-teal-500 font-medium uppercase tracking-wider">
               Pages
             </p>
-            <p className="text-sm font-semibold text-teal-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-teal-800 [overflow-wrap:anywhere]">
               {p.pages}
             </p>
           </div>
         )}
         {p.isUserAuthor && (
-          <div className="metric-card bg-amber-50">
+          <div className="metric-card min-w-0 overflow-hidden bg-amber-50">
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               Author Status
             </p>
-            <p className="text-sm font-semibold text-rose-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-rose-800 [overflow-wrap:anywhere]">
               Co-author
             </p>
           </div>
@@ -271,11 +281,11 @@ const PublicationDetailPage = async ({
       </div>
 
       {p.doi && (
-        <div className="mb-2">
+        <div className="mb-2 min-w-0">
           <span className="text-sm font-medium text-slate-500">DOI: </span>
           <SafeExternalLink
             url={`https://doi.org/${p.doi}`}
-            className="text-sm text-blue-600 hover:text-blue-800 underline"
+            className="break-all text-sm text-blue-600 underline [overflow-wrap:anywhere] hover:text-blue-800"
           >
             {p.doi}
           </SafeExternalLink>
@@ -283,22 +293,26 @@ const PublicationDetailPage = async ({
       )}
 
       {p.isbn && (
-        <div className="mb-2">
+        <div className="mb-2 min-w-0">
           <span className="text-sm font-medium text-slate-500">ISBN: </span>
-          <span className="text-sm text-slate-700">{p.isbn}</span>
+          <span className="break-all text-sm text-slate-700 [overflow-wrap:anywhere]">{p.isbn}</span>
         </div>
       )}
 
       {p.keywords && (
         <div className="mb-3 sm:mb-4 flex flex-wrap gap-1.5 sm:gap-2">
-          {p.keywords.split(",").map((kw, i) => (
-            <span
-              key={i}
-              className="rounded-full bg-purple-50 px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-purple-700"
-            >
-              {kw.trim()}
-            </span>
-          ))}
+          {p.keywords
+            .split(",")
+            .map((kw) => kw.trim())
+            .filter(Boolean)
+            .map((kw) => (
+              <span
+                key={kw.toLowerCase()}
+                className="max-w-full break-words rounded-full bg-purple-50 px-2 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-medium text-purple-700 [overflow-wrap:anywhere]"
+              >
+                {kw}
+              </span>
+            ))}
         </div>
       )}
 

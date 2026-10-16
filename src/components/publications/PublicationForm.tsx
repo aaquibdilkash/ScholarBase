@@ -19,7 +19,6 @@ import {
   MAX_PUBLICATION_DOI,
   MAX_PUBLICATION_ISBN,
   MAX_PUBLICATION_URL,
-  MAX_PUBLICATION_KEYWORDS,
   MAX_PUBLICATION_DOMAIN,
   MAX_PUBLICATION_ABSTRACT,
   MAX_PUBLICATION_VOLUME,
@@ -30,6 +29,7 @@ import { getRichTextLength } from "@/lib/html";
 import type { PublicationWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { PublicationLinkedPeopleFields } from "@/components/publications/PublicationLinkedPeopleFields";
+import { KeywordChipsInput } from "@/components/publications/KeywordChipsInput";
 import {
   PUBLICATION_TITLE_TIP,
   PUBLICATION_TYPE_TIP,
@@ -376,41 +376,34 @@ export default function PublicationForm({
         </div>
       </div>
 
-      {/* Keywords & Domain */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="sb-label inline-flex items-center gap-1.5">
-            Keywords
-            <InfoTooltip message={PUBLICATION_KEYWORDS_TIP} />
-          </label>
-          <input
-            name="keywords"
-            placeholder="e.g., NLP, deep learning, transformers"
-            className="sb-input"
-            maxLength={MAX_PUBLICATION_KEYWORDS}
-            value={draftFields.keywords}
-            onChange={(e) => updateDraftField("keywords", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.keywords.length}/{MAX_PUBLICATION_KEYWORDS} characters
-          </div>
-        </div>
-        <div>
-          <label className="sb-label inline-flex items-center gap-1.5">
-            Domain / Area
-            <InfoTooltip message={PUBLICATION_DOMAIN_TIP} />
-          </label>
-          <input
-            name="domain"
-            placeholder="e.g., Computer Science, Physics"
-            className="sb-input"
-            maxLength={MAX_PUBLICATION_DOMAIN}
-            value={draftFields.domain}
-            onChange={(e) => updateDraftField("domain", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.domain.length}/{MAX_PUBLICATION_DOMAIN} characters
-          </div>
+      {/* Keywords */}
+      <div className="sb-surface-strong mb-4 sm:mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/70 p-4 sm:p-5 dark:border-slate-800">
+        <label className="sb-label">
+          Keywords
+          <InfoTooltip message={PUBLICATION_KEYWORDS_TIP} />
+        </label>
+        <KeywordChipsInput
+          value={draftFields.keywords}
+          onChange={(joined) => updateDraftField("keywords", joined)}
+        />
+      </div>
+
+      {/* Domain / Area */}
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Domain / Area
+          <InfoTooltip message={PUBLICATION_DOMAIN_TIP} />
+        </label>
+        <input
+          name="domain"
+          placeholder="e.g., Computer Science, Physics"
+          className="sb-input"
+          maxLength={MAX_PUBLICATION_DOMAIN}
+          value={draftFields.domain}
+          onChange={(e) => updateDraftField("domain", e.target.value)}
+        />
+        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {draftFields.domain.length}/{MAX_PUBLICATION_DOMAIN} characters
         </div>
       </div>
 

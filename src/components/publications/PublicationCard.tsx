@@ -191,9 +191,20 @@ export function PublicationCard({
         )}
 
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-          {publication.journalOrConference && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-              {publication.journalOrConference}
+          {(publication.journal?.title || publication.journalOrConference) && (
+            <span className="max-w-full break-words rounded-full bg-slate-100 px-2.5 py-1 text-slate-700 [overflow-wrap:anywhere] dark:bg-slate-800 dark:text-slate-300">
+              {publication.journal ? (
+                <Link
+                  href={`/journals/${publication.journal.id}`}
+                  prefetch={false}
+                  onClick={(e) => e.stopPropagation()}
+                  className="hover:underline"
+                >
+                  {publication.journal.title || publication.journalOrConference}
+                </Link>
+              ) : (
+                publication.journalOrConference
+              )}
             </span>
           )}
           {publication.year && (
@@ -214,14 +225,18 @@ export function PublicationCard({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-slate-500">
-          {publication.keywords?.split(",").map((kw, i) => (
-            <span
-              key={i}
-              className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-            >
-              {kw.trim()}
-            </span>
-          ))}
+          {publication.keywords
+            ?.split(",")
+            .map((kw) => kw.trim())
+            .filter(Boolean)
+            .map((kw) => (
+              <span
+                key={kw.toLowerCase()}
+                className="max-w-full break-words rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 [overflow-wrap:anywhere] dark:bg-slate-800 dark:text-slate-300"
+              >
+                {kw}
+              </span>
+            ))}
         </div>
       </Link>
     </ListPageCardShell>

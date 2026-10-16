@@ -230,6 +230,7 @@ export type PublicationWithAuthor = Omit<Partial<Publication>, "publicationAutho
     totalComments: number;
     votes: UserVote;
     bookmarks: UserBookmark;
+    journal?: { id: string; title: string | null } | null;
     publicationAuthors?: {
       userId: string;
       authorOrder: number;

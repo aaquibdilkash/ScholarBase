@@ -43,6 +43,7 @@ export default async function EditPublicationPage({
       isUserAuthor: true,
       authorId: true,
       journalId: true,
+      journal: { select: { id: true, title: true } },
       publicationAuthors: { select: { userId: true, authorOrder: true }, orderBy: { authorOrder: "asc" } },
     },
   });
@@ -69,7 +70,7 @@ export default async function EditPublicationPage({
           title: publication.title,
           authors: publication.authors,
           publicationType: publication.publicationType,
-          journalOrConference: publication.journalOrConference ?? "",
+          journalOrConference: publication.journal?.title ?? publication.journalOrConference ?? "",
           publisher: publication.publisher ?? "",
           year: publication.year?.toString() ?? "",
           volume: publication.volume ?? "",

@@ -3,6 +3,11 @@
 // Pattern: [MODULE_NAME]_[INPUT_NAME]_TIP
 // =============================================================================
 
+import {
+    MAX_PUBLICATION_KEYWORD_COUNT,
+    MAX_PUBLICATION_KEYWORD_LENGTH,
+} from "@/lib/constants";
+
 // -----------------------------------------------------------------------------
 // JOURNALS MODULE
 // -----------------------------------------------------------------------------
@@ -59,7 +64,7 @@ export const PUBLICATION_PAGES_TIP = "The page range of the article (e.g., 123-1
 export const PUBLICATION_DOI_TIP = "The Digital Object Identifier for permanent citation linking.";
 export const PUBLICATION_ISBN_TIP = "The International Standard Book Number for books or chapters.";
 export const PUBLICATION_URL_TIP = "A direct link to the publication (DOI link preferred).";
-export const PUBLICATION_KEYWORDS_TIP = "Relevant keywords or tags separated by commas.";
+export const PUBLICATION_KEYWORDS_TIP = `Add up to ${MAX_PUBLICATION_KEYWORD_COUNT} keywords (max ${MAX_PUBLICATION_KEYWORD_LENGTH} chars each). Press Enter to add, X to remove.`;
 export const PUBLICATION_DOMAIN_TIP = "The broad research domain or field of study.";
 export const PUBLICATION_ABSTRACT_TIP = "A concise summary of the research methodology and findings.";
 export const PUBLICATION_IS_USER_AUTHOR_TIP = "Check this if you are an author or co-author of this work.";

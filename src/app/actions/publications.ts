@@ -17,11 +17,26 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
-import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT, MAX_PUBLICATION_KEYWORDS, MAX_PUBLICATION_KEYWORD_COUNT, MAX_PUBLICATION_KEYWORD_LENGTH } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 function readLinkedIds(formData: FormData, key: string): string[] {
   return [...new Set((readOptionalFormValue(formData, key) ?? "").split(",").map((id) => id.trim()).filter(Boolean))].slice(0, 20);
+}
+
+/** Chip input persists as comma-joined string — normalize server-side too so
+ *  direct FormData posts can't bypass the per-keyword / count / total guards. */
+function normalizeKeywords(raw: string | null): string | null {
+  if (!raw) return null;
+  const chips = [...new Set(
+    raw
+      .split(",")
+      .map((k) => k.trim().replace(/\s+/g, " ").slice(0, MAX_PUBLICATION_KEYWORD_LENGTH))
+      .filter(Boolean),
+  )].slice(0, MAX_PUBLICATION_KEYWORD_COUNT);
+  if (chips.length === 0) return null;
+  const joined = chips.join(", ");
+  return joined.slice(0, MAX_PUBLICATION_KEYWORDS);
 }
 
 async function resolvePublicationPeople(formData: FormData) {
@@ -62,7 +77,7 @@ export async function createPublication(formData: FormData) {
   const isbn = readOptionalFormValue(formData, "isbn");
   const url = readOptionalFormValue(formData, "url");
   const safeUrl = validateExternalUrl(url, "Publication URL");
-  const keywords = readOptionalFormValue(formData, "keywords");
+  const keywords = normalizeKeywords(readOptionalFormValue(formData, "keywords"));
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
   assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
@@ -178,7 +193,7 @@ export async function updatePublication(
   const isbn = readOptionalFormValue(formData, "isbn");
   const url = readOptionalFormValue(formData, "url");
   const safeUrl = validateExternalUrl(url, "Publication URL");
-  const keywords = readOptionalFormValue(formData, "keywords");
+  const keywords = normalizeKeywords(readOptionalFormValue(formData, "keywords"));
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
   assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
@@ -186,7 +201,10 @@ export async function updatePublication(
 
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },
-    select: { authorId: true },
+    select: {
+      authorId: true,
+      publicationAuthors: { select: { userId: true } },
+    },
   });
 
   if (!publication) {
@@ -195,6 +213,7 @@ export async function updatePublication(
   if (!(await isAuthorizedOrAdmin(publication.authorId, user.id))) {
     throw new Error("Not authorized to edit this publication.");
   }
+  const previousAuthorIds = publication.publicationAuthors.map((a) => a.userId);
 
   const updatedPublication = await prisma.$transaction(async (tx) => {
     await tx.publicationAuthor.deleteMany({ where: { publicationId } });
@@ -223,6 +242,26 @@ export async function updatePublication(
     },
   });
   });
+
+  // Notify scholars newly added as co-authors on edit (create already notifies).
+  const newlyAddedAuthorIds = linkedPeople.authorIds.filter(
+    (id) => id !== user.id && !previousAuthorIds.includes(id),
+  );
+  if (newlyAddedAuthorIds.length > 0) {
+    await Promise.all(
+      newlyAddedAuthorIds.map((recipientId) =>
+        notifyUserById({
+          recipientId,
+          actorId: user.id,
+          type: "publication-author",
+          targetType: "Publication",
+          targetId: publicationId,
+          title: `${user.email?.split("@")[0] || "Someone"} added you as a co-author`,
+          body: `${title}${journalOrConference ? ` (${journalOrConference})` : ""}`,
+        }),
+      ),
+    );
+  }
 
   // Purge the cached publication pages: edit must be visible at once, not after the TTL.
   revalidateContent("PUBLICATION", publication.authorId);
@@ -307,6 +346,8 @@ export const getPublicationById = cache(
         authors: true,
         publicationType: true,
         journalOrConference: true,
+        journalId: true,
+        journal: { select: { id: true, title: true } },
         publisher: true,
         year: true,
         volume: true,
