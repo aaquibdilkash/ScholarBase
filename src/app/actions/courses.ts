@@ -30,8 +30,9 @@ export async function createCourse(formData: FormData) {
   const instructor = readFormValue(formData, "instructor");
   const format = readFormValue(formData, "format");
   const level = readFormValue(formData, "level");
-  const price = readFormValue(formData, "price");
-  const duration = readFormValue(formData, "duration");
+  const priceRaw = readFormValue(formData, "price");
+  const durationValueRaw = readFormValue(formData, "durationValue");
+  const durationUnit = readFormValue(formData, "durationUnit");
   const link = readFormValue(formData, "link");
   let safeLink: string | null;
   try {
@@ -39,6 +40,24 @@ export async function createCourse(formData: FormData) {
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }
+  let price: number | null = null;
+  if (priceRaw.length > 0) {
+    const parsed = Number(priceRaw);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      return { success: false, message: "Price must be a valid number." };
+    }
+    price = Math.floor(parsed);
+  }
+
+  let duration: string | null = null;
+  if (durationValueRaw.length > 0 && durationUnit.length > 0) {
+    const dv = Number(durationValueRaw);
+    if (Number.isNaN(dv) || dv < 0) {
+      return { success: false, message: "Duration must be a valid number." };
+    }
+    duration = `${Math.floor(dv)} ${durationUnit}`;
+  }
+
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
@@ -50,9 +69,9 @@ export async function createCourse(formData: FormData) {
         instructor: instructor || null,
         format: format || null,
         level: level || null,
-        price: price || null,
-        duration: duration || null,
-    link: safeLink ?? "",
+        price,
+        duration,
+        link: safeLink ?? "",
         description,
         authorId: user.id,
       },
@@ -102,8 +121,9 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const instructor = readFormValue(formData, "instructor");
   const format = readFormValue(formData, "format");
   const level = readFormValue(formData, "level");
-  const price = readFormValue(formData, "price");
-  const duration = readFormValue(formData, "duration");
+  const priceRaw = readFormValue(formData, "price");
+  const durationValueRaw = readFormValue(formData, "durationValue");
+  const durationUnit = readFormValue(formData, "durationUnit");
   const link = readFormValue(formData, "link");
   let safeLink: string | null;
   try {
@@ -111,6 +131,24 @@ export async function updateCourse(formData: FormData, courseId: string) {
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }
+  let price: number | null = null;
+  if (priceRaw.length > 0) {
+    const parsed = Number(priceRaw);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      return { success: false, message: "Price must be a valid number." };
+    }
+    price = Math.floor(parsed);
+  }
+
+  let duration: string | null = null;
+  if (durationValueRaw.length > 0 && durationUnit.length > 0) {
+    const dv = Number(durationValueRaw);
+    if (Number.isNaN(dv) || dv < 0) {
+      return { success: false, message: "Duration must be a valid number." };
+    }
+    duration = `${Math.floor(dv)} ${durationUnit}`;
+  }
+
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_COURSE_DESCRIPTION, "Description");
 
@@ -134,8 +172,8 @@ export async function updateCourse(formData: FormData, courseId: string) {
       instructor: instructor || null,
       format: format || null,
       level: level || null,
-      price: price || null,
-      duration: duration || null,
+      price,
+      duration,
       link: safeLink ?? "",
       description,
       editedAt: new Date(),

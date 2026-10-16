@@ -14,10 +14,6 @@ import {
   MAX_COURSE_TITLE,
   MAX_COURSE_PROVIDER,
   MAX_COURSE_INSTRUCTOR,
-  MAX_COURSE_FORMAT,
-  MAX_COURSE_LEVEL,
-  MAX_COURSE_PRICE,
-  MAX_COURSE_DURATION,
   MAX_COURSE_URL,
   MAX_COURSE_DESCRIPTION,
 } from "@/lib/constants";
@@ -42,8 +38,9 @@ export type CourseFormValues = {
   instructor: string;
   format: string;
   level: string;
-  price: string;
-  duration: string;
+  price: number;
+  durationValue: number;
+  durationUnit: string;
   link: string;
   description: string;
 };
@@ -64,8 +61,9 @@ export default function CourseForm({
     instructor: initialValues?.instructor ?? "",
     format: initialValues?.format ?? "",
     level: initialValues?.level ?? "",
-    price: initialValues?.price ?? "",
-    duration: initialValues?.duration ?? "",
+    price: typeof initialValues?.price === "number" ? initialValues.price : 0,
+    durationValue: 0,
+    durationUnit: "",
     link: initialValues?.link ?? "",
     description: initialValues?.description ?? "",
   };
@@ -180,41 +178,84 @@ export default function CourseForm({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-3">
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Format
             <InfoTooltip message={COURSE_FORMAT_TIP} />
           </label>
-          <input
+          <select
             name="format"
-            placeholder="Video, cohort, self-paced"
             className="sb-input"
-            maxLength={MAX_COURSE_FORMAT}
             value={draftFields.format}
             onChange={(e) => updateDraftField("format", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.format.length}/{MAX_COURSE_FORMAT} characters
-          </div>
+          >
+            <option value="">Select format</option>
+            <option value="Video">Video</option>
+            <option value="Live / Cohort-based">Live / Cohort-based</option>
+            <option value="Self-paced">Self-paced</option>
+            <option value="Text / Reading">Text / Reading</option>
+            <option value="Interactive / Project-based">Interactive / Project-based</option>
+            <option value="Workshop / Bootcamp">Workshop / Bootcamp</option>
+          </select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Level
             <InfoTooltip message={COURSE_LEVEL_TIP} />
           </label>
-          <input
+          <select
             name="level"
-            placeholder="Beginner, advanced..."
             className="sb-input"
-            maxLength={MAX_COURSE_LEVEL}
             value={draftFields.level}
             onChange={(e) => updateDraftField("level", e.target.value)}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.level.length}/{MAX_COURSE_LEVEL} characters
+          >
+            <option value="">Select level</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Duration
+            <InfoTooltip message={COURSE_DURATION_TIP} />
+          </label>
+          <div className="flex gap-2">
+            <input
+              name="durationValue"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="0"
+              className="sb-input flex-1"
+              value={String(draftFields.durationValue ?? 0)}
+              onChange={(e) => {
+                const parsed = Number(e.target.value);
+                updateDraftField(
+                  "durationValue",
+                  Number.isNaN(parsed) ? 0 : parsed,
+                );
+              }}
+            />
+            <select
+              name="durationUnit"
+              className="sb-input flex-1"
+              value={draftFields.durationUnit}
+              onChange={(e) => updateDraftField("durationUnit", e.target.value)}
+            >
+              <option value="">Unit</option>
+              <option value="minutes">Minutes</option>
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+              <option value="months">Months</option>
+            </select>
           </div>
         </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-4">
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Price
@@ -222,53 +263,37 @@ export default function CourseForm({
           </label>
           <input
             name="price"
-            placeholder="Free, paid, INR 499..."
+            type="number"
+            min="0"
+            step="1"
+            placeholder="0"
             className="sb-input"
-            maxLength={MAX_COURSE_PRICE}
-            value={draftFields.price}
-            onChange={(e) => updateDraftField("price", e.target.value)}
+            value={String(draftFields.price ?? 0)}
+            onChange={(e) => {
+              const parsed = Number(e.target.value);
+              updateDraftField("price", Number.isNaN(parsed) ? 0 : parsed);
+            }}
           />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.price.length}/{MAX_COURSE_PRICE} characters
-          </div>
         </div>
-        <div>
+        <div className="md:col-span-3">
           <label className="sb-label inline-flex items-center gap-1.5">
-            Duration
-            <InfoTooltip message={COURSE_DURATION_TIP} />
+            Course Link
+            <InfoTooltip message={COURSE_LINK_TIP} />
           </label>
           <input
-            name="duration"
-            placeholder="2 hours, 4 weeks..."
+            name="link"
+            type="url"
+            pattern="https?://.+"
+            placeholder="https://..."
             className="sb-input"
-            maxLength={MAX_COURSE_DURATION}
-            value={draftFields.duration}
-            onChange={(e) => updateDraftField("duration", e.target.value)}
+            required
+            maxLength={MAX_COURSE_URL}
+            value={draftFields.link}
+            onChange={(e) => updateDraftField("link", e.target.value)}
           />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.duration.length}/{MAX_COURSE_DURATION} characters
+            {draftFields.link.length}/{MAX_COURSE_URL} characters
           </div>
-        </div>
-      </div>
-
-      <div>
-        <label className="sb-label inline-flex items-center gap-1.5">
-          Course Link
-          <InfoTooltip message={COURSE_LINK_TIP} />
-        </label>
-        <input
-          name="link"
-          type="url"
-          pattern="https?://.+"
-          placeholder="https://..."
-          className="sb-input"
-          required
-          maxLength={MAX_COURSE_URL}
-          value={draftFields.link}
-          onChange={(e) => updateDraftField("link", e.target.value)}
-        />
-        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          {draftFields.link.length}/{MAX_COURSE_URL} characters
         </div>
       </div>
 

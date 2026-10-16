@@ -56,3 +56,13 @@ REALTIME*.md
 # Python bytecode from the icon/splash generators in scripts/
 __pycache__/
 *.pyc
+
+# agent tooling (local skills output, not project source)
+.agents/
+.claude/
+.windsurf/
+.kilo/
+skills-lock.json
+
+# python venv for scripts/
+.venv/

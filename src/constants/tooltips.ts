@@ -96,10 +96,10 @@ export const VACANCY_APPLY_LINK_TIP = "URL to the application portal or email ad
 export const COURSE_TITLE_TIP = "The name of the course or learning program.";
 export const COURSE_PROVIDER_TIP = "The platform or institution offering the course (e.g., Coursera, NPTEL).";
 export const COURSE_INSTRUCTOR_TIP = "The name of the instructor or channel hosting the course.";
-export const COURSE_FORMAT_TIP = "The delivery format (video lectures, cohort-based, self-paced).";
-export const COURSE_LEVEL_TIP = "The difficulty level (beginner, intermediate, advanced).";
-export const COURSE_PRICE_TIP = "The cost of the course (free, paid, or specific amount).";
-export const COURSE_DURATION_TIP = "The estimated time to complete the course.";
+export const COURSE_FORMAT_TIP = "The delivery format of the course.";
+export const COURSE_LEVEL_TIP = "The difficulty level of the course.";
+export const COURSE_PRICE_TIP = "Enter 0 for a free course, otherwise the price amount.";
+export const COURSE_DURATION_TIP = "Enter the estimated time to complete the course and select the unit.";
 export const COURSE_LINK_TIP = "The direct URL to access the course.";
 export const COURSE_DESCRIPTION_TIP = "Learning outcomes, prerequisites, and instructor notes.";
 

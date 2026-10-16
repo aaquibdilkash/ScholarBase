@@ -1468,7 +1468,7 @@ model Course {
   instructor      String?
   format          String?
   level           String?
-  price           String?
+  price           Int?
   duration        String?
   link            String
   description     String

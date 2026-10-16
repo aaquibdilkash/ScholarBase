@@ -68,10 +68,7 @@ export const MAX_RESEARCH_GRANT_INFO_LINK = 128;
 export const MAX_COURSE_TITLE = 64;
 export const MAX_COURSE_PROVIDER = 32;
 export const MAX_COURSE_INSTRUCTOR = 32;
-export const MAX_COURSE_FORMAT = 16;
-export const MAX_COURSE_LEVEL = 16;
-export const MAX_COURSE_PRICE = 8;
-export const MAX_COURSE_DURATION = 16;
+
 export const MAX_COURSE_URL = 128;
 export const MAX_COURSE_DESCRIPTION = 512;
 

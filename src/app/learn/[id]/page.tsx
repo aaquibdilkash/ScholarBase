@@ -63,12 +63,18 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const userVote = course.votes?.[0]?.voteType ?? null;
+  const priceLabel =
+    course.price === 0
+      ? "Free"
+      : course.price != null
+      ? String(course.price)
+      : null;
   const details = [
     ["Provider", course.provider],
     ["Instructor", course.instructor],
     ["Format", course.format],
     ["Level", course.level],
-    ["Price", course.price],
+    ["Price", priceLabel],
     ["Duration", course.duration],
   ].filter(([, value]) => Boolean(value));
 

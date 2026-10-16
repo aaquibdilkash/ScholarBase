@@ -42,6 +42,12 @@ export default async function EditCoursePage({
   if (course.authorId !== user.id)
     throw new Error("You are not authorized to edit this course.");
 
+  const durationParts = (course.duration ?? "").split(" ");
+  const durationValue =
+    durationParts.length >= 2 ? Number(durationParts[0]) || 0 : 0;
+  const durationUnit =
+    durationParts.length >= 2 ? durationParts.slice(1).join(" ") : "";
+
   return (
     <CreateOrEditPageShell
       title={EDIT_PAGE_TEXT.learn.title}
@@ -58,8 +64,9 @@ export default async function EditCoursePage({
           instructor: course.instructor ?? "",
           format: course.format ?? "",
           level: course.level ?? "",
-          price: course.price ?? "",
-          duration: course.duration ?? "",
+          price: typeof course.price === "number" ? course.price : 0,
+          durationValue: Number.isFinite(durationValue) ? durationValue : 0,
+          durationUnit,
           link: course.link,
           description: course.description,
         }}

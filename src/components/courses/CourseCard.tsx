@@ -26,12 +26,19 @@ export function CourseCard({
   const isFollowing = (course.author?.followers?.length ?? 0) > 0;
   const userVote =
     (course.votes || [])[0]?.voteType ?? null;
+  const priceLabel =
+    course.price === 0
+      ? "Free"
+      : course.price != null
+      ? String(course.price)
+      : null;
+
   const details = [
     course.provider,
     course.instructor,
     course.format,
     course.level,
-    course.price,
+    priceLabel,
     course.duration,
   ].filter(Boolean);
   // Share payload: title + the same detail line the card renders.
