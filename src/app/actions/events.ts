@@ -129,7 +129,7 @@ export async function createResearchEvent(formData: FormData) {
   let safeApplyLink: string | null;
   try {
     safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }
@@ -218,7 +218,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   let safeApplyLink: string | null;
   try {
     safeNotificationLink = validateExternalUrl(notificationLink, "Notification link");
-    safeApplyLink = validateExternalUrl(applyLink, "Apply link");
+    safeApplyLink = validateExternalUrl(applyLink, "Apply link", undefined, true);
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }

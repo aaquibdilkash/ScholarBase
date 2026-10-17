@@ -552,6 +552,8 @@ export const CONTENT_LIST_CONFIGS = {
       id: true,
       title: true,
       institution: true,
+      department: true,
+      subject: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -566,6 +568,8 @@ export const CONTENT_LIST_CONFIGS = {
     searchFields: [
       { field: "title" },
       { field: "institution" },
+      { field: "department" },
+      { field: "subject" },
       { field: "description" },
     ],
     dateKeys: [...DATES, "deadline"] as const,

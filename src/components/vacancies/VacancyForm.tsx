@@ -13,6 +13,8 @@ import { getTodayString } from "@/lib/date";
 import {
   MAX_VACANCY_TITLE,
   MAX_VACANCY_INSTITUTION,
+  MAX_VACANCY_DEPARTMENT,
+  MAX_VACANCY_SUBJECT,
   MAX_VACANCY_NOTIFICATION_LINK,
   MAX_VACANCY_APPLY_LINK,
   MAX_VACANCY_DESCRIPTION,
@@ -24,6 +26,8 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   VACANCY_TITLE_TIP,
   VACANCY_INSTITUTION_TIP,
+  VACANCY_DEPARTMENT_TIP,
+  VACANCY_SUBJECT_TIP,
   VACANCY_DEADLINE_TIP,
   VACANCY_DESCRIPTION_TIP,
   VACANCY_NOTIFICATION_LINK_TIP,
@@ -33,6 +37,8 @@ import {
 export type VacancyFormValues = {
   title: string;
   institution: string;
+  department: string;
+  subject: string;
   deadline: string;
   description: string;
   notificationLink: string;
@@ -51,6 +57,8 @@ export default function VacancyForm({
   const initial = {
     title: initialValues?.title ?? "",
     institution: initialValues?.institution ?? "",
+    department: initialValues?.department ?? "",
+    subject: initialValues?.subject ?? "",
     deadline: initialValues?.deadline ?? "",
     description: initialValues?.description ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
@@ -182,6 +190,46 @@ return (
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {draftFields.institution.length}/{MAX_VACANCY_INSTITUTION} characters
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Department (Optional)
+            <InfoTooltip message={VACANCY_DEPARTMENT_TIP} />
+          </label>
+          <input
+            name="department"
+            placeholder="e.g., Department of Physics"
+            className="sb-input"
+            maxLength={MAX_VACANCY_DEPARTMENT}
+            value={draftFields.department}
+            onChange={(e) => updateDraftField("department", e.target.value)}
+            disabled={isPending}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.department.length}/{MAX_VACANCY_DEPARTMENT} characters
+          </div>
+        </div>
+
+        <div>
+          <label className="sb-label inline-flex items-center gap-1.5">
+            Subject / Domain (Optional)
+            <InfoTooltip message={VACANCY_SUBJECT_TIP} />
+          </label>
+          <input
+            name="subject"
+            placeholder="e.g., Quantum Optics"
+            className="sb-input"
+            maxLength={MAX_VACANCY_SUBJECT}
+            value={draftFields.subject}
+            onChange={(e) => updateDraftField("subject", e.target.value)}
+            disabled={isPending}
+          />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {draftFields.subject.length}/{MAX_VACANCY_SUBJECT} characters
+          </div>
         </div>
       </div>
 

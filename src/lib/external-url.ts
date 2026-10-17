@@ -1,3 +1,5 @@
+import { stripMailtoPrefix, validateEmailFormat } from "./email-normalizer";
+
 export function validateExternalUrl(
   value: string | null | undefined,
   label = "URL",
@@ -11,15 +13,17 @@ export function validateExternalUrl(
   }
 
   if (allowEmail) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (emailRegex.test(trimmed)) {
-      return `mailto:${trimmed}`;
+    // Strip ALL leading `mailto:` (case-insensitive, repeated) first so a
+    // value saved by the old buggy writer (`mailto:a@b.com`) or pasted with a
+    // prefix can never chain into `mailto:mailto:...`. Only the bare email is
+    // ever stored — `mailto:` is added back at render time only.
+    const bare = stripMailtoPrefix(trimmed);
+    if (validateEmailFormat(bare)) {
+      return bare;
     }
-    if (trimmed.startsWith("mailto:")) {
-      const email = trimmed.slice(7);
-      if (emailRegex.test(email)) {
-        return trimmed;
-      }
+    // Input looked like an email attempt but failed validation — reject with
+    // an email-specific message instead of falling through to the URL branch.
+    if (/^mailto:/i.test(trimmed) || trimmed.includes("@")) {
       throw new Error(`${label} must be a valid email address.`);
     }
   }

@@ -15,11 +15,29 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
+import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
-import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION, MAX_VACANCY_DEPARTMENT, MAX_VACANCY_SUBJECT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+
+/**
+ * Normalizes an optional short-text field: trims, enforces the max length,
+ * and maps empty/missing to `null` so the DB stays clean (no "" rows).
+ */
+function readOptionalShortText(
+  formData: FormData,
+  key: string,
+  maxLength: number,
+  label: string,
+): string | null {
+  const raw = readOptionalFormValue(formData, key)?.trim() ?? "";
+  if (!raw) return null;
+  if (raw.length > maxLength) {
+    throw new Error(`${label} is too long (max ${maxLength} characters).`);
+  }
+  return raw;
+}
 
 /**
  * Loads one page of job vacancy rows for the
@@ -49,6 +67,8 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       id: true,
       title: true,
       institution: true,
+      department: true,
+      subject: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -118,6 +138,8 @@ export async function createJobVacancy(formData: FormData) {
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
+  const department = readOptionalShortText(formData, "department", MAX_VACANCY_DEPARTMENT, "Department");
+  const subject = readOptionalShortText(formData, "subject", MAX_VACANCY_SUBJECT, "Subject");
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
@@ -141,6 +163,8 @@ export async function createJobVacancy(formData: FormData) {
       data: {
         title,
         institution,
+        department,
+        subject,
         deadline,
         description,
         notificationLink: safeNotificationLink,
@@ -151,6 +175,8 @@ export async function createJobVacancy(formData: FormData) {
         id: true,
         title: true,
         institution: true,
+        department: true,
+        subject: true,
         deadline: true,
         description: true,
         notificationLink: true,
@@ -210,6 +236,8 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
+  const department = readOptionalShortText(formData, "department", MAX_VACANCY_DEPARTMENT, "Department");
+  const subject = readOptionalShortText(formData, "subject", MAX_VACANCY_SUBJECT, "Subject");
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
@@ -243,6 +271,8 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
     data: {
       title,
       institution,
+      department,
+      subject,
       deadline,
       description,
       notificationLink: safeNotificationLink,
@@ -253,6 +283,8 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       id: true,
       title: true,
       institution: true,
+      department: true,
+      subject: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -339,6 +371,8 @@ export async function getLatestVacancies(count: number) {
       id: true,
       title: true,
       institution: true,
+      department: true,
+      subject: true,
       deadline: true,
       description: true,
       notificationLink: true,

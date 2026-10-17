@@ -10,6 +10,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import EventForm from "@/components/events/EventForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { EDIT_PAGE_TEXT } from "@/constants/seo";
+import { stripMailtoPrefix } from "@/lib/email-normalizer";
 
 export default async function EditEventPage({
   params,
@@ -65,7 +66,9 @@ export default async function EditEventPage({
             ? new Date(event.deadline).toISOString().slice(0, 10)
             : "",
           notificationLink: event.notificationLink ?? "",
-          applyLink: event.applyLink ?? "",
+          // Mirror vacancies: prefill the bare email so the user never
+          // sees/edits `mailto:` text.
+          applyLink: event.applyLink ? stripMailtoPrefix(event.applyLink) : "",
         }}
       />
     </CreateOrEditPageShell>

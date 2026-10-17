@@ -1,7 +1,7 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { SafeExternalLink } from "./SafeExternalLink";
 import { SafeEmailLink } from "./SafeExternalLink";
-import { validateEmailFormat } from "@/lib/email-normalizer";
+import { stripMailtoPrefix, validateEmailFormat } from "@/lib/email-normalizer";
 
 const FALLBACK_DASH = <span className="text-slate-400">—</span>;
 
@@ -47,23 +47,16 @@ export function SmartExternalLink({
   }
 
   if (typeof url === "string") {
-    const trimmed = url.trim();
-    if (validateEmailFormat(trimmed)) {
+    // Defensive: DB rows written before the bare-email fix may still carry
+    // `mailto:` (or chained `mailto:mailto:...`). Strip before validating so
+    // legacy rows still render a working single-`mailto:` anchor.
+    const bare = stripMailtoPrefix(url);
+    if (validateEmailFormat(bare)) {
       return (
-        <SafeEmailLink email={trimmed} {...rest}>
+        <SafeEmailLink email={bare} {...rest}>
           {children ?? emailLabel}
         </SafeEmailLink>
       );
-    }
-    if (trimmed.startsWith("mailto:")) {
-      const email = trimmed.slice(7);
-      if (validateEmailFormat(email)) {
-        return (
-          <SafeEmailLink email={email} {...rest}>
-            {children ?? emailLabel}
-          </SafeEmailLink>
-        );
-      }
     }
   }
 

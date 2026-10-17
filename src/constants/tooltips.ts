@@ -78,13 +78,15 @@ export const EVENT_LOCATION_TIP = "The city and venue, or 'Virtual' for online e
 export const EVENT_DEADLINE_TIP = "The deadline for paper submissions or abstract submissions.";
 export const EVENT_DESCRIPTION_TIP = "Key topics, tracks, keynote speakers, and event highlights.";
 export const EVENT_NOTIFICATION_LINK_TIP = "URL to the official call for papers or event brochure.";
-export const EVENT_APPLY_LINK_TIP = "URL to the submission portal or registration page.";
+export const EVENT_APPLY_LINK_TIP = "URL to the submission portal / registration page, or an email address for submissions.";
 
 // -----------------------------------------------------------------------------
 // VACANCIES MODULE
 // -----------------------------------------------------------------------------
 export const VACANCY_TITLE_TIP = "The official job title or position designation.";
 export const VACANCY_INSTITUTION_TIP = "The name of the institution or organization hiring.";
+export const VACANCY_DEPARTMENT_TIP = "The hiring department or unit (e.g., Department of Physics). Optional.";
+export const VACANCY_SUBJECT_TIP = "The subject or specialization area (e.g., Quantum Optics, Machine Learning). Optional.";
 export const VACANCY_DEADLINE_TIP = "The last date to submit the job application.";
 export const VACANCY_DESCRIPTION_TIP = "Pay scale, qualifications required, and job responsibilities.";
 export const VACANCY_NOTIFICATION_LINK_TIP = "URL to the official job advertisement or notification.";

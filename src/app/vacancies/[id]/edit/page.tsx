@@ -10,6 +10,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import VacancyForm from "@/components/vacancies/VacancyForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { EDIT_PAGE_TEXT } from "@/constants/seo";
+import { stripMailtoPrefix } from "@/lib/email-normalizer";
 
 export default async function EditVacancyPage({
   params,
@@ -27,6 +28,8 @@ export default async function EditVacancyPage({
       id: true,
       title: true,
       institution: true,
+      department: true,
+      subject: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -57,10 +60,14 @@ export default async function EditVacancyPage({
         initialValues={{
           title: vacancy.title,
           institution: vacancy.institution,
+          department: vacancy.department ?? "",
+          subject: vacancy.subject ?? "",
           deadline: new Date(vacancy.deadline).toISOString().slice(0, 10),
           description: vacancy.description,
           notificationLink: vacancy.notificationLink ?? "",
-          applyLink: vacancy.applyLink ?? "",
+          // Legacy rows may store `mailto:a@b.com` from the old writer —
+          // prefill the bare email so the user never sees/edits `mailto:` text.
+          applyLink: vacancy.applyLink ? stripMailtoPrefix(vacancy.applyLink) : "",
         }}
       />
     </CreateOrEditPageShell>

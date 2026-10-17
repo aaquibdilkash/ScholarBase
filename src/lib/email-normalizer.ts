@@ -36,6 +36,25 @@ export function normalizeEmail(rawEmail: string): string {
 }
 
 /**
+ * Strips one or more leading `mailto:` prefixes (case-insensitive).
+ * Idempotent: `stripMailtoPrefix(stripMailtoPrefix(x)) === stripMailtoPrefix(x)`,
+ * so re-saving an already-cleaned value can never chain
+ * `mailto:mailto:...`.
+ */
+export function stripMailtoPrefix(value: string): string {
+  if (!value || typeof value !== "string") return "";
+  let result = value.trim();
+  // Loop (instead of a single slice/regex) so `MAILTO:mailto: a@b.com`
+  // with mixed case / whitespace all collapse to the bare email.
+  for (;;) {
+    const match = /^mailto:\s*/i.exec(result);
+    if (!match) return result;
+    result = result.slice(match[0].length).trim();
+    if (!result) return "";
+  }
+}
+
+/**
  * Performs a deliberately small, provider-agnostic email format check.
  * Provider-specific rules belong in normalizeEmail, not in this validator.
  */

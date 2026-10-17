@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes, ReactNode } from "react";
-import { validateEmailFormat } from "@/lib/email-normalizer";
+import { stripMailtoPrefix, validateEmailFormat } from "@/lib/email-normalizer";
 
 const FALLBACK_DASH = <span className="text-slate-400">—</span>;
 
@@ -58,6 +58,9 @@ type SafeEmailLinkProps = Omit<
 /**
  * DRY email link. Validates format at render time and renders a
  * `mailto:` anchor, otherwise falls back to plain text / dash.
+ * Legacy rows may carry a stored `mailto:` prefix (or a chained
+ * `mailto:mailto:...`) from the old writer — strip it before validating so
+ * the href is always built exactly once.
  */
 export function SafeEmailLink({
   email,
@@ -66,9 +69,10 @@ export function SafeEmailLink({
   ...rest
 }: SafeEmailLinkProps) {
   if (typeof email !== "string") return <>{fallback}</>;
-  const trimmed = email.trim();
+  const trimmed = stripMailtoPrefix(email);
   if (!validateEmailFormat(trimmed)) {
-    return trimmed ? <span>{trimmed}</span> : <>{fallback}</>;
+    const raw = email.trim();
+    return raw ? <span>{raw}</span> : <>{fallback}</>;
   }
   return (
     <a href={`mailto:${trimmed}`} {...rest}>

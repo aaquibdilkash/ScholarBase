@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock } from "lucide-react";
+import { Clock, BookOpen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -29,9 +29,27 @@ export function VacancyCard({ vacancy,
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (vacancy.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(vacancy.deadline);
+  // Compact affiliation line: "Dept. of Physics • Quantum Optics". Renders
+  // whichever parts exist; hidden when both are null (pre-migration rows).
+  const deptSubject = [vacancy.department, vacancy.subject]
+    .map((part) => part?.trim())
+    .filter((part): part is string => !!part)
+    .join(" • ");
   // Share payload: mirror vacancies/[id]/page.tsx generateMetadata().
+  const shareAffiliation = [vacancy.department, vacancy.subject]
+    .map((part) => part?.trim())
+    .filter((part): part is string => !!part)
+    .join(" • ");
   const shareTitle = `${vacancy.title} at ${vacancy.institution}`;
-  const shareText = `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${
+  const shareText = shareAffiliation
+    ? `${vacancy.title} at ${vacancy.institution} (${shareAffiliation}). Last date to apply: ${
+    new Date(vacancy.deadline).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }.`
+    : `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${
     new Date(vacancy.deadline).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -153,6 +171,14 @@ export function VacancyCard({ vacancy,
         <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">
           {vacancy.institution}
         </p>
+        {deptSubject && (
+          <p className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
+            <BookOpen className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+            <span className="min-w-0 flex-1 break-words [overflow-wrap:anywhere]">
+              {deptSubject}
+            </span>
+          </p>
+        )}
 
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
           <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />

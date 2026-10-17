@@ -9,7 +9,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
-import { Clock } from "lucide-react";
+import { Clock, Building2, BookOpen } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
@@ -23,9 +23,16 @@ export async function generateMetadata({
   const { id } = await params;
   const vacancy = await getVacancyById(id).catch(() => null);
   if (!vacancy) return { title: "Academic Vacancy" };
+  const affiliation = [vacancy.department, vacancy.subject]
+    .map((part) => part?.trim())
+    .filter((part): part is string => !!part)
+    .join(" • ");
+  const description = affiliation
+    ? `${vacancy.title} at ${vacancy.institution} (${affiliation}). Last date to apply: ${new Date(vacancy.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
+    : `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${new Date(vacancy.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`;
   return buildMetadata({
     title: `${vacancy.title} at ${vacancy.institution}`,
-    description: `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${new Date(vacancy.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    description,
     path: `/vacancies/${vacancy.id}`,
     type: "article",
     publishedTime: vacancy.createdAt,
@@ -157,6 +164,26 @@ const VacancyDetailPage = async ({
       <p className="mb-3 sm:mb-4 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-blue-700 [overflow-wrap:anywhere]">
         {vacancy.institution}
       </p>
+      {(vacancy.department || vacancy.subject) && (
+        <div className="mb-3 sm:mb-4 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-600">
+          {vacancy.department && (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
+              <span className="break-words [overflow-wrap:anywhere]">
+                {vacancy.department}
+              </span>
+            </span>
+          )}
+          {vacancy.subject && (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <BookOpen className="h-4 w-4 shrink-0 text-slate-400" />
+              <span className="break-words font-medium [overflow-wrap:anywhere]">
+                {vacancy.subject}
+              </span>
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mb-3 sm:mb-4 flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
         <Clock className="h-5 w-5 shrink-0 text-slate-400" />

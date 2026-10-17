@@ -229,14 +229,13 @@ export default function EventForm({
 
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
-            Submission Portal URL
+            Submission Link / Email
             <InfoTooltip message={EVENT_APPLY_LINK_TIP} />
           </label>
           <input
-            type="url"
-            pattern="https?://.+"
+            type="text"
             name="applyLink"
-            placeholder="https://easychair.org/cfp/..."
+            placeholder="https://easychair.org/cfp/... or chair@conf.org"
             className="sb-input"
             required
             maxLength={MAX_EVENT_APPLY_LINK}

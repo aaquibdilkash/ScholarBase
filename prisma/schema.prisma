@@ -2311,6 +2311,8 @@ model JobVacancy {
   id               String    @id @default(cuid())
   title            String
   institution      String
+  department       String?
+  subject          String?
   deadline         DateTime
   description      String
   notificationLink String?

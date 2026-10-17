@@ -8,6 +8,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 import { useToast } from "@/components/ui/Toast";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
@@ -130,12 +131,12 @@ export function EventCard({
           >
             View Brochure
           </SafeExternalLink>
-          <SafeExternalLink
+          <SmartExternalLink
             url={event.applyLink}
             className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-          >
-            Register Now
-          </SafeExternalLink>
+            urlLabel="Register Now"
+            emailLabel="Email to Register"
+          />
         </div>
       }
     >

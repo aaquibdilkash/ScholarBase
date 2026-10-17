@@ -20,6 +20,8 @@ export const MAX_PUBLICATION_PAGES = 8;
 
 export const MAX_VACANCY_TITLE = 64;
 export const MAX_VACANCY_INSTITUTION = 64;
+export const MAX_VACANCY_DEPARTMENT = 64;
+export const MAX_VACANCY_SUBJECT = 32;
 export const MAX_VACANCY_NOTIFICATION_LINK = 128;
 export const MAX_VACANCY_APPLY_LINK = 128;
 export const MAX_VACANCY_DESCRIPTION = 256;
