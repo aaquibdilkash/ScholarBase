@@ -185,6 +185,9 @@ export const MAX_PROFILE_NAME = 32;
 export const MAX_PROFILE_HANDLE = 16;
 export const MAX_PROFILE_BIO = 512;
 export const MAX_PROFILE_URL = 128;
+export const MAX_PROFILE_INTERESTS = 256;
+export const MAX_PROFILE_INTEREST_LENGTH = 24;
+export const MAX_PROFILE_INTEREST_COUNT = 10;
 
 export const MAX_CONTACT_NAME = 32;
 export const MAX_CONTACT_EMAIL = 64;

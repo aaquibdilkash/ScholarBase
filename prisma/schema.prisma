@@ -1016,6 +1016,7 @@ model User {
   avatarUrl                        String?
   handle                           String?   @unique
   bio                              String?
+  interests                        String?
   githubUrl                        String?
   orcidUrl                         String?
   linkedinUrl                      String?

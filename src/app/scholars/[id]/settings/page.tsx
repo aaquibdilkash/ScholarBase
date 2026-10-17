@@ -77,7 +77,7 @@ export default async function ScholarSettingsPage({
               Profile Information
             </h2>
             <p className="my-1 text-sm text-slate-500 dark:text-slate-400">
-              Update your name, handle, bio, avatar, and profile links.
+              Update your name, handle, bio, interests, avatar, and profile links.
             </p>
             <EditProfileForm user={profile} />
           </section>

@@ -8,6 +8,7 @@ export interface ProfileData {
     handle: string | null;
     avatarUrl: string | null;
     bio: string | null;
+    interests: string | null;
     githubUrl: string | null;
     orcidUrl: string | null;
     linkedinUrl: string | null;

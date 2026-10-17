@@ -9,7 +9,7 @@ import {
   deleteCloudinaryAsset,
   promoteDraftCloudinaryAsset,
 } from "@/lib/cloudinary";
-import { MAX_PROFILE_BIO } from "@/lib/constants";
+import { MAX_PROFILE_BIO, MAX_PROFILE_INTERESTS, MAX_PROFILE_INTEREST_COUNT, MAX_PROFILE_INTEREST_LENGTH } from "@/lib/constants";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import {
   loadProfileActivity,
@@ -18,6 +18,21 @@ import {
 } from "@/lib/tri-split/modules/profile-tab";
 import { validateExternalUrl } from "@/lib/external-url";
 import { PROFILE_SECTION_CONFIG, type ProfileSection } from "@/lib/module-registry";
+
+/** Chip input persists as comma-joined string — normalize server-side too so
+ * direct FormData posts can't bypass the per-interest / count / total guards. */
+function normalizeProfileInterests(raw: string | null): string | null {
+  if (!raw) return null;
+  const chips = [...new Set(
+    raw
+      .split(",")
+      .map((k) => k.trim().replace(/\s+/g, " ").slice(0, MAX_PROFILE_INTEREST_LENGTH))
+      .filter(Boolean),
+  )].slice(0, MAX_PROFILE_INTEREST_COUNT);
+  if (chips.length === 0) return null;
+  const joined = chips.join(", ");
+  return joined.slice(0, MAX_PROFILE_INTERESTS);
+}
 
 export const getProfile = cache(
   async (profileId: string, currentUserId?: string) => {
@@ -29,6 +44,7 @@ export const getProfile = cache(
         handle: true,
         avatarUrl: true,
         bio: true,
+        interests: true,
         institutionDomain: true,
         institutionVerifiedAt: true,
         githubUrl: true,
@@ -333,6 +349,7 @@ export async function updateProfile(formData: FormData) {
   const newName = readOptionalFormValue(formData, "name");
   const newBio = readOptionalFormValue(formData, "bio");
   assertRichTextWithinLimit(newBio ?? "", MAX_PROFILE_BIO, "Bio");
+  const newInterests = normalizeProfileInterests(readOptionalFormValue(formData, "interests"));
   const newAvatarUrl = readOptionalFormValue(formData, "avatarUrl");
   const newGithubUrl = readOptionalFormValue(formData, "githubUrl");
   const newOrcidUrl = readOptionalFormValue(formData, "orcidUrl");
@@ -395,6 +412,7 @@ export async function updateProfile(formData: FormData) {
           : user.handle,
       name: newName !== null ? newName : user.name,
       bio: newBio !== null ? newBio : user.bio,
+      interests: newInterests,
       avatarUrl: finalAvatarUrl,
       githubUrl: newGithubUrl === null ? user.githubUrl : safeGithubUrl,
       orcidUrl: newOrcidUrl === null ? user.orcidUrl : safeOrcidUrl,

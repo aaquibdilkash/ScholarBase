@@ -626,6 +626,29 @@ export default function ProfileTabs({
             </div>
           )}
 
+          {/* Research Interests */}
+          {profile.interests && (
+            <div>
+              <h2 className="mb-3 text-lg font-semibold text-slate-950">
+                Research Interests
+              </h2>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.interests
+                  .split(",")
+                  .map((interest) => interest.trim())
+                  .filter(Boolean)
+                  .map((interest) => (
+                    <span
+                      key={interest.toLowerCase()}
+                      className="inline-flex items-center rounded-xl border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/15 dark:text-violet-300"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* Links & Identity */}
           <div>
             <h2 className="mb-3 text-lg font-semibold text-slate-950">

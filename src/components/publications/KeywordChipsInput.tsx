@@ -9,29 +9,45 @@ import {
 } from "@/lib/constants";
 
 /** Split a comma-separated keywords string into a deduplicated, capped list. */
-export function normalizeKeywordList(raw: string): string[] {
+export function normalizeKeywordList(
+  raw: string,
+  maxCount: number = MAX_PUBLICATION_KEYWORD_COUNT,
+  maxLength: number = MAX_PUBLICATION_KEYWORD_LENGTH,
+): string[] {
   return [...new Set(
     raw
       .split(",")
-      .map((k) => k.trim().replace(/\s+/g, " ").slice(0, MAX_PUBLICATION_KEYWORD_LENGTH))
+      .map((k) => k.trim().replace(/\s+/g, " ").slice(0, maxLength))
       .filter(Boolean),
-  )].slice(0, MAX_PUBLICATION_KEYWORD_COUNT);
+  )].slice(0, maxCount);
 }
 
 /**
  * Chip-style keywords input. UI-only; chips are joined back into a single
  * comma-separated string so the Prisma `keywords String?` column and the
  * tri-split ILIKE search keep working with zero migration (see plan).
+ *
+ * Optional `maxCount` / `maxLength` / `maxTotal` / `itemLabel` props let other
+ * modules (e.g. profile interests) reuse it with their own budgets without
+ * duplicating the component.
  */
 export function KeywordChipsInput({
   value,
   onChange,
+  maxCount = MAX_PUBLICATION_KEYWORD_COUNT,
+  maxLength = MAX_PUBLICATION_KEYWORD_LENGTH,
+  maxTotal = MAX_PUBLICATION_KEYWORDS,
+  itemLabel = "keyword",
 }: {
   value: string;
   onChange: (joined: string) => void;
+  maxCount?: number;
+  maxLength?: number;
+  maxTotal?: number;
+  itemLabel?: string;
 }) {
   const [draft, setDraft] = useState("");
-  const chips = normalizeKeywordList(value);
+  const chips = normalizeKeywordList(value, maxCount, maxLength);
 
   const commit = (next: string[]) => {
     onChange(next.join(", "));
@@ -39,21 +55,21 @@ export function KeywordChipsInput({
   };
 
   const addDraft = () => {
-    const pieces = normalizeKeywordList(draft);
+    const pieces = normalizeKeywordList(draft, maxCount, maxLength);
     if (pieces.length === 0) {
       setDraft("");
       return;
     }
-    // Never exceed the per-publication total character budget.
+    // Never exceed the total character budget.
     const withPieces = [...chips];
     for (const piece of pieces) {
-      if (withPieces.length >= MAX_PUBLICATION_KEYWORD_COUNT) break;
+      if (withPieces.length >= maxCount) break;
       if (!withPieces.some((c) => c.toLowerCase() === piece.toLowerCase())) {
         withPieces.push(piece);
       }
     }
     const nextJoined = withPieces.join(", ");
-    if (nextJoined.length > MAX_PUBLICATION_KEYWORDS) return;
+    if (nextJoined.length > maxTotal) return;
     commit(withPieces);
   };
 
@@ -72,7 +88,7 @@ export function KeywordChipsInput({
             {kw}
             <button
               type="button"
-              aria-label={`Remove keyword ${kw}`}
+              aria-label={`Remove ${itemLabel} ${kw}`}
               onClick={() => removeAt(i)}
               className="rounded-full p-0.5 transition hover:bg-violet-100 dark:hover:bg-violet-500/25"
             >
@@ -97,27 +113,27 @@ export function KeywordChipsInput({
             if (draft.trim()) addDraft();
           }}
           placeholder={
-            chips.length >= MAX_PUBLICATION_KEYWORD_COUNT
-              ? `Max ${MAX_PUBLICATION_KEYWORD_COUNT} keywords`
-              : `Type a keyword (max ${MAX_PUBLICATION_KEYWORD_LENGTH} chars)`
+            chips.length >= maxCount
+              ? `Max ${maxCount} ${itemLabel}s`
+              : `Type a ${itemLabel} (max ${maxLength} chars)`
           }
-          disabled={chips.length >= MAX_PUBLICATION_KEYWORD_COUNT}
-          maxLength={MAX_PUBLICATION_KEYWORD_LENGTH}
+          disabled={chips.length >= maxCount}
+          maxLength={maxLength}
           className="sb-input flex-1"
-          aria-label="Add a keyword"
+          aria-label={`Add a ${itemLabel}`}
         />
         <button
           type="button"
           onClick={addDraft}
-          disabled={!draft.trim() || chips.length >= MAX_PUBLICATION_KEYWORD_COUNT}
+          disabled={!draft.trim() || chips.length >= maxCount}
           className="shrink-0 rounded-lg bg-slate-950 px-3 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-40 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-slate-200"
         >
           Add
         </button>
       </div>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-        {chips.length}/{MAX_PUBLICATION_KEYWORD_COUNT} keywords · up to{" "}
-        {MAX_PUBLICATION_KEYWORD_LENGTH} chars each · Enter or click Add
+        {chips.length}/{maxCount} {itemLabel}s · up to{" "}
+        {maxLength} chars each · Enter or click Add
       </p>
     </div>
   );

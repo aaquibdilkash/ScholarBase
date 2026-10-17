@@ -86,7 +86,7 @@ export async function searchScholarsForPicker(
         OR LOWER("handle") LIKE LOWER(${term}) || '%'
         OR similarity("handle", ${term}) > 0.25
         OR similarity("name", ${term}) > 0.25
-        OR to_tsvector('simple', COALESCE("name", '') || ' ' || COALESCE("bio", ''))
+        OR to_tsvector('simple', COALESCE("name", '') || ' ' || COALESCE("bio", '') || ' ' || COALESCE("interests", ''))
            @@ plainto_tsquery('simple', ${term})
       )
     ORDER BY

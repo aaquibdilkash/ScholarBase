@@ -10,6 +10,7 @@ import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useToast } from "@/components/ui/Toast";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
+import { KeywordChipsInput } from "@/components/publications/KeywordChipsInput";
 import { Editor } from "@/components/ui/Editor";
 
 import {
@@ -17,6 +18,9 @@ import {
   MAX_PROFILE_HANDLE,
   MAX_PROFILE_BIO,
   MAX_PROFILE_URL,
+  MAX_PROFILE_INTERESTS,
+  MAX_PROFILE_INTEREST_COUNT,
+  MAX_PROFILE_INTEREST_LENGTH,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -24,6 +28,7 @@ import {
   PROFILE_NAME_TIP,
   PROFILE_HANDLE_TIP,
   PROFILE_BIO_TIP,
+  PROFILE_INTERESTS_TIP,
   PROFILE_AVATAR_TIP,
   PROFILE_GITHUB_TIP,
   PROFILE_ORCID_TIP,
@@ -36,6 +41,7 @@ type UserData = {
   name: string | null;
   handle: string | null;
   bio: string | null;
+  interests: string | null;
   avatarUrl: string | null;
   githubUrl: string | null;
   orcidUrl: string | null;
@@ -116,6 +122,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   const { toast } = useToast();
 
   const [bio, setBio] = useState(user.bio || "");
+  const [interests, setInterests] = useState(user.interests || "");
   const debouncedCheckHandle = useDebounce(async (h: string) => {
     if (h.length > 2) {
       setIsCheckingHandle(true);
@@ -275,6 +282,22 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           onChange={(data) => setBio(data)}
         />
         <input type="hidden" name="bio" value={bio} />
+      </div>
+
+       <div>
+         <label className="sb-label !mb-1 inline-flex items-center gap-1.5">
+           Research Interests
+           <InfoTooltip message={PROFILE_INTERESTS_TIP} />
+         </label>
+        <KeywordChipsInput
+          value={interests}
+          onChange={(joined) => setInterests(joined)}
+          maxCount={MAX_PROFILE_INTEREST_COUNT}
+          maxLength={MAX_PROFILE_INTEREST_LENGTH}
+          maxTotal={MAX_PROFILE_INTERESTS}
+          itemLabel="interest"
+        />
+        <input type="hidden" name="interests" value={interests} />
       </div>
 
        <div className="border-t border-slate-200/70 pt-6 dark:border-slate-800">

@@ -163,6 +163,7 @@ export default async function ScholarProfile({
           handle: profile.handle,
           avatarUrl: profile.avatarUrl,
           bio: profile.bio,
+          interests: profile.interests,
           githubUrl: profile.githubUrl,
           orcidUrl: profile.orcidUrl,
           linkedinUrl: profile.linkedinUrl,

@@ -6,6 +6,8 @@
 import {
     MAX_PUBLICATION_KEYWORD_COUNT,
     MAX_PUBLICATION_KEYWORD_LENGTH,
+    MAX_PROFILE_INTEREST_COUNT,
+    MAX_PROFILE_INTEREST_LENGTH,
 } from "@/lib/constants";
 
 // -----------------------------------------------------------------------------
@@ -210,6 +212,7 @@ export const CONTACT_MESSAGE_TIP = "The details of your inquiry or message.";
 export const PROFILE_NAME_TIP = "Your full display name visible to other scholars.";
 export const PROFILE_HANDLE_TIP = "Your unique identifier used in profile URLs and mentions.";
 export const PROFILE_BIO_TIP = "A brief introduction about your research interests and background.";
+export const PROFILE_INTERESTS_TIP = `Add up to ${MAX_PROFILE_INTEREST_COUNT} interests (max ${MAX_PROFILE_INTEREST_LENGTH} chars each). Press Enter to add, X to remove.`;
 export const PROFILE_AVATAR_TIP = "Upload a profile photo (JPG, PNG, max 5MB). You can crop and zoom after selecting.";
 export const PROFILE_GITHUB_TIP = "Link to your GitHub profile for code contributions.";
 export const PROFILE_ORCID_TIP = "Your ORCID iD for linking your research outputs.";
