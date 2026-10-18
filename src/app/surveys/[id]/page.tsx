@@ -98,6 +98,7 @@ const SurveyDetailPage = async ({
       frozenHasActiveAppeal={survey.hasActiveAppeal ?? false}
       backHref="/surveys"
       backLabel="Back to Surveys"
+      bodyClassName="sb-card min-w-0 w-full overflow-x-clip p-3 sm:p-6 md:p-8"
       authorHref={`/scholars/${survey.author?.id}`}
       authorName={survey.author?.name || "Scholar"}
       authorHandle={survey.author?.handle || undefined}

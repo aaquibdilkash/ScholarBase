@@ -451,9 +451,9 @@ export function SurveyResponseForm({
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">
             Response Privacy
           </h3>
-          <div className="-mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <label
-              className={`flex min-w-[16rem] flex-1 cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
+              className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-4 transition sm:flex-1 ${
                 !isAnonymous
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
                   : "border-slate-200 dark:border-slate-700"
@@ -476,7 +476,7 @@ export function SurveyResponseForm({
               </div>
             </label>
             <label
-              className={`flex min-w-[16rem] flex-1 cursor-pointer items-center gap-3 rounded-xl border p-4 transition ${
+              className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-4 transition sm:flex-1 ${
                 isAnonymous
                   ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-400/50"
                   : "border-slate-200 dark:border-slate-700"
@@ -601,7 +601,7 @@ export function SurveyResponseForm({
                     visibleQuestions.findIndex((visible) => visible.id === question.id) + 1,
                 ),
               )}
-              –{" "}
+              –
               {Math.max(
                 ...currentQuestions.map(
                   (question) =>

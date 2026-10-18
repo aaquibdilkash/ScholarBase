@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { createSurvey, updateSurvey } from "@/app/actions/surveys";
@@ -37,6 +37,7 @@ import {
   NEW_QUESTION_ID_PREFIX,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
+import { scrollToElementTop } from "@/lib/scroll";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
@@ -138,6 +139,7 @@ export default function SurveyForm({
 
   const [activeTab, setActiveTab] = useState<"build" | "preview">("build");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [movedQuestionId, setMovedQuestionId] = useState<string | null>(null);
   const [selectedDemographic, setSelectedDemographic] = useState<string>("");
   const [demographicTargetBlock, setDemographicTargetBlock] =
     useState<string>("");
@@ -148,6 +150,20 @@ export default function SurveyForm({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!movedQuestionId) return;
+
+    const frame = requestAnimationFrame(() => {
+      const movedCard = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-question-id]"),
+      ).find((element) => element.dataset.questionId === movedQuestionId);
+      if (movedCard) scrollToElementTop(movedCard);
+      setMovedQuestionId(null);
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [movedQuestionId, questions, collapsedSections]);
 
   const withSkipIntegrity = (nextQuestions: Question[]) => {
     const byOrder = new Map(nextQuestions.map((q) => [q.order, q]));
@@ -214,7 +230,15 @@ export default function SurveyForm({
   ) => {
     const result = relocateQuestion(questions, blocks, questionId, targetBlockId);
     if (!result.moved) return;
+    const destinationSectionKey = targetBlockId ?? "general";
+    setCollapsedSections((previous) => {
+      if (!previous.has(destinationSectionKey)) return previous;
+      const next = new Set(previous);
+      next.delete(destinationSectionKey);
+      return next;
+    });
     applyStructure(result);
+    setMovedQuestionId(questionId);
     toast(targetBlockId ? "Question moved to section" : "Question moved to General");
   };
 
@@ -385,7 +409,7 @@ export default function SurveyForm({
             isDropHere ? "bg-blue-500" : "bg-transparent"
           }`}
         />
-        <div data-drop-index={indexInSection}>
+        <div data-drop-index={indexInSection} data-question-id={question.id}>
           <QuestionEditor
             question={question}
             index={globalIndex}
@@ -394,6 +418,7 @@ export default function SurveyForm({
             isFirstInSection={position?.isFirstInSection ?? true}
             isLastInSection={position?.isLastInSection ?? true}
             isDragging={draggingId === question.id}
+            shouldExpand={movedQuestionId === question.id}
             onChange={(updated) => updateQuestion(question.id, updated)}
             onDelete={() => removeQuestion(question.id)}
             onMoveUp={() => moveQuestion(question.id, "up")}
@@ -436,10 +461,10 @@ export default function SurveyForm({
       <section
         key={sectionKey}
         data-drop-bucket={sectionKey}
-        className={`rounded-xl border p-3 shadow-sm transition-colors sm:p-5 ${
+      className={`border-t border-slate-200 pt-5 transition-colors first:border-t-0 first:pt-0 dark:border-slate-700 ${
           isDropBucket
-            ? "border-blue-400 bg-blue-50/40 dark:border-blue-500 dark:bg-blue-950/20"
-            : "border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/30"
+            ? "border-blue-400 bg-blue-50/30 dark:border-blue-500 dark:bg-blue-950/10"
+            : ""
         }`}
       >
         <header className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 dark:border-slate-700">
@@ -497,7 +522,7 @@ export default function SurveyForm({
 
   return (
     <>
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {/* Build / Preview tabs */}
       <div
         role="tablist"
@@ -509,7 +534,7 @@ export default function SurveyForm({
           role="tab"
           aria-selected={activeTab === "build"}
           onClick={() => setActiveTab("build")}
-          className={`flex-1 rounded-xl px-6 py-2 font-semibold text-center transition-all ${
+          className={`flex-1 rounded-xl px-6 py-2 text-center font-semibold transition-all ${
             activeTab === "build"
               ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
               : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -522,7 +547,7 @@ export default function SurveyForm({
           role="tab"
           aria-selected={activeTab === "preview"}
           onClick={() => setActiveTab("preview")}
-          className={`flex-1 rounded-xl px-6 py-2 font-semibold text-center transition-all ${
+          className={`flex-1 rounded-xl px-6 py-2 text-center font-semibold transition-all ${
             activeTab === "preview"
               ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
               : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -533,10 +558,10 @@ export default function SurveyForm({
       </div>
 
       {activeTab === "build" ? (
-        <form onSubmit={handleFormSubmit} className="space-y-6">
+        <form onSubmit={handleFormSubmit} className="space-y-8">
       <CautionNote />
       {/* Survey Details Section */}
-      <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+      <div className="space-y-5">
         <h2 className="text-lg font-semibold text-slate-900">Survey Details</h2>
 
          <div>
@@ -580,7 +605,7 @@ export default function SurveyForm({
           <p className="mb-2 text-xs text-slate-500">
             Control how responses are collected.
           </p>
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-3">
             {[
               {
                 value: "ANONYMOUS",
@@ -602,7 +627,7 @@ export default function SurveyForm({
                 key={opt.value}
                 type="button"
                 onClick={() => updateDraft("privacy", opt.value)}
-                className={`min-w-[12rem] rounded-xl border-2 p-4 text-left transition md:min-w-0 ${
+                className={`w-full rounded-xl border-2 p-4 text-left transition ${
                   privacy === opt.value
                     ? "border-blue-500 bg-blue-50 dark:bg-blue-500/10 dark:border-blue-500/50"
                     : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
@@ -685,8 +710,10 @@ export default function SurveyForm({
           )}
         </div>
 
+      </div>
+
         {/* Sections Section */}
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+        <div className="space-y-4 border-t border-slate-200 pt-6 dark:border-slate-700">
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Sections</h2>
             {blocks.length < MAX_SURVEY_BLOCKS && (
@@ -773,7 +800,7 @@ export default function SurveyForm({
         </div>
 
         {/* Questions Section */}
-        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-6">
+        <div className="space-y-4 border-t border-slate-200 pt-6 dark:border-slate-700">
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
             <button
@@ -837,8 +864,6 @@ export default function SurveyForm({
             {blocks.map((block) => renderSectionCard(block))}
           </div>
         </div>
-      </div>
-
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <FormCancelButton />

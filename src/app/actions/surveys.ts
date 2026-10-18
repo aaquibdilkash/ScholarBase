@@ -26,6 +26,7 @@ import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import { redactRespondentIdentity } from "@/lib/surveys/export";
+import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import type { SurveyBlockInput } from "@/types/survey";
 
 const MAX_RESPONSE_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -1029,6 +1030,7 @@ export async function submitSurveyResponse(
       // Read so the cache purge below can name the survey author, whose profile
       // Content tab embeds this survey's `totalResponses`.
       authorId: true,
+      title: true,
       consentRequired: true,
       questions: {
         where: { archivedAt: null },
@@ -1193,6 +1195,16 @@ export async function submitSurveyResponse(
        data: { reputation: { increment: 1 }, surveyParticipationCount: { increment: 1 } },
      });
 
+    await tx.userActivity.create({
+      data: {
+        userId: user.id,
+        action: "PARTICIPATED",
+        moduleType: "RESEARCH_SURVEY",
+        entityId: surveyId,
+        entityTitle: surveyForValidation.title,
+      },
+    });
+
     return response;
   });
 
@@ -1201,6 +1213,7 @@ export async function submitSurveyResponse(
   // in the survey author's own profile Content tab, so name them here — the
   // respondent is a different scholar and their tab is untouched.
   revalidateContent("RESEARCH_SURVEY", surveyForValidation.authorId);
+  revalidateProfileContent(user.id);
 
   return { success: true, data: newResponse };
 }

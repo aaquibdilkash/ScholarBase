@@ -36,7 +36,7 @@ export function SurveyPager({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex justify-between pt-4">
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 pt-4 sm:gap-3">
       <button
         type="button"
         onClick={onBack}
@@ -46,7 +46,7 @@ export function SurveyPager({
         <ChevronLeft className="h-4 w-4" />
         Back
       </button>
-      <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+      <div className="min-w-0 justify-self-center whitespace-nowrap text-center text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
         {children}
       </div>
       {submit ? (

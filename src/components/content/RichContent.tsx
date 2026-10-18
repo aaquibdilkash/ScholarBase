@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeRichHtml } from "@/lib/sanitize";
 
@@ -22,6 +23,12 @@ export function RichContent({
   compact = false,
 }: RichContentProps) {
   const normalized = content?.trim();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   if (!normalized) {
     return null;
   }
@@ -36,14 +43,17 @@ export function RichContent({
   if (htmlLikePattern.test(normalized)) {
     const safeHtml = sanitizeRichHtml(normalized);
 
+    // The browser parses server HTML before React hydrates it. Sanitized rich
+    // HTML can therefore produce a different child tree on the client (for
+    // example around links), so keep the initial shell identical and mount
+    // the HTML after hydration.
+    if (!isHydrated) {
+      return <div className={baseClass} />;
+    }
+
     return (
       <div
         className={baseClass}
-        // Sanitized rich HTML is parsed by the browser before React hydrates.
-        // Attribute normalization (notably on links) can make the parsed DOM
-        // differ from the server string even though the visible content is
-        // identical.
-        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
     );

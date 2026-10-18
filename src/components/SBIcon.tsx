@@ -18,7 +18,7 @@ export function SBIcon({ className = "", ...props }: HTMLAttributes<HTMLSpanElem
       {...props}
     >
       <span>S</span>
-      <span className="text-blue-500">B</span>
+      <span className="text-blue-400 dark:text-blue-400">B</span>
     </span>
   );
 }

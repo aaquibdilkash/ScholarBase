@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, ChevronDown, ChevronUp, Trash2, GripVertical } from "lucide-react";
 import type { QuestionOption, Question, SkipRule, BlockInput } from "@/types/survey";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -62,6 +62,7 @@ export function QuestionEditor({
   isFirstInSection = false,
   isLastInSection = false,
   isDragging = false,
+  shouldExpand = false,
   onChange,
   onDelete,
   onMoveUp,
@@ -80,6 +81,8 @@ export function QuestionEditor({
   isFirstInSection?: boolean;
   isLastInSection?: boolean;
   isDragging?: boolean;
+  /** Expands this card after it is moved to another section. */
+  shouldExpand?: boolean;
   onChange: (q: Question) => void;
   onDelete: () => void;
   onMoveUp: () => void;
@@ -105,6 +108,10 @@ export function QuestionEditor({
     isOpen: boolean;
     optIndex: number | null;
   }>({ isOpen: false, optIndex: null });
+
+  useEffect(() => {
+    if (shouldExpand) setIsCollapsed(false);
+  }, [shouldExpand]);
 
   const handleLikertScaleChange = (size: number) => {
     const labels = LIKERT_OPTIONS[size];
@@ -142,7 +149,7 @@ export function QuestionEditor({
   return (
     <>
     <div
-      className={`rounded-none border-0 border-t border-slate-200 bg-transparent pt-5 first:border-t-0 first:pt-0 dark:border-slate-700 dark:bg-transparent sm:rounded-xl sm:border sm:bg-white sm:p-5 sm:first:pt-5 sm:shadow-sm sm:dark:bg-slate-800 ${
+      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800/30 sm:p-5 ${
         isDragging ? "opacity-40" : ""
       }`}
     >
@@ -166,7 +173,7 @@ export function QuestionEditor({
             {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </button>
           <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            Question {index + 1}
+            Question settings · #{index + 1}
           </span>
         </div>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">

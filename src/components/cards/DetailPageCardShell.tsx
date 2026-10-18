@@ -124,7 +124,8 @@ export default function DetailPageCardShell({
         className,
       )}
     >
-<Link prefetch={false}
+      <Link
+        prefetch={false}
         href={backHref}
         className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 mb-6"
       >
@@ -132,7 +133,12 @@ export default function DetailPageCardShell({
         {backLabel}
       </Link>
 
-      <div className={clsx(bodyClassName ?? "sb-card min-w-0 w-full overflow-x-clip p-6 sm:p-6 md:p-8")}>
+      <div
+        className={clsx(
+          bodyClassName ??
+            "sb-card min-w-0 w-full overflow-x-clip p-6 sm:p-6 md:p-8",
+        )}
+      >
         {/* Moderation banner — frozen content is visible but read-only */}
         {isFrozen && frozenEntityId ? (
           <FrozenContentBanner
@@ -145,16 +151,18 @@ export default function DetailPageCardShell({
             isAdmin={isAdmin}
             variant="detail"
           />
-        ) : isFrozen && (
-          <div className="mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
-            <span className="inline-flex items-center gap-2 text-left">
-              <span aria-hidden>❄</span>
-              <span>
-                This post has been frozen by moderators. Voting, reporting and
-                commenting are disabled.
+        ) : (
+          isFrozen && (
+            <div className="mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+              <span className="inline-flex items-center gap-2 text-left">
+                <span aria-hidden>❄</span>
+                <span>
+                  This post has been frozen by moderators. Voting, reporting and
+                  commenting are disabled.
+                </span>
               </span>
-            </span>
-          </div>
+            </div>
+          )
         )}
         {/* Common header */}
         <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
@@ -179,19 +187,24 @@ export default function DetailPageCardShell({
 
             <div>
               {authorHref ? (
-                <Link prefetch={false}
+                <Link
+                  prefetch={false}
                   href={authorHref}
                   className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
                 >
                   <span className="inline-flex max-w-full items-center gap-1">
-                    <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                    <span className="min-w-0 truncate">
+                      {authorName || "Scholar"}
+                    </span>
                     {authorVerified ? <VerifiedBadge /> : null}
                   </span>
                 </Link>
               ) : (
                 <span className="font-semibold italic text-slate-500 dark:text-slate-400">
                   <span className="inline-flex max-w-full items-center gap-1">
-                    <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                    <span className="min-w-0 truncate">
+                      {authorName || "Scholar"}
+                    </span>
                     {authorVerified ? <VerifiedBadge /> : null}
                   </span>
                 </span>
@@ -262,10 +275,14 @@ export default function DetailPageCardShell({
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            {isFrozen && footerBookmarkButton && isValidElement(footerBookmarkButton)
+          <div className="flex items-center gap-2 pr-1 sm:pr-0">
+            {isFrozen &&
+            footerBookmarkButton &&
+            isValidElement(footerBookmarkButton)
               ? cloneElement(
-                  footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
+                  footerBookmarkButton as React.ReactElement<{
+                    frozen?: boolean;
+                  }>,
                   { frozen: true },
                 )
               : footerBookmarkButton}

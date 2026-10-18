@@ -149,7 +149,7 @@ export function VoteButton({
       <button
         disabled={isPending || votingDisabled}
         onClick={() => handleVote("UPVOTE")}
-        className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-green-300 hover:text-green-700 dark:hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-70 ${
+        className={`inline-flex items-center gap-1 rounded-l-full border border-slate-200 bg-white px-2 py-1 text-xs font-bold transition hover:border-green-300 hover:text-green-700 dark:hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-70 sm:px-2.5 sm:py-1.5 ${
           userVote === "UPVOTE"
             ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-950 dark:text-green-400 dark:border-green-700"
             : "text-slate-800 dark:text-slate-400"
@@ -157,10 +157,10 @@ export function VoteButton({
         title={disabledTitle ?? "Upvote"}
       >
         {isPending && pendingVote === "UPVOTE" ? (
-          <Loader2 className="animate-spin h-4 w-4" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" />
         ) : (
           <ArrowUp
-            className={`w-4 h-4 ${userVote === "UPVOTE" ? "text-green-700 dark:text-green-400" : "text-slate-800 dark:text-slate-400"}`}
+            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${userVote === "UPVOTE" ? "text-green-700 dark:text-green-400" : "text-slate-800 dark:text-slate-400"}`}
             strokeWidth={3}
           />
         )}
@@ -181,7 +181,7 @@ export function VoteButton({
       <button
         disabled={isPending || votingDisabled}
         onClick={() => handleVote("DOWNVOTE")}
-        className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold transition hover:border-red-300 hover:text-red-700 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70 ${
+        className={`inline-flex items-center gap-1 rounded-r-full border border-slate-200 bg-white px-2 py-1 text-xs font-bold transition hover:border-red-300 hover:text-red-700 dark:hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-70 sm:px-2.5 sm:py-1.5 ${
           userVote === "DOWNVOTE"
             ? "bg-red-50 text-red-700 border-red-300 dark:bg-red-950 dark:text-red-400 dark:border-red-700"
             : "text-slate-800 dark:text-slate-400"
@@ -189,10 +189,10 @@ export function VoteButton({
         title={disabledTitle ?? "Downvote"}
       >
         {isPending && pendingVote === "DOWNVOTE" ? (
-          <Loader2 className="animate-spin h-4 w-4" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin sm:h-4 sm:w-4" />
         ) : (
           <ArrowDown
-            className={`w-4 h-4 ${userVote === "DOWNVOTE" ? "text-red-700 dark:text-red-400" : "text-slate-800 dark:text-slate-400"}`}
+            className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${userVote === "DOWNVOTE" ? "text-red-700 dark:text-red-400" : "text-slate-800 dark:text-slate-400"}`}
             strokeWidth={3}
           />
         )}

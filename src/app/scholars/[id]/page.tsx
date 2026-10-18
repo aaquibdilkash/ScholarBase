@@ -63,23 +63,25 @@ export default async function ScholarProfile({
     <main className="mx-auto max-w-5xl px-0 py-3 sm:px-4 sm:py-6">
       <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 dark:border-slate-800 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-x-8 lg:gap-y-0">
         <div className="lg:row-span-2 lg:min-w-0">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="flex h-22 w-22 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-slate-200 shadow-md dark:border-slate-950 dark:bg-slate-800 sm:h-24 sm:w-24">
               <ProfileAvatar
                 src={profile.avatarUrl}
                 name={profile.name}
-                size={96}
-                fallbackClassName="text-3xl font-bold text-slate-400 dark:text-slate-500"
+                containerClassName="h-20 w-20 sm:h-24 sm:w-24"
+                fallbackClassName="text-2xl font-bold text-slate-400 dark:text-slate-500 sm:text-3xl"
               />
             </div>
 
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-                <span className="inline-flex items-center gap-2 [overflow-wrap:anywhere]">
-                  {profile.name}
+              <h1 className="text-lg font-semibold leading-tight tracking-tight text-slate-950 sm:text-3xl dark:text-slate-50">
+                <span className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                  <span className="truncate" title={profile.name ?? undefined}>
+                    {profile.name}
+                  </span>
                   {profile.institutionVerifiedAt && (
                     <BadgeCheck
-                      className="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                      className="h-5 w-5 shrink-0 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400"
                       aria-label="Institutional email verified"
                     />
                   )}

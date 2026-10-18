@@ -6,6 +6,7 @@ export const metadata: Metadata = buildNoindexMetadata(
 );
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getSurveyResults } from "@/app/actions/surveys";
 import { SurveyResultsView } from "@/components/surveys/SurveyResultsView";
@@ -32,10 +33,12 @@ export default async function SurveyResultsPage({
         <Link
           prefetch={false}
           href={`/surveys/${id}`}
-          className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 mb-6"
         >
+          <ChevronLeft className="h-5 w-4" />
           Back to Survey
         </Link>
+
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center">
           <h2 className="text-lg font-semibold text-amber-800 mb-2">
             Results Not Available
@@ -81,19 +84,17 @@ export default async function SurveyResultsPage({
   return (
     <main className="mx-auto max-w-3xl py-6 sm:py-12">
       <Link
-        prefetch={false}
-        href={`/surveys/${id}`}
-        className="mb-6 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-blue-700"
-      >
-        Back to Survey
-      </Link>
+          prefetch={false}
+          href={`/surveys/${id}`}
+          className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-700 dark:text-slate-300 dark:hover:bg-slate-800 mb-6"
+        >
+          <ChevronLeft className="h-5 w-4" />
+          Back to Survey
+        </Link>
       <h1 className="text-2xl font-semibold text-slate-950 mb-6">
         Survey Results
       </h1>
-      <SurveyResultsView
-        survey={serializedSurvey}
-        surveyId={survey.id}
-      />
+      <SurveyResultsView survey={serializedSurvey} surveyId={survey.id} />
     </main>
   );
 }

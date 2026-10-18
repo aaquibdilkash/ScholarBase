@@ -841,6 +841,7 @@ const ACTIVITY_ACTION: Record<string, string> = {
   REPLIED: "replied",
   FOLLOWED: "followed",
   PUBLISHED: "published",
+  PARTICIPATED: "participated in",
 };
 
 function ActivityItemCard({ item }: { item: ActivityItem }) {

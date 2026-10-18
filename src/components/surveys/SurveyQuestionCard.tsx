@@ -35,7 +35,7 @@ export function SurveyQuestionCard({
   onMatrixChange: (rowValue: string, columnIndex: number) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/30">
+    <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-6 dark:border-slate-700 dark:bg-slate-800/30">
       <div className="mb-4 flex items-start gap-2">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
           {number}

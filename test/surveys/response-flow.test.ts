@@ -77,6 +77,18 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   loadContentPage: vi.fn(async () => ({ items: [], nextCursor: null })),
 }));
 
+/** `revalidateTag`/`unstable_cache` are Next.js caching primitives that are only
+ *  available inside a real request context (SSR/cron/action). The unit suite runs
+ *  headless with no request context, so these are stubbed out like the other
+ *  tri-split test files. The action under test still calls `revalidateContent`
+ *  and `revalidateProfileContent`; those delegates are this file's mocks, so
+ *  they no-op before reaching `revalidateTag`. */
+const revalidateTag = vi.fn();
+vi.mock("next/cache", () => ({
+  revalidateTag: (...args: unknown[]) => revalidateTag(...args),
+  unstable_cache: (fn: unknown) => fn,
+}));
+
 /** One active question, plus the survey row that owns it. */
 type Seeded = { id: string; order: number; skipLogic?: unknown; required?: boolean };
 

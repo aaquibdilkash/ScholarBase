@@ -11,6 +11,8 @@ interface ProfileAvatarProps {
   size?: number;
   fallbackClassName?: string;
   imageClassName?: string;
+  /** Optional responsive sizing for the avatar container. */
+  containerClassName?: string;
 }
 
 export function ProfileAvatar({
@@ -19,6 +21,7 @@ export function ProfileAvatar({
   size = 96,
   fallbackClassName = "",
   imageClassName = "",
+  containerClassName = "",
 }: ProfileAvatarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -33,9 +36,9 @@ export function ProfileAvatar({
   return (
     <>
       <div
-        className="relative cursor-pointer transition duration-200 hover:scale-[1.02]"
+        className={`relative cursor-pointer transition duration-200 hover:scale-[1.02] ${containerClassName}`}
         onClick={handleClick}
-        style={{ width: size, height: size }}
+        style={containerClassName ? undefined : { width: size, height: size }}
       >
         <UserAvatar
           src={src}

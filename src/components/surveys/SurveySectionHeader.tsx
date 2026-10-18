@@ -13,7 +13,7 @@ export function SurveySectionHeader({
   sectionCount: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2 sm:p-4 dark:border-slate-700 dark:bg-slate-800/40">
       <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
         {sectionIndex
           ? `Section ${sectionIndex} of ${sectionCount}`

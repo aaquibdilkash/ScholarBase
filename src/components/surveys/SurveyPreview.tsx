@@ -189,7 +189,7 @@ const progressPct =
   return (
     <div className="w-full space-y-4">
       {/* Preview toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/30">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-2 sm:p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/30">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
             Respondent preview
