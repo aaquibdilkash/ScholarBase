@@ -22,7 +22,7 @@ import {
 } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
-import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE, NEW_QUESTION_ID_PREFIX } from "@/lib/constants";
+import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE, MAX_SURVEY_LINEAR_SCALE_VALUE, NEW_QUESTION_ID_PREFIX } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import { redactRespondentIdentity } from "@/lib/surveys/export";
@@ -34,6 +34,23 @@ const MAX_RESPONSE_DURATION_MS = 24 * 60 * 60 * 1000;
 function sanitizeConsentText(raw: FormDataEntryValue | null): string | null {
   const text = typeof raw === "string" ? raw.trim() : "";
   return text ? text.slice(0, MAX_SURVEY_CONSENT_TEXT) : null;
+}
+
+function validateLinearScaleBounds(questions: SurveyQuestionInput[]) {
+  for (const question of questions) {
+    if (question.type !== "LINEAR_SCALE") continue;
+    const min = question.minValue ?? 1;
+    const max = question.maxValue ?? 10;
+    if (
+      min < 1 ||
+      max < min ||
+      max > MAX_SURVEY_LINEAR_SCALE_VALUE
+    ) {
+      throw new Error(
+        `Linear scale values must be between 1 and ${MAX_SURVEY_LINEAR_SCALE_VALUE}, with the maximum at least the minimum.`,
+      );
+    }
+  }
 }
 
 /** Parse + validate the block list submitted by the builder. */
@@ -262,6 +279,7 @@ export async function createSurvey(formData: FormData) {
   assertRichTextWithinLimit(description ?? "", MAX_SURVEY_DESCRIPTION, "Survey description");
 
   const questions = JSON.parse(questionsJson) as SurveyQuestionInput[];
+  validateLinearScaleBounds(questions);
   const blocks = parseBlockInputs(readOptionalFormValue(formData, "blocks"));
   const questionCount = questions.length;
   const blocksCount = blocks.length;
@@ -414,6 +432,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
   const questions = questionsJson
     ? (JSON.parse(questionsJson) as SurveyQuestionInput[])
     : [];
+  validateLinearScaleBounds(questions);
   const blocks = parseBlockInputs(readOptionalFormValue(formData, "blocks"));
 
   const submittedIds = questions.flatMap((question) =>

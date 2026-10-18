@@ -74,8 +74,10 @@ export default function SurveyForm({
       title: q.title,
       required: q.required,
       order: q.order ?? i,
-      minValue: q.minValue,
-      maxValue: q.maxValue,
+      minValue:
+        q.type === "LINEAR_SCALE" ? (q.minValue ?? 1) : q.minValue,
+      maxValue:
+        q.type === "LINEAR_SCALE" ? (q.maxValue ?? 10) : q.maxValue,
       shuffleOptions: q.shuffleOptions === true,
       skipLogic: q.skipLogic ?? null,
       columnLabels: q.columnLabels ?? null,

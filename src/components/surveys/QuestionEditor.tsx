@@ -9,6 +9,7 @@ import {
   MAX_SURVEY_QUESTION_TITLE,
   MAX_SURVEY_QUESTION_OPTION,
   MAX_MATRIX_COLUMNS,
+  MAX_SURVEY_LINEAR_SCALE_VALUE,
 } from "@/lib/constants";
 import {
   SURVEY_QUESTION_TITLE_TIP,
@@ -99,6 +100,7 @@ export function QuestionEditor({
     CHOICE_TYPES.includes(question.type) && laterQuestions.length > 0;
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [linearScaleError, setLinearScaleError] = useState("");
   const [showOptionDeleteModal, setShowOptionDeleteModal] = useState<{
     isOpen: boolean;
     optIndex: number | null;
@@ -364,30 +366,51 @@ export function QuestionEditor({
                 onChange={(e) =>
                   onChange({
                     ...question,
-                    minValue: parseInt(e.target.value) || 1,
+                    minValue: Math.min(
+                      MAX_SURVEY_LINEAR_SCALE_VALUE,
+                      Math.max(1, parseInt(e.target.value, 10) || 1),
+                    ),
                   })
                 }
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min={0}
+                min={1}
+                max={MAX_SURVEY_LINEAR_SCALE_VALUE}
               />
             </div>
              <div>
                <label className="mb-1 block text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5">
-                 Max Value
+                 Max Value (up to {MAX_SURVEY_LINEAR_SCALE_VALUE})
                  <InfoTooltip message={SURVEY_QUESTION_MAX_TIP} />
                </label>
               <input
                 type="number"
                 value={question.maxValue ?? 10}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const parsed = parseInt(e.target.value, 10);
+                  if (parsed > MAX_SURVEY_LINEAR_SCALE_VALUE) {
+                    setLinearScaleError(
+                      `The maximum allowed value is ${MAX_SURVEY_LINEAR_SCALE_VALUE}.`,
+                    );
+                    return;
+                  }
+                  setLinearScaleError("");
                   onChange({
                     ...question,
-                    maxValue: parseInt(e.target.value) || 10,
-                  })
-                }
+                    maxValue: Math.max(1, parsed || 10),
+                  });
+                }}
                 className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min={1}
+                max={MAX_SURVEY_LINEAR_SCALE_VALUE}
               />
+              <p className="mt-1 text-xs text-slate-500">
+                Enter a value from 1 to {MAX_SURVEY_LINEAR_SCALE_VALUE}.
+              </p>
+              {linearScaleError && (
+                <p className="mt-1 text-xs font-medium text-red-600" role="alert">
+                  {linearScaleError}
+                </p>
+              )}
             </div>
           </div>
         )}

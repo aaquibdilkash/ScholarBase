@@ -82,6 +82,7 @@ export const MAX_SURVEY_ANSWER_SHORT = 256;
 export const MAX_SURVEY_ANSWER_LONG = 1024;
 export const MAX_SURVEY_CONSENT_TEXT = 1024;
 export const MAX_SURVEY_BLOCKS = 10;
+export const MAX_SURVEY_LINEAR_SCALE_VALUE = 10;
 
 /**
  * Prefix for builder-local ids on entities that do not exist in the database

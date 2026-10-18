@@ -233,7 +233,10 @@ case "DROPDOWN":
       );
 case "LINEAR_SCALE": {
       const min = question.minValue ?? 1;
-      const max = question.maxValue ?? 5;
+      // Linear-scale questions use 1–10 by default in the builder. Keep the
+      // respondent UI aligned for older questions whose bounds were stored as
+      // null before these fields were introduced.
+      const max = question.maxValue ?? 10;
       const labels: string[] = [];
       for (let i = min; i <= max; i++) labels.push(String(i));
       return (
