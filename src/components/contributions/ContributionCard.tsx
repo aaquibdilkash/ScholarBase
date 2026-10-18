@@ -9,6 +9,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import Link from "next/link";
 import { deleteContribution } from "@/app/actions/contributions";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import type { ContributionWithAuthor } from "@/types/cards";
 import { stripHtmlTags } from "@/lib/html";
@@ -42,6 +43,12 @@ export function ContributionCard({
       currentUserId={currentUserId}
       authorHandle={contribution.author?.handle || undefined}
       authorAvatarUrl={contribution.author?.avatarUrl || undefined} authorVerified={!!(contribution.author?.institutionVerifiedAt)}
+      isFrozen={contribution.isFrozen ?? false}
+      frozenEntityId={contribution.id}
+      frozenModule="CONTRIBUTION"
+      frozenEntityType="POST"
+      frozenOwnerId={contribution.author?.id ?? null}
+      frozenHasActiveAppeal={contribution.hasActiveAppeal ?? false}
       detailPageHref={`/contributions/${contribution.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -56,8 +63,7 @@ export function ContributionCard({
               try {
                 const response = await deleteContribution(contribution.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete contribution.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete contribution."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

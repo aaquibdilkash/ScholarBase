@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteRecommendation as deleteRecommendationAction } from "@/app/actions/recommendations";
@@ -90,7 +91,7 @@ export function SupervisorHeaderActions({
         setPendingDelete(null);
         if (result?.success === false) {
           // e.g. frozen account: server returned a graceful rejection.
-          toast(result.error || result.message || "Failed to delete supervisor.", "error");
+          toast(actionErrorMessage(result, "Failed to delete supervisor."), "error");
           return;
         }
         invalidateProfileTabs(queryClient, "content", "activity");
@@ -112,7 +113,7 @@ export function SupervisorHeaderActions({
         try {
           const response = await deleteRecMutation.mutateAsync(recId);
           if (!response?.success || !response.data) {
-            toast("Failed to delete recommendation.", "error");
+            toast(actionErrorMessage(response, "Failed to delete recommendation."), "error");
             return;
           }
           queryClient.setQueriesData(

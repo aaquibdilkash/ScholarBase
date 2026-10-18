@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
@@ -81,7 +82,7 @@ export default function OwnerActionsDropdown({
         // A delete action can refuse gracefully (e.g. the account is frozen)
         // by returning `{ success: false, message }` instead of throwing.
         if (res?.success === false) {
-          toast(res.message || "Failed to delete item.", "error");
+          toast(actionErrorMessage(res, "Failed to delete item."), "error");
           return;
         }
         // The deleted row was on the author's Content and Activity tabs. The

@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import { toggleCommentVote } from "@/app/actions/votes";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { useAuthModal } from "./AuthModal";
 import { useUser } from "@/hooks/useUser";
 import type { CommentEntityType } from "@/types/comments";
@@ -98,7 +99,7 @@ export function CommentVoteButton({
         } else {
           toast({
             title: "Error",
-            description: res.error || "Failed to register vote. Please try again.",
+            description: actionErrorMessage(res, "Failed to register vote. Please try again."),
             variant: "destructive",
           });
         }

@@ -9,6 +9,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteJournal } from "@/app/actions/journals";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -56,6 +57,12 @@ export function JournalCard({
       currentUserId={currentUserId}
       authorHandle={journal.author?.handle || undefined}
       authorAvatarUrl={journal.author?.avatarUrl || undefined} authorVerified={!!(journal.author?.institutionVerifiedAt)}
+      isFrozen={journal.isFrozen ?? false}
+      frozenEntityId={journal.id}
+      frozenModule="JOURNAL"
+      frozenEntityType="POST"
+      frozenOwnerId={journal.author?.id ?? null}
+      frozenHasActiveAppeal={journal.hasActiveAppeal ?? false}
       detailPageHref={`/journals/${journal.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -71,8 +78,7 @@ export function JournalCard({
               try {
                 const response = await deleteJournal(journal.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete journal.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete journal."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

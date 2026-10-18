@@ -21,6 +21,7 @@ import {
   MAX_CONTRIBUTION_MESSAGE,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
+import { actionErrorMessage } from "@/lib/utils";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   CONTRIBUTION_TITLE_TIP,
@@ -134,8 +135,11 @@ export default function ContributionForm({
           }
           toast("Contribution updated successfully!");
           router.push(`/contributions/${result.data?.id ?? contributionId}`);
-        } else if (result && "message" in result && result.message) {
-          toast(result.message, "error");
+        } else {
+          toast(
+            actionErrorMessage(result, "Failed to update contribution."),
+            "error",
+          );
         }
       } else {
         const result = await createContribution(formData);
@@ -146,6 +150,11 @@ export default function ContributionForm({
           } else {
             router.push("/contributions");
           }
+        } else {
+          toast(
+            actionErrorMessage(result, "Failed to submit contribution."),
+            "error",
+          );
         }
       }
     } catch (err) {

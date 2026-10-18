@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { MessagesLayoutContext } from "../messages-context";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { ReportModal } from "@/components/cards/ReportModal";
 import type { User, RealtimeChannel } from "@supabase/supabase-js";
 import type { SentMessage } from "@/components/messages/MessageInputForm";
@@ -565,7 +566,7 @@ export default function ConversationPage({
       if (blockState.blockedByMe) {
         const result = await unblockUser(otherParticipant.id);
         if (!result.success) {
-          toast(result.error || "Failed to unblock scholar.", "error");
+          toast(actionErrorMessage(result, "Failed to unblock scholar."), "error");
           return;
         }
         setBlockState((s) => ({ ...s, blockedByMe: false }));
@@ -583,7 +584,7 @@ export default function ConversationPage({
       } else {
         const result = await blockUser(otherParticipant.id);
         if (!result.success) {
-          toast(result.error || "Failed to block scholar.", "error");
+          toast(actionErrorMessage(result, "Failed to block scholar."), "error");
           return;
         }
         setBlockState((s) => ({ ...s, blockedByMe: true }));

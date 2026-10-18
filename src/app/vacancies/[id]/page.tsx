@@ -64,6 +64,11 @@ const VacancyDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={vacancy.isFrozen ?? false}
+      frozenEntityId={vacancy.id}
+      frozenModule="JOB_VACANCY"
+      frozenEntityType="POST"
+      frozenOwnerId={vacancy.author?.id ?? null}
+      frozenHasActiveAppeal={vacancy.hasActiveAppeal ?? false}
       backHref="/vacancies"
       backLabel="Back to Academic Vacancies"
       authorHref={`/scholars/${vacancy.author?.id}`}

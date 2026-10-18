@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { resetJournalReviewCount } from "./journalReviewCount";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
 import { MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
@@ -128,7 +129,7 @@ export default function JournalReviewForm({
         toast("Review updated successfully!", "success");
         router.push(`/journals/${journalId}`);
       } else {
-        toast(result?.error ?? "Failed to update review.", "error");
+        toast(actionErrorMessage(result, "Failed to update review."), "error");
       }
       return;
     } else if (journalId) {

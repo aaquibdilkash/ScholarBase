@@ -8,6 +8,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteJournalReview } from "@/app/actions/journalReviews";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import { decrementJournalReview } from "./journalReviewCount";
 import { removeFromList } from "@/utils/cacheMutation";
@@ -42,8 +43,7 @@ export function JournalReviewCard({
     try {
       const response = await deleteMutation.mutateAsync(review.id);
       if (!response?.success || !response.data) {
-        const r = response as { error?: string; message?: string } | undefined;
-        toast(r?.error || r?.message || "Failed to delete review.", "error");
+        toast(actionErrorMessage(response, "Failed to delete review."), "error");
         return { refresh: false };
       }
 
@@ -124,6 +124,12 @@ export function JournalReviewCard({
       }
       isFollowing={review.isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
+      isFrozen={review.isFrozen ?? false}
+      frozenEntityId={review.id}
+      frozenModule="JOURNAL_REVIEW"
+      frozenEntityType="POST"
+      frozenOwnerId={review.author?.id ?? null}
+      frozenHasActiveAppeal={review.hasActiveAppeal ?? false}
       createdDate={review.createdAt}
       editedDate={
         review.editedAt && review.editedAt > review.createdAt

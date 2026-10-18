@@ -17,6 +17,7 @@ import {
   MAX_ARTICLE_CONTENT,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
+import { actionErrorMessage } from "@/lib/utils";
 import type { Article } from "@prisma/client";
 import { upsertToList } from "@/utils/cacheMutation";
 import type { ArticleWithAuthor } from "@/types/cards";
@@ -68,7 +69,7 @@ export function ArticleComposer({
     mutationFn: createArticle,
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast("Failed to publish article.", "error");
+        toast(actionErrorMessage(response, "Failed to publish article."), "error");
         return;
       }
       const newArticle = response.data as Article;
@@ -92,7 +93,7 @@ export function ArticleComposer({
       updateArticle(formData, id),
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast("Failed to update article.", "error");
+        toast(actionErrorMessage(response, "Failed to update article."), "error");
         return;
       }
       const updatedArticle = response.data as Article;

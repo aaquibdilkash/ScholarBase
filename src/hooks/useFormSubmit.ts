@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { invalidateProfileTabs } from "@/utils/cacheMutation";
+import { actionErrorMessage } from "@/lib/utils";
 import type {
     SubmitOptions,
     SubmitResult,
@@ -73,19 +74,11 @@ export function useFormSubmit(
                         }
                         return true;
                     } else {
-                        // Server returned error
-                        // Frozen / deleted account refusals come back as
-                        // `{ success: false, error, message }` from getActiveUser.
-                        // Prefer the explicit server message so frozen users see
-                        // "Your account is frozen..." instead of a generic fallback
-                        // like "Failed to add journal."
-                        const serverMessage = (r as { message?: unknown }).message;
-                        toast(
-                            r.error ||
-                                (typeof serverMessage === "string" ? serverMessage : "") ||
-                                errorMessage,
-                            "error",
-                        );
+                        // Server returned error - prefer the explicit server
+                        // message (frozen / deleted refusals from getActiveUser)
+                        // so frozen users see "Your account is frozen..." instead
+                        // of a generic fallback like "Failed to add journal."
+                        toast(actionErrorMessage(r, errorMessage), "error");
                     }
                 }
                 // If no result (action did redirect or threw), the catch block handles it

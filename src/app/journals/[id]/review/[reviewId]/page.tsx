@@ -86,6 +86,12 @@ export default async function JournalReviewDetailPage({
   return (
     <DetailPageCardShell
       isFrozen={review.isFrozen ?? false}
+      frozenEntityId={review.id}
+      frozenModule="JOURNAL_REVIEW"
+      frozenEntityType="POST"
+      frozenOwnerId={review.authorId ?? null}
+      frozenHasActiveAppeal={review.hasActiveAppeal ?? false}
+      isAdmin={false}
       backHref={`/journals/${review.journalId}`}
       backLabel="Back to Journal"
       authorHref={

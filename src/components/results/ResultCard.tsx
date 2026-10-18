@@ -8,6 +8,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResult } from "@/app/actions/results";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -49,6 +50,12 @@ export function ResultCard({
       currentUserId={currentUserId}
       authorHandle={result.author?.handle || undefined}
       authorAvatarUrl={result.author?.avatarUrl || undefined} authorVerified={!!(result.author?.institutionVerifiedAt)}
+      isFrozen={result.isFrozen ?? false}
+      frozenEntityId={result.id}
+      frozenModule="RESULT"
+      frozenEntityType="POST"
+      frozenOwnerId={result.author?.id ?? null}
+      frozenHasActiveAppeal={result.hasActiveAppeal ?? false}
       detailPageHref={`/results/${result.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -61,8 +68,7 @@ export function ResultCard({
               try {
                 const response = await deleteResult(result.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete result.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete result."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

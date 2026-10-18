@@ -72,6 +72,11 @@ export default async function SinglePostPage({
   return (
     <DetailPageCardShell
       isFrozen={p.isFrozen ?? false}
+      frozenEntityId={p.id}
+      frozenModule="SOCIAL_FEED"
+      frozenEntityType="POST"
+      frozenOwnerId={p.author?.id ?? null}
+      frozenHasActiveAppeal={p.hasActiveAppeal ?? false}
       backHref="/feed"
       backLabel="Back to Feed"
       authorHref={`/scholars/${p.author?.id}`}

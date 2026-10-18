@@ -10,6 +10,7 @@ import type { ArticleWithAuthor } from "@/types/cards";
 import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 
 export function ArticleCard({
   article,
@@ -37,6 +38,12 @@ export function ArticleCard({
       currentUserId={currentUserId}
       authorHandle={article.author?.handle || undefined}
       authorAvatarUrl={article.author?.avatarUrl || undefined} authorVerified={!!(article.author?.institutionVerifiedAt)}
+      isFrozen={article.isFrozen ?? false}
+      frozenEntityId={article.id}
+      frozenModule="ARTICLE_PAGE"
+      frozenEntityType="POST"
+      frozenOwnerId={article.author?.id ?? null}
+      frozenHasActiveAppeal={article.hasActiveAppeal ?? false}
       detailPageHref={`/blog/${article.slug}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -51,8 +58,7 @@ export function ArticleCard({
               try {
                 const response = await deleteArticle(article.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast({ title: "Error", description: r?.error || r?.message || "Failed to delete article.", variant: "destructive" });
+                  toast({ title: "Error", description: actionErrorMessage(response, "Failed to delete article."), variant: "destructive" });
                   return { refresh: false };
                 }
                 removeFromList<ArticleWithAuthor>(

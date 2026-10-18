@@ -8,6 +8,7 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { deleteResearchEvent } from "@/app/actions/events";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import Link from "next/link";
@@ -63,8 +64,7 @@ export function EventCard({
               try {
                 const response = await deleteResearchEvent(event.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete event.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete event."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

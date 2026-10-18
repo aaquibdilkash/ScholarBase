@@ -17,6 +17,15 @@ export function getEntityDisplayTitle(item: Record<string, unknown>): string {
 
   if (candidate && candidate.trim().length > 0) return candidate;
 
+  // Journal reviews and recommendations carry no title field — fall through to
+  // the parent journal / supervisor, then feedback/rating so they never render
+  // as "Untitled" in the admin tables.
+  const journal = item.journal as { title?: string | null } | null | undefined;
+  const journalTitle = journal?.title;
+  if (journalTitle && journalTitle.trim().length > 0) {
+    return journalTitle.trim();
+  }
+
   const university = item.university as string | null | undefined;
   const department = item.department as string | null | undefined;
   const universityDepartment = university || department;
@@ -31,6 +40,12 @@ export function getEntityDisplayTitle(item: Record<string, unknown>): string {
   if (content && content.trim().length > 0) {
     const trimmed = content.trim().slice(0, 40);
     return content.trim().length > 40 ? `${trimmed}...` : trimmed;
+  }
+
+  const feedback = item.feedback as string | null | undefined;
+  if (feedback && feedback.trim().length > 0) {
+    const trimmed = feedback.trim().slice(0, 40);
+    return feedback.trim().length > 40 ? `${trimmed}...` : trimmed;
   }
 
   const supervisor = item.supervisor as { name?: string } | null | undefined;

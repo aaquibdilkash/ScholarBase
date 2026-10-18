@@ -69,6 +69,11 @@ export default async function RecommendationDetailPage({
   return (
     <DetailPageCardShell
       isFrozen={recommendation.isFrozen ?? false}
+      frozenEntityId={recommendation.id}
+      frozenModule="RECOMMENDATION"
+      frozenEntityType="POST"
+      frozenOwnerId={recommendation.authorId ?? null}
+      frozenHasActiveAppeal={recommendation.hasActiveAppeal ?? false}
       backHref={`/supervisor/${recommendation.supervisor.id}`}
       backLabel="Back to Supervisor Profile"
       authorHref={

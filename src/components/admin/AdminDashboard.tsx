@@ -257,8 +257,8 @@ export function AdminDashboard({
         status: vars.status,
       });
     },
-    onError: () => {
-      toast("Failed to update contribution", "error");
+    onError: (error) => {
+      toast(error.message || "Failed to update contribution", "error");
     },
   });
 

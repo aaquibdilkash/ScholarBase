@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState, useEffect } from "react";
 import { createSocialPost } from "@/app/actions/feed";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -102,13 +103,7 @@ export function CreateSocialPostForm() {
       if (!response?.success || !response.data) {
         // Backend may have rejected the action (e.g. frozen account or rate
         // limit) — surface the exact reason instead of a generic fallback.
-        const reason =
-          response && "message" in response
-            ? (response as { message?: string }).message
-            : response && "error" in response
-              ? (response as { error?: string }).error
-              : "";
-        toast(reason || "Failed to create post.", "error");
+        toast(actionErrorMessage(response, "Failed to create post."), "error");
         return;
       }
       queryClient.setQueriesData<SocialPostWithAuthor[]>(

@@ -66,6 +66,11 @@ const EventDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={event.isFrozen ?? false}
+      frozenEntityId={event.id}
+      frozenModule="RESEARCH_EVENT"
+      frozenEntityType="POST"
+      frozenOwnerId={event.author?.id ?? null}
+      frozenHasActiveAppeal={event.hasActiveAppeal ?? false}
       backHref="/events"
       backLabel="Back to Events"
       authorHref={`/scholars/${event.author?.id}`}

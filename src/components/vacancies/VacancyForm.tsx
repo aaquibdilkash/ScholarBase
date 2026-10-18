@@ -20,6 +20,7 @@ import {
   MAX_VACANCY_DESCRIPTION,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
+import { actionErrorMessage } from "@/lib/utils";
 import type { VacancyWithAuthor } from "@/types/cards";
 import { upsertToList } from "@/utils/cacheMutation";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -89,7 +90,7 @@ export default function VacancyForm({
         resetDraft();
         router.push('/vacancies');
       } else {
-        toast("Failed to post vacancy.", "error");
+        toast(actionErrorMessage(result, "Failed to post vacancy."), "error");
       }
     },
     onError: (error) => {
@@ -118,7 +119,7 @@ export default function VacancyForm({
         
         router.push(`/vacancies/${updatedVacancy.id}`);
       } else {
-        toast("Failed to update vacancy.", "error");
+        toast(actionErrorMessage(result, "Failed to update vacancy."), "error");
       }
     },
     onError: (error) => {

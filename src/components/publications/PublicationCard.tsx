@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { PublicationWithAuthor } from "@/types/cards";
 import { stripHtmlTags } from "@/lib/html";
@@ -97,8 +98,7 @@ export function PublicationCard({
               try {
                 const response = await deletePublication(publication.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete publication.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete publication."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

@@ -87,6 +87,11 @@ const JournalDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={j.isFrozen ?? false}
+      frozenEntityId={j.id}
+      frozenModule="JOURNAL"
+      frozenEntityType="POST"
+      frozenOwnerId={j.author?.id ?? null}
+      frozenHasActiveAppeal={j.hasActiveAppeal ?? false}
       backHref="/journals"
       backLabel="Back to Journals"
       authorHref={`/scholars/${j.author?.id}`}

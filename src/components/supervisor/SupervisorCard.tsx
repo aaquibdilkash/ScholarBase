@@ -9,6 +9,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { stripHtmlTags } from "@/lib/html";
 import { deleteSupervisor } from "@/app/actions/supervisors";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { StarRating } from "@/components/ui/StarRating";
 import type { SupervisorWithAuthor } from "@/types/cards";
 
@@ -48,6 +49,12 @@ export function SupervisorCard({
       currentUserId={currentUserId}
       authorHandle={supervisor.author?.handle || undefined}
       authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
+      isFrozen={supervisor.isFrozen ?? false}
+      frozenEntityId={supervisor.id}
+      frozenModule="SUPERVISOR"
+      frozenEntityType="POST"
+      frozenOwnerId={supervisor.author?.id ?? null}
+      frozenHasActiveAppeal={supervisor.hasActiveAppeal ?? false}
       detailPageHref={`/supervisor/${supervisor.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -62,11 +69,8 @@ export function SupervisorCard({
               try {
                 const response = await deleteSupervisor(supervisor.id);
                 if (!response?.success) {
-                  const r = response as { error?: string; message?: string } | undefined;
                   toast(
-                    r?.error ||
-                      r?.message ||
-                      "Failed to delete supervisor.",
+                    actionErrorMessage(response, "Failed to delete supervisor."),
                     "error",
                   );
                   return { refresh: false };

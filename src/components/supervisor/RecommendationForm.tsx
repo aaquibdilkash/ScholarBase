@@ -14,6 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { upsertToList } from "@/utils/cacheMutation";
 import { resetRecommendationCount } from "./recommendationCount";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 import { MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
@@ -120,7 +121,7 @@ export default function RecommendationForm({
         router.push(`/supervisor/${supervisorId}`);
       } else {
         // Surface the server message and stay on the form so the user can retry.
-        toast(result?.error ?? "Failed to update recommendation.", "error");
+        toast(actionErrorMessage(result, "Failed to update recommendation."), "error");
       }
       return;
     } else if (supervisorId) {

@@ -8,6 +8,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { deleteResearchTool } from "@/app/actions/researchTools";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
@@ -39,6 +40,12 @@ export function ResearchToolCard({
       currentUserId={currentUserId}
       authorHandle={tool.author?.handle || undefined}
       authorAvatarUrl={tool.author?.avatarUrl || undefined} authorVerified={!!(tool.author?.institutionVerifiedAt)}
+      isFrozen={tool.isFrozen ?? false}
+      frozenEntityId={tool.id}
+      frozenModule="RESEARCH_TOOL"
+      frozenEntityType="POST"
+      frozenOwnerId={tool.author?.id ?? null}
+      frozenHasActiveAppeal={tool.hasActiveAppeal ?? false}
       detailPageHref={`/research-tools/${tool.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -53,8 +60,7 @@ export function ResearchToolCard({
               try {
                 const response = await deleteResearchTool(tool.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete tool.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete tool."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

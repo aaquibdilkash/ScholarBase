@@ -12,6 +12,7 @@ import Link from "next/link";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { deleteJobVacancy } from "@/app/actions/vacancies";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import type { VacancyWithAuthor } from "@/types/cards";
@@ -66,6 +67,12 @@ export function VacancyCard({ vacancy,
       currentUserId={currentUserId}
       authorHandle={vacancy.author?.handle || undefined}
       authorAvatarUrl={vacancy.author?.avatarUrl || undefined} authorVerified={!!(vacancy.author?.institutionVerifiedAt)}
+      isFrozen={vacancy.isFrozen ?? false}
+      frozenEntityId={vacancy.id}
+      frozenModule="JOB_VACANCY"
+      frozenEntityType="POST"
+      frozenOwnerId={vacancy.author?.id ?? null}
+      frozenHasActiveAppeal={vacancy.hasActiveAppeal ?? false}
       detailPageHref={`/vacancies/${vacancy.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -80,8 +87,7 @@ export function VacancyCard({ vacancy,
               try {
                 const response = await deleteJobVacancy(vacancy.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete vacancy.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete vacancy."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

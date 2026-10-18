@@ -63,6 +63,11 @@ export default async function ArticlePage({
   return (
     <DetailPageCardShell
       isFrozen={a.isFrozen ?? false}
+      frozenEntityId={a.id}
+      frozenModule="ARTICLE_PAGE"
+      frozenEntityType="POST"
+      frozenOwnerId={a.author?.id ?? null}
+      frozenHasActiveAppeal={a.hasActiveAppeal ?? false}
       backHref="/blog"
       backLabel="Back to Blogs"
       authorHref={`/scholars/${a.author?.id}`}

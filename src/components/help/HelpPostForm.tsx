@@ -15,6 +15,7 @@ import {
   MAX_HELP_POST_MESSAGE,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
+import { actionErrorMessage } from "@/lib/utils";
 import type { HelpPostWithAuthor } from "@/types/cards";
 import { upsertToList } from "@/utils/cacheMutation";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
@@ -61,7 +62,7 @@ export default function HelpPostForm({
     mutationFn: createHelpPost,
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast("Failed to create help post.", "error");
+        toast(actionErrorMessage(response, "Failed to create help post."), "error");
         return;
       }
       const newPost = response.data as HelpPostWithAuthor;
@@ -80,7 +81,7 @@ export default function HelpPostForm({
       updateHelpPost(formData, id),
     onSuccess: (response) => {
       if (!response.success || !response.data) {
-        toast("Failed to update help post.", "error");
+        toast(actionErrorMessage(response, "Failed to update help post."), "error");
         return;
       }
       const updatedPost = response.data as HelpPostWithAuthor;

@@ -91,6 +91,11 @@ const SurveyDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={survey.isFrozen ?? false}
+      frozenEntityId={survey.id}
+      frozenModule="RESEARCH_SURVEY"
+      frozenEntityType="POST"
+      frozenOwnerId={survey.author?.id ?? null}
+      frozenHasActiveAppeal={survey.hasActiveAppeal ?? false}
       backHref="/surveys"
       backLabel="Back to Surveys"
       authorHref={`/scholars/${survey.author?.id}`}

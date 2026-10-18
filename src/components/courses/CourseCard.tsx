@@ -10,6 +10,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteCourse } from "@/app/actions/courses";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { CourseWithAuthor } from "@/types/cards";
 
@@ -66,11 +67,8 @@ export function CourseCard({
               try {
                 const response = await deleteCourse(course.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
                   toast(
-                    r?.error ||
-                      r?.message ||
-                      "Failed to delete course.",
+                    actionErrorMessage(response, "Failed to delete course."),
                     "error",
                   );
                   return { refresh: false };

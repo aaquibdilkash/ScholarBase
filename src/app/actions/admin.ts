@@ -822,6 +822,7 @@ export async function getAdminContent(
         include: {
           author: true,
           ...(contentType === "recommendations" ? { supervisor: true } : {}),
+          ...(contentType === "journalReviews" ? { journal: true } : {}),
         },
         where,
         orderBy,

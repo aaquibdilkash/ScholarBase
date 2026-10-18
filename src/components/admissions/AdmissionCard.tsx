@@ -50,6 +50,12 @@ export function AdmissionCard({
       currentUserId={currentUserId}
       authorHandle={admission.author?.handle || undefined}
       authorAvatarUrl={admission.author?.avatarUrl || undefined} authorVerified={!!(admission.author?.institutionVerifiedAt)}
+      isFrozen={admission.isFrozen ?? false}
+      frozenEntityId={admission.id}
+      frozenModule="PHD_ADMISSION"
+      frozenEntityType="POST"
+      frozenOwnerId={admission.author?.id ?? null}
+      frozenHasActiveAppeal={admission.hasActiveAppeal ?? false}
       detailPageHref={`/admissions/${admission.id}`}
       shareTitle={shareTitle}
       shareText={shareText}

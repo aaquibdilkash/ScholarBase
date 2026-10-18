@@ -8,6 +8,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteRecommendation } from "@/app/actions/recommendations";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import { decrementRecommendation } from "./recommendationCount";
 import Link from "next/link";
@@ -44,8 +45,7 @@ export function RecommendationCard({
     try {
       const response = await deleteMutation.mutateAsync(recommendation.id);
       if (!response?.success || !response.data) {
-        const r = response as { error?: string; message?: string } | undefined;
-        toast(r?.error || r?.message || "Failed to delete recommendation.", "error");
+        toast(actionErrorMessage(response, "Failed to delete recommendation."), "error");
         return { refresh: false };
       }
 
@@ -104,6 +104,16 @@ export function RecommendationCard({
           ? null
           : recommendation.author?.avatarUrl || undefined
       } authorVerified={!recommendation.isAnonymous && !!(recommendation.author?.institutionVerifiedAt)}
+      isFrozen={recommendation.isFrozen ?? false}
+      frozenEntityId={recommendation.id}
+      frozenModule="RECOMMENDATION"
+      frozenEntityType="POST"
+      frozenOwnerId={
+        recommendation.isAnonymous
+          ? null
+          : recommendation.author?.id ?? recommendation.authorId ?? null
+      }
+      frozenHasActiveAppeal={recommendation.hasActiveAppeal ?? false}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       // Share payload: mirror the recommendation detail page generateMetadata().
       shareTitle={`Recommendation for ${supervisor.name || "Supervisor"}`}

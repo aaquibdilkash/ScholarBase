@@ -9,6 +9,7 @@ import {
 import { ImageUploadField } from "@/components/upload/ImageUploadField";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { KeywordChipsInput } from "@/components/publications/KeywordChipsInput";
 import { Editor } from "@/components/ui/Editor";
@@ -173,7 +174,7 @@ export default function EditProfileForm({ user }: { user: UserData }) {
         toast("Profile updated successfully!", "success");
         router.push(`/scholars/${user.id}`);
       } else {
-        const msg = result?.message || "Failed to update profile.";
+        const msg = actionErrorMessage(result, "Failed to update profile.");
         setError(msg);
         toast(msg, "error");
       }

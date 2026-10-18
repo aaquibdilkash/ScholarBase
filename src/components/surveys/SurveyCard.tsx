@@ -9,6 +9,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteSurvey } from "@/app/actions/surveys";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import Link from "next/link";
 import { BarChart2 } from "lucide-react";
 import type { SurveyWithAuthor } from "@/types/cards";
@@ -52,6 +53,12 @@ export function SurveyCard({
       currentUserId={currentUserId}
       authorHandle={survey.author?.handle || undefined}
       authorAvatarUrl={survey.author?.avatarUrl || undefined} authorVerified={!!(survey.author?.institutionVerifiedAt)}
+      isFrozen={survey.isFrozen ?? false}
+      frozenEntityId={survey.id}
+      frozenModule="RESEARCH_SURVEY"
+      frozenEntityType="POST"
+      frozenOwnerId={survey.author?.id ?? null}
+      frozenHasActiveAppeal={survey.hasActiveAppeal ?? false}
       detailPageHref={`/surveys/${survey.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -65,8 +72,7 @@ export function SurveyCard({
               try {
                 const response = await deleteSurvey(survey.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete survey.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete survey."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

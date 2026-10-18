@@ -12,6 +12,7 @@ import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
 import { removeFromList } from "@/utils/cacheMutation";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 
 export function HelpPostCard({
   helpPost,
@@ -41,6 +42,12 @@ export function HelpPostCard({
       currentUserId={currentUserId}
       authorHandle={helpPost.author?.handle || undefined}
       authorAvatarUrl={helpPost.author?.avatarUrl || undefined} authorVerified={!!(helpPost.author?.institutionVerifiedAt)}
+      isFrozen={helpPost.isFrozen ?? false}
+      frozenEntityId={helpPost.id}
+      frozenModule="HELP_POST"
+      frozenEntityType="POST"
+      frozenOwnerId={helpPost.author?.id ?? null}
+      frozenHasActiveAppeal={helpPost.hasActiveAppeal ?? false}
       detailPageHref={`/help/${helpPost.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
@@ -55,8 +62,7 @@ export function HelpPostCard({
               try {
                 const response = await deleteHelpPost(helpPost.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast({ title: "Error", description: r?.error || r?.message || "Failed to delete post.", variant: "destructive" });
+                  toast({ title: "Error", description: actionErrorMessage(response, "Failed to delete post."), variant: "destructive" });
                   return { refresh: false };
                 }
                 removeFromList<HelpPostWithAuthor>(

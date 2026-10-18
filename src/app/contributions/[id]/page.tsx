@@ -95,6 +95,11 @@ const ContributionDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={contribution.isFrozen ?? false}
+      frozenEntityId={contribution.id}
+      frozenModule="CONTRIBUTION"
+      frozenEntityType="POST"
+      frozenOwnerId={contribution.author?.id ?? null}
+      frozenHasActiveAppeal={contribution.hasActiveAppeal ?? false}
       backHref="/contributions"
       backLabel="Back to Contributions"
       authorHref={`/scholars/${contribution.author?.id}`}

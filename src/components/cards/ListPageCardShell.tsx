@@ -5,8 +5,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton"; // client component
 import { ShareButton } from "@/components/interactions/ShareButton";
+import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import { formatTimeAgo } from "../../utils/time-ago";
 import { TruncatedCardBody } from "./TruncatedCardBody";
+import type { ReportEntityType, ReportModule } from "@/types/reports";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -41,6 +43,17 @@ export type ListPageCardShellProps = {
 
   // Dedicated report menu in the footer (far-right edge)
   footerReportMenu?: ReactNode;
+
+  // Frozen banner controls — optional so existing call sites keep working.
+  // When `isFrozen` is true but frozenEntityId is omitted, a static notice
+  // renders (no View reason / View reports affordances).
+  isFrozen?: boolean;
+  frozenEntityId?: string;
+  frozenModule?: ReportModule;
+  frozenEntityType?: ReportEntityType;
+  frozenOwnerId?: string | null;
+  frozenHasActiveAppeal?: boolean;
+  isAdmin?: boolean;
 
   className?: string;
   bodyClassName?: string;
@@ -89,6 +102,13 @@ export default function ListPageCardShell({
   footerCommentsCount,
   footer,
   footerReportMenu,
+  isFrozen,
+  frozenEntityId,
+  frozenModule,
+  frozenEntityType,
+  frozenOwnerId,
+  frozenHasActiveAppeal,
+  isAdmin,
   className,
   bodyClassName,
   detailPageHref,
@@ -104,6 +124,29 @@ export default function ListPageCardShell({
 
   return (
     <div className={clsx("sb-card min-w-0 w-full p-6 sm:p-6 md:p-8", className)}>
+      {/* Frozen banner — visible before header for frozen list cards */}
+      {isFrozen && frozenEntityId ? (
+        <FrozenContentBanner
+          entityId={frozenEntityId}
+          module={frozenModule ?? "SOCIAL_FEED"}
+          entityType={frozenEntityType ?? "POST"}
+          ownerId={frozenOwnerId ?? authorId ?? null}
+          currentUserId={currentUserId}
+          hasActiveAppeal={frozenHasActiveAppeal}
+          isAdmin={isAdmin}
+          variant="list-compact"
+        />
+      ) : isFrozen ? (
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+          <span className="inline-flex items-center gap-2 text-left">
+            <span aria-hidden>❄</span>
+            <span>
+              This post has been frozen by moderators. Voting, reporting and
+              commenting are disabled.
+            </span>
+          </span>
+        </div>
+      ) : null}
       {/* Common header */}
       <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
         <div className="flex min-w-0 flex-1 items-center gap-3">

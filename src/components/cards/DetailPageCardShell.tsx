@@ -6,7 +6,9 @@ import { cloneElement, isValidElement, type ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton";
 import { ShareButton } from "@/components/interactions/ShareButton";
 import CommentCountDisplay from "@/components/interactions/CommentCountDisplay";
+import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import { formatTimeAgo } from "../../utils/time-ago";
+import type { ReportEntityType, ReportModule } from "@/types/reports";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -48,6 +50,16 @@ export type DetailPageCardShellProps = {
   // interactions (read-only), matching frozen comments in CommentThread.
   isFrozen?: boolean;
 
+  // Frozen banner controls — all are optional so existing call sites keep
+  // working unchanged. When omitted and `isFrozen` is true, the banner renders
+  // as the static notice only (no View reason / View reports affordances).
+  frozenEntityId?: string;
+  frozenModule?: ReportModule;
+  frozenEntityType?: ReportEntityType;
+  frozenOwnerId?: string | null;
+  frozenHasActiveAppeal?: boolean;
+  isAdmin?: boolean;
+
   discussion?: ReactNode;
 
   className?: string;
@@ -87,6 +99,12 @@ export default function DetailPageCardShell({
   footerCommentsCount,
   footerReportMenu,
   isFrozen,
+  frozenEntityId,
+  frozenModule,
+  frozenEntityType,
+  frozenOwnerId,
+  frozenHasActiveAppeal,
+  isAdmin,
   discussion,
   className,
   bodyClassName,
@@ -116,11 +134,26 @@ export default function DetailPageCardShell({
 
       <div className={clsx(bodyClassName ?? "sb-card min-w-0 w-full overflow-x-clip p-6 sm:p-6 md:p-8")}>
         {/* Moderation banner — frozen content is visible but read-only */}
-        {isFrozen && (
-          <div className="mb-5 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
-            <span aria-hidden>❄</span>
-            This post has been frozen by moderators. Voting, reporting and
-            commenting are disabled.
+        {isFrozen && frozenEntityId ? (
+          <FrozenContentBanner
+            entityId={frozenEntityId}
+            module={frozenModule ?? "SOCIAL_FEED"}
+            entityType={frozenEntityType ?? "POST"}
+            ownerId={frozenOwnerId ?? authorId ?? null}
+            currentUserId={currentUserId}
+            hasActiveAppeal={frozenHasActiveAppeal}
+            isAdmin={isAdmin}
+            variant="detail"
+          />
+        ) : isFrozen && (
+          <div className="mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+            <span className="inline-flex items-center gap-2 text-left">
+              <span aria-hidden>❄</span>
+              <span>
+                This post has been frozen by moderators. Voting, reporting and
+                commenting are disabled.
+              </span>
+            </span>
           </div>
         )}
         {/* Common header */}

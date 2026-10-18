@@ -6,6 +6,7 @@ import { deleteJournalReview } from "@/app/actions/journalReviews";
 import { decrementJournalReview } from "./journalReviewCount";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
 export function WriteJournalReviewButton({
@@ -44,8 +45,7 @@ export function WriteJournalReviewButton({
           try {
             const response = await deleteMutation.mutateAsync(activeReviewId);
             if (!response?.success || !response.data) {
-              const r = response as { error?: string; message?: string } | undefined;
-              toast(r?.error || r?.message || "Failed to delete review.", "error");
+              toast(actionErrorMessage(response, "Failed to delete review."), "error");
               return { refresh: false };
             }
 

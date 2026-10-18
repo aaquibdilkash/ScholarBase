@@ -68,6 +68,11 @@ export default async function HelpPostPage({
   return (
     <DetailPageCardShell
       isFrozen={post.isFrozen ?? false}
+      frozenEntityId={post.id}
+      frozenModule="HELP_POST"
+      frozenEntityType="POST"
+      frozenOwnerId={post.author?.id ?? null}
+      frozenHasActiveAppeal={post.hasActiveAppeal ?? false}
       backHref="/help"
       backLabel="Back to Help & Support"
       authorHref={`/scholars/${post.author?.id}`}

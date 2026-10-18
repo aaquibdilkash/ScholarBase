@@ -10,6 +10,7 @@ import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { RichContent } from "@/components/content/RichContent";
 import { deleteResearchGrant } from "@/app/actions/grants";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
 
@@ -52,8 +53,7 @@ export function ResearchGrantCard({
               try {
                 const response = await deleteResearchGrant(grant.id);
                 if (!response?.success || !response.data) {
-                  const r = response as { error?: string; message?: string } | undefined;
-                  toast(r?.error || r?.message || "Failed to delete grant.", "error");
+                  toast(actionErrorMessage(response, "Failed to delete grant."), "error");
                   return { refresh: false };
                 }
                 queryClient.setQueriesData(

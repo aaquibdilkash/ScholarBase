@@ -71,6 +71,11 @@ const AdmissionDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={admission.isFrozen ?? false}
+      frozenEntityId={admission.id}
+      frozenModule="PHD_ADMISSION"
+      frozenEntityType="POST"
+      frozenOwnerId={admission.author?.id ?? null}
+      frozenHasActiveAppeal={admission.hasActiveAppeal ?? false}
       backHref="/admissions"
       backLabel="Back to PhD Admissions"
       authorHref={`/scholars/${admission.author?.id}`}

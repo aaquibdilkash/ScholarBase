@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
+import { actionErrorMessage } from "@/lib/utils";
 import { invalidateProfileTabs } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteJournalReview as deleteReviewAction } from "@/app/actions/journalReviews";
@@ -102,8 +103,7 @@ export function JournalHeaderActions({
         try {
           const response = await deleteReviewMutation.mutateAsync(reviewId);
           if (!response?.success || !response.data) {
-            const r = response as { error?: string; message?: string } | undefined;
-            toast(r?.error || r?.message || "Failed to delete review.", "error");
+            toast(actionErrorMessage(response, "Failed to delete review."), "error");
             return;
           }
           // Remove from every cached list slice instantly.

@@ -73,6 +73,11 @@ export default async function ResearchGrantDetailPage({
   return (
     <DetailPageCardShell
       isFrozen={grant.isFrozen ?? false}
+      frozenEntityId={grant.id}
+      frozenModule="RESEARCH_GRANT"
+      frozenEntityType="POST"
+      frozenOwnerId={grant.author?.id ?? null}
+      frozenHasActiveAppeal={grant.hasActiveAppeal ?? false}
       backHref="/grants"
       backLabel="Back to Research Grants"
       authorHref={`/scholars/${grant.author?.id}`}
