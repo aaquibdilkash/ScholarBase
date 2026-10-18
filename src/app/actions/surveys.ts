@@ -344,6 +344,16 @@ export async function createSurvey(formData: FormData) {
    data: { surveyCount: { increment: 1 } },
  });
 
+    await tx.userActivity.create({
+      data: {
+        userId: user.id,
+        action: "PUBLISHED",
+        moduleType: "RESEARCH_SURVEY",
+        entityId: newSurvey.id,
+        entityTitle: newSurvey.title,
+      },
+    });
+
     return complete;
   });
 
@@ -804,6 +814,16 @@ export async function deleteSurvey(surveyId: string) {
         data: { reputation: { decrement: survey.totalVotes } },
       });
     }
+
+  // Reverse the activity row created on publish.
+  await tx.userActivity.deleteMany({
+    where: {
+      userId: survey.authorId,
+      moduleType: "RESEARCH_SURVEY",
+      action: "PUBLISHED",
+    },
+  });
+
   });
 
   // Purge the cached survey pages: soft delete must be visible at once.

@@ -154,6 +154,16 @@ export default function PublicationForm({
 
     const formData = new FormData(e.currentTarget);
 
+    // Numeric fields: reject non-numeric input before it reaches the server.
+    const rawVolume = formData.get("volume");
+    const rawIssue = formData.get("issue");
+    if (rawVolume !== null && rawVolume !== "" && Number.isNaN(Number(rawVolume))) {
+      throw new Error("Volume must be a valid number.");
+    }
+    if (rawIssue !== null && rawIssue !== "" && Number.isNaN(Number(rawIssue))) {
+      throw new Error("Issue must be a valid number.");
+    }
+
     await submit(() => {
       if (mode === "edit" && publicationId) {
         return updatePublication(formData, publicationId);
@@ -275,13 +285,15 @@ export default function PublicationForm({
             name="volume"
             placeholder="e.g., 42"
             className="sb-input"
-            maxLength={MAX_PUBLICATION_VOLUME}
+            type="number"
+            min={0}
             value={draftFields.volume}
-            onChange={(e) => updateDraftField("volume", e.target.value)}
+            onChange={(e) => updateDraftField("volume", e.target.value.slice(0, MAX_PUBLICATION_VOLUME))}
           />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {draftFields.volume.length}/{MAX_PUBLICATION_VOLUME} characters
           </div>
+
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
@@ -292,9 +304,10 @@ export default function PublicationForm({
             name="issue"
             placeholder="e.g., 3"
             className="sb-input"
-            maxLength={MAX_PUBLICATION_ISSUE}
+            type="number"
+            min={0}
             value={draftFields.issue}
-            onChange={(e) => updateDraftField("issue", e.target.value)}
+            onChange={(e) => updateDraftField("issue", e.target.value.slice(0, MAX_PUBLICATION_ISSUE))}
           />
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             {draftFields.issue.length}/{MAX_PUBLICATION_ISSUE} characters

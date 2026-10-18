@@ -1,7 +1,7 @@
 "use server";
 
 import { v2 as cloudinary } from "cloudinary";
-import { getActiveUser } from "@/lib/auth";
+import { getActiveUser, requireCurrentUser } from "@/lib/auth";
 import {
   deleteCloudinaryAsset,
   getCloudinaryPublicId,
@@ -35,10 +35,15 @@ export type FrozenActionResult = { success: false; error: string; message: strin
 export async function uploadImage(
   formData: FormData,
   kind: UploadKind,
+  options?: { allowFrozen?: boolean },
 ): Promise<UploadResult | FrozenActionResult> {
-  const auth = await getActiveUser();
-  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
-  const user = auth.user;
+  const auth = await getActiveUser("Log in to upload images.");
+  if (auth.frozen && !options?.allowFrozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const user = auth.frozen
+    ? await requireCurrentUser("Log in to upload images.")
+    : auth.user;
 
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("No file provided");
@@ -144,12 +149,17 @@ export async function uploadImage(
 
 export async function deleteDraftImage(
   imageUrl: string | null | undefined,
+  options?: { allowFrozen?: boolean },
 ): Promise<boolean | FrozenActionResult> {
   if (!imageUrl) return true;
 
   const auth = await getActiveUser("Log in to delete draft images.");
-  if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
-  const user = auth.user;
+  if (auth.frozen && !options?.allowFrozen) {
+    return { success: false, error: auth.message, message: auth.message };
+  }
+  const user = auth.frozen
+    ? await requireCurrentUser("Log in to delete draft images.")
+    : auth.user;
   const publicId = getCloudinaryPublicId(imageUrl);
   const draftFolders = [
     getUserImageFolder(user.id, "avatar", true),

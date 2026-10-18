@@ -255,9 +255,13 @@ export default function ContributionForm({
                 name="amount"
                 placeholder="e.g., 500"
                 className="sb-input"
+                maxLength={6}
                 value={draftFields.amount}
-                onChange={(e) => updateDraftField("amount", e.target.value)}
+                onChange={(e) => updateDraftField("amount", e.target.value.slice(0, 6))}
               />
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {draftFields.amount.length}/6
+              </div>
             </div>
             <div>
               <label className="sb-label inline-flex items-center gap-1.5">

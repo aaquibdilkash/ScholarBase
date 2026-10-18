@@ -74,8 +74,8 @@ export default async function ScholarProfile({
             </div>
 
             <div className="min-w-0">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-                <span className="inline-flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+                <span className="inline-flex items-center gap-2 [overflow-wrap:anywhere]">
                   {profile.name}
                   {profile.institutionVerifiedAt && (
                     <BadgeCheck

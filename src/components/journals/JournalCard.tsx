@@ -161,30 +161,7 @@ export function JournalCard({
           {journal.title}
         </h2>
 
-        <RichContent
-          content={journal.about}
-          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
-        />
-
-        {reviewCount > 0 ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-            <StarRating rating={avgRating} size="sm" />
-            <div className="text-sm">
-              <span className="font-semibold">{avgRating.toFixed(1)}</span>
-              <span className="text-slate-500"> / 5</span>
-            </div>
-            <span className="text-slate-500 text-xs">
-              ({reviewCount} review
-              {reviewCount !== 1 ? "s" : ""})
-            </span>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-            No reviews yet.
-          </div>
-        )}
-
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
           {journal.subjectArea && (
             <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
               {journal.subjectArea}
@@ -241,6 +218,31 @@ export function JournalCard({
             </span>
           )}
         </div>
+
+        <RichContent
+          content={journal.about}
+          className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
+        />
+
+        {reviewCount > 0 ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <StarRating rating={avgRating} size="sm" />
+            <div className="text-sm">
+              <span className="font-semibold">{avgRating.toFixed(1)}</span>
+              <span className="text-slate-500"> / 5</span>
+            </div>
+            <span className="text-slate-500 text-xs">
+              ({reviewCount} review
+              {reviewCount !== 1 ? "s" : ""})
+            </span>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+            No reviews yet.
+          </div>
+        )}
+
+
       </Link>
     </ListPageCardShell>
   );

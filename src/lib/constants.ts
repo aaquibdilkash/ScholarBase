@@ -181,7 +181,7 @@ export const MAX_ADMISSION_DESCRIPTION = 512;
 export const MAX_ADMISSION_NOTIFICATION_LINK = 128;
 export const MAX_ADMISSION_APPLY_LINK = 128;
 
-export const MAX_PROFILE_NAME = 32;
+export const MAX_PROFILE_NAME = 24;
 export const MAX_PROFILE_HANDLE = 16;
 export const MAX_PROFILE_BIO = 512;
 export const MAX_PROFILE_URL = 128;

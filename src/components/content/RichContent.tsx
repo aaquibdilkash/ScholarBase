@@ -39,6 +39,11 @@ export function RichContent({
     return (
       <div
         className={baseClass}
+        // Sanitized rich HTML is parsed by the browser before React hydrates.
+        // Attribute normalization (notably on links) can make the parsed DOM
+        // differ from the server string even though the visible content is
+        // identical.
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: safeHtml }}
       />
     );

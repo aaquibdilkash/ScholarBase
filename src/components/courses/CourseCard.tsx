@@ -35,17 +35,18 @@ export function CourseCard({
       : null;
 
   const details = [
-    course.provider,
-    course.instructor,
-    course.format,
-    course.level,
-    priceLabel,
-    course.duration,
-  ].filter(Boolean);
+    ["Provider", course.provider],
+    ["Instructor", course.instructor],
+    ["Format", course.format],
+    ["Level", course.level],
+    ["Price", priceLabel],
+    ["Duration", course.duration],
+  ].filter(([, value]) => Boolean(value)) as [string, string][];
   // Share payload: title + the same detail line the card renders.
   const shareTitle = course.title;
   const shareText =
-    details.join(" · ") || `Course on ScholarBase: ${course.title}.`;
+    details.map(([label, value]) => `${label}: ${value}`).join(" · ") ||
+    `Course on ScholarBase: ${course.title}.`;
 
   return (
     <ListPageCardShell
@@ -143,9 +144,16 @@ export function CourseCard({
           {course.title}
         </h2>
         {details.length > 0 && (
-          <p className="break-words mb-3 text-sm text-slate-600 dark:text-slate-300">
-            {details.join(" • ")}
-          </p>
+          <div className="mb-3 flex flex-wrap gap-2 text-xs">
+            {details.map(([label, value]) => (
+              <span
+                key={label}
+                className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              >
+                <span className="font-semibold">{label}:</span> {value}
+              </span>
+            ))}
+          </div>
         )}
         <RichContent
           content={course.description}

@@ -231,13 +231,16 @@ export default function CourseForm({
               className="sb-input flex-1"
               value={String(draftFields.durationValue ?? 0)}
               onChange={(e) => {
-                const parsed = Number(e.target.value);
+                const parsed = Number(e.target.value.slice(0, 3));
                 updateDraftField(
                   "durationValue",
                   Number.isNaN(parsed) ? 0 : parsed,
                 );
               }}
             />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {String(draftFields.durationValue ?? 0).length}/3
+            </div>
             <select
               name="durationUnit"
               className="sb-input flex-1"
@@ -268,12 +271,16 @@ export default function CourseForm({
             step="1"
             placeholder="0"
             className="sb-input"
+            maxLength={10}
             value={String(draftFields.price ?? 0)}
             onChange={(e) => {
-              const parsed = Number(e.target.value);
+              const parsed = Number(e.target.value.slice(0, 10));
               updateDraftField("price", Number.isNaN(parsed) ? 0 : parsed);
             }}
           />
+          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {String(draftFields.price ?? 0).length}/10
+          </div>
         </div>
         <div className="md:col-span-3">
           <label className="sb-label inline-flex items-center gap-1.5">

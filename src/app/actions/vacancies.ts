@@ -211,6 +211,16 @@ export async function createJobVacancy(formData: FormData) {
       data: { jobVacancyCount: { increment: 1 } },
     });
 
+    await tx.userActivity.create({
+      data: {
+        userId: user.id,
+        action: "PUBLISHED",
+        moduleType: "JOB_VACANCY",
+        entityId: newVacancy.id,
+        entityTitle: newVacancy.title,
+      },
+    });
+
     return newVacancy;
   });
 
@@ -342,6 +352,16 @@ export async function deleteJobVacancy(vacancyId: string) {
         data: { reputation: { decrement: vacancy.totalVotes } },
       });
     }
+
+  // Reverse the activity row created on publish.
+  await tx.userActivity.deleteMany({
+    where: {
+      userId: vacancy.authorId,
+      moduleType: "JOB_VACANCY",
+      action: "PUBLISHED",
+    },
+  });
+
   });
 
   // Purge the cached job vacancy pages: soft delete must be visible at once, not after the TTL.

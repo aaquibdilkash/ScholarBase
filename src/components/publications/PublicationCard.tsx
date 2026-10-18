@@ -169,7 +169,7 @@ export function PublicationCard({
     >
       <Link href={`/publications/${publication.id}`} prefetch={false} className="block group">
         <div className="flex items-start justify-between gap-3 mb-2">
-          <h2 className="text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+          <h2 className="min-w-0 [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
             {publication.title}
           </h2>
           <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">

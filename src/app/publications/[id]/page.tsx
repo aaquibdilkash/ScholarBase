@@ -162,7 +162,7 @@ const PublicationDetailPage = async ({
       }
     >
       <div className="flex items-start gap-2 sm:gap-3 mb-3 sm:mb-4">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 flex-1">
+        <h1 className="min-w-0 [overflow-wrap:anywhere] text-lg sm:text-xl md:text-2xl font-bold text-slate-950 flex-1">
           {p.title}
         </h1>
         <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 sm:px-3 sm:py-1 text-xs sm:text-sm font-semibold text-blue-700">

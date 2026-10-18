@@ -103,6 +103,7 @@ export default function PostEditForm({ postId, initialValues }: PostEditFormProp
         value={imageUrl}
         onChange={setImageUrl}
         onUploadingChange={setImageBusy}
+        allowFrozen
         buttonLabel="Add Image"
         tooltip={FEED_IMAGE_TIP}
         hint="Removing the image keeps the post text; the old image is deleted when you save."

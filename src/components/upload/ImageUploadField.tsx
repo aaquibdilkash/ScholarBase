@@ -32,6 +32,8 @@ type ImageUploadFieldProps = {
   circular?: boolean;
   /** Opens the crop dialog before uploading (avatar flow). */
   crop?: boolean;
+  /** Allows draft asset changes for users whose account is frozen. */
+  allowFrozen?: boolean;
   className?: string;
 };
 
@@ -62,6 +64,7 @@ export function ImageUploadField({
   previewSize = 80,
   circular = false,
   crop = false,
+  allowFrozen = false,
   className,
 }: ImageUploadFieldProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,7 +89,7 @@ export function ImageUploadField({
       const fd = new FormData();
       fd.append("file", uploadFile);
 
-      const data = await uploadImage(fd, kind);
+      const data = await uploadImage(fd, kind, { allowFrozen });
       if ("success" in data) {
         // Graceful rejection (e.g. frozen account) — surface, don't throw.
         setUploadError(data.message);
@@ -98,7 +101,7 @@ export function ImageUploadField({
       // folder check makes this a no-op for published assets (they live
       // outside /draft/), so this is safe in every create/edit/profile flow.
       if (value && value !== data.url) {
-        await deleteDraftImage(value);
+        await deleteDraftImage(value, { allowFrozen });
       }
 
       onChange(data.url);
@@ -144,18 +147,15 @@ export function ImageUploadField({
 
     setRemoving(true);
     try {
-      const deleted = await deleteDraftImage(value);
-      if (typeof deleted === "object" && deleted.success === false) {
-        // Graceful rejection (e.g. frozen account) — keep the image.
-        toast(deleted.message, "error");
-        return;
-      }
-      // False means "not in the user's draft folders" — published asset whose
-      // deletion is deferred to the save mutation — unless it looks like a
-      // draft, in which case surface the failure and keep the image.
-      if (!deleted && value.includes("/draft/")) {
-        toast("Could not delete the draft image. Please try again.", "error");
-        return;
+      // Published assets are deleted by the authorized save mutation. Do not
+      // call the draft cleanup action for them: frozen owners are allowed to
+      // clear/replace images while editing their own content.
+      if (value.includes("/draft/")) {
+        const deleted = await deleteDraftImage(value, { allowFrozen });
+        if (!deleted) {
+          toast("Could not delete the draft image. Please try again.", "error");
+          return;
+        }
       }
       onChange("");
       setLightboxOpen(false);
