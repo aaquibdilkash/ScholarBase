@@ -43,6 +43,9 @@ export function ResultCard({
 
   return (
     <ListPageCardShell
+      isDeleted={result.isDeleted ?? false}
+      deletedByType={result.deletedByType}
+      deletedNoun="result"
       authorHref={`/scholars/${result.author?.id}`}
       authorName={result.author?.name || "Scholar"}
       authorId={result.authorId}
@@ -74,7 +77,9 @@ export function ResultCard({
                 queryClient.setQueriesData(
                   { queryKey: ["results"] },
                   (oldData: ResultWithAuthor[] = []) =>
-                    oldData.filter((r) => r.id !== response.data.deletedId),
+                    response.data.totalComments > 0
+                      ? oldData.map((r) => r.id === response.data.deletedId ? { ...r, isDeleted: true, deletedByType: response.data.deletedByType } : r)
+                      : oldData.filter((r) => r.id !== response.data.deletedId),
                 );
                 toast("Result deleted successfully.", "success");
                 return { refresh: false };

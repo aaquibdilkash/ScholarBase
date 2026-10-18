@@ -18,6 +18,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESEARCH_TOOL_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export async function createResearchTool(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
@@ -142,7 +143,7 @@ export async function deleteResearchTool(toolId: string) {
 
   const tool = await prisma.researchTool.findUnique({
     where: { id: toolId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!tool) {
@@ -175,7 +176,7 @@ export async function deleteResearchTool(toolId: string) {
   // Purge the cached research tool pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("RESEARCH_TOOL", tool.authorId);
 
-  return { success: true, data: { deletedId: toolId } };
+  return { success: true, data: { deletedId: toolId, isDeleted: true as const, deletedByType, totalComments: tool.totalComments } };
 }
 
 /**
@@ -202,7 +203,7 @@ export async function getResearchTools(
 export const getResearchToolById = cache(
   async (toolId: string, userId?: string) => {
     return prisma.researchTool.findUnique({
-      where: { id: toolId, isDeleted: false },
+      where: { id: toolId, ...engagedContentWhere("totalComments") },
       select: {
         id: true,
         name: true,
@@ -228,6 +229,8 @@ export const getResearchToolById = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }

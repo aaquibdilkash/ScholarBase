@@ -34,6 +34,16 @@ export async function generateMetadata({
   const { id, reviewId } = await params;
   const review = await getJournalReview(reviewId).catch(() => null);
   if (!review || review.journal.id !== id) return { title: "Journal Review" };
+  if (review.isDeleted) {
+    return buildMetadata({
+      title: "Deleted Journal Review",
+      description: "This journal review was deleted, but its community discussion remains available.",
+      path: `/journals/${review.journalId}/review/${review.id}`,
+      type: "article",
+      publishedTime: review.createdAt,
+      section: "Journal Reviews",
+    });
+  }
   return buildMetadata({
     title: `Review of ${review.journal.title}`,
     description: `A ${Number(review.rating).toFixed(1)}/5 peer review of ${review.journal.title}. ${(review.feedback || "").replace(/<[^>]*>/g, " ")}`,
@@ -86,6 +96,9 @@ export default async function JournalReviewDetailPage({
   return (
     <DetailPageCardShell
       isFrozen={review.isFrozen ?? false}
+      isDeleted={review.isDeleted ?? false}
+      deletedByType={review.deletedByType}
+      deletedNoun="journal review"
       frozenEntityId={review.id}
       frozenModule="JOURNAL_REVIEW"
       frozenEntityType="POST"
@@ -147,7 +160,7 @@ export default async function JournalReviewDetailPage({
           ownerId={review.authorId ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={review.isFrozen}
-          isDeleted={false}
+          isDeleted={review.isDeleted ?? false}
           hasActiveAppeal={review.hasActiveAppeal}
         />
       }
@@ -156,7 +169,7 @@ export default async function JournalReviewDetailPage({
       discussion={
         <div id="comments">
           <CommentSection
-            locked={review.isFrozen ?? false}
+            locked={review.isFrozen || review.isDeleted}
             comments={review.comments as CommentWithAuthorAndVotes[]}
             totalComments={review.totalComments}
             targetId={review.id}

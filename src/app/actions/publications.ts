@@ -19,6 +19,7 @@ import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT, MAX_PUBLICATION_KEYWORDS, MAX_PUBLICATION_KEYWORD_COUNT, MAX_PUBLICATION_KEYWORD_LENGTH } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 function readLinkedIds(formData: FormData, key: string): string[] {
   return [...new Set((readOptionalFormValue(formData, key) ?? "").split(",").map((id) => id.trim()).filter(Boolean))].slice(0, 20);
@@ -276,7 +277,7 @@ export async function deletePublication(publicationId: string) {
 
   const publication = await prisma.publication.findUnique({
     where: { id: publicationId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!publication) {
@@ -309,7 +310,7 @@ export async function deletePublication(publicationId: string) {
   // Purge the cached publication pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("PUBLICATION", publication.authorId);
 
-  return { success: true, data: { deletedId: publicationId } };
+  return { success: true, data: { deletedId: publicationId, isDeleted: true as const, deletedByType, totalComments: publication.totalComments } };
 }
 
 /**
@@ -338,7 +339,7 @@ export const getPublicationById = cache(
     return prisma.publication.findUnique({
       where: {
         id: publicationId,
-        isDeleted: false,
+        ...engagedContentWhere("totalComments"),
       },
       select: {
         id: true,
@@ -390,6 +391,8 @@ export const getPublicationById = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }

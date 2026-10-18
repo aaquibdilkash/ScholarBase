@@ -27,6 +27,7 @@ import { COMMENT_PAGE_SIZE, MAX_JOURNAL_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { validateExternalUrl } from "@/lib/external-url";
 import { METRIC_BOUNDS } from "@/constants/journal-metrics";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 // Strict numeric-only metric parsing (SJR Score, CiteScore, Impact Factor).
 // Rejects "2.4abc"/"abc" instead of silently coercing via parseFloat, and
@@ -257,7 +258,7 @@ export async function deleteJournal(journalId: string) {
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true, reviewCount: true },
   });
 
   if (!journal) {
@@ -290,7 +291,7 @@ export async function deleteJournal(journalId: string) {
   // Purge the cached journal pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("JOURNAL", journal.authorId);
 
-  return { success: true, data: { deletedId: journalId } };
+  return { success: true, data: { deletedId: journalId, isDeleted: true as const, deletedByType, totalComments: journal.totalComments, reviewCount: journal.reviewCount } };
 }
 
 /**
@@ -319,7 +320,7 @@ export const getJournalById = cache(
     return prisma.journal.findUnique({
       where: {
         id: journalId,
-        isDeleted: false,
+        ...engagedContentWhere("totalComments", "reviewCount"),
       },
       select: {
         id: true,
@@ -361,6 +362,8 @@ export const getJournalById = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         // Materialized review aggregates (mirrors recommendationCount on
         // Supervisor): average rating = ratingSum / reviewCount.

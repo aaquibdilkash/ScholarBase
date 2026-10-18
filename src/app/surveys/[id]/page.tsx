@@ -90,6 +90,9 @@ const SurveyDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={survey.isDeleted}
+      deletedByType={survey.deletedByType}
+      deletedNoun="survey"
       isFrozen={survey.isFrozen ?? false}
       frozenEntityId={survey.id}
       frozenModule="RESEARCH_SURVEY"
@@ -170,7 +173,7 @@ const SurveyDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={survey.isFrozen ?? false}
+          locked={survey.isFrozen || survey.isDeleted}
           comments={survey.comments}
           totalComments={survey.totalComments}
           targetId={survey.id}

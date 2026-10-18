@@ -9,6 +9,8 @@ import CommentCountDisplay from "@/components/interactions/CommentCountDisplay";
 import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import { formatTimeAgo } from "../../utils/time-ago";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
+import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
+import type { DeletedContentReason } from "@/components/content/DeletedContentTombstone";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -59,6 +61,9 @@ export type DetailPageCardShellProps = {
   frozenOwnerId?: string | null;
   frozenHasActiveAppeal?: boolean;
   isAdmin?: boolean;
+  isDeleted?: boolean;
+  deletedByType?: DeletedContentReason;
+  deletedNoun?: string;
 
   discussion?: ReactNode;
 
@@ -105,6 +110,9 @@ export default function DetailPageCardShell({
   frozenOwnerId,
   frozenHasActiveAppeal,
   isAdmin,
+  isDeleted = false,
+  deletedByType,
+  deletedNoun = "item",
   discussion,
   className,
   bodyClassName,
@@ -115,7 +123,7 @@ export default function DetailPageCardShell({
   shareText,
 }: DetailPageCardShellProps) {
   // In current usage, `managementControls` is only passed for owners.
-  const isOwner = Boolean(managementControls);
+  const isOwner = Boolean(managementControls) && !isDeleted;
 
   return (
     <main
@@ -235,7 +243,9 @@ export default function DetailPageCardShell({
             uses its own overflow-x-hidden) so positioned overlays like
             carousel arrows are never cut off. */}
         <div className="min-w-0 max-w-full">
-          {children}
+          {isDeleted ? (
+            <DeletedContentTombstone reason={deletedByType} noun={deletedNoun} />
+          ) : children}
 
           {bodyBottomContent}
         </div>
@@ -262,7 +272,7 @@ export default function DetailPageCardShell({
           <div className="flex items-center gap-4 sm:gap-6">
             {/* Frozen: keep the vote button visible but disabled (VoteButton
                 supports the `frozen` prop, injected here for detail pages). */}
-            {isFrozen && footerVoteButton && isValidElement(footerVoteButton)
+            {(isFrozen || isDeleted) && footerVoteButton && isValidElement(footerVoteButton)
               ? cloneElement(
                   footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
                   { frozen: true },
@@ -276,7 +286,7 @@ export default function DetailPageCardShell({
           </div>
 
           <div className="flex items-center gap-2 pr-1 sm:pr-0">
-            {isFrozen &&
+            {(isFrozen || isDeleted) &&
             footerBookmarkButton &&
             isValidElement(footerBookmarkButton)
               ? cloneElement(

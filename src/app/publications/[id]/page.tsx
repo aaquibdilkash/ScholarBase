@@ -89,6 +89,9 @@ const PublicationDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={p.isDeleted}
+      deletedByType={p.deletedByType}
+      deletedNoun="publication"
       isFrozen={p.isFrozen ?? false}
       backHref="/publications"
       backLabel="Back to Publications"
@@ -151,7 +154,7 @@ const PublicationDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={p.isFrozen ?? false}
+          locked={p.isFrozen || p.isDeleted}
           comments={p.comments}
           totalComments={p.totalComments}
           targetId={p.id}

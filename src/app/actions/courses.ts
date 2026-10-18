@@ -18,6 +18,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export async function createCourse(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a course.");
@@ -193,7 +194,7 @@ export async function deleteCourse(courseId: string) {
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!course) {
@@ -226,7 +227,7 @@ export async function deleteCourse(courseId: string) {
   // Purge the cached course pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("COURSE", course.authorId);
 
-  return { success: true, data: { deletedId: courseId } };
+  return { success: true, data: { deletedId: courseId, isDeleted: true as const, deletedByType, totalComments: course.totalComments } };
 }
 
 /**
@@ -253,7 +254,7 @@ export async function getCourses(
 export const getCourseById = cache(
   async (courseId: string, userId?: string) => {
     return prisma.course.findUnique({
-      where: { id: courseId, isDeleted: false },
+      where: { id: courseId, ...engagedContentWhere("totalComments") },
       select: {
         id: true,
         title: true,
@@ -284,6 +285,8 @@ export const getCourseById = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { userId: true, voteType: true } }

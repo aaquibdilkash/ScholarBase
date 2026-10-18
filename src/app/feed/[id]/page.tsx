@@ -11,6 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost, getPostMetadata } from "@/app/actions/feed";
 import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
+import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -30,6 +31,15 @@ export async function generateMetadata({
       path: SEO_PAGES.feed.path,
       type: "website",
       section: SEO_PAGES.feed.section,
+    });
+  }
+  if (post.isDeleted) {
+    return buildMetadata({
+      title: "Deleted Scholar Post",
+      description: "This scholar post has been deleted, but its community discussion remains available.",
+      path: `/feed/${post.id}`,
+      type: "article",
+      section: "Scholar Community",
     });
   }
   const text = post.content.replace(/\s+/g, " ").trim();
@@ -72,6 +82,9 @@ export default async function SinglePostPage({
   return (
     <DetailPageCardShell
       isFrozen={p.isFrozen ?? false}
+      isDeleted={p.isDeleted ?? false}
+      deletedByType={p.deletedByType}
+      deletedNoun="post"
       frozenEntityId={p.id}
       frozenModule="SOCIAL_FEED"
       frozenEntityType="POST"
@@ -85,6 +98,7 @@ export default async function SinglePostPage({
       authorAvatarUrl={p.author?.avatarUrl || undefined}
       authorVerified={!!p.author?.institutionVerifiedAt}
       managementControls={
+        !p.isDeleted &&
         user?.id === p.authorId ? (
           <OwnerActionsDropdown
             editHref={`/feed/${p.id}/edit`}
@@ -107,7 +121,7 @@ export default async function SinglePostPage({
       editedDate={
         p.editedAt && p.editedAt > p.createdAt ? p.editedAt : undefined
       }
-      footerVoteButton={
+      footerVoteButton={(
         <VoteButton
           targetId={p.id}
           module="SOCIAL_POST"
@@ -115,8 +129,8 @@ export default async function SinglePostPage({
           initialUserVote={userVote}
           isOwnContent={user?.id === p.authorId}
         />
-      }
-      footerBookmarkButton={
+      )}
+      footerBookmarkButton={(
         <BookmarkButton
           frozen={p.isFrozen === true}
           targetId={p.id}
@@ -126,10 +140,10 @@ export default async function SinglePostPage({
             Array.isArray(p.bookmarks) && p.bookmarks.length > 0
           }
         />
-      }
+      )}
       footerCommentsHref={`/feed/${p.id}#comments`}
       footerCommentsCount={p.totalComments}
-      footerReportMenu={
+      footerReportMenu={(
         <ReportMenu
           entityId={p.id}
           entityType="POST"
@@ -137,13 +151,13 @@ export default async function SinglePostPage({
           ownerId={p.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={p.isFrozen}
-          isDeleted={false}
+          isDeleted={p.isDeleted}
           hasActiveAppeal={p.hasActiveAppeal}
         />
-      }
+      )}
       discussion={
         <CommentSection
-          locked={p.isFrozen ?? false}
+          locked={p.isFrozen || p.isDeleted}
           comments={p.comments as CommentWithAuthorAndVotes[]}
           totalComments={p.totalComments}
           targetId={p.id}
@@ -153,9 +167,13 @@ export default async function SinglePostPage({
         />
       }
     >
-      <PostContent content={p.content} mentions={p.mentions} />
+      {p.isDeleted ? (
+        <DeletedContentTombstone reason={p.deletedByType} />
+      ) : (
+        <PostContent content={p.content} mentions={p.mentions} />
+      )}
 
-      {isValidImageUrl(p.imageUrl) && (
+      {!p.isDeleted && isValidImageUrl(p.imageUrl) && (
         <div className="mt-4 sm:mt-6">
           <FeedImage
             src={p.imageUrl}

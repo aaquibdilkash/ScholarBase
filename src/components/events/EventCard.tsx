@@ -45,6 +45,9 @@ export function EventCard({
 
   return (
     <ListPageCardShell
+      isDeleted={event.isDeleted ?? false}
+      deletedByType={event.deletedByType}
+      deletedNoun="event"
       authorHref={`/scholars/${event.author?.id}`}
       authorName={event.author?.name || "Scholar"}
       authorId={event.authorId}
@@ -70,7 +73,9 @@ export function EventCard({
                 queryClient.setQueriesData(
                   { queryKey: ["events"] },
                   (oldData: EventWithAuthor[] = []) =>
-                    oldData.filter((e) => e.id !== response.data.deletedId),
+                    response.data.totalComments > 0
+                      ? oldData.map((e) => e.id === response.data.deletedId ? { ...e, isDeleted: true, deletedByType: response.data.deletedByType } : e)
+                      : oldData.filter((e) => e.id !== response.data.deletedId),
                 );
                 toast("Event deleted successfully.", "success");
                 return { refresh: false };

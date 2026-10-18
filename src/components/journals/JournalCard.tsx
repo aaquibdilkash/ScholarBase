@@ -50,6 +50,9 @@ export function JournalCard({
 
   return (
     <ListPageCardShell
+      isDeleted={journal.isDeleted ?? false}
+      deletedByType={journal.deletedByType}
+      deletedNoun="journal"
       authorHref={`/scholars/${journal.author?.id}`}
       authorName={journal.author?.name || "Scholar"}
       authorId={journal.authorId}
@@ -84,7 +87,9 @@ export function JournalCard({
                 queryClient.setQueriesData(
                   { queryKey: ["journals"] },
                   (oldData: JournalWithAuthor[] = []) =>
-                    oldData.filter((j) => j.id !== response.data.deletedId),
+                    response.data.totalComments > 0 || response.data.reviewCount > 0
+                      ? oldData.map((j) => j.id === response.data.deletedId ? { ...j, isDeleted: true, deletedByType: response.data.deletedByType } : j)
+                      : oldData.filter((j) => j.id !== response.data.deletedId),
                 );
                 toast("Journal deleted successfully.", "success");
                 return { refresh: false };

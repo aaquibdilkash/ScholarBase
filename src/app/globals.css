@@ -340,13 +340,24 @@ html[data-theme="dark"] {
     border-color: var(--card-border);
   }
 
+  /* Native single-value selects all use the same breathing room for the
+     browser chevron. This intentionally covers selects styled as sb-input or
+     with local admin classes too; multiple selects keep their native layout. */
+  select:not([multiple]) {
+    appearance: none;
+    padding-inline-end: 3rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.15rem;
+  }
+
   .sb-select {
-    @apply w-full appearance-none rounded-xl border px-3 py-2.5 pr-11 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    @apply w-full rounded-xl border px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
     background-color: var(--input-bg);
     border-color: var(--card-border);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E"),
-      var(--surface-grad);
-    background-position: right 0.875rem center, center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E"), var(--surface-grad);
+    background-position: right 1rem center, center;
     background-repeat: no-repeat, no-repeat;
     background-size: 1.15rem, cover;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(15, 23, 42, 0.05);

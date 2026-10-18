@@ -42,6 +42,9 @@ export function SupervisorCard({
 
   return (
     <ListPageCardShell
+      isDeleted={supervisor.isDeleted ?? false}
+      deletedByType={supervisor.deletedByType}
+      deletedNoun="supervisor profile"
       authorHref={`/scholars/${supervisor.author?.id}`}
       authorName={supervisor.author?.name || "Supervisor"}
       authorId={supervisor.authorId}
@@ -78,7 +81,9 @@ export function SupervisorCard({
                 queryClient.setQueriesData(
                   { queryKey: ["supervisors"] },
                   (oldData: SupervisorWithAuthor[] = []) =>
-                    oldData.filter((s) => s.id !== response.data.deletedId),
+                    response.data.totalComments > 0 || response.data.recommendationCount > 0
+                      ? oldData.map((s) => s.id === response.data.deletedId ? { ...s, isDeleted: true, deletedByType: response.data.deletedByType } : s)
+                      : oldData.filter((s) => s.id !== response.data.deletedId),
                 );
                 toast("Supervisor deleted successfully.", "success");
                 return { refresh: false };

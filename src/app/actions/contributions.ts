@@ -21,6 +21,7 @@ import {
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of contribution rows for the
@@ -45,7 +46,7 @@ export async function getContributions(
 
 export const getContribution = cache(async (id: string, userId?: string) => {
   return prisma.contribution.findUnique({
-    where: { id, isDeleted: false },
+    where: { id, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       title: true,
@@ -73,6 +74,8 @@ export const getContribution = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -306,7 +309,7 @@ export async function deleteContribution(contributionId: string) {
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!contribution) throw new Error("Contribution not found.");
@@ -340,7 +343,7 @@ export async function deleteContribution(contributionId: string) {
   // Purge the cached contribution pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("CONTRIBUTION", contribution.authorId);
 
-  return { success: true, data: { deletedId: contributionId } };
+  return { success: true, data: { deletedId: contributionId, isDeleted: true as const, deletedByType, totalComments: contribution.totalComments } };
 }
 
 // Note: Admin-specific actions like approve/reject are in `admin.ts`

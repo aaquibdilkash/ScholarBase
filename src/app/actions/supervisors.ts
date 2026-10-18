@@ -16,6 +16,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of supervisor rows for the
@@ -40,7 +41,7 @@ export async function getSupervisors(
 
 export const getSupervisor = cache(async (id: string, userId?: string) => {
   return prisma.supervisor.findUnique({
-    where: { id, isDeleted: false },
+    where: { id, ...engagedContentWhere("totalComments", "recommendationCount") },
     select: {
       id: true,
       name: true,
@@ -65,11 +66,14 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
+      recommendationCount: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       recommendations: {
-        where: { isDeleted: false },
+        where: engagedContentWhere("totalComments"),
         orderBy: { createdAt: "desc" },
         take: 1,
         select: {
@@ -103,6 +107,8 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
           isFrozen: true,
           hasActiveAppeal: true,
           totalComments: true,
+          isDeleted: true,
+          deletedByType: true,
           votes: userId
             ? { where: { userId }, select: { voteType: true } }
             : false,
@@ -159,7 +165,7 @@ export async function getSupervisorRecommendations(
   const userId = user?.id;
 
   return prisma.recommendation.findMany({
-    where: { supervisorId, isDeleted: false },
+    where: { supervisorId, ...engagedContentWhere("totalComments") },
     skip,
     take,
     orderBy: { createdAt: "desc" },
@@ -190,6 +196,8 @@ export async function getSupervisorRecommendations(
       totalVotes: true,
       totalBookmarks: true,
       totalComments: true,
+      isDeleted: true,
+      deletedByType: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
@@ -360,7 +368,7 @@ export async function deleteSupervisor(supervisorId: string) {
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true, recommendationCount: true },
   });
 
   if (!supervisor) {
@@ -393,7 +401,7 @@ export async function deleteSupervisor(supervisorId: string) {
   // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", supervisor.authorId);
 
-  return { success: true as const, data: { deletedId: supervisorId } } as unknown as
-    | { success: true; data: { deletedId: string } }
+  return { success: true as const, data: { deletedId: supervisorId, isDeleted: true as const, deletedByType, totalComments: supervisor.totalComments, recommendationCount: supervisor.recommendationCount } } as unknown as
+    | { success: true; data: { deletedId: string; isDeleted: true; deletedByType: typeof deletedByType; totalComments: number; recommendationCount: number } }
     | { success: false; error: string; message: string };
 }

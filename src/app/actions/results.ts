@@ -18,6 +18,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESULT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of result rows for the
@@ -42,7 +43,7 @@ export async function getResults(
 
 export const getResult = cache(async (id: string, userId?: string) => {
   return prisma.result.findUnique({
-    where: { id, isDeleted: false },
+    where: { id, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       title: true,
@@ -72,6 +73,8 @@ export const getResult = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -242,7 +245,7 @@ export async function deleteResult(resultId: string) {
 
   const result = await prisma.result.findUnique({
     where: { id: resultId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!result) {
@@ -275,5 +278,5 @@ export async function deleteResult(resultId: string) {
   // Purge the cached result pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("RESULT", result.authorId);
 
-  return { success: true, data: { deletedId: resultId } };
+  return { success: true, data: { deletedId: resultId, isDeleted: true as const, deletedByType, totalComments: result.totalComments } };
 }

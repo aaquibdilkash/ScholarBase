@@ -41,6 +41,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  experimental: {
+    // ImageUploadField accepts source files up to 5 MB. Server Actions include
+    // multipart metadata in their raw request body, so leave headroom above
+    // that limit; otherwise Next rejects valid uploads before uploadImage runs.
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

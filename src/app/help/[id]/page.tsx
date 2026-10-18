@@ -67,6 +67,9 @@ export default async function HelpPostPage({
 
   return (
     <DetailPageCardShell
+      isDeleted={post.isDeleted}
+      deletedByType={post.deletedByType}
+      deletedNoun="help post"
       isFrozen={post.isFrozen ?? false}
       frozenEntityId={post.id}
       frozenModule="HELP_POST"
@@ -136,7 +139,7 @@ export default async function HelpPostPage({
       }
       discussion={
         <CommentSection
-          locked={post.isFrozen ?? false}
+          locked={post.isFrozen || post.isDeleted}
           comments={post.comments}
           totalComments={post.totalComments}
           targetId={post.id}

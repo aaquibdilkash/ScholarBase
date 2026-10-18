@@ -20,6 +20,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of phd admission rows for the
@@ -44,7 +45,7 @@ export async function getAdmissions(
 
 export const getAdmission = cache(async (id: string, userId?: string) => {
   return prisma.phdAdmission.findUnique({
-    where: { id, isDeleted: false },
+    where: { id, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       university: true,
@@ -70,6 +71,8 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -248,7 +251,7 @@ export async function deletePhdAdmission(admissionId: string) {
 
   const admission = await prisma.phdAdmission.findUnique({
     where: { id: admissionId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!admission) {
@@ -281,7 +284,7 @@ export async function deletePhdAdmission(admissionId: string) {
   // Purge the cached phd admission pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("PHD_ADMISSION", admission.authorId);
 
-  return { success: true, data: { deletedId: admissionId } };
+  return { success: true, data: { deletedId: admissionId, isDeleted: true as const, deletedByType, totalComments: admission.totalComments } };
 }
 
 export async function getLatestAdmissions(count: number) {

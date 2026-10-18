@@ -100,7 +100,7 @@ beforeAll(async () => {
   // with the ownership guard this file exists to test. Paying it once here makes
   // every test measure only the guard.
   await import("@/app/scholars/[id]/settings/page");
-});
+}, 30_000);
 
 beforeEach(() => {
   resetFakeDb();

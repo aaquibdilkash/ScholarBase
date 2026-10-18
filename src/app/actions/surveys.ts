@@ -28,6 +28,7 @@ import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import { redactRespondentIdentity } from "@/lib/surveys/export";
 import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import type { SurveyBlockInput } from "@/types/survey";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 const MAX_RESPONSE_DURATION_MS = 24 * 60 * 60 * 1000;
 
@@ -152,7 +153,7 @@ export async function getSurveys(
 
 export const getSurvey = cache(async (id: string, userId?: string) => {
   return prisma.researchSurvey.findUnique({
-    where: { id, isDeleted: false },
+    where: { id, ...engagedContentWhere("totalComments", "totalResponses") },
     select: {
       id: true,
       title: true,
@@ -167,6 +168,7 @@ export const getSurvey = cache(async (id: string, userId?: string) => {
       editedAt: true,
       status: true,
       isDeleted: true,
+      deletedByType: true,
       totalVotes: true,
       totalBookmarks: true,
       isFrozen: true,
@@ -807,7 +809,7 @@ export async function deleteSurvey(surveyId: string) {
 
   const survey = await prisma.researchSurvey.findUnique({
     where: { id: surveyId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true, totalResponses: true },
   });
   if (!survey) {
     throw new Error("Survey not found.");
@@ -849,7 +851,7 @@ export async function deleteSurvey(surveyId: string) {
   // Purge the cached survey pages: soft delete must be visible at once.
   revalidateContent("RESEARCH_SURVEY", survey.authorId);
 
-  return { success: true, data: { deletedId: surveyId } };
+  return { success: true, data: { deletedId: surveyId, isDeleted: true as const, deletedByType, totalComments: survey.totalComments, totalResponses: survey.totalResponses } };
 }
 
 export async function closeSurvey(surveyId: string) {

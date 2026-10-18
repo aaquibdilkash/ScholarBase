@@ -17,6 +17,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of help post rows for the
@@ -48,7 +49,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
   // has been removed. The client is now responsible for deriving state
   // like `isFollowing` and `userVote` from the raw `followers` and `votes` arrays.
   return prisma.helpPost.findUnique({
-    where: { id, isDeleted: false },
+    where: { id, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       title: true,
@@ -74,6 +75,8 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -234,7 +237,7 @@ export async function deleteHelpPost(helpPostId: string) {
 
   const post = await prisma.helpPost.findUnique({
     where: { id: helpPostId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!post) {
@@ -267,5 +270,5 @@ export async function deleteHelpPost(helpPostId: string) {
   // Purge the cached help post pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("HELP_POST", post.authorId);
 
-  return { success: true, data: { deletedId: helpPostId } };
+  return { success: true, data: { deletedId: helpPostId, isDeleted: true as const, deletedByType, totalComments: post.totalComments } };
 }

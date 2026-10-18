@@ -50,6 +50,9 @@ export function CourseCard({
 
   return (
     <ListPageCardShell
+      isDeleted={course.isDeleted ?? false}
+      deletedByType={course.deletedByType}
+      deletedNoun="course"
       authorHref={`/scholars/${course.author?.id}`}
       authorName={course.author?.name || "Scholar"}
       authorId={course.authorId}
@@ -77,7 +80,9 @@ export function CourseCard({
                 queryClient.setQueriesData(
                   { queryKey: ["courses"] },
                   (oldData: CourseWithAuthor[] = []) =>
-                    oldData.filter((c) => c.id !== response.data.deletedId),
+                    response.data.totalComments > 0
+                      ? oldData.map((c) => c.id === response.data.deletedId ? { ...c, isDeleted: true, deletedByType: response.data.deletedByType } : c)
+                      : oldData.filter((c) => c.id !== response.data.deletedId),
                 );
                 toast("Course deleted successfully.", "success");
                 return { refresh: false };

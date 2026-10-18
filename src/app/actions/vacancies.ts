@@ -20,6 +20,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION, MAX_VACANCY_DEPARTMENT, MAX_VACANCY_SUBJECT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Normalizes an optional short-text field: trims, enforces the max length,
@@ -62,7 +63,7 @@ export async function getVacancies(
 
 export const getVacancyById = cache(async (id: string, userId?: string) => {
   return prisma.jobVacancy.findUnique({
-    where: { id: id, isDeleted: false },
+    where: { id: id, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       title: true,
@@ -80,6 +81,8 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       authorId: true,
       author: {
@@ -326,7 +329,7 @@ export async function deleteJobVacancy(vacancyId: string) {
 
   const vacancy = await prisma.jobVacancy.findUnique({
     where: { id: vacancyId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!vacancy) return;
@@ -367,7 +370,7 @@ export async function deleteJobVacancy(vacancyId: string) {
   // Purge the cached job vacancy pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("JOB_VACANCY", vacancy.authorId);
 
-  return { success: true, data: { deletedId: vacancyId } };
+  return { success: true, data: { deletedId: vacancyId, isDeleted: true as const, deletedByType, totalComments: vacancy.totalComments } };
 }
 
 export async function getLatestVacancies(count: number) {

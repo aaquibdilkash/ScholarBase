@@ -36,6 +36,9 @@ export function ContributionCard({
 
   return (
     <ListPageCardShell
+      isDeleted={contribution.isDeleted ?? false}
+      deletedByType={contribution.deletedByType}
+      deletedNoun="contribution"
       authorHref={`/scholars/${contribution.author?.id}`}
       authorName={contribution.author?.name || "Scholar"}
       authorId={contribution.authorId}
@@ -69,7 +72,9 @@ export function ContributionCard({
                 queryClient.setQueriesData(
                   { queryKey: ["contributions"] },
                   (oldData: ContributionWithAuthor[] = []) =>
-                    oldData.filter((c) => c.id !== response.data.deletedId),
+                    response.data.totalComments > 0
+                      ? oldData.map((c) => c.id === response.data.deletedId ? { ...c, isDeleted: true, deletedByType: response.data.deletedByType } : c)
+                      : oldData.filter((c) => c.id !== response.data.deletedId),
                 );
                 toast("Contribution deleted successfully.", "success");
                 return { refresh: false };

@@ -35,6 +35,9 @@ export function ResearchGrantCard({
 
   return (
     <ListPageCardShell
+      isDeleted={grant.isDeleted ?? false}
+      deletedByType={grant.deletedByType}
+      deletedNoun="grant"
       authorHref={`/scholars/${grant.author?.id}`}
       authorName={grant.author?.name || "Scholar"}
       authorId={grant.authorId}
@@ -59,7 +62,9 @@ export function ResearchGrantCard({
                 queryClient.setQueriesData(
                   { queryKey: ["grants"] },
                   (oldData: ResearchGrantWithAuthor[] = []) =>
-                    oldData.filter((g) => g.id !== response.data.deletedId),
+                    response.data.totalComments > 0
+                      ? oldData.map((g) => g.id === response.data.deletedId ? { ...g, isDeleted: true, deletedByType: response.data.deletedByType } : g)
+                      : oldData.filter((g) => g.id !== response.data.deletedId),
                 );
                 toast("Grant deleted successfully.", "success");
                 return { refresh: false };

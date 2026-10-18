@@ -16,6 +16,7 @@ import { renderMentionContent } from "@/components/interactions/MentionComposer"
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
 import { isValidImageUrl } from "@/lib/image-constants";
+import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
 
 // Native CSS line clamp: clips only at whole lines so text is never sliced
 // mid-line by a rigid pixel-height `overflow: hidden` container.
@@ -62,7 +63,7 @@ export function SocialPostCard({
   const bodyRef = useRef<HTMLParagraphElement>(null);
   const measureRef = useRef<HTMLParagraphElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
-  const isOwner = currentUserId === post.authorId;
+  const isOwner = !post.isDeleted && currentUserId === post.authorId;
   const isFollowing = (post.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null = Array.isArray(post.votes)
     ? (post.votes[0]?.voteType ?? null)
@@ -153,6 +154,9 @@ export function SocialPostCard({
       authorHandle={post.author?.handle || undefined}
       authorAvatarUrl={post.author?.avatarUrl || undefined} authorVerified={!!(post.author?.institutionVerifiedAt)}
       detailPageHref={`/feed/${post.id}`}
+      isDeleted={post.isDeleted ?? false}
+      deletedByType={post.deletedByType}
+      deletedNoun="post"
       // Share payload: mirror feed/[id]/page.tsx generateMetadata() — the
       // first 58 chars of the post body.
       shareTitle={(post.content ?? "").replace(/\s+/g, " ").trim().slice(0, 58) || "Scholar Post"}
@@ -171,7 +175,18 @@ export function SocialPostCard({
                 queryClient.setQueriesData<PostWithDetails[]>(
                   { queryKey: ["feed"] },
                   (oldData = []) =>
-                    oldData.filter((item) => item.id !== deletedPost.id),
+                    deletedPost.totalComments > 0
+                      ? oldData.map((item) =>
+                          item.id === deletedPost.id
+                            ? {
+                                ...item,
+                                isDeleted: true,
+                                deletedByType: deletedPost.deletedByType,
+                                totalComments: deletedPost.totalComments,
+                              }
+                            : item,
+                        )
+                      : oldData.filter((item) => item.id !== deletedPost.id),
                 );
                 toast("Post deleted successfully.", "success");
               }
@@ -186,28 +201,28 @@ export function SocialPostCard({
           ? post.editedAt
           : undefined
       }
-      footerVoteButton={
+      footerVoteButton={(
         <VoteButton
-          frozen={post.isFrozen === true}
+          frozen={post.isFrozen === true || post.isDeleted === true}
           targetId={post.id}
           module="SOCIAL_POST"
           initialTotalVotes={post.totalVotes ?? 0}
           initialUserVote={userVote}
           isOwnContent={isOwner}
         />
-      }
-      footerBookmarkButton={
+      )}
+      footerBookmarkButton={(
         <BookmarkButton
-          frozen={post.isFrozen === true}
+          frozen={post.isFrozen === true || post.isDeleted === true}
           targetId={post.id}
           module="SOCIAL_POST"
           initialTotalBookmarks={post.totalBookmarks ?? 0}
           initialIsBookmarked={Array.isArray(post.bookmarks) && post.bookmarks.length > 0}
         />
-      }
+      )}
       footerCommentsHref={`/feed/${post.id}`}
       footerCommentsCount={post.totalComments ?? 0}
-      footerReportMenu={
+      footerReportMenu={(
         <ReportMenu
           entityId={post.id}
           entityType="POST"
@@ -218,13 +233,16 @@ export function SocialPostCard({
           isDeleted={post.isDeleted ?? false}
           hasActiveAppeal={post.hasActiveAppeal ?? false}
         />
-      }
+      )}
       // The text + image are a two-column row; the card wraps this row in its
       // own <Link> (so clicks here navigate), but the expansion toggle and the
       // lightbox button are siblings OUTSIDE that Link so they never navigate.
       noBodyLink={true}
       constrainBody={false}
     >
+      {post.isDeleted ? (
+        <DeletedContentTombstone reason={post.deletedByType} />
+      ) : (
       <Link
         href={`/feed/${post.id}`}
         prefetch={false}
@@ -305,8 +323,9 @@ export function SocialPostCard({
           </button>
         )}
       </Link>
+      )}
 
-      {showToggle && (
+      {!post.isDeleted && showToggle && (
         <button
           type="button"
           onClick={(e) => {

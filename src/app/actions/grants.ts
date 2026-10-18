@@ -21,6 +21,7 @@ import {
   MAX_RESEARCH_GRANT_DESCRIPTION,
 } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export async function createResearchGrant(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a research grant.");
@@ -160,7 +161,7 @@ export async function deleteResearchGrant(grantId: string) {
 
   const grant = await prisma.researchGrant.findUnique({
     where: { id: grantId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!grant) {
@@ -193,7 +194,7 @@ export async function deleteResearchGrant(grantId: string) {
   // Purge the cached research grant pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("RESEARCH_GRANT", grant.authorId);
 
-  return { success: true, data: { deletedId: grantId } };
+  return { success: true, data: { deletedId: grantId, isDeleted: true as const, deletedByType, totalComments: grant.totalComments } };
 }
 
 /**
@@ -220,7 +221,7 @@ export async function getResearchGrants(
 export const getResearchGrantById = cache(
   async (grantId: string, userId?: string) => {
     return prisma.researchGrant.findUnique({
-      where: { id: grantId, isDeleted: false },
+    where: { id: grantId, ...engagedContentWhere("totalComments") },
       select: {
         id: true,
         title: true,
@@ -247,6 +248,8 @@ export const getResearchGrantById = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         votes: userId
           ? { where: { userId }, select: { voteType: true } }

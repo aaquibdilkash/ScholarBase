@@ -32,6 +32,37 @@ export function removeFromList<T extends { id: string }>(
   );
 }
 
+/** Replace an engaged soft-deleted item with its read-only tombstone. */
+export function tombstoneInList<T extends { id: string }>(
+  queryClient: QueryClient,
+  key: readonly unknown[],
+  deleted: {
+    deletedId: string;
+    deletedByType?: unknown;
+    totalComments?: number;
+    recommendationCount?: number;
+    reviewCount?: number;
+    totalResponses?: number;
+  },
+): void {
+  const engaged = [
+    deleted.totalComments,
+    deleted.recommendationCount,
+    deleted.reviewCount,
+    deleted.totalResponses,
+  ].some((value) => typeof value === "number" && value > 0);
+
+  queryClient.setQueriesData({ queryKey: key }, (oldData: T[] = []) =>
+    engaged
+      ? oldData.map((item) =>
+          item.id === deleted.deletedId
+            ? { ...item, isDeleted: true, deletedByType: deleted.deletedByType }
+            : item,
+        )
+      : oldData.filter((item) => item.id !== deleted.deletedId),
+  );
+}
+
 /** The three data tabs on a scholar profile, keyed by tab. */
 export const PROFILE_TAB_KEYS = {
   content: ["profile-content"] as const,

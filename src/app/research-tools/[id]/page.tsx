@@ -71,6 +71,9 @@ const ResearchToolDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={tool.isDeleted}
+      deletedByType={tool.deletedByType}
+      deletedNoun="research tool"
       isFrozen={tool.isFrozen ?? false}
       backHref="/research-tools"
       backLabel="Back to Research Tools"
@@ -135,7 +138,7 @@ const ResearchToolDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={tool.isFrozen ?? false}
+          locked={tool.isFrozen || tool.isDeleted}
           comments={tool.comments}
           totalComments={tool.totalComments}
           targetId={tool.id}

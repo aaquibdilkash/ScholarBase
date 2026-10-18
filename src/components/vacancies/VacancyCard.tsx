@@ -60,6 +60,9 @@ export function VacancyCard({ vacancy,
 
   return (
     <ListPageCardShell
+      isDeleted={vacancy.isDeleted ?? false}
+      deletedByType={vacancy.deletedByType}
+      deletedNoun="vacancy"
       authorHref={`/scholars/${vacancy.author?.id}`}
       authorName={vacancy.author?.name || "Scholar"}
       authorId={vacancy.authorId}
@@ -93,7 +96,9 @@ export function VacancyCard({ vacancy,
                 queryClient.setQueriesData(
                   { queryKey: ["vacancies"] },
                   (oldData: VacancyWithAuthor[] = []) =>
-                    oldData.filter((v) => v.id !== response.data.deletedId),
+                  response.data.totalComments > 0
+                    ? oldData.map((v) => v.id === response.data.deletedId ? { ...v, isDeleted: true, deletedByType: response.data.deletedByType } : v)
+                    : oldData.filter((v) => v.id !== response.data.deletedId),
                 );
                 toast("Vacancy deleted successfully.", "success");
                 return { refresh: false };

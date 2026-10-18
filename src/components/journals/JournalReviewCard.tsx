@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import { decrementJournalReview } from "./journalReviewCount";
-import { removeFromList } from "@/utils/cacheMutation";
+import { tombstoneInList } from "@/utils/cacheMutation";
 import Link from "next/link";
 import { StarRating } from "@/components/ui/StarRating";
 import type { JournalReviewWithAuthor } from "@/types/cards";
@@ -47,14 +47,15 @@ export function JournalReviewCard({
         return { refresh: false };
       }
 
-      // 1. Remove from every cached list slice instantly. No invalidate: the
+      // 1. Preserve an engaged review as a tombstone; remove an unengaged one
+      // from every cached list slice instantly. No invalidate: the
       // reviews rail is a carousel, so refetching it would collapse the reader
       // back to a single slide, and the cache is already correct — the next
       // page request offsets by the new length and lands on the right row.
-      removeFromList<JournalReviewWithAuthor>(
+      tombstoneInList<JournalReviewWithAuthor>(
         queryClient,
         ["journalReviews", review.journalId],
-        response.data.deletedId,
+        response.data,
       );
 
       // 2. Keep the reactive count / rating / star distribution in sync.
@@ -125,6 +126,9 @@ export function JournalReviewCard({
       isFollowing={review.isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
       isFrozen={review.isFrozen ?? false}
+      isDeleted={review.isDeleted ?? false}
+      deletedByType={review.deletedByType}
+      deletedNoun="journal review"
       frozenEntityId={review.id}
       frozenModule="JOURNAL_REVIEW"
       frozenEntityType="POST"
@@ -165,7 +169,7 @@ export function JournalReviewCard({
           ownerId={review.author?.id ?? null}
           currentUserId={currentUserId ?? null}
           isFrozen={review.isFrozen ?? false}
-          isDeleted={false}
+          isDeleted={review.isDeleted ?? false}
           hasActiveAppeal={review.hasActiveAppeal ?? false}
         />
       }

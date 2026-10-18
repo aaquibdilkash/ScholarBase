@@ -158,7 +158,11 @@ export const getPost = cache(async (id: string, userId?: string) => {
   return prisma.socialPost.findUnique({
     where: {
       id,
-      isDeleted: false, // RULE 3: Do not fetch soft-deleted posts
+      OR: [
+        { isDeleted: false },
+        // Keep only engaged deleted posts addressable as tombstones.
+        { isDeleted: true, totalComments: { gt: 0 } },
+      ],
     },
     select: {
       id: true,
@@ -185,6 +189,8 @@ export const getPost = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -241,7 +247,13 @@ export const getPost = cache(async (id: string, userId?: string) => {
  */
 export async function getPostMetadata(id: string) {
   return prisma.socialPost.findUnique({
-    where: { id, isDeleted: false },
+    where: {
+      id,
+      OR: [
+        { isDeleted: false },
+        { isDeleted: true, totalComments: { gt: 0 } },
+      ],
+    },
     select: POST_METADATA_SELECT,
   });
 }
@@ -495,8 +507,8 @@ export async function deleteSocialPost(postId: string) {
   }
 
   const post = await prisma.socialPost.findUnique({
-    where: { id: postId },
-    select: { authorId: true, totalVotes: true },
+    where: { id: postId, isDeleted: false },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!post) return;
@@ -527,7 +539,15 @@ export async function deleteSocialPost(postId: string) {
   // Soft delete (RULE 4) must disappear from the cached public feed at once.
   revalidateContent("FEED", post.authorId);
 
-  return { success: true, data: { id: postId } };
+  return {
+    success: true,
+    data: {
+      id: postId,
+      isDeleted: true as const,
+      deletedByType,
+      totalComments: post.totalComments,
+    },
+  };
 }
 
 export async function voteOnSocialPost(postId: string, voteType: VoteType) {

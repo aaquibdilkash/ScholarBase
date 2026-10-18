@@ -40,6 +40,8 @@ export const PUBLIC_SOCIAL_POST_SELECT = {
   mentions: true,
   isFrozen: true,
   hasActiveAppeal: true,
+  isDeleted: true,
+  deletedByType: true,
   // RULE 2: materialized counters, never dynamic relation counts.
   totalVotes: true,
   totalBookmarks: true,
@@ -141,6 +143,8 @@ export const POST_METADATA_SELECT = {
   imageUrl: true,
   createdAt: true,
   editedAt: true,
+  isDeleted: true,
+  deletedByType: true,
   author: { select: { name: true } },
 } as const satisfies Prisma.SocialPostSelect;
 

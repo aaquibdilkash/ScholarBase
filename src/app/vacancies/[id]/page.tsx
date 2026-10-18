@@ -63,6 +63,9 @@ const VacancyDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={vacancy.isDeleted}
+      deletedByType={vacancy.deletedByType}
+      deletedNoun="vacancy"
       isFrozen={vacancy.isFrozen ?? false}
       frozenEntityId={vacancy.id}
       frozenModule="JOB_VACANCY"
@@ -153,7 +156,7 @@ const VacancyDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={vacancy.isFrozen ?? false}
+          locked={vacancy.isFrozen || vacancy.isDeleted}
           comments={vacancy.comments}
           totalComments={vacancy.totalComments}
           targetId={vacancy.id}

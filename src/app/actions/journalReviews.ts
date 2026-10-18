@@ -10,6 +10,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
@@ -21,7 +22,7 @@ import type { JournalReviewWithAuthor } from "@/types/cards";
 export const getJournalReview = cache(
   async (reviewId: string, userId?: string) => {
     return prisma.journalReview.findUnique({
-      where: { id: reviewId },
+      where: { id: reviewId, ...engagedContentWhere("totalComments") },
       select: {
         id: true,
         rating: true,
@@ -40,6 +41,8 @@ export const getJournalReview = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         author: {
           select: {
@@ -115,7 +118,7 @@ export async function getJournalReviews(
   const userId = user?.id;
 
   return prisma.journalReview.findMany({
-    where: { journalId, isDeleted: false },
+    where: { journalId, ...engagedContentWhere("totalComments") },
     skip,
     take,
     orderBy: { createdAt: "desc" },
@@ -148,6 +151,8 @@ export async function getJournalReviews(
       totalVotes: true,
       totalBookmarks: true,
       totalComments: true,
+      isDeleted: true,
+      deletedByType: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
     },
@@ -505,6 +510,7 @@ export async function deleteJournalReview(reviewId: string) {
       journalId: true,
       totalVotes: true,
       totalBookmarks: true,
+      totalComments: true,
       isAnonymous: true,
       rating: true,
     },
@@ -554,6 +560,9 @@ export async function deleteJournalReview(reviewId: string) {
     data: {
       deletedId: reviewId,
       journalId: review.journalId,
+      isDeleted: true as const,
+      deletedByType,
+      totalComments: review.totalComments,
     },
   };
 }

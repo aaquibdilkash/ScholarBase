@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { RichContent } from "@/components/content/RichContent";
 import { decrementRecommendation } from "./recommendationCount";
+import { tombstoneInList } from "@/utils/cacheMutation";
 import Link from "next/link";
 import { StarRating } from "@/components/ui/StarRating";
 import type { RecommendationWithAuthor } from "@/types/cards";
@@ -49,14 +50,15 @@ export function RecommendationCard({
         return { refresh: false };
       }
 
-      // 1. Remove from the array cache instantly. No invalidate: the
+      // 1. Preserve an engaged recommendation as a tombstone; remove an
+      // unengaged one from the array cache instantly. No invalidate: the
       // recommendations rail is a carousel, so refetching it would collapse the
       // reader back to a single slide, and the cache is already correct — the
       // next page request offsets by the new length and lands on the right row.
-      queryClient.setQueriesData(
-        { queryKey: ["recommendations", supervisor.id] },
-        (oldData: RecommendationWithAuthor[] = []) =>
-          oldData.filter((r) => r.id !== response.data.deletedId),
+      tombstoneInList<RecommendationWithAuthor>(
+        queryClient,
+        ["recommendations", supervisor.id],
+        response.data,
       );
 
       // 2. Keep the reactive count in sync
@@ -105,6 +107,9 @@ export function RecommendationCard({
           : recommendation.author?.avatarUrl || undefined
       } authorVerified={!recommendation.isAnonymous && !!(recommendation.author?.institutionVerifiedAt)}
       isFrozen={recommendation.isFrozen ?? false}
+      isDeleted={recommendation.isDeleted ?? false}
+      deletedByType={recommendation.deletedByType}
+      deletedNoun="recommendation"
       frozenEntityId={recommendation.id}
       frozenModule="RECOMMENDATION"
       frozenEntityType="POST"

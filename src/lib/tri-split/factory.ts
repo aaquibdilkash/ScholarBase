@@ -112,7 +112,10 @@ export function createTriSplitList<TCached, TItem>(
         ? await (prisma as unknown as Record<string, {
             findMany: (a: unknown) => Promise<TCached[]>;
           }>)[model].findMany({
-            where: { ...baseWhere, ...filters },
+            where:
+              Object.keys(filters).length > 0
+                ? { AND: [baseWhere, filters] }
+                : baseWhere,
             select,
             orderBy,
             take: limit,

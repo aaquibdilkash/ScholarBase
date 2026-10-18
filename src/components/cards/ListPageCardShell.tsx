@@ -2,13 +2,15 @@ import { MessageCircle } from "lucide-react";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, type ReactNode } from "react";
 import { FollowButton } from "@/components/interactions/FollowButton"; // client component
 import { ShareButton } from "@/components/interactions/ShareButton";
 import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import { formatTimeAgo } from "../../utils/time-ago";
 import { TruncatedCardBody } from "./TruncatedCardBody";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
+import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
+import type { DeletedContentReason } from "@/components/content/DeletedContentTombstone";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -54,6 +56,9 @@ export type ListPageCardShellProps = {
   frozenOwnerId?: string | null;
   frozenHasActiveAppeal?: boolean;
   isAdmin?: boolean;
+  isDeleted?: boolean;
+  deletedByType?: DeletedContentReason;
+  deletedNoun?: string;
 
   className?: string;
   bodyClassName?: string;
@@ -109,6 +114,9 @@ export default function ListPageCardShell({
   frozenOwnerId,
   frozenHasActiveAppeal,
   isAdmin,
+  isDeleted = false,
+  deletedByType,
+  deletedNoun = "item",
   className,
   bodyClassName,
   detailPageHref,
@@ -120,7 +128,7 @@ export default function ListPageCardShell({
   noBodyLink = false,
   constrainBody,
 }: ListPageCardShellProps) {
-  const showManagementControls = Boolean(managementControls);
+  const showManagementControls = Boolean(managementControls) && !isDeleted;
 
   return (
     <div className={clsx("sb-card min-w-0 w-full p-6 sm:p-6 md:p-8", className)}>
@@ -211,14 +219,25 @@ export default function ListPageCardShell({
       </div>
 
       {/* Clickable middle body */}
-      <TruncatedCardBody
-        detailPageHref={detailPageHref}
-        className={clsx("block min-w-0 group", bodyClassName)}
-        noBodyLink={noBodyLink}
-        constrainBody={constrainBody}
-      >
-        {children}
-      </TruncatedCardBody>
+      {isDeleted ? (
+        <Link
+          href={detailPageHref}
+          prefetch={false}
+          className={clsx("block min-w-0 group", bodyClassName)}
+          aria-label={`View deleted ${deletedNoun}`}
+        >
+          <DeletedContentTombstone reason={deletedByType} noun={deletedNoun} />
+        </Link>
+      ) : (
+        <TruncatedCardBody
+          detailPageHref={detailPageHref}
+          className={clsx("block min-w-0 group", bodyClassName)}
+          noBodyLink={noBodyLink}
+          constrainBody={constrainBody}
+        >
+          {children}
+        </TruncatedCardBody>
+      )}
 
       {bodyBottomContent}
 
@@ -241,7 +260,14 @@ export default function ListPageCardShell({
         ) : (
           <>
             <div className="flex items-center gap-4 sm:gap-6">
-              {footerVoteButton}
+              {isFrozen || isDeleted
+                ? footerVoteButton && isValidElement(footerVoteButton)
+                  ? cloneElement(
+                      footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
+                      { frozen: true },
+                    )
+                  : footerVoteButton
+                : footerVoteButton}
 
               {footerCommentsHref && (
                 <Link
@@ -259,14 +285,21 @@ export default function ListPageCardShell({
             </div>
 
             <div className="flex items-center gap-2">
-              {footerBookmarkButton}
+              {isFrozen || isDeleted
+                ? footerBookmarkButton && isValidElement(footerBookmarkButton)
+                  ? cloneElement(
+                      footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
+                      { frozen: true },
+                    )
+                  : footerBookmarkButton
+                : footerBookmarkButton}
               <ShareButton
                 href={detailPageHref}
                 label="Share"
                 title={shareTitle}
                 text={shareText}
               />
-              {footerReportMenu}
+            {footerReportMenu}
             </div>
           </>
         )}

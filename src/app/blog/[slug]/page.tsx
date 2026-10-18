@@ -62,6 +62,9 @@ export default async function ArticlePage({
 
   return (
     <DetailPageCardShell
+      isDeleted={article.isDeleted}
+      deletedByType={article.deletedByType}
+      deletedNoun="article"
       isFrozen={a.isFrozen ?? false}
       frozenEntityId={a.id}
       frozenModule="ARTICLE_PAGE"
@@ -134,7 +137,7 @@ export default async function ArticlePage({
       }
       discussion={
         <CommentSection
-          locked={a.isFrozen ?? false}
+          locked={a.isFrozen || a.isDeleted}
           comments={a.comments}
           totalComments={a.totalComments}
           targetId={a.id}

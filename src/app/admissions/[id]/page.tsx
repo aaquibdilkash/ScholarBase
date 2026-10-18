@@ -70,6 +70,9 @@ const AdmissionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={admission.isDeleted}
+      deletedByType={admission.deletedByType}
+      deletedNoun="admission"
       isFrozen={admission.isFrozen ?? false}
       frozenEntityId={admission.id}
       frozenModule="PHD_ADMISSION"
@@ -154,7 +157,7 @@ const AdmissionDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={admission.isFrozen ?? false}
+          locked={admission.isFrozen || admission.isDeleted}
           comments={admission.comments}
           totalComments={admission.totalComments}
           targetId={admission.id}

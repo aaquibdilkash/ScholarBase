@@ -65,6 +65,9 @@ const EventDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={event.isDeleted}
+      deletedByType={event.deletedByType}
+      deletedNoun="event"
       isFrozen={event.isFrozen ?? false}
       frozenEntityId={event.id}
       frozenModule="RESEARCH_EVENT"
@@ -154,7 +157,7 @@ const EventDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={event.isFrozen ?? false}
+          locked={event.isFrozen || event.isDeleted}
           comments={event.comments}
           totalComments={event.totalComments}
           targetId={event.id}

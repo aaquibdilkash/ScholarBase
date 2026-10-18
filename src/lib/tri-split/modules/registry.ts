@@ -43,6 +43,8 @@ const ARTICLE_SELECT = {
   authorId: true,
   isFrozen: true,
   hasActiveAppeal: true,
+  isDeleted: true,
+  deletedByType: true,
   totalVotes: true,
   totalBookmarks: true,
   totalComments: true,
@@ -92,7 +94,20 @@ const COMMON_TAIL = {
   totalComments: true,
   isFrozen: true,
   hasActiveAppeal: true,
+  isDeleted: true,
+  deletedByType: true,
 } as const;
+
+/** Keep engaged soft-deleted rows addressable without counting relations. */
+const engagedContentWhere = (...counterKeys: string[]) => ({
+  OR: [
+    { isDeleted: false },
+    {
+      isDeleted: true,
+      OR: counterKeys.map((key) => ({ [key]: { gt: 0 } })),
+    },
+  ],
+});
 
 const DATES = ["createdAt", "updatedAt", "editedAt"] as const;
 
@@ -121,7 +136,14 @@ export const CONTENT_LIST_CONFIGS = {
     module: "SOCIAL_POST",
     trending: "socialPosts",
     tag: "feed-public",
-    where: { isDeleted: false },
+    // Preserve an engaged post as a tombstone. Empty deletions stay out of the
+    // public feed, while comment-bearing rows keep their discussion addressable.
+    where: {
+      OR: [
+        { isDeleted: false },
+        { isDeleted: true, totalComments: { gt: 0 } },
+      ],
+    },
     select: PUBLIC_SOCIAL_POST_SELECT as unknown as Record<string, unknown>,
     // `unstable_cache` serialises via JSON.stringify, so dates become ISO
     // strings; the shared `reviveDates` (driven by this same list) revives them.
@@ -151,7 +173,7 @@ export const CONTENT_LIST_CONFIGS = {
     module: "ARTICLE",
     trending: "articles",
     tag: "articles-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: ARTICLE_SELECT as unknown as Record<string, unknown>,
     dateKeys: ["createdAt", "updatedAt", "editedAt"],
     searchFields: [{ field: "title" }, { field: "name", relation: "author" }],
@@ -206,7 +228,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "helpPosts",
     tag: "help-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -234,7 +256,9 @@ export const CONTENT_LIST_CONFIGS = {
     trending: "contributions",
     tag: "contributions-public",
     // Only approved contributions are public; the rest stay out of the feed.
-    where: { isDeleted: false, status: "APPROVED" },
+    where: {
+      AND: [{ status: "APPROVED" }, engagedContentWhere("totalComments")],
+    },
     select: {
       id: true,
       title: true,
@@ -257,7 +281,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "publications",
     tag: "publications-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -298,7 +322,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "researchTools",
     tag: "research-tools-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       name: true,
@@ -326,7 +350,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "grants",
     tag: "research-grants-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -356,7 +380,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "courses",
     tag: "courses-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -391,7 +415,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "journals",
     tag: "journals-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments", "reviewCount"),
     // The card renders the average rating, so both aggregates ride the live
     // overlay: a posted/edited/deleted review is reflected on the next page
     // load without purging this shared batch for every visitor.
@@ -432,7 +456,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "results",
     tag: "results-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -463,7 +487,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "surveys",
     tag: "surveys-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments", "totalResponses"),
     select: {
       id: true,
       title: true,
@@ -471,7 +495,6 @@ export const CONTENT_LIST_CONFIGS = {
       privacy: true,
       shareData: true,
       status: true,
-      isDeleted: true,
       // Survey-specific zero-compute aggregates.
       totalResponses: true,
       totalQuestions: true,
@@ -493,7 +516,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "events",
     tag: "events-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -523,7 +546,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "admissions",
     tag: "admissions-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       university: true,
@@ -552,7 +575,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "vacancies",
     tag: "vacancies-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     select: {
       id: true,
       title: true,
@@ -585,7 +608,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "supervisors",
     tag: "supervisors-public",
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments", "recommendationCount"),
     // Zero-compute materialized aggregates (RULE 2): the count and the average
     // rating derive from these scalars, so no recommendation rows are fetched.
     select: {

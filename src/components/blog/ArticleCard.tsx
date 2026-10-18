@@ -7,7 +7,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
 import type { ArticleWithAuthor } from "@/types/cards";
-import { removeFromList } from "@/utils/cacheMutation";
+import { tombstoneInList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
@@ -31,6 +31,9 @@ export function ArticleCard({
 
   return (
     <ListPageCardShell
+      isDeleted={article.isDeleted ?? false}
+      deletedByType={article.deletedByType}
+      deletedNoun="article"
       authorHref={`/scholars/${article.authorId}`}
       authorName={article.author?.name || "Scholar"}
       authorId={article.authorId}
@@ -61,10 +64,10 @@ export function ArticleCard({
                   toast({ title: "Error", description: actionErrorMessage(response, "Failed to delete article."), variant: "destructive" });
                   return { refresh: false };
                 }
-                removeFromList<ArticleWithAuthor>(
+                tombstoneInList<ArticleWithAuthor>(
                   queryClient,
                   ["articles"],
-                  response.data.deletedId,
+                  response.data,
                 );
                 toast({ title: "Success", description: "Article deleted successfully." });
                 return { refresh: false };

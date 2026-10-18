@@ -33,6 +33,9 @@ export function ResearchToolCard({
 
   return (
     <ListPageCardShell
+      isDeleted={tool.isDeleted ?? false}
+      deletedByType={tool.deletedByType}
+      deletedNoun="research tool"
       authorHref={`/scholars/${tool.author?.id}`}
       authorName={tool.author?.name || "Scholar"}
       authorId={tool.authorId}
@@ -66,7 +69,9 @@ export function ResearchToolCard({
                 queryClient.setQueriesData(
                   { queryKey: ["researchTools"] },
                   (oldData: ResearchToolWithAuthor[] = []) =>
-                    oldData.filter((t) => t.id !== response.data.deletedId),
+                  response.data.totalComments > 0
+                    ? oldData.map((t) => t.id === response.data.deletedId ? { ...t, isDeleted: true, deletedByType: response.data.deletedByType } : t)
+                    : oldData.filter((t) => t.id !== response.data.deletedId),
                 );
                 toast("Tool deleted successfully.", "success");
                 return { refresh: false };

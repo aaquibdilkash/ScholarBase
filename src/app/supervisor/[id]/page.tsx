@@ -91,6 +91,9 @@ export default async function SupervisorPage({
 
   return (
     <DetailPageCardShell
+      isDeleted={supervisor.isDeleted}
+      deletedByType={supervisor.deletedByType}
+      deletedNoun="supervisor profile"
       isFrozen={supervisor.isFrozen ?? false}
       backHref="/supervisor"
       backLabel="Back to Search"
@@ -140,7 +143,7 @@ export default async function SupervisorPage({
       }
       discussion={
         <CommentSection
-          locked={supervisor.isFrozen ?? false}
+          locked={supervisor.isFrozen || supervisor.isDeleted}
           comments={supervisor.comments}
           totalComments={supervisor.totalComments}
           targetId={supervisor.id}

@@ -46,6 +46,9 @@ export function SurveyCard({
 
   return (
     <ListPageCardShell
+      isDeleted={survey.isDeleted ?? false}
+      deletedByType={survey.deletedByType}
+      deletedNoun="survey"
       authorHref={`/scholars/${survey.author?.id}`}
       authorName={survey.author?.name || "Scholar"}
       authorId={survey.authorId}
@@ -78,7 +81,9 @@ export function SurveyCard({
                 queryClient.setQueriesData(
                   { queryKey: ["surveys"] },
                   (oldData: SurveyWithAuthor[] = []) =>
-                    oldData.filter((s) => s.id !== response.data.deletedId),
+                    response.data.totalComments > 0 || response.data.totalResponses > 0
+                      ? oldData.map((s) => s.id === response.data.deletedId ? { ...s, isDeleted: true, deletedByType: response.data.deletedByType } : s)
+                      : oldData.filter((s) => s.id !== response.data.deletedId),
                 );
                 toast("Survey deleted successfully.", "success");
                 return { refresh: false };

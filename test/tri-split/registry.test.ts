@@ -22,6 +22,21 @@ import {
  * loaders) and gets its own assertions below.
  */
 describe("CONTENT_LIST_CONFIGS", () => {
+  const containsPredicate = (
+    value: unknown,
+    predicate: Record<string, unknown>,
+  ): boolean => {
+    if (!value || typeof value !== "object") return false;
+    if (Object.entries(predicate).every(([key, expected]) =>
+      (value as Record<string, unknown>)[key] === expected,
+    )) {
+      return true;
+    }
+    return Object.values(value as Record<string, unknown>).some((child) =>
+      containsPredicate(child, predicate),
+    );
+  };
+
   const isDirectory = (key: string) => "variants" in CONTENT_LIST_CONFIGS[key as never];
   const CONTENT_KEYS = CONTENT_LIST_KEYS.filter((k) => !isDirectory(k));
   const DIRECTORY_KEYS = CONTENT_LIST_KEYS.filter(isDirectory);
@@ -100,9 +115,11 @@ describe("CONTENT_LIST_CONFIGS", () => {
     expect(CONTENT_LIST_CONFIGS.FEED.module).toBe("SOCIAL_POST");
   });
 
-  it.each(entries)("%s filters soft-deleted rows", (_key, config) => {
-    // RULE 3/4: a tombstoned row must never reach a list.
-    expect(config.where).toMatchObject({ isDeleted: false });
+  it.each(entries)("%s filters soft-deleted rows but preserves engaged tombstones", (_key, config) => {
+    // Active rows remain visible, while rows with community activity may be
+    // returned as read-only tombstones for historical context.
+    expect(containsPredicate(config.where, { isDeleted: false })).toBe(true);
+    expect(containsPredicate(config.where, { isDeleted: true })).toBe(true);
   });
 
   it.each(entries)(

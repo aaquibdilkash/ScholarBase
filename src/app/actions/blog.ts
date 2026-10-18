@@ -17,6 +17,7 @@ import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
 import type { ArticleWithAuthor } from "@/types/cards";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of articles for the *current* viewer.
@@ -45,7 +46,7 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
   // has been removed. The client is now responsible for deriving state
   // like `isFollowing` and `userVote` from the raw `followers` and `votes` arrays.
   return prisma.article.findUnique({
-    where: { slug, isDeleted: false },
+    where: { slug, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       slug: true,
@@ -71,6 +72,8 @@ export const getArticle = cache(async (slug: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -267,7 +270,7 @@ export async function deleteArticle(articleId: string) {
 
   const article = await prisma.article.findUnique({
     where: { id: articleId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!article) {
@@ -300,7 +303,7 @@ export async function deleteArticle(articleId: string) {
   // Soft delete (RULE 4) must disappear from the cached public pages at once.
   revalidateContent("ARTICLE", article.authorId);
 
-  return { success: true, data: { deletedId: articleId } };
+  return { success: true, data: { deletedId: articleId, isDeleted: true as const, deletedByType, totalComments: article.totalComments } };
 }
 
 export async function getLatestArticles(count: number) {
@@ -312,7 +315,7 @@ export async function getLatestArticles(count: number) {
   const userId = user?.id;
 
   return prisma.article.findMany({
-    where: { isDeleted: false },
+    where: engagedContentWhere("totalComments"),
     take: count,
     orderBy: { createdAt: "desc" },
     select: {

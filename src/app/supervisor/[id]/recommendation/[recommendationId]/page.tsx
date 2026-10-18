@@ -26,6 +26,16 @@ export async function generateMetadata({
   const { id, recommendationId } = await params;
   const rec = await getRecommendation(recommendationId).catch(() => null);
   if (!rec || rec.supervisor.id !== id) return { title: "Recommendation" };
+  if (rec.isDeleted) {
+    return buildMetadata({
+      title: "Deleted Recommendation",
+      description: "This recommendation was deleted, but its community discussion remains available.",
+      path: `/supervisor/${rec.supervisor.id}/recommendation/${rec.id}`,
+      type: "article",
+      publishedTime: rec.createdAt,
+      section: "Supervisor Recommendations",
+    });
+  }
   return buildMetadata({
     title: `Recommendation for ${rec.supervisor.name || "Supervisor"}`,
     description: `A ${rec.rating ? `${rec.rating}/5 ` : ""}mentorship recommendation. ${(rec.feedback || "").replace(/<[^>]*>/g, " ")}`,
@@ -69,6 +79,9 @@ export default async function RecommendationDetailPage({
   return (
     <DetailPageCardShell
       isFrozen={recommendation.isFrozen ?? false}
+      isDeleted={recommendation.isDeleted ?? false}
+      deletedByType={recommendation.deletedByType}
+      deletedNoun="recommendation"
       frozenEntityId={recommendation.id}
       frozenModule="RECOMMENDATION"
       frozenEntityType="POST"
@@ -133,13 +146,13 @@ export default async function RecommendationDetailPage({
           ownerId={recommendation.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={recommendation.isFrozen}
-          isDeleted={false}
+          isDeleted={recommendation.isDeleted ?? false}
           hasActiveAppeal={recommendation.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
-          locked={recommendation.isFrozen ?? false}
+          locked={recommendation.isFrozen || recommendation.isDeleted}
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}
           totalComments={recommendation.totalComments}
           targetId={recommendation.id}

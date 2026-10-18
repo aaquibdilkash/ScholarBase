@@ -10,11 +10,12 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
     return prisma.recommendation.findUnique({
-      where: { id: recommendationId },
+      where: { id: recommendationId, ...engagedContentWhere("totalComments") },
       // RULE 2 (Zero-Compute): strict select + materialized counters.
       // No include trees, no dynamic _count aggregation.
       select: {
@@ -33,6 +34,8 @@ export const getRecommendation = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isDeleted: true,
+        deletedByType: true,
         totalComments: true,
         author: {
           select: {
@@ -367,6 +370,7 @@ export async function deleteRecommendation(recommendationId: string) {
       supervisorId: true,
       totalVotes: true,
       totalBookmarks: true,
+      totalComments: true,
       isAnonymous: true,
       rating: true,
     },
@@ -415,6 +419,9 @@ export async function deleteRecommendation(recommendationId: string) {
     data: {
       deletedId: recommendationId,
       supervisorId: recommendation.supervisorId,
+      isDeleted: true as const,
+      deletedByType,
+      totalComments: recommendation.totalComments,
     },
   };
 }

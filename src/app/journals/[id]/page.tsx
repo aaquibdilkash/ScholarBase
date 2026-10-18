@@ -86,6 +86,9 @@ const JournalDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      isDeleted={journal.isDeleted}
+      deletedByType={journal.deletedByType}
+      deletedNoun="journal"
       isFrozen={j.isFrozen ?? false}
       frozenEntityId={j.id}
       frozenModule="JOURNAL"
@@ -142,7 +145,7 @@ const JournalDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={j.isFrozen ?? false}
+          locked={j.isFrozen || j.isDeleted}
           comments={j.comments}
           totalComments={j.totalComments}
           targetId={j.id}

@@ -20,6 +20,7 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of research event rows for the
@@ -44,7 +45,7 @@ export async function getEvents(
 
 export const getEvent = cache(async (id: string, userId?: string) => {
   return prisma.researchEvent.findUnique({
-    where: { id: id, isDeleted: false },
+    where: { id: id, ...engagedContentWhere("totalComments") },
     select: {
       id: true,
       title: true,
@@ -71,6 +72,8 @@ export const getEvent = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isDeleted: true,
+      deletedByType: true,
       totalComments: true,
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
@@ -266,7 +269,7 @@ export async function deleteResearchEvent(eventId: string) {
 
   const event = await prisma.researchEvent.findUnique({
     where: { id: eventId },
-    select: { authorId: true, totalVotes: true },
+    select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
   if (!event) {
@@ -299,7 +302,7 @@ export async function deleteResearchEvent(eventId: string) {
   // Purge the cached research event pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("RESEARCH_EVENT", event.authorId);
 
-  return { success: true, data: { deletedId: eventId } };
+  return { success: true, data: { deletedId: eventId, isDeleted: true as const, deletedByType, totalComments: event.totalComments } };
 }
 
 export async function getUpcomingEvents(count: number) {
