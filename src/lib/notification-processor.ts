@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "@/lib/db";
 import { getModuleNoun } from "@/lib/notification-links";
 import { queueNotification, type NotificationPayload } from "@/lib/qstash";
+import { formatPublishedContentTitle } from "@/lib/notification-text";
 
 /**
  * Fan-out work bounds (P2-1).
@@ -21,6 +22,7 @@ const ROLLUP_TYPES = new Set([
   "NEW_FOLLOWER",
   "NEW_VOTE",
 ]);
+
 
 function formatRollupBody(
   type: string,
@@ -86,6 +88,9 @@ export async function processNotificationPayload(payload: NotificationPayload) {
       select: { name: true, handle: true },
     });
     const actorName = actor?.name || actor?.handle || "A researcher";
+    const title = payload.type === "content-published"
+      ? formatPublishedContentTitle(payload.title, actorName, payload.targetType)
+      : formatPublishedContentTitle(payload.title, actorName, "");
     // Resolved once for both rollup paths: a vote on a journal review must be
     // announced as "upvoted your journal review", not as a generic post.
     const noun = getModuleNoun(payload.targetType);
@@ -138,7 +143,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
           type: payload.type,
           targetType: payload.targetType,
           targetId: payload.targetId,
-          title: payload.title,
+          title,
           body: formatRollupBody(payload.type, actorName, 0, payload.body, noun),
           count: 1,
         },
@@ -162,6 +167,14 @@ export async function processNotificationPayload(payload: NotificationPayload) {
     let processed = 0;
     let chunks = 0;
     let exhausted = false;
+    const actor = await prisma.user.findUnique({
+      where: { id: payload.actorId },
+      select: { name: true, handle: true },
+    });
+    const actorName = actor?.name || actor?.handle || "A researcher";
+    const title = payload.type === "content-published"
+      ? formatPublishedContentTitle(payload.title, actorName, payload.targetType)
+      : formatPublishedContentTitle(payload.title, actorName, "");
 
     while (chunks < MAX_FAN_OUT_CHUNKS) {
       const followers = await prisma.follows.findMany({
@@ -187,7 +200,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
           type: payload.type,
           targetType: payload.targetType,
           targetId: payload.targetId,
-          title: payload.title,
+          title,
           body: payload.body,
           count: 1,
         }));

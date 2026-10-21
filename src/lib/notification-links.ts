@@ -114,7 +114,15 @@ export function getNotificationLink(notification: Notification) {
   }
 
   const target = targetFor(normalizeTargetType(notification.targetType));
+  const [routeTargetId, commentId] = notification.targetId.split("::comment::");
   const pathFor = (targetId: string) => target?.link(targetId) ?? null;
+  const discussionPath = () => {
+    const basePath = pathFor(routeTargetId);
+    if (!basePath) return null;
+    return commentId
+      ? `${basePath}#comment-${encodeURIComponent(commentId)}`
+      : `${basePath}#comments`;
+  };
 
   switch (notification.type) {
     case "follow":
@@ -124,11 +132,10 @@ export function getNotificationLink(notification: Notification) {
       // Post mention: link directly to the post (not comments)
       return pathFor(notification.targetId);
     case "mention":
-      // Comment mention: link to the entity page scrolled to comments
-      return pathFor(notification.targetId)?.concat("#comments") ?? null;
+      return discussionPath();
     case "NEW_COMMENT":
     case "NEW_REPLY":
-      return pathFor(notification.targetId)?.concat("#comments") ?? null;
+      return discussionPath();
     case "message-received":
       return `/messages/${notification.targetId}`;
     default:

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   createComment,
+  fetchCommentAnchor,
   fetchParentComments,
 } from "@/app/actions/comments";
 import { COMMENT_PAGE_SIZE, MAX_COMMENT_BODY } from "@/lib/constants";
@@ -74,6 +75,34 @@ export function CommentSection({
   const queryClient = useQueryClient();
   // Frozen accounts cannot post or reply — proactively block the composer.
   const isUserFrozen = useIsFrozen();
+  const anchorLoaded = useRef<string | null>(null);
+
+  useEffect(() => {
+    const encodedCommentId = window.location.hash.match(/^#comment-(.+)$/)?.[1];
+    if (!encodedCommentId) return;
+    const commentId = decodeURIComponent(encodedCommentId);
+    if (anchorLoaded.current === commentId) return;
+    anchorLoaded.current = commentId;
+
+    const existing = parents.find((comment) =>
+      comment.id === commentId || comment.replies?.some((reply) => reply.id === commentId),
+    );
+    if (existing) {
+      requestAnimationFrame(() => document.getElementById(`comment-${commentId}`)?.scrollIntoView({ block: "center" }));
+      return;
+    }
+
+    void fetchCommentAnchor(module, commentId).then((anchor) => {
+      if (!anchor) return;
+      setParents((current) => current.some((comment) => comment.id === anchor.id)
+        ? current.map((comment) => comment.id === anchor.id ? { ...comment, replies: anchor.replies } : comment)
+        : [anchor, ...current]);
+      setParentsExpanded(true);
+      requestAnimationFrame(() => setTimeout(() => document.getElementById(`comment-${commentId}`)?.scrollIntoView({ block: "center" }), 0));
+    }).catch(() => {
+      anchorLoaded.current = null;
+    });
+  }, [module, parents]);
 
   // Track how many comments are visible so the header badge stays accurate
   // without ever recounting the DB. Seed with the materialized totalComments

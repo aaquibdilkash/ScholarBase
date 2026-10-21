@@ -116,6 +116,36 @@ export async function fetchReplies(
   })) as CommentWithAuthorAndVotes[];
 }
 
+/** Load the parent thread needed by a notification's exact comment anchor. */
+export async function fetchCommentAnchor(
+  type: CommentEntityType,
+  commentId: string,
+): Promise<CommentWithAuthorAndVotes | null> {
+  const viewer = await getCurrentUser();
+  const moduleKey = COMMENT_TYPE_TO_MODULE[type];
+  if (!moduleKey) throw new Error(`Invalid comment type: ${type}`);
+
+  const commentModel = ENTITY_CONFIG[moduleKey].comment as any;
+  const comment = await commentModel.findUnique({
+    where: { id: commentId },
+    select: commentPageSelect(viewer?.id ?? null),
+  });
+  if (!comment) return null;
+
+  if (!(comment as any).parentId) return comment as CommentWithAuthorAndVotes;
+
+  const parent = await commentModel.findUnique({
+    where: { id: (comment as any).parentId },
+    select: commentPageSelect(viewer?.id ?? null),
+  });
+  if (!parent) return comment as CommentWithAuthorAndVotes;
+
+  return {
+    ...(parent as CommentWithAuthorAndVotes),
+    replies: [comment as CommentWithAuthorAndVotes],
+  };
+}
+
 async function getParentAuthorId(
   type: CommentEntityType,
   targetId: string,
@@ -214,18 +244,6 @@ export async function createComment(
   const notificationTargetId = await resolveNestedNotificationTargetId(moduleKey, targetId);
 
   const mentions = await resolveMentionedUsers(content);
-  if (mentions.length > 0) {
-    await notifyMentionedUsers({
-      actorId: user.id,
-      content,
-      type: "mention",
-      targetType: type,
-      targetId: notificationTargetId,
-      titleFactory: (handle) => `@${handle} was mentioned in a comment`,
-      bodyFactory: () => content,
-      mentions,
-    });
-  }
 
   const createdComment = await createCommentTransaction(
     moduleKey,
@@ -244,6 +262,32 @@ export async function createComment(
     getParentAuthorId(type, targetId, parentId),
   ]);
 
+  // The target keeps the existing parent route key and adds the exact newly
+  // created comment ID. This lets notification links jump to the right row
+  // without adding a column or another database lookup at read time.
+  const exactNotificationTargetId = `${notificationTargetId}::comment::${createdComment.id}`;
+
+  if (mentions.length > 0) {
+    // A reply already creates a direct notification for its parent author.
+    // Do not send a second, redundant mention notification when that same
+    // person is also tagged in the reply.
+    const mentionRecipients = parentAuthorId
+      ? mentions.filter(({ id }) => id !== parentAuthorId)
+      : mentions;
+    if (mentionRecipients.length > 0) {
+      await notifyMentionedUsers({
+        actorId: user.id,
+        content,
+        type: "mention",
+        targetType: type,
+        targetId: exactNotificationTargetId,
+        titleFactory: (handle) => `@${handle} was mentioned in a comment`,
+        bodyFactory: () => content,
+        mentions: mentionRecipients,
+      });
+    }
+  }
+
   const actorName =
     actor?.name || actor?.handle || actor?.email?.split("@")[0] || "Someone";
 
@@ -253,7 +297,7 @@ export async function createComment(
       actorId: user.id,
       type: parentId ? "reply-created" : "comment-created",
       targetType: type,
-      targetId: notificationTargetId,
+      targetId: exactNotificationTargetId,
       title: parentId
         ? `${actorName} replied to your comment`
         : `${actorName} commented on your post`,

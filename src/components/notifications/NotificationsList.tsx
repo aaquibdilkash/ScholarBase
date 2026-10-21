@@ -8,6 +8,7 @@ import {
   markNotificationRead,
 } from "@/app/actions/notifications";
 import { getNotificationLink } from "@/lib/notification-links";
+import { formatPublishedContentTitle, canonicalizeActorPrefix } from "@/lib/notification-text";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
 import { UserAvatar } from "@/components/ui/UserAvatar";
@@ -78,6 +79,11 @@ function NotificationCard({
   notification: NotificationWithActor;
 }) {
   const link = getNotificationLink(notification);
+  const actorName = notification.actor.name || notification.actor.handle || "A researcher";
+  const displayTitle = notification.type === "content-published"
+    ? formatPublishedContentTitle(notification.title, actorName, notification.targetType)
+    : canonicalizeActorPrefix(notification.title, actorName);
+  const displayBody = canonicalizeActorPrefix(notification.body, actorName);
   const markReadOnOpen = () => {
     if (notification.readAt) return;
     window.dispatchEvent(
@@ -105,14 +111,14 @@ function NotificationCard({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <p className="break-words font-semibold text-slate-950 dark:text-slate-100">
-            {notification.title}
+            {displayTitle}
           </p>
           <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
             {typeLabel(notification.type)}
           </span>
         </div>
         <p className="mt-1 break-words whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-          {notification.body}
+          {displayBody}
         </p>
         <p
           suppressHydrationWarning

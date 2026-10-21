@@ -18,6 +18,7 @@ import {
 } from "@/lib/tri-split/modules/profile-tab";
 import { validateExternalUrl } from "@/lib/external-url";
 import { PROFILE_SECTION_CONFIG, type ProfileSection } from "@/lib/module-registry";
+import { updateNotificationActorSnapshots } from "@/lib/notifications";
 
 /** Chip input persists as comma-joined string — normalize server-side too so
  * direct FormData posts can't bypass the per-interest / count / total guards. */
@@ -397,28 +398,47 @@ export async function updateProfile(formData: FormData) {
     await deleteCloudinaryAsset(user.avatarUrl);
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
+  const nextName = newName !== null ? newName : user.name;
+  const nextHandle =
+    newHandle !== null && newHandle !== ""
+      ? normalizeHandle(newHandle) ?? user.handle
+      : user.handle;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: {
       // A handle is IDENTITY, and the edit form always submits the field, so a
       // blank input arrives as `""` (not `null`). Treating that like `null` and
       // passing it through `normalizeHandle` — which maps `""` to `null` — wrote
       // `handle: null`, silently destroying the user's @handle and breaking the
       // directory row plus every link that resolves it. Blank therefore means
       // "leave it alone", exactly like an absent field.
-      handle:
-        newHandle !== null && newHandle !== ""
-          ? normalizeHandle(newHandle) ?? user.handle
-          : user.handle,
-      name: newName !== null ? newName : user.name,
-      bio: newBio !== null ? newBio : user.bio,
-      interests: newInterests,
-      avatarUrl: finalAvatarUrl,
-      githubUrl: newGithubUrl === null ? user.githubUrl : safeGithubUrl,
-      orcidUrl: newOrcidUrl === null ? user.orcidUrl : safeOrcidUrl,
-      linkedinUrl: newLinkedinUrl === null ? user.linkedinUrl : safeLinkedinUrl,
-      googleScholarUrl: newGoogleScholarUrl === null ? user.googleScholarUrl : safeGoogleScholarUrl,
-    },
+        handle: nextHandle,
+        name: nextName,
+        bio: newBio !== null ? newBio : user.bio,
+        interests: newInterests,
+        avatarUrl: finalAvatarUrl,
+        githubUrl: newGithubUrl === null ? user.githubUrl : safeGithubUrl,
+        orcidUrl: newOrcidUrl === null ? user.orcidUrl : safeOrcidUrl,
+        linkedinUrl: newLinkedinUrl === null ? user.linkedinUrl : safeLinkedinUrl,
+        googleScholarUrl: newGoogleScholarUrl === null ? user.googleScholarUrl : safeGoogleScholarUrl,
+      },
+    });
+
+    await updateNotificationActorSnapshots(
+      tx,
+      user.id,
+      [
+        user.name,
+        user.handle,
+        user.handle ? `@${user.handle}` : null,
+        user.email?.split("@")[0],
+      ],
+      nextName,
+      nextHandle,
+      user.email ?? "",
+    );
   });
 
   // Name / handle / bio / avatar are part of the cached scholar directory, so a

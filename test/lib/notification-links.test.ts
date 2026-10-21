@@ -79,6 +79,18 @@ describe("target links", () => {
     }
   });
 
+  it("anchors comment-bearing notifications to the exact comment when available", () => {
+    expect(
+      getNotificationLink(
+        notification({
+          type: "NEW_REPLY",
+          targetType: "post",
+          targetId: "post-1::comment::comment-9",
+        }),
+      ),
+    ).toBe("/feed/post-1#comment-comment-9");
+  });
+
   it("sends follows to the follower and messages to the thread", () => {
     // `targetId` is required by the payload schema (notificationPayloadSchema),
     // so every stored row has one — including follows, where it is the rollup

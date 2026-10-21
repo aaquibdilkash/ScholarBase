@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { getModuleLabel } from "@/lib/notification-links";
 import prisma from "@/lib/db";
 import { queueNotification } from "@/lib/qstash";
@@ -12,6 +13,60 @@ type NotifyUserByIdParams = {
   title: string;
   body: string;
 };
+
+/**
+ * Notification titles/bodies are denormalized for fast inbox reads. When a
+ * user changes their public identity, update only snapshots authored by that
+ * user so historical notifications continue to identify the current profile.
+ * The caller must run this in the same transaction as the User update.
+ */
+export async function updateNotificationActorSnapshots(
+  tx: Prisma.TransactionClient,
+  actorId: string,
+  previousValues: Array<string | null | undefined>,
+  nextName: string | null,
+  nextHandle: string | null,
+  nextEmail: string,
+) {
+  const replacements = new Map<string, string>();
+  const nextEmailLocalPart = nextEmail.split("@")[0] || null;
+  const nextValues = [nextName, nextHandle, nextHandle ? `@${nextHandle}` : null, nextEmailLocalPart];
+
+  previousValues.forEach((previous, index) => {
+    const value = previous?.trim();
+    if (!value) return;
+    // The caller passes values in the same order as the canonical identity
+    // fields. Keep each field paired with its replacement; never replace an
+    // old name with a new handle just because the name itself did not change.
+    const replacement = nextValues[index];
+    if (replacement && replacement !== value) replacements.set(value, replacement);
+  });
+
+  for (const [previous, replacement] of replacements) {
+    // Avoid opening a raw-SQL path when this actor has no notifications to
+    // migrate. Besides saving a database round-trip in the common case, this
+    // keeps profile updates compatible with lightweight action fakes.
+    const matchingNotifications = await tx.notification.count({
+      where: {
+        actorId,
+        OR: [
+          { title: { contains: previous } },
+          { body: { contains: previous } },
+        ],
+      },
+    });
+    if (matchingNotifications === 0) continue;
+
+    await tx.$executeRaw`
+      UPDATE "Notification"
+      SET "title" = REPLACE("title", ${previous}, ${replacement}),
+          "body" = REPLACE("body", ${previous}, ${replacement}),
+          "updatedAt" = NOW()
+      WHERE "actorId" = ${actorId}
+        AND ("title" LIKE ${`%${previous}%`} OR "body" LIKE ${`%${previous}%`})
+    `;
+  }
+}
 
 // These event names are deliberately kept separate from the older, more
 // descriptive notification types used by mentions and moderation notices.

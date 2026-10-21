@@ -25,6 +25,7 @@ import {
 } from "@/lib/email-normalizer";
 import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
 import { recoverDeletedAccount } from "@/lib/account-recovery";
+import { updateNotificationActorSnapshots } from "@/lib/notifications";
 
 /**
  * The ONE response both branches of signup() return.
@@ -419,9 +420,32 @@ export async function verifyEmailChangeOtp(
   // Sync the updated primary email into Prisma.
   const updatedEmail = cleanEmail;
   try {
-    await prisma.user.update({
+    const currentProfile = await prisma.user.findUnique({
       where: { id: user.id },
-      data: { email: updatedEmail },
+      select: { email: true, name: true, handle: true },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { email: updatedEmail },
+      });
+
+      if (currentProfile) {
+        await updateNotificationActorSnapshots(
+          tx,
+          user.id,
+          [
+            null,
+            null,
+            null,
+            currentProfile.email?.split("@")[0],
+          ],
+          currentProfile.name,
+          currentProfile.handle,
+          updatedEmail,
+        );
+      }
     });
   } catch {
     // Best-effort: auth email already changed; layout profile sync retries later.
