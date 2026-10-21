@@ -152,7 +152,8 @@ export default async function RecommendationDetailPage({
       }
       discussion={
         <CommentSection
-          locked={recommendation.isFrozen || recommendation.isDeleted}
+          locked={recommendation.isFrozen ?? false}
+          deleted={recommendation.isDeleted}
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}
           totalComments={recommendation.totalComments}
           targetId={recommendation.id}

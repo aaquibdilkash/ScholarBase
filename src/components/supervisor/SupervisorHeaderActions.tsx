@@ -20,6 +20,7 @@ type Props = {
   onDeleteSupervisor: () => unknown | Promise<unknown>;
   initialHasRecommendation: boolean;
   initialUserRecommendationId?: string | null;
+  isDeleted?: boolean;
 };
 export function SupervisorHeaderActions({
   supervisorId,
@@ -28,6 +29,7 @@ export function SupervisorHeaderActions({
   onDeleteSupervisor,
   initialHasRecommendation,
   initialUserRecommendationId,
+  isDeleted = false,
 }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -67,7 +69,9 @@ export function SupervisorHeaderActions({
     };
   }, [open ]);
 
-  if (!isSupervisorOwner && !hasRec) {
+  if (isDeleted) return null;
+
+  if (!isDeleted && !isSupervisorOwner && !hasRec) {
     return (
       <Link prefetch={false} href={`/supervisor/${supervisorId}/recommendation/add`} className="sb-button-primary w-auto">
         + Recommend

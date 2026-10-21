@@ -9,8 +9,7 @@ import CommentCountDisplay from "@/components/interactions/CommentCountDisplay";
 import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import { formatTimeAgo } from "../../utils/time-ago";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
-import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
-import type { DeletedContentReason } from "@/components/content/DeletedContentTombstone";
+import { deletedContentMessage, type DeletedContentReason } from "@/components/content/DeletedContentTombstone";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -148,7 +147,7 @@ export default function DetailPageCardShell({
         )}
       >
         {/* Moderation banner — frozen content is visible but read-only */}
-        {isFrozen && frozenEntityId ? (
+        {!isDeleted && isFrozen && frozenEntityId ? (
           <FrozenContentBanner
             entityId={frozenEntityId}
             module={frozenModule ?? "SOCIAL_FEED"}
@@ -160,7 +159,7 @@ export default function DetailPageCardShell({
             variant="detail"
           />
         ) : (
-          isFrozen && (
+          !isDeleted && isFrozen && (
             <div className="mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
               <span className="inline-flex items-center gap-2 text-left">
                 <span aria-hidden>❄</span>
@@ -175,7 +174,7 @@ export default function DetailPageCardShell({
         {/* Common header */}
         <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            {authorHref ? (
+            {!isDeleted && authorHref ? (
               <Link prefetch={false} href={authorHref} className="shrink-0">
                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
                   {authorAvatarUrl ? (
@@ -194,7 +193,7 @@ export default function DetailPageCardShell({
             )}
 
             <div>
-              {authorHref ? (
+              {!isDeleted && authorHref ? (
                 <Link
                   prefetch={false}
                   href={authorHref}
@@ -202,22 +201,22 @@ export default function DetailPageCardShell({
                 >
                   <span className="inline-flex max-w-full items-center gap-1">
                     <span className="min-w-0 truncate">
-                      {authorName || "Scholar"}
+                      {isDeleted ? "Deleted content" : authorName || "Scholar"}
                     </span>
-                    {authorVerified ? <VerifiedBadge /> : null}
+                    {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
                   </span>
                 </Link>
               ) : (
                 <span className="font-semibold italic text-slate-500 dark:text-slate-400">
                   <span className="inline-flex max-w-full items-center gap-1">
                     <span className="min-w-0 truncate">
-                      {authorName || "Scholar"}
+                      {isDeleted ? "Deleted content" : authorName || "Scholar"}
                     </span>
-                    {authorVerified ? <VerifiedBadge /> : null}
+                    {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
                   </span>
                 </span>
               )}
-              {authorHandle ? (
+              {!isDeleted && authorHandle ? (
                 <div className="mt-0.5 text-xs font-medium text-slate-500">
                   @{authorHandle}
                 </div>
@@ -229,7 +228,7 @@ export default function DetailPageCardShell({
           <div className="flex items-center">
             {isOwner ? (
               managementControls
-            ) : authorId ? (
+            ) : !isDeleted && authorId ? (
               <FollowButton
                 targetId={authorId}
                 isFollowing={Boolean(isFollowing)}
@@ -243,9 +242,12 @@ export default function DetailPageCardShell({
             uses its own overflow-x-hidden) so positioned overlays like
             carousel arrows are never cut off. */}
         <div className="min-w-0 max-w-full">
-          {isDeleted ? (
-            <DeletedContentTombstone reason={deletedByType} noun={deletedNoun} />
-          ) : children}
+          {isDeleted && (
+            <div className="mb-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-sm font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
+              {deletedContentMessage(deletedByType, deletedNoun)} The discussion and preserved content remain available; interactions are disabled.
+            </div>
+          )}
+          {children}
 
           {bodyBottomContent}
         </div>
@@ -299,7 +301,15 @@ export default function DetailPageCardShell({
             <ShareButton label="Share" title={shareTitle} text={shareText} />
             {/* Report menu is always visible — on frozen posts it also hosts
                 the owner's "Appeal Removal" option. */}
-            {footerReportMenu}
+            {footerReportMenu && isValidElement(footerReportMenu)
+              ? cloneElement(
+                  footerReportMenu as React.ReactElement<{
+                    isDeleted?: boolean;
+                    deletedByType?: DeletedContentReason;
+                  }>,
+                  { isDeleted, deletedByType },
+                )
+              : footerReportMenu}
           </div>
         </div>
       </div>

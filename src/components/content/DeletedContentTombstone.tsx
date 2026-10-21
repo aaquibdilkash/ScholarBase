@@ -7,6 +7,10 @@ export function deletedContentMessage(reason: DeletedContentReason, noun = "post
   return `This ${noun} has been deleted by its author.`;
 }
 
+export function deletedByLabel(reason: DeletedContentReason) {
+  return reason === "ADMIN" ? "moderator" : "author";
+}
+
 export function DeletedContentTombstone({
   reason,
   noun = "post",

@@ -5,6 +5,7 @@ import { Flag } from "lucide-react";
 import { ReportModal } from "@/components/cards/ReportModal";
 import { AppealButton } from "@/components/appeals/AppealButton";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
+import type { DeletedContentReason } from "@/components/content/DeletedContentTombstone";
 
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
   inputs.filter(Boolean).join(" ");
@@ -17,6 +18,7 @@ interface ReportMenuProps {
   currentUserId?: string | null;
   isFrozen?: boolean;
   isDeleted?: boolean;
+  deletedByType?: DeletedContentReason;
   hasActiveAppeal?: boolean;
   /** Menu opening direction. Defaults to "up" (card footer rows). Use "down" when near the top of the viewport. */
   direction?: "up" | "down";
@@ -32,6 +34,7 @@ export function ReportMenu({
   currentUserId,
   isFrozen = false,
   isDeleted = false,
+  deletedByType,
   hasActiveAppeal = false,
   direction = "up",
   reportLabel = "Report Content",
@@ -49,7 +52,7 @@ export function ReportMenu({
 
   const canAppeal =
     !hasActiveAppeal &&
-    (isFrozen || isDeleted) &&
+    (isFrozen || (isDeleted && deletedByType === "ADMIN")) &&
     isOwner;
 
   useEffect(() => {

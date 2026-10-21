@@ -16,7 +16,6 @@ import { renderMentionContent } from "@/components/interactions/MentionComposer"
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
 import { isValidImageUrl } from "@/lib/image-constants";
-import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
 
 // Native CSS line clamp: clips only at whole lines so text is never sliced
 // mid-line by a rigid pixel-height `overflow: hidden` container.
@@ -240,9 +239,6 @@ export function SocialPostCard({
       noBodyLink={true}
       constrainBody={false}
     >
-      {post.isDeleted ? (
-        <DeletedContentTombstone reason={post.deletedByType} />
-      ) : (
       <Link
         href={`/feed/${post.id}`}
         prefetch={false}
@@ -323,7 +319,6 @@ export function SocialPostCard({
           </button>
         )}
       </Link>
-      )}
 
       {!post.isDeleted && showToggle && (
         <button

@@ -145,7 +145,8 @@ const JournalDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={j.isFrozen || j.isDeleted}
+          locked={j.isFrozen ?? false}
+          deleted={j.isDeleted}
           comments={j.comments}
           totalComments={j.totalComments}
           targetId={j.id}
@@ -164,12 +165,13 @@ const JournalDetailPage = async ({
         <div className="flex w-auto shrink-0 justify-end">
           <JournalHeaderActions
             journalId={j.id}
-            isJournalOwner={user?.id === j.author?.id}
+            isJournalOwner={!j.isDeleted && user?.id === j.author?.id}
             journalEditHref={`/journals/${j.id}/edit`}
             onDeleteJournal={handleDelete}
             initialHasReview={reviewMeta.hasUserReview}
             initialUserReviewId={reviewMeta.userReviewId}
             initialUserReviewRating={reviewMeta.userReviewRating}
+            isDeleted={j.isDeleted}
           />
         </div>
       </div>

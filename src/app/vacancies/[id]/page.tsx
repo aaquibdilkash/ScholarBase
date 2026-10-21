@@ -156,7 +156,8 @@ const VacancyDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={vacancy.isFrozen || vacancy.isDeleted}
+          locked={vacancy.isFrozen ?? false}
+          deleted={vacancy.isDeleted}
           comments={vacancy.comments}
           totalComments={vacancy.totalComments}
           targetId={vacancy.id}

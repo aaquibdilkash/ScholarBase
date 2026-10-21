@@ -105,7 +105,10 @@ export async function fetchReplies(
   const commentModel = config.comment as any;
 
   return (await commentModel.findMany({
-    where: { parentId, isDeleted: false },
+    where: {
+      parentId,
+      OR: [{ isDeleted: false }, { isDeleted: true, totalReplies: { gt: 0 } }],
+    },
     select: commentPageSelect(currentUserId),
     orderBy: { createdAt: "asc" },
     skip,

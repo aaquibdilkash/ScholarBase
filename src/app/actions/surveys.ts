@@ -402,6 +402,7 @@ export async function updateSurvey(formData: FormData, surveyId: string) {
     where: { id: surveyId },
     select: {
       authorId: true,
+      isDeleted: true,
       title: true,
       description: true,
       privacy: true,
@@ -1032,6 +1033,7 @@ export async function submitSurveyResponse(
       // Read so the cache purge below can name the survey author, whose profile
       // Content tab embeds this survey's `totalResponses`.
       authorId: true,
+      isDeleted: true,
       title: true,
       consentRequired: true,
       questions: {
@@ -1042,6 +1044,9 @@ export async function submitSurveyResponse(
   });
   if (!surveyForValidation) {
     return { error: "This survey is no longer available." };
+  }
+  if (surveyForValidation.isDeleted) {
+    return { error: "This survey has been deleted and no longer accepts responses." };
   }
   if (surveyForValidation.consentRequired && !consented) {
     return { error: "CONSENT_REQUIRED" };

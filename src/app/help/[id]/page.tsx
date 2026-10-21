@@ -139,7 +139,8 @@ export default async function HelpPostPage({
       }
       discussion={
         <CommentSection
-          locked={post.isFrozen || post.isDeleted}
+          locked={post.isFrozen ?? false}
+          deleted={post.isDeleted}
           comments={post.comments}
           totalComments={post.totalComments}
           targetId={post.id}

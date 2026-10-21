@@ -138,7 +138,8 @@ const ResearchToolDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={tool.isFrozen || tool.isDeleted}
+          locked={tool.isFrozen ?? false}
+          deleted={tool.isDeleted}
           comments={tool.comments}
           totalComments={tool.totalComments}
           targetId={tool.id}

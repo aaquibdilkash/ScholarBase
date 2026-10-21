@@ -157,7 +157,8 @@ export default async function SinglePostPage({
       )}
       discussion={
         <CommentSection
-          locked={p.isFrozen || p.isDeleted}
+          locked={p.isFrozen ?? false}
+          deleted={p.isDeleted}
           comments={p.comments as CommentWithAuthorAndVotes[]}
           totalComments={p.totalComments}
           targetId={p.id}

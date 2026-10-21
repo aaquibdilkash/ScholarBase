@@ -79,10 +79,18 @@ describe("submitAppeal", () => {
     expect(fakeDb.rows("article")[0].hasActiveAppeal).toBe(true);
   });
 
-  it("allows an appeal on DELETED content too", async () => {
-    seedEntity({ isFrozen: false, isDeleted: true });
+  it("allows the owner to appeal content deleted by an admin", async () => {
+    seedEntity({ isFrozen: false, isDeleted: true, deletedByType: "ADMIN" });
     const result = await submitAppeal(base);
     expect(result.success).toBe(true);
+  });
+
+  it("rejects an appeal on content deleted by its author", async () => {
+    seedEntity({ isFrozen: false, isDeleted: true, deletedByType: "AUTHOR" });
+    const result = await submitAppeal(base);
+    expect(result.success).toBe(false);
+    expect((result as { error: string }).error).toMatch(/Author-deleted content cannot be appealed/);
+    expect(fakeDb.rows("appeal")).toHaveLength(0);
   });
 
   it("refuses an appeal from someone who does not own the content", async () => {

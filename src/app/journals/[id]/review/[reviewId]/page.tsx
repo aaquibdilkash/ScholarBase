@@ -169,7 +169,8 @@ export default async function JournalReviewDetailPage({
       discussion={
         <div id="comments">
           <CommentSection
-            locked={review.isFrozen || review.isDeleted}
+            locked={review.isFrozen ?? false}
+            deleted={review.isDeleted}
             comments={review.comments as CommentWithAuthorAndVotes[]}
             totalComments={review.totalComments}
             targetId={review.id}

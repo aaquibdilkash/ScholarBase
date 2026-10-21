@@ -137,7 +137,8 @@ export default async function ArticlePage({
       }
       discussion={
         <CommentSection
-          locked={a.isFrozen || a.isDeleted}
+          locked={a.isFrozen ?? false}
+          deleted={a.isDeleted}
           comments={a.comments}
           totalComments={a.totalComments}
           targetId={a.id}

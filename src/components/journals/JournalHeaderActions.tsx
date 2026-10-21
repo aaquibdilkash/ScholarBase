@@ -22,6 +22,7 @@ type Props = {
   initialUserReviewId?: string | null;
   /** The viewer's own review rating, for the star bucket its delete decrements. */
   initialUserReviewRating?: number | null;
+  isDeleted?: boolean;
 };
 export function JournalHeaderActions({
   journalId,
@@ -31,6 +32,7 @@ export function JournalHeaderActions({
   initialHasReview,
   initialUserReviewId,
   initialUserReviewRating,
+  isDeleted = false,
 }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -70,7 +72,9 @@ export function JournalHeaderActions({
     };
   }, [open ]);
 
-  if (!isJournalOwner && !hasReview) {
+  if (isDeleted) return null;
+
+  if (!isDeleted && !isJournalOwner && !hasReview) {
     return (
       <Link prefetch={false} href={`/journals/${journalId}/review/add`} className="sb-button-primary w-auto">
         + Review
@@ -177,7 +181,7 @@ export function JournalHeaderActions({
             </div>
           )}
         </div>
-        {!hasReview && (
+        {!isDeleted && !hasReview && (
           <Link prefetch={false} href={`/journals/${journalId}/review/add`} className="sb-button-primary w-auto">
             + Review
           </Link>

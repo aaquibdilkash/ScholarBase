@@ -143,7 +143,8 @@ export default async function SupervisorPage({
       }
       discussion={
         <CommentSection
-          locked={supervisor.isFrozen || supervisor.isDeleted}
+          locked={supervisor.isFrozen ?? false}
+          deleted={supervisor.isDeleted}
           comments={supervisor.comments}
           totalComments={supervisor.totalComments}
           targetId={supervisor.id}
@@ -178,6 +179,7 @@ export default async function SupervisorPage({
                 onDeleteSupervisor={handleDelete}
                 initialHasRecommendation={hasUserRecommendation}
                 initialUserRecommendationId={recMeta.userRecommendationId}
+                isDeleted={supervisor.isDeleted}
               />
             </div>
           </div>

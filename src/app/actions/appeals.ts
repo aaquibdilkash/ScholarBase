@@ -144,6 +144,7 @@ export async function submitAppeal({
       ...(isProfileAppeal ? {} : { authorId: true }),
       isFrozen: true,
       isDeleted: true,
+      deletedByType: true,
       hasActiveAppeal: true,
     },
   })) as {
@@ -152,6 +153,7 @@ export async function submitAppeal({
     isFrozen: boolean;
     isDeleted: boolean;
     hasActiveAppeal: boolean;
+    deletedByType?: "AUTHOR" | "ADMIN" | "POST_AUTHOR" | "PARENT_COMMENT_AUTHOR" | null;
   } | null;
 
   // Return structured errors for expected user-facing validation failures so
@@ -162,6 +164,9 @@ export async function submitAppeal({
   const ownerId = fetched.authorId ?? fetched.id;
   if (ownerId !== currentUser.id) {
     return { success: false, error: "Only the owner can appeal this content." };
+  }
+  if (fetched.isDeleted && fetched.deletedByType !== "ADMIN") {
+    return { success: false, error: "Author-deleted content cannot be appealed." };
   }
   if (!fetched.isFrozen && !fetched.isDeleted) {
     // The content's moderation state changed after the page loaded (e.g. it

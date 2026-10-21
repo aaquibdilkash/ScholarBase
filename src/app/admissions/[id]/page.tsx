@@ -157,7 +157,8 @@ const AdmissionDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={admission.isFrozen || admission.isDeleted}
+          locked={admission.isFrozen ?? false}
+          deleted={admission.isDeleted}
           comments={admission.comments}
           totalComments={admission.totalComments}
           targetId={admission.id}

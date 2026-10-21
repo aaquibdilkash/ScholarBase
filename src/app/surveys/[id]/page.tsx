@@ -173,7 +173,8 @@ const SurveyDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={survey.isFrozen || survey.isDeleted}
+          locked={survey.isFrozen ?? false}
+          deleted={survey.isDeleted}
           comments={survey.comments}
           totalComments={survey.totalComments}
           targetId={survey.id}
@@ -238,7 +239,7 @@ const SurveyDetailPage = async ({
       </div>
 
       {/* Owner actions */}
-      {isOwner && (
+      {isOwner && !survey.isDeleted && (
         <SurveyOwnerControls
           surveyId={survey.id}
           initialStatus={survey.status as "OPEN" | "CLOSED"}
@@ -247,7 +248,7 @@ const SurveyDetailPage = async ({
       )}
 
       {/* Survey Response Form */}
-      {isOpen && (
+      {isOpen && !survey.isDeleted && (
         <div className="mt-8 border-t border-slate-200 pt-8">
           <h2 className="text-xl font-bold text-slate-950 mb-6">
             {hasResponded ? "Update Your Response" : "Fill Out This Survey"}
@@ -263,6 +264,12 @@ const SurveyDetailPage = async ({
             consentRequired={survey.consentRequired === true}
             consentText={survey.consentText}
           />
+        </div>
+      )}
+
+      {isOpen && survey.isDeleted && (
+        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500">
+          This survey is preserved for its response data, but accepting new responses is disabled.
         </div>
       )}
 

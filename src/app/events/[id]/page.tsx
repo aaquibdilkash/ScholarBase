@@ -157,7 +157,8 @@ const EventDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={event.isFrozen || event.isDeleted}
+          locked={event.isFrozen ?? false}
+          deleted={event.isDeleted}
           comments={event.comments}
           totalComments={event.totalComments}
           targetId={event.id}

@@ -154,7 +154,8 @@ const PublicationDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={p.isFrozen || p.isDeleted}
+          locked={p.isFrozen ?? false}
+          deleted={p.isDeleted}
           comments={p.comments}
           totalComments={p.totalComments}
           targetId={p.id}
