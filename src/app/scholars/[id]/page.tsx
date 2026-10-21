@@ -68,13 +68,13 @@ export default async function ScholarProfile({
               <ProfileAvatar
                 src={profile.avatarUrl}
                 name={profile.name}
-                containerClassName="h-20 w-20 sm:h-24 sm:w-24"
+                containerClassName="h-22 w-22 sm:h-24 sm:w-24"
                 fallbackClassName="text-2xl font-bold text-slate-400 dark:text-slate-500 sm:text-3xl"
               />
             </div>
 
             <div className="min-w-0">
-              <h1 className="text-lg font-semibold leading-tight tracking-tight text-slate-950 sm:text-3xl dark:text-slate-50">
+              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-950 sm:text-3xl dark:text-slate-50">
                 <span className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                   <span className="truncate" title={profile.name ?? undefined}>
                     {profile.name}

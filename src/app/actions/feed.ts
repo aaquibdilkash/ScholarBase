@@ -392,7 +392,10 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   const content = readFormValue(formData, "content");
   if (!content) return { success: false, message: "Content cannot be empty." };
 
-  const imageUrl = formData.get("imageUrl") as string | null;
+  const hasImageField = formData.has("imageUrl");
+  const requestedImageUrl = hasImageField
+    ? (formData.get("imageUrl") as string | null)?.trim() || null
+    : null;
 
   const post = await prisma.socialPost.findUnique({
     where: { id: postId },
@@ -411,13 +414,15 @@ export async function updateSocialPost(formData: FormData, postId: string) {
   // user changes their mind before saving, the original image is preserved,
   // and if the update fails, the old image is never deleted.
   const oldImage = post.imageUrl;
-  const newImage = imageUrl
-    ? imageUrl === oldImage
-      ? imageUrl
-      : await promoteDraftCloudinaryAsset(imageUrl, user.id, "social")
-    : null;
+  const newImage = !hasImageField
+    ? oldImage
+    : requestedImageUrl
+      ? requestedImageUrl === oldImage
+        ? requestedImageUrl
+        : await promoteDraftCloudinaryAsset(requestedImageUrl, user.id, "social")
+      : null;
 
-  if (imageUrl && !newImage) {
+  if (requestedImageUrl && !newImage) {
     throw new Error("Invalid post image.");
   }
 

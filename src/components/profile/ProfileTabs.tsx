@@ -69,6 +69,7 @@ import {
 } from "@/types/components";
 
 import { Carousel } from "@/components/ui/Carousel";
+import { isComingSoon } from "@/lib/feature-flags";
 
 function GithubIcon({ className }: { className?: string }) {
   return (
@@ -347,7 +348,9 @@ function ProfileSectionList({
 
   return (
     <div className="space-y-10">
-      {SECTIONS.map((section) => {
+      {SECTIONS.filter(
+        (section) => !(isComingSoon && section.key === "contributionPosts"),
+      ).map((section) => {
         const items = sections[section.key] ?? [];
         const count = counts?.[section.key] ?? items.length;
         const sectionHasMoreItems =
@@ -776,7 +779,7 @@ const ACTIVITY_META: Record<
   string,
   { label: string; href?: (entityId: string) => string | undefined }
 > = {
-  SOCIAL_POST: { label: "social post", href: (id) => `/feed/${id}` },
+  SOCIAL_POST: { label: "feed post", href: (id) => `/feed/${id}` },
   ARTICLE: { label: "article", href: (id) => `/blog/${id}` },
   PUBLICATION: { label: "publication", href: (id) => `/publications/${id}` },
   JOURNAL: { label: "journal", href: (id) => `/journals/${id}` },

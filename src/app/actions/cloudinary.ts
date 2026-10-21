@@ -45,6 +45,8 @@ export async function uploadImage(
     ? await requireCurrentUser("Log in to upload images.")
     : auth.user;
 
+  try {
+
   const file = formData.get("file");
   if (!(file instanceof File)) throw new Error("No file provided");
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -145,6 +147,14 @@ export async function uploadImage(
   throw new Error(
     `This image is too large to compress under ${Math.round(MAX_STORED_BYTES / 1024)} KB (closest: ${Math.round(bestBytes / 1024)} KB). Please upload a smaller image.`,
   );
+  } catch (error) {
+    console.error("[UploadImageAction Error]:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Image upload failed.",
+      message: error instanceof Error ? error.message : "Image upload failed.",
+    };
+  }
 }
 
 export async function deleteDraftImage(

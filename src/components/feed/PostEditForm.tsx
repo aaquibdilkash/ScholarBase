@@ -51,7 +51,10 @@ export default function PostEditForm({ postId, initialValues }: PostEditFormProp
     try {
       const formData = new FormData();
       formData.append("content", content);
-      if (imageUrl) formData.append("imageUrl", imageUrl);
+      // Always send the field: non-empty means preserve/replace, empty means
+      // explicitly remove. The server treats an omitted field as preserve for
+      // backwards compatibility with older clients.
+      formData.append("imageUrl", imageUrl);
       formData.append(
         "mentions",
         JSON.stringify(
