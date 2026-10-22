@@ -75,25 +75,27 @@ export const CSP_REPORT_URI = "/api/csp-report";
  * thing this policy buys. Pinned by a test.
  */
 const IS_DEV = process.env.NODE_ENV !== "production";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SUPABASE_HTTP_ORIGIN = SUPABASE_URL ? new URL(SUPABASE_URL).origin : "";
+const SUPABASE_WS_ORIGIN = SUPABASE_HTTP_ORIGIN.replace(/^https:/, "wss:");
 
 export function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
     // Same-origin scripts cover Next's chunks and Cloudflare's same-origin
     // email decoder. Do not add `unsafe-inline`; the nonce protects inline code.
-    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://va.vercel-scripts.com${
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval' https://challenges.cloudflare.com${
       IS_DEV ? " 'unsafe-eval'" : ""
     }`,
     // See the note above: required by Tailwind/React attributes and TopLoader.
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com",
-    // Supabase client auth runs in the browser. Vercel Analytics posts to
-    // /_vercel/*, already covered by 'self'.
+    // Supabase client auth runs in the browser.
     //
     // `wss://` is NOT optional here. Supabase Realtime (message + notification
-    // presence, see Sidebar.tsx) opens a WebSocket, and `https://*.supabase.co`
+    // presence, see Sidebar.tsx) opens a WebSocket, and the HTTPS origin
     // does not cover it — CSP matches the full scheme. The report-only window
-    // caught this as `directive=connect-src blocked=wss://…supabase.co/
+    // caught this as `directive=connect-src blocked=wss://…/
     // realtime/v1/websocket`. Enforcing without this line would have silently
     // killed realtime in production while looking fine in every test.
     // Dev-only loopback WebSockets: Turbopack's HMR client, and any local dev
@@ -110,13 +112,11 @@ export function buildCsp(nonce: string): string {
     // org (this project lives in EU -> `.de`). A region move changes the DSN
     // host and silently re-breaks reporting - `sentry-wiring.test.ts` asserts
     // all three, so that fails in CI instead of in a user's console.
-    `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io${
+    `connect-src 'self' ${SUPABASE_HTTP_ORIGIN} ${SUPABASE_WS_ORIGIN} https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io${
       IS_DEV ? " ws://localhost:* ws://127.0.0.1:*" : ""
     }`,
     // Cloudflare Turnstile is an iframe widget.
-    `frame-src https://challenges.cloudflare.com${
-      IS_DEV ? " https://vercel.live" : ""
-    }`,
+    "frame-src https://challenges.cloudflare.com",
     // Explicit, because `worker-src` FALLS BACK to script-src when unset — the
     // headless sweep surfaced this as:
     //   Creating a worker from '/sw.js' violates ... "script-src"

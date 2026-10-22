@@ -13,7 +13,7 @@ export default async function EditPostPage({
 }) {
   const { id } = await params;
 
-  const user = await requireCurrentUser("Log in to edit this post.");
+  await requireCurrentUser("Log in to edit this post.");
 
   let post;
   try {

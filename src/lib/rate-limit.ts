@@ -93,17 +93,21 @@ export function hashRateLimitKey(value: string): string {
  * collapses onto a few Cloudflare edge keys and Upstash Redis rate limiting
  * throttles unrelated users as a single shared client.
  *
- * Priority: verified Cloudflare client IP -> first entry of the
- * comma-separated forwarding chain -> 'x-real-ip' -> loopback fallback.
+ * Cloudflare's client IP is trusted only when the origin is restricted to
+ * Cloudflare. Otherwise, use the rightmost address added by our own proxy;
+ * client-supplied entries to its left are ignored.
  */
 export function getClientIp(headers: Headers): string {
-    const cfIp = headers.get('cf-connecting-ip')
-    if (cfIp) return cfIp.trim()
+    if (process.env.TRUST_CLOUDFLARE === 'true') {
+        const cfIp = headers.get('cf-connecting-ip')
+        if (cfIp) return cfIp.trim()
+    }
 
     const forwardedFor = headers.get('x-forwarded-for')
     if (forwardedFor) {
-        const firstIp = forwardedFor.split(',')[0]?.trim()
-        if (firstIp) return firstIp
+        const parts = forwardedFor.split(',').map((p) => p.trim()).filter(Boolean)
+        const lastIp = parts[parts.length - 1]
+        if (lastIp) return lastIp
     }
 
     const realIp = headers.get('x-real-ip')

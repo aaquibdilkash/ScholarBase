@@ -41,24 +41,24 @@ describe("buildCsp", () => {
 
   it("allows the third parties the app actually loads", () => {
     expect(policy).toContain("https://challenges.cloudflare.com");
-    expect(policy).toContain("https://vercel.live");
     expect(policy).toContain("https://res.cloudinary.com");
     expect(policy).toContain("https://lh3.googleusercontent.com");
-    expect(policy).toContain("https://*.supabase.co");
+    expect(policy).not.toContain("vercel");
+    expect(policy).not.toContain("*.supabase.co");
   });
 
   it("allows Supabase realtime over wss://, not just https://", () => {
     // Regression caught by the report-only observation window:
-    //   directive=connect-src blocked=wss://...supabase.co/realtime/v1/websocket
-    // CSP matches the WHOLE scheme, so `https://*.supabase.co` does not imply
+    //   directive=connect-src blocked=wss://.../realtime/v1/websocket
+    // CSP matches the WHOLE scheme, so the HTTPS origin does not imply
     // `wss://`. Missing this would silently kill message/presence realtime the
     // moment the policy is enforced — and no unit test would fail, because no
     // unit test opens a WebSocket.
     const connectSrc = policy
       .split(";")
       .find((d) => d.trim().startsWith("connect-src"))!;
-    expect(connectSrc).toContain("wss://*.supabase.co");
-    expect(connectSrc).toContain("https://*.supabase.co");
+    expect(connectSrc).not.toContain("*.supabase.co");
+    expect(connectSrc).toContain("https://*.ingest.sentry.io");
   });
 
   it("allows loopback WebSockets in DEVELOPMENT connect-src only", () => {

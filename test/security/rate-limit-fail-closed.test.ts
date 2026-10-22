@@ -64,11 +64,37 @@ import {
   enforceRateLimit,
   RATE_LIMIT_DEGRADED_ERROR,
   RATE_LIMIT_ERROR,
+  getClientIp,
 } from "@/lib/rate-limit";
 
 beforeEach(() => {
   fromEnvThrows = false;
   limitMode = "ok";
+});
+
+describe("client IP proxy trust", () => {
+  it("ignores spoofed leftmost forwarded entries", () => {
+    expect(
+      getClientIp(new Headers({ "x-forwarded-for": "203.0.113.10, 198.51.100.7" })),
+    ).toBe("198.51.100.7");
+  });
+
+  it("ignores Cloudflare's header unless explicitly trusted", () => {
+    delete process.env.TRUST_CLOUDFLARE;
+    expect(getClientIp(new Headers({ "cf-connecting-ip": "203.0.113.10" }))).toBe(
+      "127.0.0.1",
+    );
+
+    process.env.TRUST_CLOUDFLARE = "true";
+    expect(getClientIp(new Headers({ "cf-connecting-ip": "203.0.113.10" }))).toBe(
+      "203.0.113.10",
+    );
+    delete process.env.TRUST_CLOUDFLARE;
+  });
+
+  it("falls back to loopback when no IP header is present", () => {
+    expect(getClientIp(new Headers())).toBe("127.0.0.1");
+  });
 });
 
 // The limiter caches clients per `${namespace}:${limit}:${window}`, so each
