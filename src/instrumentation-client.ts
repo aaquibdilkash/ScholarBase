@@ -19,7 +19,7 @@ const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 if (dsn) {
   Sentry.init({
     dsn,
-    environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,
+    environment: process.env.NEXT_PUBLIC_APP_ENV ?? process.env.NODE_ENV,
     // ERRORS-ONLY posture for the free Developer tier (see docs/launch-ops-runbook.md).
     // This project launches for error DETECTION, not performance profiling:
     // a zero transaction sample rate means spans are never created and the

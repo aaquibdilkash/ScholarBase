@@ -7,8 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import prisma from "@/lib/db";
 import NextTopLoader from "nextjs-toploader";
 import { ensureUserProfile } from "@/lib/users";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/react";
+import { IS_PRODUCTION } from "@/lib/app-env";
 import { AppProviders } from "@/components/interactions/AppProviders";
 import {
   InertWhenDrawerOpen,
@@ -23,9 +22,7 @@ import { FrozenAccountBanner } from "@/components/moderation/FrozenAccountBanner
 import { SEO_SITE } from "@/constants/seo";
 
 // In app/layout.tsx or your root SEO metadata config
-const isDev =
-  process.env.NEXT_PUBLIC_SITE_URL?.includes("dev.scholarbase.app") ||
-  process.env.VERCEL_ENV !== "production";
+const isDev = !IS_PRODUCTION;
 
 // Captures `beforeinstallprompt` before React can possibly hydrate.
 //
@@ -268,8 +265,6 @@ export default async function RootLayout({
           </div>
           </NavigationDrawerProvider>
         </AppProviders>
-        <SpeedInsights />
-        <Analytics />
       </body>
     </html>
   );

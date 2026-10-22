@@ -11,7 +11,7 @@ const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 if (dsn) {
   Sentry.init({
     dsn,
-    environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,
+    environment: process.env.APP_ENV ?? process.env.NODE_ENV,
     // ERRORS-ONLY posture, mirroring the client (see
     // instrumentation-client.ts). `tracesSampleRate: 0` disables performance
     // spans on the server too; a Server Action that throws is still captured
