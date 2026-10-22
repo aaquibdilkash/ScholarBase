@@ -167,7 +167,7 @@ const SurveyDetailPage = async ({
           ownerId={survey.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={survey.isFrozen}
-          isDeleted={false}
+          isDeleted={survey.isDeleted}
           hasActiveAppeal={survey.hasActiveAppeal}
         />
       }

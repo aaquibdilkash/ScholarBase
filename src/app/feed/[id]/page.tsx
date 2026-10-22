@@ -11,7 +11,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { deleteSocialPost, getPost, getPostMetadata } from "@/app/actions/feed";
 import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
-import { DeletedContentTombstone } from "@/components/content/DeletedContentTombstone";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
@@ -168,13 +167,9 @@ export default async function SinglePostPage({
         />
       }
     >
-      {p.isDeleted ? (
-        <DeletedContentTombstone reason={p.deletedByType} />
-      ) : (
-        <PostContent content={p.content} mentions={p.mentions} />
-      )}
+      <PostContent content={p.content} mentions={p.mentions} />
 
-      {!p.isDeleted && isValidImageUrl(p.imageUrl) && (
+      {isValidImageUrl(p.imageUrl) && (
         <div className="mt-4 sm:mt-6">
           <FeedImage
             src={p.imageUrl}

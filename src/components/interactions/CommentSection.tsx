@@ -331,7 +331,10 @@ export function CommentSection({
                 targetId={targetId}
                 currentUserId={currentUserId}
                 postAuthorId={postAuthorId}
-                locked={locked}
+                // Deleted content keeps its discussion readable, but every
+                // comment row must be read-only and must not identify the
+                // deleted post's author with the "Author" badge.
+                locked={locked || deleted}
                 onCountDelta={handleCountDelta}
                 onRemoved={() => removeParent(comment.id)}
               />

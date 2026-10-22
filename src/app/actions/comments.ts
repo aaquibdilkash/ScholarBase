@@ -440,6 +440,7 @@ export async function deleteComment(
       id: commentId,
       parentId: comment?.parentId,
       wasTombstoned: result.showTombstone,
+      deletedByType: result.deletedByType,
     },
   };
 }

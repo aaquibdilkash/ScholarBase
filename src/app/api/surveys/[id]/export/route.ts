@@ -57,7 +57,10 @@ export async function GET(
   }
 
   const survey = await prisma.researchSurvey.findUnique({
-    where: { id, isDeleted: false },
+    // Soft-deleted surveys retain their response data for the authorized
+    // results/export flow. The card/detail shells hide the survey content;
+    // this endpoint serves only the preserved, access-controlled dataset.
+    where: { id },
     select: {
       title: true,
       privacy: true,

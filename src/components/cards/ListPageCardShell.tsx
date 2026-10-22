@@ -9,7 +9,11 @@ import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner
 import { formatTimeAgo } from "../../utils/time-ago";
 import { TruncatedCardBody } from "./TruncatedCardBody";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
-import { deletedContentMessage, type DeletedContentReason } from "@/components/content/DeletedContentTombstone";
+import {
+  DeletedContentTombstone,
+  deletedContentMessage,
+  type DeletedContentReason,
+} from "@/components/content/DeletedContentTombstone";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -229,10 +233,14 @@ export default function ListPageCardShell({
             {deletedContentMessage(deletedByType, deletedNoun)} The discussion and preserved content remain available; interactions are disabled.
           </div>
         )}
-          {children}
+          {isDeleted ? (
+            <DeletedContentTombstone reason={deletedByType} noun={deletedNoun} />
+          ) : (
+            children
+          )}
       </TruncatedCardBody>
 
-      {bodyBottomContent}
+      {!isDeleted && bodyBottomContent}
 
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
         <span suppressHydrationWarning className="font-semibold text-slate-400 dark:text-slate-500">

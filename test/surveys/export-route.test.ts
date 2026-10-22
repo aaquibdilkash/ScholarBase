@@ -202,13 +202,14 @@ describe("access control", () => {
     expect(await response.json()).toEqual({ error: "Not found" });
   });
 
-  it("404s for a soft-deleted survey", async () => {
-    // Deleted is treated as absent: the id must not keep serving data.
+  it("allows preserved data export for a soft-deleted survey", async () => {
+    // Deletion hides the survey content, but does not erase its preserved
+    // response dataset from the authorized results/export flow.
     fakeDb.rows("researchSurvey")[0].isDeleted = true;
 
     const response = await download();
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
   });
 
   it("403s a non-owner when the author has not enabled sharing", async () => {

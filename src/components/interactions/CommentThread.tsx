@@ -265,7 +265,7 @@ interface CommentCardProps {
   replyingToThis: boolean;
   onReply?: () => void;
   onEdited: (next: CommentWithAuthorAndVotes) => void;
-  onTombstoned: () => void;
+  onTombstoned: (deletedByType?: CommentWithAuthorAndVotes["deletedByType"]) => void;
   onHardDeleted: () => void;
   onCountDelta: (delta: number) => void;
   editingId: string | null;
@@ -383,7 +383,7 @@ function CommentCard({
         // RULE 4: soft delete keeps the row alive (isDeleted = true);
         // the card stays in place as a "[deleted]" placeholder.
         if (deletedComment.wasTombstoned) {
-          onTombstoned();
+          onTombstoned(deletedComment.deletedByType);
         } else {
           onHardDeleted();
         }
@@ -486,7 +486,7 @@ function CommentCard({
                 {comment.author?.institutionVerifiedAt ? (
                   <VerifiedBadge className="h-3.5 w-3.5" />
                 ) : null}
-                {postAuthorId && comment.author?.id === postAuthorId && (
+                {!_locked && postAuthorId && comment.author?.id === postAuthorId && (
                   <span className="inline-flex items-center rounded-md bg-blue-100 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 md:text-[10px]">
                     Author
                   </span>
@@ -562,17 +562,19 @@ function CommentCard({
                   {/* Rendered for frozen comments too — the owner appeals
                       THROUGH this menu (AppealButton), so hiding it on
                       frozen comments would make appeals unreachable. */}
-                  <ReportMenu
-                    entityId={comment.id}
-                    entityType="COMMENT"
-                    module={COMMENT_REPORT_MODULE[module]}
-                    ownerId={comment.author?.id ?? null}
-                    currentUserId={currentUserId ?? null}
-                    isFrozen={comment.isFrozen}
-                    isDeleted={comment.isDeleted}
-                    hasActiveAppeal={comment.hasActiveAppeal}
-                  />
-                  {!isFrozen && (
+                  {!_locked && !comment.isDeleted && (
+                    <ReportMenu
+                      entityId={comment.id}
+                      entityType="COMMENT"
+                      module={COMMENT_REPORT_MODULE[module]}
+                      ownerId={comment.author?.id ?? null}
+                      currentUserId={currentUserId ?? null}
+                      isFrozen={comment.isFrozen}
+                      isDeleted={comment.isDeleted}
+                      hasActiveAppeal={comment.hasActiveAppeal}
+                    />
+                  )}
+                  {!isFrozen && !_locked && !_userFrozen && !comment.isDeleted && (
                     <>
                       <CommentActionsDropdown
                         isOwner={canDelete}
@@ -758,11 +760,12 @@ export function CommentThread({
             : () => openReplyForm(comment.id)
         }
         onEdited={(next) => setComment(next)}
-        onTombstoned={() =>
+        onTombstoned={(deletedByType) =>
           setComment((c) => ({
             ...c,
             // RULE 4: soft delete — toggle isDeleted, keep the row intact.
             isDeleted: true,
+            deletedByType: deletedByType ?? c.deletedByType,
           }))
         }
         onHardDeleted={() => onRemoved()}
@@ -788,7 +791,11 @@ export function CommentThread({
                 parentCommentAuthorId={comment.authorId}
                 replyingToThis={false}
                 locked={locked}
-                onReply={comment.isDeleted ? undefined : () => openReplyForm(reply.id)}
+                onReply={
+                  comment.isDeleted || locked || userFrozen
+                    ? undefined
+                    : () => openReplyForm(reply.id)
+                }
                 onEdited={(next) =>
                   setReplies((prev) =>
                     prev.map((r) => (r.id === next.id ? next : r)),
@@ -875,7 +882,7 @@ export function CommentThread({
           </div>
         ) : null}
 
-        {activeReplyTarget && !activeReplyTarget.isDeleted && !userFrozen && (
+        {activeReplyTarget && !activeReplyTarget.isDeleted && !locked && !userFrozen && (
           <ReplyForm
             key={activeReplyTarget.id}
             targetId={targetId}

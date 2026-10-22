@@ -1270,6 +1270,9 @@ export async function getSurveyResponses(surveyId: string, userId?: string) {
 
 export async function getSurveyResults(surveyId: string) {
   const survey = await prisma.researchSurvey.findUnique({
+    // Deleted surveys retain their response data. The survey content remains
+    // hidden by the shared card/detail shells, while authorized viewers may
+    // still inspect the preserved results.
     where: { id: surveyId },
     select: {
       id: true,
