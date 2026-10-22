@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, development]
+    branches: [main, development, staging]
   pull_request:
-    branches: [main, development]
+    branches: [main, development, staging]
 
 jobs:
   verify:
@@ -151,3 +151,17 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           npx vercel@latest deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN --yes
+
+  deploy-staging:
+    name: Deploy staging (Coolify)
+    needs: [verify, integration]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify deployment
+        env:
+          COOLIFY_STAGING_DEPLOY_URL: ${{ secrets.COOLIFY_STAGING_DEPLOY_URL }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+        run: |
+          curl -fsS "$COOLIFY_STAGING_DEPLOY_URL" \
+            -H "Authorization: Bearer $COOLIFY_API_TOKEN"
