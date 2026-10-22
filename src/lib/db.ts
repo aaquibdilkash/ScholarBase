@@ -80,8 +80,10 @@ const getPool = () => {
 
     globalForPrisma.pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      // 1 connection per serverless lambda in production prevents Supavisor exhaustion
-      max: process.env.NODE_ENV === "production" ? 1 : 2,
+      // Each Coolify container is one long-running process, so it can hold more
+      // than one connection. Keep the sum across all containers below Postgres
+      // max_connections.
+      max: Number(process.env.DB_POOL_MAX ?? 10),
       idleTimeoutMillis: 15000,
       connectionTimeoutMillis: 10000,
       allowExitOnIdle: true,
