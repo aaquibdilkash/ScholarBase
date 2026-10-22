@@ -34,10 +34,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Pins client bundles to the deployment that served them so Server Action
-  // requests from an already-open tab are routed to the matching build after a
-  // redeploy (pairs with Vercel Skew Protection).
-  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+  output: "standalone",
+  // Pins client bundles to the build that served them, so Server Action requests
+  // from an already-open tab reach the matching build after a redeploy.
+  // SOURCE_COMMIT is set by the Dockerfile from the git commit being built.
+  deploymentId: process.env.SOURCE_COMMIT,
   turbopack: {
     root: __dirname,
   },
