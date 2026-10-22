@@ -37,7 +37,7 @@ function iconFor(label: string): string {
 }
 
 export function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "https://scholarbase.app";
+  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
 /**

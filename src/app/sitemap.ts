@@ -7,13 +7,7 @@ import prisma from "@/lib/db";
 export const dynamic = "force-dynamic";
 export const revalidate = 86400;
 
-// 2. Safely grab the correct URL based on Vercel's build environment
-const baseUrl = 
-  process.env.VERCEL_ENV === "production"
-    ? "https://scholarbase.app"
-    : process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}` // Vercel Preview Deployment URL
-      : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"; // Local Fallback
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 
 const staticRoutes = [

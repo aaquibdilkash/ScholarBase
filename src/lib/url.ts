@@ -3,10 +3,10 @@ import { headers } from "next/headers";
 /**
  * Returns the base URL for server-side requests.
  * Prioritizes canonical environment variables, falling back to
- * request headers, Vercel system preview URLs, and localhost.
+ * request headers and localhost.
  */
 export async function getBaseUrl(): Promise<string> {
-  // 1. Explicit canonical URL (set in .env, Vercel Production, or branch-specific dev)
+  // 1. Explicit canonical URL.
   const explicitSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (explicitSiteUrl) {
     const formatted = explicitSiteUrl.replace(/\/+$/, "");
@@ -30,17 +30,6 @@ export async function getBaseUrl(): Promise<string> {
     // headers() throws if invoked outside of an active HTTP request (e.g., static page generation)
   }
 
-  // 3. Vercel Preview deployment fallbacks
-  const vercelUrl =
-    process.env.NEXT_PUBLIC_VERCEL_URL ||
-    process.env.VERCEL_BRANCH_URL ||
-    process.env.VERCEL_URL;
-
-  if (vercelUrl) {
-    const cleaned = vercelUrl.replace(/\/+$/, "");
-    return cleaned.startsWith("http") ? cleaned : `https://${cleaned}`;
-  }
-
-  // 4. Default local development fallback
+  // 3. Default local development fallback
   return "http://localhost:3000";
 }

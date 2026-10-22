@@ -9,7 +9,7 @@ type ValidPref = (typeof VALID_PREFS)[number];
 // One-click preference update from digest email footers.
 // GET /api/notifications/update-preference?userId=...&pref=WEEKLY&token=...
 export async function GET(request: NextRequest) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? request.nextUrl.origin;
+  const appUrl = process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin;
 
   const userId = request.nextUrl.searchParams.get("userId");
   const pref = request.nextUrl.searchParams.get("pref");

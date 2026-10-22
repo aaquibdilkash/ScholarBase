@@ -81,12 +81,10 @@ export const notificationPayloadSchema = z.union([
 export type NotificationPayload = z.infer<typeof notificationPayloadSchema>;
 
 export async function queueNotification(payload: NotificationPayload) {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) {
     return Promise.reject(
-      new Error("NEXT_PUBLIC_SITE_URL or VERCEL_URL is not configured."),
+      new Error("NEXT_PUBLIC_SITE_URL is not configured."),
     );
   }
 
@@ -94,7 +92,7 @@ export async function queueNotification(payload: NotificationPayload) {
   try {
     destination = new URL(siteUrl);
   } catch {
-    throw new Error("NEXT_PUBLIC_SITE_URL or VERCEL_URL must be a valid URL.");
+    throw new Error("NEXT_PUBLIC_SITE_URL must be a valid URL.");
   }
 
   if (["localhost", "127.0.0.1", "::1"].includes(destination.hostname)) {
@@ -146,12 +144,10 @@ export const messagePushPayloadSchema = z.object({
 export type MessagePushPayload = z.infer<typeof messagePushPayloadSchema>;
 
 export async function queueMessagePush(payload: MessagePushPayload) {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) {
     return Promise.reject(
-      new Error("NEXT_PUBLIC_SITE_URL or VERCEL_URL is not configured."),
+      new Error("NEXT_PUBLIC_SITE_URL is not configured."),
     );
   }
 
@@ -159,7 +155,7 @@ export async function queueMessagePush(payload: MessagePushPayload) {
   try {
     destination = new URL(siteUrl);
   } catch {
-    throw new Error("NEXT_PUBLIC_SITE_URL or VERCEL_URL must be a valid URL.");
+    throw new Error("NEXT_PUBLIC_SITE_URL must be a valid URL.");
   }
 
   // Local development has no publicly reachable origin for QStash to call back
