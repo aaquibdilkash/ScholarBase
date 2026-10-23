@@ -9,7 +9,10 @@ import CommentCountDisplay from "@/components/interactions/CommentCountDisplay";
 import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner";
 import { formatTimeAgo } from "../../utils/time-ago";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
-import { deletedContentMessage, type DeletedContentReason } from "@/components/content/DeletedContentTombstone";
+import {
+  deletedContentNotice,
+  type DeletedContentReason,
+} from "@/components/content/DeletedContentTombstone";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -244,7 +247,7 @@ export default function DetailPageCardShell({
         <div className="min-w-0 max-w-full">
           {isDeleted && (
             <div className="mb-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-sm font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-              {deletedContentMessage(deletedByType, deletedNoun)} The discussion and preserved content remain available; interactions are disabled.
+              {deletedContentNotice(deletedByType, deletedNoun)}
             </div>
           )}
           {children}

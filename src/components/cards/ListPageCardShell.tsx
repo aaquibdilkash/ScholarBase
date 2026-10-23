@@ -10,8 +10,7 @@ import { formatTimeAgo } from "../../utils/time-ago";
 import { TruncatedCardBody } from "./TruncatedCardBody";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
 import {
-  DeletedContentTombstone,
-  deletedContentMessage,
+  deletedContentNotice,
   type DeletedContentReason,
 } from "@/components/content/DeletedContentTombstone";
 
@@ -230,14 +229,10 @@ export default function ListPageCardShell({
         >
         {isDeleted && (
           <div className="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-xs font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-            {deletedContentMessage(deletedByType, deletedNoun)} The discussion and preserved content remain available; interactions are disabled.
+            {deletedContentNotice(deletedByType, deletedNoun)}
           </div>
         )}
-          {isDeleted ? (
-            <DeletedContentTombstone reason={deletedByType} noun={deletedNoun} />
-          ) : (
-            children
-          )}
+          {children}
       </TruncatedCardBody>
 
       {!isDeleted && bodyBottomContent}

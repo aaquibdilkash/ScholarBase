@@ -7,6 +7,15 @@ export function deletedContentMessage(reason: DeletedContentReason, noun = "post
   return `This ${noun} has been deleted by its author.`;
 }
 
+/**
+ * The single notice shown for author-deleted content. The deleted item's
+ * preserved body remains visible, while its author identity and interactions
+ * are hidden/disabled by the shared card shells.
+ */
+export function deletedContentNotice(reason: DeletedContentReason, noun = "post") {
+  return `${deletedContentMessage(reason, noun)} The discussion and preserved content remain available; interactions are disabled.`;
+}
+
 export function deletedByLabel(reason: DeletedContentReason) {
   return reason === "ADMIN" ? "moderator" : "author";
 }
