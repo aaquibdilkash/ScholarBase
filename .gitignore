@@ -45,6 +45,8 @@ next-env.d.ts
 
 # doc
 /docs
+!/docs/
+!/docs/prisma-coolify-migration-runbook.md
 TODO.md
 TODO*.md
 todo.md
