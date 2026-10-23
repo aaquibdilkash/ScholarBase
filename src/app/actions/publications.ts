@@ -40,16 +40,45 @@ function normalizeKeywords(raw: string | null): string | null {
   return joined.slice(0, MAX_PUBLICATION_KEYWORDS);
 }
 
-async function resolvePublicationPeople(formData: FormData) {
+type PublicationPeople = {
+  authorIds: string[];
+  authors: string[];
+  journalId: string | null;
+};
+
+type PublicationPeopleResult =
+  | { success: true; data: PublicationPeople }
+  | { success: false; error: string };
+
+async function resolvePublicationPeople(
+  formData: FormData,
+): Promise<PublicationPeopleResult> {
   const authorIds = readLinkedIds(formData, "authorIds");
   const journalId = readOptionalFormValue(formData, "journalId");
-  if (authorIds.length === 0) throw new Error("Select at least one ScholarBase author for this publication.");
+  if (authorIds.length === 0) {
+    return {
+      success: false,
+      error: "Select at least one ScholarBase author for this publication.",
+    };
+  }
   const [authors, journal] = await Promise.all([
     prisma.user.findMany({ where: { id: { in: authorIds }, isDeleted: false }, select: { id: true, name: true, handle: true } }),
     journalId ? prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } }) : null,
   ]);
-  if (authors.length !== authorIds.length || (journalId && !journal)) throw new Error("One or more selected authors or journals are no longer available. Please select them again.");
-  return { authorIds, authors: authors.map((author) => author.name || `@${author.handle}`), journalId: journal?.id ?? null };
+  if (authors.length !== authorIds.length || (journalId && !journal)) {
+    return {
+      success: false,
+      error: "One or more selected authors or journals are no longer available. Please select them again.",
+    };
+  }
+  return {
+    success: true,
+    data: {
+      authorIds,
+      authors: authors.map((author) => author.name || `@${author.handle}`),
+      journalId: journal?.id ?? null,
+    },
+  };
 }
 
 export async function createPublication(formData: FormData) {
@@ -59,7 +88,9 @@ export async function createPublication(formData: FormData) {
   await enforceRateLimit({ namespace: "publication:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
-  const linkedPeople = await resolvePublicationPeople(formData);
+  const peopleResult = await resolvePublicationPeople(formData);
+  if (!peopleResult.success) return peopleResult;
+  const linkedPeople = peopleResult.data;
   const authors = linkedPeople.authors.join(", ");
   const publicationType = readFormValue(
     formData,
@@ -175,7 +206,9 @@ export async function updatePublication(
   await enforceRateLimit({ namespace: "publication:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
-  const linkedPeople = await resolvePublicationPeople(formData);
+  const peopleResult = await resolvePublicationPeople(formData);
+  if (!peopleResult.success) return peopleResult;
+  const linkedPeople = peopleResult.data;
   const authors = linkedPeople.authors.join(", ");
   const publicationType = readFormValue(
     formData,

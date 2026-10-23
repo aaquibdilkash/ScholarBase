@@ -146,11 +146,12 @@ export default function PublicationForm({
 
   const isAbstractOverLimit =
     getRichTextLength(draftFields.abstract ?? "") > MAX_PUBLICATION_ABSTRACT;
+  const isMissingAuthors = draftFields.authorIds.length === 0;
   const isFormOverLimit = isAbstractOverLimit;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (isFormOverLimit) return;
+    if (isFormOverLimit || isMissingAuthors) return;
 
     const formData = new FormData(e.currentTarget);
 
@@ -199,16 +200,23 @@ export default function PublicationForm({
         </div>
       </div>
 
-      <PublicationLinkedPeopleFields
-        authors={draftFields.authors}
-        journal={draftFields.journalOrConference}
-        onAuthorsChange={(value) => updateDraftField("authors", value)}
-        onJournalChange={(value) => updateDraftField("journalOrConference", value)}
-        authorIds={draftFields.authorIds}
-        onAuthorIdsChange={(value) => updateDraftField("authorIds", value)}
-        journalId={draftFields.journalId}
-        onJournalIdChange={(value) => updateDraftField("journalId", value)}
-      />
+      <div>
+        <PublicationLinkedPeopleFields
+          authors={draftFields.authors}
+          journal={draftFields.journalOrConference}
+          onAuthorsChange={(value) => updateDraftField("authors", value)}
+          onJournalChange={(value) => updateDraftField("journalOrConference", value)}
+          authorIds={draftFields.authorIds}
+          onAuthorIdsChange={(value) => updateDraftField("authorIds", value)}
+          journalId={draftFields.journalId}
+          onJournalIdChange={(value) => updateDraftField("journalId", value)}
+        />
+        {isMissingAuthors && (
+          <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
+            Select at least one ScholarBase author before submitting.
+          </p>
+        )}
+      </div>
 
       {/* Publication Type & Year */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -461,7 +469,10 @@ export default function PublicationForm({
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />
-        <SubmitBtnWithAuth className="sb-button-accent" disabled={submitting || isFormOverLimit}>
+        <SubmitBtnWithAuth
+          className="sb-button-accent"
+          disabled={submitting || isFormOverLimit || isMissingAuthors}
+        >
           {mode === "edit" ? "Save Changes" : "Add Publication"}
         </SubmitBtnWithAuth>
       </div>
