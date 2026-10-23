@@ -77,25 +77,48 @@ export async function searchScholarsForPicker(
   }
 
   const safeLimit = Math.min(10, Math.max(1, Math.floor(limit)));
-  return prisma.$queryRaw<ScholarPickerResult[]>`
-    SELECT "id", "name", "handle", "avatarUrl", "institutionVerifiedAt"
-    FROM "User"
-    WHERE "isDeleted" = false
-      AND (
-        LOWER("handle") = LOWER(${term})
-        OR LOWER("handle") LIKE LOWER(${term}) || '%'
-        OR similarity("handle", ${term}) > 0.25
-        OR similarity("name", ${term}) > 0.25
-        OR to_tsvector('simple', COALESCE("name", '') || ' ' || COALESCE("bio", '') || ' ' || COALESCE("interests", ''))
-           @@ plainto_tsquery('simple', ${term})
-      )
-    ORDER BY
-      CASE WHEN LOWER("handle") = LOWER(${term}) THEN 0
-           WHEN LOWER("handle") LIKE LOWER(${term}) || '%' THEN 1
-           WHEN LOWER("name") LIKE LOWER(${term}) || '%' THEN 2
-           ELSE 3 END,
-      GREATEST(similarity("handle", ${term}), similarity("name", ${term})) DESC,
-      "createdAt" DESC
-    LIMIT ${safeLimit}
-  `;
+  try {
+    return await prisma.$queryRaw<ScholarPickerResult[]>`
+      SELECT "id", "name", "handle", "avatarUrl", "institutionVerifiedAt"
+      FROM "User"
+      WHERE "isDeleted" = false
+        AND (
+          LOWER("handle") = LOWER(${term})
+          OR LOWER("handle") LIKE LOWER(${term}) || '%'
+          OR similarity("handle", ${term}) > 0.25
+          OR similarity("name", ${term}) > 0.25
+          OR to_tsvector('simple', COALESCE("name", '') || ' ' || COALESCE("bio", '') || ' ' || COALESCE("interests", ''))
+             @@ plainto_tsquery('simple', ${term})
+        )
+      ORDER BY
+        CASE WHEN LOWER("handle") = LOWER(${term}) THEN 0
+             WHEN LOWER("handle") LIKE LOWER(${term}) || '%' THEN 1
+             WHEN LOWER("name") LIKE LOWER(${term}) || '%' THEN 2
+             ELSE 3 END,
+        GREATEST(similarity("handle", ${term}), similarity("name", ${term})) DESC,
+        "createdAt" DESC
+      LIMIT ${safeLimit}
+    `;
+  } catch (error) {
+    // Keep the picker usable if a deployment has not yet installed pg_trgm.
+    console.error("Optimized scholar picker search failed; using fallback:", error);
+    return prisma.user.findMany({
+      where: {
+        isDeleted: false,
+        OR: [
+          { name: { contains: term, mode: "insensitive" } },
+          { handle: { contains: term, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        handle: true,
+        avatarUrl: true,
+        institutionVerifiedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: safeLimit,
+    });
+  }
 }

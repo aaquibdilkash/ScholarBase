@@ -16,7 +16,7 @@ export const MAX_PUBLICATION_DOMAIN = 32;
 export const MAX_PUBLICATION_ABSTRACT = 512;
 export const MAX_PUBLICATION_VOLUME = 4;
 export const MAX_PUBLICATION_ISSUE = 4;
-export const MAX_PUBLICATION_PAGES = 8;
+export const MAX_PUBLICATION_PAGES = 12;
 
 export const MAX_VACANCY_TITLE = 64;
 export const MAX_VACANCY_INSTITUTION = 64;
