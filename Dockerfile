@@ -38,6 +38,14 @@ ENV NEXT_PUBLIC_CLOUDINARY_API_KEY=$NEXT_PUBLIC_CLOUDINARY_API_KEY
 ENV SOURCE_COMMIT=$SOURCE_COMMIT
 ENV SKIP_ENV_VALIDATION=true
 
+# Build-only placeholders for third-party SDKs (like @upstash/qstash verifySignatureAppRouter)
+# that eagerly read process.env at module import time during `next build`.
+# Real values are injected at runtime in the `run` stage by Coolify.
+ENV QSTASH_CURRENT_SIGNING_KEY=build_placeholder_current_key
+ENV QSTASH_NEXT_SIGNING_KEY=build_placeholder_next_key
+ENV QSTASH_TOKEN=build_placeholder_token
+ENV RESEND_API_KEY=re_build_placeholder_key
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate && npm run build
