@@ -130,5 +130,5 @@ jobs:
           COOLIFY_STAGING_DEPLOY_URL: ${{ secrets.COOLIFY_STAGING_DEPLOY_URL }}
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
         run: |
-          curl -fsS --request GET "$COOLIFY_STAGING_DEPLOY_URL" \
+          curl -fsS --request POST "$COOLIFY_STAGING_DEPLOY_URL" \
             --header "Authorization: Bearer $COOLIFY_API_TOKEN"
