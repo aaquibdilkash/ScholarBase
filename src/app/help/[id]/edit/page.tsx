@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildNoindexMetadata(
-  "Edit Help Post - ScholarBase",
+  "Edit Scholar Suggest Post - ScholarBase",
 );
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";

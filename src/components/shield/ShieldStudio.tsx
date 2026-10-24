@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Check, Copy, Cpu, Download, FileText, HardDrive, Loader2, Lock, RotateCcw, ShieldAlert, Sparkles, UploadCloud } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, Copy, Cpu, Download, FileText, HardDrive, Loader2, Lock, RotateCcw, ShieldAlert, Sparkles, UploadCloud } from "lucide-react";
 import { analyzeCadenceAndEntropy, boostBurstiness, calculateBalancedEnsemble, forceBurstiness, type StatisticalProfile } from "@/lib/shield/statistical-analyzer";
 import { parseDocumentClientSide } from "@/lib/shield/document-parser";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -36,6 +36,26 @@ type RewriteProvider = "chrome" | "local-cpu" | "local-gpu" | "groq";
 type ModelStatus = "idle" | "downloading" | "ready";
 const clsx = (...i: Array<string | false | null | undefined>) => i.filter(Boolean).join(" ");
 const countWords = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
+const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (character) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+}[character] ?? character));
+const timesNewRomanClipboardHtml = (text: string) => `<div style="background-color:#ffffff;color:#000000;font-family:'Times New Roman',Times,serif;font-size:12pt;line-height:1.5;white-space:pre-wrap;">${escapeHtml(text)}</div>`;
+const copyAsTimesNewRoman = async (text: string) => {
+  if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "text/plain": new Blob([text], { type: "text/plain" }),
+        "text/html": new Blob([timesNewRomanClipboardHtml(text)], { type: "text/html" }),
+      }),
+    ]);
+    return;
+  }
+  await navigator.clipboard.writeText(text);
+};
 // Rewriting varies sentence length to raise burstiness σ, which is a standard
 // deviation — meaningless on a tiny fragment and impossible to push past the
 // σ>7 floor with fewer than a few sentences. The detector uses a higher bar
@@ -582,7 +602,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => { setInputText(""); updateDraftField("detector", ""); setUploadedFilename(null); setDocumentTitle("Academic Manuscript"); setStatReport(null); setNeuralScore(null); setErr(null); }} disabled={!inputText} className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-100 disabled:opacity-40 dark:text-slate-400 dark:hover:bg-slate-800"><RotateCcw className="h-3.5 w-3.5" />Clear</button>
+                <button type="button" onClick={() => { setInputText(""); updateDraftField("detector", ""); setUploadedFilename(null); setDocumentTitle("Academic Manuscript"); setStatReport(null); setNeuralScore(null); setErr(null); }} disabled={!inputText} className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-40 dark:text-slate-300 dark:hover:bg-slate-700"><RotateCcw className="h-3.5 w-3.5" />Clear</button>
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isParsingDoc} className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
                   {isParsingDoc ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />Extracting locally...</>) : (<><UploadCloud className="h-3.5 w-3.5" />Upload PDF / DOCX</>)}
                 </button>
@@ -651,7 +671,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               </div>
               <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setTab("detector")} className="text-xs font-medium text-slate-500 dark:text-slate-400">Back to Detector</button>
+                <button type="button" onClick={() => setTab("detector")} className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700"><ChevronLeft className="h-4 w-4" />Back to Detector</button>
               </div>
               <div className="flex items-center gap-2">
                 <InfoTooltip message={SHIELD_HUMANIZE_TIP} />
@@ -665,9 +685,19 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
               <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Restructured output<InfoTooltip message={SHIELD_REWRITE_OUTPUT_TIP} /></span>
               <div className="flex flex-wrap items-center justify-end gap-2 text-[11px] font-medium text-slate-500 dark:text-slate-400"><span>{outputWords} words | {rewriteOutput?.length ?? 0} chars</span>{rewriteMeta && <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-semibold text-emerald-700 dark:text-emerald-300" title="Burstiness sigma (sentence-length variation) before → after humanization">σ {rewriteMeta.originalSigma === null ? "--" : rewriteMeta.originalSigma} → {rewriteMeta.postRewriteSigma}</span>}{rewriteMeta && <span>Before {rewriteMeta.originalScore === null ? "—" : `${rewriteMeta.originalScore}%`} · cadence after {rewriteMeta.postRewriteCadence}% · {rewriteMeta.provider}</span>}</div>
             </div>
-            <div className="h-[430px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-serif text-sm leading-relaxed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">{rewriteOutput ? <p className="whitespace-pre-wrap">{rewriteOutput}</p> : <p className="flex h-full items-center justify-center text-xs text-slate-500">No output yet.</p>}</div>
+            <div
+              className="h-[430px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              style={{ fontFamily: "'Times New Roman', Times, serif" }}
+              onCopy={(event) => {
+                const selectedText = window.getSelection()?.toString() ?? "";
+                if (!selectedText) return;
+                event.preventDefault();
+                event.clipboardData.setData("text/plain", selectedText);
+                event.clipboardData.setData("text/html", timesNewRomanClipboardHtml(selectedText));
+              }}
+            >{rewriteOutput ? <p className="whitespace-pre-wrap">{rewriteOutput}</p> : <p className="flex h-full items-center justify-center text-xs text-slate-500">No output yet.</p>}</div>
             <div className="mt-4 flex items-center justify-end border-t border-slate-200/80 pt-3 dark:border-slate-800/80">
-              {rewriteOutput && <button type="button" onClick={async () => { await navigator.clipboard.writeText(rewriteOutput); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-100">{copied ? (<><Check className="h-3.5 w-3.5 text-emerald-400" />Copied</>) : (<><Copy className="h-3.5 w-3.5" />Copy</>)}</button>}
+              {rewriteOutput && <button type="button" onClick={async () => { await copyAsTimesNewRoman(rewriteOutput); setCopied(true); setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-100">{copied ? (<><Check className="h-3.5 w-3.5 text-emerald-400" />Copied</>) : (<><Copy className="h-3.5 w-3.5" />Copy</>)}</button>}
             </div>
           </div>
         </div>

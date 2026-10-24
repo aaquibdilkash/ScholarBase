@@ -169,7 +169,7 @@ const SECTIONS: SectionWithCount[] = [
   },
   {
     key: "helpPosts",
-    title: "Help Posts",
+    title: "Scholar Suggest",
     emptyMessage: "No help posts yet.",
     renderItems: (items: HelpPostType[], currentUserId) =>
       items.map((h) => (
@@ -223,7 +223,7 @@ const SECTIONS: SectionWithCount[] = [
   },
   {
     key: "supervisors",
-    title: "Supervisor Profiles",
+    title: "Supervisor Suggest",
     emptyMessage: "No supervisor profiles created yet.",
     renderItems: (items: SupervisorType[], currentUserId) =>
       items.map((s) => (
@@ -289,7 +289,7 @@ const SECTIONS: SectionWithCount[] = [
   },
   {
     key: "courses",
-    title: "Courses",
+    title: "Learning Zone",
     emptyMessage: "No courses created yet.",
     renderItems: (items: CourseType[], currentUserId) =>
       items.map((c) => (

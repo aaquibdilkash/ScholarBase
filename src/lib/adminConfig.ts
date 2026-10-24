@@ -20,7 +20,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "journalReviews", title: "Journal Reviews", href: "/journals" },
   { id: "researchTools", title: "Research Tools", href: "/research-tools" },
   { id: "researchGrants", title: "Research Grants", href: "/grants" },
-  { id: "courses", title: "Courses", href: "/learn" },
+  { id: "courses", title: "Learning Zone", href: "/learn" },
   { id: "admissions", title: "Admissions", href: "/admissions" },
   { id: "events", title: "Events", href: "/events" },
   { id: "vacancies", title: "Vacancies", href: "/vacancies" },

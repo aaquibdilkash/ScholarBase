@@ -59,7 +59,7 @@ export function HelpPostCard({
           <OwnerActionsDropdown
             editHref={`/help/${helpPost.id}/edit`}
             isOwner={true}
-            editLabel="Edit Help Post"
+            editLabel="Edit Scholar Suggest Post"
             deleteLabel="Delete"
             onDelete={async () => {
               try {

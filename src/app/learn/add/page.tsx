@@ -15,7 +15,7 @@ export default function NewCoursePage() {
       title={CREATE_PAGE_TEXT.learn.title}
       description={CREATE_PAGE_TEXT.learn.description}
       backHref="/learn"
-      backLabel="Back to Courses"
+      backLabel="Back to Learning Zone"
     >
       <CourseForm mode="create" />
     </CreateOrEditPageShell>

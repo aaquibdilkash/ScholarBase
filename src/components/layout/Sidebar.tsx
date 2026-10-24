@@ -321,7 +321,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Research Scholars", href: "/scholars", icon: <Users className="h-6 w-6 shrink-0" /> },
       { name: "Messages", href: "/messages", icon: <MessageSquare className="h-6 w-6 shrink-0" />, badge: optimisticUnreadMessages },
       { name: "Scholar Shield", href: "/shield", icon: <Shield className="h-6 w-6 shrink-0" /> },
-      { name: "Supervisor Profile", href: "/supervisor", icon: <Star className="h-6 w-6 shrink-0" /> },
+      { name: "Supervisor Suggest", href: "/supervisor", icon: <Star className="h-6 w-6 shrink-0" /> },
       { name: "Research Journals", href: "/journals", icon: <List className="h-6 w-6 shrink-0" /> },
       { name: "Research Survey", href: "/surveys", icon: <ClipboardList className="h-6 w-6 shrink-0" /> },
       { name: "Admissions", href: "/admissions", icon: <GraduationCap className="h-6 w-6 shrink-0" /> },
@@ -331,13 +331,13 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Research Grants", href: "/grants", icon: <HandCoins className="h-6 w-6 shrink-0" /> },
       { name: "Research Blog", href: "/blog", icon: <FileText className="h-6 w-6 shrink-0" /> },
       { name: "Research Tools", href: "/research-tools", icon: <Search className="h-6 w-6 shrink-0" /> },
-      { name: "Courses", href: "/learn", icon: <BookMarked className="h-6 w-6 shrink-0" /> },
+      { name: "Learning Zone", href: "/learn", icon: <BookMarked className="h-6 w-6 shrink-0" /> },
       { name: "Research Publications", href: "/publications", icon: <File className="h-6 w-6 shrink-0" /> },
       // Hidden while the Contributions feature is behind the "Coming Soon" gate.
       ...(!isComingSoon
         ? [{ name: "Contributions", href: "/contributions", icon: <Gift className="h-6 w-6 shrink-0" /> }]
         : []),
-      { name: "Help Post", href: "/help", icon: <HelpCircle className="h-6 w-6 shrink-0" /> },
+      { name: "Scholar Suggest", href: "/help", icon: <HelpCircle className="h-6 w-6 shrink-0" /> },
       ...(user?.isAdmin ? [{ name: "Admin", href: "/admin", icon: <Shield className="h-6 w-6 shrink-0" /> }] : []),
     ],
     [user?.isAdmin, optimisticUnreadMessages],

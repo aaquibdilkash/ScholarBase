@@ -423,7 +423,7 @@ export const EDIT_PAGE_TEXT = {
             "Update funding details, application guidance, or links.",
     },
     help: {
-        title: "Edit Help Post",
+        title: "Edit Scholar Suggest Post",
         description:
             "Update your question, category, or message details.",
     },
