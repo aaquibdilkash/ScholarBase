@@ -66,10 +66,6 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
 
-    # Ephemeral, throwaway database — never a Supabase connection. The real
-    # project is reached only by the app at runtime; tests get a local container
-    # so raw-SQL behaviour (pg_trgm, to_tsvector, pg_class, cron procs) can be
-    # exercised without touching the free tier's compute or connection pool.
     services:
       postgres:
         image: postgres:17
@@ -105,9 +101,6 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      # The tier activates itself: with no files under test/integration the
-      # migration and test steps are skipped rather than quietly passing, so the
-      # first real integration test turns this job on with no CI edits.
       - name: Detect integration tests
         id: detect
         run: |
@@ -126,32 +119,6 @@ jobs:
         if: steps.detect.outputs.found == 'true'
         run: npm run test:integration
 
-  deploy:
-    name: Deploy to Vercel
-    needs: verify
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development')
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Remove stale Vercel metadata
-        run: rm -rf .vercel
-
-      - name: Deploy to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          npx vercel@latest deploy ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=$VERCEL_TOKEN --yes
-
   deploy-staging:
     name: Deploy staging (Coolify)
     needs: [verify, integration]
@@ -163,5 +130,5 @@ jobs:
           COOLIFY_STAGING_DEPLOY_URL: ${{ secrets.COOLIFY_STAGING_DEPLOY_URL }}
           COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
         run: |
-          curl -fsS "$COOLIFY_STAGING_DEPLOY_URL" \
-            -H "Authorization: Bearer $COOLIFY_API_TOKEN"
+          curl -fsS --request GET "$COOLIFY_STAGING_DEPLOY_URL" \
+            --header "Authorization: Bearer $COOLIFY_API_TOKEN"
