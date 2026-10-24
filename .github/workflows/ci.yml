@@ -9,7 +9,7 @@ on:
 jobs:
   verify:
     name: Verify & Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout code
@@ -48,6 +48,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
       - name: Build application
+        if: github.event_name == 'pull_request'
         run: npm run build
         env:
           DATABASE_URL: postgresql://localhost:5432/test
@@ -64,7 +65,7 @@ jobs:
   integration:
     name: Integration (Postgres 17)
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
 
     services:
       postgres:
@@ -123,7 +124,7 @@ jobs:
     name: Build, Push & Deploy Staging
     needs: [verify, integration]
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write # Required to push to GitHub Container Registry
@@ -138,9 +139,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
