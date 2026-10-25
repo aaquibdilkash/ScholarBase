@@ -35,6 +35,10 @@ After login, run this on the server:
 sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
   supabase-db-1gzzigqz5jnyp8nsmjxzcauc
 ```
+```bash
+sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
+  supabase-db-wymwfhtdtx1numd0ulns7fx8
+```
 
 Copy the IP address it prints.
 
@@ -97,6 +101,10 @@ After SSH login, you are now typing in the server terminal. Find the current dat
 ```bash
 sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
   supabase-db-1gzzigqz5jnyp8nsmjxzcauc
+```
+```bash
+sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
+  supabase-db-wymwfhtdtx1numd0ulns7fx8
 ```
 
 Copy the IP address it prints. It may change after a Supabase restart. In the previous deployment it was `10.0.3.6`.
