@@ -58,6 +58,7 @@ export async function proxy(request: NextRequest) {
 
   const isStagingOrPreview =
     host.startsWith("staging.") ||
+    host.startsWith("prod.") ||
     host.startsWith("dev.") ||
     host.endsWith(".vercel.app");
 

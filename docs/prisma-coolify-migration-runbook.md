@@ -35,6 +35,7 @@ After login, run this on the server:
 sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
   supabase-db-1gzzigqz5jnyp8nsmjxzcauc
 ```
+
 ```bash
 sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
   supabase-db-wymwfhtdtx1numd0ulns7fx8
@@ -102,6 +103,16 @@ After SSH login, you are now typing in the server terminal. Find the current dat
 sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
   supabase-db-1gzzigqz5jnyp8nsmjxzcauc
 ```
+
+```bash
+sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
+  supabase-db-wymwfhtdtx1numd0ulns7fx8
+```
+
+```bash
+sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' supabase-supavisor-1gzzigqz5jnyp8nsmjxzcauc
+```
+
 ```bash
 sudo docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{"\n"}}{{end}}' \
   supabase-db-wymwfhtdtx1numd0ulns7fx8
@@ -123,6 +134,10 @@ ssh -N \
   ubuntu@100.114.43.64
 ```
 
+```bash
+ssh -N -o ExitOnForwardFailure=yes -i ~/.ssh/scholarbase_oracle -L 15432:DB_CONTAINER_IP:6543 ubuntu@100.114.43.64
+```
+
 Example:
 
 ```bash
@@ -131,6 +146,9 @@ ssh -N \
   -i ~/.ssh/scholarbase_oracle \
   -L 15432:10.0.3.6:5432 \
   ubuntu@100.114.43.64
+```
+```bash
+ssh -N -o ExitOnForwardFailure=yes -i ~/.ssh/scholarbase_oracle -L 15432:10.0.2.15:6543 ubuntu@100.114.43.64
 ```
 
 Keep this terminal running. It will appear to be waiting; that is expected.

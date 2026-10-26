@@ -30,33 +30,23 @@ function getDatabaseCACert(): string | undefined {
 const getPool = () => {
   if (!globalForPrisma.pgPool) {
     const caCert = getDatabaseCACert();
-    const isLocalDb =
+    
+    // Internal Docker network hostnames and loopback targets communicate inside 
+    // the isolated bridge network and do not require external TLS validation.
+    const isInternalDb =
       process.env.DATABASE_URL?.includes("localhost") ||
-      process.env.DATABASE_URL?.includes("127.0.0.1");
+      process.env.DATABASE_URL?.includes("127.0.0.1") ||
+      process.env.DATABASE_URL?.includes("supabase-supavisor") ||
+      process.env.DATABASE_URL?.includes("supabase-db") ||
+      process.env.DATABASE_URL?.includes(".internal");
 
     let sslConfig: boolean | ConnectionOptions | undefined = undefined;
 
-    if (!isLocalDb) {
+    if (!isInternalDb) {
       if (caCert) {
         sslConfig = { rejectUnauthorized: true, ca: caCert };
       } else {
-        // No CA configured, so certificate verification would have to be
-        // disabled to connect at all — an on-path attacker could read or
-        // tamper with every query.
-        //
-        // PRODUCTION FAILS CLOSED. This used to log and continue
-        // (rejectUnauthorized: false), which left a misconfigured deployment
-        // silently downgraded forever. The guard below makes that impossible:
-        // the pool is built at module import, so a missing CA stops the
-        // serverless function at cold start instead of querying in the clear.
-        //
-        // The two escape hatches are deliberate:
-        //  - NEXT_PHASE=phase-production-build: `next build` runs with
-        //    NODE_ENV=production but must not require runtime secrets, or a
-        //    docs-only change could not be built in CI.
-        //  - non-production (dev/test): loud warning + degraded SSL keeps
-        //    local development working; the log is an error, not a warn, so
-        //    it cannot scroll past unnoticed.
+        // Enforce strict TLS certificate verification when connecting to external/remote databases
         if (
           process.env.NODE_ENV === "production" &&
           process.env.NEXT_PHASE !== "phase-production-build"
@@ -80,14 +70,12 @@ const getPool = () => {
 
     globalForPrisma.pgPool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      // Each Coolify container is one long-running process, so it can hold more
-      // than one connection. Keep the sum across all containers below Postgres
-      // max_connections.
+      // Uses application pool limit or defaults to 10
       max: Number(process.env.DB_POOL_MAX ?? 10),
       idleTimeoutMillis: 15000,
       connectionTimeoutMillis: 10000,
       allowExitOnIdle: true,
-      ssl: sslConfig,
+      ssl: sslConfig, // Stays undefined for internal Docker traffic
     });
 
     globalForPrisma.pgPool.on("error", (err) => {
