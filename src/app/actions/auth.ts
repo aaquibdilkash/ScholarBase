@@ -459,7 +459,17 @@ export async function signInWithGoogle(
   callbackUrl?: string,
 ): Promise<AuthResult> {
   const supabase = await createClient();
-  const baseUrl = await getBaseUrl();
+
+  let baseUrl: string;
+  try {
+    baseUrl = await getBaseUrl();
+  } catch (error) {
+    console.error("Cannot build Google sign-in redirect:", error);
+    return {
+      success: false,
+      error: "Sign-in is temporarily unavailable. Please try again later.",
+    };
+  }
 
   // Sanitized to prevent open redirects and standardized to use 'next'
   const target = sanitizeRedirectUrl(callbackUrl);

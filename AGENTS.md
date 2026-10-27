@@ -7,6 +7,20 @@ Stack: App Router + React 19 + strict TypeScript; Prisma 7.10 on PostgreSQL/Supa
 
 Operating assumptions: Supabase compute and connections are scarce, reads should be zero-compute, interactions should feel instant, and reputation is integrity-sensitive.
 
+## Standing directive — lean, fast, secure
+
+Every change is also a cleanup pass. The default answer to "should we add this?" is no unless it replaces something or removes a bottleneck.
+
+- **Delete before adding.** Remove dead exports, unused components/hooks/types, orphaned routes, commented-out blocks, and dependencies nobody imports. Verify with a grep for every symbol before deleting it; never leave two implementations of the same thing.
+- **One primitive per concern.** URLs, dates, formatting, pagination, query builders, rate limits, and loading/error/empty states reuse the existing helper or component (`getBaseUrl`, `src/lib/format*`, `src/components/ui/*`, tri-split). Do not fork a helper to change one line.
+- **No new dependency** unless it cannot be written with the existing stack in a few lines. Check maintenance, license, and bundle cost first; prefer the standard library, existing deps, and `node:crypto`.
+- **Consistency is part of done.** A new page, list, form, or email must match the closest existing one: same tokens/spacing, same loading/error/empty states, same pagination and caching, same action result shape.
+- **Server first.** New UI is a Server Component unless it needs state, effects, or event handlers; `"use client"` belongs at the leaf. Never ship a client component that only renders server data.
+- **Measure, then optimize.** Establish a baseline first: query count per request, `EXPLAIN (ANALYZE, BUFFERS)` on hot paths, `npm run build` bundle output, and real page timings. No speculative rewrites of working code. The standing rules in "Read performance (zero-compute)" and "Database" apply to every new list, along with its indexes and tri-split wiring.
+- **Security is not optional work.** Validate input at the boundary, never interpolate SQL (Prisma or parameterized `$queryRaw` only), never expose secrets or service keys to the client, keep writes `onDegraded: "closed"`, keep the CSP/nonce contract in `src/proxy.ts`, and keep auth/role checks server-side.
+- **Caution protocol.** Smallest viable diff; one concern per change; no drive-by refactors inside a bug fix; preserve public action response shapes, migration history, soft-delete, and reputation invariants. If a cleanup would change behavior, state the tradeoff and ask before doing it.
+- **Bug fixes ship with a test** that fails before and passes after. Finish every change with `npm run lint && npm run typecheck && npm run test:coverage` (plus `npm run build` for framework/routing changes); never lower coverage thresholds to go green.
+
 ## Map
 
 - `src/app/` — routes and Server Actions. Actions live in `src/app/actions/`; the README's `src/actions/` does not exist.

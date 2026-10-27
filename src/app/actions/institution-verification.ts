@@ -152,6 +152,21 @@ export async function requestInstitutionVerification(
     return { success: false, error: RATE_LIMIT_ERROR };
   }
 
+  // Resolve the link origin BEFORE persisting the token. A misconfigured
+  // deployment must not leave a pending verification (and its resend cooldown)
+  // behind after failing to build the link.
+  let baseUrl: string;
+  try {
+    baseUrl = await getBaseUrl();
+  } catch (error) {
+    console.error("Cannot build institution verification link:", error);
+    return {
+      success: false,
+      error:
+        "We could not create the verification link right now. Please try again later or contact support.",
+    };
+  }
+
   const token = randomBytes(32).toString("hex");
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + VERIFICATION_TTL_MS);
@@ -167,7 +182,6 @@ export async function requestInstitutionVerification(
       },
     });
 
-    const baseUrl = await getBaseUrl();
     const verificationUrl = `${baseUrl}/auth/verify-institution?token=${encodeURIComponent(token)}`;
     const emailResult = await sendInstitutionVerificationEmail({
       recipientEmail: institutionEmail,

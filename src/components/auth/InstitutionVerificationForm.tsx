@@ -36,6 +36,14 @@ export function InstitutionVerificationForm({
     );
   }, [institutionVerificationExpiresAt, pendingInstitutionEmail]);
   const [pendingEmail, setPendingEmail] = useState(pendingInstitutionEmail);
+  const [pendingExpiresAt, setPendingExpiresAt] = useState<Date | null>(
+    institutionVerificationExpiresAt,
+  );
+  const [pendingExpired, setPendingExpired] = useState(
+    () =>
+      institutionVerificationExpiresAt !== null &&
+      institutionVerificationExpiresAt.getTime() <= Date.now(),
+  );
   const [resendAt, setResendAt] = useState<number | null>(initialResendAt);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +60,33 @@ export function InstitutionVerificationForm({
 
   useEffect(() => {
     setPendingEmail(pendingInstitutionEmail);
+    setPendingExpiresAt(institutionVerificationExpiresAt);
     setResendAt(initialResendAt);
-  }, [initialResendAt, pendingInstitutionEmail]);
+  }, [
+    initialResendAt,
+    institutionVerificationExpiresAt,
+    pendingInstitutionEmail,
+  ]);
+
+  // The banner used to read "Verification is pending" until the next request,
+  // even long after the 20-minute token expired — so an old email from an
+  // earlier deployment looked current. Flip the state exactly when it expires.
+  useEffect(() => {
+    if (!pendingExpiresAt) {
+      setPendingExpired(false);
+      return;
+    }
+
+    const msRemaining = pendingExpiresAt.getTime() - Date.now();
+    if (msRemaining <= 0) {
+      setPendingExpired(true);
+      return;
+    }
+
+    setPendingExpired(false);
+    const timer = window.setTimeout(() => setPendingExpired(true), msRemaining);
+    return () => window.clearTimeout(timer);
+  }, [pendingExpiresAt]);
 
   useEffect(() => {
     if (!resendAt || resendAt <= Date.now()) return;
@@ -77,6 +110,7 @@ export function InstitutionVerificationForm({
         const submittedEmail = institutionEmail.trim().toLowerCase();
         if (submittedEmail && result.message.startsWith("Verification email")) {
           setPendingEmail(submittedEmail);
+          setPendingExpiresAt(new Date(Date.now() + VERIFICATION_TTL_MS));
           setResendAt(Date.now() + VERIFICATION_RESEND_COOLDOWN_MS);
           setNow(Date.now());
         }
@@ -108,10 +142,18 @@ export function InstitutionVerificationForm({
         </div>
       )}
 
-      {pendingInstitutionEmail && !institutionVerifiedAt && (
+      {pendingInstitutionEmail && !institutionVerifiedAt && !pendingExpired && (
         <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
           Verification is pending for <strong>{pendingInstitutionEmail}</strong>.
           Check that inbox and spam folder, or resend after 60 seconds.
+        </p>
+      )}
+
+      {pendingInstitutionEmail && !institutionVerifiedAt && pendingExpired && (
+        <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
+          The verification link sent to{" "}
+          <strong>{pendingInstitutionEmail}</strong> has expired. Send a new one
+          to finish verifying.
         </p>
       )}
 
@@ -154,7 +196,9 @@ export function InstitutionVerificationForm({
               : isResendCoolingDown
                 ? `Resend in ${resendSecondsRemaining}s`
                 : isPendingEmailSelected
-                  ? "Resend verification email"
+                  ? pendingExpired
+                    ? "Send new verification email"
+                    : "Resend verification email"
                   : "Send verification email"}
           </button>
         </div>
