@@ -2,10 +2,20 @@ import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 import prisma from "@/lib/db";
+import { getBaseUrl } from "@/lib/url";
 import { createClient } from "@/utils/supabase/server";
 
-function redirectToSettings(request: NextRequest, userId: string, result: string) {
-  const url = new URL(`/scholars/${userId}/settings`, request.url);
+/**
+ * Redirects must not be built from `request.url`.
+ *
+ * Behind the production reverse proxy, `request.url` resolves to the internal
+ * bind address (`https://0.0.0.0:3000`), so a verified user was sent to an
+ * unreachable host right after the badge was granted — the database was
+ * updated, but the page they landed on was dead. `getBaseUrl` resolves the
+ * public origin from the configured site URL or the forwarded host headers.
+ */
+async function redirectToSettings(userId: string, result: string) {
+  const url = new URL(`/scholars/${userId}/settings`, await getBaseUrl());
   url.searchParams.set("institution", result);
   return NextResponse.redirect(url);
 }
@@ -18,7 +28,7 @@ export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token") ?? "";
 
   if (!supabaseUser) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", await getBaseUrl());
     loginUrl.searchParams.set("error", "institution-verification-login-required");
     if (/^[a-f0-9]{64}$/.test(token)) {
       loginUrl.searchParams.set(
@@ -30,7 +40,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!/^[a-f0-9]{64}$/.test(token)) {
-    return redirectToSettings(request, supabaseUser.id, "invalid");
+    return redirectToSettings(supabaseUser.id, "invalid");
   }
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
@@ -45,14 +55,14 @@ export async function GET(request: NextRequest) {
   });
 
   if (!pendingVerification || pendingVerification.id !== supabaseUser.id) {
-    return redirectToSettings(request, supabaseUser.id, "invalid");
+    return redirectToSettings(supabaseUser.id, "invalid");
   }
 
   if (
     !pendingVerification.institutionVerificationExpiresAt ||
     pendingVerification.institutionVerificationExpiresAt <= new Date()
   ) {
-    return redirectToSettings(request, supabaseUser.id, "expired");
+    return redirectToSettings(supabaseUser.id, "expired");
   }
 
   const verifiedAt = new Date();
@@ -94,11 +104,10 @@ export async function GET(request: NextRequest) {
   } catch {
     // Another account may have verified the same address after this request
     // was created. The unique institutionEmail constraint wins safely.
-    return redirectToSettings(request, supabaseUser.id, "invalid");
+    return redirectToSettings(supabaseUser.id, "invalid");
   }
 
   return redirectToSettings(
-    request,
     supabaseUser.id,
     result === 1 ? "verified" : "invalid",
   );

@@ -8,6 +8,7 @@ import {
   sendMessage,
 } from "@/app/actions/messages";
 import { MessageItem } from "./MessageItem";
+import { applyMessageUpdate } from "./thread-update";
 import { useToast } from "@/components/ui/Toast";
 import type { User } from "@supabase/supabase-js";
 import type { SentMessage } from "./MessageInputForm";
@@ -254,35 +255,14 @@ export function MessageList({
 
   // ⚡ EDITS + TOMBSTONES: the conversation page forwards the Realtime
   // `UPDATE` broadcast here. A deleted message renders as a tombstone with an
-  // empty body, and every bubble quoting it flips its preview — same behaviour
-  // the removed `postgres_changes` UPDATE listener had, minus the channel.
+  // empty body, every bubble quoting it flips its preview, and an edited body
+  // refreshes the quotes too — same behaviour the removed `postgres_changes`
+  // UPDATE listener had, minus the channel.
   useEffect(() => {
     if (!registerUpdate) return;
 
     registerUpdate((row: MessageRow) => {
-      setMessages((current) =>
-        current.map((m) => {
-          if (m.id === row.id) {
-            return {
-              ...m,
-              body: row.isDeleted ? "" : row.body,
-              editedAt: row.editedAt ?? m.editedAt,
-              isDeleted: row.isDeleted,
-            };
-          }
-          // ⚡ QUOTE SYNC: keep bubbles quoting a tombstoned message accurate.
-          if (m.replyToId === row.id && m.replyTo) {
-            return {
-              ...m,
-              replyTo: {
-                ...m.replyTo,
-                isDeleted: row.isDeleted ?? m.replyTo.isDeleted,
-              },
-            };
-          }
-          return m;
-        }),
-      );
+      setMessages((current) => applyMessageUpdate(current, row));
     });
   }, [registerUpdate]);
 

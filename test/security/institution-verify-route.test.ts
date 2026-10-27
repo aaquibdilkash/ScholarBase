@@ -28,6 +28,15 @@ vi.mock("@/lib/db", async () => {
   return { default: fakeDb.client };
 });
 
+/**
+ * The route must build redirects from the public origin, never from
+ * `request.url` — behind the production proxy that is `https://0.0.0.0:3000`.
+ */
+const PUBLIC_ORIGIN = vi.hoisted(() => "https://scholarbase.app");
+vi.mock("@/lib/url", () => ({
+  getBaseUrl: vi.fn(async () => PUBLIC_ORIGIN),
+}));
+
 vi.mock("@/utils/supabase/server", () => ({
   createClient: async () => ({
     auth: { getUser: async () => ({ data: { user: sessionUser } }) },
@@ -67,10 +76,13 @@ const seed = (overrides: Record<string, unknown> = {}) => {
 };
 
 /** Runs the route and reports `?institution=` from the redirect it returns. */
-const run = async (token: string | null) => {
+const run = async (
+  token: string | null,
+  origin = "https://sb.test",
+) => {
   const { GET } = await import("@/app/auth/verify-institution/route");
   const { NextRequest } = await import("next/server");
-  const url = new URL("https://sb.test/auth/verify-institution");
+  const url = new URL(`${origin}/auth/verify-institution`);
   if (token !== null) url.searchParams.set("token", token);
   const res = await GET(new NextRequest(url));
   const location = res.headers.get("location") ?? "";
@@ -167,6 +179,20 @@ describe("GET /auth/verify-institution", () => {
     }
   });
 
+  it("ignores an internal request origin when redirecting after verification", async () => {
+    // Production forwards the request with the container's bind address as the
+    // URL origin. The badge was granted, then the browser was sent to
+    // `https://0.0.0.0:3000/...` — a dead page right after a successful click.
+    const { location } = await run(
+      RAW_TOKEN,
+      "https://0.0.0.0:3000",
+    );
+
+    expect(location).toBe(
+      `${PUBLIC_ORIGIN}/scholars/${OWNER}/settings?institution=verified`,
+    );
+  });
+
   it("sends an anonymous visitor to login, preserving the token to resume", async () => {
     sessionUser = null;
     const { location } = await run(RAW_TOKEN);
@@ -176,6 +202,14 @@ describe("GET /auth/verify-institution", () => {
     // A well-formed token survives the login round-trip; a junk one is dropped
     // rather than echoed into a callback URL.
     expect(location).toContain(encodeURIComponent(RAW_TOKEN));
+  });
+
+  it("uses the public origin for the anonymous login redirect", async () => {
+    sessionUser = null;
+    const { location } = await run(RAW_TOKEN, "https://0.0.0.0:3000");
+
+    expect(location.startsWith(`${PUBLIC_ORIGIN}/login`)).toBe(true);
+    expect(location).not.toContain("0.0.0.0");
   });
 
   it("drops a malformed token from the anonymous callback URL", async () => {
