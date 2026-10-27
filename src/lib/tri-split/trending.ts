@@ -135,7 +135,6 @@ export function createContentTrending(args: {
           vote: pascal(config.voteModel),
           bookmark: pascal(config.bookmarkModel),
           rowFk: config.parentFk,
-          authorFk: "authorId",
           counterKeys: TRENDING_COUNTER_KEYS,
         },
       );

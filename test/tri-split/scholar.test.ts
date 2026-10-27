@@ -1,10 +1,66 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { stitchLiveState, type LiveOverlay } from "@/lib/tri-split";
 import {
+  CONTENT_LISTS,
   SCHOLAR_SORT_KEY_PARTS,
   SCHOLAR_STITCH_OPTIONS,
 } from "@/lib/tri-split/modules/registry";
+
+/**
+ * Loader-level harness for the directory. Registry/stitch tests prove the fold
+ * rules in isolation, which is exactly how the real bug stayed green: the
+ * loader never resolved a scholar's own id as the follow target, so it queried
+ * no follows and every card rendered "Follow". These mocks let the actual
+ * loader run end-to-end without a database.
+ */
+const state = vi.hoisted(() => ({
+  queries: [] as string[],
+  rows: [] as Record<string, unknown>[],
+  following: [] as string[],
+}));
+
+function flattenSql(strings: readonly string[], values: readonly unknown[]): string {
+  return strings.reduce((sql, part, index) => {
+    const value = values[index];
+    if (
+      value &&
+      typeof value === "object" &&
+      "strings" in value &&
+      "values" in value
+    ) {
+      const nested = value as { strings: readonly string[]; values: readonly unknown[] };
+      return sql + part + flattenSql(nested.strings, nested.values);
+    }
+    return sql + part + (value === undefined ? "" : String(value));
+  }, "");
+}
+
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: unknown) => fn,
+  revalidateTag: vi.fn(),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  getCurrentUser: vi.fn(async () => ({ id: "viewer-1" })),
+}));
+
+vi.mock("@/lib/db", () => ({
+  default: {
+    user: { findMany: vi.fn(async () => state.rows) },
+    $queryRaw: (strings: readonly string[], ...values: unknown[]) => {
+      state.queries.push(flattenSql(strings, values));
+      return Promise.resolve([
+        {
+          votes: [],
+          bookmarks: [],
+          following: state.following,
+          counters: [],
+        },
+      ]);
+    },
+  },
+}));
 
 type ScholarRow = {
   id: string;
@@ -102,5 +158,57 @@ describe("scholar directory stitch", () => {
   it("revives the cached createdAt string into a Date", () => {
     const [item] = stitch([row("s1")], null);
     expect(item.createdAt).toBeInstanceOf(Date);
+  });
+});
+
+describe("scholar directory loader", () => {
+  const cachedRow = (id: string) => ({
+    id,
+    name: `Scholar ${id}`,
+    handle: id,
+    avatarUrl: null,
+    institutionVerifiedAt: null,
+    bio: null,
+    reputation: 1,
+    followersCount: 0,
+    followingCount: 0,
+    createdAt: "2026-01-02T03:04:05.000Z",
+  });
+
+  const loader = () =>
+    (
+      CONTENT_LISTS.SCHOLAR_DIRECTORY as unknown as Array<{
+        fetchPage: () => Promise<Array<Record<string, unknown>>>;
+      }>
+    )[0];
+
+  beforeEach(() => {
+    state.queries = [];
+    state.rows = [cachedRow("s1")];
+    state.following = ["s1"];
+  });
+
+  it("shows 'Following' for a scholar the viewer follows", async () => {
+    const [item] = await loader().fetchPage();
+
+    // The regression: this used to be `false` on every refresh because the
+    // loader resolved no author ids for directory rows.
+    expect(item.isFollowed).toBe(true);
+  });
+
+  it("queries follows for the scholars on the page", async () => {
+    await loader().fetchPage();
+
+    const sql = state.queries.join("\n");
+    expect(sql).toContain('"Follows"');
+    expect(sql).toContain("viewer-1");
+  });
+
+  it("keeps 'Follow' when the viewer does not follow the scholar", async () => {
+    state.following = [];
+
+    const [item] = await loader().fetchPage();
+
+    expect(item.isFollowed).toBe(false);
   });
 });

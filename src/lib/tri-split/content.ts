@@ -131,7 +131,6 @@ type ListOverlay = {
   vote: string | null;
   bookmark: string | null;
   rowFk?: string;
-  authorFk?: string;
   counterKeys: readonly string[];
 };
 
@@ -209,7 +208,6 @@ export function createContentList(
       vote: tableName(config.voteModel),
       bookmark: tableName(config.bookmarkModel),
       rowFk: config.parentFk,
-      authorFk: "authorId",
       counterKeys,
     },
   });

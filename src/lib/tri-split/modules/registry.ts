@@ -125,6 +125,15 @@ const AUTHOR = { select: AUTHOR_SELECT } as unknown as Record<string, unknown>;
  *
  * Exported so the contract test can assert across every key at once.
  */
+/**
+ * A directory row IS its own follow target, unlike a content row whose author
+ * lives in `authorId`. Sharing one function across both orderings (and
+ * `SCHOLAR_STITCH_OPTIONS`) matters: omitting it is invisible at runtime — the
+ * loader simply resolves no author ids, queries no follows, and every card
+ * falls back to "Follow" even for people the viewer already follows.
+ */
+const directoryFollowTarget = (row: Record<string, unknown>) => row.id as string;
+
 export const CONTENT_LIST_CONFIGS = {
   // ---------------------------------------------------------------------
   // Formerly bespoke. The feed and the article list each had their own
@@ -202,6 +211,7 @@ export const CONTENT_LIST_CONFIGS = {
         stitchOverrides: {
           // Top-level follow state rather than a nested author.followers array,
           // so the leaky shape never reaches the output.
+          getAuthorId: directoryFollowTarget,
           followTarget: "self" as const,
         },
       },
@@ -217,6 +227,7 @@ export const CONTENT_LIST_CONFIGS = {
         counterKeys: ["reputation", "followersCount", "followingCount"],
         searchFields: [{ field: "name" }, { field: "handle" }, { field: "bio" }],
         stitchOverrides: {
+          getAuthorId: directoryFollowTarget,
           followTarget: "self" as const,
         },
       },
@@ -648,8 +659,10 @@ export type ScholarSort = (typeof SCHOLAR_SORT_KEY_PARTS)[number];
 const scholarVariant = CONTENT_LIST_CONFIGS.SCHOLAR_DIRECTORY.variants[0];
 export const SCHOLAR_STITCH_OPTIONS = {
   getRowId: (row: Record<string, unknown>) => row.id as string,
-  // Follow state on a scholar row is keyed by the scholar's own id.
-  getAuthorId: (row: Record<string, unknown>) => row.id as string,
+  // Follow state on a scholar row is keyed by the scholar's own id. Taken from
+  // the variant (not re-declared) so the tested rules and the shipped loader
+  // cannot drift — the drift is what made every directory card say "Follow".
+  getAuthorId: scholarVariant.stitchOverrides.getAuthorId,
   counterKeys: scholarVariant.counterKeys,
   // The shared date revival, driven by the directory's own `dateKeys` — the same
   // derivation every content module gets, not a hand-rolled copy of it.

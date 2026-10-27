@@ -25,8 +25,6 @@ export type OverlayTables = {
   bookmark?: string | null;
   /** Column holding the row id inside the vote/bookmark tables. */
   rowFk?: string;
-  /** Column holding the author id inside the row table. */
-  authorFk?: string;
   /** Counter columns to read, e.g. `["totalVotes", "totalBookmarks"]`. */
   counterKeys: readonly string[];
 };
@@ -56,7 +54,7 @@ export async function getLiveOverlay(
 ): Promise<LiveOverlay> {
   if (rowIds.length === 0) return EMPTY(viewerId);
 
-  const { row, vote, bookmark, rowFk, authorFk, counterKeys } = tables;
+  const { row, vote, bookmark, rowFk, counterKeys } = tables;
   const fk = rowFk ?? "id";
 
   // Counter aggregate: shared verbatim by both the anonymous and signed-in
@@ -99,8 +97,13 @@ export async function getLiveOverlay(
         ), '[]'::json) AS bookmarks`
     : Prisma.sql`'[]'::json AS bookmarks`;
 
+  // Follow state is resolved from the author ids the page already has. This
+  // used to additionally require a per-module `authorFk` flag, which the
+  // scholar directory never set — so every directory card rendered "Follow"
+  // even for people the viewer already followed. Author ids are the whole
+  // condition; there is nothing else to configure.
   const followSql =
-    authorFk && authorIds.length > 0
+    authorIds.length > 0
       ? Prisma.sql`
         COALESCE((
           SELECT json_agg(f."followingId")
