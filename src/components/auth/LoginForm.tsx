@@ -20,6 +20,28 @@ import { Loader2 } from "lucide-react";
 import { AUTH_EMAIL_TIP, AUTH_PASSWORD_TIP } from "@/constants/tooltips";
 import { MAX_AUTH_EMAIL, MAX_AUTH_PASSWORD } from "@/lib/constants";
 
+const PENDING_OTP_EMAIL_KEY = "sb_pending_otp_email";
+
+function readPendingOtpEmail(): string | null {
+  try {
+    return sessionStorage.getItem(PENDING_OTP_EMAIL_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function savePendingOtpEmail(email: string): void {
+  try {
+    sessionStorage.setItem(PENDING_OTP_EMAIL_KEY, email);
+  } catch {}
+}
+
+function clearPendingOtpEmail(): void {
+  try {
+    sessionStorage.removeItem(PENDING_OTP_EMAIL_KEY);
+  } catch {}
+}
+
 export function LoginForm({
   returnUrl,
   initialError,
@@ -40,13 +62,11 @@ export function LoginForm({
 
   // Restore OTP step if the page reloads mid-verification (same tab).
   useEffect(() => {
-    try {
-      const pending = sessionStorage.getItem("sb_pending_otp_email");
-      if (pending && authStep === "form") {
-        setEmail(pending);
-        setAuthStep("otp");
-      }
-    } catch {}
+    const pending = readPendingOtpEmail();
+    if (pending && authStep === "form") {
+      setEmail(pending);
+      setAuthStep("otp");
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -60,9 +80,7 @@ export function LoginForm({
       setPendingAction(null);
       return;
     }
-    try {
-      sessionStorage.removeItem("sb_pending_otp_email");
-    } catch {}
+    clearPendingOtpEmail();
     toast("Account verified!", "success");
     router.push(result.redirect ?? returnUrl);
   };
@@ -142,6 +160,8 @@ export function LoginForm({
 
         <form
           action={async () => {
+            // Choosing a different auth method abandons any pending signup OTP.
+            clearPendingOtpEmail();
             setPendingAction("signin");
             const result = await signInWithGoogle(returnUrl);
             if (!result.success) {
@@ -208,6 +228,9 @@ export function LoginForm({
             onVerify={submitOtp}
             onResend={handleResend}
             onBack={() => {
+              // Remove the restore marker as well as leaving the step, or a
+              // refresh reopens OTP for the email the user just abandoned.
+              clearPendingOtpEmail();
               setAuthStep("form");
               setOtpError(null);
             }}
@@ -219,6 +242,9 @@ export function LoginForm({
             event.preventDefault();
             const submitter = event.nativeEvent.submitter as HTMLButtonElement | null;
             const action = submitter?.value === "register" ? "register" : "signin";
+            // Signing in, or retrying signup with another address, abandons any
+            // previous OTP flow. A successful signup re-saves the new address.
+            clearPendingOtpEmail();
             setPendingAction(action);
 
             if (action === "register") {
@@ -238,9 +264,7 @@ export function LoginForm({
                 return;
               }
               setShowDomainRequest(false);
-              try {
-                sessionStorage.setItem("sb_pending_otp_email", email);
-              } catch {}
+              savePendingOtpEmail(email);
               toast(
                 result.message || "A verification code has been sent to your email.",
                 "success",

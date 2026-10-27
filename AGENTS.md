@@ -1,61 +1,95 @@
 <!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# ScholarBase — agent guide
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This is **Next.js 16.3.7**, not the Next.js from model training. Read the relevant guide under `node_modules/next/dist/docs/` before changing framework behavior. Next 16 uses `src/proxy.ts` as the middleware/proxy entrypoint; there is no `middleware.ts`.
 
-# ScholarBase - AI Agent Master Guidelines
-**Project Context:** ScholarBase is a high-performance, Next.js 14+ (App Router) academic networking platform using Prisma and PostgreSQL (Supabase). 
+Stack: App Router + React 19 + strict TypeScript; Prisma 7.10 on PostgreSQL/Supabase; Upstash Redis/QStash; Cloudinary; Resend. CI and Docker use Node 22 and npm (`package-lock.json`).
 
-## Core Philosophy
-1. **Protect the Free Tier:** Database compute and connection pools are our most precious resources.
-2. **Zero-Compute Reads:** Read operations must be lightning-fast, utilizing materialized data and indexes over on-the-fly aggregations.
-3. **Optimistic UI:** The UI must feel instantaneous. We do not wait for database round-trips for micro-interactions.
-4. **Academic Integrity:** Reputation is sacred. Bad actors cannot farm points or manipulate the system.
+Operating assumptions: Supabase compute and connections are scarce, reads should be zero-compute, interactions should feel instant, and reputation is integrity-sensitive.
 
-Any code generated for this project MUST strictly adhere to the following architectural rules.
+## Map
 
----
+- `src/app/` — routes and Server Actions. Actions live in `src/app/actions/`; the README's `src/actions/` does not exist.
+- `src/lib/` — server domain logic. Vote/comment/bookmark/follow writes all route through `src/lib/transactions.ts` (`ENTITY_CONFIG` maps every content module).
+- `src/lib/tri-split/` — list/page stack: cached viewer-agnostic rows plus one indexed live overlay. New lists should use `createTriSplitList` / `createContentList`; never accept a viewer id from the client.
+- `prisma/schema.prisma` + `prisma/migrations/` — schema and history. For a new content/list module, wire the schema, `ENTITY_CONFIG`, `CONTENT_TABLES` (`src/lib/module-registry.ts`), and the tri-split registry.
+- Tests live in `test/`, grouped by the `src/` module they cover; import source through the `@/` alias, not relative paths.
 
-## RULE 1: Strict Client-Side State Mutation
-**NEVER use `revalidatePath` for highly interactive UI elements (Votes, Comments, Follows).**
-1. **Server Actions:** Must return the complete, newly updated/created database object (e.g., `{ success: true, data: newPost }`).
-2. **React Query:** Use `queryClient.setQueryData` to surgically update lists, comments, and nested replies upon successful Server Actions.
-3. **Micro-Interactions (`useOptimistic`):** For Upvotes, Downvotes, and Follows, bypass React Query. Use React's native `useOptimistic` hook to update the UI instantly, then fire the Server Action to sync the database in the background.
+## Commands
 
-## RULE 2: Database Read Optimizations (Zero-Compute)
-**NEVER use dynamic `_count`, full-table scans, or `Promise.all` waterfalls for feeds.**
-1. **Materialized Counters:** Always rely on static integer fields (`totalVotes`, `totalComments`) instead of dynamic relation counting. Comments also carry `totalReplies`. (`totalAnswers` exists only on `SurveyQuestion` for survey answer counts, not as a standard entity counter.)
-2. **Filtered Selects:** Resolve the N+1 problem by fetching the current user's state directly in the main query: `votes: { where: { userId: currentUserId }, select: { voteType: true } }`.
-3. **Unread Badges:** Never fetch arrays into memory to count them. Use indexed counts: `await prisma.notification.count({ where: { recipientId: userId, readAt: null } })`. For messages, unread counts are computed via a single indexed raw SQL join between `Message` and `ConversationParticipant` (see `getUnreadMessageCount`), avoiding per-conversation count queries.
-4. **Dashboard Stats:** Use raw SQL (`prisma.$queryRaw`) against the `pg_class` system catalog for global row counts.
+```bash
+npm install                 # postinstall runs prisma generate
+npx prisma generate         # re-run if the client is stale
+npm run dev
+npm run build
+npm run start
 
-## RULE 3: Database Write Optimizations & Voting Rules
-1. **Atomic Transactions:** Any user interaction (Voting, Commenting, Replying) must execute completely inside a `prisma.$transaction`. 
-2. **Stack Overflow Reputation System:** User reputation is tied strictly to community votes (1 vote = 1 rep). Authors cannot vote on their own content or comments (server rejects, UI disables). Content creation grants no reputation; the survey-participation +1 is the only non-vote grant (engagement incentive).
-3. **The Voting Matrix (non-author voters only):** 
-   - *New Vote:* Upsert vote + adjust `totalVotes` + adjust author `reputation`.
-   - *Toggle Off:* Delete vote + reverse `totalVotes` + reverse author `reputation`.
-   - *Switch Vote:* Update vote + double-adjust `totalVotes` + double-adjust author `reputation`.
-4. **Reputation Reversal:** If a user deletes a post, they MUST lose the exact amount of reputation they gained from that post's `totalVotes`. (No creation bonus exists to reverse; historical +1s granted before the votes-only change are grandfathered.)
-5. **Timestamp Integrity:** Never assume `updatedAt` means the user edited a post. `updatedAt` updates on every vote/comment counter increment. Use the manual `editedAt DateTime?` field to track actual content changes.
+npm run lint                # eslint
+npm run typecheck           # tsc --noEmit
 
-## RULE 4: Data Deletion Mechanics
-1. **Tombstone Pattern:** For all entities like Comments and Replies, NEVER hard-delete. Show deleted comments as tombstones if `totalReplies > 0` (with an option to expand and see their replies). If `totalReplies == 0`, hide the deleted comment entirely. Tombstones display "Deleted by [admin / post author / comment author / reply author]" depending on who performed the deletion (as wired in the codebase).
-2. **Soft Deletes:** Main content feeds (`SocialPost`, `Article`, etc.) use soft deletes (`isDeleted: true`) to preserve historical integrity while hiding the content from the feed. Hard deletion of soft-deleted rows is handled by a background cron (`trim-soft-deleted-posts`).
+npm test                    # unit tier, same as test:unit
+npx vitest run test/transactions/vote-matrix.test.ts  # one file
+npm run test:watch
+npm run test:coverage       # CI gate
+npm run test:integration    # needs a loopback DATABASE_URL
+npm run test:all            # coverage + integration
+```
 
-## RULE 5: Indexing Strategy
-Ensure Prisma schema utilizes strategic B-Tree indexing to prevent CPU spikes:
-1. **Top-Level Feeds:** `@@index([createdAt(sort: Desc)])`
-2. **Trending Feeds:** `@@index([trendingScore(sort: Desc)])`
-3. **Nested Comments:** `@@index([socialPostId, createdAt(sort: Desc)])`
-4. **Unread Badges:** `@@index([recipientId, readAt, createdAt(sort: Desc)])` on the `Notification` model (crucial for unread count queries).
-5. **User Directory:** `@@index([trendingScore(sort: Desc)])` and `@@index([reputation(sort: Desc)])` on the `User` model (powers the scholar directory and trending scholar queries).
+CI order is `lint -> typecheck -> test:coverage`, then a production build on pull requests. Match that order before finishing a change.
 
-## RULE 6: Background Processing & Security
-1. **Cron Jobs:** Background tasks are handled via Supabase cron jobs or Vercel Serverless Cron Jobs calling `prisma.$executeRawUnsafe` or qstash depending upon which kind of task it is. They must be protected by a `CRON_SECRET` authorization header. The cron suite includes: Trending math (`update-trending`), soft-deleted post purging (`trim-soft-deleted-posts`), and digest email dispatch (`daily-digest`, `weekly-digest`).
+## Testing guardrails
 
-3. **File Tracking:** Avoid unused imports, clean up unneeded dependencies, and resolve all TypeScript/ESLint warnings before marking a feature complete.
+- `npm test` is unit-only. `test/setup.ts` mocks `@/lib/db` and blocks non-loopback `fetch`; a DB/network test placed in the unit tier fails by design. Stub `globalThis.fetch` when a test needs HTTP.
+- `test/integration/**` is the only tier allowed to use real Postgres. `test/setup-integration.ts` requires a loopback `DATABASE_URL` and refuses Supabase. CI applies migrations only when that folder actually contains tests.
+- Coverage thresholds in `vitest.config.ts` are a deliberate ratchet. Raise them with new tests; never lower them to make a suite pass.
 
-**AGENT DIRECTIVE:** When asked to create or modify a feature, cross-reference these 6 rules. Do not take shortcuts that compromise database efficiency or UI responsiveness.
+## Next.js and runtime quirks
+
+- `src/proxy.ts` creates a per-request CSP nonce and must forward `x-nonce` plus the request-side `Content-Security-Policy`. Apply CSP to every response object you return: Supabase token refresh replaces the response, so a bare `NextResponse.next()` silently drops it.
+- `next build` intentionally runs without runtime secrets. `src/lib/env.ts` uses `SKIP_ENV_VALIDATION`/build placeholders; production validation happens at runtime. `NEXT_PUBLIC_*` values are compiled into the client at build time.
+- `next.config.ts`: standalone output, `deploymentId = SOURCE_COMMIT`, 6 MB Server Action body limit, unoptimized images. The Docker build uses `SKIP_ENV_VALIDATION=true` and placeholder QStash/Resend keys.
+- Sentry is already wired in `src/instrumentation*.ts` and `src/sentry.server.config.ts`. Do not run the Sentry wizard; it generates conflicting config files.
+- Realtime messaging uses Broadcast-from-Database private channels (`privateChannel()` in `src/lib/realtime.ts`). Do not add Postgres Changes listeners; SQL and policies live in `supabase/realtime/`.
+
+## Database
+
+- Runtime uses the pooled `DATABASE_URL` through one `pg` Pool + `PrismaPg` adapter in `src/lib/db.ts`. Do not create another `PrismaClient` or pool; `DB_POOL_MAX` defaults to 10.
+- Prisma CLI/migrations use `DIRECT_URL` via `prisma.config.ts`. Keep `DATABASE_URL` pooled and `DIRECT_URL` direct; never run `prisma migrate reset` or `db push` against a live/Coolify database.
+- Remote/production database startup requires `SUPABASE_CA_CERT_BASE64` (or `SUPABASE_CA_CERT`); local/internal Docker hosts skip TLS. `next build` is exempt.
+- Inside `prisma.$transaction`, do not call helpers that hit the global client (for example `isUserAdmin`); resolve them before opening the transaction to avoid a second pool checkout/deadlock. `deleteCommentTransaction` is the reference.
+- Coolify database work is done through an SSH tunnel; follow `docs/prisma-coolify-migration-runbook.md`. Migration recovery is in `Prisma.md`.
+
+## Read performance (zero-compute)
+
+- Use materialized counters (`totalVotes`, `totalComments`, `totalBookmarks`, `totalReplies`, `followersCount`, `followingCount`) and indexed counts. Never use dynamic `_count` or per-row aggregations on feeds.
+- Fetch viewer state in the main query (`votes: { where: { userId } }`) or through the tri-split overlay, not with a second query per row.
+- Unread notifications use indexed `count`; unread messages use the raw SQL join in `getUnreadMessageCount`; admin totals use `pg_class.reltuples`.
+- New feeds/lists need matching indexes: `createdAt(sort: Desc)`, `trendingScore(sort: Desc)`, `[parentId, createdAt(sort: Desc)]`, and `[recipientId, readAt, createdAt(sort: Desc)]` for notifications. The user directory relies on descending `trendingScore`/`reputation` indexes.
+
+## Writes, reputation, and deletion
+
+- Votes, comments, replies, follows, and bookmarks run inside `prisma.$transaction` and return updated counters/rows. Use `transactions.ts`; do not write ad-hoc counter updates.
+- Vote matrix: new vote = upsert + increment `totalVotes` + increment author reputation; toggle off = delete + reverse both; switch = update + double-adjust both. Self-votes are rejected server-side.
+- Reputation is 1 vote = 1 point. Content creation grants none; survey participation's +1 is the only non-vote grant. User-facing delete paths reverse the author's reputation by the deleted content's `totalVotes`.
+- `updatedAt` changes on counter updates. Use `editedAt` to detect real content edits.
+- Comments/replies are never hard-deleted: set `isDeleted`, `deletedByType`, and `deletedById`. Render a tombstone only when `totalReplies > 0`; hide it otherwise. Permission order is in `src/lib/deletion.ts`.
+- Main content uses soft delete (`isDeleted: true`); `trim-soft-deleted-posts` hard-deletes rows whose `updatedAt` is more than 30 days old. Do not add direct `.delete()` calls for content rows.
+
+## Auth, mutations, and rate limits
+
+- User-facing mutations use `getActiveUser()` and return a normal `{ success: false, ... }` result when the account is frozen. `requireActiveUser()` throws and is for admin/intentional hard failures; `requireCurrentUser()` is for appeals, notification reads, and private settings where frozen users must still read.
+- Server Actions return the persisted row (`{ success: true, data }`). Update React Query with `setQueryData`, or use `useOptimistic` for vote/follow/bookmark micro-interactions. Do not use `revalidatePath` for those; purge cached lists with `revalidateTag(tag, { expire: 0 })` or the tri-split `revalidate()`.
+- Writes pass `onDegraded: "closed"` to `checkRateLimit`; reads default to fail-open. Keep that policy.
+
+## Background jobs and deployment
+
+- Cron routes in `src/app/api/cron/{daily-digest,weekly-digest,trim-maintenance,trim-soft-deleted-posts}` must call `verifyCronSecret()` (Bearer `CRON_SECRET`). `update-trending` is a Postgres function documented in `src/app/api/cron/update-trending/update-trending.md`, not an app route.
+- QStash jobs in `src/app/api/jobs/*` are wrapped with `verifySignatureAppRouter`; do not bypass signature verification.
+- CI on pushes to `staging`/`production` builds an ARM64 image, pushes it to GHCR, and triggers Coolify; `main`/`development` do not auto-deploy. The Docker `migrate` stage runs `prisma migrate deploy`.
+
+## Stale sources and historical labels
+
+- README has stale details (Prisma 7.9, `src/actions`, Vercel deployment). Trust `package.json`, `.github/workflows/ci.yml`, `Dockerfile`, `next.config.ts`, and this file.
+- Code comments cite “RULE 1–7”; the numbering is historical and not aligned with the sections here. Follow the surrounding prose and the actual implementation.
 
 <!-- END:nextjs-agent-rules -->
