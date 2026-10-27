@@ -32,6 +32,11 @@ interface MessageItemProps {
   onRetry?: (message: SentMessage) => void;
   /** Sets this message as the active reply target in the composer. */
   onSetReplyingTo?: (message: SentMessage) => void;
+  /**
+   * False when the conversation is blocked (either direction). The server
+   * rejects edits and deletes in that state, so the menu must not offer them.
+   */
+  canManage?: boolean;
 }
 
 // ── Emoji visibility helpers ───────────────────────────────────────────────
@@ -90,6 +95,7 @@ export const MessageItem = React.memo(
     onDelete,
     onRetry,
     onSetReplyingTo,
+    canManage = true,
   }: MessageItemProps) {
     const isMine = Boolean(currentUserId && message.senderId === currentUserId);
     const isRead = new Date(message.createdAt) <= otherParticipantLastReadAt;
@@ -381,7 +387,7 @@ export const MessageItem = React.memo(
                 style={{ top: menuPosition.top, left: menuPosition.left }}
                 className="fixed z-menu w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
               >
-                {isMine && (
+                {isMine && canManage && (
                   <button
                     type="button"
                     onClick={startEdit}
@@ -399,7 +405,7 @@ export const MessageItem = React.memo(
                   <Copy className="h-3.5 w-3.5" />
                   Copy
                 </button>
-                {isMine && (
+                {isMine && canManage && (
                   <button
                     type="button"
                     onClick={requestDelete}
@@ -603,7 +609,8 @@ export const MessageItem = React.memo(
         nextProps.otherParticipantLastReadAt.getTime() &&
       prevProps.onEdit === nextProps.onEdit &&
       prevProps.onDelete === nextProps.onDelete &&
-      prevProps.onRetry === nextProps.onRetry
+      prevProps.onRetry === nextProps.onRetry &&
+      prevProps.canManage === nextProps.canManage
     );
   },
 );

@@ -723,6 +723,9 @@ export default function ConversationPage({
             registerUpdate={handleRegisterUpdate}
             onMessageRejected={handleMessageRejected}
             onSetReplyingTo={setReplyingTo}
+            canManageMessages={
+              !blockState.blockedByMe && !blockState.blockedMe
+            }
           />
         </div>
       </div>

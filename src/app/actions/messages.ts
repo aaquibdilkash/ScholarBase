@@ -28,6 +28,20 @@ const sidebarUserSelect = {
   isDeleted: true,
 } as const;
 
+/**
+ * Collapse CRLF back to LF before measuring or storing a message body.
+ *
+ * Line breaks do not survive the wire unchanged: the multipart serializer
+ * normalises every `\n` in a form field to `\r\n`, so a 256-character draft
+ * with a single line break arrived as 257 characters and failed the cap even
+ * though the composer showed `256/256`. Measuring the text the author typed —
+ * and storing it with plain LF — keeps the client counter, the server cap and
+ * the saved row in agreement.
+ */
+function normalizeMessageBody(body: string): string {
+  return body.replace(/\r\n?/g, "\n");
+}
+
 const directConversationSelect = {
   id: true,
   lastMessageAt: true,
@@ -338,13 +352,14 @@ export async function startConversation(
   }
 
   const recipientId = readFormValue(formData, "recipientId");
-  const body = readFormValue(formData, "body");
+  const body = normalizeMessageBody(readFormValue(formData, "body"));
 
   if (!recipientId || !body)
     return { success: false, error: "Recipient and message are required." };
 
   // ⚡ SERVER-SIDE LENGTH CAP: `maxLength` on the textarea is bypassable —
-  // never trust the client to enforce it (defense-in-depth).
+  // never trust the client to enforce it (defense-in-depth). Measured after
+  // CRLF normalisation so the cap matches the composer's character count.
   if (body.length > MAX_MESSAGE_BODY)
     return {
       success: false,
@@ -546,13 +561,14 @@ export async function sendMessage(
     return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR, code: "UNKNOWN" };
   }
 
-  const body = readFormValue(formData, "body");
+  const body = normalizeMessageBody(readFormValue(formData, "body"));
   const replyToId = readOptionalFormValue(formData, "replyToId");
 
   if (!body) return { success: false, error: "Message body is required.", code: "VALIDATION" };
 
   // ⚡ SERVER-SIDE LENGTH CAP: `maxLength` on the composer is bypassable —
-  // never trust the client to enforce it (defense-in-depth).
+  // never trust the client to enforce it (defense-in-depth). Measured after
+  // CRLF normalisation so the cap matches the composer's character count.
   if (body.length > MAX_MESSAGE_BODY)
     return {
       success: false,
@@ -664,6 +680,46 @@ export async function sendMessage(
   return createdMessage;
 }
 
+/**
+ * Block enforcement for writes to an existing thread.
+ *
+ * `sendMessage` already refuses new messages when either side has blocked the
+ * other. Editing and deleting must follow the same rule: otherwise the blocked
+ * party keeps rewriting history that the blocker still receives over Realtime.
+ * A block in either direction is decisive — the conversation is closed.
+ *
+ * Returns the user-facing error, or `null` when the write is allowed.
+ */
+async function blockedMessageWriteError(
+  conversation: {
+    type: string;
+    participants: { userId: string }[];
+  } | null,
+  viewerId: string,
+  action: "edit" | "delete",
+): Promise<string | null> {
+  if (!conversation || conversation.type !== "DIRECT") return null;
+
+  const peerId = conversation.participants.find(
+    (participant) => participant.userId !== viewerId,
+  )?.userId;
+  if (!peerId) return null;
+
+  const block = await prisma.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: viewerId, blockedId: peerId },
+        { blockerId: peerId, blockedId: viewerId },
+      ],
+    },
+    select: { id: true },
+  });
+
+  return block
+    ? `You cannot ${action} this message because this conversation is blocked.`
+    : null;
+}
+
 export async function editMessage(
   messageId: string,
   newBody: string,
@@ -683,12 +739,20 @@ export async function editMessage(
     return { success: false, error: rateLimit.degraded ? RATE_LIMIT_DEGRADED_ERROR : RATE_LIMIT_ERROR };
   }
 
-  const trimmed = newBody?.trim();
+  const trimmed = normalizeMessageBody(newBody).trim();
   if (!trimmed) return { success: false, error: "Message body is required." };
 
   const message = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { id: true, senderId: true, conversationId: true, isDeleted: true },
+    select: {
+      id: true,
+      senderId: true,
+      conversationId: true,
+      isDeleted: true,
+      conversation: {
+        select: { type: true, participants: { select: { userId: true } } },
+      },
+    },
   });
 
   // ⚡ ACADEMIC INTEGRITY: only the author may edit their own message.
@@ -699,6 +763,13 @@ export async function editMessage(
   if (message.isDeleted) {
     return { success: false, error: "Deleted messages cannot be edited." };
   }
+
+  const blocked = await blockedMessageWriteError(
+    message.conversation,
+    supabaseUser.id,
+    "edit",
+  );
+  if (blocked) return { success: false, error: blocked };
 
   const updated = await prisma.message.update({
     where: { id: messageId },
@@ -735,9 +806,12 @@ export async function editMessage(
 export async function deleteMessage(
   messageId: string,
 ): Promise<SubmitResult> {
-  const auth = await getActiveUser("Please log in to delete a message.");
-  if (auth.frozen) return { success: false, error: auth.message };
-  const supabaseUser = auth.user;
+  // Frozen users may delete their own messages: the freeze banner restricts
+  // posting, commenting, voting and reporting, not the ability to retract
+  // content (matching every other content delete path).
+  const supabaseUser = await requireCurrentUser(
+    "Please log in to delete a message.",
+  );
 
   const rateLimit = await checkRateLimit({
     namespace: "message:delete",
@@ -753,7 +827,14 @@ export async function deleteMessage(
 
   const message = await prisma.message.findUnique({
     where: { id: messageId },
-    select: { id: true, senderId: true, isDeleted: true },
+    select: {
+      id: true,
+      senderId: true,
+      isDeleted: true,
+      conversation: {
+        select: { type: true, participants: { select: { userId: true } } },
+      },
+    },
   });
 
   // ⚡ ACADEMIC INTEGRITY: only the author may delete their own message.
@@ -764,6 +845,13 @@ export async function deleteMessage(
   if (message.isDeleted) {
     return { success: true };
   }
+
+  const blocked = await blockedMessageWriteError(
+    message.conversation,
+    supabaseUser.id,
+    "delete",
+  );
+  if (blocked) return { success: false, error: blocked };
 
   // ⚡ TOMBSTONE (RULE 4): Soft delete — blank the body for privacy and flag
   // the row so both clients render "This message was deleted".

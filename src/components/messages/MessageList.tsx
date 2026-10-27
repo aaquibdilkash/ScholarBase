@@ -55,6 +55,7 @@ export function MessageList({
   registerUpdate,
   onMessageRejected,
   onSetReplyingTo,
+  canManageMessages = true,
 }: {
   conversationId: string;
   initialMessages: SentMessage[];
@@ -74,6 +75,11 @@ export function MessageList({
   onMessageRejected?: (code: MessageFailureCode) => void;
   /** Marks a message as the active reply target in the composer. */
   onSetReplyingTo?: (message: SentMessage) => void;
+  /**
+   * False while the conversation is blocked in either direction: edit and
+   * delete are rejected server-side, so the menu must not offer them.
+   */
+  canManageMessages?: boolean;
 }) {
   const { toast } = useToast();
   const [messages, setMessages] = useState<SentMessage[]>(() =>
@@ -438,6 +444,7 @@ export function MessageList({
 
   const handleDelete = useCallback(
     async (messageId: string) => {
+      const previous = messages.find((m) => m.id === messageId);
       // Optimistic UI: tombstone instantly.
       setMessages((current) =>
         current.map((m) =>
@@ -446,12 +453,19 @@ export function MessageList({
       );
       const result = await deleteMessage(messageId);
       if (result && "error" in result) {
+        // A rejected delete must not leave the tombstone on screen until the
+        // next refresh silently reverts it.
+        if (previous) {
+          setMessages((current) =>
+            current.map((m) => (m.id === messageId ? previous : m)),
+          );
+        }
         toast(result.error ?? "Could not delete the message.", "error");
         return false;
       }
       return true;
     },
-    [toast],
+    [messages, toast],
   );
 
   if (!user || !userId) return null;
@@ -486,6 +500,7 @@ export function MessageList({
           otherParticipantLastReadAt={otherParticipantLastReadAt}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          canManage={canManageMessages}
           onRetry={retryMessage}
           onSetReplyingTo={onSetReplyingTo}
         />
