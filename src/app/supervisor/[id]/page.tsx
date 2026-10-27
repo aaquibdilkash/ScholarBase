@@ -95,6 +95,11 @@ export default async function SupervisorPage({
       deletedByType={supervisor.deletedByType}
       deletedNoun="supervisor profile"
       isFrozen={supervisor.isFrozen ?? false}
+      frozenEntityId={supervisor.id}
+      frozenModule="SUPERVISOR"
+      frozenEntityType="POST"
+      frozenOwnerId={supervisor.author?.id ?? null}
+      frozenHasActiveAppeal={supervisor.hasActiveAppeal ?? false}
       backHref="/supervisor"
       backLabel="Back to Search"
       authorId={supervisor.authorId}

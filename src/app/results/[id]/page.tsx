@@ -70,6 +70,11 @@ const ResultDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={result.isFrozen ?? false}
+      frozenEntityId={result.id}
+      frozenModule="RESULT"
+      frozenEntityType="POST"
+      frozenOwnerId={result.author?.id ?? null}
+      frozenHasActiveAppeal={result.hasActiveAppeal ?? false}
       backHref="/results"
       backLabel="Back to Results"
       authorHref={`/scholars/${result.author?.id}`}

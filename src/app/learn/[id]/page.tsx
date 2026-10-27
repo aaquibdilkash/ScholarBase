@@ -88,6 +88,11 @@ export default async function CourseDetailPage({
   return (
     <DetailPageCardShell
       isFrozen={course.isFrozen ?? false}
+      frozenEntityId={course.id}
+      frozenModule="COURSE"
+      frozenEntityType="POST"
+      frozenOwnerId={course.author?.id ?? null}
+      frozenHasActiveAppeal={course.hasActiveAppeal ?? false}
       backHref="/learn"
       backLabel="Back to Learning Zone"
       authorHref={`/scholars/${course.author?.id}`}

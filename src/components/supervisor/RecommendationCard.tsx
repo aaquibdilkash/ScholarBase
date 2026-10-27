@@ -113,11 +113,11 @@ export function RecommendationCard({
       frozenEntityId={recommendation.id}
       frozenModule="RECOMMENDATION"
       frozenEntityType="POST"
-      frozenOwnerId={
-        recommendation.isAnonymous
-          ? null
-          : recommendation.author?.id ?? recommendation.authorId ?? null
-      }
+      // The banner must know the real owner even when the review is anonymous —
+      // `ownerId` is already in the row (the owner's own dropdown uses it), and
+      // without it the owner saw a freeze notice here with no appeal while the
+      // detail page offered one.
+      frozenOwnerId={ownerId ?? null}
       frozenHasActiveAppeal={recommendation.hasActiveAppeal ?? false}
       detailPageHref={`/supervisor/${supervisor.id}/recommendation/${recommendation.id}`}
       // Share payload: mirror the recommendation detail page generateMetadata().

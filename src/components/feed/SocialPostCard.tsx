@@ -156,6 +156,14 @@ export function SocialPostCard({
       isDeleted={post.isDeleted ?? false}
       deletedByType={post.deletedByType}
       deletedNoun="post"
+      // Without these the shell renders no frozen notice at all: the post looks
+      // normal in the feed while its detail page says "frozen by moderators".
+      isFrozen={post.isFrozen ?? false}
+      frozenEntityId={post.id}
+      frozenModule="SOCIAL_FEED"
+      frozenEntityType="POST"
+      frozenOwnerId={post.author?.id ?? null}
+      frozenHasActiveAppeal={post.hasActiveAppeal ?? false}
       // Share payload: mirror feed/[id]/page.tsx generateMetadata() — the
       // first 58 chars of the post body.
       shareTitle={(post.content ?? "").replace(/\s+/g, " ").trim().slice(0, 58) || "Scholar Post"}

@@ -38,6 +38,13 @@ export function ResearchGrantCard({
       isDeleted={grant.isDeleted ?? false}
       deletedByType={grant.deletedByType}
       deletedNoun="grant"
+      // The list card must surface the same moderation state as /grants/[id].
+      isFrozen={grant.isFrozen ?? false}
+      frozenEntityId={grant.id}
+      frozenModule="RESEARCH_GRANT"
+      frozenEntityType="POST"
+      frozenOwnerId={grant.author?.id ?? null}
+      frozenHasActiveAppeal={grant.hasActiveAppeal ?? false}
       authorHref={`/scholars/${grant.author?.id}`}
       authorName={grant.author?.name || "Scholar"}
       authorId={grant.authorId}

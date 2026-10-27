@@ -48,6 +48,13 @@ export function EventCard({
       isDeleted={event.isDeleted ?? false}
       deletedByType={event.deletedByType}
       deletedNoun="event"
+      // The list card must surface the same moderation state as /events/[id].
+      isFrozen={event.isFrozen ?? false}
+      frozenEntityId={event.id}
+      frozenModule="RESEARCH_EVENT"
+      frozenEntityType="POST"
+      frozenOwnerId={event.author?.id ?? null}
+      frozenHasActiveAppeal={event.hasActiveAppeal ?? false}
       authorHref={`/scholars/${event.author?.id}`}
       authorName={event.author?.name || "Scholar"}
       authorId={event.authorId}

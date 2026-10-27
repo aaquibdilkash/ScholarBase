@@ -53,6 +53,13 @@ export function CourseCard({
       isDeleted={course.isDeleted ?? false}
       deletedByType={course.deletedByType}
       deletedNoun="course"
+      // The list card must surface the same moderation state as /learn/[id].
+      isFrozen={course.isFrozen ?? false}
+      frozenEntityId={course.id}
+      frozenModule="COURSE"
+      frozenEntityType="POST"
+      frozenOwnerId={course.author?.id ?? null}
+      frozenHasActiveAppeal={course.hasActiveAppeal ?? false}
       authorHref={`/scholars/${course.author?.id}`}
       authorName={course.author?.name || "Scholar"}
       authorId={course.authorId}

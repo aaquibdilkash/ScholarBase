@@ -80,6 +80,13 @@ export function PublicationCard({
       isDeleted={publication.isDeleted ?? false}
       deletedByType={publication.deletedByType}
       deletedNoun="publication"
+      // The list card must surface the same moderation state as the detail page.
+      isFrozen={publication.isFrozen ?? false}
+      frozenEntityId={publication.id}
+      frozenModule="PUBLICATION"
+      frozenEntityType="POST"
+      frozenOwnerId={publication.author?.id ?? null}
+      frozenHasActiveAppeal={publication.hasActiveAppeal ?? false}
       authorHref={`/scholars/${publication.author?.id}`}
       authorName={publication.author?.name || "Scholar"}
       authorId={publication.authorId}
