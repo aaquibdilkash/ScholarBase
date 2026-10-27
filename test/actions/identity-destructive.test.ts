@@ -22,8 +22,47 @@ const OTHER = "u-other";
 
 let session: { id: string; email: string } | null = null;
 let updateUserResult: { error: { message: string } | null } = { error: null };
+let verifyOtpResult: { error: { message: string } | null } = { error: null };
 const signOut = vi.fn(async () => {});
 const revalidateContent = vi.fn();
+
+type FakeIdentity = {
+  identity_id: string;
+  id: string;
+  user_id: string;
+  provider: string;
+  identity_data: { email: string };
+};
+
+/**
+ * Mirrors GoTrue's rule: unlinking removes the identity, so a test can prove the
+ * old address stops being a way in rather than just that a call was made.
+ */
+let identities: FakeIdentity[] = [];
+const unlinkIdentity = vi.fn(
+  async (
+    identity: FakeIdentity,
+  ): Promise<{ data: unknown; error: { message: string } | null }> => {
+    identities = identities.filter((i) => i.identity_id !== identity.identity_id);
+    return { data: {}, error: null };
+  },
+);
+
+const googleIdentity = (identityId: string, email: string): FakeIdentity => ({
+  identity_id: identityId,
+  id: identityId,
+  user_id: USER,
+  provider: "google",
+  identity_data: { email },
+});
+
+const emailIdentity = (email: string): FakeIdentity => ({
+  identity_id: "ident-email",
+  id: "ident-email",
+  user_id: USER,
+  provider: "email",
+  identity_data: { email },
+});
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -48,12 +87,18 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/utils/supabase/server", () => ({
   createClient: async () => ({
     auth: {
-      getUser: async () => ({ data: { user: session } }),
+      getUser: async () => ({
+        data: { user: session ? { ...session, identities } : null },
+      }),
       updateUser: async (_attrs: unknown, _opts: unknown) => updateUserResult,
+      verifyOtp: async (_args: unknown) => verifyOtpResult,
+      unlinkIdentity: (identity: FakeIdentity) => unlinkIdentity(identity),
       signOut: async () => signOut(),
     },
   }),
 }));
+
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: (...args: unknown[]) => revalidateContent(...(args as [])),
@@ -105,6 +150,9 @@ beforeEach(() => {
   resetFakeDb();
   session = { id: USER, email: "me@uni.edu" };
   updateUserResult = { error: null };
+  verifyOtpResult = { error: null };
+  identities = [emailIdentity("me@uni.edu")];
+  unlinkIdentity.mockClear();
   signOut.mockClear();
   revalidateContent.mockClear();
   seedUser();
@@ -184,6 +232,91 @@ describe("requestEmailChange", () => {
     const result = await requestEmailChange(form({ email: "new@mit.edu" }));
 
     expect(result.success).toBe(false);
+  });
+});
+
+describe("verifyEmailChangeOtp — old address must stop opening the account", () => {
+  it("unlinks the Google identity that still holds the previous address", async () => {
+    // The reported case: the account moved off `kdmsc121@gmail.com`, but
+    // "Continue with Google" using that old address still signed in. OAuth
+    // identities are matched by the provider's user id, so an email change never
+    // invalidates them — only unlinking does.
+    identities = [
+      emailIdentity("new@mit.edu"),
+      googleIdentity("g-old", "old@gmail.com"),
+    ];
+
+    const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
+    const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
+
+    expect(result.success).toBe(true);
+    expect(unlinkIdentity).toHaveBeenCalledTimes(1);
+    expect(unlinkIdentity.mock.calls[0][0].identity_data.email).toBe("old@gmail.com");
+    expect(identities.map((i) => i.identity_data.email)).toEqual(["new@mit.edu"]);
+  });
+
+  it("keeps a Google identity that already matches the new primary address", async () => {
+    identities = [
+      emailIdentity("new@mit.edu"),
+      googleIdentity("g-new", "new@mit.edu"),
+      googleIdentity("g-old", "old@gmail.com"),
+    ];
+
+    const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
+    await verifyEmailChangeOtp("new@mit.edu", "123456");
+
+    expect(unlinkIdentity).toHaveBeenCalledTimes(1);
+    expect(identities.map((i) => i.identity_data.email).sort()).toEqual([
+      "new@mit.edu",
+      "new@mit.edu",
+    ]);
+  });
+
+  it("never unlinks the account's only way in", async () => {
+    // A Google-only account: unlinking here would leave no credential at all.
+    // The email change still succeeds, the identity is simply kept.
+    identities = [googleIdentity("g-only", "old@gmail.com")];
+
+    const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
+    const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
+
+    expect(result.success).toBe(true);
+    expect(unlinkIdentity).not.toHaveBeenCalled();
+  });
+
+  it("still reports success when Supabase refuses the unlink", async () => {
+    // "Manual linking" is a project setting; if it is off, unlinking fails. The
+    // email change has already happened, so that must not surface as an error.
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    unlinkIdentity.mockImplementationOnce(async () => ({
+      data: null,
+      error: { message: "Manual linking is disabled" },
+    }));
+    identities = [
+      emailIdentity("new@mit.edu"),
+      googleIdentity("g-old", "old@gmail.com"),
+    ];
+
+    const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
+    const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
+
+    expect(result.success).toBe(true);
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it("changes nothing when the confirmation code is rejected", async () => {
+    verifyOtpResult = { error: { message: "Token has expired" } };
+    identities = [
+      emailIdentity("me@uni.edu"),
+      googleIdentity("g-old", "old@gmail.com"),
+    ];
+
+    const { verifyEmailChangeOtp } = await import("@/app/actions/auth");
+    const result = await verifyEmailChangeOtp("new@mit.edu", "123456");
+
+    expect(result.success).toBe(false);
+    expect(unlinkIdentity).not.toHaveBeenCalled();
   });
 });
 

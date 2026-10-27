@@ -8,6 +8,7 @@ import { getBaseUrl } from "@/lib/url";
 import prisma from "@/lib/db";
 import { ensureUserProfile } from "@/lib/users";
 import type { Duration } from "@upstash/ratelimit";
+import type { UserIdentity } from "@supabase/supabase-js";
 import {
   checkRateLimit,
   getRequestIpKey,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/email-normalizer";
 import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
 import { recoverDeletedAccount } from "@/lib/account-recovery";
+import { staleOAuthIdentities } from "@/lib/auth-identities";
 import { updateNotificationActorSnapshots } from "@/lib/notifications";
 
 /**
@@ -387,6 +389,37 @@ export async function requestEmailChange(
   };
 }
 
+/**
+ * Drops linked OAuth logins that still point at the previous address.
+ *
+ * Best effort on purpose: at this point the email change has already succeeded
+ * in Supabase, so a failure here must never turn a completed change into an
+ * error the user retries. Supabase also refuses to unlink the last identity,
+ * and `staleOAuthIdentities` never proposes one, so nobody is locked out.
+ */
+async function revokeStaleOAuthIdentities(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  identities: readonly UserIdentity[],
+  primaryEmail: string,
+) {
+  for (const identity of staleOAuthIdentities(identities, primaryEmail)) {
+    try {
+      const { error } = await supabase.auth.unlinkIdentity(identity);
+      if (error) {
+        console.error(
+          `Could not unlink the ${identity.provider} identity after an email change:`,
+          error.message,
+        );
+      }
+    } catch (error) {
+      console.error(
+        `Could not unlink the ${identity.provider} identity after an email change:`,
+        error,
+      );
+    }
+  }
+}
+
 export async function verifyEmailChangeOtp(
   newEmail: string,
   token: string,
@@ -450,6 +483,11 @@ export async function verifyEmailChangeOtp(
   } catch {
     // Best-effort: auth email already changed; layout profile sync retries later.
   }
+
+  // Google (and any other OAuth) identities are matched by the provider's user
+  // id, not by email, so the old address keeps opening this account until the
+  // identity is unlinked — even though password sign-in already rejects it.
+  await revokeStaleOAuthIdentities(supabase, user.identities ?? [], cleanEmail);
 
   revalidatePath("/", "layout");
   return { success: true, message: "Primary email updated successfully." };

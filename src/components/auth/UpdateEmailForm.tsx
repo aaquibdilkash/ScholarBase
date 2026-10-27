@@ -121,7 +121,9 @@ export function UpdateEmailForm({
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400">
           Only approved consumer or institutional domains can become your primary email.
-          We will send a 6-digit code to the new address to confirm the change.
+          We will send a 6-digit code to the new address to confirm the change. After
+          you confirm, your current address stops working for password sign-in, and any
+          Google account that still uses it is disconnected.
         </p>
         {message && !pendingNewEmail && (
           <p className="text-sm text-emerald-600" role="status">{message}</p>
