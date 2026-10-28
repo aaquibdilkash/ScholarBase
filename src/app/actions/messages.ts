@@ -724,8 +724,11 @@ export async function editMessage(
   messageId: string,
   newBody: string,
 ): Promise<SubmitResult | (CreatedMessage & { editedAt: Date | null })> {
-  // Frozen users may edit (to correct content before appealing).
-  const supabaseUser = await requireCurrentUser("Please log in to edit a message.");
+  // Frozen accounts cannot rewrite message history — the composer is disabled,
+  // and the per-message action menu hides Edit/Delete.
+  const auth = await getActiveUser("Please log in to edit a message.");
+  if (auth.frozen) return { success: false, error: auth.message };
+  const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:edit",
@@ -806,12 +809,11 @@ export async function editMessage(
 export async function deleteMessage(
   messageId: string,
 ): Promise<SubmitResult> {
-  // Frozen users may delete their own messages: the freeze banner restricts
-  // posting, commenting, voting and reporting, not the ability to retract
-  // content (matching every other content delete path).
-  const supabaseUser = await requireCurrentUser(
-    "Please log in to delete a message.",
-  );
+  // Frozen accounts keep read-only access to their threads: no edit or delete
+  // actions, matching the blocked-conversation policy (the UI hides both).
+  const auth = await getActiveUser("Please log in to delete a message.");
+  if (auth.frozen) return { success: false, error: auth.message };
+  const supabaseUser = auth.user;
 
   const rateLimit = await checkRateLimit({
     namespace: "message:delete",

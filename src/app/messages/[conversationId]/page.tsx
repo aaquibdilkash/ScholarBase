@@ -110,10 +110,15 @@ export default function ConversationPage({
     );
   }, []);
 
-  const appendMessageRef = useRef<((msg: SentMessage) => void) | null>(null);
-  const handleAppendMessage = useCallback((fn: (msg: SentMessage) => void) => {
-    appendMessageRef.current = fn;
-  }, []);
+  const appendMessageRef = useRef<
+    ((msg: SentMessage, replacesId?: string) => void) | null
+  >(null);
+  const handleAppendMessage = useCallback(
+    (fn: (msg: SentMessage, replacesId?: string) => void) => {
+      appendMessageRef.current = fn;
+    },
+    [],
+  );
 
   // ⚡ ISSUE 4: MessageList registers a handler that receives failed sends so
   // they can be merged into the visible thread with a Retry affordance.
@@ -193,9 +198,37 @@ export default function ConversationPage({
     triggerMarkReadRef.current = triggerMarkRead;
   }, [triggerMarkRead]);
 
+  // ⚡ RECONNECT CATCH-UP: merges the newest server page into the thread after
+  // the channel re-joins. Broadcast is fire-and-forget, so everything sent
+  // while the socket was down was lost and only a refresh brought it back.
+  const syncLatestRef = useRef<((rows: SentMessage[]) => boolean) | null>(null);
+  const handleRegisterSyncLatest = useCallback(
+    (fn: (rows: SentMessage[]) => boolean) => {
+      syncLatestRef.current = fn;
+    },
+    [],
+  );
+  const catchUpLatestMessages = useCallback(() => {
+    void getConversation(conversationId)
+      .then((fresh) => {
+        if (!fresh || fresh.messages.length === 0) return;
+        const rows = [...fresh.messages]
+          .reverse()
+          .map((message) => ({ ...message, status: "sent" as const }));
+        if (syncLatestRef.current?.(rows)) {
+          // The reader is looking at the thread, so anything newly merged is
+          // already read.
+          triggerMarkReadRef.current(true);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to catch up on missed messages:", error);
+      });
+  }, [conversationId]);
+
   const handleMessageSent = useCallback(
-    (message: SentMessage) => {
-      appendMessageRef.current?.(message);
+    (message: SentMessage, replacesId?: string) => {
+      appendMessageRef.current?.(message, replacesId);
       triggerMarkRead(true);
 
       // ⚡ NO client-side broadcast here. The `Message` AFTER INSERT trigger
@@ -315,6 +348,13 @@ export default function ConversationPage({
   );
   const otherParticipant = otherParticipantData?.user;
 
+  // A reply target belongs to one conversation. Switching threads must clear it
+  // so the composer does not quote a message from the previous thread (and send
+  // a `replyToId` the new conversation does not contain).
+  useEffect(() => {
+    setReplyingTo(null);
+  }, [conversationId]);
+
   // ⚡ Online status comes from the centralized global presence channel.
   const { onlineUserIds } = usePresence();
   const isOtherOnline = otherParticipant
@@ -347,6 +387,7 @@ export default function ConversationPage({
     // torn down (conversation switch) before that promise settles.
     let channel: RealtimeChannel | null = null;
     let cancelled = false;
+    let hasSubscribed = false;
 
     void privateChannel(conversationTopic(conversationId)).then((ch) => {
       if (cancelled) {
@@ -471,6 +512,13 @@ export default function ConversationPage({
           } else {
             triggerMarkReadRef.current(true);
           }
+
+          // A re-join (after a network drop, tab wake, or token refresh) has a
+          // hole: Broadcast does not replay what was sent while we were away.
+          // The first join does not need this — the page just fetched the
+          // conversation — so only reconnects pay for the catch-up query.
+          if (hasSubscribed) catchUpLatestMessages();
+          hasSubscribed = true;
         } else if (process.env.NODE_ENV === "development") {
           console.warn(`Conversation realtime status: ${status}`);
         }
@@ -501,6 +549,7 @@ export default function ConversationPage({
     handleBroadcastMessage,
     handleBroadcastUpdate,
     updateOtherParticipantLastReadAt,
+    catchUpLatestMessages,
     toast,
   ]);
 
@@ -547,7 +596,10 @@ export default function ConversationPage({
     return () => document.removeEventListener("mousedown", closeOnOutside);
   }, []);
 
-  if (!user || !conversation) {
+  // `conversation.id !== conversationId` covers an in-flight switch: the route
+  // changed but the new conversation has not loaded yet. Rendering the previous
+  // thread under the new URL is what made the chat look stale until a refresh.
+  if (!user || !conversation || conversation.id !== conversationId) {
     return (
       <div className="flex flex-col h-full items-center justify-center gap-3 text-slate-500">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -721,10 +773,13 @@ export default function ConversationPage({
             registerAppend={handleAppendMessage}
             registerAddFailed={handleRegisterAddFailed}
             registerUpdate={handleRegisterUpdate}
+            registerSyncLatest={handleRegisterSyncLatest}
             onMessageRejected={handleMessageRejected}
             onSetReplyingTo={setReplyingTo}
             canManageMessages={
-              !blockState.blockedByMe && !blockState.blockedMe
+              !isCurrentUserFrozen &&
+              !blockState.blockedByMe &&
+              !blockState.blockedMe
             }
           />
         </div>

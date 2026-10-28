@@ -48,7 +48,12 @@ export function MessageInputForm({
   onCancelReply,
 }: {
   conversationId: string;
-  onMessageSent?: (message: SentMessage) => void;
+  /**
+   * Called with the optimistic bubble immediately, then again with the
+   * persisted row. The second call passes the temp id so the thread can replace
+   * that exact bubble instead of guessing by body text.
+   */
+  onMessageSent?: (message: SentMessage, replacesId?: string) => void;
   /** Called when a send fails so the failed bubble can be shown with Retry. */
   onMessageFailed?: (message: SentMessage) => void;
   onMessageRejected?: (code: MessageFailureCode) => void;
@@ -62,6 +67,10 @@ export function MessageInputForm({
   onCancelReply?: () => void;
 }) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  // Synchronous send lock. `isSubmitting` only exists after a re-render, so a
+  // second Enter / double click in the same frame passed the state guard and
+  // posted the identical message twice — two real rows, shown as duplicates.
+  const submittingRef = useRef(false);
   const { toast } = useToast();
   
   const [draft, setDraft] = useState("");
@@ -69,17 +78,23 @@ export function MessageInputForm({
 
   useEffect(() => {
     const saved = localStorage.getItem(`draft-${conversationId}`);
-    if (saved) setDraft(saved);
+    // A conversation switch reuses this component (same route, different
+    // param). Without the explicit empty value the previous thread's draft
+    // stayed in the box and could be sent to the new recipient.
+    setDraft(saved ?? "");
+    if (textAreaRef.current) textAreaRef.current.style.height = "";
   }, [conversationId]);
 
   useEffect(() => {
     if (!replyingTo || isDisabled) return;
 
-    // Wait for the reply preview to render, then bring the composer into view
-    // and place the caret where the user can immediately start typing.
+    // The composer is pinned to the bottom of the thread's flex column, so the
+    // reply preview can never be out of view. `scrollIntoView` here scrolled
+    // the page's `overflow-hidden` container instead — moving the composer (and
+    // its send button) below the clipped edge. Focus only, and opt out of the
+    // browser's own scroll for the same reason.
     const frame = requestAnimationFrame(() => {
-      textAreaRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      textAreaRef.current?.focus();
+      textAreaRef.current?.focus({ preventScroll: true });
       const end = textAreaRef.current?.value.length ?? 0;
       textAreaRef.current?.setSelectionRange(end, end);
     });
@@ -102,9 +117,10 @@ export function MessageInputForm({
   // ⚡ INSTANT CLIENT-SIDE ONSUBMIT (Zero Latency)
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (isSubmitting || isDisabled || !draft.trim()) return;
+    if (submittingRef.current || isDisabled || !draft.trim()) return;
 
     const bodyText = draft;
+    submittingRef.current = true;
     setIsSubmitting(true);
 
         // 1. Instantly display bubble
@@ -178,7 +194,7 @@ export function MessageInputForm({
       // ⚡ Outbox entries are only cleared after a confirmed server response.
       removePendingMessage(conversationId, tempId);
       if (result && "id" in result && onMessageSent) {
-        onMessageSent({ ...result, status: "sent" });
+        onMessageSent({ ...result, status: "sent" }, tempId);
       }
     } catch {
       // ⚡ ISSUE 4: Keep it queued as FAILED — visible bubble with a Retry
@@ -187,6 +203,7 @@ export function MessageInputForm({
       if (onMessageFailed) onMessageFailed({ ...optimisticMessage, status: "failed", retryable: true });
       toast("Message not sent. It will be retried when you're back online.", "error");
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -201,7 +218,7 @@ export function MessageInputForm({
     }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!isSubmitting && draft.trim()) {
+      if (!submittingRef.current && draft.trim()) {
         const form = e.currentTarget.form;
         if (form) form.requestSubmit();
       }
@@ -215,7 +232,10 @@ export function MessageInputForm({
           className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-blue-500 bg-blue-50/70 px-3 py-2 dark:bg-slate-800/80"
           data-testid="reply-preview-banner"
         >
-          <div className="flex items-start justify-between gap-2">
+          {/* `min-w-0 flex-1` is load-bearing: without it a long unbroken
+              message body widened this flex item and pushed the cancel button
+              outside the composer. */}
+          <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-blue-700 dark:text-blue-300">
                 Replying to{" "}
@@ -227,7 +247,7 @@ export function MessageInputForm({
                   Original message deleted
                 </p>
               ) : (
-                <p className="mt-0.5 line-clamp-1 text-xs text-slate-600 dark:text-slate-300">
+                <p className="mt-0.5 min-w-0 max-w-full break-all line-clamp-1 text-xs text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
                   {replyingTo.body}
                 </p>
               )}

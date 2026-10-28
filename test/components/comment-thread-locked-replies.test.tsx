@@ -1,10 +1,11 @@
 /**
  * @vitest-environment jsdom
  *
- * Regression: deleting a post passes `locked` to CommentThread (read-only
- * discussion). The reply pager was gated behind the same condition as "Add a
- * reply", so every reply vanished from the preserved discussion while the
- * materialized totalComments still counted it (e.g. "2 Comments", one visible).
+ * Regression: deleting or freezing a post passes `locked` to CommentThread
+ * (read-only discussion). The reply pager was gated behind the same condition
+ * as "Add a reply", so every reply vanished from the preserved discussion
+ * while the materialized totalComments still counted it (e.g. "2 Comments",
+ * one visible).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import React, { act } from "react";
@@ -122,15 +123,15 @@ describe("CommentThread on a locked (deleted) post", () => {
     container.remove();
   });
 
-  const draw = async () => {
+  const draw = async (comment: CommentWithAuthorAndVotes = PARENT) => {
     await act(async () => {
       root.render(
         <CommentThread
-          comment={PARENT}
+          comment={comment}
           module="post"
           targetId="p-1"
           currentUserId={null}
-          postAuthorId={PARENT.authorId}
+          postAuthorId={comment.authorId}
           locked
           onCountDelta={() => {}}
           onRemoved={() => {}}
@@ -146,6 +147,23 @@ describe("CommentThread on a locked (deleted) post", () => {
 
   it("keeps existing replies reachable without offering a reply action", async () => {
     await draw();
+
+    expect(container.textContent).not.toContain("Add a reply");
+
+    const pager = pagerButton();
+    expect(pager).toBeDefined();
+    expect(pager?.textContent).toContain("(1)");
+
+    await act(async () => {
+      pager?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(fetchReplies).toHaveBeenCalledWith("post", PARENT.id, 0);
+    expect(container.textContent).toContain("a reply");
+  });
+
+  it("keeps replies reachable under a frozen post (locked + isFrozen)", async () => {
+    await draw({ ...PARENT, isFrozen: true });
 
     expect(container.textContent).not.toContain("Add a reply");
 

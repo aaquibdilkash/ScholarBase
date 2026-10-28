@@ -1,11 +1,12 @@
 /**
  * Message moderation: who may edit or delete an existing message.
  *
- * Two divergences were reported from the UI and are pinned here:
+ * Two rules are pinned here:
  *
- *  1. A frozen account could edit but not delete. The freeze banner restricts
- *     posting, commenting, voting and reporting — retracting your own content
- *     stays available, as it does for every other content module.
+ *  1. A frozen account is read-only: it cannot edit or delete messages. The
+ *     freeze banner already disables the composer; the per-message action menu
+ *     hides Edit/Delete too, and these server actions reject the write so a
+ *     stale tab cannot bypass the UI.
  *  2. A blocked participant could keep editing (and deleting) old messages,
  *     and the edit reached the blocker over Realtime. `sendMessage` already
  *     closes a DIRECT thread in both directions; edits and deletes must obey
@@ -106,23 +107,23 @@ describe("message moderation", () => {
     seedMessage();
   });
 
-  it("lets a frozen author delete their own message", async () => {
+  it("rejects a delete while the author is frozen", async () => {
     mockFrozen = true;
 
     const result = await deleteMessage(ids.message);
 
-    expect(result.success).toBe(true);
-    expect(fakeDb.rows("message")[0].isDeleted).toBe(true);
-    expect(fakeDb.rows("message")[0].body).toBe("");
+    expect(errorOf(result)).toMatch(/frozen/i);
+    expect(fakeDb.rows("message")[0].isDeleted).toBe(false);
+    expect(fakeDb.rows("message")[0].body).toBe("Original body");
   });
 
-  it("lets a frozen author edit their own message", async () => {
+  it("rejects an edit while the author is frozen", async () => {
     mockFrozen = true;
 
     const result = await editMessage(ids.message, "Corrected body");
 
-    expect(result).not.toHaveProperty("error");
-    expect(fakeDb.rows("message")[0].body).toBe("Corrected body");
+    expect(errorOf(result)).toMatch(/frozen/i);
+    expect(fakeDb.rows("message")[0].body).toBe("Original body");
   });
 
   it("rejects an edit when the peer blocked the author", async () => {

@@ -9,6 +9,11 @@ import {
 } from "@/app/actions/messages";
 import { MessageItem } from "./MessageItem";
 import { applyMessageUpdate } from "./thread-update";
+import {
+  appendMessage,
+  isPendingMessageDelivered,
+  prependOlderMessages,
+} from "./thread-reconcile";
 import { useToast } from "@/components/ui/Toast";
 import type { User } from "@supabase/supabase-js";
 import type { SentMessage } from "./MessageInputForm";
@@ -46,24 +51,34 @@ type MessageRow = {
   };
 };
 
-export function MessageList({
-  conversationId,
-  initialMessages,
-  user,
-  otherParticipantLastReadAt,
-  registerAppend,
-  registerAddFailed,
-  registerUpdate,
-  onMessageRejected,
-  onSetReplyingTo,
-  canManageMessages = true,
-}: {
+export function MessageList(props: MessageListProps) {
+  // A thread belongs to exactly one conversation, but the page component is
+  // reused when the route moves from /messages/A to /messages/B. Without a key
+  // the state below (messages, pagination cursor, scroll anchoring) survived the
+  // switch and the previous conversation stayed on screen until a hard refresh.
+  // Keying the stateful body resets all of it, including the outbox hydration,
+  // for the conversation actually being opened.
+  return <MessageThread key={props.conversationId} {...props} />;
+}
+
+type MessageListProps = {
   conversationId: string;
   initialMessages: SentMessage[];
   user: User | null;
   otherParticipantLastReadAt: Date;
-  registerAppend?: (fn: (message: SentMessage) => void) => void;
+  registerAppend?: (
+    fn: (message: SentMessage, replacesId?: string) => void,
+  ) => void;
   registerAddFailed?: (fn: (message: SentMessage) => void) => void;
+  /**
+   * Merges a server snapshot of the newest rows into the thread.
+   *
+   * Broadcast is fire-and-forget: anything sent while the channel was
+   * disconnected is never replayed, so after a Realtime reconnect the thread
+   * stayed stale until a refresh. Returning `true` means at least one row was
+   * missing and was appended, so the page can mark it read.
+   */
+  registerSyncLatest?: (fn: (rows: SentMessage[]) => boolean) => void;
   /**
    * Receives an edit / tombstone broadcast for a message already in the thread.
    *
@@ -77,11 +92,26 @@ export function MessageList({
   /** Marks a message as the active reply target in the composer. */
   onSetReplyingTo?: (message: SentMessage) => void;
   /**
-   * False while the conversation is blocked in either direction: edit and
-   * delete are rejected server-side, so the menu must not offer them.
+   * False while the conversation is blocked in either direction or the viewer
+   * is frozen: edit and delete are rejected server-side, so the menu must not
+   * offer them.
    */
   canManageMessages?: boolean;
-}) {
+};
+
+function MessageThread({
+  conversationId,
+  initialMessages,
+  user,
+  otherParticipantLastReadAt,
+  registerAppend,
+  registerAddFailed,
+  registerUpdate,
+  registerSyncLatest,
+  onMessageRejected,
+  onSetReplyingTo,
+  canManageMessages = true,
+}: MessageListProps) {
   const { toast } = useToast();
   const [messages, setMessages] = useState<SentMessage[]>(() =>
     [...initialMessages].reverse(),
@@ -127,6 +157,9 @@ export function MessageList({
    // new bubble instead of down to it. loadMore() now sets the flag explicitly.
    const pendingPrependRef = useRef(false);
    const prependedScrollHeightRef = useRef<number | null>(null);
+   // Synchronous twin of `isLoadingMore`: two intersection callbacks can run in
+   // the same tick, before React re-renders, and both would fetch the same page.
+   const isLoadingMoreRef = useRef(false);
 
    useEffect(() => {
      currentMessagesRef.current = messages;
@@ -172,7 +205,9 @@ export function MessageList({
    }, [messages, getScrollContainer]);
 
     const loadMore = useCallback(async () => {
-      if (isLoadingMore || !hasMore || messages.length === 0) return;
+      if (isLoadingMoreRef.current || isLoadingMore || !hasMore || messages.length === 0)
+        return;
+      isLoadingMoreRef.current = true;
       setIsLoadingMore(true);
 
       const scrollContainer = getScrollContainer();
@@ -188,13 +223,21 @@ export function MessageList({
 
         setMessages((prev) => {
           const formattedOlder = [...olderMessages].reverse() as SentMessage[];
-          return [...formattedOlder, ...prev];
+          const next = prependOlderMessages(prev, formattedOlder);
+          if (next === prev) {
+            // Everything in the page was already rendered: drop the pending
+            // prepend marker so the next append is not mistaken for history.
+            pendingPrependRef.current = false;
+            prependedScrollHeightRef.current = null;
+          }
+          return next;
         });
       } catch (error) {
         pendingPrependRef.current = false;
         prependedScrollHeightRef.current = null;
         console.error("Failed to load more messages", error);
       } finally {
+        isLoadingMoreRef.current = false;
         setIsLoadingMore(false);
       }
     }, [isLoadingMore, hasMore, messages, conversationId, getScrollContainer]);
@@ -216,21 +259,8 @@ export function MessageList({
 
   useEffect(() => {
     if (registerAppend) {
-      registerAppend((message: SentMessage) => {
-        setMessages((current) => {
-          const hasConfirmed = current.some((m) => m.id === message.id);
-          const withoutOptimisticEcho = current.filter(
-            (m) =>
-              !(
-                (m.status === "sending" || m.status === "failed") &&
-                m.body === message.body &&
-                m.senderId === message.senderId
-              ),
-          );
-          if (hasConfirmed) return withoutOptimisticEcho;
-
-          return [...withoutOptimisticEcho, message];
-        });
+      registerAppend((message: SentMessage, replacesId?: string) => {
+        setMessages((current) => appendMessage(current, message, replacesId));
       });
     }
   }, [registerAppend]);
@@ -252,6 +282,49 @@ export function MessageList({
       });
     }
   }, [registerAddFailed]);
+
+  // ⚡ RECONNECT CATCH-UP: merges the newest server rows after a Realtime
+  // reconnect (Broadcast does not replay what was missed while offline). Rows
+  // already rendered are ignored unless they were edited or tombstoned while we
+  // were away, so this is idempotent and also repairs missed UPDATEs.
+  useEffect(() => {
+    if (!registerSyncLatest) return;
+
+    registerSyncLatest((rows: SentMessage[]) => {
+      const rendered = new Map(
+        currentMessagesRef.current.map((message) => [message.id, message]),
+      );
+      const time = (value: Date | string | null | undefined) =>
+        value ? new Date(value).getTime() : 0;
+
+      const missing: SentMessage[] = [];
+      const changed: SentMessage[] = [];
+
+      for (const row of rows) {
+        const existing = rendered.get(row.id);
+        if (!existing) {
+          missing.push(row);
+          continue;
+        }
+        if (
+          time(existing.editedAt) !== time(row.editedAt) ||
+          Boolean(existing.isDeleted) !== Boolean(row.isDeleted)
+        ) {
+          changed.push(row);
+        }
+      }
+
+      if (missing.length === 0 && changed.length === 0) return false;
+
+      setMessages((current) => {
+        let next = current;
+        for (const row of changed) next = applyMessageUpdate(next, row);
+        for (const row of missing) next = appendMessage(next, row);
+        return next;
+      });
+      return true;
+    });
+  }, [registerSyncLatest]);
 
   // ⚡ EDITS + TOMBSTONES: the conversation page forwards the Realtime
   // `UPDATE` broadcast here. A deleted message renders as a tombstone with an
@@ -321,7 +394,31 @@ export function MessageList({
   useEffect(() => {
     if (!user) return;
 
-    const outbox = getOutboxForConversation(conversationId);
+    // A queued entry can be stale even though its send succeeded: the row
+    // committed but the Server Action response never arrived (reload, dropped
+    // connection, navigated away). Retrying it would insert the same text a
+    // second time. Anything already in the loaded thread is dropped from the
+    // outbox instead of being hydrated next to its confirmed copy.
+    const outbox = getOutboxForConversation(conversationId).filter(
+      (pending) => {
+        if (
+          isPendingMessageDelivered(pending, currentMessagesRef.current)
+        ) {
+          removePendingMessage(conversationId, pending.id);
+          return false;
+        }
+        return true;
+      },
+    );
+
+    // A send this tab is still awaiting must not be retried by the `online`
+    // listener; that would post the same message twice.
+    const inFlightIds = new Set(
+      currentMessagesRef.current
+        .filter((message) => message.status === "sending")
+        .map((message) => message.id),
+    );
+
     if (outbox.length > 0) {
       const hydrated: SentMessage[] = outbox.map((pending) => {
         // Restore the quoted snapshot so the bubble renders the quote header.
@@ -361,9 +458,10 @@ export function MessageList({
         return [...current, ...hydrated.filter((m) => !existing.has(m.id))];
       });
 
-      // Anything still PENDING never reached the server — retry it now.
+      // Anything still PENDING never reached the server — retry it now. Entries
+      // already in flight in this tab are left to their own request.
       outbox
-        .filter((p) => p.status === "PENDING")
+        .filter((p) => p.status === "PENDING" && !inFlightIds.has(p.id))
         .forEach((p) =>
           retryMessage({ ...hydrated.find((h) => h.id === p.id)! }),
         );
@@ -371,23 +469,25 @@ export function MessageList({
 
     const handleOnline = () => {
       const queue = getOutboxForConversation(conversationId);
-      queue.forEach((pending) => {
-        retryMessage({
-          id: pending.id,
-          body: pending.body,
-          createdAt: pending.createdAt,
-          senderId: pending.senderId,
-          conversationId: pending.conversationId,
-          status: "failed",
-          replyToId: pending.replyToId,
-          sender: {
-            id: pending.senderId,
-            name: pending.senderName,
-            handle: pending.senderHandle,
-            avatarUrl: pending.senderAvatarUrl,
-          },
+      queue
+        .filter((pending) => !inFlightIds.has(pending.id))
+        .forEach((pending) => {
+          retryMessage({
+            id: pending.id,
+            body: pending.body,
+            createdAt: pending.createdAt,
+            senderId: pending.senderId,
+            conversationId: pending.conversationId,
+            status: "failed",
+            replyToId: pending.replyToId,
+            sender: {
+              id: pending.senderId,
+              name: pending.senderName,
+              handle: pending.senderHandle,
+              avatarUrl: pending.senderAvatarUrl,
+            },
+          });
         });
-      });
     };
 
     window.addEventListener("online", handleOnline);

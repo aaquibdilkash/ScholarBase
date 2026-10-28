@@ -55,6 +55,12 @@ export function ReportMenu({
     (isFrozen || (isDeleted && deletedByType === "ADMIN")) &&
     isOwner;
 
+  // Reporting is an interaction. Frozen and deleted content is read-only (the
+  // banner and tombstone both say so), so only the owner's appeal remains.
+  // Without this guard a non-owner could still report frozen content even
+  // though the UI promised reporting was disabled.
+  const canReport = !isOwner && !isFrozen && !isDeleted;
+
   useEffect(() => {
     if (!open) return;
 
@@ -81,7 +87,7 @@ export function ReportMenu({
     };
   }, [open]);
 
-  if (isOwner && !canAppeal) return null;
+  if (!canAppeal && !canReport) return null;
 
   const handleReportClick = () => {
     setOpen(false);
@@ -133,7 +139,7 @@ export function ReportMenu({
                   />
                 </div>
               )}
-              {!isOwner && (
+              {canReport && (
                 <button
                   type="button"
                   role="menuitem"

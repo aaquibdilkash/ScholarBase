@@ -259,13 +259,23 @@ export async function submitReport(
     }
 
   // Verify the target entity actually exists before creating a report.
-    const entity = await config.delegate.findUnique({
+    const entity = (await config.delegate.findUnique({
       where: { id: entityId },
-      select: { id: true },
-    });
+      select: { id: true, isFrozen: true, isDeleted: true },
+    })) as { id: string; isFrozen?: boolean; isDeleted?: boolean } | null;
 
     if (!entity) {
       throw new Error("Content not found");
+    }
+
+    // Frozen/deleted content is read-only: the UI hides the report action, and
+    // this server guard stops a crafted request from bypassing it.
+    if (entity.isFrozen || entity.isDeleted) {
+      return {
+        success: false,
+        error: "Reporting is disabled for frozen or deleted content.",
+        message: "Reporting is disabled for frozen or deleted content.",
+      };
     }
 
     const normalizedDetails = details?.trim() || null;

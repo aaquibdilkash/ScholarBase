@@ -33,8 +33,9 @@ interface MessageItemProps {
   /** Sets this message as the active reply target in the composer. */
   onSetReplyingTo?: (message: SentMessage) => void;
   /**
-   * False when the conversation is blocked (either direction). The server
-   * rejects edits and deletes in that state, so the menu must not offer them.
+   * False when the conversation is blocked (either direction) or the viewer's
+   * account is frozen. The server rejects edits and deletes in those states,
+   * so the menu must not offer them.
    */
   canManage?: boolean;
 }
