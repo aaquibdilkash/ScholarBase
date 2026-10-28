@@ -2,6 +2,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ShareButton } from "@/components/interactions/ShareButton";
+import { MessageButton } from "@/components/interactions/MessageButton";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { stripHtmlTags } from "@/lib/html";
 
@@ -72,14 +73,13 @@ export function ScholarCard({ scholar, currentUserId }: ScholarCardProps) {
             >
               View profile
             </Link>
-            {currentUserId && currentUserId !== scholar.id ? (
-              <Link
-                href={`/messages/new?to=${scholar.id}`}
-                prefetch={false}
-                className="min-w-0 flex-1 truncate rounded-lg bg-slate-950 px-2 py-2 text-center text-xs font-semibold text-white transition hover:bg-slate-800 sm:flex-none sm:px-6 sm:text-sm"
-              >
-                Message
-              </Link>
+            {scholar.id !== currentUserId ? (
+              // Signed-out visitors see the button too; MessageButton opens the
+              // auth modal instead of a dead /messages/new route.
+              <MessageButton
+                recipientId={scholar.id}
+                recipientName={scholar.name}
+              />
             ) : null}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">

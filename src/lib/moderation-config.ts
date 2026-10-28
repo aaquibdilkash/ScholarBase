@@ -61,6 +61,22 @@ export const COMMENT_MODEL_MAP: Record<string, { model: string }> = {
 };
 
 /**
+ * Columns the comment DELETE / RECOVER branches read. Comment tables only carry
+ * vote counters (`totalVotes`) — unlike top-level content they have no bookmark
+ * counter — so selecting `totalBookmarks` here makes Prisma reject the whole
+ * transaction and the admin action 500s. `test/security/admin-moderation-maps`
+ * checks every field against `prisma/schema.prisma` to keep this honest.
+ */
+export const COMMENT_MODERATION_SELECT = {
+  id: true,
+  isFrozen: true,
+  isDeleted: true,
+  totalVotes: true,
+  authorId: true,
+  parentId: true,
+} as const;
+
+/**
  * Comment contentType -> the top-level content table + FK linking the comment
  * to it. Used to restore materialized `totalComments` / `totalReplies` counters
  * when a soft-deleted comment is recovered, and to resolve where a comment's

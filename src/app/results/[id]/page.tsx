@@ -14,6 +14,7 @@ import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -70,6 +71,9 @@ const ResultDetailPage = async ({
   return (
     <DetailPageCardShell
       isFrozen={result.isFrozen ?? false}
+      isDeleted={result.isDeleted}
+      deletedByType={result.deletedByType}
+      deletedNoun="result"
       frozenEntityId={result.id}
       frozenModule="RESULT"
       frozenEntityType="POST"
@@ -90,7 +94,8 @@ const ResultDetailPage = async ({
               "use server";
               const res = await deleteResult(result.id);
               if (res?.success === false) return res;
-              return { redirect: "/results", invalidateQueries: [["results"]] };
+              // Engaged deleted content stays readable (tombstone).
+              return deletedDetailNavigation(res?.data, "/results", [["results"]]);
             }}
             isOwner={true}
             editLabel="Edit Result"
@@ -149,6 +154,7 @@ const ResultDetailPage = async ({
       discussion={
         <CommentSection
           locked={result.isFrozen ?? false}
+          deleted={result.isDeleted}
           comments={result.comments}
           totalComments={result.totalComments}
           targetId={result.id}

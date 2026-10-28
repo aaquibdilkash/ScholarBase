@@ -234,6 +234,19 @@ export async function createJournalReview(
     window: "10 m",
   });
 
+  // Deleted journals are read-only: the add-review page already 404s, but the
+  // action is reachable directly, so reject it here too.
+  const journal = await prisma.journal.findFirst({
+    where: { id: journalId, isDeleted: false },
+    select: { id: true },
+  });
+  if (!journal) {
+    return {
+      success: false as const,
+      error: "This journal has been deleted.",
+    };
+  }
+
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_JOURNAL_REVIEW_FEEDBACK, "Feedback");

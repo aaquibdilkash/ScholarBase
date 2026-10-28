@@ -13,6 +13,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -62,7 +63,8 @@ export default async function HelpPostPage({
     "use server";
     const res = await deleteHelpPost(post!.id);
     if (res?.success === false) return res;
-    return { redirect: "/help", invalidateQueries: [["helpPosts"]] };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/help", [["helpPosts"]]);
   }
 
   return (

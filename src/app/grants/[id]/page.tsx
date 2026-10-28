@@ -15,6 +15,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -67,12 +68,16 @@ export default async function ResearchGrantDetailPage({
     "use server";
     const res = await deleteResearchGrant(grant!.id);
     if (res?.success === false) return res;
-    return { redirect: "/grants", invalidateQueries: [["grants"]] };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/grants", [["grants"]]);
   }
 
   return (
     <DetailPageCardShell
       isFrozen={grant.isFrozen ?? false}
+      isDeleted={grant.isDeleted}
+      deletedByType={grant.deletedByType}
+      deletedNoun="grant"
       frozenEntityId={grant.id}
       frozenModule="RESEARCH_GRANT"
       frozenEntityType="POST"
@@ -142,6 +147,7 @@ export default async function ResearchGrantDetailPage({
       discussion={
         <CommentSection
           locked={grant.isFrozen ?? false}
+          deleted={grant.isDeleted}
           comments={grant.comments}
           totalComments={grant.totalComments}
           targetId={grant.id}

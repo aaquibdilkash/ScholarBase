@@ -18,6 +18,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -76,7 +77,8 @@ export default async function SupervisorPage({
     "use server";
     const res = await deleteSupervisor(supervisor!.id);
     if (res?.success === false) return res;
-    return { redirect: "/supervisor", invalidateQueries: [["supervisors"]] };
+    // Engaged deleted profiles stay readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/supervisor", [["supervisors"]]);
   }
 
   const userVote =

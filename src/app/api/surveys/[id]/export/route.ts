@@ -167,8 +167,13 @@ export async function GET(
     safeResponses.some((r) => !r.isAnonymous);
 
   const format = new URL(request.url).searchParams.get("format") ?? "xlsx";
+  // Excel rejects paths over ~207 characters ("The file name is too long"),
+  // and a survey title can be 200 characters by itself. Cap the base so the
+  // downloaded file always opens, and trim any separator left on the cut.
+  const MAX_FILE_BASE = 80;
+  const slug = survey.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_");
   const fileBase =
-    survey.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_") || "survey";
+    slug.slice(0, MAX_FILE_BASE).replace(/[_-]+$/, "") || "survey";
 
   if (format === "csv") {
     const csv = toCsv(buildRawData(exportSurvey, safeResponses, includeIdentity, anonymize));

@@ -338,6 +338,32 @@ describe("response format", () => {
     );
   });
 
+  it("caps a long survey title so the download opens in Excel", async () => {
+    // Regression: a 200-character title produced a filename Excel refuses with
+    // "The file name is too long. Rename the file with less than 207
+    // characters." The download saved fine but could not be opened.
+    resetFakeDb();
+    seedSurvey({
+      title:
+        "The practice of estimating first before calculating can improve number sense and help reduce mistakes. Often, we may not need exact values. The ability to make quick estimates is useful at these times",
+    });
+
+    for (const [format, suffix] of [
+      ["xlsx", "_export.xlsx"],
+      ["csv", "_data.csv"],
+    ] as const) {
+      const disposition =
+        (await download(format)).headers.get("Content-Disposition") ?? "";
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "";
+
+      // Well under Excel's ~207-character ceiling, including any download
+      // folder path, and without a dangling separator before the suffix.
+      expect(filename.length).toBeLessThanOrEqual(100);
+      expect(filename.endsWith(suffix)).toBe(true);
+      expect(filename).not.toMatch(/__/);
+    }
+  });
+
   it("marks every download as uncacheable", async () => {
     // A cached export could be served to the next requester, which for a shared
     // download means serving one stranger's copy to another.

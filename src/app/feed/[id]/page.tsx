@@ -15,6 +15,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -75,7 +76,9 @@ export default async function SinglePostPage({
     "use server";
     const res = await deleteSocialPost(p.id);
     if (res?.success === false) return res;
-    return { redirect: "/feed", invalidateQueries: [["feed"]] };
+    // Engaged deleted posts stay readable (tombstone); stay on the page so the
+    // author sees the result instead of being bounced to the list.
+    return deletedDetailNavigation(res?.data, "/feed", [["feed"]]);
   }
 
   return (

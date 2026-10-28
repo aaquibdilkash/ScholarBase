@@ -17,6 +17,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 const OUTCOME_LABELS: Record<JournalOutcome, string> = {
   ACCEPTED: "Accepted",
@@ -80,10 +81,10 @@ export default async function JournalReviewDetailPage({
     "use server";
     const res = await deleteJournalReview(review!.id);
     if (res?.success === false) return res;
-    return {
-      redirect: `/journals/${id}`,
-      invalidateQueries: [["journalReviews", id]],
-    };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, `/journals/${id}`, [
+      ["journalReviews", id],
+    ]);
   }
 
   const userVote =

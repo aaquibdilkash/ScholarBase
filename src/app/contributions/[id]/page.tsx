@@ -19,6 +19,7 @@ import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { ComingSoon } from "@/components/contributions/ComingSoon";
 import { isComingSoon } from "@/lib/feature-flags";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -85,16 +86,18 @@ const ContributionDetailPage = async ({
 
   const handleDelete = async () => {
     "use server";
-    await deleteContribution(id);
-    return {
-      redirect: "/contributions",
-      invalidateQueries: [["contributions"]],
-    };
+    const res = await deleteContribution(id);
+    if (res?.success === false) return res;
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/contributions", [["contributions"]]);
   };
 
   return (
     <DetailPageCardShell
       isFrozen={contribution.isFrozen ?? false}
+      isDeleted={contribution.isDeleted}
+      deletedByType={contribution.deletedByType}
+      deletedNoun="contribution"
       frozenEntityId={contribution.id}
       frozenModule="CONTRIBUTION"
       frozenEntityType="POST"
@@ -170,6 +173,7 @@ const ContributionDetailPage = async ({
       discussion={
         <CommentSection
           locked={contribution.isFrozen ?? false}
+          deleted={contribution.isDeleted}
           comments={contribution.comments}
           totalComments={contribution.totalComments}
           targetId={contribution.id}

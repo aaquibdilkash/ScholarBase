@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   MODEL_MAP,
   COMMENT_MODEL_MAP,
+  COMMENT_MODERATION_SELECT,
   COMMENT_TOP_LEVEL,
   AUTHOR_COUNT_FIELD,
   CONTENT_TARGET_TYPE,
@@ -29,6 +32,23 @@ const KNOWN_CONTENT_TYPES = new Set([
   ...Object.keys(MODEL_MAP),
   ...Object.keys(COMMENT_MODEL_MAP),
 ]);
+
+/** Field names declared on a Prisma model, keyed case-insensitively. */
+function schemaFields(model: string): Set<string> {
+  const schema = readFileSync(
+    join(process.cwd(), "prisma", "schema.prisma"),
+    "utf8",
+  );
+  const match = new RegExp(`^model\\s+${model}\\s*\\{`, "im").exec(schema);
+  if (!match) return new Set();
+  const body = schema.slice(
+    match.index + match[0].length,
+    schema.indexOf("\n}", match.index),
+  );
+  return new Set(
+    [...body.matchAll(/^\s{2}(\w+)\s+\S/gm)].map((field) => field[1]),
+  );
+}
 
 describe("admin moderation registry: key sets stay in lockstep", () => {
   it("every moderatable content type has an author count field", () => {
@@ -109,6 +129,19 @@ describe("admin moderation registry: key sets stay in lockstep", () => {
     for (const type of ANONYMOUS_CONTENT_TYPES) {
       expect(MODEL_MAP[type], type).toBeDefined();
       expect(AUTHOR_COUNT_FIELD[type], type).toBeDefined();
+    }
+  });
+
+  it("every comment moderation select field exists on every comment table", () => {
+    const selected = Object.keys(COMMENT_MODERATION_SELECT);
+    for (const { model } of Object.values(COMMENT_MODEL_MAP)) {
+      const available = schemaFields(model);
+      const missing = selected.filter((field) => !available.has(field));
+      expect(
+        missing,
+        `${model} has no ${missing.join(", ")} — Prisma rejects the whole ` +
+          "DELETE/RECOVER transaction, so the admin action 500s",
+      ).toEqual([]);
     }
   });
 

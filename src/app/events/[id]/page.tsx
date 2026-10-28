@@ -15,6 +15,7 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -89,7 +90,8 @@ const EventDetailPage = async ({
               "use server";
               const res = await deleteResearchEvent(event.id);
               if (res?.success === false) return res;
-              return { redirect: "/events", invalidateQueries: [["events"]] };
+              // Engaged deleted content stays readable (tombstone).
+              return deletedDetailNavigation(res?.data, "/events", [["events"]]);
             }}
             isOwner={true}
             editLabel="Edit Event"

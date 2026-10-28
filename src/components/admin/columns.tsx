@@ -30,17 +30,39 @@ export interface AdminColumnsCtx {
  * ------------------------------------------------------------------------- */
 
 function renderTitle(item: AdminContentItem): ReactNode {
+  const title = getEntityDisplayTitle(item);
+  const className =
+    "line-clamp-2 break-words font-medium text-slate-900 transition [overflow-wrap:anywhere] hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300";
   return item.detailHref ? (
-    <Link prefetch={false}
+    <Link
+      prefetch={false}
       href={item.detailHref}
-      className="font-medium text-slate-900 transition hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-300"
+      className={className}
+      title={title}
     >
-      {getEntityDisplayTitle(item)}
+      {title}
     </Link>
   ) : (
-    <p className="font-medium text-slate-900 dark:text-slate-100">
-      {getEntityDisplayTitle(item)}
+    <p className={className} title={title}>
+      {title}
     </p>
+  );
+}
+
+/** Author / owner cell — always links to the scholar's public profile. */
+function renderPerson(
+  person: { id: string; name: string | null; email: string | null } | null | undefined,
+): ReactNode {
+  if (!person) return "Unknown";
+  const label = person.name || person.email || "Unknown";
+  return (
+    <Link
+      prefetch={false}
+      href={`/scholars/${person.id}`}
+      className="font-medium text-slate-700 transition hover:text-blue-700 hover:underline dark:text-slate-300 dark:hover:text-blue-300"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -225,7 +247,7 @@ export function buildContentColumns(
       key: "author",
       header: "Author",
       cellClassName: "text-slate-600 dark:text-slate-400",
-      render: (item) => item.author?.name || item.author?.email || "Unknown",
+      render: (item) => renderPerson(item.author),
     },
     { key: "reports", header: "Reports", render: renderReports },
     { key: "appealed", header: "Appealed", render: renderAppealed },
@@ -293,7 +315,7 @@ export function buildAppealsColumns(
       key: "owner",
       header: "Owner",
       cellClassName: "text-slate-600 dark:text-slate-400",
-      render: (item) => item.owner?.name || item.owner?.email || "Unknown",
+      render: (item) => renderPerson(item.owner),
     },
     {
       key: "adminStatus",

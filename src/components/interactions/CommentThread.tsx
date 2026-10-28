@@ -657,6 +657,15 @@ export function CommentThread({
 
   const visibleReplies = repliesExpanded ? replies : [];
 
+  // "Add a reply" needs an open thread; the reply pager does not. On a deleted
+  // parent post (`locked`) the discussion is read-only, but its existing
+  // replies must stay reachable — hiding the pager made them disappear while
+  // totalComments still counted them.
+  const canReply =
+    comment.isFrozen !== true && !locked && !userFrozen && !comment.isDeleted;
+  const hasReplyPager =
+    replies.length > 0 || hasMoreReplies || repliesExpanded;
+
   const activeReplyTarget = activeReplyId
     ? activeReplyId === comment.id
       ? comment
@@ -812,10 +821,9 @@ export function CommentThread({
           </div>
         )}
 
-        {(comment.isFrozen !== true && !locked && !userFrozen && !comment.isDeleted) ||
-        (comment.isDeleted && (replies.length > 0 || hasMoreReplies || repliesExpanded)) ? (
+        {(canReply || hasReplyPager) ? (
           <div className="mt-2 flex w-full items-center gap-2">
-            {comment.isFrozen !== true && !locked && !userFrozen && !comment.isDeleted && (
+            {canReply && (
               <button
                 type="button"
                 onClick={() => openReplyForm(comment.id)}
@@ -831,7 +839,7 @@ export function CommentThread({
               </button>
             )}
 
-            {(replies.length > 0 || hasMoreReplies || repliesExpanded) && (
+            {hasReplyPager && (
               <button
                 type="button"
                 onClick={() => {

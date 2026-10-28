@@ -14,6 +14,7 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -65,7 +66,8 @@ const AdmissionDetailPage = async ({
     "use server";
     const res = await deletePhdAdmission(admission!.id);
     if (res?.success === false) return res;
-    return { redirect: "/admissions", invalidateQueries: [["admissions"]] };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/admissions", [["admissions"]]);
   }
 
   return (

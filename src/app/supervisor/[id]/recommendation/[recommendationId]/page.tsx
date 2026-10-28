@@ -17,6 +17,7 @@ import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -64,10 +65,10 @@ export default async function RecommendationDetailPage({
     "use server";
     const res = await deleteRecommendation(recommendation!.id);
     if (res?.success === false) return res;
-    return {
-      redirect: `/supervisor/${id}`,
-      invalidateQueries: [["recommendations", id]],
-    };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, `/supervisor/${id}`, [
+      ["recommendations", id],
+    ]);
   }
 
   // Filtered select in getRecommendation returns at most one row (the

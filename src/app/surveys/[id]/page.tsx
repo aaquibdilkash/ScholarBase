@@ -27,6 +27,7 @@ const PRIVACY_LABELS: Record<string, string> = {
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -115,7 +116,8 @@ const SurveyDetailPage = async ({
               "use server";
               const res = await deleteSurvey(survey.id);
               if (res?.success === false) return res;
-              return { redirect: "/surveys", invalidateQueries: [["surveys"]] };
+              // Engaged deleted surveys stay readable (tombstone).
+              return deletedDetailNavigation(res?.data, "/surveys", [["surveys"]]);
             }}
             isOwner={true}
             editLabel="Edit Survey"

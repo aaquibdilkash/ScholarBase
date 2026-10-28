@@ -340,6 +340,7 @@ export async function submitReport(
 import {
   MODEL_MAP as modelMap,
   COMMENT_MODEL_MAP as commentModelMap,
+  COMMENT_MODERATION_SELECT,
   COMMENT_TOP_LEVEL,
   ANONYMOUS_CONTENT_TYPES,
   AUTHOR_COUNT_FIELD,
@@ -711,13 +712,7 @@ export async function moderateContent(
           // delete flow in deleteCommentTransaction.
           const full = (await txCommentDelegate!.findUnique({
             where: { id: contentId },
-            select: {
-              id: true,
-              totalVotes: true,
-      totalBookmarks: true,
-              authorId: true,
-              parentId: true,
-            },
+            select: COMMENT_MODERATION_SELECT,
           })) as {
             id: string;
             totalVotes: number;
@@ -792,15 +787,7 @@ export async function moderateContent(
           // parents that are themselves soft-deleted).
           const full = (await txCommentDelegate!.findUnique({
             where: { id: contentId },
-            select: {
-              id: true,
-              isFrozen: true,
-              isDeleted: true,
-              totalVotes: true,
-      totalBookmarks: true,
-              authorId: true,
-              parentId: true,
-            },
+            select: COMMENT_MODERATION_SELECT,
           })) as {
             id: string;
             isFrozen: boolean;

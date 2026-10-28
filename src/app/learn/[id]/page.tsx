@@ -12,6 +12,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -82,12 +83,16 @@ export default async function CourseDetailPage({
     "use server";
     const res = await deleteCourse(course!.id);
     if (res?.success === false) return res;
-    return { redirect: "/learn", invalidateQueries: [["courses"]] };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/learn", [["courses"]]);
   }
 
   return (
     <DetailPageCardShell
       isFrozen={course.isFrozen ?? false}
+      isDeleted={course.isDeleted}
+      deletedByType={course.deletedByType}
+      deletedNoun="course"
       frozenEntityId={course.id}
       frozenModule="COURSE"
       frozenEntityType="POST"
@@ -157,6 +162,7 @@ export default async function CourseDetailPage({
       discussion={
         <CommentSection
           locked={course.isFrozen ?? false}
+          deleted={course.isDeleted}
           comments={course.comments}
           totalComments={course.totalComments}
           targetId={course.id}

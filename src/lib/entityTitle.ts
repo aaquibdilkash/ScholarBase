@@ -1,3 +1,14 @@
+import { stripHtmlTags } from "@/lib/html";
+
+/**
+ * Rich-text fields (feed posts, recommendation/journal-review feedback) are
+ * stored as TipTap HTML. Collapse them to a single line of visible text so the
+ * admin tables never render markup like `<p>` or `<ul><li>`.
+ */
+function toPlainText(value: string): string {
+  return stripHtmlTags(value).replace(/\s+/g, " ").trim();
+}
+
 /**
  * Centralized display-title accessor for admin/moderation table rows.
  * Content models use wildly different naming for their "title" field
@@ -37,15 +48,15 @@ export function getEntityDisplayTitle(item: Record<string, unknown>): string {
   }
 
   const content = item.content as string | null | undefined;
-  if (content && content.trim().length > 0) {
-    const trimmed = content.trim().slice(0, 40);
-    return content.trim().length > 40 ? `${trimmed}...` : trimmed;
+  if (content) {
+    const plain = toPlainText(content);
+    if (plain.length > 0) return plain;
   }
 
   const feedback = item.feedback as string | null | undefined;
-  if (feedback && feedback.trim().length > 0) {
-    const trimmed = feedback.trim().slice(0, 40);
-    return feedback.trim().length > 40 ? `${trimmed}...` : trimmed;
+  if (feedback) {
+    const plain = toPlainText(feedback);
+    if (plain.length > 0) return plain;
   }
 
   const supervisor = item.supervisor as { name?: string } | null | undefined;
@@ -56,9 +67,9 @@ export function getEntityDisplayTitle(item: Record<string, unknown>): string {
 
   // Appeal rows carry no entity title — show the appeal text instead.
   const appealReason = item.appealReason as string | null | undefined;
-  if (appealReason && appealReason.trim().length > 0) {
-    const trimmed = appealReason.trim().slice(0, 40);
-    return appealReason.trim().length > 40 ? `${trimmed}...` : trimmed;
+  if (appealReason) {
+    const plain = toPlainText(appealReason);
+    if (plain.length > 0) return plain;
   }
 
   return "Untitled";

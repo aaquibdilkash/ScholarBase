@@ -20,6 +20,7 @@ import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -81,7 +82,8 @@ const JournalDetailPage = async ({
     "use server";
     const res = await deleteJournal(j.id);
     if (res?.success === false) return res;
-    return { redirect: "/journals", invalidateQueries: [["journals"]] };
+    // Engaged deleted journals stay readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/journals", [["journals"]]);
   }
 
   return (
@@ -314,6 +316,7 @@ const JournalDetailPage = async ({
 
       <JournalReviewsSection
         journalId={j.id}
+        isDeleted={j.isDeleted}
         initialReviews={initialReviews}
         initialCount={reviewMeta.totalCount}
         initialRatingSum={j.ratingSum}

@@ -34,6 +34,7 @@ export function JournalReviewsSection({
   hasUserReview,
   userReviewId,
   userReviewRating,
+  isDeleted = false,
 }: {
   journalId: string;
   initialReviews: JournalReviewWithAuthor[];
@@ -43,6 +44,12 @@ export function JournalReviewsSection({
   currentUserId?: string;
   hasUserReview: boolean;
   userReviewId?: string | null;
+  /**
+   * A deleted journal keeps its reviews visible (preserved content) but the
+   * write CTA is hidden: the add-review route filters `isDeleted: false`, so
+   * the button used to land on a 404.
+   */
+  isDeleted?: boolean;
   /**
    * The viewer's own rating, from the aggregates query rather than the first
    * carousel slide — the first slide is the newest review, which is usually
@@ -103,13 +110,19 @@ export function JournalReviewsSection({
         />
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-          <p className="mb-2">No reviews yet. Be the first to share yours!</p>
-          <WriteJournalReviewButton
-            journalId={journalId}
-            initialHasReview={hasUserReview}
-            initialUserReviewId={userReviewId}
-            initialRating={userReviewRating ?? undefined}
-          />
+          <p className="mb-2">
+            {isDeleted
+              ? "No reviews yet."
+              : "No reviews yet. Be the first to share yours!"}
+          </p>
+          {!isDeleted && (
+            <WriteJournalReviewButton
+              journalId={journalId}
+              initialHasReview={hasUserReview}
+              initialUserReviewId={userReviewId}
+              initialRating={userReviewRating ?? undefined}
+            />
+          )}
         </div>
       )}
     </section>

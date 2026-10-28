@@ -14,6 +14,7 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -86,10 +87,10 @@ const VacancyDetailPage = async ({
               "use server";
               const res = await deleteJobVacancy(vacancy.id);
               if (res?.success === false) return res;
-              return {
-                redirect: "/vacancies",
-                invalidateQueries: [["vacancies"]],
-              };
+              // Engaged deleted content stays readable (tombstone).
+              return deletedDetailNavigation(res?.data, "/vacancies", [
+                ["vacancies"],
+              ]);
             }}
             isOwner={true}
             editLabel="Edit Vacancy"

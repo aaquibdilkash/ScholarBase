@@ -11,6 +11,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
+import { deletedDetailNavigation } from "@/lib/content-tombstone";
 
 export async function generateMetadata({
   params,
@@ -57,7 +58,8 @@ export default async function ArticlePage({
     "use server";
     const res = await deleteArticle(a.id);
     if (res?.success === false) return res;
-    return { redirect: "/blog", invalidateQueries: [["articles"]] };
+    // Engaged deleted content stays readable (tombstone); stay on the page.
+    return deletedDetailNavigation(res?.data, "/blog", [["articles"]]);
   }
 
   return (

@@ -235,7 +235,10 @@ export default function ListPageCardShell({
           {children}
       </TruncatedCardBody>
 
-      {!isDeleted && bodyBottomContent}
+      {/* Kept on deleted cards: these are outbound/detail links, not
+          interactions. DetailPageCardShell already renders them unconditionally,
+          so hiding them here made the list and detail pages disagree. */}
+      {bodyBottomContent}
 
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
         <span suppressHydrationWarning className="font-semibold text-slate-400 dark:text-slate-500">
