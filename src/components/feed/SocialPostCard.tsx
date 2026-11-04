@@ -241,16 +241,18 @@ export function SocialPostCard({
           hasActiveAppeal={post.hasActiveAppeal ?? false}
         />
       )}
-      // The text + image are a two-column row; the card wraps this row in its
+      // The text + image are a row collapsed; the card wraps this row in its
       // own <Link> (so clicks here navigate), but the expansion toggle and the
       // lightbox button are siblings OUTSIDE that Link so they never navigate.
       noBodyLink={true}
       constrainBody={false}
     >
+      {/* Expanded always stacks (text first, image below) on every breakpoint,
+          matching the mobile behaviour instead of switching to a row on md+. */}
       <Link
         href={`/feed/${post.id}`}
         prefetch={false}
-        className={`flex min-w-0 gap-4 ${isValidImageUrl(post.imageUrl) ? "items-start" : ""} ${isExpanded ? "flex-col md:flex-row" : ""}`}
+        className={`flex min-w-0 gap-4 ${isValidImageUrl(post.imageUrl) ? "items-start" : ""} ${isExpanded ? "flex-col" : ""}`}
         style={
           isExpanded
             ? undefined
@@ -261,7 +263,7 @@ export function SocialPostCard({
           className={
             isValidImageUrl(post.imageUrl)
               ? isExpanded
-                ? "w-full md:w-1/2 min-w-0"
+                ? "w-full min-w-0"
                 : "w-1/2 min-w-0"
               : "w-full"
           }
@@ -295,7 +297,7 @@ export function SocialPostCard({
             ref={imageButtonRef}
             type="button"
             aria-label="Open image preview"
-            className={`mb-4 ${isExpanded ? "w-full md:w-1/2" : "w-1/2"} self-start cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900`}
+            className={`mb-4 ${isExpanded ? "w-full" : "w-1/2"} self-start cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-white p-0 text-left transition hover:opacity-90 dark:bg-slate-900`}
             style={
               !isExpanded ? { height: collapsedBodyHeight } : undefined
             }
