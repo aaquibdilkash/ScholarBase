@@ -16,6 +16,7 @@ import { Editor } from "@/components/ui/Editor";
 
 import {
   MAX_PROFILE_NAME,
+  MIN_PROFILE_NAME,
   MAX_PROFILE_HANDLE,
   MAX_PROFILE_BIO,
   MAX_PROFILE_URL,
@@ -148,12 +149,17 @@ export default function EditProfileForm({ user }: { user: UserData }) {
   }, [handle, user.handle, debouncedCheckHandle]);
 
   const isBioOverLimit = getRichTextLength(bio) > MAX_PROFILE_BIO;
-  const isFormOverLimit = isBioOverLimit;
+  const isNameTooShort = name.length > 0 && name.length < MIN_PROFILE_NAME;
+  const isFormOverLimit = isBioOverLimit || isNameTooShort;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (isFormOverLimit) {
-      setError(`Bio exceeds the ${MAX_PROFILE_BIO}-character limit.`);
+      if (isNameTooShort) {
+        setError(`Name must be at least ${MIN_PROFILE_NAME} characters.`);
+      } else {
+        setError(`Bio exceeds the ${MAX_PROFILE_BIO}-character limit.`);
+      }
       return;
     }
     setError(null);
@@ -208,12 +214,19 @@ export default function EditProfileForm({ user }: { user: UserData }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          className="sb-input px-3 py-2 sm:px-3 sm:py-2"
+          className={`sb-input px-3 py-2 sm:px-3 sm:py-2 ${
+            isNameTooShort ? "border-red-500" : ""
+          }`}
           placeholder="e.g. Dr. Jane Smith"
           maxLength={MAX_PROFILE_NAME}
         />
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {name.length}/{MAX_PROFILE_NAME} characters
+          {isNameTooShort && (
+            <span className="text-red-500 ml-1">
+              (minimum {MIN_PROFILE_NAME})
+            </span>
+          )}
         </div>
       </div>
 

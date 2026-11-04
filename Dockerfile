@@ -4,7 +4,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Install OpenSSL so Prisma detects libssl3 properly on Debian Bookworm ARM64
-RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 COPY package.json package-lock.json ./

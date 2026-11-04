@@ -9,7 +9,7 @@ import {
   deleteCloudinaryAsset,
   promoteDraftCloudinaryAsset,
 } from "@/lib/cloudinary";
-import { MAX_PROFILE_BIO, MAX_PROFILE_INTERESTS, MAX_PROFILE_INTEREST_COUNT, MAX_PROFILE_INTEREST_LENGTH } from "@/lib/constants";
+import { MAX_PROFILE_BIO, MAX_PROFILE_INTERESTS, MAX_PROFILE_INTEREST_COUNT, MAX_PROFILE_INTEREST_LENGTH, MIN_PROFILE_NAME } from "@/lib/constants";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import {
   loadProfileActivity,
@@ -350,6 +350,14 @@ export async function updateProfile(formData: FormData) {
   const newName = readOptionalFormValue(formData, "name");
   const newBio = readOptionalFormValue(formData, "bio");
   assertRichTextWithinLimit(newBio ?? "", MAX_PROFILE_BIO, "Bio");
+
+  // Name must be at least 3 characters when provided (empty means "leave alone").
+  if (newName !== null && newName !== "" && newName.length < MIN_PROFILE_NAME) {
+    return {
+      success: false,
+      message: `Name must be at least ${MIN_PROFILE_NAME} characters.`,
+    };
+  }
   const newInterests = normalizeProfileInterests(readOptionalFormValue(formData, "interests"));
   const newAvatarUrl = readOptionalFormValue(formData, "avatarUrl");
   const newGithubUrl = readOptionalFormValue(formData, "githubUrl");

@@ -170,6 +170,9 @@ export async function searchInbox(userId: string, query: string, limit = 30) {
           participants: {
             some: {
               user: {
+                id: { not: userId }, // Never match the current user themselves;
+                                     // searching a common name must find *other*
+                                     // users, not every conversation you're in.
                 OR: [
                   { name: { contains: q, mode: "insensitive" } },
                   { handle: { contains: q, mode: "insensitive" } },
