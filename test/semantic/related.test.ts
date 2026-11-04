@@ -80,6 +80,11 @@ describe("related content lookup", () => {
         id: "c2",
         href: "/contributions/c2",
         title: "Travel grant",
+        subtitle: undefined,
+        avatarUrl: null,
+        imageUrl: null,
+        authorName: undefined,
+        authorHandle: undefined,
         similarity: 0.7,
       },
     ]);
@@ -93,8 +98,22 @@ describe("related content lookup", () => {
     db.findMany.mockImplementation(async (name: string) =>
       name === "user"
         ? [
-            { id: "u3", name: "Ada", handle: "ada" },
-            { id: "u2", name: "Grace", handle: null },
+            {
+              id: "u3",
+              name: "Ada",
+              handle: "ada",
+              followersCount: 12,
+              followingCount: 3,
+              reputation: 20,
+            },
+            {
+              id: "u2",
+              name: "Grace",
+              handle: null,
+              followersCount: 0,
+              followingCount: 0,
+              reputation: 0,
+            },
           ]
         : [],
     );
@@ -107,6 +126,11 @@ describe("related content lookup", () => {
         href: "/scholars/u2",
         title: "Grace",
         subtitle: undefined,
+        avatarUrl: null,
+        imageUrl: null,
+        authorName: "Grace",
+        authorHandle: undefined,
+        stats: { followers: 0, following: 0, reputation: 0 },
         similarity: 0.95,
       },
       {
@@ -114,6 +138,11 @@ describe("related content lookup", () => {
         href: "/scholars/u3",
         title: "Ada",
         subtitle: "@ada",
+        avatarUrl: null,
+        imageUrl: null,
+        authorName: "Ada",
+        authorHandle: "ada",
+        stats: { followers: 12, following: 3, reputation: 20 },
         similarity: 0.6,
       },
     ]);
@@ -128,6 +157,8 @@ describe("related content lookup", () => {
     const items = await getRelatedContent("ARTICLE", "a1");
 
     expect(items[0]?.href).toBe("/blog/on-engines");
+    expect(items[0]?.avatarUrl).toBeNull();
+    expect(items[0]?.authorName).toBeUndefined();
   });
 
   it("builds parent-scoped hrefs for recommendations and reviews", async () => {

@@ -179,8 +179,10 @@ export default async function ScholarProfile({
         }}
         profileId={profile.id}
         currentUserId={currentUser?.id}
+        relatedContent={
+          <RelatedContent title="Similar scholars" items={related} />
+        }
       />
-      <RelatedContent title="Similar scholars" items={related} />
       {/* Frozen owners landing here from the USER_FROZEN notification get the
           same reason+appeal entry as the banner — the flag-menu AppealButton
           above is kept as a secondary path. */}

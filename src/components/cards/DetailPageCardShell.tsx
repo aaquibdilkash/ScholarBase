@@ -138,7 +138,10 @@ export default function DetailPageCardShell({
   return (
     <main
       className={clsx(
-        "mx-auto w-full max-w-3xl px-0 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10",
+        // The main column keeps its original `max-w-3xl` width at every
+        // breakpoint. On desktop the page grows so the related sidebar can use
+        // the leftover space instead of squeezing the card and the discussion.
+        "mx-auto w-full max-w-3xl px-0 py-3 sm:px-6 sm:py-8 md:px-8 md:py-10 xl:max-w-6xl",
         className,
       )}
     >
@@ -151,183 +154,195 @@ export default function DetailPageCardShell({
         {backLabel}
       </Link>
 
-      <div
-        className={clsx(
-          bodyClassName ??
-            "sb-card min-w-0 w-full overflow-x-clip p-6 sm:p-6 md:p-8",
-        )}
-      >
-        {/* Moderation banner — frozen content is visible but read-only */}
-        {!isDeleted && isFrozen && frozenEntityId ? (
-          <FrozenContentBanner
-            entityId={frozenEntityId}
-            module={frozenModule ?? "SOCIAL_FEED"}
-            entityType={frozenEntityType ?? "POST"}
-            ownerId={frozenOwnerId ?? authorId ?? null}
-            currentUserId={currentUserId}
-            hasActiveAppeal={frozenHasActiveAppeal}
-            isAdmin={isAdmin}
-            variant="detail"
-          />
-        ) : (
-          !isDeleted && isFrozen && (
-            <div className="mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
-              <span className="inline-flex items-center gap-2 text-left">
-                <span aria-hidden>❄</span>
-                <span>
-                  This post has been frozen by moderators. Voting, reporting and
-                  commenting are disabled.
-                </span>
-              </span>
-            </div>
-          )
-        )}
-        {/* Common header */}
-        <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            {!isDeleted && authorHref ? (
-              <Link prefetch={false} href={authorHref} className="shrink-0">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
-                  {authorAvatarUrl ? (
-                    <UserAvatar src={authorAvatarUrl} name={authorName} />
+      <div className="xl:grid xl:grid-cols-[minmax(0,44rem)_minmax(0,1fr)] xl:items-start xl:gap-8">
+        {/* Left: main card + discussion, both capped at the original width */}
+        <div className="min-w-0">
+          <div
+            className={clsx(
+              bodyClassName ??
+                "sb-card min-w-0 w-full overflow-x-clip p-6 sm:p-6 md:p-8",
+            )}
+          >
+            {/* Moderation banner — frozen content is visible but read-only */}
+            {!isDeleted && isFrozen && frozenEntityId ? (
+              <FrozenContentBanner
+                entityId={frozenEntityId}
+                module={frozenModule ?? "SOCIAL_FEED"}
+                entityType={frozenEntityType ?? "POST"}
+                ownerId={frozenOwnerId ?? authorId ?? null}
+                currentUserId={currentUserId}
+                hasActiveAppeal={frozenHasActiveAppeal}
+                isAdmin={isAdmin}
+                variant="detail"
+              />
+            ) : (
+              !isDeleted && isFrozen && (
+                <div className="mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-2 text-left">
+                    <span aria-hidden>❄</span>
+                    <span>
+                      This post has been frozen by moderators. Voting, reporting and
+                      commenting are disabled.
+                    </span>
+                  </span>
+                </div>
+              )
+            )}
+            {/* Common header */}
+            <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                {!isDeleted && authorHref ? (
+                  <Link prefetch={false} href={authorHref} className="shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
+                      {authorAvatarUrl ? (
+                        <UserAvatar src={authorAvatarUrl} name={authorName} />
+                      ) : (
+                        <span className="font-semibold text-slate-400 text-lg">
+                          {authorName?.charAt(0).toUpperCase() || "?"}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden dark:border dark:border-slate-700 dark:bg-slate-800">
+                    <span className="font-semibold text-slate-400 text-lg">?</span>
+                  </div>
+                )}
+                <div>
+                  {!isDeleted && authorHref ? (
+                    <Link
+                      prefetch={false}
+                      href={authorHref}
+                      className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
+                    >
+                      <span className="inline-flex max-w-full items-center gap-1">
+                        <span className="min-w-0 truncate">
+                          {isDeleted ? "Deleted content" : authorName || "Scholar"}
+                        </span>
+                        {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
+                      </span>
+                    </Link>
                   ) : (
-                    <span className="font-semibold text-slate-400 text-lg">
-                      {authorName?.charAt(0).toUpperCase() || "?"}
+                    <span className="font-semibold italic text-slate-500 dark:text-slate-400">
+                      <span className="inline-flex max-w-full items-center gap-1">
+                        <span className="min-w-0 truncate">
+                          {isDeleted ? "Deleted content" : authorName || "Scholar"}
+                        </span>
+                        {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
+                      </span>
                     </span>
                   )}
+                  {!isDeleted && authorHandle ? (
+                    <div className="mt-0.5 text-xs font-medium text-slate-500">
+                      @{authorHandle}
+                    </div>
+                  ) : null}
                 </div>
-              </Link>
-            ) : (
-              <div className="w-12 h-12 shrink-0 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden dark:border dark:border-slate-700 dark:bg-slate-800">
-                <span className="font-semibold text-slate-400 text-lg">?</span>
               </div>
-            )}
 
-            <div>
-              {!isDeleted && authorHref ? (
-                <Link
-                  prefetch={false}
-                  href={authorHref}
-                  className="font-semibold text-slate-950 hover:text-blue-700 hover:underline transition"
+              {/* Right side: owner actions OR follow */}
+              <div className="flex items-center">
+                {isOwner ? (
+                  managementControls
+                ) : !isDeleted && authorId ? (
+                  <FollowButton
+                    targetId={authorId}
+                    isFollowing={Boolean(isFollowing)}
+                    currentUserId={currentUserId}
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            {/* Body — clipping is handled by child components (e.g. Carousel
+                uses its own overflow-x-hidden) so positioned overlays like
+                carousel arrows are never cut off. */}
+            <div className="min-w-0 max-w-full">
+              {isDeleted && (
+                <div className="mb-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-sm font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
+                  {deletedContentNotice(deletedByType, deletedNoun)}
+                </div>
+              )}
+              {children}
+
+              {bodyBottomContent}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
+              <span
+                suppressHydrationWarning
+                className="font-semibold text-slate-400"
+              >
+                {createdLabel} {formatTimeAgo(createdDate)}
+              </span>
+              {editedDate && (
+                <span
+                  suppressHydrationWarning
+                  className="font-semibold text-slate-400"
                 >
-                  <span className="inline-flex max-w-full items-center gap-1">
-                    <span className="min-w-0 truncate">
-                      {isDeleted ? "Deleted content" : authorName || "Scholar"}
-                    </span>
-                    {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
-                  </span>
-                </Link>
-              ) : (
-                <span className="font-semibold italic text-slate-500 dark:text-slate-400">
-                  <span className="inline-flex max-w-full items-center gap-1">
-                    <span className="min-w-0 truncate">
-                      {isDeleted ? "Deleted content" : authorName || "Scholar"}
-                    </span>
-                    {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
-                  </span>
+                  {editedLabel} {formatTimeAgo(editedDate)}
                 </span>
               )}
-              {!isDeleted && authorHandle ? (
-                <div className="mt-0.5 text-xs font-medium text-slate-500">
-                  @{authorHandle}
-                </div>
-              ) : null}
+            </div>
+
+            {/* Common footer — votes/comments left, Share + Report far right */}
+            <div className="mt-2 flex items-center justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-800 sm:gap-6">
+              <div className="flex items-center gap-4 sm:gap-6">
+                {/* Frozen: keep the vote button visible but disabled (VoteButton
+                    supports the `frozen` prop, injected here for detail pages). */}
+                {(isFrozen || isDeleted) && footerVoteButton && isValidElement(footerVoteButton)
+                  ? cloneElement(
+                      footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
+                      { frozen: true },
+                    )
+                  : footerVoteButton}
+
+                <CommentCountDisplay
+                  href={footerCommentsHref}
+                  initialCount={footerCommentsCount}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pr-1 sm:pr-0">
+                {(isFrozen || isDeleted) &&
+                footerBookmarkButton &&
+                isValidElement(footerBookmarkButton)
+                  ? cloneElement(
+                      footerBookmarkButton as React.ReactElement<{
+                        frozen?: boolean;
+                      }>,
+                      { frozen: true },
+                    )
+                  : footerBookmarkButton}
+                <ShareButton label="Share" title={shareTitle} text={shareText} />
+                {/* Report menu is always visible — on frozen posts it also hosts
+                    the owner's "Appeal Removal" option. */}
+                {footerReportMenu && isValidElement(footerReportMenu)
+                  ? cloneElement(
+                      footerReportMenu as React.ReactElement<{
+                        isDeleted?: boolean;
+                        deletedByType?: DeletedContentReason;
+                      }>,
+                      { isDeleted, deletedByType },
+                    )
+                  : footerReportMenu}
+              </div>
             </div>
           </div>
 
-          {/* Right side: owner actions OR follow */}
-          <div className="flex items-center">
-            {isOwner ? (
-              managementControls
-            ) : !isDeleted && authorId ? (
-              <FollowButton
-                targetId={authorId}
-                isFollowing={Boolean(isFollowing)}
-                currentUserId={currentUserId}
-              />
-            ) : null}
-          </div>
-        </div>
-
-        {/* Body — clipping is handled by child components (e.g. Carousel
-            uses its own overflow-x-hidden) so positioned overlays like
-            carousel arrows are never cut off. */}
-        <div className="min-w-0 max-w-full">
-          {isDeleted && (
-            <div className="mb-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-sm font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-              {deletedContentNotice(deletedByType, deletedNoun)}
-            </div>
+          {/* Mobile/tablet: related content below the card, above the discussion */}
+          {relatedContent && (
+            <div className="mt-6 xl:hidden">{relatedContent}</div>
           )}
-          {children}
 
-          {bodyBottomContent}
+          {discussion}
         </div>
 
-        <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
-          <span
-            suppressHydrationWarning
-            className="font-semibold text-slate-400"
-          >
-            {createdLabel} {formatTimeAgo(createdDate)}
-          </span>
-          {editedDate && (
-            <span
-              suppressHydrationWarning
-              className="font-semibold text-slate-400"
-            >
-              {editedLabel} {formatTimeAgo(editedDate)}
-            </span>
-          )}
-        </div>
-
-        {/* Common footer — votes/comments left, Share + Report far right */}
-        <div className="mt-2 flex items-center justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-800 sm:gap-6">
-          <div className="flex items-center gap-4 sm:gap-6">
-            {/* Frozen: keep the vote button visible but disabled (VoteButton
-                supports the `frozen` prop, injected here for detail pages). */}
-            {(isFrozen || isDeleted) && footerVoteButton && isValidElement(footerVoteButton)
-              ? cloneElement(
-                  footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
-                  { frozen: true },
-                )
-              : footerVoteButton}
-
-            <CommentCountDisplay
-              href={footerCommentsHref}
-              initialCount={footerCommentsCount}
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pr-1 sm:pr-0">
-            {(isFrozen || isDeleted) &&
-            footerBookmarkButton &&
-            isValidElement(footerBookmarkButton)
-              ? cloneElement(
-                  footerBookmarkButton as React.ReactElement<{
-                    frozen?: boolean;
-                  }>,
-                  { frozen: true },
-                )
-              : footerBookmarkButton}
-            <ShareButton label="Share" title={shareTitle} text={shareText} />
-            {/* Report menu is always visible — on frozen posts it also hosts
-                the owner's "Appeal Removal" option. */}
-            {footerReportMenu && isValidElement(footerReportMenu)
-              ? cloneElement(
-                  footerReportMenu as React.ReactElement<{
-                    isDeleted?: boolean;
-                    deletedByType?: DeletedContentReason;
-                  }>,
-                  { isDeleted, deletedByType },
-                )
-              : footerReportMenu}
-          </div>
-        </div>
+        {/* Desktop: related content fills the leftover space to the right */}
+        <aside className="hidden xl:block xl:sticky xl:top-6">
+          {relatedContent}
+        </aside>
       </div>
-
-      {relatedContent}
-
-      {discussion}
     </main>
   );
 }

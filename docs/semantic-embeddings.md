@@ -151,7 +151,10 @@ Helpers live in `src/lib/semantic/matching.ts`:
 Same-type "related" lookups live in `src/lib/semantic/related.ts`:
 
 - `getRelatedContent(entityType, entityId, limit)` → `{ id, href, title,
-  subtitle, similarity }[]` for every one of the 18 entity types.
+  subtitle, avatarUrl, imageUrl, authorName, authorHandle, stats, similarity }[]`
+  for every one of the 18 entity types. `stats` is scholar-only
+  (`followers`, `following`, `reputation`) and comes from the same hydration
+  query, so the related-row counters add no extra round trip.
 
 Each helper returns ordered matches. `matching.ts` returns ids and scores;
 `related.ts` hydrates the same-type top-N for the detail-page

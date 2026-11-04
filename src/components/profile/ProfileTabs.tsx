@@ -402,10 +402,12 @@ export default function ProfileTabs({
   profile,
   profileId,
   currentUserId,
+  relatedContent,
 }: {
   profile: ProfileData;
   profileId: string;
   currentUserId?: string;
+  relatedContent?: React.ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -700,6 +702,9 @@ export default function ProfileTabs({
                 )}
             </div>
           </div>
+
+          {/* Similar Scholars */}
+          {relatedContent}
         </div>
       )}
 

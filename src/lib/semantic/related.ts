@@ -24,6 +24,19 @@ export type RelatedContentItem = {
   href: string;
   title: string;
   subtitle?: string;
+  avatarUrl?: string | null;
+  imageUrl?: string | null;
+  authorName?: string;
+  authorHandle?: string;
+  /**
+   * Scholar-only summary shown on the right of the row. Read from the same
+   * hydration query (materialized user counters), never a second query.
+   */
+  stats?: {
+    followers: number;
+    following: number;
+    reputation: number;
+  };
   similarity: number;
 };
 
@@ -97,6 +110,32 @@ async function findRelatedMatches(
   }));
 }
 
+function setItem(
+  items: Map<string, HydratedItem>,
+  id: string,
+  href: string,
+  title: string,
+  opts: {
+    subtitle?: string;
+    avatarUrl?: string | null;
+    imageUrl?: string | null;
+    authorName?: string;
+    authorHandle?: string;
+    stats?: RelatedContentItem["stats"];
+  } = {},
+) {
+  items.set(id, {
+    href,
+    title,
+    subtitle: opts.subtitle,
+    avatarUrl: opts.avatarUrl ?? null,
+    imageUrl: opts.imageUrl ?? null,
+    authorName: opts.authorName,
+    authorHandle: opts.authorHandle,
+    stats: opts.stats,
+  });
+}
+
 async function hydrateItems(
   entityType: EmbeddingEntityType,
   ids: string[],
@@ -108,14 +147,28 @@ async function hydrateItems(
     case "SCHOLAR": {
       const rows = await prisma.user.findMany({
         where,
-        select: { id: true, name: true, handle: true },
+        select: {
+          id: true,
+          name: true,
+          handle: true,
+          avatarUrl: true,
+          followersCount: true,
+          followingCount: true,
+          reputation: true,
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/scholars/${row.id}`,
-          title: row.name ?? "Scholar",
+        setItem(items, row.id, `/scholars/${row.id}`, row.name ?? "Scholar", {
           subtitle: row.handle ? `@${row.handle}` : undefined,
+          avatarUrl: row.avatarUrl ?? null,
+          authorName: row.name ?? undefined,
+          authorHandle: row.handle ?? undefined,
+          stats: {
+            followers: row.followersCount,
+            following: row.followingCount,
+            reputation: row.reputation,
+          },
         });
       }
       break;
@@ -124,13 +177,21 @@ async function hydrateItems(
     case "SOCIAL_POST": {
       const rows = await prisma.socialPost.findMany({
         where,
-        select: { id: true, content: true },
+        select: {
+          id: true,
+          content: true,
+          imageUrl: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/feed/${row.id}`,
-          title: excerpt(row.content) || "Post",
+        setItem(items, row.id, `/feed/${row.id}`, excerpt(row.content) || "Post", {
+          subtitle: undefined,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          imageUrl: row.imageUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -139,14 +200,20 @@ async function hydrateItems(
     case "PUBLICATION": {
       const rows = await prisma.publication.findMany({
         where,
-        select: { id: true, title: true, authors: true },
+        select: {
+          id: true,
+          title: true,
+          authors: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/publications/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/publications/${row.id}`, row.title, {
           subtitle: excerpt(row.authors, 80),
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -155,13 +222,19 @@ async function hydrateItems(
     case "ARTICLE": {
       const rows = await prisma.article.findMany({
         where,
-        select: { id: true, slug: true, title: true },
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/blog/${row.slug}`,
-          title: row.title,
+        setItem(items, row.id, `/blog/${row.slug}`, row.title, {
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -170,14 +243,20 @@ async function hydrateItems(
     case "HELP_POST": {
       const rows = await prisma.helpPost.findMany({
         where,
-        select: { id: true, title: true, category: true },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/help/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/help/${row.id}`, row.title, {
           subtitle: row.category,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -186,13 +265,18 @@ async function hydrateItems(
     case "CONTRIBUTION": {
       const rows = await prisma.contribution.findMany({
         where,
-        select: { id: true, title: true },
+        select: {
+          id: true,
+          title: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/contributions/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/contributions/${row.id}`, row.title, {
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -201,14 +285,20 @@ async function hydrateItems(
     case "RESEARCH_TOOL": {
       const rows = await prisma.researchTool.findMany({
         where,
-        select: { id: true, name: true, use: true },
+        select: {
+          id: true,
+          name: true,
+          use: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/research-tools/${row.id}`,
-          title: row.name,
+        setItem(items, row.id, `/research-tools/${row.id}`, row.name, {
           subtitle: excerpt(row.use, 80),
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -217,14 +307,20 @@ async function hydrateItems(
     case "RESEARCH_GRANT": {
       const rows = await prisma.researchGrant.findMany({
         where,
-        select: { id: true, title: true, amount: true },
+        select: {
+          id: true,
+          title: true,
+          amount: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/grants/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/grants/${row.id}`, row.title, {
           subtitle: row.amount ?? undefined,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -233,14 +329,20 @@ async function hydrateItems(
     case "COURSE": {
       const rows = await prisma.course.findMany({
         where,
-        select: { id: true, title: true, provider: true },
+        select: {
+          id: true,
+          title: true,
+          provider: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/learn/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/learn/${row.id}`, row.title, {
           subtitle: row.provider ?? undefined,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -249,14 +351,20 @@ async function hydrateItems(
     case "JOURNAL": {
       const rows = await prisma.journal.findMany({
         where,
-        select: { id: true, title: true, publisher: true },
+        select: {
+          id: true,
+          title: true,
+          publisher: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/journals/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/journals/${row.id}`, row.title, {
           subtitle: row.publisher ?? undefined,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -265,14 +373,20 @@ async function hydrateItems(
     case "RESULT": {
       const rows = await prisma.result.findMany({
         where,
-        select: { id: true, title: true, conductingBody: true },
+        select: {
+          id: true,
+          title: true,
+          conductingBody: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/results/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/results/${row.id}`, row.title, {
           subtitle: row.conductingBody ?? undefined,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -281,13 +395,18 @@ async function hydrateItems(
     case "RESEARCH_SURVEY": {
       const rows = await prisma.researchSurvey.findMany({
         where,
-        select: { id: true, title: true },
+        select: {
+          id: true,
+          title: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/surveys/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/surveys/${row.id}`, row.title, {
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -296,14 +415,20 @@ async function hydrateItems(
     case "RESEARCH_EVENT": {
       const rows = await prisma.researchEvent.findMany({
         where,
-        select: { id: true, title: true, location: true },
+        select: {
+          id: true,
+          title: true,
+          location: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/events/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/events/${row.id}`, row.title, {
           subtitle: row.location,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -312,14 +437,20 @@ async function hydrateItems(
     case "PHD_ADMISSION": {
       const rows = await prisma.phdAdmission.findMany({
         where,
-        select: { id: true, university: true, department: true },
+        select: {
+          id: true,
+          university: true,
+          department: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/admissions/${row.id}`,
-          title: row.university,
+        setItem(items, row.id, `/admissions/${row.id}`, row.university, {
           subtitle: row.department,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -328,14 +459,20 @@ async function hydrateItems(
     case "JOB_VACANCY": {
       const rows = await prisma.jobVacancy.findMany({
         where,
-        select: { id: true, title: true, institution: true },
+        select: {
+          id: true,
+          title: true,
+          institution: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
+        },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/vacancies/${row.id}`,
-          title: row.title,
+        setItem(items, row.id, `/vacancies/${row.id}`, row.title, {
           subtitle: row.institution,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -349,14 +486,16 @@ async function hydrateItems(
           name: true,
           university: true,
           department: true,
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/supervisor/${row.id}`,
-          title: row.name,
+        setItem(items, row.id, `/supervisor/${row.id}`, row.name, {
           subtitle: `${row.university} · ${row.department}`,
+          avatarUrl: row.author?.avatarUrl ?? null,
+          authorName: row.author?.name ?? undefined,
+          authorHandle: row.author?.handle ?? undefined,
         });
       }
       break;
@@ -370,15 +509,23 @@ async function hydrateItems(
           feedback: true,
           supervisorId: true,
           supervisor: { select: { name: true } },
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/supervisor/${row.supervisorId}/recommendation/${row.id}`,
-          title: excerpt(row.feedback) || "Recommendation",
-          subtitle: row.supervisor.name,
-        });
+        setItem(
+          items,
+          row.id,
+          `/supervisor/${row.supervisorId}/recommendation/${row.id}`,
+          excerpt(row.feedback) || "Recommendation",
+          {
+            subtitle: row.supervisor.name,
+            avatarUrl: row.author?.avatarUrl ?? null,
+            authorName: row.author?.name ?? undefined,
+            authorHandle: row.author?.handle ?? undefined,
+          },
+        );
       }
       break;
     }
@@ -391,15 +538,23 @@ async function hydrateItems(
           feedback: true,
           journalId: true,
           journal: { select: { title: true } },
+          author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
       });
 
       for (const row of rows) {
-        items.set(row.id, {
-          href: `/journals/${row.journalId}/review/${row.id}`,
-          title: excerpt(row.feedback) || "Journal review",
-          subtitle: row.journal.title,
-        });
+        setItem(
+          items,
+          row.id,
+          `/journals/${row.journalId}/review/${row.id}`,
+          excerpt(row.feedback) || "Journal review",
+          {
+            subtitle: row.journal.title,
+            avatarUrl: row.author?.avatarUrl ?? null,
+            authorName: row.author?.name ?? undefined,
+            authorHandle: row.author?.handle ?? undefined,
+          },
+        );
       }
       break;
     }
