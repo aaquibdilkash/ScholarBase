@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { LoadMoreSentinel } from "@/components/layout/LoadMoreSentinel";
 import { defaultGetCursor, normalizePage, LIST_REVALIDATE_MS } from "@/components/layout/listPage";
 import type { ListPage } from "@/components/layout/listPage";
@@ -33,6 +33,7 @@ export function CacheBackedList<T extends { id: string }>({
   emptyState,
   getCursor = defaultGetCursor,
   staleTime = LIST_REVALIDATE_MS,
+  keepPreviousOnKeyChange = false,
   onLoadError,
   loadingIndicator,
 }: {
@@ -54,6 +55,12 @@ export function CacheBackedList<T extends { id: string }>({
   emptyState?: ReactNode;
   getCursor?: (items: T[]) => string | undefined;
   staleTime?: number;
+  /**
+   * Keep the previous key's rows on screen while the new key's first page
+   * loads. Search-as-you-type uses this so changing the term never blanks the
+   * list or flashes an empty state; the search bar's spinner owns progress.
+   */
+  keepPreviousOnKeyChange?: boolean;
   onLoadError?: (error: unknown) => void;
   loadingIndicator?: ReactNode;
 }) {
@@ -74,30 +81,57 @@ export function CacheBackedList<T extends { id: string }>({
     onLoadErrorRef.current = onLoadError;
   });
 
-  const { data: items = [] } = useQuery<T[]>({
+  // Serialized key: the only thing that means "a different list". `queryKey`
+  // arrays are re-created every render, so comparing identities would reset
+  // pagination constantly.
+  const keyString = JSON.stringify(queryKey);
+  // First-page pagination verdict per key, written by `queryFn`/`loadMore`.
+  const hasMoreByKeyRef = useRef(new Map<string, boolean>());
+
+  const { data, isPlaceholderData } = useQuery<T[]>({
     queryKey,
     queryFn: async () => {
       const page = normalizePage(await fetchPageRef.current(undefined));
+      // Recorded once per key, so a later revisit knows whether the first page
+      // was full without guessing from the (possibly appended) cached length.
+      hasMoreByKeyRef.current.set(
+        keyString,
+        page.hasMore ?? page.items.length === chunkSize,
+      );
       return page.items;
     },
     // `undefined` initialData is deliberate: `useQuery` reads it as "no data
     // yet" and fetches, where `[]` would be cached as a real (empty) result.
     initialData: initialItems,
+    placeholderData: keepPreviousOnKeyChange ? keepPreviousData : undefined,
     staleTime,
     // Never silently drop already-appended pages on a background refetch.
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+  const items = data ?? [];
 
   // Reset pagination only on a genuine list swap (key change), never because
   // `initialItems` gained a new identity from a parent re-render.
-  const keyString = JSON.stringify(queryKey);
   const previousKeyRef = useRef(keyString);
   useEffect(() => {
     if (previousKeyRef.current === keyString) return;
     previousKeyRef.current = keyString;
     setHasMore(initialItems?.length === chunkSize);
   }, [keyString, initialItems, chunkSize]);
+
+  // On the first settle for a key, take pagination from that page's own
+  // `hasMore` (client-fetched searches have no `initialItems` to derive it
+  // from). Skipped for placeholder rows, which still belong to the old key.
+  const firstPageKeyRef = useRef<string | null>(initialItems ? keyString : null);
+  useEffect(() => {
+    if (isPlaceholderData || data === undefined) return;
+    if (firstPageKeyRef.current === keyString) return;
+    firstPageKeyRef.current = keyString;
+    setHasMore(
+      hasMoreByKeyRef.current.get(keyString) ?? data.length >= chunkSize,
+    );
+  }, [data, isPlaceholderData, keyString, chunkSize]);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current) return;
@@ -110,6 +144,7 @@ export function CacheBackedList<T extends { id: string }>({
       const cursor = getCursorRef.current(current);
       const page = normalizePage(await fetchPageRef.current(cursor));
       const more = page.hasMore ?? page.items.length === chunkSize;
+      hasMoreByKeyRef.current.set(keyString, more);
 
       if (page.items.length > 0) {
         queryClient.setQueryData<T[]>(queryKey, (old = []) => {
@@ -125,7 +160,7 @@ export function CacheBackedList<T extends { id: string }>({
       loadingRef.current = false;
       setLoadingMore(false);
     }
-  }, [queryKey, chunkSize, queryClient]);
+  }, [queryKey, keyString, chunkSize, queryClient]);
 
   const showEmpty = items.length === 0 && !loadingMore;
 

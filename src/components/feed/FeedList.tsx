@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { buildSearchHref } from "@/lib/list-search";
+import { useMemo } from "react";
+import { useIsFetching } from "@tanstack/react-query";
+import { useListSearch } from "@/hooks/useListSearch";
+import { listEmptyMessage } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
@@ -24,28 +25,28 @@ export function FeedList({
   /** Page size, shared with the server so `hasMore` stays in sync. */
   pageSize?: number;
 }) {
-  const [query, setQuery] = useState(initialQuery ?? "");
+  const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } =
+    useListSearch("/feed", initialQuery);
   // Keep the same key shape the cache writers in CreateSocialPostForm /
   // SocialPostCard / CommentSection target via `{ queryKey: ["feed"] }`.
   const queryKey = useMemo(
-    () => ["feed", { q: initialQuery ?? "", tab: tab ?? "" }] as const,
-    [initialQuery, tab],
+    () => ["feed", { q: appliedQuery, tab: tab ?? "" }] as const,
+    [appliedQuery, tab],
   );
-  const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Empty input clears `?q` so the page falls back to the unfiltered list.
-    router.push(buildSearchHref("/feed", window.location.search, query));
-  };
+  const isFetching = useIsFetching({ queryKey, exact: true }) > 0;
+  const isSearching = isDebouncing || isFetching;
+  // Only the server-rendered term has data to seed the cache with.
+  const isServerQuery = appliedQuery === (initialQuery ?? "");
 
   return (
     <div className="mb-10">
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
-          activeQuery={initialQuery}
+          activeQuery={appliedQuery}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={handleClear}
+          loading={isSearching}
           placeholder="Search posts..."
           className="mb-4"
         />
@@ -53,12 +54,13 @@ export function FeedList({
 
       <CacheBackedList<SocialPostFeedItem>
         queryKey={queryKey}
-        initialItems={posts}
+        initialItems={isServerQuery ? posts : undefined}
+        keepPreviousOnKeyChange
         chunkSize={pageSize}
         fetchPage={(cursor) =>
           // Viewer identity is resolved server-side inside the action; the
           // client never sends a userId.
-          fetchFeedPage(tab, initialQuery, pageSize, cursor)
+          fetchFeedPage(tab, appliedQuery, pageSize, cursor)
         }
         renderItem={(post, index) => (
           <SocialPostCard
@@ -69,13 +71,10 @@ export function FeedList({
           />
         )}
         className="flex flex-col gap-6"
-        emptyState={
-          <div className="rounded-[24px] border border-dashed border-slate-200 bg-white/80 py-12 text-center">
-            <p className="font-medium text-slate-500">
-              No posts to show right now.
-            </p>
-          </div>
-        }
+        emptyMessage={listEmptyMessage(
+          appliedQuery,
+          "No posts to show right now.",
+        )}
         onLoadError={(error) => {
           console.error("Failed to load more posts:", error);
         }}

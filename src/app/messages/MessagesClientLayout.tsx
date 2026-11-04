@@ -7,15 +7,17 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/utils/supabase/client";
 import { useTimeAgo } from "@/utils/use-time-ago";
 import type { User, AuthChangeEvent, Session } from "@supabase/supabase-js";
-import { getInbox, searchInbox, getConversationPreview } from "@/app/actions/messages";
+import { getInbox, getConversationPreview } from "@/app/actions/messages";
 import { usePresence } from "@/components/interactions/PresenceProvider";
 import { EnablePushButton } from "@/components/push/EnablePushButton";
 import { MessagesLayoutContext } from "./messages-context";
 import { Check, CheckCheck, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
 import useMediaQuery from "@/hooks/useMediaQuery";
+import { useInboxSearch } from "@/hooks/useInboxSearch";
+import { SearchInput } from "@/components/ui/SearchInput";
 
 type Participant = { user: { id: string; name: string | null; handle: string | null; avatarUrl: string | null; isFrozen?: boolean; isDeleted?: boolean; }; lastReadAt: Date | string | null; };
-type Message = { id?: string; body: string; createdAt?: Date | string | number; created_at?: Date | string | number; senderId?: string; sender_id?: string; sender?: { id: string; }; };
+type Message = { id?: string; body: string; createdAt?: Date | string | number; senderId?: string; sender?: { id: string; }; };
 type InboxConversation = { id: string; lastMessageAt: Date | string; participants: Participant[]; messages: Message[]; unreadCount: number; };
 
 // ⚡ INFINITE SCROLL: conversations per page.
@@ -41,8 +43,12 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
   // ⚡ PAGINATION + SERVER-SIDE SEARCH state.
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [searchResults, setSearchResults] = useState<InboxConversation[] | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
+  // Debounced, race-safe: null while no search is applied, results once it
+  // settles. Late responses for a cleared/changed term are dropped.
+  const { results: searchResults, isSearching, searchNow } = useInboxSearch(
+    user?.id,
+    searchQuery,
+  );
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
@@ -251,7 +257,6 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
       if (!conversationId) return;
 
       setSearchQuery("");
-      setSearchResults(null);
 
       if (inboxRef.current.some((c) => c.id === conversationId)) {
         setInbox((prev) => {
@@ -371,26 +376,9 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
     return () => observer.disconnect();
   }, [loadMore, searchResults]);
 
-  // ⚡ SEARCH: debounced server-side search across ALL conversations in the
-  // database. An empty query clears the search results and returns to the
-  // paginated list.
-  useEffect(() => {
-    if (!user) return;
-    const q = searchQuery.trim();
-    if (!q) {
-      setSearchResults(null);
-      setIsSearching(false);
-      return;
-    }
-    setIsSearching(true);
-    const timer = setTimeout(() => {
-      searchInbox(user.id, q)
-        .then(setSearchResults)
-        .catch(() => setSearchResults([]))
-        .finally(() => setIsSearching(false));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, user]);
+  // ⚡ SEARCH lives in `useInboxSearch`: debounced, floored at the shared
+  // MIN_SEARCH_LENGTH, and race-safe so clearing the box always restores the
+  // paginated inbox instead of a late empty result set.
 
   // ⚡ Keep the laptop sidebar open on conversation selection. Only the mobile
   // drawer should collapse after a click; desktop uses the persisted rail state.
@@ -433,13 +421,22 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
 
       {showExpanded && (
         <div className="px-4 pb-2 pt-2 border-b border-slate-100 dark:border-slate-900">
-          <input
-            type="text"
-            placeholder="Search scholars..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="sb-input w-full rounded-xl px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900"
-          />
+          <form
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault();
+              searchNow();
+            }}
+          >
+            <SearchInput
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onClear={() => setSearchQuery("")}
+              loading={isSearching}
+              placeholder="Search by name or handle…"
+              aria-label="Search conversations"
+            />
+          </form>
         </div>
       )}
 
@@ -459,11 +456,11 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                 const participantData = conversation.participants.find((p) => p.user.id === user.id);
                 const lastReadAt = participantData?.lastReadAt ? new Date(participantData.lastReadAt) : new Date(0);
                 const latestSenderId = latestMessage
-                  ? (latestMessage.senderId || latestMessage.sender_id || latestMessage.sender?.id)
+                  ? (latestMessage.senderId || latestMessage.sender?.id)
                   : undefined;
                 const latestMessageIsMine = latestSenderId === user.id;
                 const latestMessageCreatedAt = latestMessage
-                  ? new Date((latestMessage.createdAt ?? latestMessage.created_at ?? 0) as Date | string | number)
+                  ? new Date(latestMessage.createdAt ?? 0)
                   : null;
                 const otherParticipantLastReadAt = otherParticipantData?.lastReadAt
                   ? new Date(otherParticipantData.lastReadAt)

@@ -38,8 +38,12 @@ export function TruncatedCardBody({
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  // Track the previous expansion state so we only scroll on the
+  // expanded → collapsed transition (when "View less" is clicked).
+  const prevExpanded = useRef(isExpanded);
 
   const updateTruncation = () => {
     const body = bodyRef.current;
@@ -61,6 +65,20 @@ export function TruncatedCardBody({
     if (measureRef.current) observer.observe(measureRef.current);
     return () => observer.disconnect();
   }, [children, constrainBody]);
+
+  // When collapsing ("View less"), scroll the post header back to the top of
+  // the viewport so the user can see the title/author of the same post again
+  // (and re-expand it) without hunting for the button.
+  useEffect(() => {
+    if (prevExpanded.current && !isExpanded && buttonRef.current) {
+      const card = buttonRef.current.closest(".sb-card");
+      (card ?? buttonRef.current).scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+    prevExpanded.current = isExpanded;
+  }, [isExpanded]);
 
   const content = constrainBody ? (
     <div className="relative min-w-0 w-full whitespace-normal break-words">
@@ -99,6 +117,7 @@ export function TruncatedCardBody({
       )}
       {constrainBody && (isTruncated || isExpanded) ? (
         <button
+          ref={buttonRef}
           type="button"
           onClick={() => setIsExpanded((current) => !current)}
           className="mt-3 inline-flex text-sm font-semibold text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"

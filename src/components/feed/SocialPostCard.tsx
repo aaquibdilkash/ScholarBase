@@ -62,6 +62,10 @@ export function SocialPostCard({
   const bodyRef = useRef<HTMLParagraphElement>(null);
   const measureRef = useRef<HTMLParagraphElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const toggleButtonRef = useRef<HTMLButtonElement>(null);
+  // Track the previous expansion state so we only scroll on the
+  // expanded → collapsed transition (when "View less" is clicked).
+  const prevExpanded = useRef(isExpanded);
   const isOwner = !post.isDeleted && currentUserId === post.authorId;
   const isFollowing = (post.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null = Array.isArray(post.votes)
@@ -118,6 +122,20 @@ export function SocialPostCard({
     if (measureRef.current) observer.observe(measureRef.current);
     return () => observer.disconnect();
   }, [post.content, post.mentions, post.imageUrl, updateCollapsedMetrics]);
+
+  // When collapsing ("View less"), scroll the post header back to the top of
+  // the viewport so the user can see the title/author of the same post again
+  // (and re-expand it) without hunting for the button.
+  useEffect(() => {
+    if (prevExpanded.current && !isExpanded && toggleButtonRef.current) {
+      const card = toggleButtonRef.current.closest(".sb-card");
+      (card ?? toggleButtonRef.current).scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+    prevExpanded.current = isExpanded;
+  }, [isExpanded]);
 
   // Track the image thumbnail width so we can compute the full-size image's
   // natural height at that width (to detect when it is cropped). Refs must not
@@ -332,6 +350,7 @@ export function SocialPostCard({
 
       {!post.isDeleted && showToggle && (
         <button
+          ref={toggleButtonRef}
           type="button"
           onClick={(e) => {
             // This button sits OUTSIDE the <Link prefetch={false}>, so it never navigates; this

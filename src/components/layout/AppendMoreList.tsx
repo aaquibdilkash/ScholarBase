@@ -21,6 +21,7 @@ export function AppendMoreList<T extends { id: string }>({
   emptyState,
   getCursor = defaultGetCursor,
   reloadToken,
+  keepItemsWhileReloading = false,
   onLoadError,
   loadingIndicator,
 }: {
@@ -43,6 +44,12 @@ export function AppendMoreList<T extends { id: string }>({
    * on open rather than receiving server-provided `initialItems`.
    */
   reloadToken?: string | number | null;
+  /**
+   * Keep the current rows on screen while a `reloadToken` page-1 fetch is in
+   * flight. Search-as-you-type uses this so a new term never blanks the list;
+   * the search bar's spinner owns progress.
+   */
+  keepItemsWhileReloading?: boolean;
   /** Called when a page request fails, instead of silently stopping pagination. */
   onLoadError?: (error: unknown) => void;
   /** Custom "loading more" indicator; defaults to a plain text row. */
@@ -113,7 +120,7 @@ export function AppendMoreList<T extends { id: string }>({
 
     let cancelled = false;
     loadingRef.current = true;
-    setItems([]);
+    if (!keepItemsWhileReloading) setItems([]);
     setCursor(undefined);
     setHasMore(false);
     setLoading(true);
@@ -141,7 +148,7 @@ export function AppendMoreList<T extends { id: string }>({
     return () => {
       cancelled = true;
     };
-  }, [reloadToken, chunkSize]);
+  }, [reloadToken, chunkSize, keepItemsWhileReloading]);
 
   const updateItem = useCallback((id: string, patch: Partial<T>) => {
     setItems((current) =>

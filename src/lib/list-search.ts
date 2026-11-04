@@ -23,3 +23,17 @@ export function buildSearchHref(
   const search = params.toString();
   return search ? `${pathname}?${search}` : pathname;
 }
+
+/** Shared empty-state copy for a search that matched nothing. */
+export const NO_SEARCH_MATCH = "No match found.";
+
+/**
+ * A search that matches nothing is not an empty directory: show the search
+ * copy instead of the module's "nothing posted yet" message.
+ */
+export function listEmptyMessage(
+  query: string | undefined,
+  emptyMessage: string,
+): string {
+  return (query ?? "").trim() ? NO_SEARCH_MATCH : emptyMessage;
+}

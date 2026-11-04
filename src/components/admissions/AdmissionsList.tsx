@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { buildSearchHref } from "@/lib/list-search";
+import { useListSearch } from "@/hooks/useListSearch";
+import { listEmptyMessage } from "@/lib/list-search";
 import { AdmissionCard } from "./AdmissionCard";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
@@ -18,31 +18,40 @@ export function AdmissionsList({
   currentUserId?: string;
   initialQuery?: string;
 }) {
-  const [query, setQuery] = useState(initialQuery ?? "");
-  const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Empty input clears `?q` so the page falls back to the unfiltered list.
-    router.push(buildSearchHref("/admissions", window.location.search, query));
-  };
+  const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } =
+    useListSearch("/admissions", initialQuery);
+  // `AppendMoreList` owns its own fetches (no React Query), so the first-page
+  // request reports back here to drive the search bar's spinner.
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const isSearching = isDebouncing || isLoadingResults;
 
   return (
     <div>
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
-          activeQuery={initialQuery}
+          activeQuery={appliedQuery}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={handleClear}
+          loading={isSearching}
           placeholder="Search by university or department..."
           className="mb-4"
         />
       </form>
       <AppendMoreList<AdmissionWithAuthor>
         initialItems={admissions}
+        reloadToken={appliedQuery}
+        keepItemsWhileReloading
         // Viewer identity is resolved server-side inside the action; the
         // client never sends a userId.
-        loadMore={(cursor) => getAdmissions(initialQuery, 10, cursor)}
+        loadMore={async (cursor) => {
+          if (cursor === undefined) setIsLoadingResults(true);
+          try {
+            return await getAdmissions(appliedQuery, 10, cursor);
+          } finally {
+            setIsLoadingResults(false);
+          }
+        }}
         renderItem={(item) => (
           <AdmissionCard
             key={item.id}
@@ -51,7 +60,7 @@ export function AdmissionsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage="No PhD admissions posted yet."
+        emptyMessage={listEmptyMessage(appliedQuery, "No PhD admissions posted yet.")}
       />
     </div>
   );

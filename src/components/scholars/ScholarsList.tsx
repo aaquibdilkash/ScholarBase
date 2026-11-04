@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { buildSearchHref } from "@/lib/list-search";
+import { useListSearch } from "@/hooks/useListSearch";
+import { listEmptyMessage } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ScholarCard } from "./ScholarCard";
 import type { Scholar } from "@/types/scholar";
@@ -20,38 +20,45 @@ export function ScholarsList({
   initialQuery?: string;
   loadMoreParams?: Record<string, string | undefined>;
 }) {
-  const [query, setQuery] = useState(initialQuery ?? "");
-  const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Empty input clears `?q` so the page falls back to the unfiltered list.
-    router.push(buildSearchHref("/scholars", window.location.search, query));
-  };
+  const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } =
+    useListSearch("/scholars", initialQuery);
+  // `AppendMoreList` owns its own fetches (no React Query), so the first-page
+  // request reports back here to drive the search bar's spinner.
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const isSearching = isDebouncing || isLoadingResults;
 
   return (
     <div>
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
-          activeQuery={initialQuery}
+          activeQuery={appliedQuery}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={handleClear}
+          loading={isSearching}
           placeholder="Search by name, handle, or bio"
           className="mb-4"
         />
       </form>
       <AppendMoreList
         initialItems={scholars}
-        loadMore={(cursor) =>
-          // Viewer identity is resolved server-side inside the action; the
-          // client never sends a userId.
-          getScholars(
-            initialQuery,
-            loadMoreParams?.sort === "reputation" ? "reputation" : "latest",
-            10,
-            cursor,
-          )
-        }
+        reloadToken={appliedQuery}
+        keepItemsWhileReloading
+        loadMore={async (cursor) => {
+          if (cursor === undefined) setIsLoadingResults(true);
+          try {
+            // Viewer identity is resolved server-side inside the action; the
+            // client never sends a userId.
+            return await getScholars(
+              appliedQuery,
+              loadMoreParams?.sort === "reputation" ? "reputation" : "latest",
+              10,
+              cursor,
+            );
+          } finally {
+            setIsLoadingResults(false);
+          }
+        }}
         renderItem={(item) => (
           <ScholarCard
             key={(item as Scholar).id}
@@ -60,7 +67,7 @@ export function ScholarsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage="No scholars found."
+        emptyMessage={listEmptyMessage(appliedQuery, "No scholars found.")}
       />
     </div>
   );

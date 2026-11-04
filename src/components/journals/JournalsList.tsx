@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { buildSearchHref } from "@/lib/list-search";
+import { useMemo } from "react";
+import { useIsFetching } from "@tanstack/react-query";
+import { useListSearch } from "@/hooks/useListSearch";
+import { listEmptyMessage } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { JournalCard } from "./JournalCard";
 import type { JournalWithAuthor } from "@/types/cards";
@@ -18,35 +19,39 @@ export function JournalsList({
   currentUserId?: string;
   initialQuery?: string;
 }) {
-  const [query, setQuery] = useState(initialQuery ?? "");
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const q = searchParams.get("q") ?? "";
-  // Part of the cache key so every cached search variant stays independent.
-  const queryKey = useMemo(() => ["journals", q] as const, [q]);
-
-
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // Empty input clears `?q` so the page falls back to the unfiltered list.
-    router.push(buildSearchHref("/journals", window.location.search, query));
-  };
+  const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } = useListSearch(
+    "/journals",
+    initialQuery,
+  );
+  // Client-side search: the key tracks the applied term, so a new term fetches
+  // its own first page instead of navigating and remounting the page.
+  const queryKey = useMemo(
+    () => ["journals", appliedQuery] as const,
+    [appliedQuery],
+  );
+  const isFetching = useIsFetching({ queryKey, exact: true }) > 0;
+  const isSearching = isDebouncing || isFetching;
+  // Only the server-rendered term has data to seed the cache with.
+  const isServerQuery = appliedQuery === (initialQuery ?? "");
 
   return (
     <div>
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
-          activeQuery={initialQuery}
+          activeQuery={appliedQuery}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={handleClear}
+          loading={isSearching}
           placeholder="Search by title or ISSN..."
           className="mb-4"
         />
       </form>
       <CacheBackedList<JournalWithAuthor>
         queryKey={queryKey}
-        initialItems={journals}
-        fetchPage={(cursor) => getJournals(q, 10, cursor)}
+        initialItems={isServerQuery ? journals : undefined}
+        keepPreviousOnKeyChange
+        fetchPage={(cursor) => getJournals(appliedQuery, 10, cursor)}
         renderItem={(journal) => (
           <JournalCard
             key={journal.id}
@@ -55,7 +60,7 @@ export function JournalsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage="No journals posted yet."
+        emptyMessage={listEmptyMessage(appliedQuery, "No journals posted yet.")}
       />
     </div>
   );

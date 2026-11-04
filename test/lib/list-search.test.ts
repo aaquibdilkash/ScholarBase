@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSearchHref } from "@/lib/list-search";
+import {
+  buildSearchHref,
+  listEmptyMessage,
+  NO_SEARCH_MATCH,
+} from "@/lib/list-search";
 
 /**
  * List-page search writes `?q=` to the URL. Clearing the box must remove the
@@ -37,6 +41,33 @@ describe("buildSearchHref", () => {
   it("encodes the query so it stays a valid URL", () => {
     expect(buildSearchHref("/publications", "", "graph & network")).toBe(
       "/publications?q=graph+%26+network",
+    );
+  });
+});
+
+/**
+ * A search that matched nothing must not read like an empty directory
+ * ("No journals posted yet."), which is what every list used to show.
+ */
+describe("listEmptyMessage", () => {
+  it("uses the shared no-match copy while a search is applied", () => {
+    expect(listEmptyMessage("demo", "No journals posted yet.")).toBe(
+      NO_SEARCH_MATCH,
+    );
+  });
+
+  it("keeps the module copy when there is no search", () => {
+    expect(listEmptyMessage("", "No journals posted yet.")).toBe(
+      "No journals posted yet.",
+    );
+    expect(listEmptyMessage(undefined, "No journals posted yet.")).toBe(
+      "No journals posted yet.",
+    );
+  });
+
+  it("treats a whitespace-only query as no search", () => {
+    expect(listEmptyMessage("   ", "No help posts yet.")).toBe(
+      "No help posts yet.",
     );
   });
 });
