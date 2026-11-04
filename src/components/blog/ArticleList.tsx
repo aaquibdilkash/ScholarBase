@@ -1,8 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { buildSearchHref } from "@/lib/list-search";
 import type { ArticleWithAuthor } from "@/types/cards";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
@@ -18,13 +19,12 @@ export function ArticleList({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
-  // Search runs on submit, so keep the applied term separate from the input
-  // value. Driving pagination from the raw input would refetch every keystroke.
-  const [appliedQuery, setAppliedQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setAppliedQuery(query);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/blog", window.location.search, query));
   };
 
   return (
@@ -32,6 +32,7 @@ export function ArticleList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search articles..."
           className="mb-4"
@@ -39,11 +40,9 @@ export function ArticleList({
       </form>
       <AppendMoreList<ArticleWithAuthor>
         initialItems={articles}
-        // Search is client-side (no navigation), so re-fetch page 1 per term.
-        reloadToken={appliedQuery}
         // Viewer identity is resolved server-side inside the action; the
         // client never sends a userId.
-        loadMore={(cursor) => getArticles(appliedQuery, 10, cursor)}
+        loadMore={(cursor) => getArticles(initialQuery, 10, cursor)}
         renderItem={(article) => (
           <ArticleCard
             key={article.id}

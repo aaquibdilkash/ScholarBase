@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { buildSearchHref } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { EventCard } from "./EventCard";
 import type { EventWithAuthor } from "@/types/cards";
@@ -27,9 +28,8 @@ export function EventsList({
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/events?${params.toString()}`);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/events", window.location.search, query));
   };
 
   return (
@@ -37,6 +37,7 @@ export function EventsList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by title or location..."
           className="mb-4"

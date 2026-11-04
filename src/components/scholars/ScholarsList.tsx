@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buildSearchHref } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { ScholarCard } from "./ScholarCard";
 import type { Scholar } from "@/types/scholar";
@@ -24,9 +25,8 @@ export function ScholarsList({
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/scholars?${params.toString()}`);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/scholars", window.location.search, query));
   };
 
   return (
@@ -34,6 +34,7 @@ export function ScholarsList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, handle, or bio"
           className="mb-4"

@@ -8,15 +8,27 @@ import { MIN_SEARCH_LENGTH } from "@/lib/search-guard";
 export function SearchInput({
   className,
   minLength = MIN_SEARCH_LENGTH,
+  activeQuery,
   onInvalidShortSearch,
   onKeyDown,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   minLength?: number;
+  /**
+   * The search term currently applied to the list (the URL's `?q`). When one
+   * is active, an empty box is a "clear the search" action and submits even
+   * though it is below the floor. With no active search there is nothing to
+   * clear, so an empty box is just a too-short search and shows the normal
+   * toast.
+   */
+  activeQuery?: string;
   onInvalidShortSearch?: (value: string) => void;
 }) {
   const { toast } = useToast();
   const value = typeof props.value === "string" ? props.value : "";
+  const trimmedLength = value.trim().length;
+  const isClearAction = trimmedLength === 0 && (activeQuery ?? "").trim() !== "";
+  const isTooShort = !isClearAction && trimmedLength < minLength;
 
   const showInvalidToast = () => {
     if (onInvalidShortSearch) {
@@ -27,14 +39,14 @@ export function SearchInput({
   };
 
   const handleButtonClick = (e: MouseEvent<HTMLButtonElement>) => {
-    if (value.trim().length < minLength) {
+    if (isTooShort) {
       e.preventDefault();
       showInvalidToast();
     }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && value.trim().length < minLength) {
+    if (e.key === "Enter" && isTooShort) {
       e.preventDefault();
       showInvalidToast();
       return;

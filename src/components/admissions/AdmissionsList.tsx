@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { buildSearchHref } from "@/lib/list-search";
 import { AdmissionCard } from "./AdmissionCard";
 import type { AdmissionWithAuthor } from "@/types/cards";
 import { AppendMoreList } from "@/components/layout/AppendMoreList";
@@ -17,13 +19,12 @@ export function AdmissionsList({
   initialQuery?: string;
 }) {
   const [query, setQuery] = useState(initialQuery ?? "");
-  // Search runs on submit, so keep the applied term separate from the input
-  // value. Driving pagination from the raw input would refetch every keystroke.
-  const [appliedQuery, setAppliedQuery] = useState(initialQuery ?? "");
+  const router = useRouter();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setAppliedQuery(query);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/admissions", window.location.search, query));
   };
 
   return (
@@ -31,6 +32,7 @@ export function AdmissionsList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by university or department..."
           className="mb-4"
@@ -38,9 +40,9 @@ export function AdmissionsList({
       </form>
       <AppendMoreList<AdmissionWithAuthor>
         initialItems={admissions}
-        // Search is client-side (no navigation), so re-fetch page 1 per term.
-        reloadToken={appliedQuery}
-        loadMore={(cursor) => getAdmissions(appliedQuery, 10, cursor)}
+        // Viewer identity is resolved server-side inside the action; the
+        // client never sends a userId.
+        loadMore={(cursor) => getAdmissions(initialQuery, 10, cursor)}
         renderItem={(item) => (
           <AdmissionCard
             key={item.id}

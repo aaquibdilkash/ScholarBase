@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { buildSearchHref } from "@/lib/list-search";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
@@ -39,9 +40,8 @@ export function SupervisorsList({
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/supervisor?${params.toString()}`);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/supervisor", window.location.search, query));
   };
 
   return (
@@ -49,6 +49,7 @@ export function SupervisorsList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by professor's name..."
           className="mb-4"

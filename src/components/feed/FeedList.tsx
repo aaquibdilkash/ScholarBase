@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { buildSearchHref } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
@@ -34,9 +35,8 @@ export function FeedList({
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/feed?${params.toString()}`);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/feed", window.location.search, query));
   };
 
   return (
@@ -44,6 +44,7 @@ export function FeedList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search posts..."
           className="mb-4"

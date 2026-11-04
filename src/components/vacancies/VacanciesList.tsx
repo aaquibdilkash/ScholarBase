@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { buildSearchHref } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { VacancyCard } from "./VacancyCard";
 import type { VacancyWithAuthor } from "@/types/cards";
@@ -27,9 +28,8 @@ export function VacanciesList({
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const params = new URLSearchParams(window.location.search);
-    params.set("q", query);
-    router.push(`/vacancies?${params.toString()}`);
+    // Empty input clears `?q` so the page falls back to the unfiltered list.
+    router.push(buildSearchHref("/vacancies", window.location.search, query));
   };
 
   return (
@@ -37,6 +37,7 @@ export function VacanciesList({
       <form onSubmit={handleSearch}>
         <SearchInput
           value={query}
+          activeQuery={initialQuery}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by title or institution..."
           className="mb-4"
