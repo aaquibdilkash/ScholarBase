@@ -16,6 +16,8 @@ import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -72,6 +74,10 @@ export default async function SinglePostPage({
   const userVote =
     (p.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = p.isDeleted
+    ? []
+    : await getRelatedContent("SOCIAL_POST", p.id);
+
   async function handleDelete() {
     "use server";
     const res = await deleteSocialPost(p.id);
@@ -83,6 +89,7 @@ export default async function SinglePostPage({
 
   return (
     <DetailPageCardShell
+      relatedContent={<RelatedContent title="Related posts" items={related} />}
       isFrozen={p.isFrozen ?? false}
       isDeleted={p.isDeleted ?? false}
       deletedByType={p.deletedByType}

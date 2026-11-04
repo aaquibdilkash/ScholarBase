@@ -69,6 +69,13 @@ export type DetailPageCardShellProps = {
 
   discussion?: ReactNode;
 
+  /**
+   * Same-type recommendations, rendered outside the card so the page keeps one
+   * canonical detail surface. Pages pass a `<RelatedContent>`; an absent or
+   * empty section renders nothing.
+   */
+  relatedContent?: ReactNode;
+
   className?: string;
   bodyClassName?: string;
   bodyBottomContent?: ReactNode;
@@ -116,6 +123,7 @@ export default function DetailPageCardShell({
   deletedByType,
   deletedNoun = "item",
   discussion,
+  relatedContent,
   className,
   bodyClassName,
   bodyBottomContent,
@@ -316,6 +324,8 @@ export default function DetailPageCardShell({
           </div>
         </div>
       </div>
+
+      {relatedContent}
 
       {discussion}
     </main>

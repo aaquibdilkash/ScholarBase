@@ -33,8 +33,30 @@ const securityHeaders = [
   },
 ];
 
+// next/file tracing cannot follow the `createRequire(import.meta.url)` call that
+// transformers uses for its native ONNX backend. Include only the current
+// platform's runtime so the standalone image does not ship every OS/arch
+// binary (the full onnxruntime-node package is ~550 MB).
+const onnxRuntimePlatform = `${process.platform}/${process.arch}`;
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingIncludes: {
+    "/api/cron/embed-content": [
+      "./node_modules/onnxruntime-node/package.json",
+      "./node_modules/onnxruntime-node/dist/**/*",
+      "./node_modules/onnxruntime-common/**/*",
+      `./node_modules/onnxruntime-node/bin/napi-v6/${onnxRuntimePlatform}/**/*`,
+    ],
+  },
+  // Model files are downloaded at runtime into EMBEDDING_CACHE_DIR. A local
+  // developer cache under node_modules must not leak into the image or make
+  // the build non-reproducible.
+  outputFileTracingExcludes: {
+    "/api/cron/embed-content": [
+      "./node_modules/@huggingface/transformers/.cache/**/*",
+    ],
+  },
   // Pins client bundles to the build that served them, so Server Action requests
   // from an already-open tab reach the matching build after a redeploy.
   // SOURCE_COMMIT is set by the Dockerfile from the git commit being built.

@@ -125,6 +125,29 @@ enum ConversationType {
   DIRECT
 }
 
+/// Entity kinds covered by the async pgvector outbox. Keep in sync with
+/// `src/lib/semantic/text.ts` and the EmbeddingJob trigger migration.
+enum EmbeddingEntityType {
+  SCHOLAR
+  SOCIAL_POST
+  PUBLICATION
+  ARTICLE
+  HELP_POST
+  CONTRIBUTION
+  RESEARCH_TOOL
+  RESEARCH_GRANT
+  COURSE
+  JOURNAL
+  RESULT
+  RESEARCH_SURVEY
+  RESEARCH_EVENT
+  PHD_ADMISSION
+  JOB_VACANCY
+  SUPERVISOR
+  RECOMMENDATION
+  JOURNAL_REVIEW
+}
+
 enum DigestPreference {
   DAILY
   WEEKLY
@@ -146,14 +169,18 @@ model Article {
   editedAt        DateTime?
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  ArticleComment[]
@@ -181,17 +208,21 @@ model Supervisor {
   authorId String
 
   // ZERO-COMPUTE FIELDS
-  totalVotes          Int            @default(0)
-  totalBookmarks      Int            @default(0)
-  totalComments       Int            @default(0)
+  totalVotes          Int                         @default(0)
+  totalBookmarks      Int                         @default(0)
+  totalComments       Int                         @default(0)
   // Materialized recommendation aggregates (avg = ratingSum / recommendationCount)
-  recommendationCount Int            @default(0)
-  ratingSum           Int            @default(0)
-  trendingScore       Float          @default(0)
-  isDeleted           Boolean        @default(false)
+  recommendationCount Int                         @default(0)
+  ratingSum           Int                         @default(0)
+  trendingScore       Float                       @default(0)
+  isDeleted           Boolean                     @default(false)
   deletedByType       DeletedByType?
   deletedById         String?
-  reportCount         Int            @default(0)
+  reportCount         Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding           Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -206,16 +237,20 @@ model Supervisor {
 }
 
 model SocialPost {
-  id              String    @id @default(cuid())
+  id              String                      @id @default(cuid())
   content         String
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding       Unsupported("vector(384)")?
   imageUrl        String?
   imageUrls       String[]
   authorId        String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
   editedAt        DateTime?
-  isFrozen        Boolean   @default(false)
-  hasActiveAppeal Boolean   @default(false)
+  isFrozen        Boolean                     @default(false)
+  hasActiveAppeal Boolean                     @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int            @default(0)
@@ -701,14 +736,18 @@ model HelpPost {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -797,14 +836,18 @@ model Contribution {
   hasActiveAppeal Boolean            @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -873,7 +916,7 @@ model ContributionCommentVote {
 }
 
 model Publication {
-  id                  String          @id @default(cuid())
+  id                  String                      @id @default(cuid())
   title               String
   authors             String
   publicationType     PublicationType
@@ -889,12 +932,16 @@ model Publication {
   keywords            String?
   domain              String?
   abstract            String?
-  isUserAuthor        Boolean         @default(false)
-  isFrozen            Boolean         @default(false)
-  hasActiveAppeal     Boolean         @default(false)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding           Unsupported("vector(384)")?
+  isUserAuthor        Boolean                     @default(false)
+  isFrozen            Boolean                     @default(false)
+  hasActiveAppeal     Boolean                     @default(false)
   authorId            String
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
   editedAt            DateTime?
 
   // ZERO-COMPUTE FIELDS
@@ -1001,32 +1048,36 @@ model User {
   helpPostComments     HelpPostComment[]
   helpPostCommentVotes HelpPostCommentVote[]
 
-  email                            String    @unique
-  institutionEmail                 String?   @unique
+  email                            String                      @unique
+  institutionEmail                 String?                     @unique
   institutionDomain                String?
   institutionVerifiedAt            DateTime?
   pendingInstitutionEmail          String?
   pendingInstitutionDomain         String?
-  institutionVerificationTokenHash String?   @unique
+  institutionVerificationTokenHash String?                     @unique
   institutionVerificationExpiresAt DateTime?
   name                             String?
   // Exact handle uniqueness is managed here; fuzzy/prefix search indexes live in
   // prisma/migrations/20260924110000_optimize_picker_search/migration.sql.
   // See docs/search-indexes.md for the complete custom-index inventory.
   avatarUrl                        String?
-  handle                           String?   @unique
+  handle                           String?                     @unique
   bio                              String?
   interests                        String?
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding                        Unsupported("vector(384)")?
   githubUrl                        String?
   orcidUrl                         String?
   linkedinUrl                      String?
   googleScholarUrl                 String?
-  reputation                       Int       @default(0)
-  isAdmin                          Boolean   @default(false)
-  isFrozen                         Boolean   @default(false)
-  hasActiveAppeal                  Boolean   @default(false)
-  createdAt                        DateTime  @default(now())
-  updatedAt                        DateTime  @updatedAt
+  reputation                       Int                         @default(0)
+  isAdmin                          Boolean                     @default(false)
+  isFrozen                         Boolean                     @default(false)
+  hasActiveAppeal                  Boolean                     @default(false)
+  createdAt                        DateTime                    @default(now())
+  updatedAt                        DateTime                    @updatedAt
   editedAt                         DateTime?
 
   // ZERO-COMPUTE COUNTERS & LOG
@@ -1301,14 +1352,18 @@ model ResearchTool {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author    User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  ResearchToolComment[]
@@ -1389,14 +1444,18 @@ model ResearchGrant {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author    User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  ResearchGrantComment[]
@@ -1481,14 +1540,18 @@ model Course {
   hasActiveAppeal Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  CourseComment[]
@@ -1583,14 +1646,18 @@ model Journal {
   openAccess  OpenAccessStatus @default(UNKNOWN)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   // ZERO-COMPUTE REVIEW AGGREGATES (Rule 2/3): the review rating average is
   // derived as ratingSum / reviewCount instead of averaging rows on read.
@@ -1688,14 +1755,18 @@ model JournalReview {
   hasActiveAppeal       Boolean        @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   journal   Journal                 @relation(fields: [journalId], references: [id], onDelete: Cascade)
   author    User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -1789,14 +1860,18 @@ model Result {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -1880,17 +1955,21 @@ model ResearchSurvey {
   hasActiveAppeal Boolean       @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  totalResponses Int            @default(0)
-  totalQuestions Int            @default(0)
-  totalBlocks     Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  totalResponses Int                         @default(0)
+  totalQuestions Int                         @default(0)
+  totalBlocks    Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   // IRB CONSENT GATE: when required, respondents must accept the terms
   // before the first question is shown. The accepted timestamp is stored on
@@ -2140,14 +2219,18 @@ model ResearchEvent {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -2232,14 +2315,18 @@ model PhdAdmission {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -2326,14 +2413,18 @@ model JobVacancy {
   hasActiveAppeal  Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
@@ -2473,14 +2564,18 @@ model Recommendation {
   hasActiveAppeal     Boolean   @default(false)
 
   // ZERO-COMPUTE FIELDS
-  totalVotes     Int            @default(0)
-  totalBookmarks Int            @default(0)
-  totalComments  Int            @default(0)
-  trendingScore  Float          @default(0)
-  isDeleted      Boolean        @default(false)
+  totalVotes     Int                         @default(0)
+  totalBookmarks Int                         @default(0)
+  totalComments  Int                         @default(0)
+  trendingScore  Float                       @default(0)
+  isDeleted      Boolean                     @default(false)
   deletedByType  DeletedByType?
   deletedById    String?
-  reportCount    Int            @default(0)
+  reportCount    Int                         @default(0)
+  /// pgvector MiniLM embedding (384d), written only by the background
+  /// embedding worker. Unsupported in Prisma Client; see
+  /// docs/semantic-embeddings.md.
+  embedding      Unsupported("vector(384)")?
 
   supervisor Supervisor               @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   author     User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -2562,6 +2657,26 @@ model OrphanedAsset {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Durable outbox for the async pgvector pipeline. BEFORE triggers on User,
+/// SocialPost and Publication coalesce edits into one row per entity; the cron
+/// worker claims due rows, embeds them, and deletes the job. `version` guards
+/// against a worker overwriting a job that a newer edit re-queued.
+model EmbeddingJob {
+  id         String              @id @default(cuid())
+  entityType EmbeddingEntityType
+  entityId   String
+  attempts   Int                 @default(0)
+  version    Int                 @default(0)
+  runAt      DateTime            @default(now())
+  lockedAt   DateTime?
+  lastError  String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @default(now()) @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([runAt, createdAt])
 }
 
 /// W3C Web Push registrations for message notifications. One row per browser

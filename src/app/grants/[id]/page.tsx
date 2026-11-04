@@ -16,6 +16,8 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -64,6 +66,10 @@ export default async function ResearchGrantDetailPage({
 
   const userVote = grant.votes?.[0]?.voteType ?? null;
 
+  const related = grant.isDeleted
+    ? []
+    : await getRelatedContent("RESEARCH_GRANT", grant.id);
+
   async function handleDelete() {
     "use server";
     const res = await deleteResearchGrant(grant!.id);
@@ -74,6 +80,7 @@ export default async function ResearchGrantDetailPage({
 
   return (
     <DetailPageCardShell
+      relatedContent={<RelatedContent title="Related grants" items={related} />}
       isFrozen={grant.isFrozen ?? false}
       isDeleted={grant.isDeleted}
       deletedByType={grant.deletedByType}

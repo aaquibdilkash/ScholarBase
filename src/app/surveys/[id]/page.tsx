@@ -28,6 +28,8 @@ import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -79,6 +81,10 @@ const SurveyDetailPage = async ({
   const userVote =
     (survey.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = survey.isDeleted
+    ? []
+    : await getRelatedContent("RESEARCH_SURVEY", survey.id);
+
   const isOwner = user?.id === survey.author?.id;
   const isOpen = survey.status === "OPEN";
 
@@ -91,6 +97,9 @@ const SurveyDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related surveys" items={related} />
+      }
       isDeleted={survey.isDeleted}
       deletedByType={survey.deletedByType}
       deletedNoun="survey"

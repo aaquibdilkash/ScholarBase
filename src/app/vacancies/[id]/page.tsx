@@ -15,6 +15,8 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -62,8 +64,15 @@ const VacancyDetailPage = async ({
     (vacancy.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = vacancy.isDeleted
+    ? []
+    : await getRelatedContent("JOB_VACANCY", vacancy.id);
+
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related vacancies" items={related} />
+      }
       isDeleted={vacancy.isDeleted}
       deletedByType={vacancy.deletedByType}
       deletedNoun="vacancy"

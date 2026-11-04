@@ -14,6 +14,8 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -59,6 +61,10 @@ const ResearchToolDetailPage = async ({
   const userVote =
     (tool.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = tool.isDeleted
+    ? []
+    : await getRelatedContent("RESEARCH_TOOL", tool.id);
+
   // Define the delete action outside of the JSX
   async function handleDelete() {
     "use server";
@@ -70,6 +76,9 @@ const ResearchToolDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related research tools" items={related} />
+      }
       isDeleted={tool.isDeleted}
       deletedByType={tool.deletedByType}
       deletedNoun="research tool"

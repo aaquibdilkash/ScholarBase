@@ -16,6 +16,8 @@ import { getProfile } from "@/app/actions/profile";
 import { formatTimeAgo } from "@/utils/time-ago";
 import { SEO_PAGES } from "@/constants/seo";
 import { stripHtmlTags } from "@/lib/html";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -58,6 +60,10 @@ export default async function ScholarProfile({
   if (!profile) notFound();
 
   const { isFollowing, isOwnProfile } = profile;
+
+  const related = profile.isDeleted
+    ? []
+    : await getRelatedContent("SCHOLAR", profile.id);
 
   return (
     <main className="mx-auto max-w-5xl px-0 py-3 sm:px-4 sm:py-6">
@@ -174,6 +180,7 @@ export default async function ScholarProfile({
         profileId={profile.id}
         currentUserId={currentUser?.id}
       />
+      <RelatedContent title="Similar scholars" items={related} />
       {/* Frozen owners landing here from the USER_FROZEN notification get the
           same reason+appeal entry as the banner — the flag-menu AppealButton
           above is kept as a secondary path. */}

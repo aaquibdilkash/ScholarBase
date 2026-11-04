@@ -69,7 +69,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        # pgvector is required by 20261101000000_semantic_embeddings; the
+        # plain postgres image cannot apply the migration chain.
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

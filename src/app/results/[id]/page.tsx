@@ -15,6 +15,8 @@ import type { Metadata } from "next";
 import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -68,8 +70,13 @@ const ResultDetailPage = async ({
   const userVote =
     (result.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = result.isDeleted
+    ? []
+    : await getRelatedContent("RESULT", result.id);
+
   return (
     <DetailPageCardShell
+      relatedContent={<RelatedContent title="Related results" items={related} />}
       isFrozen={result.isFrozen ?? false}
       isDeleted={result.isDeleted}
       deletedByType={result.deletedByType}

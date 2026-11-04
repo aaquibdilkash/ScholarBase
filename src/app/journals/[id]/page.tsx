@@ -21,6 +21,8 @@ import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -78,6 +80,10 @@ const JournalDetailPage = async ({
   const userVote =
     (j.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = j.isDeleted
+    ? []
+    : await getRelatedContent("JOURNAL", j.id);
+
   async function handleDelete() {
     "use server";
     const res = await deleteJournal(j.id);
@@ -88,6 +94,7 @@ const JournalDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      relatedContent={<RelatedContent title="Related journals" items={related} />}
       isDeleted={journal.isDeleted}
       deletedByType={journal.deletedByType}
       deletedNoun="journal"

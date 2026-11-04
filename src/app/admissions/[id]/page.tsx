@@ -15,6 +15,8 @@ import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -62,6 +64,10 @@ const AdmissionDetailPage = async ({
   const userVote =
     (admission.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = admission.isDeleted
+    ? []
+    : await getRelatedContent("PHD_ADMISSION", admission.id);
+
   async function handleDelete() {
     "use server";
     const res = await deletePhdAdmission(admission!.id);
@@ -72,6 +78,9 @@ const AdmissionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related PhD admissions" items={related} />
+      }
       isDeleted={admission.isDeleted}
       deletedByType={admission.deletedByType}
       deletedNoun="admission"

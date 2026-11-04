@@ -20,6 +20,8 @@ import { SEO_PAGES } from "@/constants/seo";
 import { ComingSoon } from "@/components/contributions/ComingSoon";
 import { isComingSoon } from "@/lib/feature-flags";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -84,6 +86,10 @@ const ContributionDetailPage = async ({
   const userVote =
     (contribution.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = contribution.isDeleted
+    ? []
+    : await getRelatedContent("CONTRIBUTION", contribution.id);
+
   const handleDelete = async () => {
     "use server";
     const res = await deleteContribution(id);
@@ -94,6 +100,9 @@ const ContributionDetailPage = async ({
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related contributions" items={related} />
+      }
       isFrozen={contribution.isFrozen ?? false}
       isDeleted={contribution.isDeleted}
       deletedByType={contribution.deletedByType}

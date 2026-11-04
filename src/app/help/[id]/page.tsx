@@ -14,6 +14,8 @@ import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -58,6 +60,10 @@ export default async function HelpPostPage({
   const userVote =
     (post.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
+  const related = post.isDeleted
+    ? []
+    : await getRelatedContent("HELP_POST", post.id);
+
   // Define the delete action outside the JSX
   async function handleDelete() {
     "use server";
@@ -69,6 +75,9 @@ export default async function HelpPostPage({
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related help posts" items={related} />
+      }
       isDeleted={post.isDeleted}
       deletedByType={post.deletedByType}
       deletedNoun="help post"

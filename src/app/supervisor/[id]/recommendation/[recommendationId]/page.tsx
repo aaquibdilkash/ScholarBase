@@ -18,6 +18,8 @@ import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -77,8 +79,15 @@ export default async function RecommendationDetailPage({
     (recommendation.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ??
     null;
 
+  const related = recommendation.isDeleted
+    ? []
+    : await getRelatedContent("RECOMMENDATION", recommendation.id);
+
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related recommendations" items={related} />
+      }
       isFrozen={recommendation.isFrozen ?? false}
       isDeleted={recommendation.isDeleted ?? false}
       deletedByType={recommendation.deletedByType}

@@ -19,6 +19,8 @@ import { buildMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -87,12 +89,19 @@ export default async function SupervisorPage({
   const hasUserRecommendation = recMeta.hasUserRecommendation;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
 
+  const related = supervisor.isDeleted
+    ? []
+    : await getRelatedContent("SUPERVISOR", supervisor.id);
+
   const recommendationCount = recMeta.totalCount;
   const avgRating = recMeta.avgRating;
   const ratingDistribution = recMeta.ratingDistribution;
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related supervisors" items={related} />
+      }
       isDeleted={supervisor.isDeleted}
       deletedByType={supervisor.deletedByType}
       deletedNoun="supervisor profile"

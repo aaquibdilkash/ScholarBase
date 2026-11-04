@@ -13,6 +13,8 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 export async function generateMetadata({
   params,
@@ -64,6 +66,10 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const userVote = course.votes?.[0]?.voteType ?? null;
+
+  const related = course.isDeleted
+    ? []
+    : await getRelatedContent("COURSE", course.id);
   const priceLabel =
     course.price === 0
       ? "Free"
@@ -89,6 +95,7 @@ export default async function CourseDetailPage({
 
   return (
     <DetailPageCardShell
+      relatedContent={<RelatedContent title="Related courses" items={related} />}
       isFrozen={course.isFrozen ?? false}
       isDeleted={course.isDeleted}
       deletedByType={course.deletedByType}

@@ -18,6 +18,8 @@ import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata } from "@/lib/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
+import RelatedContent from "@/components/content/RelatedContent";
+import { getRelatedContent } from "@/lib/semantic/related";
 
 const OUTCOME_LABELS: Record<JournalOutcome, string> = {
   ACCEPTED: "Accepted",
@@ -89,6 +91,10 @@ export default async function JournalReviewDetailPage({
 
   const userVote =
     (review.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
+
+  const related = review.isDeleted
+    ? []
+    : await getRelatedContent("JOURNAL_REVIEW", review.id);
   const isBookmarked =
     Array.isArray(review.bookmarks) && review.bookmarks.length > 0;
   const isFollowing = (review.author?.followers?.length ?? 0) > 0;
@@ -96,6 +102,9 @@ export default async function JournalReviewDetailPage({
 
   return (
     <DetailPageCardShell
+      relatedContent={
+        <RelatedContent title="Related journal reviews" items={related} />
+      }
       isFrozen={review.isFrozen ?? false}
       isDeleted={review.isDeleted ?? false}
       deletedByType={review.deletedByType}

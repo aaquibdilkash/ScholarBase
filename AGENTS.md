@@ -26,6 +26,7 @@ Every change is also a cleanup pass. The default answer to "should we add this?"
 - `src/app/` — routes and Server Actions. Actions live in `src/app/actions/`; the README's `src/actions/` does not exist.
 - `src/lib/` — server domain logic. Vote/comment/bookmark/follow writes all route through `src/lib/transactions.ts` (`ENTITY_CONFIG` maps every content module).
 - `src/lib/tri-split/` — list/page stack: cached viewer-agnostic rows plus one indexed live overlay. New lists should use `createTriSplitList` / `createContentList`; never accept a viewer id from the client.
+- `src/lib/semantic/` — async pgvector embeddings: the outbox worker, model loader, cosine matching, and same-type related-content lookups. Never used by search; see `docs/semantic-embeddings.md`.
 - `prisma/schema.prisma` + `prisma/migrations/` — schema and history. For a new content/list module, wire the schema, `ENTITY_CONFIG`, `CONTENT_TABLES` (`src/lib/module-registry.ts`), and the tri-split registry.
 - Tests live in `test/`, grouped by the `src/` module they cover; import source through the `@/` alias, not relative paths.
 
@@ -97,7 +98,7 @@ CI order is `lint -> typecheck -> test:coverage`, then a production build on pul
 
 ## Background jobs and deployment
 
-- Cron routes in `src/app/api/cron/{daily-digest,weekly-digest,trim-maintenance,trim-soft-deleted-posts}` must call `verifyCronSecret()` (Bearer `CRON_SECRET`). `update-trending` is a Postgres function documented in `src/app/api/cron/update-trending/update-trending.md`, not an app route.
+- Cron routes in `src/app/api/cron/{daily-digest,weekly-digest,trim-maintenance,trim-soft-deleted-posts,embed-content}` must call `verifyCronSecret()` (Bearer `CRON_SECRET`). `update-trending` is a Postgres function documented in `src/app/api/cron/update-trending/update-trending.md`, not an app route.
 - QStash jobs in `src/app/api/jobs/*` are wrapped with `verifySignatureAppRouter`; do not bypass signature verification.
 - CI on pushes to `staging`/`production` builds an ARM64 image, pushes it to GHCR, and triggers Coolify; `main`/`development` do not auto-deploy. The Docker `migrate` stage runs `prisma migrate deploy`.
 
