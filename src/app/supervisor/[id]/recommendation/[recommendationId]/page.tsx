@@ -195,7 +195,7 @@ export default async function RecommendationDetailPage({
         Recommendation for{" "}
         <Link
           href={`/supervisor/${recommendation.supervisor.id}`}
-          className="text-blue-700 hover:underline"
+          className="break-words text-blue-700 [overflow-wrap:anywhere] hover:underline"
           prefetch={false}
         >
           {recommendation.supervisor.name}

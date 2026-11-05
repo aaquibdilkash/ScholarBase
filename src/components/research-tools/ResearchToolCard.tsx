@@ -129,11 +129,11 @@ export function ResearchToolCard({
       }
     >
       <Link href={`/research-tools/${tool.id}`} prefetch={false} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {tool.name}
         </h2>
         {tool.use && (
-          <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mb-3 break-words text-sm text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               Primary use:
             </span>{" "}

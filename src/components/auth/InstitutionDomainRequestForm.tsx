@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { requestInstitutionDomain } from "@/app/actions/institution";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
+import { useFormDraft } from "@/hooks/useFormDraft";
 import {
   MAX_INSTITUTION_NAME,
   MAX_INSTITUTION_REQUEST_DETAILS,
@@ -29,11 +30,17 @@ export function InstitutionDomainRequestForm({
   showHeader?: boolean;
 }) {
   const { toast } = useToast();
-  const [email, setEmail] = useState(defaultEmail);
-  const [confirmationEmail, setConfirmationEmail] = useState(defaultEmail);
-  const [institutionName, setInstitutionName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [details, setDetails] = useState("");
+  const [draft, updateDraftField, resetDraft] = useFormDraft(
+    "draft_institution_domain_request",
+    {
+      email: defaultEmail,
+      confirmationEmail: defaultEmail,
+      institutionName: "",
+      website: "",
+      details: "",
+    },
+  );
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -107,6 +114,8 @@ export function InstitutionDomainRequestForm({
         return;
       }
 
+      setSubmittedEmail(draft.confirmationEmail);
+      resetDraft();
       setSubmitted(true);
       toast("Your institution request was submitted.", "success");
     } catch {
@@ -120,7 +129,7 @@ export function InstitutionDomainRequestForm({
   if (submitted) {
     return (
       <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-900/50 dark:bg-green-950/30 dark:text-green-300">
-        Your request is with the ScholarBase team. Approval confirmation will be sent to {confirmationEmail}. You can register after the domain has been reviewed and added to the approved directory.
+        Your request is with the ScholarBase team. Approval confirmation will be sent to {submittedEmail}. You can register after the domain has been reviewed and added to the approved directory.
       </div>
     );
   }
@@ -155,10 +164,10 @@ export function InstitutionDomainRequestForm({
             placeholder="you@institution.edu"
             required
             maxLength={MAX_INSTITUTION_REQUEST_EMAIL}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            value={draft.email}
+            onChange={(event) => updateDraftField("email", event.target.value)}
           />
-          <CharacterCount value={email} max={MAX_INSTITUTION_REQUEST_EMAIL} />
+          <CharacterCount value={draft.email} max={MAX_INSTITUTION_REQUEST_EMAIL} />
         </div>
         <div className="space-y-1">
           <label htmlFor="confirmationEmail" className="sb-label">Send approval confirmation to *</label>
@@ -170,10 +179,12 @@ export function InstitutionDomainRequestForm({
             placeholder="you@institution.edu"
             required
             maxLength={MAX_INSTITUTION_REQUEST_EMAIL}
-            value={confirmationEmail}
-            onChange={(event) => setConfirmationEmail(event.target.value)}
+            value={draft.confirmationEmail}
+            onChange={(event) =>
+              updateDraftField("confirmationEmail", event.target.value)
+            }
           />
-          <CharacterCount value={confirmationEmail} max={MAX_INSTITUTION_REQUEST_EMAIL} />
+          <CharacterCount value={draft.confirmationEmail} max={MAX_INSTITUTION_REQUEST_EMAIL} />
         </div>
         <div className="space-y-1">
           <label htmlFor="institutionName" className="sb-label">Institution or research lab name *</label>
@@ -184,10 +195,12 @@ export function InstitutionDomainRequestForm({
             placeholder="Institution or research lab name"
             required
             maxLength={MAX_INSTITUTION_NAME}
-            value={institutionName}
-            onChange={(event) => setInstitutionName(event.target.value)}
+            value={draft.institutionName}
+            onChange={(event) =>
+              updateDraftField("institutionName", event.target.value)
+            }
           />
-          <CharacterCount value={institutionName} max={MAX_INSTITUTION_NAME} />
+          <CharacterCount value={draft.institutionName} max={MAX_INSTITUTION_NAME} />
         </div>
         <div className="space-y-1">
           <label htmlFor="institutionWebsite" className="sb-label">Institution website</label>
@@ -198,10 +211,10 @@ export function InstitutionDomainRequestForm({
             type="url"
             placeholder="https://institution.example"
             maxLength={MAX_INSTITUTION_WEBSITE}
-            value={website}
-            onChange={(event) => setWebsite(event.target.value)}
+            value={draft.website}
+            onChange={(event) => updateDraftField("website", event.target.value)}
           />
-          <CharacterCount value={website} max={MAX_INSTITUTION_WEBSITE} />
+          <CharacterCount value={draft.website} max={MAX_INSTITUTION_WEBSITE} />
         </div>
         <div className="space-y-1">
           <label htmlFor="institutionDetails" className="sb-label">Verification details</label>
@@ -211,10 +224,10 @@ export function InstitutionDomainRequestForm({
             name="details"
             placeholder="Optional details to help us verify the institution"
             maxLength={MAX_INSTITUTION_REQUEST_DETAILS}
-            value={details}
-            onChange={(event) => setDetails(event.target.value)}
+            value={draft.details}
+            onChange={(event) => updateDraftField("details", event.target.value)}
           />
-          <CharacterCount value={details} max={MAX_INSTITUTION_REQUEST_DETAILS} />
+          <CharacterCount value={draft.details} max={MAX_INSTITUTION_REQUEST_DETAILS} />
         </div>
       </div>
 

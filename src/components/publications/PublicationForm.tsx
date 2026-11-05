@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   createPublication,
   updatePublication,
@@ -49,7 +50,7 @@ import {
 
 export type PublicationFormValues = {
   title: string;
-  authors: string;
+  authorNames: string[];
   publicationType: string;
   journalOrConference: string;
   publisher: string;
@@ -91,7 +92,7 @@ export default function PublicationForm({
   const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
-    authors: initialValues?.authors ?? "",
+    authorNames: initialValues?.authorNames ?? [],
     publicationType: initialValues?.publicationType ?? "RESEARCH_PAPER",
     journalOrConference: initialValues?.journalOrConference ?? "",
     publisher: initialValues?.publisher ?? "",
@@ -147,11 +148,18 @@ export default function PublicationForm({
   const isAbstractOverLimit =
     getRichTextLength(draftFields.abstract ?? "") > MAX_PUBLICATION_ABSTRACT;
   const isMissingAuthors = draftFields.authorIds.length === 0;
+  const isMissingAbstract =
+    getRichTextLength(draftFields.abstract ?? "") === 0;
   const isFormOverLimit = isAbstractOverLimit;
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (isFormOverLimit || isMissingAuthors) return;
+    if (isFormOverLimit) return;
+    if (isMissingAuthors || isMissingAbstract) {
+      setShowValidationErrors(true);
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
 
@@ -202,20 +210,22 @@ export default function PublicationForm({
 
       <div>
         <PublicationLinkedPeopleFields
-          authors={draftFields.authors}
+          authorNames={draftFields.authorNames}
           journal={draftFields.journalOrConference}
-          onAuthorsChange={(value) => updateDraftField("authors", value)}
+          onAuthorNamesChange={(value) =>
+            updateDraftField("authorNames", value)
+          }
           onJournalChange={(value) => updateDraftField("journalOrConference", value)}
           authorIds={draftFields.authorIds}
           onAuthorIdsChange={(value) => updateDraftField("authorIds", value)}
           journalId={draftFields.journalId}
           onJournalIdChange={(value) => updateDraftField("journalId", value)}
+          authorError={
+            showValidationErrors && isMissingAuthors
+              ? "Select at least one ScholarBase author before submitting."
+              : null
+          }
         />
-        {isMissingAuthors && (
-          <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
-            Select at least one ScholarBase author before submitting.
-          </p>
-        )}
       </div>
 
       {/* Publication Type & Year */}
@@ -432,7 +442,7 @@ export default function PublicationForm({
       {/* Abstract */}
       <div>
         <label className="sb-label inline-flex items-center gap-1.5">
-          Abstract / Description
+          Abstract / Description *
           <InfoTooltip message={PUBLICATION_ABSTRACT_TIP} />
         </label>
         <Editor
@@ -440,6 +450,14 @@ export default function PublicationForm({
           onChange={(data) => updateDraftField("abstract", data)}
           maxLength={MAX_PUBLICATION_ABSTRACT}
         />
+        {showValidationErrors && isMissingAbstract && (
+          <p
+            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            role="alert"
+          >
+            Abstract is required.
+          </p>
+        )}
         <input type="hidden" name="abstract" value={draftFields.abstract} />
       </div>
 
@@ -471,7 +489,7 @@ export default function PublicationForm({
         <FormCancelButton />
         <SubmitBtnWithAuth
           className="sb-button-accent"
-          disabled={submitting || isFormOverLimit || isMissingAuthors}
+          disabled={submitting || isFormOverLimit}
         >
           {mode === "edit" ? "Save Changes" : "Add Publication"}
         </SubmitBtnWithAuth>

@@ -136,14 +136,14 @@ export function SupervisorCard({
     >
       <Link href={`/supervisor/${supervisor.id}`} prefetch={false} className="block group">
         <div className="min-w-0 w-full">
-          <h3 className="max-w-full break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300 mb-2">
+          <h3 className="max-w-full break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300 mb-2 [overflow-wrap:anywhere]">
             {supervisor.name}
           </h3>
-          <p className="mb-2 whitespace-normal break-words text-sm font-medium text-slate-600 dark:text-slate-300">
+          <p className="mb-2 whitespace-normal break-words text-sm font-medium text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
             {supervisor.university}
           </p>
           {supervisor.department && (
-            <p className="mb-4 whitespace-normal break-words text-sm text-slate-500 dark:text-slate-400">{supervisor.department}</p>
+            <p className="mb-4 whitespace-normal break-words text-sm text-slate-500 dark:text-slate-400 [overflow-wrap:anywhere]">{supervisor.department}</p>
           )}
 
         {recommendationCount > 0 ? (

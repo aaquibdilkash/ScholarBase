@@ -1,8 +1,6 @@
 "use client";
 
 import { UserAvatar } from "@/components/ui/UserAvatar";
-import { ShareButton } from "@/components/interactions/ShareButton";
-import { UserPlus } from "lucide-react";
 
 type ScholarSuggestion = { id: string; name: string | null; handle: string | null; avatarUrl?: string | null };
 
@@ -10,7 +8,6 @@ export function ScholarSuggestionDropdown<T extends ScholarSuggestion>({
   suggestions,
   activeIndex = 0,
   onSelect,
-  showShareAction = false,
   emptyMessage,
   loading = false,
   loadingMessage = "Searching ScholarBase…",
@@ -18,7 +15,6 @@ export function ScholarSuggestionDropdown<T extends ScholarSuggestion>({
   suggestions: T[];
   activeIndex?: number;
   onSelect: (scholar: T) => void;
-  showShareAction?: boolean;
   emptyMessage?: string;
   loading?: boolean;
   loadingMessage?: string;
@@ -46,7 +42,6 @@ export function ScholarSuggestionDropdown<T extends ScholarSuggestion>({
               <span className="block truncate text-xs text-slate-500 dark:text-slate-400">@{user.handle || "scholar"}</span>
             </span>
           </button>
-          {showShareAction ? <ShareButton href={`/scholars/${user.id}`} label={`Invite ${user.name || "scholar"} to ScholarBase`} title={`Invite ${user.name || "a scholar"} to ScholarBase`} text={`Connect with ${user.name || "this scholar"} on ScholarBase — an academic community for scholars and researchers.`} icon={UserPlus} /> : null}
         </div>
       )) : <p className="px-3 py-3 text-sm text-slate-500 dark:text-slate-400">{emptyMessage}</p>}
     </div>

@@ -516,7 +516,7 @@ function ConversationSidebar({ user, isAuthLoading, isInline = false }: { user: 
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{otherParticipant?.name || "Scholar"}</div>
                             {latestMessage && (
-                              <p className={`mt-0.5 min-w-0 max-w-full break-all line-clamp-1 text-sm [overflow-wrap:anywhere] ${isUnread ? "text-slate-800 font-medium dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
+                              <p className={`mt-0.5 min-w-0 max-w-full line-clamp-1 text-sm [overflow-wrap:anywhere] ${isUnread ? "text-slate-800 font-medium dark:text-slate-200" : "text-slate-500 dark:text-slate-400"}`}>
                                 {latestMessage.body}
                               </p>
                             )}

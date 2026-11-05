@@ -162,7 +162,7 @@ export function ResultCard({
           )}
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {result.title}
         </h2>
 
@@ -174,7 +174,7 @@ export function ResultCard({
         {(result.conductingBody || result.session) && (
           <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-slate-500">
             {result.conductingBody && (
-              <span className="break-words">Conducting Body: {result.conductingBody}</span>
+              <span className="break-words [overflow-wrap:anywhere]">Conducting Body: {result.conductingBody}</span>
             )}
             {result.session && <span className="break-words">Session: {result.session}</span>}
           </div>

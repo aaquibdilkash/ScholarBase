@@ -179,7 +179,7 @@ export default async function CourseDetailPage({
         />
       }
     >
-      <h1 className="mb-3 text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl">
+      <h1 className="mb-3 min-w-0 max-w-full break-words text-lg font-bold text-slate-950 dark:text-slate-50 sm:text-xl md:text-2xl [overflow-wrap:anywhere]">
         {course.title}
       </h1>
       {details.length > 0 && (

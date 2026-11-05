@@ -71,10 +71,10 @@ export default async function AuthCodeError({
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-600 dark:text-amber-300">
             Authentication
           </p>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+          <h1 className="mt-4 break-words text-3xl font-bold tracking-tight text-slate-900 [overflow-wrap:anywhere] dark:text-slate-50">
             {messages.title}
           </h1>
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-3 break-words text-sm text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
             {messages.description}
           </p>
         </div>

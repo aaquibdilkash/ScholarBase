@@ -176,10 +176,10 @@ export function VacancyCard({ vacancy,
             </span>
           )}
         </div>
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {vacancy.title}
         </h2>
-        <p className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+        <p className="mb-2 break-words text-sm font-medium text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
           {vacancy.institution}
         </p>
         {deptSubject && (

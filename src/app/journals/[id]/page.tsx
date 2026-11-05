@@ -167,7 +167,7 @@ const JournalDetailPage = async ({
     >
       <div className="flex min-w-0 w-full flex-row items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
         <div className="min-w-0 flex-1">
-          <h1 className="max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950">
+          <h1 className="max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
             {j.title}
           </h1>
         </div>
@@ -191,7 +191,7 @@ const JournalDetailPage = async ({
             <p className="text-xs text-indigo-500 font-medium uppercase tracking-wider">
               Subject Area
             </p>
-            <p className="text-sm font-semibold text-indigo-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-indigo-800 [overflow-wrap:anywhere]">
               {j.subjectArea}
             </p>
           </div>
@@ -201,7 +201,7 @@ const JournalDetailPage = async ({
             <p className="text-xs text-cyan-500 font-medium uppercase tracking-wider">
               Publisher
             </p>
-            <p className="text-sm font-semibold text-cyan-800 mt-1">
+            <p className="mt-1 break-words text-sm font-semibold text-cyan-800 [overflow-wrap:anywhere]">
               {j.publisher}
             </p>
           </div>
@@ -211,7 +211,7 @@ const JournalDetailPage = async ({
             <p className="text-xs text-rose-500 font-medium uppercase tracking-wider">
               ISSN
             </p>
-            <p className="text-sm font-semibold text-rose-800 mt-1">{j.issn}</p>
+            <p className="mt-1 break-words text-sm font-semibold text-rose-800 [overflow-wrap:anywhere]">{j.issn}</p>
           </div>
         )}
         {j.impactFactor && (

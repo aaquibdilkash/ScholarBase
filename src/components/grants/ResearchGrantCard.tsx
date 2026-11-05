@@ -12,6 +12,7 @@ import { deleteResearchGrant } from "@/app/actions/grants";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import type { ResearchGrantWithAuthor } from "@/types/cards";
 
 export function ResearchGrantCard({
@@ -126,12 +127,12 @@ export function ResearchGrantCard({
       noBodyLink={true}
       bodyBottomContent={
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <SafeExternalLink
+          <SmartExternalLink
             url={grant.applyLink}
             className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
-          >
-            Apply
-          </SafeExternalLink>
+            urlLabel="Apply"
+            emailLabel="Email to Apply"
+          />
           <SafeExternalLink
             url={grant.infoLink}
             className="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900"
@@ -142,7 +143,7 @@ export function ResearchGrantCard({
       }
     >
       <Link href={`/grants/${grant.id}`} prefetch={false} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {grant.title}
         </h2>
         {grant.amount && (

@@ -26,7 +26,6 @@ export default async function EditPublicationPage({
     select: {
       id: true,
       title: true,
-      authors: true,
       publicationType: true,
       journalOrConference: true,
       publisher: true,
@@ -44,7 +43,14 @@ export default async function EditPublicationPage({
       authorId: true,
       journalId: true,
       journal: { select: { id: true, title: true } },
-      publicationAuthors: { select: { userId: true, authorOrder: true }, orderBy: { authorOrder: "asc" } },
+      publicationAuthors: {
+        select: {
+          userId: true,
+          authorOrder: true,
+          user: { select: { id: true, name: true, handle: true } },
+        },
+        orderBy: { authorOrder: "asc" },
+      },
     },
   });
 
@@ -68,7 +74,11 @@ export default async function EditPublicationPage({
         publicationId={publication.id}
         initialValues={{
           title: publication.title,
-          authors: publication.authors,
+          authorNames: publication.publicationAuthors.map(
+            (author) =>
+              author.user?.name ||
+              (author.user?.handle ? `@${author.user.handle}` : "Scholar"),
+          ),
           publicationType: publication.publicationType,
           journalOrConference: publication.journal?.title ?? publication.journalOrConference ?? "",
           publisher: publication.publisher ?? "",

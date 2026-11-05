@@ -119,10 +119,10 @@ export function ArticleCard({
       noBodyLink={true}
     >
       <Link href={`/blog/${article.slug}`} prefetch={false} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {article.title}
         </h2>
-        <p className="text-sm break-words leading-relaxed text-slate-600 dark:text-slate-300">
+        <p className="text-sm break-words leading-relaxed text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
           {article.excerpt}
         </p>
       </Link>

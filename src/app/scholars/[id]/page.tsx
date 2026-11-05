@@ -7,7 +7,6 @@ import { ProfileAvatar } from "@/components/ui/ProfileAvatar";
 import ProfileTabs from "@/components/profile/ProfileTabs";
 import { MessageButton } from "@/components/interactions/MessageButton";
 import { ReportMenu } from "@/components/cards/ReportMenu";
-import { FrozenProfileAppealCard } from "@/components/moderation/FrozenProfileAppealCard";
 import { BadgeCheck, Star } from "lucide-react";
 import { FollowerCount } from "./FollowerCount";
 import type { Metadata } from "next";
@@ -80,7 +79,7 @@ export default async function ScholarProfile({
             </div>
 
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-950 sm:text-3xl dark:text-slate-50">
+              <h1 className="min-w-0 max-w-full break-words text-2xl font-semibold leading-tight tracking-tight text-slate-950 sm:text-3xl dark:text-slate-50">
                 <span className="flex min-w-0 items-center gap-1.5 sm:gap-2">
                   <span className="truncate" title={profile.name ?? undefined}>
                     {profile.name}
@@ -183,14 +182,6 @@ export default async function ScholarProfile({
           <RelatedContent title="Similar scholars" items={related} />
         }
       />
-      {/* Frozen owners landing here from the USER_FROZEN notification get the
-          same reason+appeal entry as the banner — the flag-menu AppealButton
-          above is kept as a secondary path. */}
-      {isOwnProfile && profile.isFrozen && (
-        <div className="mt-6">
-          <FrozenProfileAppealCard userId={profile.id} />
-        </div>
-      )}
     </main>
   );
 }

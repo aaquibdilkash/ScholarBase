@@ -517,13 +517,13 @@ export const MessageItem = React.memo(
                         Original message was deleted
                       </span>
                     ) : (
-                      <span className="block line-clamp-1 min-w-0 max-w-full break-all text-[11px] [overflow-wrap:anywhere] text-slate-700 dark:text-white">
+                      <span className="block line-clamp-1 min-w-0 max-w-full text-[11px] [overflow-wrap:anywhere] text-slate-700 dark:text-white">
                         {renderBodyWithEmoji(message.replyTo.body, false)}
                       </span>
                     )}
                   </button>
                 )}
-                <p className={emojiOnly ? "text-4xl leading-snug break-all whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 max-w-full" : "text-sm break-all whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 max-w-full"}>
+                <p className={emojiOnly ? "text-4xl leading-snug whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 max-w-full" : "text-sm whitespace-pre-wrap [overflow-wrap:anywhere] min-w-0 max-w-full"}>
                   {renderBodyWithEmoji(message.body, emojiOnly)}
                 </p>
                 <div className="mt-1 flex items-center justify-end gap-1.5">

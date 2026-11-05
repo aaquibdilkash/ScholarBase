@@ -161,7 +161,7 @@ export function SurveyCard({
           </span>
         </div>
 
-        <h2 className="mb-2 break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300 [overflow-wrap:anywhere]">
           {survey.title}
         </h2>
 

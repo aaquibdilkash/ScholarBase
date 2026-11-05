@@ -41,7 +41,7 @@ export function SurveyQuestionCard({
           {number}
         </span>
         <div className="min-w-0">
-          <h3 className="break-words break-all whitespace-pre-wrap min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-200">
+          <h3 className="break-words whitespace-pre-wrap min-w-0 text-sm font-semibold text-slate-800 dark:text-slate-200">
             {question.title}
             {question.required && (
               <span className="ml-1 text-red-500">*</span>

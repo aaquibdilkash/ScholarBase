@@ -289,7 +289,7 @@ export function SocialPostCard({
           <div className="relative min-w-0 w-full">
             <p
               ref={bodyRef}
-              className={`mb-4 whitespace-pre-wrap break-words leading-relaxed text-slate-800 transition-colors group-hover:text-slate-600 ${
+              className={`mb-4 whitespace-pre-wrap break-words leading-relaxed text-slate-800 [overflow-wrap:anywhere] transition-colors group-hover:text-slate-600 ${
                 isExpanded ? "" : "overflow-hidden"
               }`}
               style={isExpanded ? undefined : lineClampStyle(maxLines)}
@@ -303,7 +303,7 @@ export function SocialPostCard({
               ref={measureRef}
               inert
               aria-hidden="true"
-              className="pointer-events-none absolute left-0 top-0 w-full whitespace-pre-wrap break-words leading-relaxed"
+              className="pointer-events-none absolute left-0 top-0 w-full whitespace-pre-wrap break-words leading-relaxed [overflow-wrap:anywhere]"
               style={{ visibility: "hidden" }}
             >
               {renderedContent}

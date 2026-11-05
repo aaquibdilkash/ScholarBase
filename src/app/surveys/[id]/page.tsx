@@ -212,7 +212,7 @@ const SurveyDetailPage = async ({
         </span>
       </div>
 
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
+      <h1 className="min-w-0 max-w-full break-words pe-1 text-lg font-bold text-slate-950 mb-1.5 sm:mb-2 sm:text-xl md:text-2xl">
         {survey.title}
       </h1>
 

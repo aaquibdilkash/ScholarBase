@@ -59,7 +59,7 @@ export function HelpPostCard({
           <OwnerActionsDropdown
             editHref={`/help/${helpPost.id}/edit`}
             isOwner={true}
-            editLabel="Edit Scholar Suggest Post"
+            editLabel="Edit"
             deleteLabel="Delete"
             onDelete={async () => {
               try {
@@ -128,11 +128,11 @@ export function HelpPostCard({
             {helpPost.category}
           </span>
         </div>
-        <h2 className="mb-1 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-1 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {helpPost.title}
         </h2>
         {helpPost.subject && (
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          <p className="mt-2 break-words text-sm text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
             <span className="font-semibold text-slate-800 dark:text-slate-100">
               Subject:
             </span>{" "}

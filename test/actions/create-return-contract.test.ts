@@ -128,6 +128,7 @@ const SPECS = [
     fields: {
       title: "Paper title",
       publicationType: "JOURNAL_ARTICLE",
+      abstract: "<p>Abstract</p>",
       // Publications require at least one LINKED ScholarBase author, so this
       // one needs `authorIds` naming the seeded user.
       authorIds: AUTHOR,
@@ -350,4 +351,23 @@ describe("RULE 1: create actions return the complete new object", () => {
       });
     });
   }
+
+  it("rejects a publication whose abstract has no visible text", async () => {
+    // The abstract is required and is stored as rich-text HTML, so an empty
+    // paragraph must fail the same way a missing field does.
+    const result = await createPublication(
+      formOf({
+        title: "No abstract",
+        publicationType: "JOURNAL_ARTICLE",
+        authorIds: AUTHOR,
+        abstract: "<p>   </p>",
+      }),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      error: "Abstract is required.",
+    });
+    expect(fakeDb.rows("publication")).toHaveLength(0);
+  });
 });

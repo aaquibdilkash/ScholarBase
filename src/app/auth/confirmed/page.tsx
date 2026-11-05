@@ -59,10 +59,10 @@ export default async function EmailConfirmedPage({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300">
             {messages.badge}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+          <h1 className="mt-2 break-words text-3xl font-semibold tracking-tight text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
             {messages.title}
           </h1>
-          <p className="mt-3 text-slate-600 dark:text-slate-400">
+          <p className="mt-3 break-words text-slate-600 [overflow-wrap:anywhere] dark:text-slate-400">
             {messages.description}
           </p>
         </div>

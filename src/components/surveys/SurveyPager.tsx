@@ -35,18 +35,21 @@ export function SurveyPager({
   /** Center slot, e.g. the "Question 2-4 of 9" range indicator. */
   children?: React.ReactNode;
 }) {
+  // Mobile: the range label goes on its own line above a Back / Next row, so
+  // the three items can never overlap on a narrow card. From `sm` up there is
+  // room for the original single row with the label centered between them.
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 pt-4 sm:gap-3">
+    <div className="flex flex-wrap items-center gap-2 pt-4 sm:flex-nowrap sm:gap-3">
       <button
         type="button"
         onClick={onBack}
         disabled={backDisabled}
-        className="sb-button-soft inline-flex items-center gap-2"
+        className="sb-button-soft order-2 inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-2 text-xs sm:order-none sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
       >
         <ChevronLeft className="h-4 w-4" />
         Back
       </button>
-      <div className="min-w-0 justify-self-center whitespace-nowrap text-center text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+      <div className="order-1 min-w-0 w-full text-center text-xs text-slate-500 dark:text-slate-400 sm:order-none sm:w-auto sm:flex-1 sm:text-sm">
         {children}
       </div>
       {submit ? (
@@ -54,7 +57,7 @@ export function SurveyPager({
           key="survey-pager-submit"
           type="submit"
           disabled={submitting}
-          className="sb-button-accent inline-flex items-center gap-2"
+          className="sb-button-accent order-3 inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-2 text-xs sm:order-none sm:flex-none sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
         >
           {submitting ? (
             <span className="flex items-center gap-2">
@@ -71,7 +74,7 @@ export function SurveyPager({
           type="button"
           onClick={onNext}
           disabled={nextDisabled}
-          className="sb-button-accent inline-flex items-center gap-2"
+          className="sb-button-accent order-3 inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap px-3 py-2 text-xs sm:order-none sm:flex-none sm:gap-2 sm:px-5 sm:py-3 sm:text-sm"
         >
           {nextLabel}
           <ChevronRight className="h-4 w-4" />

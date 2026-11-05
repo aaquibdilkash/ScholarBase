@@ -16,6 +16,7 @@ import { tombstoneInList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 export function AdmissionCard({
   admission,
@@ -127,12 +128,12 @@ export function AdmissionCard({
           >
             View Circular
           </SafeExternalLink>
-          <SafeExternalLink
+          <SmartExternalLink
             url={admission.applyLink}
             className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-          >
-            Go to Portal
-          </SafeExternalLink>
+            urlLabel="Go to Portal"
+            emailLabel="Email to Apply"
+          />
         </div>
       }
     >
@@ -148,12 +149,12 @@ export function AdmissionCard({
           )}
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {admission.university}
         </h2>
 
         <div className="mb-3 space-y-1.5">
-          <p className="text-sm font-semibold text-slate-950 dark:text-slate-50">
+          <p className="break-words text-sm font-semibold text-slate-950 [overflow-wrap:anywhere] dark:text-slate-50">
             {admission.department}
           </p>
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">

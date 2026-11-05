@@ -164,7 +164,7 @@ export function EventCard({
           )}
         </div>
 
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {event.title}
         </h2>
 
@@ -176,7 +176,7 @@ export function EventCard({
           {event.location && (
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
-              <span>{event.location}</span>
+              <span className="break-words [overflow-wrap:anywhere]">{event.location}</span>
             </div>
           )}
           {event.deadline && (

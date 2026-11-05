@@ -376,7 +376,7 @@ export function generateScholarInviteHtml({
       <p style="margin:0 0 16px;">${safeGreeting} ${safeName},</p>
       <p style="margin:0 0 16px;"><strong>${safeHeadline}</strong></p>
       <div style="margin:0 0 18px;">${safeBody}</div>
-      <p style="margin:0 0 18px;">${safeCtaLabel}: <a href="${safeInviteUrl}" target="_blank" rel="noreferrer" style="color:#1d4ed8;word-break:break-all;">${safeInviteUrl}</a></p>
+      <p style="margin:0 0 18px;">${safeCtaLabel}: <a href="${safeInviteUrl}" target="_blank" rel="noreferrer" style="color:#1d4ed8;overflow-wrap:anywhere;word-break:break-word;">${safeInviteUrl}</a></p>
       <p style="margin:0 0 2px;">Best regards,</p>
       <p style="margin:0;">${safeSenderName}</p>
       <p style="margin:0 0 24px;">${safeSenderRole}<br /><a href="mailto:updates@scholarbase.app" style="color:#1d4ed8;text-decoration:none;">updates@scholarbase.app</a></p>

@@ -12,23 +12,25 @@ type Scholar = Awaited<ReturnType<typeof searchScholarsForPicker>>[number];
 type Journal = Awaited<ReturnType<typeof searchJournalsForPicker>>[number];
 
 export function PublicationLinkedPeopleFields({
-  authors,
+  authorNames,
   journal,
-  onAuthorsChange,
+  onAuthorNamesChange,
   onJournalChange,
   authorIds,
   onAuthorIdsChange,
   journalId,
   onJournalIdChange,
+  authorError,
 }: {
-  authors: string;
+  authorNames: string[];
   journal: string;
-  onAuthorsChange: (value: string) => void;
+  onAuthorNamesChange: (value: string[]) => void;
   onJournalChange: (value: string) => void;
   authorIds: string[];
   onAuthorIdsChange: (value: string[]) => void;
   journalId: string;
   onJournalIdChange: (value: string) => void;
+  authorError?: string | null;
 }) {
   const [authorSearch, setAuthorSearch] = useState("");
   const [journalSearch, setJournalSearch] = useState("");
@@ -116,15 +118,16 @@ export function PublicationLinkedPeopleFields({
 
     const name = scholar.name || `@${scholar.handle}`;
     onAuthorIdsChange([...selectedAuthorIds, scholar.id]);
-    onAuthorsChange(authors ? `${authors}, ${name}` : name);
+    onAuthorNamesChange([...authorNames, name]);
     setAuthorSearch("");
     setAuthorResults([]);
   };
 
-  const removeAuthor = () => {
-    // Removing individual names is handled by re-entering the author selection.
-    onAuthorIdsChange([]);
-    onAuthorsChange("");
+  const removeAuthor = (authorId: string) => {
+    const index = selectedAuthorIds.indexOf(authorId);
+    if (index === -1) return;
+    onAuthorIdsChange(selectedAuthorIds.filter((_, i) => i !== index));
+    onAuthorNamesChange(authorNames.filter((_, i) => i !== index));
   };
 
   const selectJournal = (item: Journal) => {
@@ -160,13 +163,16 @@ export function PublicationLinkedPeopleFields({
             placeholder="Search ScholarBase"
             autoComplete="off"
             aria-label="Search ScholarBase authors"
+            aria-invalid={authorError ? true : undefined}
+            aria-describedby={
+              authorError ? "publication-authors-error" : undefined
+            }
           />
           <ScholarSuggestionDropdown
             suggestions={authorResults}
             loading={authorSearching}
             loadingMessage="Searching ScholarBase…"
             onSelect={selectAuthor}
-            showShareAction
             emptyMessage={
               authorSearchError
                 ? "Scholar search is temporarily unavailable. Try again."
@@ -182,18 +188,42 @@ export function PublicationLinkedPeopleFields({
           value={selectedAuthorIds.join(",")}
         />
         <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-          Selected: {authors || "No authors selected"}
+          {selectedAuthorIds.length === 0
+            ? "Selected: No authors selected"
+            : "Selected authors:"}
         </p>
+        {selectedAuthorIds.length > 0 && (
+          <ul className="mt-1 flex flex-wrap gap-2" aria-label="Selected authors">
+            {selectedAuthorIds.map((authorId, index) => {
+              const name = authorNames[index] ?? "Scholar";
+              return (
+                <li key={authorId}>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => removeAuthor(authorId)}
+                      aria-label={`Remove ${name}`}
+                      className="rounded-full p-0.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {authorError && (
+          <p
+            id="publication-authors-error"
+            className="mt-2 text-sm text-red-600 dark:text-red-400"
+            role="alert"
+          >
+            {authorError}
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-          {selectedAuthorIds.length > 0 && (
-            <button
-              type="button"
-              onClick={removeAuthor}
-              className="text-xs font-medium text-red-600 hover:underline"
-            >
-              Clear selected authors
-            </button>
-          )}
           <ShareButton
             href="/"
             label="Invite the author on ScholarBase"

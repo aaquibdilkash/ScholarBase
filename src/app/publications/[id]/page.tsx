@@ -305,7 +305,7 @@ const PublicationDetailPage = async ({
           <span className="text-sm font-medium text-slate-500">DOI: </span>
           <SafeExternalLink
             url={`https://doi.org/${p.doi}`}
-            className="break-all text-sm text-blue-600 underline [overflow-wrap:anywhere] hover:text-blue-800"
+            className="break-words text-sm text-blue-600 underline [overflow-wrap:anywhere] hover:text-blue-800"
           >
             {p.doi}
           </SafeExternalLink>
@@ -315,7 +315,7 @@ const PublicationDetailPage = async ({
       {p.isbn && (
         <div className="mb-2 min-w-0">
           <span className="text-sm font-medium text-slate-500">ISBN: </span>
-          <span className="break-all text-sm text-slate-700 [overflow-wrap:anywhere]">{p.isbn}</span>
+          <span className="break-words text-sm text-slate-700 [overflow-wrap:anywhere]">{p.isbn}</span>
         </div>
       )}
 

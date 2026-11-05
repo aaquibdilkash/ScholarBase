@@ -283,7 +283,7 @@ export function SurveyResultsView({
                 <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
                   Q{idx + 1} • {q.type.replace(/_/g, " ").toLowerCase()}
                 </span>
-                <h3 className="break-words break-all whitespace-pre-wrap text-sm font-semibold text-slate-800 mt-1 dark:text-white">
+                <h3 className="break-words whitespace-pre-wrap text-sm font-semibold text-slate-800 mt-1 dark:text-white">
                   {q.title}
                   {q.archivedAt ? " (archived)" : ""}
                 </h3>
@@ -349,7 +349,7 @@ export function SurveyResultsView({
                       return (
                         <div key={option} className="min-w-0 space-y-1">
                           <div className="flex items-center justify-between gap-3 text-sm">
-                            <span className="break-words break-all font-medium text-slate-700 dark:text-slate-300">
+                            <span className="break-words font-medium text-slate-700 dark:text-slate-300">
                               {option}
                             </span>
                             <span className="text-slate-500 dark:text-slate-400">

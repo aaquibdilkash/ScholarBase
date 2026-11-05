@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Flag } from "lucide-react";
 import { ReportModal } from "@/components/cards/ReportModal";
 import { AppealButton } from "@/components/appeals/AppealButton";
+import { useIsFrozen } from "@/components/interactions/FrozenUserProvider";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
 import type { DeletedContentReason } from "@/components/content/DeletedContentTombstone";
 
@@ -43,6 +44,9 @@ export function ReportMenu({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  // Reporting is a mutation blocked server-side for frozen accounts. They get
+  // a disabled report flag; owners keep this menu only to reach their appeal.
+  const isAccountFrozen = useIsFrozen();
 
   // Owners can never report their own profile/content — they only get the
   // Appeal option (when the profile is frozen/deleted by moderation). If the
@@ -56,10 +60,18 @@ export function ReportMenu({
     isOwner;
 
   // Reporting is an interaction. Frozen and deleted content is read-only (the
-  // banner and tombstone both say so), so only the owner's appeal remains.
+  // banner and tombstone both say so), and a frozen account cannot report
+  // anything at all, so only the owner's appeal remains.
   // Without this guard a non-owner could still report frozen content even
   // though the UI promised reporting was disabled.
-  const canReport = !isOwner && !isFrozen && !isDeleted;
+  const canReport = !isOwner && !isFrozen && !isDeleted && !isAccountFrozen;
+
+  // A frozen account keeps a visible but disabled flag wherever reporting
+  // would normally be offered, so the restriction is discoverable instead of
+  // the control silently disappearing. Owners keep the live menu for their
+  // appeal, and frozen/deleted content stays read-only with no flag.
+  const showDisabledFlag =
+    isAccountFrozen && !isOwner && !isFrozen && !isDeleted;
 
   useEffect(() => {
     if (!open) return;
@@ -87,7 +99,7 @@ export function ReportMenu({
     };
   }, [open]);
 
-  if (!canAppeal && !canReport) return null;
+  if (!canAppeal && !canReport && !showDisabledFlag) return null;
 
   const handleReportClick = () => {
     setOpen(false);
@@ -100,17 +112,25 @@ export function ReportMenu({
         <button
           ref={btnRef}
           type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
+          disabled={showDisabledFlag}
+          aria-haspopup={showDisabledFlag ? undefined : "menu"}
+          aria-expanded={showDisabledFlag ? undefined : open}
           onClick={() => setOpen((v) => !v)}
           className={clsx(
             "inline-flex h-8 w-8 items-center justify-center rounded-lg",
-            "text-slate-900 transition-colors hover:bg-slate-100 hover:text-slate-900",
+            "text-slate-900",
             "focus:outline-none focus:ring-2 focus:ring-blue-500/10",
-            "dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200",
+            "dark:text-slate-400",
+            showDisabledFlag
+              ? "cursor-not-allowed opacity-40"
+              : "transition-colors hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-200",
           )}
           aria-label="Report content"
-          title="Report content"
+          title={
+            showDisabledFlag
+              ? "Your account is frozen. Reporting is disabled."
+              : "Report content"
+          }
         >
            <Flag className="h-4 w-4" strokeWidth={3} />
         </button>

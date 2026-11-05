@@ -208,6 +208,27 @@ describe("CONTENT_LIST_CONFIGS", () => {
       }
     },
   );
+
+  it("PUBLICATION selects every field its list card renders", () => {
+    // Regression: `PublicationCard` renders the abstract, the domain and
+    // co-author chips, and the "View Publication" button. The cached list
+    // projection omitted those columns, so the list page silently dropped
+    // content the detail page showed.
+    const publication = CONTENT_LIST_CONFIGS.PUBLICATION;
+    for (const field of ["abstract", "url", "domain", "isUserAuthor"]) {
+      expect(publication.select[field], field).toBe(true);
+    }
+  });
+
+  it("RESULT selects the outbound links its list card renders", () => {
+    // Regression: `ResultCard` renders "View Notification" and "Check Results"
+    // from these columns. Omitting them made the list page drop both buttons
+    // while the detail page still showed them.
+    const result = CONTENT_LIST_CONFIGS.RESULT;
+    for (const field of ["notificationLink", "resultLink"]) {
+      expect(result.select[field], field).toBe(true);
+    }
+  });
 });
 
 /**

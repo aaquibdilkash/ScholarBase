@@ -152,7 +152,7 @@ export function CourseCard({
       }
     >
       <Link href={`/learn/${course.id}`} prefetch={false} className="block group">
-        <h2 className="mb-2 text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {course.title}
         </h2>
         {details.length > 0 && (
@@ -160,7 +160,7 @@ export function CourseCard({
             {details.map(([label, value]) => (
               <span
                 key={label}
-                className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                className="max-w-full break-words rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-slate-700 [overflow-wrap:anywhere] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
               >
                 <span className="font-semibold">{label}:</span> {value}
               </span>

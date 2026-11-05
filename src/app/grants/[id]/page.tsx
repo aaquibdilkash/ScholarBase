@@ -15,6 +15,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
+import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
@@ -177,12 +178,12 @@ export default async function ResearchGrantDetailPage({
       )}
       <RichContent content={grant.description} />
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-        <SafeExternalLink
+        <SmartExternalLink
           url={grant.applyLink}
           className="flex-1 rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800 sm:text-sm"
-        >
-          Apply
-        </SafeExternalLink>
+          urlLabel="Apply"
+          emailLabel="Email to Apply"
+        />
         <SafeExternalLink
           url={grant.infoLink}
           className="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-900 sm:text-sm"

@@ -180,7 +180,7 @@ const VacancyDetailPage = async ({
       <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
         {vacancy.title}
       </h1>
-      <p className="mb-3 sm:mb-4 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-blue-700 [overflow-wrap:anywhere]">
+      <p className="mb-3 sm:mb-4 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-600 [overflow-wrap:anywhere]">
         {vacancy.institution}
       </p>
       {(vacancy.department || vacancy.subject) && (

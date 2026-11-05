@@ -12,11 +12,16 @@ import { createRoot, type Root } from "react-dom/client";
 
 import { ReportMenu } from "@/components/cards/ReportMenu";
 
+const accountState = vi.hoisted(() => ({ frozen: false }));
+
 vi.mock("@/components/cards/ReportModal", () => ({
   ReportModal: () => null,
 }));
 vi.mock("@/components/appeals/AppealButton", () => ({
   AppealButton: () => <button type="button">Appeal Removal</button>,
+}));
+vi.mock("@/components/interactions/FrozenUserProvider", () => ({
+  useIsFrozen: () => accountState.frozen,
 }));
 
 describe("ReportMenu on frozen/deleted content", () => {
@@ -24,6 +29,7 @@ describe("ReportMenu on frozen/deleted content", () => {
   let root: Root;
 
   beforeEach(() => {
+    accountState.frozen = false;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -92,5 +98,32 @@ describe("ReportMenu on frozen/deleted content", () => {
     });
 
     expect(flag()).toBeNull();
+  });
+
+  it("disables the report flag for a frozen account on live content", async () => {
+    accountState.frozen = true;
+    await draw();
+
+    const button = flag() as HTMLButtonElement | null;
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(true);
+    expect(button?.className).toContain("cursor-not-allowed");
+    expect(button?.getAttribute("title")).toMatch(/frozen/i);
+  });
+
+  it("keeps the owner's appeal reachable for a frozen account", async () => {
+    accountState.frozen = true;
+    await draw({ currentUserId: "u-owner", isFrozen: true });
+
+    const button = flag() as HTMLButtonElement | null;
+    expect(button).not.toBeNull();
+    expect(button?.disabled).toBe(false);
+
+    await act(async () => {
+      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("Appeal Removal");
+    expect(container.textContent).not.toContain("Report Content");
   });
 });

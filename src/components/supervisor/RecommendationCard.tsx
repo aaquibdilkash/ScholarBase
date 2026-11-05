@@ -204,7 +204,7 @@ export function RecommendationCard({
                     openSupervisorPage();
                   }
                 }}
-                className="cursor-pointer text-blue-700 transition hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
+                className="cursor-pointer break-words text-blue-700 transition [overflow-wrap:anywhere] hover:text-blue-800 hover:underline dark:text-blue-300 dark:hover:text-blue-200"
               >
                 {supervisor.name}
               </span>

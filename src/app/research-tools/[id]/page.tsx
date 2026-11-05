@@ -162,11 +162,11 @@ const ResearchToolDetailPage = async ({
         />
       }
     >
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
+      <h1 className="min-w-0 max-w-full break-words pe-1 text-lg font-bold text-slate-950 mb-1.5 sm:mb-2 sm:text-xl md:text-2xl">
         {tool.name}
       </h1>
 
-      <p className="mb-4 text-sm sm:text-base text-slate-600 dark:text-slate-300">
+      <p className="mb-4 min-w-0 max-w-full break-words text-sm sm:text-base text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
         <span className="font-semibold text-slate-800 dark:text-slate-100">
           Primary use:
         </span>{" "}

@@ -215,7 +215,7 @@ const ContributionDetailPage = async ({
         <RejectionReason reason={contribution.rejectionReason} />
       )}
 
-      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2">
+      <h1 className="min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 mb-1.5 sm:mb-2 [overflow-wrap:anywhere]">
         {contribution.title}
       </h1>
 

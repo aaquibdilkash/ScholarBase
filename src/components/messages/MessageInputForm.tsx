@@ -247,7 +247,7 @@ export function MessageInputForm({
                   Original message deleted
                 </p>
               ) : (
-                <p className="mt-0.5 min-w-0 max-w-full break-all line-clamp-1 text-xs text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
+                <p className="mt-0.5 min-w-0 max-w-full line-clamp-1 text-xs text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
                   {replyingTo.body}
                 </p>
               )}

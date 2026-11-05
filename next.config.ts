@@ -57,6 +57,14 @@ const nextConfig: NextConfig = {
       "./node_modules/@huggingface/transformers/.cache/**/*",
     ],
   },
+  // Bots that parse metadata from the initial HTML `head` instead of waiting
+  // for streamed metadata. This mirrors Next.js' built-in list and adds
+  // Telegram, which is not included by default: without it Telegram unfurls
+  // the root layout's generic title/image instead of the post's own OG tags
+  // (WhatsApp is already in the default list, which is why the two apps showed
+  // different previews for the same URL).
+  htmlLimitedBots:
+    /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|Telegram/i,
   // Pins client bundles to the build that served them, so Server Action requests
   // from an already-open tab reach the matching build after a redeploy.
   // SOURCE_COMMIT is set by the Dockerfile from the git commit being built.

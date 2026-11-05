@@ -273,8 +273,6 @@ interface CommentCardProps {
   toast: ToastFn;
   /** Whole discussion locked (frozen parent post) — disables replying. */
   locked?: boolean;
-  /** Current user's account is frozen — disables replying. */
-  userFrozen?: boolean;
 }
 
 function CommentCard({
@@ -294,7 +292,6 @@ function CommentCard({
   setEditingId,
   toast,
   locked: _locked = false,
-  userFrozen: _userFrozen = false,
 }: CommentCardProps) {
   const isOwner = !!currentUserId && comment.author?.id === currentUserId;
   // Mirrors src/lib/deletion.ts: the root post author and (for replies) the
@@ -425,7 +422,7 @@ function CommentCard({
           <div
             className={`rounded-2xl rounded-tl-none border p-2.5 md:p-3 ${isReply ? "border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/70" : "border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950/75"}`}
           >
-            <p className="break-words italic mt-2 text-xs text-slate-500 dark:text-slate-400 md:text-sm">
+            <p className="break-words italic mt-2 text-xs text-slate-500 [overflow-wrap:anywhere] dark:text-slate-400 md:text-sm">
               {comment.isDeleted
                 ? getDeletedMessage(comment.deletedByType, isReply)
                 : comment.content}
@@ -541,7 +538,7 @@ function CommentCard({
             </form>
           ) : (
             <>
-              <p className="wrap-break-word whitespace-pre-wrap text-xs text-slate-700 mt-2 dark:text-slate-300 md:text-sm">
+              <p className="wrap-break-word whitespace-pre-wrap text-xs text-slate-700 mt-2 [overflow-wrap:anywhere] dark:text-slate-300 md:text-sm">
                 {renderMentionContent(comment.content, comment.mentions)}
               </p>
               <div className="mt-3 flex items-center justify-between gap-3">
@@ -574,7 +571,7 @@ function CommentCard({
                       hasActiveAppeal={comment.hasActiveAppeal}
                     />
                   )}
-                  {!isFrozen && !_locked && !_userFrozen && !comment.isDeleted && (
+                  {!isFrozen && !_locked && !comment.isDeleted && (
                     <>
                       <CommentActionsDropdown
                         isOwner={canDelete}
@@ -762,7 +759,6 @@ export function CommentThread({
         postAuthorId={postAuthorId}
         replyingToThis={activeReplyId === comment.id}
         locked={locked}
-        userFrozen={userFrozen}
         onReply={
           comment.isDeleted || comment.isFrozen || locked || userFrozen
             ? undefined

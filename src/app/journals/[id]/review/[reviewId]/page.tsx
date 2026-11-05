@@ -211,7 +211,7 @@ export default async function JournalReviewDetailPage({
         Review of{" "}
         <Link
           href={`/journals/${review.journalId}`}
-          className="text-blue-700 hover:underline dark:text-blue-400"
+          className="break-words text-blue-700 [overflow-wrap:anywhere] hover:underline dark:text-blue-400"
           prefetch={false}
         >
           {review.journal.title}

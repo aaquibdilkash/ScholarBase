@@ -15,6 +15,7 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
+import { getRichTextLength } from "@/lib/html";
 import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT, MAX_PUBLICATION_KEYWORDS, MAX_PUBLICATION_KEYWORD_COUNT, MAX_PUBLICATION_KEYWORD_LENGTH } from "@/lib/constants";
@@ -113,6 +114,9 @@ export async function createPublication(formData: FormData) {
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
   assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
+  if (getRichTextLength(abstract ?? "") === 0) {
+    return { success: false, error: "Abstract is required." };
+  }
   const isUserAuthor = readOptionalFormValue(formData, "isUserAuthor") === "on";
 
   const publication = await prisma.$transaction(async (tx) => {
@@ -231,6 +235,9 @@ export async function updatePublication(
   const domain = readOptionalFormValue(formData, "domain");
   const abstract = readOptionalFormValue(formData, "abstract");
   assertRichTextWithinLimit(abstract ?? "", MAX_PUBLICATION_ABSTRACT, "Abstract");
+  if (getRichTextLength(abstract ?? "") === 0) {
+    return { success: false, error: "Abstract is required." };
+  }
   const isUserAuthor = readOptionalFormValue(formData, "isUserAuthor") === "on";
 
   const publication = await prisma.publication.findUnique({
