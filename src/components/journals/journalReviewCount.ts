@@ -11,6 +11,12 @@ export interface JournalReviewAggregates {
   ratingSum: number;
   // Per-star distribution, 1..5
   dist: Record<number, number>;
+  /**
+   * Rows the carousel can reach: live reviews + engaged tombstones. `count`
+   * stays live-only (average + heading), while a delete that leaves a tombstone
+   * must not remove a slide.
+   */
+  slides: number;
 }
 
 // Reactive materialized journal-review aggregates, keyed per journal.
@@ -27,6 +33,7 @@ const EMPTY: JournalReviewAggregates = {
   count: 0,
   ratingSum: 0,
   dist: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  slides: 0,
 };
 
 export function getJournalReviewAggregates(
@@ -50,6 +57,7 @@ export function setJournalReviewAggregates(
     ...current,
     ...next,
     count: Math.max(0, next.count ?? current.count),
+    slides: Math.max(0, next.slides ?? current.slides),
   });
 }
 
@@ -68,11 +76,13 @@ export function getJournalReviewRatingSum(
 }
 
 // Delegated: decrement count + ratingSum + one star bucket when a single
-// review (with the given rating) is removed.
+// review (with the given rating) is removed. An engaged row becomes a tombstone
+// instead of leaving the list, so `keepSlide` keeps it reachable.
 export function decrementJournalReview(
   queryClient: QueryClient,
   journalId: string,
   rating: number,
+  keepSlide = false,
 ) {
   const current = getJournalReviewAggregates(queryClient, journalId);
   const star = Math.round(rating) as 1 | 2 | 3 | 4 | 5;
@@ -83,6 +93,7 @@ export function decrementJournalReview(
       ...current.dist,
       [star]: Math.max(0, (current.dist[star] ?? 0) - 1),
     },
+    slides: keepSlide ? current.slides : current.slides - 1,
   });
 }
 
@@ -94,6 +105,7 @@ export function seedJournalReviewAggregates(
   initialCount: number,
   initialRatingSum: number,
   initialDistribution: JournalReviewAggregates["dist"],
+  initialSlides: number = initialCount,
 ) {
   const existing = queryClient.getQueryData<JournalReviewAggregates>(
     journalReviewCountKey(journalId),
@@ -106,6 +118,7 @@ export function seedJournalReviewAggregates(
       ...EMPTY.dist,
       ...(initialDistribution ?? {}),
     },
+    slides: initialSlides,
   };
   queryClient.setQueryData(journalReviewCountKey(journalId), fresh);
   return fresh;

@@ -15,7 +15,7 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -38,6 +38,7 @@ export async function generateMetadata({
       section: SEO_PAGES.supervisor.section,
     });
   }
+  if (supervisor.isDeleted) return buildNoindexMetadata("Deleted content");
   const name = supervisor.name || "PhD Supervisor";
   const university = supervisor.university
     ? ` at ${supervisor.university}`
@@ -101,6 +102,27 @@ export default async function SupervisorPage({
     <DetailPageCardShell
       relatedContent={
         <RelatedContent title="Related supervisors" items={related} />
+      }
+      preservedContent={
+        <>
+          <OverallRatingSection
+            supervisorId={supervisor.id}
+            initialCount={recommendationCount}
+            initialVisibleCount={recMeta.visibleCount}
+            initialAvgRating={avgRating}
+            initialDistribution={ratingDistribution}
+          />
+
+          {/* Recommendations List — reactive count/empty-state, no server refetch */}
+          <RecommendationsSection
+            supervisorId={supervisor.id}
+            supervisorName={supervisor.name}
+            initialRecommendations={supervisor.recommendations}
+            initialCount={recommendationCount}
+            initialVisibleCount={recMeta.visibleCount}
+            currentUserId={user?.id}
+          />
+        </>
       }
       isDeleted={supervisor.isDeleted}
       deletedByType={supervisor.deletedByType}
@@ -208,22 +230,6 @@ export default async function SupervisorPage({
           )}
         </div>
       </div>
-
-      <OverallRatingSection
-        supervisorId={supervisor.id}
-        initialCount={recommendationCount}
-        initialAvgRating={avgRating}
-        initialDistribution={ratingDistribution}
-      />
-
-      {/* Recommendations List — reactive count/empty-state, no server refetch */}
-      <RecommendationsSection
-        supervisorId={supervisor.id}
-        supervisorName={supervisor.name}
-        initialRecommendations={supervisor.recommendations}
-        initialCount={recommendationCount}
-        currentUserId={user?.id}
-      />
     </DetailPageCardShell>
   );
 }

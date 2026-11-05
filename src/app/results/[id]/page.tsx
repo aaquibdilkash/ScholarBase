@@ -12,7 +12,7 @@ import { Building2, Calendar } from "lucide-react";
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
@@ -34,6 +34,7 @@ export async function generateMetadata({
       section: SEO_PAGES.results.section,
     });
   }
+  if (result.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: result.title,
     description: result.description.slice(0, 160),

@@ -5,6 +5,7 @@ import { requireCurrentUser, isUserAdmin } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { sendInstitutionDomainDecisionEmail } from "@/lib/email";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
+import { MODERATION_LIST_KEY } from "@/lib/moderation-config";
 
 import {
   AdminCommentModel,
@@ -68,9 +69,11 @@ export async function toggleContentFreeze(
     data: { isFrozen: !content.isFrozen },
   });
 
-  // `isFrozen` is part of the cached public feed payload and gates voting, so
-  // moderation must be visible immediately rather than after the TTL.
-  if (contentType === "feed") revalidateContent("FEED", content.authorId);
+  // `isFrozen` is part of the cached public list payload and gates voting, so
+  // moderation must be visible immediately rather than after the TTL. The map
+  // covers every freezable type (the user/profile row is not freezable here).
+  const listKey = MODERATION_LIST_KEY[contentType];
+  if (listKey) revalidateContent(listKey, content.authorId);
 
   return { success: true, data: content };
 }

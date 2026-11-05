@@ -12,7 +12,7 @@ import { deleteSocialPost, getPost, getPostMetadata } from "@/app/actions/feed";
 import { isValidImageUrl } from "@/lib/image-constants";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -35,15 +35,7 @@ export async function generateMetadata({
       section: SEO_PAGES.feed.section,
     });
   }
-  if (post.isDeleted) {
-    return buildMetadata({
-      title: "Deleted Scholar Post",
-      description: "This scholar post has been deleted, but its community discussion remains available.",
-      path: `/feed/${post.id}`,
-      type: "article",
-      section: "Scholar Community",
-    });
-  }
+  if (post.isDeleted) return buildNoindexMetadata("Deleted content");
   const text = post.content.replace(/\s+/g, " ").trim();
   return buildMetadata({
     title: text.slice(0, 58) || "Scholar Post",

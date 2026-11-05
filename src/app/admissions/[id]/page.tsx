@@ -11,7 +11,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { Clock } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -34,6 +34,7 @@ export async function generateMetadata({
       section: SEO_PAGES.admissions.section,
     });
   }
+  if (admission.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: `${admission.university} - ${admission.department} PhD Admission`,
     description: `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,

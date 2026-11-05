@@ -24,7 +24,7 @@ const PRIVACY_LABELS: Record<string, string> = {
   HYBRID: "Hybrid",
 };
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -47,6 +47,7 @@ export async function generateMetadata({
       section: SEO_PAGES.surveys.section,
     });
   }
+  if (survey.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: survey.title,
     description: survey.description || `Research survey: ${survey.title}.`,
@@ -99,6 +100,22 @@ const SurveyDetailPage = async ({
     <DetailPageCardShell
       relatedContent={
         <RelatedContent title="Related surveys" items={related} />
+      }
+      preservedContent={
+        survey.shareData ? (
+          <div className="mb-4 sm:mb-6 flex flex-col gap-2 rounded-xl border border-slate-100/50 bg-slate-50/50 p-3 sm:p-4 text-xs sm:text-sm font-semibold text-slate-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
+            <Link
+              prefetch={false}
+              href={`/surveys/${survey.id}/results`}
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors dark:text-blue-400 dark:hover:text-blue-200"
+            >
+              <Share2 className="w-5 h-5" />
+              <span className="font-medium">
+                Data sharing is enabled — results are available
+              </span>
+            </Link>
+          </div>
+        ) : null
       }
       isDeleted={survey.isDeleted}
       deletedByType={survey.deletedByType}
@@ -235,18 +252,6 @@ const SurveyDetailPage = async ({
           {survey.totalBlocks} Section
           {survey.totalBlocks !== 1 ? "s" : ""}
         </div>
-        {survey.shareData && (
-          <Link
-            prefetch={false}
-            href={`/surveys/${survey.id}/results`}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors dark:text-blue-400 dark:hover:text-blue-200"
-          >
-            <Share2 className="w-5 h-5" />
-            <span className="font-medium">
-              Data sharing is enabled — results are available
-            </span>
-          </Link>
-        )}
       </div>
 
       {/* Owner actions */}

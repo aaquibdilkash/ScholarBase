@@ -40,6 +40,23 @@ export function SupervisorCard({
     stripHtmlTags(supervisor.about || "").trim() ||
     `Profiles, ratings, and recommendations for PhD supervisor ${supervisor.name || ""}.`;
 
+  // Community-generated summary: survives the author-body tombstone, so it is
+  // passed as `preservedContent` and reused inside the live card body.
+  const ratingSummary =
+    recommendationCount > 0 ? (
+      <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+        <StarRating rating={avgRating} size="sm" />
+        <div className="text-sm">
+          <span className="font-semibold">{avgRating.toFixed(1)}</span>
+          <span className="text-slate-500"> / 5</span>
+        </div>
+        <span className="text-slate-500 text-xs">
+          ({recommendationCount} recommendation
+          {recommendationCount !== 1 ? "s" : ""})
+        </span>
+      </div>
+    ) : null;
+
   return (
     <ListPageCardShell
       isDeleted={supervisor.isDeleted ?? false}
@@ -133,6 +150,7 @@ export function SupervisorCard({
         />
       }
       noBodyLink={true}
+      preservedContent={supervisor.isDeleted ? ratingSummary : null}
     >
       <Link href={`/supervisor/${supervisor.id}`} prefetch={false} className="block group">
         <div className="min-w-0 w-full">
@@ -146,19 +164,7 @@ export function SupervisorCard({
             <p className="mb-4 whitespace-normal break-words text-sm text-slate-500 dark:text-slate-400 [overflow-wrap:anywhere]">{supervisor.department}</p>
           )}
 
-        {recommendationCount > 0 ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
-            <StarRating rating={avgRating} size="sm" />
-            <div className="text-sm">
-              <span className="font-semibold">{avgRating.toFixed(1)}</span>
-              <span className="text-slate-500"> / 5</span>
-            </div>
-            <span className="text-slate-500 text-xs">
-              ({recommendationCount} recommendation
-              {recommendationCount !== 1 ? "s" : ""})
-            </span>
-          </div>
-        ) : (
+        {ratingSummary ?? (
           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
             No recommendations yet.
           </div>

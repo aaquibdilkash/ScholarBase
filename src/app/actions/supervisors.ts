@@ -215,17 +215,18 @@ export async function getSupervisorRecommendationMeta(
   const userId = user?.id;
 
   const recommendations = await prisma.recommendation.findMany({
-    where: { supervisorId, isDeleted: false },
-    select: { id: true, rating: true, authorId: true },
+    // Live rows plus engaged tombstones. The tombstone is reachable in the
+    // carousel, but it must not count toward the rating or the heading.
+    where: { supervisorId, ...engagedContentWhere("totalComments") },
+    select: { id: true, rating: true, authorId: true, isDeleted: true },
   });
 
-  const total = recommendations.length;
+  const live = recommendations.filter((r) => !r.isDeleted);
+  const total = live.length;
   const avgRating =
-    total > 0
-      ? recommendations.reduce((sum, r) => sum + r.rating, 0) / total
-      : 0;
+    total > 0 ? live.reduce((sum, r) => sum + r.rating, 0) / total : 0;
   const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
-    const count = recommendations.filter((r) => r.rating === stars).length;
+    const count = live.filter((r) => r.rating === stars).length;
     return {
       stars,
       count,
@@ -235,14 +236,15 @@ export async function getSupervisorRecommendationMeta(
 
   return {
     totalCount: total,
+    /** Live + engaged tombstones — what the carousel can page through. */
+    visibleCount: recommendations.length,
     avgRating,
     ratingDistribution,
     hasUserRecommendation: !!(
-      userId && recommendations.some((r) => r.authorId === userId)
+      userId && live.some((r) => r.authorId === userId)
     ),
     // Id of the caller's own active recommendation (for "Edit your recommendation" UX)
-    userRecommendationId:
-      recommendations.find((r) => r.authorId === userId)?.id ?? null,
+    userRecommendationId: live.find((r) => r.authorId === userId)?.id ?? null,
   };
 }
 

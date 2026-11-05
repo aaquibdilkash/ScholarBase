@@ -23,7 +23,7 @@ const PUBLICATION_TYPE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -46,6 +46,7 @@ export async function generateMetadata({
       section: SEO_PAGES.publications.section,
     });
   }
+  if (p.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: p.title,
     description: (p.abstract || p.title).replace(/<[^>]*>/g, " "),

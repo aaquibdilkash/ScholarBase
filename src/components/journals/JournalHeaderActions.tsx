@@ -7,7 +7,7 @@ import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
-import { invalidateProfileTabs } from "@/utils/cacheMutation";
+import { invalidateProfileTabs, tombstoneInList } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteJournalReview as deleteReviewAction } from "@/app/actions/journalReviews";
 import { decrementJournalReview } from "./journalReviewCount";
@@ -20,8 +20,6 @@ type Props = {
   onDeleteJournal: () => unknown | Promise<unknown>;
   initialHasReview: boolean;
   initialUserReviewId?: string | null;
-  /** The viewer's own review rating, for the star bucket its delete decrements. */
-  initialUserReviewRating?: number | null;
   isDeleted?: boolean;
 };
 export function JournalHeaderActions({
@@ -31,7 +29,6 @@ export function JournalHeaderActions({
   onDeleteJournal,
   initialHasReview,
   initialUserReviewId,
-  initialUserReviewRating,
   isDeleted = false,
 }: Props) {
   const router = useRouter();
@@ -110,21 +107,20 @@ export function JournalHeaderActions({
             toast(actionErrorMessage(response, "Failed to delete review."), "error");
             return;
           }
-          // Remove from every cached list slice instantly.
-          queryClient.setQueriesData(
-            { queryKey: ["journalReviews", journalId] },
-            (oldData: JournalReviewWithAuthor[] = []) =>
-              oldData.filter((r) => r.id !== response.data.deletedId),
+          // Keep an engaged review as a tombstone; drop an unengaged one.
+          const tombstoned = tombstoneInList<JournalReviewWithAuthor>(
+            queryClient,
+            ["journalReviews", journalId],
+            response.data,
           );
           invalidateProfileTabs(queryClient, "content", "activity");
-          // Adjust the count / rating / star distribution instantly. The rating
-          // comes from the aggregates query, not from the reviews cache: the
-          // row was just removed from that cache, and it is only ever the
-          // first carousel slide when this reviewer also wrote the newest one.
+          // Adjust the count / rating / star distribution instantly. An engaged
+          // tombstone keeps its carousel slide.
           decrementJournalReview(
             queryClient,
             journalId,
-            initialUserReviewRating ?? 5,
+            response.data.rating,
+            tombstoned,
           );
           queryClient.setQueryData(["user_review_status", journalId], null);
           toast("Review deleted successfully", "success");

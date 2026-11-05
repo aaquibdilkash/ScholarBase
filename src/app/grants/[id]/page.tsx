@@ -5,7 +5,7 @@ import {
   getResearchGrantById,
   deleteResearchGrant,
 } from "@/app/actions/grants";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -29,6 +29,7 @@ export async function generateMetadata({
   try {
     const grant = await getResearchGrantById(id);
     if (!grant) throw new Error("not found");
+    if (grant.isDeleted) return buildNoindexMetadata("Deleted content");
     const description = grant.amount
       ? `${grant.title} funding opportunity: ${grant.amount}.`
       : `Research grant opportunity: ${grant.title}.`;

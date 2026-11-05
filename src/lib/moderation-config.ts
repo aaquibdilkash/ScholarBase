@@ -17,6 +17,8 @@
  * throws "Invalid content type" at click time.
  */
 
+import type { ContentListKey } from "@/lib/tri-split/modules/registry";
+
 /** contentType -> Prisma model name (resolved against the transaction client). */
 export const MODEL_MAP: Record<string, { model: string }> = {
   feed: { model: "socialPost" },
@@ -133,6 +135,38 @@ export const AUTHOR_COUNT_FIELD: Record<string, string | null> = {
   survey: "surveyCount",
   journalReview: "journalReviewCount",
   SCHOLAR_PROFILE: null,
+};
+
+/**
+ * contentType -> the cached list that must be purged after moderation.
+ *
+ * Moderation writes change `isDeleted` / `isFrozen`, both of which are part of
+ * every cached list payload, so leaving the tag alone leaves the change
+ * invisible for the full `LIST_REVALIDATE_SECONDS` TTL. Recommendation and
+ * journal-review rows live on their parent's detail page, so they purge the
+ * parent list (whose `revalidateContent` also purges the author's profile
+ * tabs). `SCHOLAR_PROFILE` is the user row itself: pass `contentId`, not the
+ * (absent) `authorId`.
+ */
+export const MODERATION_LIST_KEY: Record<string, ContentListKey> = {
+  feed: "FEED",
+  blog: "ARTICLE",
+  publication: "PUBLICATION",
+  journal: "JOURNAL",
+  researchTool: "RESEARCH_TOOL",
+  researchGrant: "RESEARCH_GRANT",
+  course: "COURSE",
+  admission: "PHD_ADMISSION",
+  event: "RESEARCH_EVENT",
+  vacancy: "JOB_VACANCY",
+  help: "HELP_POST",
+  result: "RESULT",
+  contribution: "CONTRIBUTION",
+  supervisor: "SUPERVISOR",
+  recommendation: "SUPERVISOR",
+  survey: "RESEARCH_SURVEY",
+  journalReview: "JOURNAL",
+  SCHOLAR_PROFILE: "SCHOLAR_DIRECTORY",
 };
 
 /**

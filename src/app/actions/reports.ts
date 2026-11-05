@@ -326,9 +326,10 @@ export async function submitReport(
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
     ) {
+      const subject = entityType === "COMMENT" ? "comment" : "content";
       return {
         success: false,
-        message: "You have already reported this item.",
+        message: `You have already reported this ${subject}.`,
       };
     }
     console.error("[SubmitReportAction Error]:", err);
@@ -355,6 +356,7 @@ import {
   ANONYMOUS_CONTENT_TYPES,
   AUTHOR_COUNT_FIELD,
   CONTENT_TARGET_TYPE,
+  MODERATION_LIST_KEY,
 } from "@/lib/moderation-config";
 
 // -----------------------------------------------------------------------------
@@ -924,18 +926,37 @@ export async function moderateContent(
 
     if (!entry) throw new Error("Invalid entry");
 
-    const entity = (await txEntryDelegate!.findUnique({
-      where: { id: contentId },
-      select: { id: true, isFrozen: true, isDeleted: true },
-    })) as { id: string; isFrozen: boolean; isDeleted: boolean } | null;
-
-    if (!entity) throw new Error("Content not found");
-
     // Whether this content type carries the content columns (`totalVotes`,
     // `authorId`). Derived from the model map rather than from the presence of
     // a count field: gating the select on `AUTHOR_COUNT_FIELD` is what let a
     // missing map key silently disable the reputation reversal.
     const isContentRow = modelMap[contentType]?.model !== "user";
+
+    const entity = (await txEntryDelegate!.findUnique({
+      where: { id: contentId },
+      select: {
+        id: true,
+        isFrozen: true,
+        isDeleted: true,
+        ...(isContentRow ? { authorId: true } : {}),
+      },
+    })) as {
+      id: string;
+      isFrozen: boolean;
+      isDeleted: boolean;
+      authorId?: string | null;
+    } | null;
+
+    if (!entity) throw new Error("Content not found");
+
+    // Every action below changes a flag that is part of the cached list
+    // payload, so remember whose profile tabs to purge after the transaction.
+    // The user row IS the profile, so its id stands in for the author id.
+    moderatedAuthorId =
+      contentType === "SCHOLAR_PROFILE"
+        ? contentId
+        : (entity.authorId ?? moderatedAuthorId);
+
     const countField = AUTHOR_COUNT_FIELD[contentType];
     // Anonymous content never incremented the author counter, so it must not
     // decrement / restore it either. Reputation is still reversed: anonymous
@@ -1009,14 +1030,25 @@ export async function moderateContent(
             ...(ANONYMOUS_CONTENT_TYPES.has(contentType)
               ? { isAnonymous: true }
               : {}),
+            // Parent materialized aggregates: a recommendation moves the
+            // supervisor's rating, a review moves the journal's. Anonymous rows
+            // still count toward the parent (only the author counter skips).
+            ...(contentType === "recommendation"
+              ? { supervisorId: true, rating: true }
+              : contentType === "journalReview"
+                ? { journalId: true, rating: true }
+                : {}),
           },
         })) as {
           id: string;
           totalVotes?: number;
           authorId?: string | null;
           isAnonymous?: boolean;
+          supervisorId?: string;
+          journalId?: string;
+          rating?: number;
         } | null;
-        moderatedAuthorId = full?.authorId;
+        moderatedAuthorId = full?.authorId ?? moderatedAuthorId;
         if (!full) throw new Error("Content not found");
 
         if (!entity.isDeleted) {
@@ -1037,6 +1069,28 @@ export async function moderateContent(
                 data: { [countField]: { decrement: 1 } },
               });
             }
+          }
+
+          // A recommendation/review is rated as part of its parent, so an admin
+          // delete must move the parent's materialized aggregate exactly like
+          // the author's own delete path. Gated on the isDeleted transition so
+          // repeating DELETE cannot double-charge.
+          if (contentType === "recommendation" && full.supervisorId) {
+            await tx.supervisor.update({
+              where: { id: full.supervisorId },
+              data: {
+                recommendationCount: { decrement: 1 },
+                ratingSum: { decrement: full.rating ?? 0 },
+              },
+            });
+          } else if (contentType === "journalReview" && full.journalId) {
+            await tx.journal.update({
+              where: { id: full.journalId },
+              data: {
+                reviewCount: { decrement: 1 },
+                ratingSum: { decrement: full.rating ?? 0 },
+              },
+            });
           }
         }
 
@@ -1084,31 +1138,62 @@ export async function moderateContent(
             ...(ANONYMOUS_CONTENT_TYPES.has(contentType)
               ? { isAnonymous: true }
               : {}),
+            // Parent aggregates restored by the matching DELETE branch.
+            ...(contentType === "recommendation"
+              ? { supervisorId: true, rating: true }
+              : contentType === "journalReview"
+                ? { journalId: true, rating: true }
+                : {}),
           },
         })) as {
           id: string;
           totalVotes?: number;
           authorId?: string | null;
           isAnonymous?: boolean;
+          supervisorId?: string;
+          journalId?: string;
+          rating?: number;
         } | null;
-        moderatedAuthorId = full?.authorId;
+        moderatedAuthorId = full?.authorId ?? moderatedAuthorId;
         if (!full) throw new Error("Content not found");
 
-        if (entity.isDeleted && full.authorId) {
-          // Re-grant exactly what the delete reversed: the vote-derived
-          // reputation for every content type…
-          if ((full.totalVotes ?? 0) !== 0) {
-            await tx.user.update({
-              where: { id: full.authorId },
-              data: { reputation: { increment: full.totalVotes ?? 0 } },
-            });
+        if (entity.isDeleted) {
+          if (full.authorId) {
+            // Re-grant exactly what the delete reversed: the vote-derived
+            // reputation for every content type…
+            if ((full.totalVotes ?? 0) !== 0) {
+              await tx.user.update({
+                where: { id: full.authorId },
+                data: { reputation: { increment: full.totalVotes ?? 0 } },
+              });
+            }
+            // …and the author counter, but only for types that actually
+            // incremented it (anonymous content never did).
+            if (countField && !skipsCountForAnonymity(full.isAnonymous)) {
+              await tx.user.update({
+                where: { id: full.authorId },
+                data: { [countField]: { increment: 1 } },
+              });
+            }
           }
-          // …and the author counter, but only for types that actually
-          // incremented it (anonymous content never did).
-          if (countField && !skipsCountForAnonymity(full.isAnonymous)) {
-            await tx.user.update({
-              where: { id: full.authorId },
-              data: { [countField]: { increment: 1 } },
+
+          // Restore what the admin DELETE removed from the parent aggregate.
+          // Gated on the isDeleted transition so a repeated RECOVER is a no-op.
+          if (contentType === "recommendation" && full.supervisorId) {
+            await tx.supervisor.update({
+              where: { id: full.supervisorId },
+              data: {
+                recommendationCount: { increment: 1 },
+                ratingSum: { increment: full.rating ?? 0 },
+              },
+            });
+          } else if (contentType === "journalReview" && full.journalId) {
+            await tx.journal.update({
+              where: { id: full.journalId },
+              data: {
+                reviewCount: { increment: 1 },
+                ratingSum: { increment: full.rating ?? 0 },
+              },
             });
           }
         }
@@ -1192,13 +1277,21 @@ export async function moderateContent(
     }
   });
 
-  // Moderation of feed content (freeze / delete / recover) changes the cached
-  // public feed payload. Accepts both the report-module key ("SOCIAL_FEED")
-  // and the admin content-type key ("feed"), since both spellings reach here.
-  // `moderatedAuthorId` is the author whose profile tab changed — not the
-  // moderator's, who is a different scholar in every normal case.
-  if (contentType === "SOCIAL_FEED" || contentType === "feed") {
-    revalidateContent("FEED", moderatedAuthorId);
+  // Every moderation action that changes `isDeleted` / `isFrozen` edits data
+  // that is baked into the cached list payload, so its tag must be purged
+  // immediately rather than left to the 5-minute TTL. The map covers every
+  // top-level content type; comment keys are absent because comment bodies only
+  // appear on uncached detail pages. `moderatedAuthorId` names the author whose
+  // profile tabs changed — not the moderator's.
+  const listKey = MODERATION_LIST_KEY[contentType];
+  if (
+    listKey &&
+    (action === "FREEZE" ||
+      action === "UNFREEZE" ||
+      action === "DELETE" ||
+      action === "RECOVER")
+  ) {
+    revalidateContent(listKey, moderatedAuthorId);
   }
 
   return result;

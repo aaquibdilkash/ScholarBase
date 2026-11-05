@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { deleteJournalReview } from "@/app/actions/journalReviews";
 import { decrementJournalReview } from "./journalReviewCount";
+import { tombstoneInList } from "@/utils/cacheMutation";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
@@ -13,12 +14,10 @@ export function WriteJournalReviewButton({
   journalId,
   initialHasReview,
   initialUserReviewId,
-  initialRating,
 }: {
   journalId: string;
   initialHasReview: boolean;
   initialUserReviewId?: string | null;
-  initialRating?: number;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -49,18 +48,20 @@ export function WriteJournalReviewButton({
               return { refresh: false };
             }
 
-            // 1. Remove from the list cache instantly
-            queryClient.setQueriesData(
-              { queryKey: ["journalReviews", journalId] },
-                          (oldData: JournalReviewWithAuthor[] = []) =>
-                oldData.filter((r) => r.id !== response.data.deletedId),
+            // 1. Keep an engaged review as a tombstone; drop an unengaged one.
+            const tombstoned = tombstoneInList<JournalReviewWithAuthor>(
+              queryClient,
+              ["journalReviews", journalId],
+              response.data,
             );
 
-            // 2. Adjust the overall rating instantly.
+            // 2. Adjust the overall rating instantly. An engaged tombstone
+            // keeps its carousel slide.
             decrementJournalReview(
               queryClient,
               journalId,
-              initialRating ?? 5,
+              response.data.rating,
+              tombstoned,
             );
 
             // 3. Flip the global status to null so THIS button turns into "+ Review"

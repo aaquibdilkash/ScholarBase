@@ -17,7 +17,7 @@ import { JournalReviewsSection } from "@/components/journals/JournalReviewsSecti
 import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -40,6 +40,7 @@ export async function generateMetadata({
       section: SEO_PAGES.journals.section,
     });
   }
+  if (journal.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: journal.title,
     description: (
@@ -95,6 +96,33 @@ const JournalDetailPage = async ({
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related journals" items={related} />}
+      preservedContent={
+        <>
+          <JournalRatingSection
+            journalId={j.id}
+            initialCount={reviewMeta.totalCount}
+            initialVisibleCount={reviewMeta.visibleCount}
+            initialAvgRating={reviewMeta.avgRating}
+            initialDistribution={reviewMeta.ratingDistribution}
+          />
+
+          <JournalReviewsSection
+            journalId={j.id}
+            isDeleted={j.isDeleted}
+            initialReviews={initialReviews}
+            initialCount={reviewMeta.totalCount}
+            initialVisibleCount={reviewMeta.visibleCount}
+            initialRatingSum={j.ratingSum}
+            initialDistribution={reviewMeta.ratingDistribution.reduce(
+              (acc, row) => ({ ...acc, [row.stars]: row.count }),
+              {} as Record<number, number>,
+            )}
+            currentUserId={user?.id ?? undefined}
+            hasUserReview={reviewMeta.hasUserReview}
+            userReviewId={reviewMeta.userReviewId ?? undefined}
+          />
+        </>
+      }
       isDeleted={journal.isDeleted}
       deletedByType={journal.deletedByType}
       deletedNoun="journal"
@@ -179,7 +207,6 @@ const JournalDetailPage = async ({
             onDeleteJournal={handleDelete}
             initialHasReview={reviewMeta.hasUserReview}
             initialUserReviewId={reviewMeta.userReviewId}
-            initialUserReviewRating={reviewMeta.userReviewRating}
             isDeleted={j.isDeleted}
           />
         </div>
@@ -305,13 +332,6 @@ const JournalDetailPage = async ({
         </div>
       )}
 
-      <JournalRatingSection
-        journalId={j.id}
-        initialCount={reviewMeta.totalCount}
-        initialAvgRating={reviewMeta.avgRating}
-        initialDistribution={reviewMeta.ratingDistribution}
-      />
-
       <div className="flex gap-3 sm:gap-4 mt-2 sm:mt-2">
         <SafeExternalLink
           url={j.website}
@@ -320,22 +340,6 @@ const JournalDetailPage = async ({
           View Website
         </SafeExternalLink>
       </div>
-
-      <JournalReviewsSection
-        journalId={j.id}
-        isDeleted={j.isDeleted}
-        initialReviews={initialReviews}
-        initialCount={reviewMeta.totalCount}
-        initialRatingSum={j.ratingSum}
-        initialDistribution={reviewMeta.ratingDistribution.reduce(
-          (acc, row) => ({ ...acc, [row.stars]: row.count }),
-          {} as Record<number, number>,
-        )}
-        currentUserId={user?.id ?? undefined}
-        hasUserReview={reviewMeta.hasUserReview}
-        userReviewId={reviewMeta.userReviewId ?? undefined}
-        userReviewRating={reviewMeta.userReviewRating ?? undefined}
-      />
     </DetailPageCardShell>
   );
 };

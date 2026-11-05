@@ -12,7 +12,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { Clock, Building2, BookOpen } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
@@ -26,6 +26,7 @@ export async function generateMetadata({
   const { id } = await params;
   const vacancy = await getVacancyById(id).catch(() => null);
   if (!vacancy) return { title: "Academic Vacancy" };
+  if (vacancy.isDeleted) return buildNoindexMetadata("Deleted content");
   const affiliation = [vacancy.department, vacancy.subject]
     .map((part) => part?.trim())
     .filter((part): part is string => !!part)

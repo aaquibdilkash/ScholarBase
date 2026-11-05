@@ -7,7 +7,7 @@ import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
-import { invalidateProfileTabs } from "@/utils/cacheMutation";
+import { invalidateProfileTabs, tombstoneInList } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteRecommendation as deleteRecommendationAction } from "@/app/actions/recommendations";
 import { decrementRecommendation } from "./recommendationCount";
@@ -120,16 +120,17 @@ export function SupervisorHeaderActions({
             toast(actionErrorMessage(response, "Failed to delete recommendation."), "error");
             return;
           }
-          queryClient.setQueriesData(
-            { queryKey: ["recommendations", supervisorId] },
-            (oldData: RecommendationWithAuthor[] = []) =>
-              oldData.filter((r) => r.id !== response.data.deletedId),
+          const tombstoned = tombstoneInList<RecommendationWithAuthor>(
+            queryClient,
+            ["recommendations", supervisorId],
+            response.data,
           );
-          queryClient.invalidateQueries({ queryKey: ["recommendations", supervisorId] });
-          const cached =
-            queryClient.getQueryData<RecommendationWithAuthor[]>(["recommendations", supervisorId]) ?? [];
-          const deleted = cached.find((r) => (r.id ?? r.author?.id) === response.data.deletedId);
-          decrementRecommendation(queryClient, supervisorId, deleted?.rating ?? 5);
+          decrementRecommendation(
+            queryClient,
+            supervisorId,
+            response.data.rating,
+            tombstoned,
+          );
           queryClient.setQueryData(["user_rec_status", supervisorId], null);
           invalidateProfileTabs(queryClient, "content", "activity");
           toast("Recommendation deleted successfully", "success");

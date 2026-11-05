@@ -10,7 +10,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -33,6 +33,7 @@ export async function generateMetadata({
       section: SEO_PAGES.help.section,
     });
   }
+  if (post.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: post.title,
     description: `Help request: ${post.subject || post.category || ""}. ${(post.message || "").replace(/<[^>]*>/g, " ")}`,

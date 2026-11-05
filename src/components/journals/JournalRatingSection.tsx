@@ -19,11 +19,14 @@ import {
 export function JournalRatingSection({
   journalId,
   initialCount,
+  initialVisibleCount,
   initialAvgRating,
   initialDistribution,
 }: {
   journalId: string;
   initialCount: number;
+  /** Live + engaged tombstones — seeded so the carousel keeps its slides. */
+  initialVisibleCount: number;
   initialAvgRating: number;
   initialDistribution: JournalReviewRatingDistributionRow[];
 }) {
@@ -42,6 +45,7 @@ export function JournalRatingSection({
     initialCount,
     initialRatingSum,
     initialDist,
+    initialVisibleCount,
   );
 
   const { data: agg } = useQuery<JournalReviewAggregates>({
@@ -51,12 +55,14 @@ export function JournalRatingSection({
         count: initialCount,
         ratingSum: initialRatingSum,
         dist: initialDist,
+        slides: initialVisibleCount,
       }),
     enabled: false,
     initialData: {
       count: initialCount,
       ratingSum: initialRatingSum,
       dist: initialDist,
+      slides: initialVisibleCount,
     },
   });
 

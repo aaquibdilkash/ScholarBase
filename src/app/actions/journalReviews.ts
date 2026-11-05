@@ -179,17 +179,18 @@ export async function getJournalReviewMeta(journalId: string) {
   // so filtering here would show "No reviews yet" while create reports
   // "You already have a review".
   const reviews = await prisma.journalReview.findMany({
-    where: { journalId, isDeleted: false },
-    select: { id: true, rating: true, authorId: true },
+    // Live rows plus engaged tombstones. The tombstone is reachable in the
+    // carousel, but it must not count toward the rating or the heading.
+    where: { journalId, ...engagedContentWhere("totalComments") },
+    select: { id: true, rating: true, authorId: true, isDeleted: true },
   });
 
-  const total = reviews.length;
+  const live = reviews.filter((r) => !r.isDeleted);
+  const total = live.length;
   const avgRating =
-    total > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / total
-      : 0;
+    total > 0 ? live.reduce((sum, r) => sum + r.rating, 0) / total : 0;
   const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => {
-    const count = reviews.filter((r) => r.rating === stars).length;
+    const count = live.filter((r) => r.rating === stars).length;
     return {
       stars,
       count,
@@ -198,19 +199,17 @@ export async function getJournalReviewMeta(journalId: string) {
   });
 
   const ownReview = userId
-    ? reviews.find((r) => r.authorId === userId)
+    ? live.find((r) => r.authorId === userId)
     : undefined;
 
   return {
     totalCount: total,
+    /** Live + engaged tombstones — what the carousel can page through. */
+    visibleCount: reviews.length,
     avgRating,
     ratingDistribution,
     hasUserReview: !!ownReview,
     userReviewId: ownReview?.id ?? null,
-    // The reviews rail is a carousel seeded with a single (newest) review, so
-    // the caller's own review is usually not in the first slide. The delete
-    // path needs the rating to decrement the right star bucket.
-    userReviewRating: ownReview?.rating ?? null,
   };
 }
 // __END_PART_1__
@@ -576,6 +575,8 @@ export async function deleteJournalReview(reviewId: string) {
       isDeleted: true as const,
       deletedByType,
       totalComments: review.totalComments,
+      // Used by both delete UIs to decrement the right star bucket.
+      rating: review.rating,
     },
   };
 }

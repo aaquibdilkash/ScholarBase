@@ -52,14 +52,20 @@ export function JournalReviewCard({
       // reviews rail is a carousel, so refetching it would collapse the reader
       // back to a single slide, and the cache is already correct — the next
       // page request offsets by the new length and lands on the right row.
-      tombstoneInList<JournalReviewWithAuthor>(
+      const tombstoned = tombstoneInList<JournalReviewWithAuthor>(
         queryClient,
         ["journalReviews", review.journalId],
         response.data,
       );
 
-      // 2. Keep the reactive count / rating / star distribution in sync.
-      decrementJournalReview(queryClient, review.journalId, review.rating);
+      // 2. Keep the reactive count / rating / star distribution in sync. An
+      // engaged tombstone keeps its slide.
+      decrementJournalReview(
+        queryClient,
+        review.journalId,
+        response.data.rating,
+        tombstoned,
+      );
 
       // 3. Flip the header CTA back to "+ Review" if this was the viewer's own.
       queryClient.setQueryData(["user_review_status", review.journalId], null);

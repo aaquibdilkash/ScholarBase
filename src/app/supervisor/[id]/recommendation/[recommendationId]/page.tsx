@@ -15,7 +15,7 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
@@ -29,16 +29,7 @@ export async function generateMetadata({
   const { id, recommendationId } = await params;
   const rec = await getRecommendation(recommendationId).catch(() => null);
   if (!rec || rec.supervisor.id !== id) return { title: "Recommendation" };
-  if (rec.isDeleted) {
-    return buildMetadata({
-      title: "Deleted Recommendation",
-      description: "This recommendation was deleted, but its community discussion remains available.",
-      path: `/supervisor/${rec.supervisor.id}/recommendation/${rec.id}`,
-      type: "article",
-      publishedTime: rec.createdAt,
-      section: "Supervisor Recommendations",
-    });
-  }
+  if (rec.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: `Recommendation for ${rec.supervisor.name || "Supervisor"}`,
     description: `A ${rec.rating ? `${rec.rating}/5 ` : ""}mentorship recommendation. ${(rec.feedback || "").replace(/<[^>]*>/g, " ")}`,

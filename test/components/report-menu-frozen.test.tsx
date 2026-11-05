@@ -126,4 +126,15 @@ describe("ReportMenu on frozen/deleted content", () => {
     expect(container.textContent).toContain("Appeal Removal");
     expect(container.textContent).not.toContain("Report Content");
   });
+
+  it("hides the report flag for the owner of anonymous content", async () => {
+    // The author link is hidden for anonymous content, but ownership still
+    // exists: the owner must not see "Report Content" on their own row.
+    await draw({
+      currentUserId: "u-owner",
+      ownerId: "u-owner",
+    });
+
+    expect(flag()).toBeNull();
+  });
 });

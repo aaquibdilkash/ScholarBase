@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getCourseById, deleteCourse } from "@/app/actions/courses";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -25,6 +25,7 @@ export async function generateMetadata({
   try {
     const course = await getCourseById(id);
     if (!course) throw new Error("not found");
+    if (course.isDeleted) return buildNoindexMetadata("Deleted content");
     const bits = [course.provider, course.instructor]
       .filter(Boolean)
       .join(" by ");

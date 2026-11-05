@@ -9,7 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { deleteArticle, getArticle } from "@/app/actions/blog";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
@@ -31,6 +31,7 @@ export async function generateMetadata({
       section: SEO_PAGES.blog.section,
     });
   }
+  if (article.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: article.title,
     description: article.excerpt || article.title,

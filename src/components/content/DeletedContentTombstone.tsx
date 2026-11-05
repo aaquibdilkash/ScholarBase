@@ -1,46 +1,73 @@
 import { Archive } from "lucide-react";
 
-export type DeletedContentReason = "AUTHOR" | "ADMIN" | "POST_AUTHOR" | "PARENT_COMMENT_AUTHOR" | null | undefined;
+export type DeletedContentReason =
+  | "AUTHOR"
+  | "ADMIN"
+  | "POST_AUTHOR"
+  | "PARENT_COMMENT_AUTHOR"
+  | null
+  | undefined;
 
-export function deletedContentMessage(reason: DeletedContentReason, noun = "post") {
+const clsx = (...inputs: Array<string | false | null | undefined>) =>
+  inputs.filter(Boolean).join(" ");
+
+export function deletedContentMessage(
+  reason: DeletedContentReason,
+  noun = "post",
+) {
   if (reason === "ADMIN") return `This ${noun} was removed by a moderator.`;
   return `This ${noun} has been deleted by its author.`;
 }
 
 /**
- * The single notice shown for author-deleted content. The deleted item's
- * preserved body remains visible, while its author identity and interactions
- * are hidden/disabled by the shared card shells.
+ * The tombstone shown for deleted top-level content.
+ *
+ * The author's body is never rendered — the card/detail shells hide it — while
+ * community-generated content (comments, and on parent pages ratings or
+ * reviews) stays available. Copy, sizing and the dashed treatment mirror the
+ * comment/reply tombstone so the two surfaces read the same.
  */
-export function deletedContentNotice(reason: DeletedContentReason, noun = "post") {
-  return `${deletedContentMessage(reason, noun)} The discussion and preserved content remain available; interactions are disabled.`;
-}
-
-export function deletedByLabel(reason: DeletedContentReason) {
-  return reason === "ADMIN" ? "moderator" : "author";
-}
-
 export function DeletedContentTombstone({
   reason,
   noun = "post",
+  compact = false,
+  className,
 }: {
   reason: DeletedContentReason;
   noun?: string;
+  compact?: boolean;
+  className?: string;
 }) {
   return (
     <div
       role="status"
-      className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center dark:border-slate-700 dark:bg-slate-900/70"
+      className={clsx(
+        "flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center dark:border-slate-700 dark:bg-slate-900/70",
+        compact ? "px-4 py-3" : "min-h-28 px-5 py-8",
+        className,
+      )}
     >
-      <div className="flex max-w-md flex-col items-center gap-2">
-        <Archive className="h-6 w-6 text-slate-400" aria-hidden="true" />
-        <p className="text-sm font-semibold italic text-slate-500 dark:text-slate-400">
-          {deletedContentMessage(reason, noun)}
-        </p>
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          The discussion remains available because this {noun} has community activity.
-        </p>
-      </div>
+      <Archive
+        className={clsx("text-slate-400", compact ? "h-4 w-4" : "h-6 w-6")}
+        aria-hidden="true"
+      />
+      <p
+        className={clsx(
+          "font-semibold italic text-slate-500 dark:text-slate-400",
+          compact ? "text-xs" : "text-sm",
+        )}
+      >
+        {deletedContentMessage(reason, noun)}
+      </p>
+      <p
+        className={clsx(
+          "text-slate-400 dark:text-slate-500",
+          compact ? "text-[11px]" : "text-xs",
+        )}
+      >
+        The {noun}&apos;s content is no longer available. Community activity
+        remains.
+      </p>
     </div>
   );
 }

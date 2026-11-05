@@ -126,7 +126,7 @@ describe("PagedCarousel", () => {
       <PagedCarousel<Item>
         queryKey={["journalReviews", "j1"]}
         initialItems={[all[0]]}
-        totalCount={all.length}
+        visibleCount={all.length}
         fetchPage={fetchPage}
         renderItem={(item) => (
           <div key={item.id} data-testid="slide">
@@ -172,7 +172,7 @@ describe("PagedCarousel", () => {
       <PagedCarousel<Item>
         queryKey={["recommendations", "s1"]}
         initialItems={[{ id: "r1" }]}
-        totalCount={remaining.length}
+        visibleCount={remaining.length}
         fetchPage={async (skip, take) => remaining.slice(skip, skip + take)}
         renderItem={(item) => (
           <div key={item.id} data-testid="slide">
@@ -210,7 +210,7 @@ describe("PagedCarousel", () => {
       <PagedCarousel<Item>
         queryKey={["journalReviews", "j2"]}
         initialItems={[{ id: "only" }]}
-        totalCount={1}
+        visibleCount={1}
         fetchPage={fetchPage}
         renderItem={(item) => (
           <div key={item.id} data-testid="slide">

@@ -6,25 +6,30 @@ import { recommendationCountKey, RecommendationAggregates } from "./recommendati
 import type { RecommendationWithAuthor } from "@/types/cards";
 
 /**
- * Server value for the initial paint, then the count re-derives from the
+ * Server value for the initial paint, then the counts re-derive from the
  * shared ["recommendationCount", id] cache that every mutation keeps in sync.
- * Deletes decrement it, create resets it so the next server render reseeds.
+ * Deletes decrement the live count; `slides` only drops when the row is
+ * removed outright, so an engaged tombstone stays reachable.
  */
 export function RecommendationsSection({
   supervisorId,
   supervisorName,
   initialRecommendations,
   initialCount,
+  initialVisibleCount,
   currentUserId,
 }: {
   supervisorId: string;
   supervisorName: string | null;
   initialRecommendations: RecommendationWithAuthor[];
+  /** Live recommendations only: heading, average and star distribution. */
   initialCount: number;
+  /** Live + engaged tombstones: what the carousel can page through. */
+  initialVisibleCount: number;
   currentUserId?: string;
 }) {
-  // Subscribes to the shared aggregates store (``{ count, ratingSum, dist }``).
-  // Falls back to the server-provided initialCount when the cache is empty.
+  // Subscribes to the shared aggregates store
+  // (``{ count, ratingSum, dist, slides }``).
   const { data: aggregate } = useQuery<RecommendationAggregates>({
     queryKey: recommendationCountKey(supervisorId),
     queryFn: () =>
@@ -32,15 +37,18 @@ export function RecommendationsSection({
         count: initialCount,
         ratingSum: 0,
         dist: {},
+        slides: initialVisibleCount,
       }),
     enabled: false,
     initialData: {
       count: initialCount,
       ratingSum: 0,
       dist: {},
+      slides: initialVisibleCount,
     },
   });
   const total = aggregate?.count ?? initialCount;
+  const slides = aggregate?.slides ?? initialVisibleCount;
 
   return (
     <div className="space-y-4 sm:space-y-6 mb-4 sm:mb-6">
@@ -50,14 +58,14 @@ export function RecommendationsSection({
       >
         Recommendations ({total})
       </h3>
-      {total === 0 ? (
+      {slides === 0 ? (
         <p className="text-slate-500 bg-white p-8 rounded-2xl border border-slate-200/60 text-center">
           No recommendations yet. Be the first to share your experience!
         </p>
       ) : (
         <SupervisorRecommendations
           initialRecommendations={initialRecommendations}
-          totalCount={total}
+          initialVisibleCount={slides}
           supervisor={{ id: supervisorId, name: supervisorName }}
           currentUserId={currentUserId}
         />

@@ -16,7 +16,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
@@ -37,16 +37,7 @@ export async function generateMetadata({
   const { id, reviewId } = await params;
   const review = await getJournalReview(reviewId).catch(() => null);
   if (!review || review.journal.id !== id) return { title: "Journal Review" };
-  if (review.isDeleted) {
-    return buildMetadata({
-      title: "Deleted Journal Review",
-      description: "This journal review was deleted, but its community discussion remains available.",
-      path: `/journals/${review.journalId}/review/${review.id}`,
-      type: "article",
-      publishedTime: review.createdAt,
-      section: "Journal Reviews",
-    });
-  }
+  if (review.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: `Review of ${review.journal.title}`,
     description: `A ${Number(review.rating).toFixed(1)}/5 peer review of ${review.journal.title}. ${(review.feedback || "").replace(/<[^>]*>/g, " ")}`,

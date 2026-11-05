@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 import { moderateContent } from "@/app/actions/reports";
+import { revalidateContent } from "@/lib/tri-split/modules/registry";
 import {
   MODEL_MAP,
   AUTHOR_COUNT_FIELD,
   ANONYMOUS_CONTENT_TYPES,
+  MODERATION_LIST_KEY,
 } from "@/lib/moderation-config";
 
 /**
@@ -96,6 +98,7 @@ const CONTENT_TYPES = Object.keys(MODEL_MAP).filter(
 
 beforeEach(() => {
   resetFakeDb();
+  vi.mocked(revalidateContent).mockClear();
 });
 
 
@@ -255,6 +258,121 @@ describe("SCHOLAR_PROFILE moderation has no counters to move", () => {
     expect(author().reputation).toBe(INITIAL_REP);
     expect(author().courseCount).toBe(1);
     expect(author().isDeleted).toBe(true);
+  });
+});
+
+describe("admin DELETE/RECOVER moves the parent aggregate exactly once", () => {
+  it("supervisor recommendations move recommendationCount and ratingSum", async () => {
+    seedAuthor();
+    fakeDb.seed("supervisor", {
+      id: "s-1",
+      recommendationCount: 5,
+      ratingSum: 20,
+      isDeleted: false,
+    });
+    seedContent("recommendation", { supervisorId: "s-1", rating: 4 });
+
+    await moderateContent("DELETE", "recommendation", CONTENT_ID);
+    expect(fakeDb.rows("supervisor")[0]).toMatchObject({
+      recommendationCount: 4,
+      ratingSum: 16,
+    });
+
+    // A repeated DELETE must not move the aggregate again.
+    await moderateContent("DELETE", "recommendation", CONTENT_ID);
+    expect(fakeDb.rows("supervisor")[0]).toMatchObject({
+      recommendationCount: 4,
+      ratingSum: 16,
+    });
+
+    await moderateContent("RECOVER", "recommendation", CONTENT_ID);
+    expect(fakeDb.rows("supervisor")[0]).toMatchObject({
+      recommendationCount: 5,
+      ratingSum: 20,
+    });
+
+    // A repeated RECOVER must not restore it twice.
+    await moderateContent("RECOVER", "recommendation", CONTENT_ID);
+    expect(fakeDb.rows("supervisor")[0]).toMatchObject({
+      recommendationCount: 5,
+      ratingSum: 20,
+    });
+  });
+
+  it("journal reviews move reviewCount and ratingSum", async () => {
+    seedAuthor();
+    fakeDb.seed("journal", {
+      id: "j-1",
+      reviewCount: 2,
+      ratingSum: 9,
+      isDeleted: false,
+    });
+    seedContent("journalReview", { journalId: "j-1", rating: 4 });
+
+    await moderateContent("DELETE", "journalReview", CONTENT_ID);
+    expect(fakeDb.rows("journal")[0]).toMatchObject({
+      reviewCount: 1,
+      ratingSum: 5,
+    });
+
+    await moderateContent("DELETE", "journalReview", CONTENT_ID);
+    expect(fakeDb.rows("journal")[0]).toMatchObject({
+      reviewCount: 1,
+      ratingSum: 5,
+    });
+
+    await moderateContent("RECOVER", "journalReview", CONTENT_ID);
+    expect(fakeDb.rows("journal")[0]).toMatchObject({
+      reviewCount: 2,
+      ratingSum: 9,
+    });
+  });
+
+  it("an anonymous recommendation still moves the parent aggregate", async () => {
+    seedAuthor();
+    fakeDb.seed("supervisor", {
+      id: "s-1",
+      recommendationCount: 1,
+      ratingSum: 5,
+      isDeleted: false,
+    });
+    seedContent("recommendation", {
+      supervisorId: "s-1",
+      rating: 5,
+      isAnonymous: true,
+    });
+
+    await moderateContent("DELETE", "recommendation", CONTENT_ID);
+
+    expect(fakeDb.rows("supervisor")[0]).toMatchObject({
+      recommendationCount: 0,
+      ratingSum: 0,
+    });
+  });
+});
+
+describe("admin moderation purges the module's cached list", () => {
+  it.each(CONTENT_TYPES)(
+    "deleting %s revalidates its mapped list tag for the author",
+    async (type) => {
+      seedAuthor();
+      seedContent(MODEL_MAP[type].model);
+
+      await moderateContent("DELETE", type, CONTENT_ID);
+
+      expect(
+        revalidateContent,
+        `${type} has no MODERATION_LIST_KEY entry`,
+      ).toHaveBeenCalledWith(MODERATION_LIST_KEY[type], AUTHOR);
+    },
+  );
+
+  it("profile moderation revalidates the scholar directory for that profile", async () => {
+    seedAuthor();
+
+    await moderateContent("DELETE", "SCHOLAR_PROFILE", AUTHOR);
+
+    expect(revalidateContent).toHaveBeenCalledWith("SCHOLAR_DIRECTORY", AUTHOR);
   });
 });
 

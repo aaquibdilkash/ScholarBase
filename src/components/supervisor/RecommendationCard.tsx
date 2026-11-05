@@ -55,17 +55,19 @@ export function RecommendationCard({
       // recommendations rail is a carousel, so refetching it would collapse the
       // reader back to a single slide, and the cache is already correct — the
       // next page request offsets by the new length and lands on the right row.
-      tombstoneInList<RecommendationWithAuthor>(
+      const tombstoned = tombstoneInList<RecommendationWithAuthor>(
         queryClient,
         ["recommendations", supervisor.id],
         response.data,
       );
 
-      // 2. Keep the reactive count in sync
+      // 2. Keep the reactive count in sync. An engaged tombstone keeps its
+      // slide; the live count and rating always drop.
       decrementRecommendation(
         queryClient,
         supervisor.id,
-        recommendation.rating,
+        response.data.rating,
+        tombstoned,
       );
 
       // 🟢 3. CRITICAL: Tell the RecommendButton in the header to change its state!
@@ -164,13 +166,10 @@ export function RecommendationCard({
           entityId={recommendation.id}
           entityType="POST"
           module="RECOMMENDATION"
-          ownerId={
-            recommendation.isAnonymous
-              ? null
-              : recommendation.author?.id ??
-                recommendation.authorId ??
-                null
-          }
+          // Always pass the real ownerId so ReportMenu can block the owner from
+          // reporting their own content — including anonymous recommendations,
+          // where the author link is hidden but the ownership still exists.
+          ownerId={ownerId ?? null}
           currentUserId={currentUserId ?? null}
           isFrozen={recommendation.isFrozen ?? false}
           hasActiveAppeal={recommendation.hasActiveAppeal ?? false}

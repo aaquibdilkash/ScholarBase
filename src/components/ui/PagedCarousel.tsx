@@ -14,10 +14,13 @@ export interface PagedCarouselProps<T> {
   /** Server-rendered first page, painted before any client fetch. */
   initialItems: T[];
   /**
-   * Materialized total for the entity (RULE 2). Drives `hasMore`, so pass the
-   * *reactive* count when a sibling component keeps a live copy in the cache.
+   * Number of rows this rail can actually page through: live rows **plus**
+   * engaged tombstones. Drives `hasMore`, so pass the *reactive* value when a
+   * sibling component keeps a live copy in the cache. This is deliberately not
+   * the materialized live count — using that hides an older tombstone behind a
+   * missing right arrow.
    */
-  totalCount: number;
+  visibleCount: number;
   /** Offset pager: receives the number of items already loaded. */
   fetchPage: (skip: number, take: number) => Promise<T[]>;
   /** Items fetched per right-arrow click. One full-width slide per fetch. */
@@ -49,7 +52,7 @@ export interface PagedCarouselProps<T> {
 export function PagedCarousel<T extends { id: string }>({
   queryKey,
   initialItems,
-  totalCount,
+  visibleCount,
   fetchPage,
   pageSize = 1,
   errorLabel = "items",
@@ -62,12 +65,12 @@ export function PagedCarousel<T extends { id: string }>({
   // cache-length offset would re-request a row already on screen and the dedup
   // below would drop it, stalling paging. See the note on the component.
   const fetchedCount = useRef(initialItems.length);
-  // Latched once a page comes back empty. `totalCount` is a materialized
+  // Latched once a page comes back empty. `visibleCount` is a materialized
   // counter that can run ahead of what this query can actually return (a
-  // filtered or soft-deleted row still counts), and comparing `items.length`
-  // against it alone would leave `hasMore` true forever — the arrow would stay on
-  // screen with no card behind it, and every click would refetch the same empty
-  // page. Latching is what lets the arrow disappear.
+  // filtered row still counts), and comparing `items.length` against it alone
+  // would leave `hasMore` true forever — the arrow would stay on screen with no
+  // card behind it, and every click would refetch the same empty page. Latching
+  // is what lets the arrow disappear.
   const [exhausted, setExhausted] = useState(false);
 
   const { data: items = [] } = useQuery<T[]>({
@@ -106,7 +109,7 @@ export function PagedCarousel<T extends { id: string }>({
     }
   };
 
-  const hasMore = !exhausted && items.length < totalCount;
+  const hasMore = !exhausted && items.length < visibleCount;
 
   return (
     <div className="relative">

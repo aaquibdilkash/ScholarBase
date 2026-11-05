@@ -10,7 +10,8 @@ import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner
 import { formatTimeAgo } from "../../utils/time-ago";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
 import {
-  deletedContentNotice,
+  DeletedContentTombstone,
+  deletedContentMessage,
   type DeletedContentReason,
 } from "@/components/content/DeletedContentTombstone";
 
@@ -80,6 +81,13 @@ export type DetailPageCardShellProps = {
   bodyClassName?: string;
   bodyBottomContent?: ReactNode;
 
+  /**
+   * Community-generated content (ratings, recommendations, reviews, survey
+   * results) that must survive the author-body tombstone. Author-generated
+   * content lives in `children` / `bodyBottomContent`, hidden on delete.
+   */
+  preservedContent?: ReactNode;
+
   editedDate?: Date | string;
   createdDate: Date | string;
   createdLabel?: string;
@@ -127,6 +135,7 @@ export default function DetailPageCardShell({
   className,
   bodyClassName,
   bodyBottomContent,
+  preservedContent,
   editedDate,
   createdDate,
   shareTitle,
@@ -258,14 +267,18 @@ export default function DetailPageCardShell({
                 uses its own overflow-x-hidden) so positioned overlays like
                 carousel arrows are never cut off. */}
             <div className="min-w-0 max-w-full">
-              {isDeleted && (
-                <div className="mb-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-sm font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-                  {deletedContentNotice(deletedByType, deletedNoun)}
-                </div>
+              {isDeleted ? (
+                <DeletedContentTombstone
+                  reason={deletedByType}
+                  noun={deletedNoun}
+                />
+              ) : (
+                <>
+                  {children}
+                  {bodyBottomContent}
+                </>
               )}
-              {children}
-
-              {bodyBottomContent}
+              {preservedContent}
             </div>
 
             <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
@@ -289,13 +302,15 @@ export default function DetailPageCardShell({
             <div className="mt-2 flex items-center justify-between gap-4 border-t border-slate-200 pt-2 dark:border-slate-800 sm:gap-6">
               <div className="flex items-center gap-4 sm:gap-6">
                 {/* Frozen: keep the vote button visible but disabled (VoteButton
-                    supports the `frozen` prop, injected here for detail pages). */}
-                {(isFrozen || isDeleted) && footerVoteButton && isValidElement(footerVoteButton)
-                  ? cloneElement(
-                      footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
-                      { frozen: true },
-                    )
-                  : footerVoteButton}
+                    supports the `frozen` prop, injected here for detail pages).
+                    Deleted content has no body left to vote on, so drop it. */}
+                {!isDeleted &&
+                  (isFrozen && footerVoteButton && isValidElement(footerVoteButton)
+                    ? cloneElement(
+                        footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
+                        { frozen: true },
+                      )
+                    : footerVoteButton)}
 
                 <CommentCountDisplay
                   href={footerCommentsHref}
@@ -304,34 +319,44 @@ export default function DetailPageCardShell({
               </div>
 
               <div className="flex items-center gap-2 pr-1 sm:pr-0">
-                {(isFrozen || isDeleted) &&
-                footerBookmarkButton &&
-                isValidElement(footerBookmarkButton)
-                  ? cloneElement(
-                      footerBookmarkButton as React.ReactElement<{
-                        frozen?: boolean;
-                      }>,
-                      { frozen: true },
-                    )
-                  : footerBookmarkButton}
-                <ShareButton label="Share" title={shareTitle} text={shareText} />
-                {/* Report menu is always visible — on frozen posts it also hosts
-                    the owner's "Appeal Removal" option. */}
-                {footerReportMenu && isValidElement(footerReportMenu)
-                  ? cloneElement(
-                      footerReportMenu as React.ReactElement<{
-                        isDeleted?: boolean;
-                        deletedByType?: DeletedContentReason;
-                      }>,
-                      { isDeleted, deletedByType },
-                    )
-                  : footerReportMenu}
+                {!isDeleted &&
+                  (isFrozen &&
+                  footerBookmarkButton &&
+                  isValidElement(footerBookmarkButton)
+                    ? cloneElement(
+                        footerBookmarkButton as React.ReactElement<{
+                          frozen?: boolean;
+                        }>,
+                        { frozen: true },
+                      )
+                    : footerBookmarkButton)}
+                <ShareButton
+                  label="Share"
+                  title={isDeleted ? "Deleted content" : shareTitle}
+                  text={
+                    isDeleted
+                      ? deletedContentMessage(deletedByType, deletedNoun)
+                      : shareText
+                  }
+                />
+                {/* Report menu is always visible on live/frozen posts — on
+                    frozen posts it also hosts the owner's "Appeal Removal". */}
+                {!isDeleted &&
+                  (footerReportMenu && isValidElement(footerReportMenu)
+                    ? cloneElement(
+                        footerReportMenu as React.ReactElement<{
+                          isDeleted?: boolean;
+                          deletedByType?: DeletedContentReason;
+                        }>,
+                        { isDeleted, deletedByType },
+                      )
+                    : footerReportMenu)}
               </div>
             </div>
           </div>
 
           {/* Mobile/tablet: related content below the card, above the discussion */}
-          {relatedContent && (
+          {!isDeleted && relatedContent && (
             <div className="mt-6 xl:hidden">{relatedContent}</div>
           )}
 
@@ -340,7 +365,7 @@ export default function DetailPageCardShell({
 
         {/* Desktop: related content fills the leftover space to the right */}
         <aside className="hidden xl:block xl:sticky xl:top-6">
-          {relatedContent}
+          {!isDeleted && relatedContent}
         </aside>
       </div>
     </main>

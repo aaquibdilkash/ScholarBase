@@ -422,6 +422,8 @@ export async function deleteRecommendation(recommendationId: string) {
       isDeleted: true as const,
       deletedByType,
       totalComments: recommendation.totalComments,
+      // Used by both delete UIs to decrement the right star bucket.
+      rating: recommendation.rating,
     },
   };
 }

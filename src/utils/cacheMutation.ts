@@ -32,7 +32,9 @@ export function removeFromList<T extends { id: string }>(
   );
 }
 
-/** Replace an engaged soft-deleted item with its read-only tombstone. */
+/** Replace an engaged soft-deleted item with its read-only tombstone.
+ *  Returns whether the row was kept as a tombstone (so callers can keep the
+ *  carousel slide count in sync). */
 export function tombstoneInList<T extends { id: string }>(
   queryClient: QueryClient,
   key: readonly unknown[],
@@ -44,7 +46,7 @@ export function tombstoneInList<T extends { id: string }>(
     reviewCount?: number;
     totalResponses?: number;
   },
-): void {
+): boolean {
   const engaged = [
     deleted.totalComments,
     deleted.recommendationCount,
@@ -61,6 +63,8 @@ export function tombstoneInList<T extends { id: string }>(
         )
       : oldData.filter((item) => item.id !== deleted.deletedId),
   );
+
+  return engaged;
 }
 
 /** The three data tabs on a scholar profile, keyed by tab. */

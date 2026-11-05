@@ -12,7 +12,7 @@ import { RichContent } from "@/components/content/RichContent";
 import { Calendar, Clock, MapPin } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { deletedDetailNavigation } from "@/lib/content-tombstone";
@@ -35,6 +35,7 @@ export async function generateMetadata({
       section: SEO_PAGES.events.section,
     });
   }
+  if (event.isDeleted) return buildNoindexMetadata("Deleted content");
   const location = event.location ? ` at ${event.location}` : "";
   return buildMetadata({
     title: event.title,

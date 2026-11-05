@@ -11,6 +11,12 @@ export interface RecommendationAggregates {
   ratingSum: number;
   // Per-star distribution, 1..5
   dist: Record<number, number>;
+  /**
+   * Rows the carousel can reach: live recommendations + engaged tombstones.
+   * `count` stays live-only (it feeds the average and the heading), while a
+   * delete that leaves a tombstone must not remove a slide.
+   */
+  slides: number;
 }
 
 // Reactive materialized recommendation aggregates, keyed per supervisor.
@@ -26,6 +32,7 @@ const EMPTY: RecommendationAggregates = {
   count: 0,
   ratingSum: 0,
   dist: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  slides: 0,
 };
 
 export function getRecommendationAggregates(
@@ -49,6 +56,7 @@ export function setRecommendationAggregates(
     ...current,
     ...next,
     count: Math.max(0, next.count ?? current.count),
+    slides: Math.max(0, next.slides ?? current.slides),
   });
 }
 
@@ -67,11 +75,13 @@ export function getRecommendationRatingSum(
 }
 
 // Delegated: decrement count + ratingSum + one star bucket when a single
-// recommendation (with the given rating) is removed.
+// recommendation (with the given rating) is removed. An engaged row becomes a
+// tombstone instead of leaving the list, so `keepSlide` keeps it reachable.
 export function decrementRecommendation(
   queryClient: QueryClient,
   supervisorId: string,
   rating: number,
+  keepSlide = false,
 ) {
   const current = getRecommendationAggregates(queryClient, supervisorId);
   const star = Math.round(rating) as 1 | 2 | 3 | 4 | 5;
@@ -82,6 +92,7 @@ export function decrementRecommendation(
       ...current.dist,
       [star]: Math.max(0, (current.dist[star] ?? 0) - 1),
     },
+    slides: keepSlide ? current.slides : current.slides - 1,
   });
 }
 
@@ -93,6 +104,7 @@ export function seedRecommendationAggregates(
   initialCount: number,
   initialRatingSum: number,
   initialDistribution: RecommendationAggregates["dist"],
+  initialSlides: number = initialCount,
 ) {
   const existing = queryClient.getQueryData<RecommendationAggregates>(
     recommendationCountKey(supervisorId),
@@ -105,6 +117,7 @@ export function seedRecommendationAggregates(
       ...EMPTY.dist,
       ...(initialDistribution ?? {}),
     },
+    slides: initialSlides,
   };
   queryClient.setQueryData(recommendationCountKey(supervisorId), fresh);
   return fresh;

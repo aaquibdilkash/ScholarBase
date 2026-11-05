@@ -10,7 +10,8 @@ import { formatTimeAgo } from "../../utils/time-ago";
 import { TruncatedCardBody } from "./TruncatedCardBody";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
 import {
-  deletedContentNotice,
+  DeletedContentTombstone,
+  deletedContentMessage,
   type DeletedContentReason,
 } from "@/components/content/DeletedContentTombstone";
 
@@ -69,6 +70,13 @@ export type ListPageCardShellProps = {
   detailPageHref: string;
   bodyBottomContent?: ReactNode;
 
+  /**
+   * Community-generated content (e.g. a supervisor's aggregate rating) that
+   * must survive the author-body tombstone. Author-generated content belongs
+   * in `children` / `bodyBottomContent`, both of which are hidden on delete.
+   */
+  preservedContent?: ReactNode;
+
   // Share payload for the footer share button. The card lives on a LIST page,
   // so falling back to the page's og:tags would share the directory's
   // title/description instead of this item's. Callers that pass these mirror
@@ -123,6 +131,7 @@ export default function ListPageCardShell({
   bodyClassName,
   detailPageHref,
   bodyBottomContent,
+  preservedContent,
   shareTitle,
   shareText,
   editedDate,
@@ -220,25 +229,36 @@ export default function ListPageCardShell({
         </div>
       </div>
 
-      {/* Clickable middle body */}
-      <TruncatedCardBody
+      {isDeleted ? (
+        <TruncatedCardBody
           detailPageHref={detailPageHref}
           className={clsx("block min-w-0 group", bodyClassName)}
-          noBodyLink={noBodyLink}
-          constrainBody={constrainBody}
+          noBodyLink={false}
+          constrainBody={false}
         >
-        {isDeleted && (
-          <div className="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center text-xs font-semibold italic text-slate-500 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-            {deletedContentNotice(deletedByType, deletedNoun)}
-          </div>
-        )}
-          {children}
-      </TruncatedCardBody>
+          <DeletedContentTombstone
+            reason={deletedByType}
+            noun={deletedNoun}
+            compact
+          />
+        </TruncatedCardBody>
+      ) : (
+        <>
+          {/* Clickable middle body */}
+          <TruncatedCardBody
+            detailPageHref={detailPageHref}
+            className={clsx("block min-w-0 group", bodyClassName)}
+            noBodyLink={noBodyLink}
+            constrainBody={constrainBody}
+          >
+            {children}
+          </TruncatedCardBody>
 
-      {/* Kept on deleted cards: these are outbound/detail links, not
-          interactions. DetailPageCardShell already renders them unconditionally,
-          so hiding them here made the list and detail pages disagree. */}
-      {bodyBottomContent}
+          {bodyBottomContent}
+        </>
+      )}
+
+      {preservedContent}
 
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
         <span suppressHydrationWarning className="font-semibold text-slate-400 dark:text-slate-500">
@@ -259,14 +279,15 @@ export default function ListPageCardShell({
         ) : (
           <>
             <div className="flex items-center gap-4 sm:gap-6">
-              {isFrozen || isDeleted
-                ? footerVoteButton && isValidElement(footerVoteButton)
-                  ? cloneElement(
-                      footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
-                      { frozen: true },
-                    )
-                  : footerVoteButton
-                : footerVoteButton}
+              {!isDeleted &&
+                (isFrozen
+                  ? footerVoteButton && isValidElement(footerVoteButton)
+                    ? cloneElement(
+                        footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
+                        { frozen: true },
+                      )
+                    : footerVoteButton
+                  : footerVoteButton)}
 
               {footerCommentsHref && (
                 <Link
@@ -284,29 +305,35 @@ export default function ListPageCardShell({
             </div>
 
             <div className="flex items-center gap-2">
-              {isFrozen || isDeleted
-                ? footerBookmarkButton && isValidElement(footerBookmarkButton)
-                  ? cloneElement(
-                      footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
-                      { frozen: true },
-                    )
-                  : footerBookmarkButton
-                : footerBookmarkButton}
+              {!isDeleted &&
+                (isFrozen
+                  ? footerBookmarkButton && isValidElement(footerBookmarkButton)
+                    ? cloneElement(
+                        footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
+                        { frozen: true },
+                      )
+                    : footerBookmarkButton
+                  : footerBookmarkButton)}
               <ShareButton
                 href={detailPageHref}
                 label="Share"
-                title={shareTitle}
-                text={shareText}
+                title={isDeleted ? "Deleted content" : shareTitle}
+                text={
+                  isDeleted
+                    ? deletedContentMessage(deletedByType, deletedNoun)
+                    : shareText
+                }
               />
-            {footerReportMenu && isValidElement(footerReportMenu)
-              ? cloneElement(
-                  footerReportMenu as React.ReactElement<{
-                    isDeleted?: boolean;
-                    deletedByType?: DeletedContentReason;
-                  }>,
-                  { isDeleted, deletedByType },
-                )
-              : footerReportMenu}
+              {!isDeleted &&
+                (footerReportMenu && isValidElement(footerReportMenu)
+                  ? cloneElement(
+                      footerReportMenu as React.ReactElement<{
+                        isDeleted?: boolean;
+                        deletedByType?: DeletedContentReason;
+                      }>,
+                      { isDeleted, deletedByType },
+                    )
+                  : footerReportMenu)}
             </div>
           </>
         )}

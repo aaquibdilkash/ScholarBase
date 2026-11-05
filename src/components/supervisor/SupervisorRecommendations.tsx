@@ -9,35 +9,42 @@ import { recommendationCountKey, RecommendationAggregates } from "./recommendati
 
 export function SupervisorRecommendations({
   initialRecommendations,
-  totalCount,
+  initialVisibleCount,
   supervisor,
   currentUserId,
 }: {
   initialRecommendations: RecommendationWithAuthor[];
-  totalCount: number;
+  /** Live + engaged tombstones — the carousel's paging bound. */
+  initialVisibleCount: number;
   supervisor: { id: string; name: string | null };
   currentUserId?: string;
 }) {
-  // Reactive total count (decremented on delete) so the carousel's hasMore
-  // and any count display stay in sync without a server re-fetch.
+  // Reactive slide count (kept on an engaged delete) so hasMore stays in sync
+  // without a server re-fetch.
   const { data: aggregate } = useQuery<RecommendationAggregates>({
     queryKey: recommendationCountKey(supervisor.id),
     queryFn: () =>
       Promise.resolve({
-        count: totalCount,
+        count: initialVisibleCount,
         ratingSum: 0,
         dist: {},
+        slides: initialVisibleCount,
       }),
     enabled: false,
-    initialData: { count: totalCount, ratingSum: 0, dist: {} },
+    initialData: {
+      count: initialVisibleCount,
+      ratingSum: 0,
+      dist: {},
+      slides: initialVisibleCount,
+    },
   });
-  const reactiveTotal = aggregate?.count ?? totalCount;
+  const visibleCount = aggregate?.slides ?? initialVisibleCount;
 
   return (
     <PagedCarousel<RecommendationWithAuthor>
       queryKey={["recommendations", supervisor.id]}
       initialItems={initialRecommendations}
-      totalCount={reactiveTotal}
+      visibleCount={visibleCount}
       fetchPage={(skip, take) =>
         getSupervisorRecommendations(supervisor.id, skip, take)
       }

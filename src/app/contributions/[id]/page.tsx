@@ -14,7 +14,7 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
 import { RejectionReason } from "@/components/contributions/RejectionReason";
 
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { ComingSoon } from "@/components/contributions/ComingSoon";
@@ -49,6 +49,7 @@ export async function generateMetadata({
       section: SEO_PAGES.contributions.section,
     });
   }
+  if (contribution.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: contribution.title || "ScholarBase Contribution",
     description:

@@ -28,17 +28,20 @@ export function JournalReviewsSection({
   journalId,
   initialReviews,
   initialCount,
+  initialVisibleCount,
   initialRatingSum,
   initialDistribution,
   currentUserId,
   hasUserReview,
   userReviewId,
-  userReviewRating,
   isDeleted = false,
 }: {
   journalId: string;
   initialReviews: JournalReviewWithAuthor[];
+  /** Live reviews only: heading and rating aggregates. */
   initialCount: number;
+  /** Live + engaged tombstones: what the carousel can page through. */
+  initialVisibleCount: number;
   initialRatingSum: number;
   initialDistribution: Record<number, number>;
   currentUserId?: string;
@@ -50,13 +53,6 @@ export function JournalReviewsSection({
    * the button used to land on a 404.
    */
   isDeleted?: boolean;
-  /**
-   * The viewer's own rating, from the aggregates query rather than the first
-   * carousel slide — the first slide is the newest review, which is usually
-   * somebody else's. Needed so the delete path decrements the star bucket the
-   * review actually fell into.
-   */
-  userReviewRating?: number | null;
 }) {
   const queryClient = useQueryClient();
 
@@ -66,6 +62,7 @@ export function JournalReviewsSection({
     initialCount,
     initialRatingSum,
     initialDistribution ?? {},
+    initialVisibleCount,
   );
 
   const { data: aggregate } = useQuery<JournalReviewAggregates>({
@@ -75,15 +72,18 @@ export function JournalReviewsSection({
         count: initialCount,
         ratingSum: initialRatingSum,
         dist: initialDistribution ?? {},
+        slides: initialVisibleCount,
       }),
     enabled: false,
     initialData: {
       count: initialCount,
       ratingSum: initialRatingSum,
       dist: initialDistribution ?? {},
+      slides: initialVisibleCount,
     },
   });
   const reactiveTotal = aggregate?.count ?? initialCount;
+  const slides = aggregate?.slides ?? initialVisibleCount;
 
   return (
     <section className="mt-8 sm:mt-10" id="reviews">
@@ -93,11 +93,11 @@ export function JournalReviewsSection({
         </h2>
       </div>
 
-      {reactiveTotal > 0 ? (
+      {slides > 0 ? (
         <PagedCarousel<JournalReviewWithAuthor>
           queryKey={["journalReviews", journalId]}
           initialItems={initialReviews}
-          totalCount={reactiveTotal}
+          visibleCount={slides}
           fetchPage={(skip, take) => getJournalReviews(journalId, skip, take)}
           errorLabel="journal reviews"
           renderItem={(r) => (
@@ -120,7 +120,6 @@ export function JournalReviewsSection({
               journalId={journalId}
               initialHasReview={hasUserReview}
               initialUserReviewId={userReviewId}
-              initialRating={userReviewRating ?? undefined}
             />
           )}
         </div>

@@ -54,6 +54,7 @@ describe("JournalReviewsSection on a deleted journal", () => {
             journalId="j-1"
             initialReviews={[]}
             initialCount={0}
+            initialVisibleCount={0}
             initialRatingSum={0}
             initialDistribution={{}}
             hasUserReview={false}

@@ -9,7 +9,9 @@ import {
   AUTHOR_COUNT_FIELD,
   CONTENT_TARGET_TYPE,
   ANONYMOUS_CONTENT_TYPES,
+  MODERATION_LIST_KEY,
 } from "@/lib/moderation-config";
+import { CONTENT_LIST_CONFIGS } from "@/lib/tri-split/modules/registry";
 import { SECTION_CONTENT_TYPES } from "@/lib/adminConfig";
 import { MODULE_TO_CONTENT_TYPE } from "@/lib/constants";
 
@@ -143,6 +145,26 @@ describe("admin moderation registry: key sets stay in lockstep", () => {
           "DELETE/RECOVER transaction, so the admin action 500s",
       ).toEqual([]);
     }
+  });
+
+  it("every moderatable content type maps to a cached list tag", () => {
+    const missing = Object.keys(MODEL_MAP).filter(
+      (type) => !(type in MODERATION_LIST_KEY),
+    );
+    expect(
+      missing,
+      "moderation would change isDeleted/isFrozen but leave the cached list " +
+        "stale for the full 5-minute TTL",
+    ).toEqual([]);
+  });
+
+  it("every moderation list tag is a real registry list", () => {
+    const bogus = Object.entries(MODERATION_LIST_KEY)
+      .filter(([, listKey]) => !(listKey in CONTENT_LIST_CONFIGS))
+      .map(([type, listKey]) => `${type} -> ${listKey}`);
+    expect(bogus, "revalidateContent would throw on an unknown list key").toEqual(
+      [],
+    );
   });
 
   it("THE REGRESSION: courses, grants and journal reviews are moderatable", () => {

@@ -18,11 +18,14 @@ import {
 export function OverallRatingSection({
   supervisorId,
   initialCount,
+  initialVisibleCount,
   initialAvgRating,
   initialDistribution,
 }: {
   supervisorId: string;
   initialCount: number;
+  /** Live + engaged tombstones — seeded so the carousel keeps its slides. */
+  initialVisibleCount: number;
   initialAvgRating: number;
   initialDistribution: RatingDistributionRow[];
 }) {
@@ -41,6 +44,7 @@ export function OverallRatingSection({
     initialCount,
     initialRatingSum,
     initialDist,
+    initialVisibleCount,
   );
 
   const { data: agg } = useQuery<RecommendationAggregates>({
@@ -50,12 +54,14 @@ export function OverallRatingSection({
         count: initialCount,
         ratingSum: initialRatingSum,
         dist: initialDist,
+        slides: initialVisibleCount,
       }),
     enabled: false,
     initialData: {
       count: initialCount,
       ratingSum: initialRatingSum,
       dist: initialDist,
+      slides: initialVisibleCount,
     },
   });
 
