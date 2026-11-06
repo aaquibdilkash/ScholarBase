@@ -37,6 +37,7 @@ vi.mock("@/lib/rate-limit", () => ({
 }));
 vi.mock("@/lib/email-domain-allowlist", () => ({
   isAllowedEmailDomain: vi.fn(() => true),
+  isAllowedEmailDomainAsync: vi.fn(async () => true),
 }));
 vi.mock("@/lib/account-recovery", () => ({
   recoverDeletedAccount: vi.fn(async () => null),

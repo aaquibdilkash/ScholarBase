@@ -7,7 +7,7 @@ import prisma from '@/lib/db'
 import { normalizeEmail, validateEmailFormat } from '@/lib/email-normalizer'
 import {
     getEmailDomain,
-    isInstitutionalEmailDomain,
+    isInstitutionalEmailDomainAsync,
 } from '@/lib/email-domain-allowlist'
 
 function normalizeHandleSeed(value: string) {
@@ -60,7 +60,7 @@ export async function ensureUserProfile(user: SupabaseUser) {
             const newPrimaryIsInstitutional =
                 !existingUser.institutionVerifiedAt &&
                 confirmed &&
-                isInstitutionalEmailDomain(supabaseEmail)
+                (await isInstitutionalEmailDomainAsync(supabaseEmail))
 
             return prisma.user.update({
                 where: { id: user.id },
@@ -88,7 +88,7 @@ export async function ensureUserProfile(user: SupabaseUser) {
         if (
             !existingUser.institutionVerifiedAt &&
             user.email_confirmed_at &&
-            isInstitutionalEmailDomain(existingUser.email)
+            (await isInstitutionalEmailDomainAsync(existingUser.email))
         ) {
             return prisma.user.update({
                 where: { id: user.id },
@@ -119,7 +119,8 @@ export async function ensureUserProfile(user: SupabaseUser) {
     const name = user.user_metadata.full_name || email.split('@')[0] || null
     const handle = await createUniqueHandle(name || email.split('@')[0], user.id)
     const isConfirmedInstitutionalEmail =
-        Boolean(user.email_confirmed_at) && isInstitutionalEmailDomain(email)
+        Boolean(user.email_confirmed_at) &&
+        (await isInstitutionalEmailDomainAsync(email))
 
     try {
         return await prisma.user.create({

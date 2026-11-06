@@ -207,6 +207,16 @@ export const CONTACT_SUBJECT_TIP = "The topic or purpose of your message.";
 export const CONTACT_MESSAGE_TIP = "The details of your inquiry or message.";
 
 // -----------------------------------------------------------------------------
+// OUTREACH MODULE (admin)
+// -----------------------------------------------------------------------------
+export const OUTREACH_NAME_TIP = "The scholar's full name as it should appear in the outreach email.";
+export const OUTREACH_EMAIL_TIP = "The address the outreach email is sent to. It must not already be on the recipient's own opt-out list.";
+export const OUTREACH_INSTITUTION_TIP = "The university or research institute this scholar belongs to.";
+export const OUTREACH_ROLE_TIP = "Their position, e.g. Professor, Postdoc, or PhD candidate.";
+export const OUTREACH_SOURCE_TIP = "Where this contact came from, such as a conference, referral, or LinkedIn.";
+export const OUTREACH_NOTES_TIP = "Private context for your team — how you met, what to discuss, or follow-up reminders.";
+
+// -----------------------------------------------------------------------------
 // PROFILE MODULE
 // -----------------------------------------------------------------------------
 export const PROFILE_NAME_TIP = "Your full display name visible to other scholars.";

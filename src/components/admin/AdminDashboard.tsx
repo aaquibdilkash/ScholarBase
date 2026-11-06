@@ -30,7 +30,8 @@ import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { InstitutionDomainRequestsPanel } from "@/components/admin/InstitutionDomainRequestsPanel";
-import { AdminInviteScholarForm } from "@/components/admin/AdminInviteScholarForm";
+import { InstitutionDomainsPanel } from "@/components/admin/InstitutionDomainsPanel";
+import { OutreachPanel } from "@/components/admin/OutreachPanel";
 import {
   buildContentColumns,
   buildUsersColumns,
@@ -98,6 +99,7 @@ export function AdminDashboard({
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
   const { view, page, sortBy, statusFilter, entityStatusFilter } = ui;
   const isInstitutionRequestsTab = activeTab === "institutionRequests";
+  const isInstitutionDomainsTab = activeTab === "institutionDomains";
   const isInviteTab = activeTab === "invites";
 
   const setUi = (patch: Partial<SectionUiState>) =>
@@ -420,9 +422,13 @@ export function AdminDashboard({
                 initialData={initialInstitutionDomainRequests}
               />
             </div>
+          ) : isInstitutionDomainsTab ? (
+            <div ref={tableRef} className="scroll-mt-20">
+              <InstitutionDomainsPanel />
+            </div>
           ) : isInviteTab ? (
             <div ref={tableRef} className="scroll-mt-20">
-              <AdminInviteScholarForm />
+              <OutreachPanel />
             </div>
           ) : (
             <div

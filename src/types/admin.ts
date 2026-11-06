@@ -200,6 +200,17 @@ export type InstitutionDomainRequestItem = {
   updatedAt: Date;
 };
 
+export type InstitutionDomainItem = {
+  id: string;
+  domain: string;
+  name: string;
+  isActive: boolean;
+  approvedById: string;
+  approvedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 /** A single Report row joined with the reporter's profile, surfaced in the
  *  admin inspection drawer so moderators see WHO reported what and WHY. */
 export type ReportWithReporter = {

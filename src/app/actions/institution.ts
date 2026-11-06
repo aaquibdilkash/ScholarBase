@@ -11,7 +11,7 @@ import {
 } from "@/lib/constants";
 import {
   getEmailDomain,
-  isAllowedEmailDomain,
+  isAllowedEmailDomainAsync,
 } from "@/lib/email-domain-allowlist";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
 import { verifyInstitutionRequestTurnstile } from "@/lib/turnstile";
@@ -62,7 +62,7 @@ export async function requestInstitutionDomain(
   }
 
   const domain = getEmailDomain(requesterEmail);
-  if (isAllowedEmailDomain(domain)) {
+  if (await isAllowedEmailDomainAsync(domain)) {
     return {
       success: false,
       error: "This email domain is already approved for ScholarBase.",

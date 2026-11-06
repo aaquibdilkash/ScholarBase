@@ -17,6 +17,11 @@
     "load:test:free-tier": "node scripts/free-tier-load-test.mjs",
     "generate:icons": "python3 scripts/generate-icons.py",
     "generate:ios-splash": "python3 scripts/generate-ios-splash.py",
+    "dev:local": "bash scripts/start-local.sh",
+    "deploy:prisma:staging": "bash scripts/deploy-staging.sh",
+    "deploy:prisma:production": "bash scripts/deploy-production.sh",
+    "deploy:git:staging": "bash scripts/deploy-staging-branch.sh",
+    "deploy:git:production": "bash scripts/deploy-production-branch.sh",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -200,6 +200,15 @@ export const MAX_INVITE_NAME = 32;
 export const MAX_INVITE_EMAIL = 64;
 export const MAX_INVITE_MESSAGE = 512;
 
+// Admin outreach contact list (see src/app/actions/outreach.ts). Kept here so
+// the form, the server schema, and the edit modal share one limit.
+export const MAX_OUTREACH_NAME = 32;
+export const MAX_OUTREACH_EMAIL = 32;
+export const MAX_OUTREACH_INSTITUTION = 128;
+export const MAX_OUTREACH_ROLE = 32;
+export const MAX_OUTREACH_SOURCE = 32;
+export const MAX_OUTREACH_NOTES = 64;
+
 export const MAX_AUTH_EMAIL = 32;
 export const MAX_AUTH_PASSWORD = 16;
 export const ACCOUNT_RECOVERY_DAYS = 30;

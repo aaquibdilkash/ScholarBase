@@ -24,7 +24,7 @@ import {
   normalizeEmail,
   validateEmailFormat,
 } from "@/lib/email-normalizer";
-import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
+import { isAllowedEmailDomainAsync } from "@/lib/email-domain-allowlist";
 import { recoverDeletedAccount } from "@/lib/account-recovery";
 import { staleOAuthIdentities } from "@/lib/auth-identities";
 import { updateNotificationActorSnapshots } from "@/lib/notifications";
@@ -202,7 +202,7 @@ export async function signup(formData: FormData): Promise<AuthResult> {
     return { success: false, error: "Please enter a valid email address." };
   }
 
-  if (!isAllowedEmailDomain(email)) {
+  if (!(await isAllowedEmailDomainAsync(email))) {
     return {
       success: false,
       code: "EMAIL_DOMAIN_NOT_ALLOWED",
@@ -341,7 +341,7 @@ export async function requestEmailChange(
     return { success: false, error: "That is already your primary email address." };
   }
 
-  if (!isAllowedEmailDomain(newEmail)) {
+  if (!(await isAllowedEmailDomainAsync(newEmail))) {
     return {
       success: false,
       code: "EMAIL_DOMAIN_NOT_ALLOWED",

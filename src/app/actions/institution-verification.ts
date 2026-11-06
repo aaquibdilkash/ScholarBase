@@ -13,7 +13,7 @@ import {
 } from "@/lib/constants";
 import {
   getEmailDomain,
-  isInstitutionalEmailDomain,
+  isInstitutionalEmailDomainAsync,
 } from "@/lib/email-domain-allowlist";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
 import {
@@ -64,7 +64,7 @@ export async function requestInstitutionVerification(
     return { success: false, error: "Please enter a valid institutional email." };
   }
 
-  if (!isInstitutionalEmailDomain(institutionEmail)) {
+  if (!(await isInstitutionalEmailDomainAsync(institutionEmail))) {
     return {
       success: false,
       code: "EMAIL_DOMAIN_NOT_ALLOWED",

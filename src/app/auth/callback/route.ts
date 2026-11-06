@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import prisma from "@/lib/db";
-import { isAllowedEmailDomain } from "@/lib/email-domain-allowlist";
+import { isAllowedEmailDomainAsync } from "@/lib/email-domain-allowlist";
 import { recoverDeletedAccount } from "@/lib/account-recovery";
 
 function getSafeNextPath(next: string | null): string {
@@ -137,7 +137,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (existingProfile === null && !isAllowedEmailDomain(data.user.email ?? "")) {
+    if (
+      existingProfile === null &&
+      !(await isAllowedEmailDomainAsync(data.user.email ?? ""))
+    ) {
       await supabase.auth.signOut();
       // Keep the same response object so the signOut cookie removals are
       // returned to the browser along with the redirect.

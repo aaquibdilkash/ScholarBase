@@ -155,17 +155,32 @@ function normalizeFooter(value: string): string {
   return `${trimmed}\n\n${rightsText}`;
 }
 
-function pickVariant(key: string): OutreachVariant {
+function pickVariant(key: string, offset = 0): OutreachVariant {
   let hash = 0;
 
   for (let index = 0; index < key.length; index += 1) {
     hash = (hash * 31 + key.charCodeAt(index)) >>> 0;
   }
 
+  const variantIndex =
+    (hash + Math.max(0, Math.trunc(offset))) % SCHOLAR_OUTREACH_VARIANTS.length;
+
   return (
-    SCHOLAR_OUTREACH_VARIANTS[hash % SCHOLAR_OUTREACH_VARIANTS.length] ??
+    SCHOLAR_OUTREACH_VARIANTS[variantIndex] ??
     DEFAULT_SCHOLAR_OUTREACH_VARIANT
   );
+}
+
+/**
+ * Deterministic template choice for a recipient. The same email + offset always
+ * yields the same variant, so a contact gets a stable copy while `offset`
+ * (typically `sendCount`) rotates it on a resend.
+ */
+export function pickScholarOutreachVariant(
+  key: string,
+  offset = 0,
+): OutreachVariant {
+  return pickVariant(key, offset);
 }
 
 function normalizeForTemplateMatch(value: string): string {

@@ -662,6 +662,22 @@ model InstitutionDomainRequest {
   @@index([status, createdAt(sort: Desc)])
 }
 
+model InstitutionDomain {
+  id          String   @id @default(cuid())
+  domain      String   @unique
+  name        String
+  isActive    Boolean  @default(true)
+  approvedById String
+  approvedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  approvedBy User @relation("InstitutionDomainApprovedBy", fields: [approvedById], references: [id], onDelete: Cascade)
+
+  @@index([domain])
+  @@index([isActive, createdAt(sort: Desc)])
+}
+
 model Appeal {
   id           String       @id @default(cuid())
   entityId     String
@@ -1237,6 +1253,13 @@ model User {
   appeals         Appeal[] @relation("AppealOwner")
   appealsReviewed Appeal[] @relation("AppealReviewer")
 
+  // Institutional domains this admin has approved.
+  institutionDomainsApproved InstitutionDomain[] @relation("InstitutionDomainApprovedBy")
+
+  // Outreach contacts added by this admin, and contacts linked to this account.
+  outreachCreatedBy Outreach[] @relation("OutreachCreatedBy")
+  outreachLinkedUser Outreach[] @relation("OutreachLinkedUser")
+
   trendingScore Float @default(0)
 
   // INDEX: The scholar directory (getScholars / getTrendingScholars) orders by
@@ -1254,6 +1277,38 @@ model OutreachEmailUnsubscribe {
   updatedAt DateTime @updatedAt
 
   @@index([createdAt(sort: Desc)])
+}
+
+enum OutreachStatus {
+  PENDING
+  OUTREACHED
+  BOUNCED
+  REPLIED
+  UNSUBSCRIBED
+}
+
+model Outreach {
+  id          String         @id @default(cuid())
+  name        String
+  email       String         @unique
+  institution String?
+  role        String?
+  source      String?
+  notes       String?        @db.Text
+  status      OutreachStatus @default(PENDING)
+  sendCount   Int            @default(0)
+  outreachedAt DateTime?
+  emailSentAt DateTime?
+  createdById String
+  userId      String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  createdBy   User           @relation("OutreachCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  user        User?          @relation("OutreachLinkedUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdById, createdAt(sort: Desc)])
 }
 
 model Notification {

@@ -5,6 +5,7 @@ import { requireCurrentUser, isUserAdmin } from "@/lib/auth";
 import { notifyUserById } from "@/lib/notifications";
 import { sendInstitutionDomainDecisionEmail } from "@/lib/email";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
+import { invalidateApprovedDomainsCache } from "@/lib/email-domain-allowlist";
 import { MODERATION_LIST_KEY } from "@/lib/moderation-config";
 
 import {
@@ -13,6 +14,7 @@ import {
   AdminPage,
   AdminAppealItem,
   InstitutionDomainRequestItem,
+  InstitutionDomainItem,
   FreezableContentModel,
   ContentMap,
   ReportWithReporter,
@@ -278,6 +280,34 @@ export async function reviewInstitutionDomainRequest(
     },
   });
 
+  // When a domain is approved, add it to the InstitutionDomain table so it
+  // becomes available for signup immediately (no redeploy). Rejection or
+  // deactivation invalidates the domain cache so the change takes effect.
+  if (status === "APPROVED") {
+    await prisma.institutionDomain.upsert({
+      where: { domain: updated.domain },
+      create: {
+        domain: updated.domain,
+        name: updated.institutionName,
+        approvedById: user.id,
+        isActive: true,
+      },
+      update: {
+        name: updated.institutionName,
+        approvedById: user.id,
+        approvedAt: new Date(),
+        isActive: true,
+      },
+    });
+  } else if (status === "REJECTED") {
+    await prisma.institutionDomain.updateMany({
+      where: { domain: updated.domain },
+      data: { isActive: false },
+    });
+  }
+
+  invalidateApprovedDomainsCache();
+
   void sendInstitutionDomainDecisionEmail({
     recipientEmail: updated.confirmationEmail,
     institutionName: updated.institutionName,
@@ -286,6 +316,85 @@ export async function reviewInstitutionDomainRequest(
   }).catch((error) => console.error("Institution decision email failed:", error));
 
   return { success: true, data: updated as InstitutionDomainRequestItem };
+}
+
+// List all approved institution domains (active + inactive), paginated.
+export async function getAdminInstitutionDomains(
+  page = 1,
+  pageSize: number = ADMIN_PAGE_SIZE,
+): Promise<{ items: InstitutionDomainItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const safePage = Math.max(1, Number(page));
+  const safePageSize = Math.min(100, Math.max(1, Number(pageSize)));
+  const skip = (safePage - 1) * safePageSize;
+
+  const [rows, total] = await Promise.all([
+    prisma.institutionDomain.findMany({
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: safePageSize,
+    }),
+    prisma.institutionDomain.count(),
+  ]);
+
+  return {
+    items: rows as InstitutionDomainItem[],
+    total,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
+}
+
+// Activate or deactivate an approved institution domain.
+export async function toggleInstitutionDomainActive(
+  domainId: string,
+  isActive: boolean,
+): Promise<{ success: true; data: InstitutionDomainItem }> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const id = typeof domainId === "string" ? domainId.trim() : "";
+  if (!id) throw new Error("Invalid institution domain.");
+
+  const updated = await prisma.institutionDomain.update({
+    where: { id },
+    data: { isActive },
+  });
+
+  invalidateApprovedDomainsCache();
+
+  return { success: true, data: updated as InstitutionDomainItem };
+}
+
+// Delete an approved institution domain.
+export async function deleteInstitutionDomain(
+  domainId: string,
+): Promise<{ success: true; data: { id: string } }> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const id = typeof domainId === "string" ? domainId.trim() : "";
+  if (!id) throw new Error("Invalid institution domain.");
+
+  await prisma.institutionDomain.delete({
+    where: { id },
+  });
+
+  invalidateApprovedDomainsCache();
+
+  return { success: true, data: { id } };
 }
 
 // Get appeals for the admin Appeals section — paginated, newest first.
