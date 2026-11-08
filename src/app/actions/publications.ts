@@ -189,7 +189,7 @@ export async function createPublication(formData: FormData) {
       type: "publication-author",
       targetType: "Publication",
       targetId: publication.id,
-      title: "You were added as a publication author",
+      title: `${user.email?.split("@")[0] || "Someone"} added you as a publication author`,
       body: title,
     })),
   ]);

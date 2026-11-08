@@ -46,6 +46,7 @@ import {
   JOURNAL_SUBJECT_AREA_TIP,
   JOURNAL_FREQUENCY_TIP,
   JOURNAL_OPEN_ACCESS_TIP,
+  JOURNAL_ANONYMOUS_TIP,
 } from "@/constants/tooltips";
 
 export type JournalFormValues = {
@@ -65,6 +66,7 @@ export type JournalFormValues = {
   subjectArea: string;
   frequency: string;
   openAccess: string;
+  isAnonymous: boolean;
 };
 
 export default function JournalForm({
@@ -94,6 +96,7 @@ export default function JournalForm({
     subjectArea: initialValues?.subjectArea ?? "",
     frequency: initialValues?.frequency ?? "",
     openAccess: initialValues?.openAccess ?? "UNKNOWN",
+    isAnonymous: initialValues?.isAnonymous ?? false,
   };
 
   const draftKey = mode === "edit" ? null : "draft_journal_create";
@@ -496,6 +499,25 @@ export default function JournalForm({
         />
         <input type="hidden" name="about" value={draftFields.about} />
       </div>
+
+      <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+        <input
+          type="checkbox"
+          name="isAnonymous"
+          checked={draftFields.isAnonymous}
+          onChange={(e) => updateDraftField("isAnonymous", e.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        />
+        <span>
+          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1.5">
+            Post anonymously
+            <InfoTooltip message={JOURNAL_ANONYMOUS_TIP} />
+          </span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">
+            Other scholars will see the journal, but your name will stay hidden.
+          </span>
+        </span>
+      </label>
 
       <div className="mt-2 flex justify-end gap-3">
         <FormCancelButton />

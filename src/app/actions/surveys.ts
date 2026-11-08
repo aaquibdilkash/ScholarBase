@@ -21,7 +21,7 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE, MAX_SURVEY_LINEAR_SCALE_VALUE, NEW_QUESTION_ID_PREFIX } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
@@ -1034,6 +1034,7 @@ export async function submitSurveyResponse(
       authorId: true,
       isDeleted: true,
       title: true,
+      privacy: true,
       consentRequired: true,
       questions: {
         where: { archivedAt: null },
@@ -1213,6 +1214,22 @@ export async function submitSurveyResponse(
 
     return response;
   });
+
+  // Tell the survey author someone participated. Anonymous responses — either
+  // the per-response flag or survey-level ANONYMOUS privacy — must never reveal
+  // the respondent, so they stay silent (same rule as the results/export
+  // redaction). `notifyUserById` also skips a self-response.
+  if (!isAnonymous && surveyForValidation.privacy !== "ANONYMOUS") {
+    await notifyUserById({
+      recipientId: surveyForValidation.authorId,
+      actorId: user.id,
+      type: "survey-response",
+      targetType: "survey",
+      targetId: surveyId,
+      title: "Someone posted a response to your survey",
+      body: surveyForValidation.title,
+    });
+  }
 
   // Purge the cached survey pages: new response (totalResponses is on the card)
   // must be visible at once. `totalResponses` is also part of the row embedded

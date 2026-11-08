@@ -47,6 +47,8 @@ function typeLabel(type: string) {
       return "Mention";
     case "post-mention":
       return "Post Mention";
+    case "survey-response":
+      return "Survey response";
     case "message-received":
       return "New message";
     case "contribution-approved":
@@ -79,7 +81,7 @@ function NotificationCard({
   notification: NotificationWithActor;
 }) {
   const link = getNotificationLink(notification);
-  const actorName = notification.actor.name || notification.actor.handle || "A researcher";
+  const actorName = notification.actor.handle || notification.actor.name || "A researcher";
   const displayTitle = notification.type === "content-published"
     ? formatPublishedContentTitle(notification.title, actorName, notification.targetType)
     : canonicalizeActorPrefix(notification.title, actorName);

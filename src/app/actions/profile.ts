@@ -182,6 +182,8 @@ export async function getProfileSection(
       isDeleted: false,
       ...(model === "recommendation" ? { isAnonymous: false } : {}),
       ...(model === "journalReview" ? { isAnonymous: false } : {}),
+      ...(model === "supervisor" ? { isAnonymous: false } : {}),
+      ...(model === "journal" ? { isAnonymous: false } : {}),
     },
     skip,
     take,
@@ -199,6 +201,8 @@ function getProfileParentWhere(section: ProfileSection, isBookmark = false) {
     isDeleted: false,
     ...(!isBookmark && model === "recommendation" ? { isAnonymous: false } : {}),
     ...(!isBookmark && model === "journalReview" ? { isAnonymous: false } : {}),
+    ...(!isBookmark && model === "supervisor" ? { isAnonymous: false } : {}),
+    ...(!isBookmark && model === "journal" ? { isAnonymous: false } : {}),
     ...(model === "contribution" ? { status: "APPROVED" } : {}),
   };
 }

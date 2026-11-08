@@ -43,6 +43,7 @@ export default async function EditJournalPage({
       frequency: true,
       openAccess: true,
       authorId: true,
+      isAnonymous: true,
     },
   });
 
@@ -82,6 +83,7 @@ export default async function EditJournalPage({
           subjectArea: journal.subjectArea ?? "",
           frequency: journal.frequency ?? "",
           openAccess: journal.openAccess ?? "UNKNOWN",
+          isAnonymous: journal.isAnonymous,
         }}
       />
     </CreateOrEditPageShell>

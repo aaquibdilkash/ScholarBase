@@ -12,6 +12,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
+import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
@@ -65,6 +66,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
       totalBookmarks: true,
       isFrozen: true,
       hasActiveAppeal: true,
+      isAnonymous: true,
       isDeleted: true,
       deletedByType: true,
       totalComments: true,
@@ -258,6 +260,7 @@ export async function createSupervisor(formData: FormData) {
   const department = readFormValue(formData, "department");
   const about = readFormValue(formData, "about");
   assertRichTextWithinLimit(about, MAX_SUPERVISOR_ABOUT, "About");
+  const isAnonymous = formData.has("isAnonymous");
 
   const supervisor = await prisma.$transaction(async (tx) => {
     const newSupervisor = await tx.supervisor.create({
@@ -266,6 +269,7 @@ export async function createSupervisor(formData: FormData) {
         university,
         department,
         about,
+        isAnonymous,
         authorId: user.id,
       },
       include: {
@@ -285,23 +289,40 @@ export async function createSupervisor(formData: FormData) {
       },
     });
 
-    await tx.user.update({
-      where: { id: user.id },
-      data: { supervisorCount: { increment: 1 } },
-    });
+    // Anonymous content stays out of the author's profile count and activity
+    // log, mirroring `createRecommendation` / `createJournalReview`.
+    if (!isAnonymous) {
+      await tx.user.update({
+        where: { id: user.id },
+        data: { supervisorCount: { increment: 1 } },
+      });
 
-    await tx.userActivity.create({
-      data: {
-        userId: user.id,
-        action: "PUBLISHED",
-        moduleType: "SUPERVISOR",
-        entityId: newSupervisor.id,
-        entityTitle: newSupervisor.name,
-      },
-    });
+      await tx.userActivity.create({
+        data: {
+          userId: user.id,
+          action: "PUBLISHED",
+          moduleType: "SUPERVISOR",
+          entityId: newSupervisor.id,
+          entityTitle: newSupervisor.name,
+        },
+      });
+    }
 
     return newSupervisor;
   });
+
+  // Anonymous content stays out of follower feeds, mirroring the journal and
+  // recommendation contract.
+  if (!isAnonymous) {
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "Supervisor",
+      targetId: supervisor.id,
+      title: `${user.email?.split("@")[0] || "Someone"} added a new supervisor`,
+      body: `${name}${university ? ` at ${university}` : ""}${department ? ` (${department})` : ""}`,
+    });
+  }
 
   // Purge the cached supervisor pages: publish must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", user.id);
@@ -322,10 +343,11 @@ export async function updateSupervisor(
   const department = readFormValue(formData, "department");
   const about = readFormValue(formData, "about");
   assertRichTextWithinLimit(about, MAX_SUPERVISOR_ABOUT, "About");
+  const isAnonymous = formData.has("isAnonymous");
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },
-    select: { authorId: true },
+    select: { authorId: true, isAnonymous: true },
   });
 
   if (!supervisor) {
@@ -335,26 +357,73 @@ export async function updateSupervisor(
     throw new Error("Not authorized to edit this supervisor.");
   }
 
-  const updatedSupervisor = await prisma.supervisor.update({
-    where: { id: supervisorId },
-    data: { name, university, department, about, editedAt: new Date() },
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true,
-          institutionVerifiedAt: true,
-          followers: {
-            where: { followerId: user.id },
-            select: { followerId: true },
+  const updatedSupervisor = await prisma.$transaction(async (tx) => {
+    const updated = await tx.supervisor.update({
+      where: { id: supervisorId },
+      data: { name, university, department, about, isAnonymous, editedAt: new Date() },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            handle: true,
+            avatarUrl: true,
+            institutionVerifiedAt: true,
+            followers: {
+              where: { followerId: user.id },
+              select: { followerId: true },
+            },
           },
         },
+        votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
-      votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
-    },
+    });
+
+    // Anonymity toggle: keep the profile counter and activity log honest,
+    // mirroring `updateRecommendation` / `updateJournalReview`.
+    if (!supervisor.isAnonymous && isAnonymous) {
+      await tx.user.update({
+        where: { id: supervisor.authorId },
+        data: { supervisorCount: { decrement: 1 } },
+      });
+      await tx.userActivity.deleteMany({
+        where: {
+          userId: supervisor.authorId,
+          action: "PUBLISHED",
+          moduleType: "SUPERVISOR",
+          entityId: supervisorId,
+        },
+      });
+    } else if (supervisor.isAnonymous && !isAnonymous) {
+      await tx.user.update({
+        where: { id: supervisor.authorId },
+        data: { supervisorCount: { increment: 1 } },
+      });
+      await tx.userActivity.create({
+        data: {
+          userId: supervisor.authorId,
+          action: "PUBLISHED",
+          moduleType: "SUPERVISOR",
+          entityId: supervisorId,
+          entityTitle: updated.name,
+        },
+      });
+    }
+
+    return updated;
   });
+
+  // Re-announce to followers now the row is public again — mirrors createSupervisor.
+  if (supervisor.isAnonymous && !isAnonymous) {
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "Supervisor",
+      targetId: supervisorId,
+      title: `${user.email?.split("@")[0] || "Someone"} added a new supervisor`,
+      body: `${name}${university ? ` at ${university}` : ""}${department ? ` (${department})` : ""}`,
+    });
+  }
 
   // Purge the cached supervisor pages: edit must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", supervisor.authorId);
@@ -369,7 +438,7 @@ export async function deleteSupervisor(supervisorId: string) {
 
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId },
-    select: { authorId: true, totalVotes: true, totalComments: true, recommendationCount: true },
+    select: { authorId: true, totalVotes: true, totalComments: true, recommendationCount: true, isAnonymous: true },
   });
 
   if (!supervisor) {
@@ -388,7 +457,9 @@ export async function deleteSupervisor(supervisorId: string) {
 
      await tx.user.update({
        where: { id: supervisor.authorId },
-       data: { supervisorCount: { decrement: 1 } },
+       data: {
+         ...(supervisor.isAnonymous ? {} : { supervisorCount: { decrement: 1 } }),
+       },
      });
 
      if (supervisor.totalVotes !== 0) {

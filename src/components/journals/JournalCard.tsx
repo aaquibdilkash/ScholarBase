@@ -29,6 +29,7 @@ export function JournalCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === journal.authorId;
+  const isAnonymous = journal.isAnonymous === true;
   const isFollowing = (journal.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
     (journal.votes || [])[0]?.voteType ?? null;
@@ -68,13 +69,14 @@ export function JournalCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${journal.author?.id}`}
-      authorName={journal.author?.name || "Scholar"}
-      authorId={journal.authorId}
-      isFollowing={isFollowing}
+      authorHref={isAnonymous ? undefined : `/scholars/${journal.author?.id}`}
+      authorName={isAnonymous ? "Anonymous Scholar" : journal.author?.name || "Scholar"}
+      authorId={isAnonymous ? undefined : journal.authorId}
+      isFollowing={isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
-      authorHandle={journal.author?.handle || undefined}
-      authorAvatarUrl={journal.author?.avatarUrl || undefined} authorVerified={!!(journal.author?.institutionVerifiedAt)}
+      authorHandle={isAnonymous ? undefined : journal.author?.handle || undefined}
+      authorAvatarUrl={isAnonymous ? null : journal.author?.avatarUrl || undefined}
+      authorVerified={!isAnonymous && !!(journal.author?.institutionVerifiedAt)}
       isFrozen={journal.isFrozen ?? false}
       frozenEntityId={journal.id}
       frozenModule="JOURNAL"

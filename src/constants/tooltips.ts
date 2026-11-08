@@ -29,6 +29,7 @@ export const JOURNAL_ABOUT_TIP = "A brief description of the journal's scope, ai
 export const JOURNAL_SUBJECT_AREA_TIP = "The primary academic discipline or field of study (e.g., Financial Econometrics, Computer Science).";
 export const JOURNAL_FREQUENCY_TIP = "How often issues are published (e.g., Monthly, Quarterly, Bi-annually).";
 export const JOURNAL_OPEN_ACCESS_TIP = "The publishing model. Gold requires author fees; Diamond is completely free for authors and readers.";
+export const JOURNAL_ANONYMOUS_TIP = "Post this journal anonymously without revealing your identity.";
 
 // -----------------------------------------------------------------------------
 // JOURNAL REVIEWS MODULE
@@ -123,6 +124,7 @@ export const SUPERVISOR_NAME_TIP = "The full name and title of the supervisor (e
 export const SUPERVISOR_UNIVERSITY_TIP = "The university or institution where the supervisor is affiliated.";
 export const SUPERVISOR_DEPARTMENT_TIP = "The department or faculty within the institution.";
 export const SUPERVISOR_ABOUT_TIP = "Research areas, specializations, and notable achievements.";
+export const SUPERVISOR_ANONYMOUS_TIP = "Post this supervisor profile anonymously without revealing your identity.";
 
 // -----------------------------------------------------------------------------
 // RECOMMENDATIONS MODULE

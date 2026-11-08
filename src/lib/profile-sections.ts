@@ -67,13 +67,15 @@ export type Section = keyof typeof SECTION_MODULE;
 const SECTIONS = Object.keys(SECTION_MODULE) as Section[];
 
 /**
- * Soft-delete is the only universal content filter. These are the two modules
- * that additionally hide anonymous rows, plus the one gated on approval —
- * mirroring `getProfileParentWhere` in `app/actions/profile.ts`.
+ * Soft-delete is the only universal content filter. These are the modules that
+ * additionally hide anonymous rows, plus the one gated on approval — mirroring
+ * `getProfileParentWhere` in `app/actions/profile.ts`.
  */
 const CONTENT_FILTER: Partial<Record<Section, string>> = {
   recommendations: `AND t."isAnonymous" = false`,
   journalReviews: `AND t."isAnonymous" = false`,
+  supervisors: `AND t."isAnonymous" = false`,
+  journals: `AND t."isAnonymous" = false`,
   contributionPosts: `AND t."status" = 'APPROVED'`,
 };
 

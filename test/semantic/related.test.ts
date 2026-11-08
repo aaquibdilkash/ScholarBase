@@ -240,4 +240,98 @@ describe("related content lookup", () => {
 
     expect(values).toContain(50);
   });
+
+  it("never leaks an anonymous author through the related sidebar", async () => {
+    const author = {
+      id: "u2",
+      name: "Ada",
+      handle: "ada",
+      avatarUrl: "https://cdn.example/ada.png",
+    };
+    const cases = [
+      {
+        type: "JOURNAL" as const,
+        row: {
+          id: "j2",
+          title: "Nature",
+          publisher: "Springer",
+          isAnonymous: true,
+          author,
+        },
+      },
+      {
+        type: "SUPERVISOR" as const,
+        row: {
+          id: "s2",
+          name: "Prof Ada",
+          university: "Oxford",
+          department: "CS",
+          isAnonymous: true,
+          author,
+        },
+      },
+      {
+        type: "RECOMMENDATION" as const,
+        row: {
+          id: "r2",
+          feedback: "<p>Great mentorship.</p>",
+          supervisorId: "s1",
+          isAnonymous: true,
+          supervisor: { name: "Dr. Hopper" },
+          author,
+        },
+      },
+      {
+        type: "JOURNAL_REVIEW" as const,
+        row: {
+          id: "j2",
+          feedback: "Rigorous but slow.",
+          journalId: "j1",
+          isAnonymous: true,
+          journal: { title: "Journal of Graphs" },
+          author,
+        },
+      },
+    ];
+
+    for (const { type, row } of cases) {
+      db.queryRaw.mockResolvedValue([{ id: row.id, similarity: "0.9" }]);
+      db.findMany.mockResolvedValue([row]);
+
+      const [item] = await getRelatedContent(type, "source");
+
+      expect(item, type).toMatchObject({
+        avatarUrl: null,
+        authorName: "Anonymous Scholar",
+        authorHandle: undefined,
+      });
+    }
+  });
+
+  it("still shows the real author for public related rows", async () => {
+    db.queryRaw.mockResolvedValue([{ id: "s2", similarity: "0.9" }]);
+    db.findMany.mockResolvedValue([
+      {
+        id: "s2",
+        name: "Prof Ada",
+        university: "Oxford",
+        department: "CS",
+        isAnonymous: false,
+        author: {
+          id: "u2",
+          name: "Ada",
+          handle: "ada",
+          avatarUrl: "https://cdn.example/ada.png",
+        },
+      },
+    ]);
+
+    const [item] = await getRelatedContent("SUPERVISOR", "s1");
+
+    expect(item).toMatchObject({
+      avatarUrl: "https://cdn.example/ada.png",
+      authorName: "Ada",
+      authorHandle: "ada",
+    });
+  });
 });

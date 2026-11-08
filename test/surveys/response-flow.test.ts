@@ -40,6 +40,7 @@ const AUTHOR = "u-author";
 let session: { id: string } | null = null;
 let rateLimitAllowed = true;
 const notifyFollowersOfActivity = vi.fn(async () => undefined);
+const notifyUserById = vi.fn(async () => undefined);
 const revalidateContent = vi.fn();
 
 vi.mock("@/lib/db", async () => {
@@ -71,6 +72,8 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/notifications", () => ({
   notifyFollowersOfActivity: (...args: unknown[]) =>
     notifyFollowersOfActivity(...(args as [])),
+  notifyUserById: (...args: unknown[]) =>
+    notifyUserById(...(args as [])),
 }));
 vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: (...args: unknown[]) => revalidateContent(...(args as [])),
@@ -171,6 +174,7 @@ beforeEach(() => {
   session = { id: RESPONDENT };
   rateLimitAllowed = true;
   notifyFollowersOfActivity.mockClear();
+  notifyUserById.mockClear();
   revalidateContent.mockClear();
 });
 
@@ -697,6 +701,38 @@ describe("submitSurveyResponse — first submission", () => {
     await submit(responseForm([{ questionId: "q1", value: "a" }]));
 
     expect(revalidateContent).toHaveBeenCalledWith("RESEARCH_SURVEY", AUTHOR);
+  });
+
+  it("notifies the survey author on a named response", async () => {
+    seedSurvey([{ id: "q1", order: 0 }]);
+
+    await submit(responseForm([{ questionId: "q1", value: "a" }]));
+
+    expect(notifyUserById).toHaveBeenCalledWith({
+      recipientId: AUTHOR,
+      actorId: RESPONDENT,
+      type: "survey-response",
+      targetType: "survey",
+      targetId: "survey-1",
+      title: "Someone posted a response to your survey",
+      body: "Research survey",
+    });
+  });
+
+  it("does NOT notify the author when the response is anonymous", async () => {
+    seedSurvey([{ id: "q1", order: 0 }]);
+
+    await submit(responseForm([{ questionId: "q1", value: "a" }], { isAnonymous: "true" }));
+
+    expect(notifyUserById).not.toHaveBeenCalled();
+  });
+
+  it("does NOT notify the author when the survey is ANONYMOUS", async () => {
+    seedSurvey([{ id: "q1", order: 0 }], { privacy: "ANONYMOUS" });
+
+    await submit(responseForm([{ questionId: "q1", value: "a" }], { isAnonymous: "false" }));
+
+    expect(notifyUserById).not.toHaveBeenCalled();
   });
 
   it("does not award reputation when the write fails part-way", async () => {

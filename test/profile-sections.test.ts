@@ -262,10 +262,10 @@ describe("generated statements cover every section exactly once", () => {
 });
 
 describe("section visibility rules are preserved", () => {
-  it("hides anonymous recommendations and reviews from the content tab", () => {
+  it("hides anonymous recommendations, reviews, supervisors and journals from the content tab", () => {
     const { sql } = buildContentSectionsSql("p", 1);
     expect(sql).toContain(`AND t."isAnonymous" = false`);
-    expect(sql.match(/isAnonymous/g)?.length).toBe(2);
+    expect(sql.match(/isAnonymous/g)?.length).toBe(4);
   });
 
   it("still shows a scholar their own bookmarked anonymous rows", () => {

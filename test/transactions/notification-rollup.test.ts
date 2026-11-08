@@ -108,7 +108,7 @@ describe("TARGETED rollup: same-actor guard", () => {
     await process(targeted("u-alice"));
     expect(unread()).toHaveLength(1);
     expect(unread()[0].count).toBe(1);
-    expect(unread()[0].body).toBe("Ada upvoted your post.");
+    expect(unread()[0].body).toBe("ada upvoted your post.");
   });
 
   it("the SAME actor re-triggering does NOT inflate the count (vote toggling)", async () => {
@@ -127,7 +127,7 @@ describe("TARGETED rollup: same-actor guard", () => {
     expect(unread()).toHaveLength(1);
     expect(unread()[0].count).toBe(2);
     expect(unread()[0].actorId).toBe("u-bob");
-    expect(unread()[0].body).toBe("Ada and 1 other upvoted your post.");
+    expect(unread()[0].body).toBe("ada and 1 other upvoted your post.");
   });
 
   it("guards NEW_FOLLOWER too — refollow loops cannot rack up follows", async () => {

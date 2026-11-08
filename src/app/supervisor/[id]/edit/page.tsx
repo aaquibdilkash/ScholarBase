@@ -25,6 +25,7 @@ export default async function EditSupervisorPage({
       university: true,
       department: true,
       about: true,
+      isAnonymous: true,
     },
   });
 
@@ -47,6 +48,7 @@ export default async function EditSupervisorPage({
           university: supervisor.university,
           department: supervisor.department ?? "",
           about: supervisor.about ?? "",
+          isAnonymous: supervisor.isAnonymous,
         }}
       />
     </CreateOrEditPageShell>

@@ -203,6 +203,10 @@ model Supervisor {
   editedAt        DateTime?
   isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
+  /// When true, the author's identity is hidden on cards and detail pages and
+  /// the row does not count toward the author's `supervisorCount` or activity
+  /// log. Mirrors `Recommendation.isAnonymous`.
+  isAnonymous     Boolean   @default(false)
 
   // Creator/owner of this supervisor profile
   authorId String
@@ -1695,6 +1699,10 @@ model Journal {
   editedAt        DateTime?
   isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)
+  /// When true, the author's identity is hidden on cards and detail pages and
+  /// the row does not count toward the author's `journalCount` or activity
+  /// log. Mirrors `JournalReview.isAnonymous`.
+  isAnonymous     Boolean   @default(false)
 
   subjectArea String?
   frequency   String?

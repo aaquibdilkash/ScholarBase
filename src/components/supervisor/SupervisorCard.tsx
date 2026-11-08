@@ -24,6 +24,7 @@ export function SupervisorCard({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const isOwner = currentUserId === supervisor.authorId;
+  const isAnonymous = supervisor.isAnonymous === true;
   const recommendationCount = supervisor.recommendationCount ?? 0;
 
   const avgRating =
@@ -60,13 +61,14 @@ export function SupervisorCard({
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${supervisor.author?.id}`}
-      authorName={supervisor.author?.name || "Supervisor"}
-      authorId={supervisor.authorId}
-      isFollowing={isFollowing}
+      authorHref={isAnonymous ? undefined : `/scholars/${supervisor.author?.id}`}
+      authorName={isAnonymous ? "Anonymous Scholar" : supervisor.author?.name || "Supervisor"}
+      authorId={isAnonymous ? undefined : supervisor.authorId}
+      isFollowing={isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
-      authorHandle={supervisor.author?.handle || undefined}
-      authorAvatarUrl={supervisor.author?.avatarUrl || undefined} authorVerified={!!(supervisor.author?.institutionVerifiedAt)}
+      authorHandle={isAnonymous ? undefined : supervisor.author?.handle || undefined}
+      authorAvatarUrl={isAnonymous ? null : supervisor.author?.avatarUrl || undefined}
+      authorVerified={!isAnonymous && !!(supervisor.author?.institutionVerifiedAt)}
       isFrozen={supervisor.isFrozen ?? false}
       frozenEntityId={supervisor.id}
       frozenModule="SUPERVISOR"

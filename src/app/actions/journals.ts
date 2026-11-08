@@ -105,6 +105,7 @@ export async function createJournal(formData: FormData) {
     "CiteScore",
     METRIC_BOUNDS.citeScore.max,
   );
+  const isAnonymous = formData.has("isAnonymous");
 
   const journal = await prisma.$transaction(async (tx) => {
     const newJournal = await tx.journal.create({
@@ -127,37 +128,44 @@ export async function createJournal(formData: FormData) {
         subjectArea,
         frequency,
         openAccess: openAccess ? (openAccess as OpenAccessStatus) : undefined,
+        isAnonymous,
         authorId: user.id,
       },
       include: { author: { select: { id: true, name: true, handle: true, avatarUrl: true, institutionVerifiedAt: true, followers: { where: { followerId: user.id }, select: { followerId: true } } } }, votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } } },
     });
 
-    await tx.userActivity.create({
-      data: {
-        userId: user.id,
-        action: "PUBLISHED",
-        moduleType: "JOURNAL",
-        entityId: newJournal.id,
-        entityTitle: newJournal.title,
-      },
-    });
+    // Anonymous content stays out of the author's profile count and activity
+    // log, mirroring `createRecommendation` / `createJournalReview`.
+    if (!isAnonymous) {
+      await tx.userActivity.create({
+        data: {
+          userId: user.id,
+          action: "PUBLISHED",
+          moduleType: "JOURNAL",
+          entityId: newJournal.id,
+          entityTitle: newJournal.title,
+        },
+      });
 
-    await tx.user.update({
-      where: { id: user.id },
-      data: { journalCount: { increment: 1 } },
-    });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { journalCount: { increment: 1 } },
+      });
+    }
 
     return newJournal;
   });
 
-  await notifyFollowersOfActivity({
-    actorId: user.id,
-    type: "content-published",
-    targetType: "Journal",
-    targetId: journal.id,
-    title: `${user.email?.split("@")[0] || "Someone"} added a new journal`,
-    body: `${title}${publisher ? ` by ${publisher}` : ""}`,
-  });
+  if (!isAnonymous) {
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "Journal",
+      targetId: journal.id,
+      title: `${user.email?.split("@")[0] || "Someone"} added a new journal`,
+      body: `${title}${publisher ? ` by ${publisher}` : ""}`,
+    });
+  }
 
   // Purge the cached journal pages: publish must be visible at once, not after the TTL.
   revalidateContent("JOURNAL", user.id);
@@ -208,10 +216,11 @@ export async function updateJournal(formData: FormData, journalId: string) {
     "CiteScore",
     METRIC_BOUNDS.citeScore.max,
   );
+  const isAnonymous = formData.has("isAnonymous");
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },
-    select: { authorId: true },
+    select: { authorId: true, isAnonymous: true },
   });
 
   if (!journal) {
@@ -221,28 +230,76 @@ export async function updateJournal(formData: FormData, journalId: string) {
     throw new Error("Not authorized to edit this journal.");
   }
 
-  const updatedJournal = await prisma.journal.update({
-    where: { id: journalId },
-    data: {
-      title,
-      issn,
-      impactFactor,
-      scopusQuartile: scopusQuartile ? (scopusQuartile as Quartile) : undefined,
-      abdcRanking: abdcRanking ? (abdcRanking as AbdcTier) : undefined,
-      wosIndex: wosIndex ? (wosIndex as WosIndex) : undefined,
-      wosQuartile: wosQuartile ? (wosQuartile as Quartile) : undefined,
-      sjrQuartile: sjrQuartile ? (sjrQuartile as Quartile) : undefined,
-      sjrScore,
-      citeScore,
-      publisher,
-      website: safeWebsite,
-      about,
-      subjectArea,
-      frequency,
-      openAccess: openAccess ? (openAccess as OpenAccessStatus) : undefined,
-      editedAt: new Date(),
-    },
+  const updatedJournal = await prisma.$transaction(async (tx) => {
+    const updated = await tx.journal.update({
+      where: { id: journalId },
+      data: {
+        title,
+        issn,
+        impactFactor,
+        scopusQuartile: scopusQuartile ? (scopusQuartile as Quartile) : undefined,
+        abdcRanking: abdcRanking ? (abdcRanking as AbdcTier) : undefined,
+        wosIndex: wosIndex ? (wosIndex as WosIndex) : undefined,
+        wosQuartile: wosQuartile ? (wosQuartile as Quartile) : undefined,
+        sjrQuartile: sjrQuartile ? (sjrQuartile as Quartile) : undefined,
+        sjrScore,
+        citeScore,
+        publisher,
+        website: safeWebsite,
+        about,
+        subjectArea,
+        frequency,
+        openAccess: openAccess ? (openAccess as OpenAccessStatus) : undefined,
+        isAnonymous,
+        editedAt: new Date(),
+      },
+    });
+
+    // Anonymity toggle: keep the profile counter and activity log honest,
+    // mirroring `updateRecommendation` / `updateJournalReview`.
+    if (!journal.isAnonymous && isAnonymous) {
+      await tx.user.update({
+        where: { id: journal.authorId },
+        data: { journalCount: { decrement: 1 } },
+      });
+      await tx.userActivity.deleteMany({
+        where: {
+          userId: journal.authorId,
+          action: "PUBLISHED",
+          moduleType: "JOURNAL",
+          entityId: journalId,
+        },
+      });
+    } else if (journal.isAnonymous && !isAnonymous) {
+      await tx.user.update({
+        where: { id: journal.authorId },
+        data: { journalCount: { increment: 1 } },
+      });
+      await tx.userActivity.create({
+        data: {
+          userId: journal.authorId,
+          action: "PUBLISHED",
+          moduleType: "JOURNAL",
+          entityId: journalId,
+          entityTitle: updated.title,
+        },
+      });
+    }
+
+    return updated;
   });
+
+  // Re-announce to followers now the row is public again — mirrors createJournal.
+  if (journal.isAnonymous && !isAnonymous) {
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "Journal",
+      targetId: journalId,
+      title: `${user.email?.split("@")[0] || "Someone"} added a new journal`,
+      body: `${title}${publisher ? ` by ${publisher}` : ""}`,
+    });
+  }
 
   // Purge the cached journal pages: edit must be visible at once, not after the TTL.
   revalidateContent("JOURNAL", journal.authorId);
@@ -257,7 +314,7 @@ export async function deleteJournal(journalId: string) {
 
   const journal = await prisma.journal.findUnique({
     where: { id: journalId },
-    select: { authorId: true, totalVotes: true, totalComments: true, reviewCount: true },
+    select: { authorId: true, totalVotes: true, totalComments: true, reviewCount: true, isAnonymous: true },
   });
 
   if (!journal) {
@@ -276,7 +333,9 @@ export async function deleteJournal(journalId: string) {
 
      await tx.user.update({
        where: { id: journal.authorId },
-       data: { journalCount: { decrement: 1 } },
+       data: {
+         ...(journal.isAnonymous ? {} : { journalCount: { decrement: 1 } }),
+       },
      });
 
      if (journal.totalVotes !== 0) {
@@ -361,6 +420,7 @@ export const getJournalById = cache(
         totalBookmarks: true,
         isFrozen: true,
         hasActiveAppeal: true,
+        isAnonymous: true,
         isDeleted: true,
         deletedByType: true,
         totalComments: true,

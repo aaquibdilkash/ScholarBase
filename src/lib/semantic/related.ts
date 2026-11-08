@@ -110,6 +110,34 @@ async function findRelatedMatches(
   }));
 }
 
+/**
+ * Author fields for a related row. Anonymous content must not leak its author
+ * through the sidebar, mirroring the card and detail-page contract; every
+ * other module renders the real author.
+ */
+function relatedAuthor(row: {
+  isAnonymous?: boolean;
+  author?: {
+    name: string | null;
+    handle: string | null;
+    avatarUrl: string | null;
+  } | null;
+}): Pick<HydratedItem, "avatarUrl" | "authorName" | "authorHandle"> {
+  if (row.isAnonymous === true) {
+    return {
+      avatarUrl: null,
+      authorName: "Anonymous Scholar",
+      authorHandle: undefined,
+    };
+  }
+
+  return {
+    avatarUrl: row.author?.avatarUrl ?? null,
+    authorName: row.author?.name ?? undefined,
+    authorHandle: row.author?.handle ?? undefined,
+  };
+}
+
 function setItem(
   items: Map<string, HydratedItem>,
   id: string,
@@ -355,6 +383,7 @@ async function hydrateItems(
           id: true,
           title: true,
           publisher: true,
+          isAnonymous: true,
           author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
       });
@@ -362,9 +391,7 @@ async function hydrateItems(
       for (const row of rows) {
         setItem(items, row.id, `/journals/${row.id}`, row.title, {
           subtitle: row.publisher ?? undefined,
-          avatarUrl: row.author?.avatarUrl ?? null,
-          authorName: row.author?.name ?? undefined,
-          authorHandle: row.author?.handle ?? undefined,
+          ...relatedAuthor(row),
         });
       }
       break;
@@ -486,6 +513,7 @@ async function hydrateItems(
           name: true,
           university: true,
           department: true,
+          isAnonymous: true,
           author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
       });
@@ -493,9 +521,7 @@ async function hydrateItems(
       for (const row of rows) {
         setItem(items, row.id, `/supervisor/${row.id}`, row.name, {
           subtitle: `${row.university} · ${row.department}`,
-          avatarUrl: row.author?.avatarUrl ?? null,
-          authorName: row.author?.name ?? undefined,
-          authorHandle: row.author?.handle ?? undefined,
+          ...relatedAuthor(row),
         });
       }
       break;
@@ -508,6 +534,7 @@ async function hydrateItems(
           id: true,
           feedback: true,
           supervisorId: true,
+          isAnonymous: true,
           supervisor: { select: { name: true } },
           author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
@@ -521,9 +548,7 @@ async function hydrateItems(
           excerpt(row.feedback) || "Recommendation",
           {
             subtitle: row.supervisor.name,
-            avatarUrl: row.author?.avatarUrl ?? null,
-            authorName: row.author?.name ?? undefined,
-            authorHandle: row.author?.handle ?? undefined,
+            ...relatedAuthor(row),
           },
         );
       }
@@ -537,6 +562,7 @@ async function hydrateItems(
           id: true,
           feedback: true,
           journalId: true,
+          isAnonymous: true,
           journal: { select: { title: true } },
           author: { select: { id: true, name: true, handle: true, avatarUrl: true } },
         },
@@ -550,9 +576,7 @@ async function hydrateItems(
           excerpt(row.feedback) || "Journal review",
           {
             subtitle: row.journal.title,
-            avatarUrl: row.author?.avatarUrl ?? null,
-            authorName: row.author?.name ?? undefined,
-            authorHandle: row.author?.handle ?? undefined,
+            ...relatedAuthor(row),
           },
         );
       }

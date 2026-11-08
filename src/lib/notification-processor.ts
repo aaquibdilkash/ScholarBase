@@ -21,6 +21,7 @@ const ROLLUP_TYPES = new Set([
   "NEW_REPLY",
   "NEW_FOLLOWER",
   "NEW_VOTE",
+  "survey-response",
 ]);
 
 
@@ -44,6 +45,8 @@ function formatRollupBody(
         return `${actorName} started following you.`;
       case "NEW_VOTE":
         return `${actorName} upvoted your ${noun}.`;
+      case "survey-response":
+        return `${actorName} posted a response to your survey.`;
     }
   }
 
@@ -57,6 +60,8 @@ function formatRollupBody(
       return `${actorName} and ${suffix} started following you.`;
     case "NEW_VOTE":
       return `${actorName} and ${suffix} upvoted your ${noun}.`;
+    case "survey-response":
+      return `${actorName} and ${suffix} posted a response to your survey.`;
     default:
       return fallback;
   }
@@ -87,7 +92,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
       where: { id: payload.actorId },
       select: { name: true, handle: true },
     });
-    const actorName = actor?.name || actor?.handle || "A researcher";
+    const actorName = actor?.handle || actor?.name || "A researcher";
     const title = payload.type === "content-published"
       ? formatPublishedContentTitle(payload.title, actorName, payload.targetType)
       : formatPublishedContentTitle(payload.title, actorName, "");
@@ -171,7 +176,7 @@ export async function processNotificationPayload(payload: NotificationPayload) {
       where: { id: payload.actorId },
       select: { name: true, handle: true },
     });
-    const actorName = actor?.name || actor?.handle || "A researcher";
+    const actorName = actor?.handle || actor?.name || "A researcher";
     const title = payload.type === "content-published"
       ? formatPublishedContentTitle(payload.title, actorName, payload.targetType)
       : formatPublishedContentTitle(payload.title, actorName, "");

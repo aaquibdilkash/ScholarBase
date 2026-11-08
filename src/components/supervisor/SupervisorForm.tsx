@@ -17,6 +17,7 @@ import {
   SUPERVISOR_UNIVERSITY_TIP,
   SUPERVISOR_DEPARTMENT_TIP,
   SUPERVISOR_ABOUT_TIP,
+  SUPERVISOR_ANONYMOUS_TIP,
 } from "@/constants/tooltips";
 import {
   MAX_SUPERVISOR_NAME,
@@ -31,6 +32,7 @@ export type SupervisorFormValues = {
   university: string;
   department?: string;
   about?: string;
+  isAnonymous: boolean;
 };
 
 export default function SupervisorForm({
@@ -48,6 +50,7 @@ export default function SupervisorForm({
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
     about: initialValues?.about ?? "",
+    isAnonymous: initialValues?.isAnonymous ?? false,
   };
 
   const draftKey = mode === "edit" ? null : "draft_supervisor_create";
@@ -177,6 +180,25 @@ export default function SupervisorForm({
         />
         <input type="hidden" name="about" value={draftFields.about} />
       </div>
+
+      <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
+        <input
+          type="checkbox"
+          name="isAnonymous"
+          checked={draftFields.isAnonymous}
+          onChange={(e) => updateDraftField("isAnonymous", e.target.checked)}
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        />
+        <span>
+          <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1.5">
+            Post anonymously
+            <InfoTooltip message={SUPERVISOR_ANONYMOUS_TIP} />
+          </span>
+          <span className="block text-xs text-slate-500 dark:text-slate-400">
+            Other scholars will see the supervisor profile, but your name will stay hidden.
+          </span>
+        </span>
+      </label>
 
       <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
         <FormCancelButton />

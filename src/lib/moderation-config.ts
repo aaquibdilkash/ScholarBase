@@ -110,7 +110,12 @@ export const COMMENT_TOP_LEVEL: Record<string, { model: string; fk: string }> = 
  * restored on recover either. Reputation is still reversed for these: it is
  * vote-derived, and anonymous authors still earn votes.
  */
-export const ANONYMOUS_CONTENT_TYPES = new Set(["recommendation", "journalReview"]);
+export const ANONYMOUS_CONTENT_TYPES = new Set([
+  "recommendation",
+  "journalReview",
+  "supervisor",
+  "journal",
+]);
 
 /**
  * Materialized author counter per content type. `null` means the row IS the

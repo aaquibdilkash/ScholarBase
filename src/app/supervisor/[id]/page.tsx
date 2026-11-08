@@ -45,7 +45,11 @@ export async function generateMetadata({
     ).replace(/<[^>]*>/g, " "),
     path: `/supervisor/${supervisor.id}`,
     type: "profile",
-    author: supervisor.author?.name || undefined,
+    // Anonymous supervisors must not leak the author through metadata
+    // (og:author / JSON-LD), mirroring the card and detail-page contract.
+    author: supervisor.isAnonymous
+      ? undefined
+      : supervisor.author?.name || undefined,
     publishedTime: supervisor.createdAt,
     section: "Supervisors",
   });
@@ -133,14 +137,32 @@ export default async function SupervisorPage({
       frozenHasActiveAppeal={supervisor.hasActiveAppeal ?? false}
       backHref="/supervisor"
       backLabel="Back to Search"
-      authorId={supervisor.authorId}
-      isFollowing={isFollowing}
+      authorId={supervisor.isAnonymous ? undefined : supervisor.authorId}
+      isFollowing={supervisor.isAnonymous ? false : isFollowing}
       currentUserId={user?.id}
-      authorHref={`/scholars/${supervisor.authorId}`}
-      authorName={supervisor.author?.name || "Scholar"}
-      authorHandle={supervisor.author?.handle || undefined}
-      authorAvatarUrl={supervisor.author?.avatarUrl || undefined}
-      authorVerified={!!supervisor.author?.institutionVerifiedAt}
+      authorHref={
+        supervisor.isAnonymous
+          ? undefined
+          : `/scholars/${supervisor.authorId}`
+      }
+      authorName={
+        supervisor.isAnonymous
+          ? "Anonymous Scholar"
+          : supervisor.author?.name || "Scholar"
+      }
+      authorHandle={
+        supervisor.isAnonymous
+          ? undefined
+          : supervisor.author?.handle || undefined
+      }
+      authorAvatarUrl={
+        supervisor.isAnonymous
+          ? null
+          : supervisor.author?.avatarUrl || undefined
+      }
+      authorVerified={
+        !supervisor.isAnonymous && !!supervisor.author?.institutionVerifiedAt
+      }
       createdDate={supervisor.createdAt}
       footerBookmarkButton={
         <BookmarkButton
@@ -184,12 +206,19 @@ export default async function SupervisorPage({
           targetId={supervisor.id}
           module="supervisor"
           currentUserId={user?.id ?? null}
-          postAuthorId={supervisor.authorId}
+          postAuthorId={
+            supervisor.isAnonymous ? undefined : supervisor.authorId
+          }
         />
       }
     >
       <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 lg:p-10 mb-6 sm:mb-8">
         <div className="min-w-0 w-full">
+          {supervisor.isAnonymous ? (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Anonymous supervisor
+            </p>
+          ) : null}
           <div className="flex min-w-0 w-full flex-row items-start justify-between gap-4 sm:gap-6">
             <div className="min-w-0 flex-1">
               <h1 className="max-w-full break-words text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight mb-1.5 sm:mb-2 [overflow-wrap:anywhere]">

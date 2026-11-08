@@ -135,13 +135,13 @@ const JournalDetailPage = async ({
       frozenHasActiveAppeal={j.hasActiveAppeal ?? false}
       backHref="/journals"
       backLabel="Back to Journals"
-      authorHref={`/scholars/${j.author?.id}`}
-      authorName={j.author?.name || "Scholar"}
-      authorHandle={j.author?.handle || undefined}
-      authorAvatarUrl={j.author?.avatarUrl || undefined}
-      authorVerified={!!j.author?.institutionVerifiedAt}
-      authorId={j.author?.id}
-      isFollowing={!!j.author?.followers?.length}
+      authorHref={j.isAnonymous ? undefined : `/scholars/${j.author?.id}`}
+      authorName={j.isAnonymous ? "Anonymous Scholar" : j.author?.name || "Scholar"}
+      authorHandle={j.isAnonymous ? undefined : j.author?.handle || undefined}
+      authorAvatarUrl={j.isAnonymous ? null : j.author?.avatarUrl || undefined}
+      authorVerified={!j.isAnonymous && !!j.author?.institutionVerifiedAt}
+      authorId={j.isAnonymous ? undefined : j.author?.id}
+      isFollowing={j.isAnonymous ? false : !!j.author?.followers?.length}
       currentUserId={user?.id}
       createdDate={j.createdAt}
       editedDate={
@@ -188,12 +188,17 @@ const JournalDetailPage = async ({
           targetId={j.id}
           module="journal"
           currentUserId={user?.id ?? null}
-          postAuthorId={j.author?.id}
+          postAuthorId={j.isAnonymous ? undefined : j.author?.id}
         />
       }
     >
       <div className="flex min-w-0 w-full flex-row items-center justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
         <div className="min-w-0 flex-1">
+          {j.isAnonymous ? (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              Anonymous journal
+            </p>
+          ) : null}
           <h1 className="max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
             {j.title}
           </h1>
