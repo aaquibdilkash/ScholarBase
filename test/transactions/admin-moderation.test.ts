@@ -376,3 +376,37 @@ describe("admin moderation purges the module's cached list", () => {
   });
 });
 
+describe("admin DELETE clears the pending-report counter", () => {
+  it.each(CONTENT_TYPES)(
+    "resets %s reportCount so the list matches the empty reports drawer",
+    async (type) => {
+      seedAuthor();
+      seedContent(MODEL_MAP[type].model, { reportCount: 1 });
+
+      const result = await moderateContent("DELETE", type, CONTENT_ID);
+
+      expect(content(MODEL_MAP[type].model).reportCount).toBe(0);
+      expect(result).toMatchObject({ data: { reportCount: 0 } });
+    },
+  );
+
+  it("resets a comment's reportCount on admin delete", async () => {
+    seedAuthor();
+    fakeDb.seed("socialComment", {
+      id: "cm-1",
+      authorId: AUTHOR,
+      totalVotes: 0,
+      isDeleted: false,
+      isFrozen: false,
+      reportCount: 1,
+    });
+
+    await moderateContent("DELETE", "socialComment", "cm-1");
+
+    const comment = fakeDb
+      .rows("socialComment")
+      .find((row) => row.id === "cm-1") as Record<string, unknown>;
+    expect(comment.reportCount).toBe(0);
+  });
+});
+

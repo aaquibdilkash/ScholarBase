@@ -769,6 +769,10 @@ export async function moderateContent(
               isFrozen: true,
               deletedByType: "ADMIN",
               deletedById: user.id,
+              // The pending reports are dismissed below; the materialized
+              // counter has to follow, or the admin list keeps showing "1"
+              // while the drawer correctly says "No pending reports".
+              reportCount: 0,
             },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
           await tx.report.updateMany({
@@ -788,7 +792,11 @@ export async function moderateContent(
             user.id,
             deletedCommentNotice,
           );
-          return { action, success: true, data: updated };
+          return {
+            action,
+            success: true,
+            data: { ...updated, reportCount: 0 },
+          };
         }
 
         case "RECOVER": {
@@ -1101,6 +1109,9 @@ export async function moderateContent(
             isFrozen: true,
             deletedByType: "ADMIN",
             deletedById: user.id,
+            // Pending reports are dismissed below; reset the materialized
+            // counter so the admin list and the reports drawer agree.
+            reportCount: 0,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
         await tx.report.updateMany({
@@ -1121,7 +1132,11 @@ export async function moderateContent(
           user.id,
           deletedNotice,
         );
-        return { action, success: true, data: updated };
+        return {
+          action,
+          success: true,
+          data: { ...updated, reportCount: 0 },
+        };
       }
 
       case "RECOVER": {

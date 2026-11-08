@@ -76,8 +76,10 @@ vi.mock("@/components/interactions/MentionComposer", () => ({
   MentionComposer: () => null,
   renderMentionContent: (content: string) => content,
 }));
+let mockUserFrozen = true;
+
 vi.mock("@/components/interactions/FrozenUserProvider", () => ({
-  useIsFrozen: () => true,
+  useIsFrozen: () => mockUserFrozen,
 }));
 
 const AUTHOR_ID = "u-frozen-owner";
@@ -112,6 +114,7 @@ describe("CommentThread for a frozen account", () => {
   let root: Root;
 
   beforeEach(() => {
+    mockUserFrozen = true;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -172,5 +175,33 @@ describe("CommentThread for a frozen account", () => {
     await draw({ ...COMMENT, isFrozen: true });
 
     expect(actions()).toHaveLength(0);
+  });
+
+  it("does not offer Reply on a reply under a frozen root comment", async () => {
+    // The viewer is NOT frozen here; only the thread's root comment is. The
+    // server walks the ancestor chain and rejects a reply to any frozen comment,
+    // so the reply card must not offer the action either.
+    mockUserFrozen = false;
+    const reply = {
+      ...COMMENT,
+      id: "c-2",
+      content: "a reply",
+      parentId: COMMENT.id,
+      authorId: "u-other",
+      author: {
+        id: "u-other",
+        name: "Other Scholar",
+        handle: "other_scholar",
+        avatarUrl: null,
+        institutionVerifiedAt: null,
+      },
+    } as CommentWithAuthorAndVotes;
+
+    await draw({ ...COMMENT, isFrozen: true, totalReplies: 1, replies: [reply] });
+
+    // The frozen root hides its own menu; the reply menu renders but must not
+    // expose Reply.
+    expect(actions()).toHaveLength(1);
+    expect(actions()[0]?.getAttribute("data-can-reply")).toBe("false");
   });
 });

@@ -12,10 +12,11 @@
  * prolific scholar's first item costs an index seek, not a full scan.
  *
  * Every statement here is VIEWER-AGNOSTIC. The viewer's vote, bookmark and
- * follow state is resolved separately by `fetchProfileSectionsOverlay`, in one
- * statement, and folded in by the pure `applySectionsOverlay`. That split is
- * what lets `tri-split/modules/profile-tab` cache the row half: a payload with
- * no identity in it is shareable by every visitor of a profile, and the state
+ * follow state — plus the rows' moderation flags — is resolved separately by
+ * `fetchProfileSectionsOverlay`, in one statement, and folded in by the pure
+ * `applySectionsOverlay`. That split is what lets
+ * `tri-split/modules/profile-tab` cache the row half: a payload with no
+ * identity in it is shareable by every visitor of a profile, and the state
  * that must never be stale still costs one query per page load.
  *
  * Why it is safe: every table and column name is interpolated as an identifier
@@ -35,6 +36,7 @@ import prisma from "@/lib/db";
 import type { ProfileSection } from "@/lib/module-registry";
 import { dateKeysForModel } from "@/lib/tri-split/dates";
 import {
+  MODERATION_STATE_KEYS,
   stitchLiveState,
   type LiveOverlay,
   type StitchOptions,
@@ -287,31 +289,39 @@ export function buildBookmarkSectionsSql(
  * Sections with no rows on this page emit no branch at all, so the statement
  * costs one index seek per section that actually has a row — and nothing for
  * the other sixteen.
+ *
+ * Moderation flags are fetched even for signed-out visitors: a deleted or
+ * frozen row must not survive in a cached batch just because the viewer is
+ * anonymous. Vote / bookmark / follow branches are viewer-only.
  */
 export function buildSectionsOverlaySql(
   rowIds: SectionRowIds,
   authorIds: string[],
-  viewerId: string,
+  viewerId: string | null,
 ): Prisma.Sql {
   const populated = SECTIONS.filter((section) => (rowIds[section]?.length ?? 0) > 0);
 
-  const voteBranches = populated.map((section) => {
-    const config = ENTITY_CONFIG[SECTION_MODULE[section]];
-    return Prisma.sql`SELECT ${section}::text AS "section",
+  const voteBranches = viewerId
+    ? populated.map((section) => {
+        const config = ENTITY_CONFIG[SECTION_MODULE[section]];
+        return Prisma.sql`SELECT ${section}::text AS "section",
         v.${Prisma.raw(ident(config.parentFk))} AS "rowId", v."voteType"
       FROM ${Prisma.raw(ident(pascal(config.voteModel)))} v
       WHERE v."userId" = ${viewerId}
         AND v.${Prisma.raw(ident(config.parentFk))} IN (${Prisma.join(rowIds[section])})`;
-  });
+      })
+    : [];
 
-  const bookmarkBranches = populated.map((section) => {
-    const config = ENTITY_CONFIG[SECTION_MODULE[section]];
-    return Prisma.sql`SELECT ${section}::text AS "section",
+  const bookmarkBranches = viewerId
+    ? populated.map((section) => {
+        const config = ENTITY_CONFIG[SECTION_MODULE[section]];
+        return Prisma.sql`SELECT ${section}::text AS "section",
         b.${Prisma.raw(ident(config.parentFk))} AS "rowId", b."id"
       FROM ${Prisma.raw(ident(pascal(config.bookmarkModel)))} b
       WHERE b."userId" = ${viewerId}
         AND b.${Prisma.raw(ident(config.parentFk))} IN (${Prisma.join(rowIds[section])})`;
-  });
+      })
+    : [];
 
   const votesSql = voteBranches.length
     ? Prisma.sql`COALESCE(
@@ -327,11 +337,32 @@ export function buildSectionsOverlaySql(
       ) AS "bookmarks"`
     : Prisma.sql`'[]'::json AS "bookmarks"`;
 
+  // Moderation flags for the cached rows, regardless of viewer. A row deleted
+  // or frozen after the batch was cached must not wait for the TTL to reflect it.
+  const stateColumns = MODERATION_STATE_KEYS.map(
+    (key) => `'${key}', p.${ident(key)}`,
+  ).join(", ");
+  const stateBranches = populated.map((section) => {
+    const config = ENTITY_CONFIG[SECTION_MODULE[section]];
+    return Prisma.sql`SELECT ${section}::text AS "section",
+        p.${Prisma.raw(ident("id"))} AS "rowId",
+        jsonb_build_object(${Prisma.raw(stateColumns)}) AS "state"
+      FROM ${Prisma.raw(ident(pascal(config.model)))} p
+      WHERE p.${Prisma.raw(ident("id"))} IN (${Prisma.join(rowIds[section])})`;
+  });
+
+  const statesSql = stateBranches.length
+    ? Prisma.sql`COALESCE(
+        (SELECT jsonb_agg(t) FROM (${Prisma.join(stateBranches, "\n          UNION ALL\n          ")}) t),
+        '[]'::jsonb
+      ) AS "states"`
+    : Prisma.sql`'[]'::jsonb AS "states"`;
+
   // The bookmark tab lists other people's posts, so follow state is per author
   // and resolved against the distinct author ids on this page. The content tab
   // has a single author, which collapses to a one-element list.
   const followingSql =
-    authorIds.length > 0
+    viewerId && authorIds.length > 0
       ? Prisma.sql`COALESCE(
           (SELECT json_agg(f."followingId") FROM "Follows" f
             WHERE f."followerId" = ${viewerId}
@@ -340,7 +371,7 @@ export function buildSectionsOverlaySql(
         ) AS "following"`
       : Prisma.sql`'[]'::json AS "following"`;
 
-  return Prisma.sql`SELECT ${votesSql}, ${bookmarksSql}, ${followingSql}`;
+  return Prisma.sql`SELECT ${votesSql}, ${bookmarksSql}, ${followingSql}, ${statesSql}`;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -546,41 +577,53 @@ export type ProfileSectionsOverlay = {
   votes: Map<Section, Map<string, VoteType>>;
   bookmarks: Map<Section, Map<string, string>>;
   following: Set<string>;
+  /**
+   * Live moderation flags per row. Present even for signed-out visitors, so a
+   * cached row that was deleted or frozen after the batch was written cannot
+   * stay visible or interactive.
+   */
+  states: Map<Section, Map<string, Record<string, unknown>>>;
 };
 
 export const EMPTY_SECTIONS_OVERLAY: ProfileSectionsOverlay = {
   votes: new Map(),
   bookmarks: new Map(),
   following: new Set(),
+  states: new Map(),
 };
 
 type RawOverlayRow = {
   votes: unknown;
   bookmarks: unknown;
   following: unknown;
+  states: unknown;
 };
 
 const asArray = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
 
 /**
- * Resolves the viewer's votes, bookmarks and follows for one page of tab rows.
+ * Resolves the viewer's votes, bookmarks and follows — and the moderation flags
+ * that every viewer must see — for one page of tab rows.
  *
  * Split out of the section statements precisely so the cached half carries no
  * identity: the cached payload is then shareable by every visitor, while the
  * state that must never be stale still costs exactly one statement.
  *
- * Returns {@link EMPTY_SECTIONS_OVERLAY} without querying when there is no
- * viewer or nothing on the page — an anonymous visitor cannot express any of
- * this state, so the statement would be pure waste.
+ * An anonymous visitor cannot express vote / bookmark / follow state, so those
+ * branches are omitted; moderation flags are still read, because a deleted row
+ * must disappear for signed-out readers too.
+ *
+ * Returns {@link EMPTY_SECTIONS_OVERLAY} without querying when the page has no
+ * rows at all.
  */
 export async function fetchProfileSectionsOverlay(
   rowIds: SectionRowIds,
   authorIds: string[],
   viewerId: string | null,
 ): Promise<ProfileSectionsOverlay> {
-  if (!viewerId) return EMPTY_SECTIONS_OVERLAY;
-  if (authorIds.length === 0) return EMPTY_SECTIONS_OVERLAY;
+  const hasRows = SECTIONS.some((section) => (rowIds[section]?.length ?? 0) > 0);
+  if (!hasRows) return EMPTY_SECTIONS_OVERLAY;
 
   const rows = await prisma.$queryRaw<RawOverlayRow[]>(
     buildSectionsOverlaySql(rowIds, authorIds, viewerId),
@@ -611,10 +654,21 @@ export async function fetchProfileSectionsOverlay(
     bookmarks.set(section, forSection);
   }
 
+  const states = new Map<Section, Map<string, Record<string, unknown>>>();
+  for (const entry of asArray(row.states)) {
+    const section = entry.section as Section;
+    if (!(section in rowIds)) continue;
+    const values = (entry.state ?? {}) as Record<string, unknown>;
+    const forSection = states.get(section) ?? new Map();
+    forSection.set(String(entry.rowId), values);
+    states.set(section, forSection);
+  }
+
   return {
     votes,
     bookmarks,
     following: new Set(asArray(row.following).map(String)),
+    states,
   };
 }
 
@@ -639,15 +693,16 @@ const SECTION_STITCH_OPTIONS: StitchOptions<
 };
 
 /**
- * Folds viewer state into a page of section rows.
+ * Folds live state into a page of section rows.
  *
  * Delegates to the shared `stitchLiveState` — the same fold the Tri-Split list
  * pages use — so the identity contract has exactly ONE implementation: the
  * cached half supplies the rows, the overlay supplies everything
- * identity-bearing, and a stale cache can never revert a vote, a bookmark or a
- * follow button. This function used to re-implement that fold inline, which
- * meant any bug fixed in the list path (e.g. emitting empty arrays instead of
- * `undefined` for signed-out viewers) silently skipped the profile tabs.
+ * identity-bearing, and a stale cache can never revert a vote, a bookmark, a
+ * follow button, or a moderation flag. This function used to re-implement that
+ * fold inline, which meant any bug fixed in the list path (e.g. emitting empty
+ * arrays instead of `undefined` for signed-out viewers) silently skipped the
+ * profile tabs.
  *
  * The only difference from a list page is the *shape*: rows arrive grouped by
  * section, so the per-section Maps are adapted to `stitchLiveState`'s flat
@@ -666,6 +721,7 @@ export function applySectionsOverlay(
   for (const section of SECTIONS) {
     const votesByRow = overlay.votes.get(section);
     const bookmarksByRow = overlay.bookmarks.get(section);
+    const statesByRow = overlay.states.get(section);
 
     const liveOverlay: LiveOverlay = {
       viewerId,
@@ -680,6 +736,9 @@ export function applySectionsOverlay(
         : [],
       following,
       counters: [],
+      states: statesByRow
+        ? [...statesByRow].map(([id, values]) => ({ id, values }))
+        : [],
     };
 
     out[section] = stitchLiveState(

@@ -51,10 +51,19 @@ function renderTitle(item: AdminContentItem): ReactNode {
 
 /** Author / owner cell — always links to the scholar's public profile. */
 function renderPerson(
-  person: { id: string; name: string | null; email: string | null } | null | undefined,
+  person: {
+    id: string;
+    name: string | null;
+    handle?: string | null;
+    email: string | null;
+  } | null | undefined,
 ): ReactNode {
   if (!person) return "Unknown";
-  const label = person.name || person.email || "Unknown";
+  // Prefer the unique handle over the mutable display name so admins can tell
+  // same-named scholars apart (and match what the rest of the app shows).
+  const label = person.handle
+    ? `@${person.handle}`
+    : person.name || person.email || "Unknown";
   return (
     <Link
       prefetch={false}

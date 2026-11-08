@@ -14,7 +14,7 @@ import { isSearchableQuery } from "@/lib/search-guard";
 
 import { createTriSplitList, type TriSplitLoader } from "./index";
 import { reviveDates } from "./cache";
-import type { StitchOptions } from "./stitch";
+import { MODERATION_STATE_KEYS, type StitchOptions } from "./stitch";
 
 /** The counter triple every content module materializes. */
 export const CONTENT_COUNTER_KEYS = [
@@ -132,6 +132,7 @@ type ListOverlay = {
   bookmark: string | null;
   rowFk?: string;
   counterKeys: readonly string[];
+  stateKeys?: readonly string[];
 };
 
 /** Everything the two public builders below have in common. */
@@ -209,6 +210,7 @@ export function createContentList(
       bookmark: tableName(config.bookmarkModel),
       rowFk: config.parentFk,
       counterKeys,
+      stateKeys: MODERATION_STATE_KEYS,
     },
   });
 }
@@ -238,6 +240,9 @@ export function createDirectoryList(
       vote: null,
       bookmark: null,
       counterKeys,
+      // A tombstoned profile must leave the directory immediately, not at the
+      // cached batch's TTL.
+      stateKeys: MODERATION_STATE_KEYS,
     },
   });
 }

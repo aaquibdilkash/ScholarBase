@@ -160,7 +160,7 @@ export function AdminActionsDropdown({
           : action === "UNFREEZE"
             ? { isFrozen: false }
             : action === "DELETE"
-              ? { isDeleted: true, isFrozen: true }
+              ? { isDeleted: true, isFrozen: true, reportCount: 0 }
               : action === "RECOVER"
                 ? { isDeleted: false, isFrozen: false, hasActiveAppeal: false }
                 : action === "DISMISS_APPEAL"

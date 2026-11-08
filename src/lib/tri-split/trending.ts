@@ -37,6 +37,7 @@ import prisma from "@/lib/db";
 import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
 
 import { createCachedPage } from "./cache";
+import { MODERATION_STATE_KEYS } from "./stitch";
 import { dateKeysForModel, pascal } from "./dates";
 import { getLiveOverlay } from "./overlay";
 import { stitchLiveState, type StitchOptions } from "./stitch";
@@ -136,6 +137,7 @@ export function createContentTrending(args: {
           bookmark: pascal(config.bookmarkModel),
           rowFk: config.parentFk,
           counterKeys: TRENDING_COUNTER_KEYS,
+          stateKeys: MODERATION_STATE_KEYS,
         },
       );
 
@@ -215,6 +217,7 @@ export function createScholarsTrending(): TrendingLoader<Record<string, unknown>
           vote: null,
           bookmark: null,
           counterKeys: ["reputation", "followersCount", "followingCount"],
+          stateKeys: MODERATION_STATE_KEYS,
         },
       );
 

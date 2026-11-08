@@ -212,13 +212,27 @@ describe("the live overlay statement", () => {
       "viewer",
     );
 
-    // `articles` binds its key twice (vote branch + bookmark branch) and every
-    // other section binds its key zero times.
-    expect(values.filter((v) => v === "articles")).toHaveLength(2);
+    // `articles` binds its key once per branch (vote + bookmark + moderation
+    // state) and every other section binds its key zero times.
+    expect(values.filter((v) => v === "articles")).toHaveLength(3);
     for (const section of PROFILE_SECTION_KEYS) {
       if (section === "articles") continue;
       expect(values, section).not.toContain(section);
     }
+  });
+
+  it("still reads moderation state for a signed-out viewer", () => {
+    // A deleted or frozen row must not survive in a cached batch just because
+    // nobody is signed in. Only viewer-specific branches disappear.
+    const { sql, values } = buildSectionsOverlaySql(rowIds, [], null);
+    expect(sql).toContain(`p."isFrozen"`);
+    expect(sql).toContain(`p."isDeleted"`);
+    expect(sql).toContain(`p."hasActiveAppeal"`);
+    expect(sql).toContain(`p."deletedByType"`);
+    expect(sql).not.toContain('FROM "Follows"');
+    expect(values).toContain("row-a");
+    // No viewer id is bound, because there is none.
+    expect(values.filter((v) => v === null)).toHaveLength(0);
   });
 
   it("resolves follow state against the authors actually on the page", () => {
@@ -414,6 +428,7 @@ const overlayOf = (
   votes: new Map(),
   bookmarks: new Map(),
   following: new Set(),
+  states: new Map(),
   ...partial,
 });
 
@@ -508,6 +523,57 @@ describe("applySectionsOverlay", () => {
     expect(
       Object.prototype.hasOwnProperty.call(cached.author, "followers"),
     ).toBe(false);
+  });
+
+  it("overlays live moderation flags so a stale profile row is never interactive", () => {
+    const sections = payloadWith("articles", [row("a1")]);
+    const overlay = overlayOf({
+      states: new Map([
+        [
+          "articles",
+          new Map([
+            [
+              "a1",
+              {
+                isFrozen: true,
+                isDeleted: false,
+                hasActiveAppeal: true,
+                deletedByType: "ADMIN",
+              },
+            ],
+          ]),
+        ],
+      ]),
+    });
+
+    const [only] = applySectionsOverlay(sections, overlay, "viewer-1").articles;
+    expect(only.isFrozen).toBe(true);
+    expect(only.hasActiveAppeal).toBe(true);
+    expect(only.deletedByType).toBe("ADMIN");
+  });
+
+  it("drops a profile row the live overlay reports as deleted", () => {
+    const sections = payloadWith("articles", [row("a1"), row("a2")]);
+    const overlay = overlayOf({
+      states: new Map([
+        [
+          "articles",
+          new Map([
+            ["a1", { isDeleted: true }],
+            ["a2", { isDeleted: false }],
+          ]),
+        ],
+      ]),
+    });
+
+    const items = applySectionsOverlay(sections, overlay, "viewer-1").articles;
+    expect(items.map((item) => item.id)).toEqual(["a2"]);
+  });
+
+  it("keeps every row when no moderation state was overlaid", () => {
+    const sections = payloadWith("articles", [row("a1"), row("a2")]);
+    const items = applySectionsOverlay(sections, overlayOf(), "viewer-1").articles;
+    expect(items).toHaveLength(2);
   });
 
   it("returns an empty row list for every section when there are no rows", () => {

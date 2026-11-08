@@ -101,6 +101,24 @@ export async function createRecommendation(
   const user = auth.user;
   await enforceRateLimit({ namespace: "recommendation:create", key: user.id, limit: 10, window: "10 m" });
 
+  // A frozen supervisor profile is read-only, exactly like frozen posts: the
+  // banner promises that interactions are disabled, so recommendations must be
+  // rejected here too (not only in the UI).
+  const supervisor = await prisma.supervisor.findUnique({
+    where: { id: supervisorId, isDeleted: false },
+    select: { isFrozen: true },
+  });
+  if (!supervisor) {
+    return { success: false, error: "Supervisor not found." };
+  }
+  if (supervisor.isFrozen) {
+    return {
+      success: false,
+      error:
+        "This supervisor is frozen by moderators and cannot receive recommendations.",
+    };
+  }
+
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);

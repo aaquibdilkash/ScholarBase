@@ -137,6 +137,7 @@ export type AdminContentItem = {
   author?: {
     id: string;
     name: string | null;
+    handle?: string | null;
     email: string | null;
   } | null;
   /** Appeals-specific: the underlying content entity ID (not the appeal row ID). */
@@ -151,6 +152,7 @@ export type AdminContentItem = {
   owner?: {
     id: string;
     name: string | null;
+    handle?: string | null;
     email: string | null;
   } | null;
   [key: string]: unknown;

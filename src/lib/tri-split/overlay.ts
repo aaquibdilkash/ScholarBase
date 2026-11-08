@@ -27,6 +27,14 @@ export type OverlayTables = {
   rowFk?: string;
   /** Counter columns to read, e.g. `["totalVotes", "totalBookmarks"]`. */
   counterKeys: readonly string[];
+  /**
+   * Moderation columns to read live, e.g. `["isFrozen", "isDeleted", ...]`.
+   *
+   * Omitted for lists whose rows have no moderation state (the scholar
+   * directory). Content lists pass it so a stale cached batch cannot keep a
+   * frozen row interactive or a deleted row visible.
+   */
+  stateKeys?: readonly string[];
 };
 
 const EMPTY = (viewerId: string | null): LiveOverlay => ({
@@ -35,6 +43,7 @@ const EMPTY = (viewerId: string | null): LiveOverlay => ({
   bookmarks: [],
   following: [],
   counters: [],
+  states: [],
 });
 
 /** Quotes a SQL identifier. Names originate from static config, never input. */
@@ -55,6 +64,7 @@ export async function getLiveOverlay(
   if (rowIds.length === 0) return EMPTY(viewerId);
 
   const { row, vote, bookmark, rowFk, counterKeys } = tables;
+  const stateKeys = tables.stateKeys ?? [];
   const fk = rowFk ?? "id";
 
   // Counter aggregate: shared verbatim by both the anonymous and signed-in
@@ -69,12 +79,32 @@ export async function getLiveOverlay(
       WHERE p.${Prisma.raw(ident("id"))} IN (${Prisma.join(rowIds)})
     ), '[]'::json) AS counters`;
 
+  // Same rows, same statement: the moderation flags that decide whether a card
+  // is interactive or visible at all. Overlaid live so they never wait for the
+  // cached batch's TTL.
+  const stateColumns = stateKeys
+    .map((key) => `'${key}', p.${ident(key)}`)
+    .join(", ");
+  const statesSql =
+    stateKeys.length > 0
+      ? Prisma.sql`
+        COALESCE((
+          SELECT json_agg(json_build_object('id', p.${Prisma.raw(ident("id"))}, ${Prisma.raw(stateColumns)}))
+          FROM ${Prisma.raw(ident(row))} p
+          WHERE p.${Prisma.raw(ident("id"))} IN (${Prisma.join(rowIds)})
+        ), '[]'::json) AS states`
+      : Prisma.sql`'[]'::json AS states`;
+
   if (!viewerId) {
     // Anonymous: counters only. Anonymous visitors cannot express "did I
     // vote/follow", so the viewer-state subqueries would be pure waste.
-    const rows = await prisma.$queryRaw<{ counters: unknown }[]>`
-      SELECT ${countersSql}`;
-    return { ...EMPTY(null), counters: toCounters(rows[0]?.counters) };
+    const rows = await prisma.$queryRaw<{ counters: unknown; states: unknown }[]>`
+      SELECT ${countersSql}, ${statesSql}`;
+    return {
+      ...EMPTY(null),
+      counters: toCounters(rows[0]?.counters),
+      states: toStates(rows[0]?.states),
+    };
   }
 
   const voteSql = vote
@@ -114,9 +144,15 @@ export async function getLiveOverlay(
       : Prisma.sql`'[]'::json AS following`;
 
   const rows = await prisma.$queryRaw<
-    { votes: unknown; bookmarks: unknown; following: unknown; counters: unknown }[]
+    {
+      votes: unknown;
+      bookmarks: unknown;
+      following: unknown;
+      counters: unknown;
+      states: unknown;
+    }[]
   >`
-    SELECT ${voteSql}, ${bookmarkSql}, ${followSql}, ${countersSql}
+    SELECT ${voteSql}, ${bookmarkSql}, ${followSql}, ${countersSql}, ${statesSql}
   `;
 
   const result = rows[0];
@@ -138,6 +174,7 @@ export async function getLiveOverlay(
     })),
     following: asArray(result.following).map(String),
     counters: toCounters(result.counters),
+    states: toStates(result.states),
   };
 }
 
@@ -159,5 +196,19 @@ function toCounters(value: unknown): LiveOverlay["counters"] {
       numeric[key] = Number(raw) || 0;
     }
     return { id: String(id), values: numeric };
+  });
+}
+
+/**
+ * Normalises the live moderation aggregate. Values stay untyped on purpose:
+ * `isFrozen` / `isDeleted` / `hasActiveAppeal` are booleans and
+ * `deletedByType` is an enum string, and the stitcher spreads them onto the
+ * cached row as-is.
+ */
+function toStates(value: unknown): LiveOverlay["states"] {
+  return asArray(value).map((entry) => {
+    const record = entry as Record<string, unknown>;
+    const { id, ...values } = record;
+    return { id: String(id), values };
   });
 }

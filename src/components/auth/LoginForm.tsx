@@ -70,6 +70,22 @@ export function LoginForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // `?error=` is a one-time notice delivered by a redirect (e.g. layout.tsx
+  // sends deleted accounts to /login?error=account-deleted-by-admin). Strip it
+  // after the first render so refreshing no longer re-shows a stale "account
+  // deleted" banner once an admin has recovered the account.
+  useEffect(() => {
+    if (!initialError || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("error")) return;
+    url.searchParams.delete("error");
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }, [initialError]);
+
   const submitOtp = async (codeToVerify: string) => {
     if (codeToVerify.length !== OTP_LENGTH || pendingAction !== null) return;
     setPendingAction("register");

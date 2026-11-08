@@ -797,7 +797,12 @@ export function CommentThread({
                 replyingToThis={false}
                 locked={locked}
                 onReply={
-                  comment.isDeleted || locked || userFrozen
+                  comment.isDeleted ||
+                  comment.isFrozen ||
+                  reply.isDeleted ||
+                  reply.isFrozen ||
+                  locked ||
+                  userFrozen
                     ? undefined
                     : () => openReplyForm(reply.id)
                 }

@@ -165,4 +165,50 @@ describe("stitchLiveState", () => {
     expect(cached).not.toHaveProperty("votes");
     expect(cached.author).not.toHaveProperty("followers");
   });
+
+  it("overlays live moderation flags so a stale cache cannot leave content editable", () => {
+    const [item] = stitchLiveState<Row, Record<string, unknown>>(
+      [row("p1", "a1")],
+      overlay({
+        states: [
+          {
+            id: "p1",
+            values: {
+              isFrozen: true,
+              isDeleted: false,
+              hasActiveAppeal: true,
+              deletedByType: "ADMIN",
+            },
+          },
+        ],
+      }),
+      options,
+    );
+    expect(item.isFrozen).toBe(true);
+    expect(item.hasActiveAppeal).toBe(true);
+    expect(item.deletedByType).toBe("ADMIN");
+  });
+
+  it("drops a row the live overlay reports as deleted", () => {
+    const items = stitchLiveState<Row, Record<string, unknown>>(
+      [row("p1", "a1"), row("p2", "a2")],
+      overlay({
+        states: [
+          { id: "p1", values: { isDeleted: true } },
+          { id: "p2", values: { isDeleted: false } },
+        ],
+      }),
+      options,
+    );
+    expect(items.map((item) => item.id)).toEqual(["p2"]);
+  });
+
+  it("does not drop rows when no moderation state was selected", () => {
+    const items = stitchLiveState<Row, Record<string, unknown>>(
+      [row("p1", "a1"), row("p2", "a2")],
+      overlay(),
+      options,
+    );
+    expect(items).toHaveLength(2);
+  });
 });
