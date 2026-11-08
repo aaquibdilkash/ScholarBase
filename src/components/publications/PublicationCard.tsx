@@ -9,6 +9,7 @@ import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import { deletePublication } from "@/app/actions/publications";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
@@ -77,9 +78,6 @@ export function PublicationCard({
 
   return (
     <ListPageCardShell
-      isDeleted={publication.isDeleted ?? false}
-      deletedByType={publication.deletedByType}
-      deletedNoun="publication"
       // The list card must surface the same moderation state as the detail page.
       isFrozen={publication.isFrozen ?? false}
       frozenEntityId={publication.id}
@@ -111,13 +109,7 @@ export function PublicationCard({
                   toast(actionErrorMessage(response, "Failed to delete publication."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["publications"] },
-                  (oldData: PublicationWithAuthor[] = []) =>
-                    response.data.totalComments > 0
-                      ? oldData.map((p) => p.id === response.data.deletedId ? { ...p, isDeleted: true, deletedByType: response.data.deletedByType } : p)
-                      : oldData.filter((p) => p.id !== response.data.deletedId),
-                );
+                removeFromList<PublicationWithAuthor>(queryClient, ["publications"], response.data.deletedId);
                 toast("Publication deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

@@ -21,7 +21,6 @@ import {
   MAX_RESEARCH_GRANT_DESCRIPTION,
 } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export async function createResearchGrant(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a research grant.");
@@ -221,7 +220,7 @@ export async function getResearchGrants(
 export const getResearchGrantById = cache(
   async (grantId: string, userId?: string) => {
     return prisma.researchGrant.findUnique({
-    where: { id: grantId, ...engagedContentWhere("totalComments") },
+    where: { id: grantId, isDeleted: false },
       select: {
         id: true,
         title: true,

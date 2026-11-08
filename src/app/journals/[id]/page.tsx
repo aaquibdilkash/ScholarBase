@@ -19,10 +19,10 @@ import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -32,15 +32,8 @@ export async function generateMetadata({
   const { id } = await params;
   const journal = await getJournalById(id).catch(() => null);
   if (!journal) {
-    return buildMetadata({
-      title: SEO_PAGES.journals.title,
-      description: SEO_PAGES.journals.description,
-      path: SEO_PAGES.journals.path,
-      type: "website",
-      section: SEO_PAGES.journals.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (journal.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: journal.title,
     description: (
@@ -68,7 +61,22 @@ const JournalDetailPage = async ({
 
   const journal = await getJournalById(id, user?.id);
 
-  if (!journal) notFound();
+  if (!journal) {
+    const removed = await getModeratorDeletedContent("journal", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/journals"
+        backLabel="Back to Journals"
+        entityId={removed.id}
+        module="JOURNAL"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="journal"
+      />
+    );
+  }
 
   // Journal Reviews (mirrors the supervisor recommendations flow). Aggregates
   // are materialized on the Journal; the meta call adds the per-star split and
@@ -81,16 +89,13 @@ const JournalDetailPage = async ({
   const userVote =
     (j.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = j.isDeleted
-    ? []
-    : await getRelatedContent("JOURNAL", j.id);
+  const related = await getRelatedContent("JOURNAL", j.id);
 
   async function handleDelete() {
     "use server";
     const res = await deleteJournal(j.id);
     if (res?.success === false) return res;
-    // Engaged deleted journals stay readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/journals", [["journals"]]);
+    return { redirect: "/journals", invalidateQueries: [["journals"]] };
   }
 
   return (
@@ -108,7 +113,6 @@ const JournalDetailPage = async ({
 
           <JournalReviewsSection
             journalId={j.id}
-            isDeleted={j.isDeleted}
             initialReviews={initialReviews}
             initialCount={reviewMeta.totalCount}
             initialVisibleCount={reviewMeta.visibleCount}
@@ -123,9 +127,6 @@ const JournalDetailPage = async ({
           />
         </>
       }
-      isDeleted={journal.isDeleted}
-      deletedByType={journal.deletedByType}
-      deletedNoun="journal"
       isFrozen={j.isFrozen ?? false}
       frozenEntityId={j.id}
       frozenModule="JOURNAL"
@@ -176,14 +177,12 @@ const JournalDetailPage = async ({
           ownerId={j.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={j.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={j.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={j.isFrozen ?? false}
-          deleted={j.isDeleted}
           comments={j.comments}
           totalComments={j.totalComments}
           targetId={j.id}
@@ -202,12 +201,11 @@ const JournalDetailPage = async ({
         <div className="flex w-auto shrink-0 justify-end">
           <JournalHeaderActions
             journalId={j.id}
-            isJournalOwner={!j.isDeleted && user?.id === j.author?.id}
+            isJournalOwner={user?.id === j.author?.id}
             journalEditHref={`/journals/${j.id}/edit`}
             onDeleteJournal={handleDelete}
             initialHasReview={reviewMeta.hasUserReview}
             initialUserReviewId={reviewMeta.userReviewId}
-            isDeleted={j.isDeleted}
           />
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -33,9 +34,6 @@ export function ResearchToolCard({
 
   return (
     <ListPageCardShell
-      isDeleted={tool.isDeleted ?? false}
-      deletedByType={tool.deletedByType}
-      deletedNoun="research tool"
       authorHref={`/scholars/${tool.author?.id}`}
       authorName={tool.author?.name || "Scholar"}
       authorId={tool.authorId}
@@ -66,13 +64,7 @@ export function ResearchToolCard({
                   toast(actionErrorMessage(response, "Failed to delete tool."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["researchTools"] },
-                  (oldData: ResearchToolWithAuthor[] = []) =>
-                  response.data.totalComments > 0
-                    ? oldData.map((t) => t.id === response.data.deletedId ? { ...t, isDeleted: true, deletedByType: response.data.deletedByType } : t)
-                    : oldData.filter((t) => t.id !== response.data.deletedId),
-                );
+                removeFromList<ResearchToolWithAuthor>(queryClient, ["researchTools"], response.data.deletedId);
                 toast("Tool deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

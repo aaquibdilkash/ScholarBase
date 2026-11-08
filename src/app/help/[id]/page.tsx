@@ -12,10 +12,10 @@ import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -25,15 +25,8 @@ export async function generateMetadata({
   const { id } = await params;
   const post = await getHelpPost(id).catch(() => null);
   if (!post) {
-    return buildMetadata({
-      title: SEO_PAGES.help.title,
-      description: SEO_PAGES.help.description,
-      path: SEO_PAGES.help.path,
-      type: "website",
-      section: SEO_PAGES.help.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (post.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: post.title,
     description: `Help request: ${post.subject || post.category || ""}. ${(post.message || "").replace(/<[^>]*>/g, " ")}`,
@@ -55,23 +48,33 @@ export default async function HelpPostPage({
   const post = await getHelpPost(id, user?.id);
 
   if (!post) {
-    notFound();
+    const removed = await getModeratorDeletedContent("help", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/help"
+        backLabel="Back to Help & Support"
+        entityId={removed.id}
+        module="HELP_POST"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="help post"
+      />
+    );
   }
 
   const userVote =
     (post.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = post.isDeleted
-    ? []
-    : await getRelatedContent("HELP_POST", post.id);
+  const related = await getRelatedContent("HELP_POST", post.id);
 
   // Define the delete action outside the JSX
   async function handleDelete() {
     "use server";
     const res = await deleteHelpPost(post!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/help", [["helpPosts"]]);
+    return { redirect: "/help", invalidateQueries: [["helpPosts"]] };
   }
 
   return (
@@ -79,9 +82,6 @@ export default async function HelpPostPage({
       relatedContent={
         <RelatedContent title="Related help posts" items={related} />
       }
-      isDeleted={post.isDeleted}
-      deletedByType={post.deletedByType}
-      deletedNoun="help post"
       isFrozen={post.isFrozen ?? false}
       frozenEntityId={post.id}
       frozenModule="HELP_POST"
@@ -145,14 +145,12 @@ export default async function HelpPostPage({
           ownerId={post.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={post.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={post.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={post.isFrozen ?? false}
-          deleted={post.isDeleted}
           comments={post.comments}
           totalComments={post.totalComments}
           targetId={post.id}

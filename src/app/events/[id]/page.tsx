@@ -14,10 +14,10 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -27,15 +27,8 @@ export async function generateMetadata({
   const { id } = await params;
   const event = await getEvent(id).catch(() => null);
   if (!event) {
-    return buildMetadata({
-      title: SEO_PAGES.events.title,
-      description: SEO_PAGES.events.description,
-      path: SEO_PAGES.events.path,
-      type: "website",
-      section: SEO_PAGES.events.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (event.isDeleted) return buildNoindexMetadata("Deleted content");
   const location = event.location ? ` at ${event.location}` : "";
   return buildMetadata({
     title: event.title,
@@ -61,22 +54,30 @@ const EventDetailPage = async ({
   const event = await getEvent(id, user?.id);
 
   if (!event) {
-    notFound();
+    const removed = await getModeratorDeletedContent("event", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/events"
+        backLabel="Back to Events"
+        entityId={removed.id}
+        module="RESEARCH_EVENT"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="event"
+      />
+    );
   }
 
   const userVote =
     (event.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = event.isDeleted
-    ? []
-    : await getRelatedContent("RESEARCH_EVENT", event.id);
+  const related = await getRelatedContent("RESEARCH_EVENT", event.id);
 
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related events" items={related} />}
-      isDeleted={event.isDeleted}
-      deletedByType={event.deletedByType}
-      deletedNoun="event"
       isFrozen={event.isFrozen ?? false}
       frozenEntityId={event.id}
       frozenModule="RESEARCH_EVENT"
@@ -98,8 +99,7 @@ const EventDetailPage = async ({
               "use server";
               const res = await deleteResearchEvent(event.id);
               if (res?.success === false) return res;
-              // Engaged deleted content stays readable (tombstone).
-              return deletedDetailNavigation(res?.data, "/events", [["events"]]);
+              return { redirect: "/events", invalidateQueries: [["events"]] };
             }}
             isOwner={true}
             editLabel="Edit Event"
@@ -146,7 +146,6 @@ const EventDetailPage = async ({
           ownerId={event.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={event.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={event.hasActiveAppeal}
         />
       }
@@ -168,7 +167,6 @@ const EventDetailPage = async ({
       discussion={
         <CommentSection
           locked={event.isFrozen ?? false}
-          deleted={event.isDeleted}
           comments={event.comments}
           totalComments={event.totalComments}
           targetId={event.id}

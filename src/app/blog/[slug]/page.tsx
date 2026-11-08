@@ -10,10 +10,10 @@ import { deleteArticle, getArticle } from "@/app/actions/blog";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import type { Metadata } from "next";
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -23,15 +23,8 @@ export async function generateMetadata({
   const { slug } = await params;
   const article = await getArticle(slug).catch(() => null);
   if (!article) {
-    return buildMetadata({
-      title: SEO_PAGES.blog.title,
-      description: SEO_PAGES.blog.description,
-      path: SEO_PAGES.blog.path,
-      type: "website",
-      section: SEO_PAGES.blog.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (article.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: article.title,
     description: article.excerpt || article.title,
@@ -50,13 +43,26 @@ export default async function ArticlePage({
 
   const article = await getArticle(slug, user?.id);
 
-  if (!article) notFound();
+  if (!article) {
+    const removed = await getModeratorDeletedContent("blog", { slug });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/blog"
+        backLabel="Back to Blogs"
+        entityId={removed.id}
+        module="ARTICLE_PAGE"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="article"
+      />
+    );
+  }
 
   const a = article;
 
-  const related = a.isDeleted
-    ? []
-    : await getRelatedContent("ARTICLE", a.id);
+  const related = await getRelatedContent("ARTICLE", a.id);
 
   const userVote =
     (a.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
@@ -65,8 +71,7 @@ export default async function ArticlePage({
     "use server";
     const res = await deleteArticle(a.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/blog", [["articles"]]);
+    return { redirect: "/blog", invalidateQueries: [["articles"]] };
   }
 
   return (
@@ -74,9 +79,6 @@ export default async function ArticlePage({
       relatedContent={
         <RelatedContent title="Related articles" items={related} />
       }
-      isDeleted={article.isDeleted}
-      deletedByType={article.deletedByType}
-      deletedNoun="article"
       isFrozen={a.isFrozen ?? false}
       frozenEntityId={a.id}
       frozenModule="ARTICLE_PAGE"
@@ -143,14 +145,12 @@ export default async function ArticlePage({
           ownerId={a.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={a.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={a.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={a.isFrozen ?? false}
-          deleted={a.isDeleted}
           comments={a.comments}
           totalComments={a.totalComments}
           targetId={a.id}

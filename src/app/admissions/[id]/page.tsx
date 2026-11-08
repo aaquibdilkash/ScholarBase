@@ -13,10 +13,10 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -26,15 +26,8 @@ export async function generateMetadata({
   const { id } = await params;
   const admission = await getAdmission(id).catch(() => null);
   if (!admission) {
-    return buildMetadata({
-      title: SEO_PAGES.admissions.title,
-      description: SEO_PAGES.admissions.description,
-      path: SEO_PAGES.admissions.path,
-      type: "website",
-      section: SEO_PAGES.admissions.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (admission.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: `${admission.university} - ${admission.department} PhD Admission`,
     description: `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
@@ -59,22 +52,32 @@ const AdmissionDetailPage = async ({
   const admission = await getAdmission(id, user?.id);
 
   if (!admission) {
-    notFound();
+    const removed = await getModeratorDeletedContent("admission", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/admissions"
+        backLabel="Back to PhD Admissions"
+        entityId={removed.id}
+        module="PHD_ADMISSION"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="admission"
+      />
+    );
   }
 
   const userVote =
     (admission.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = admission.isDeleted
-    ? []
-    : await getRelatedContent("PHD_ADMISSION", admission.id);
+  const related = await getRelatedContent("PHD_ADMISSION", admission.id);
 
   async function handleDelete() {
     "use server";
     const res = await deletePhdAdmission(admission!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/admissions", [["admissions"]]);
+    return { redirect: "/admissions", invalidateQueries: [["admissions"]] };
   }
 
   return (
@@ -82,9 +85,6 @@ const AdmissionDetailPage = async ({
       relatedContent={
         <RelatedContent title="Related PhD admissions" items={related} />
       }
-      isDeleted={admission.isDeleted}
-      deletedByType={admission.deletedByType}
-      deletedNoun="admission"
       isFrozen={admission.isFrozen ?? false}
       frozenEntityId={admission.id}
       frozenModule="PHD_ADMISSION"
@@ -148,7 +148,6 @@ const AdmissionDetailPage = async ({
           ownerId={admission.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={admission.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={admission.hasActiveAppeal}
         />
       }
@@ -170,7 +169,6 @@ const AdmissionDetailPage = async ({
       discussion={
         <CommentSection
           locked={admission.isFrozen ?? false}
-          deleted={admission.isDeleted}
           comments={admission.comments}
           totalComments={admission.totalComments}
           targetId={admission.id}

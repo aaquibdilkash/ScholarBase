@@ -5,8 +5,11 @@ import { Flag } from "lucide-react";
 import { ReportModal } from "@/components/cards/ReportModal";
 import { AppealButton } from "@/components/appeals/AppealButton";
 import { useIsFrozen } from "@/components/interactions/FrozenUserProvider";
-import type { ReportEntityType, ReportModule } from "@/types/reports";
-import type { DeletedContentReason } from "@/components/content/DeletedContentTombstone";
+import type {
+  DeletedContentReason,
+  ReportEntityType,
+  ReportModule,
+} from "@/types/reports";
 
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
   inputs.filter(Boolean).join(" ");

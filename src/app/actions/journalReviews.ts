@@ -10,7 +10,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
+import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
@@ -22,7 +22,7 @@ import type { JournalReviewWithAuthor } from "@/types/cards";
 export const getJournalReview = cache(
   async (reviewId: string, userId?: string) => {
     return prisma.journalReview.findUnique({
-      where: { id: reviewId, ...engagedContentWhere("totalComments") },
+      where: { id: reviewId, isDeleted: false },
       select: {
         id: true,
         rating: true,
@@ -118,7 +118,7 @@ export async function getJournalReviews(
   const userId = user?.id;
 
   return prisma.journalReview.findMany({
-    where: { journalId, ...engagedContentWhere("totalComments") },
+    where: { journalId, isDeleted: false },
     skip,
     take,
     orderBy: { createdAt: "desc" },
@@ -181,7 +181,7 @@ export async function getJournalReviewMeta(journalId: string) {
   const reviews = await prisma.journalReview.findMany({
     // Live rows plus engaged tombstones. The tombstone is reachable in the
     // carousel, but it must not count toward the rating or the heading.
-    where: { journalId, ...engagedContentWhere("totalComments") },
+    where: { journalId, isDeleted: false },
     select: { id: true, rating: true, authorId: true, isDeleted: true },
   });
 
@@ -566,6 +566,8 @@ export async function deleteJournalReview(reviewId: string) {
       });
     }
   });
+
+  revalidateProfileContent(review.authorId);
 
   return {
     success: true,

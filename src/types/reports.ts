@@ -54,6 +54,18 @@ export type ReportModule =
   | "RESEARCH_SURVEY";
 
 /**
+ * Who soft-deleted a piece of content. Mirrors the `DeletedByType` Prisma enum
+ * so client components can branch without importing the Prisma runtime.
+ */
+export type DeletedContentReason =
+  | "AUTHOR"
+  | "ADMIN"
+  | "POST_AUTHOR"
+  | "PARENT_COMMENT_AUTHOR"
+  | null
+  | undefined;
+
+/**
  * Lifecycle state of a report row in the database.
  */
 export type ReportStatus = "PENDING" | "DISMISSED" | "RESOLVED";

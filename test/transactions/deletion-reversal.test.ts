@@ -23,6 +23,10 @@ vi.mock("@/lib/db", async () => {
   return { default: fakeDb.client }
 })
 
+vi.mock("@/lib/tri-split/modules/profile-tab", () => ({
+  revalidateProfileContent: vi.fn(),
+}))
+
 let mockCurrentUser: { id: string } | null = null
 let mockIsAdmin = false
 

@@ -10,7 +10,7 @@ import { deleteHelpPost } from "@/app/actions/help";
 import Link from "next/link";
 import { RichContent } from "@/components/content/RichContent";
 import type { HelpPostWithAuthor } from "@/types/cards";
-import { tombstoneInList } from "@/utils/cacheMutation";
+import { removeFromList } from "@/utils/cacheMutation";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 
@@ -35,9 +35,6 @@ export function HelpPostCard({
 
   return (
     <ListPageCardShell
-      isDeleted={helpPost.isDeleted ?? false}
-      deletedByType={helpPost.deletedByType}
-      deletedNoun="help post"
       authorHref={`/scholars/${helpPost.author?.id}`}
       authorName={helpPost.author?.name || "Scholar"}
       authorId={helpPost.authorId}
@@ -68,10 +65,10 @@ export function HelpPostCard({
                   toast({ title: "Error", description: actionErrorMessage(response, "Failed to delete post."), variant: "destructive" });
                   return { refresh: false };
                 }
-                tombstoneInList<HelpPostWithAuthor>(
+                removeFromList<HelpPostWithAuthor>(
                   queryClient,
                   ["helpPosts"],
-                  response.data,
+                  response.data.deletedId,
                 );
                 toast({ title: "Success", description: "Post deleted successfully." });
                 return { refresh: false };

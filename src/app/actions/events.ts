@@ -20,7 +20,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of research event rows for the
@@ -45,7 +44,7 @@ export async function getEvents(
 
 export const getEvent = cache(async (id: string, userId?: string) => {
   return prisma.researchEvent.findUnique({
-    where: { id: id, ...engagedContentWhere("totalComments") },
+    where: { id: id, isDeleted: false },
     select: {
       id: true,
       title: true,

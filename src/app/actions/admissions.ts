@@ -20,7 +20,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of phd admission rows for the
@@ -45,7 +44,7 @@ export async function getAdmissions(
 
 export const getAdmission = cache(async (id: string, userId?: string) => {
   return prisma.phdAdmission.findUnique({
-    where: { id, ...engagedContentWhere("totalComments") },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       university: true,

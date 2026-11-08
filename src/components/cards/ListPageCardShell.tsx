@@ -9,11 +9,6 @@ import { FrozenContentBanner } from "@/components/moderation/FrozenContentBanner
 import { formatTimeAgo } from "../../utils/time-ago";
 import { TruncatedCardBody } from "./TruncatedCardBody";
 import type { ReportEntityType, ReportModule } from "@/types/reports";
-import {
-  DeletedContentTombstone,
-  deletedContentMessage,
-  type DeletedContentReason,
-} from "@/components/content/DeletedContentTombstone";
 
 // local tiny utility to avoid adding new deps
 const clsx = (...inputs: Array<string | false | null | undefined>) =>
@@ -59,9 +54,6 @@ export type ListPageCardShellProps = {
   frozenOwnerId?: string | null;
   frozenHasActiveAppeal?: boolean;
   isAdmin?: boolean;
-  isDeleted?: boolean;
-  deletedByType?: DeletedContentReason;
-  deletedNoun?: string;
 
   className?: string;
   bodyClassName?: string;
@@ -69,13 +61,6 @@ export type ListPageCardShellProps = {
   // link to the detail page
   detailPageHref: string;
   bodyBottomContent?: ReactNode;
-
-  /**
-   * Community-generated content (e.g. a supervisor's aggregate rating) that
-   * must survive the author-body tombstone. Author-generated content belongs
-   * in `children` / `bodyBottomContent`, both of which are hidden on delete.
-   */
-  preservedContent?: ReactNode;
 
   // Share payload for the footer share button. The card lives on a LIST page,
   // so falling back to the page's og:tags would share the directory's
@@ -124,14 +109,10 @@ export default function ListPageCardShell({
   frozenOwnerId,
   frozenHasActiveAppeal,
   isAdmin,
-  isDeleted = false,
-  deletedByType,
-  deletedNoun = "item",
   className,
   bodyClassName,
   detailPageHref,
   bodyBottomContent,
-  preservedContent,
   shareTitle,
   shareText,
   editedDate,
@@ -139,12 +120,12 @@ export default function ListPageCardShell({
   noBodyLink = false,
   constrainBody,
 }: ListPageCardShellProps) {
-  const showManagementControls = Boolean(managementControls) && !isDeleted;
+  const showManagementControls = Boolean(managementControls);
 
   return (
     <div className={clsx("sb-card min-w-0 w-full p-6 sm:p-6 md:p-8", className)}>
       {/* Frozen banner — visible before header for frozen list cards */}
-      {!isDeleted && isFrozen && frozenEntityId ? (
+      {isFrozen && frozenEntityId ? (
         <FrozenContentBanner
           entityId={frozenEntityId}
           module={frozenModule ?? "SOCIAL_FEED"}
@@ -155,7 +136,7 @@ export default function ListPageCardShell({
           isAdmin={isAdmin}
           variant="list-compact"
         />
-      ) : !isDeleted && isFrozen ? (
+      ) : isFrozen ? (
         <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
           <span className="inline-flex items-center gap-2 text-left">
             <span aria-hidden>❄</span>
@@ -169,14 +150,14 @@ export default function ListPageCardShell({
       {/* Common header */}
       <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4 dark:border-slate-800">
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          {!isDeleted && authorHref ? (
+          {authorHref ? (
             <Link href={authorHref} prefetch={false} className="shrink-0">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-slate-100 transition hover:ring-2 hover:ring-blue-100 dark:border dark:border-slate-700 dark:bg-slate-800">
                 {authorAvatarUrl ? (
                   <UserAvatar src={authorAvatarUrl} name={authorName} />
                 ) : (
                   <span className="font-semibold text-slate-400 text-lg">
-                    {isDeleted ? "?" : authorName?.charAt(0).toUpperCase() || "?"}
+                    {authorName?.charAt(0).toUpperCase() || "?"}
                   </span>
                 )}
               </div>
@@ -188,26 +169,26 @@ export default function ListPageCardShell({
           )}
 
           <div className="min-w-0 flex-1">
-            {!isDeleted && authorHref ? (
+            {authorHref ? (
               <Link
                 href={authorHref}
                 prefetch={false}
                 className="block max-w-full truncate font-semibold text-slate-950 transition hover:text-blue-700 hover:underline dark:text-slate-50 dark:hover:text-blue-300"
               >
                 <span className="inline-flex max-w-full items-center gap-1">
-                  <span className="min-w-0 truncate">{isDeleted ? "Deleted content" : authorName || "Scholar"}</span>
-                  {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
+                  <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                  {authorVerified ? <VerifiedBadge /> : null}
                 </span>
               </Link>
             ) : (
               <span className="font-semibold italic text-slate-500 dark:text-slate-400">
                 <span className="inline-flex max-w-full items-center gap-1">
-                  <span className="min-w-0 truncate">{isDeleted ? "Deleted content" : authorName || "Scholar"}</span>
-                  {!isDeleted && authorVerified ? <VerifiedBadge /> : null}
+                  <span className="min-w-0 truncate">{authorName || "Scholar"}</span>
+                  {authorVerified ? <VerifiedBadge /> : null}
                 </span>
               </span>
             )}
-            {!isDeleted && authorHandle ? (
+            {authorHandle ? (
               <div className="mt-0.5 max-w-full whitespace-normal break-words text-xs font-medium text-slate-500 dark:text-slate-400">
                 @{authorHandle}
               </div>
@@ -219,7 +200,7 @@ export default function ListPageCardShell({
         <div className="flex items-center">
           {showManagementControls ? (
             managementControls
-          ) : !isDeleted && authorId ? (
+          ) : authorId ? (
             <FollowButton
               targetId={authorId}
               isFollowing={!!isFollowing}
@@ -229,36 +210,17 @@ export default function ListPageCardShell({
         </div>
       </div>
 
-      {isDeleted ? (
-        <TruncatedCardBody
-          detailPageHref={detailPageHref}
-          className={clsx("block min-w-0 group", bodyClassName)}
-          noBodyLink={false}
-          constrainBody={false}
-        >
-          <DeletedContentTombstone
-            reason={deletedByType}
-            noun={deletedNoun}
-            compact
-          />
-        </TruncatedCardBody>
-      ) : (
-        <>
-          {/* Clickable middle body */}
-          <TruncatedCardBody
-            detailPageHref={detailPageHref}
-            className={clsx("block min-w-0 group", bodyClassName)}
-            noBodyLink={noBodyLink}
-            constrainBody={constrainBody}
-          >
-            {children}
-          </TruncatedCardBody>
+      {/* Clickable middle body */}
+      <TruncatedCardBody
+        detailPageHref={detailPageHref}
+        className={clsx("block min-w-0 group", bodyClassName)}
+        noBodyLink={noBodyLink}
+        constrainBody={constrainBody}
+      >
+        {children}
+      </TruncatedCardBody>
 
-          {bodyBottomContent}
-        </>
-      )}
-
-      {preservedContent}
+      {bodyBottomContent}
 
       <div className="mt-2 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
         <span suppressHydrationWarning className="font-semibold text-slate-400 dark:text-slate-500">
@@ -279,15 +241,14 @@ export default function ListPageCardShell({
         ) : (
           <>
             <div className="flex items-center gap-4 sm:gap-6">
-              {!isDeleted &&
-                (isFrozen
-                  ? footerVoteButton && isValidElement(footerVoteButton)
-                    ? cloneElement(
-                        footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
-                        { frozen: true },
-                      )
-                    : footerVoteButton
-                  : footerVoteButton)}
+              {isFrozen
+                ? footerVoteButton && isValidElement(footerVoteButton)
+                  ? cloneElement(
+                      footerVoteButton as React.ReactElement<{ frozen?: boolean }>,
+                      { frozen: true },
+                    )
+                  : footerVoteButton
+                : footerVoteButton}
 
               {footerCommentsHref && (
                 <Link
@@ -305,35 +266,21 @@ export default function ListPageCardShell({
             </div>
 
             <div className="flex items-center gap-2">
-              {!isDeleted &&
-                (isFrozen
-                  ? footerBookmarkButton && isValidElement(footerBookmarkButton)
-                    ? cloneElement(
-                        footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
-                        { frozen: true },
-                      )
-                    : footerBookmarkButton
-                  : footerBookmarkButton)}
+              {isFrozen
+                ? footerBookmarkButton && isValidElement(footerBookmarkButton)
+                  ? cloneElement(
+                      footerBookmarkButton as React.ReactElement<{ frozen?: boolean }>,
+                      { frozen: true },
+                    )
+                  : footerBookmarkButton
+                : footerBookmarkButton}
               <ShareButton
                 href={detailPageHref}
                 label="Share"
-                title={isDeleted ? "Deleted content" : shareTitle}
-                text={
-                  isDeleted
-                    ? deletedContentMessage(deletedByType, deletedNoun)
-                    : shareText
-                }
+                title={shareTitle}
+                text={shareText}
               />
-              {!isDeleted &&
-                (footerReportMenu && isValidElement(footerReportMenu)
-                  ? cloneElement(
-                      footerReportMenu as React.ReactElement<{
-                        isDeleted?: boolean;
-                        deletedByType?: DeletedContentReason;
-                      }>,
-                      { isDeleted, deletedByType },
-                    )
-                  : footerReportMenu)}
+              {footerReportMenu}
             </div>
           </>
         )}

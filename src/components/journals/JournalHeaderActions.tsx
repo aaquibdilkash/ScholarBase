@@ -7,7 +7,7 @@ import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
-import { invalidateProfileTabs, tombstoneInList } from "@/utils/cacheMutation";
+import { invalidateProfileTabs, removeFromList } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteJournalReview as deleteReviewAction } from "@/app/actions/journalReviews";
 import { decrementJournalReview } from "./journalReviewCount";
@@ -108,19 +108,17 @@ export function JournalHeaderActions({
             return;
           }
           // Keep an engaged review as a tombstone; drop an unengaged one.
-          const tombstoned = tombstoneInList<JournalReviewWithAuthor>(
+          removeFromList<JournalReviewWithAuthor>(
             queryClient,
             ["journalReviews", journalId],
-            response.data,
+            response.data.deletedId,
           );
           invalidateProfileTabs(queryClient, "content", "activity");
-          // Adjust the count / rating / star distribution instantly. An engaged
-          // tombstone keeps its carousel slide.
           decrementJournalReview(
             queryClient,
             journalId,
             response.data.rating,
-            tombstoned,
+            false,
           );
           queryClient.setQueryData(["user_review_status", journalId], null);
           toast("Review deleted successfully", "success");

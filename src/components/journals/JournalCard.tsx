@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
@@ -67,9 +68,6 @@ export function JournalCard({
 
   return (
     <ListPageCardShell
-      isDeleted={journal.isDeleted ?? false}
-      deletedByType={journal.deletedByType}
-      deletedNoun="journal"
       authorHref={`/scholars/${journal.author?.id}`}
       authorName={journal.author?.name || "Scholar"}
       authorId={journal.authorId}
@@ -87,7 +85,6 @@ export function JournalCard({
       shareTitle={shareTitle}
       shareText={shareText}
       noBodyLink={true}
-      preservedContent={journal.isDeleted ? ratingSummary : null}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
@@ -102,12 +99,10 @@ export function JournalCard({
                   toast(actionErrorMessage(response, "Failed to delete journal."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["journals"] },
-                  (oldData: JournalWithAuthor[] = []) =>
-                    response.data.totalComments > 0 || response.data.reviewCount > 0
-                      ? oldData.map((j) => j.id === response.data.deletedId ? { ...j, isDeleted: true, deletedByType: response.data.deletedByType } : j)
-                      : oldData.filter((j) => j.id !== response.data.deletedId),
+                removeFromList<JournalWithAuthor>(
+                  queryClient,
+                  ["journals"],
+                  response.data.deletedId,
                 );
                 toast("Journal deleted successfully.", "success");
                 return { refresh: false };

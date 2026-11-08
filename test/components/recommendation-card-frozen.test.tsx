@@ -73,7 +73,7 @@ vi.mock("@/components/ui/StarRating", () => ({ StarRating: () => null }));
 vi.mock("@/components/supervisor/recommendationCount", () => ({
   decrementRecommendation: vi.fn(),
 }));
-vi.mock("@/utils/cacheMutation", () => ({ tombstoneInList: vi.fn() }));
+vi.mock("@/utils/cacheMutation", () => ({ removeFromList: vi.fn() }));
 vi.mock("@/app/actions/recommendations", () => ({
   deleteRecommendation: vi.fn(),
 }));

@@ -14,10 +14,10 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -27,15 +27,8 @@ export async function generateMetadata({
   const { id } = await params;
   const post = await getPostMetadata(id).catch(() => null);
   if (!post) {
-    return buildMetadata({
-      title: SEO_PAGES.feed.title,
-      description: SEO_PAGES.feed.description,
-      path: SEO_PAGES.feed.path,
-      type: "website",
-      section: SEO_PAGES.feed.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (post.isDeleted) return buildNoindexMetadata("Deleted content");
   const text = post.content.replace(/\s+/g, " ").trim();
   return buildMetadata({
     title: text.slice(0, 58) || "Scholar Post",
@@ -60,32 +53,40 @@ export default async function SinglePostPage({
 
   const post = await getPost(id, user?.id);
 
-  if (!post) notFound();
+  if (!post) {
+    const removed = await getModeratorDeletedContent("feed", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/feed"
+        backLabel="Back to Feed"
+        entityId={removed.id}
+        module="SOCIAL_FEED"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="post"
+      />
+    );
+  }
 
   const p = post;
   const userVote =
     (p.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = p.isDeleted
-    ? []
-    : await getRelatedContent("SOCIAL_POST", p.id);
+  const related = await getRelatedContent("SOCIAL_POST", p.id);
 
   async function handleDelete() {
     "use server";
     const res = await deleteSocialPost(p.id);
     if (res?.success === false) return res;
-    // Engaged deleted posts stay readable (tombstone); stay on the page so the
-    // author sees the result instead of being bounced to the list.
-    return deletedDetailNavigation(res?.data, "/feed", [["feed"]]);
+    return { redirect: "/feed", invalidateQueries: [["feed"]] };
   }
 
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related posts" items={related} />}
       isFrozen={p.isFrozen ?? false}
-      isDeleted={p.isDeleted ?? false}
-      deletedByType={p.deletedByType}
-      deletedNoun="post"
       frozenEntityId={p.id}
       frozenModule="SOCIAL_FEED"
       frozenEntityType="POST"
@@ -99,7 +100,6 @@ export default async function SinglePostPage({
       authorAvatarUrl={p.author?.avatarUrl || undefined}
       authorVerified={!!p.author?.institutionVerifiedAt}
       managementControls={
-        !p.isDeleted &&
         user?.id === p.authorId ? (
           <OwnerActionsDropdown
             editHref={`/feed/${p.id}/edit`}
@@ -152,14 +152,12 @@ export default async function SinglePostPage({
           ownerId={p.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={p.isFrozen}
-          isDeleted={p.isDeleted}
           hasActiveAppeal={p.hasActiveAppeal}
         />
       )}
       discussion={
         <CommentSection
           locked={p.isFrozen ?? false}
-          deleted={p.isDeleted}
           comments={p.comments as CommentWithAuthorAndVotes[]}
           totalComments={p.totalComments}
           targetId={p.id}

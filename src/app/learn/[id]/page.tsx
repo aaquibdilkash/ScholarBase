@@ -12,9 +12,10 @@ import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -25,7 +26,6 @@ export async function generateMetadata({
   try {
     const course = await getCourseById(id);
     if (!course) throw new Error("not found");
-    if (course.isDeleted) return buildNoindexMetadata("Deleted content");
     const bits = [course.provider, course.instructor]
       .filter(Boolean)
       .join(" by ");
@@ -41,14 +41,7 @@ export async function generateMetadata({
       section: SEO_PAGES.learn.section,
     });
   } catch {
-    return buildMetadata({
-      title: "Course",
-      description:
-        "Explore academic courses and learning resources on ScholarBase.",
-      path: "/learn",
-      type: "website",
-      section: SEO_PAGES.learn.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
 }
 
@@ -64,13 +57,26 @@ export default async function CourseDetailPage({
   } = await supabase.auth.getUser();
   const course = await getCourseById(id, user?.id).catch(() => null);
 
-  if (!course) notFound();
+  if (!course) {
+    const removed = await getModeratorDeletedContent("course", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/learn"
+        backLabel="Back to Learning Zone"
+        entityId={removed.id}
+        module="COURSE"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="course"
+      />
+    );
+  }
 
   const userVote = course.votes?.[0]?.voteType ?? null;
 
-  const related = course.isDeleted
-    ? []
-    : await getRelatedContent("COURSE", course.id);
+  const related = await getRelatedContent("COURSE", course.id);
   const priceLabel =
     course.price === 0
       ? "Free"
@@ -90,17 +96,13 @@ export default async function CourseDetailPage({
     "use server";
     const res = await deleteCourse(course!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/learn", [["courses"]]);
+    return { redirect: "/learn", invalidateQueries: [["courses"]] };
   }
 
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related courses" items={related} />}
       isFrozen={course.isFrozen ?? false}
-      isDeleted={course.isDeleted}
-      deletedByType={course.deletedByType}
-      deletedNoun="course"
       frozenEntityId={course.id}
       frozenModule="COURSE"
       frozenEntityType="POST"
@@ -163,14 +165,12 @@ export default async function CourseDetailPage({
           ownerId={course.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={course.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={course.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={course.isFrozen ?? false}
-          deleted={course.isDeleted}
           comments={course.comments}
           totalComments={course.totalComments}
           targetId={course.id}

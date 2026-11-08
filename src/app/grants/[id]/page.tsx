@@ -16,9 +16,10 @@ import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -29,7 +30,6 @@ export async function generateMetadata({
   try {
     const grant = await getResearchGrantById(id);
     if (!grant) throw new Error("not found");
-    if (grant.isDeleted) return buildNoindexMetadata("Deleted content");
     const description = grant.amount
       ? `${grant.title} funding opportunity: ${grant.amount}.`
       : `Research grant opportunity: ${grant.title}.`;
@@ -42,13 +42,7 @@ export async function generateMetadata({
       section: SEO_PAGES.grants.section,
     });
   } catch {
-    return buildMetadata({
-      title: SEO_PAGES.grants.title,
-      description: SEO_PAGES.grants.description,
-      path: SEO_PAGES.grants.path,
-      type: "website",
-      section: SEO_PAGES.grants.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
 }
 
@@ -64,29 +58,38 @@ export default async function ResearchGrantDetailPage({
   } = await supabase.auth.getUser();
   const grant = await getResearchGrantById(id, user?.id).catch(() => null);
 
-  if (!grant) notFound();
+  if (!grant) {
+    const removed = await getModeratorDeletedContent("researchGrant", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/grants"
+        backLabel="Back to Research Grants"
+        entityId={removed.id}
+        module="RESEARCH_GRANT"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="grant"
+      />
+    );
+  }
 
   const userVote = grant.votes?.[0]?.voteType ?? null;
 
-  const related = grant.isDeleted
-    ? []
-    : await getRelatedContent("RESEARCH_GRANT", grant.id);
+  const related = await getRelatedContent("RESEARCH_GRANT", grant.id);
 
   async function handleDelete() {
     "use server";
     const res = await deleteResearchGrant(grant!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/grants", [["grants"]]);
+    return { redirect: "/grants", invalidateQueries: [["grants"]] };
   }
 
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related grants" items={related} />}
       isFrozen={grant.isFrozen ?? false}
-      isDeleted={grant.isDeleted}
-      deletedByType={grant.deletedByType}
-      deletedNoun="grant"
       frozenEntityId={grant.id}
       frozenModule="RESEARCH_GRANT"
       frozenEntityType="POST"
@@ -149,14 +152,12 @@ export default async function ResearchGrantDetailPage({
           ownerId={grant.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={grant.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={grant.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={grant.isFrozen ?? false}
-          deleted={grant.isDeleted}
           comments={grant.comments}
           totalComments={grant.totalComments}
           targetId={grant.id}

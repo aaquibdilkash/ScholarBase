@@ -27,7 +27,6 @@ import { COMMENT_PAGE_SIZE, MAX_JOURNAL_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { validateExternalUrl } from "@/lib/external-url";
 import { METRIC_BOUNDS } from "@/constants/journal-metrics";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 // Strict numeric-only metric parsing (SJR Score, CiteScore, Impact Factor).
 // Rejects "2.4abc"/"abc" instead of silently coercing via parseFloat, and
@@ -320,7 +319,7 @@ export const getJournalById = cache(
     return prisma.journal.findUnique({
       where: {
         id: journalId,
-        ...engagedContentWhere("totalComments", "reviewCount"),
+        isDeleted: false,
       },
       select: {
         id: true,

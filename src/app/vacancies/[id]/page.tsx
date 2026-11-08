@@ -14,9 +14,10 @@ import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -25,8 +26,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const vacancy = await getVacancyById(id).catch(() => null);
-  if (!vacancy) return { title: "Academic Vacancy" };
-  if (vacancy.isDeleted) return buildNoindexMetadata("Deleted content");
+  if (!vacancy) return buildNoindexMetadata("Removed content");
   const affiliation = [vacancy.department, vacancy.subject]
     .map((part) => part?.trim())
     .filter((part): part is string => !!part)
@@ -58,25 +58,33 @@ const VacancyDetailPage = async ({
   const vacancy = await getVacancyById(id, user?.id);
 
   if (!vacancy) {
-    notFound();
+    const removed = await getModeratorDeletedContent("vacancy", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/vacancies"
+        backLabel="Back to Academic Vacancies"
+        entityId={removed.id}
+        module="JOB_VACANCY"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="vacancy"
+      />
+    );
   }
 
   const userVote =
     (vacancy.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = vacancy.isDeleted
-    ? []
-    : await getRelatedContent("JOB_VACANCY", vacancy.id);
+  const related = await getRelatedContent("JOB_VACANCY", vacancy.id);
 
   return (
     <DetailPageCardShell
       relatedContent={
         <RelatedContent title="Related vacancies" items={related} />
       }
-      isDeleted={vacancy.isDeleted}
-      deletedByType={vacancy.deletedByType}
-      deletedNoun="vacancy"
       isFrozen={vacancy.isFrozen ?? false}
       frozenEntityId={vacancy.id}
       frozenModule="JOB_VACANCY"
@@ -97,10 +105,7 @@ const VacancyDetailPage = async ({
               "use server";
               const res = await deleteJobVacancy(vacancy.id);
               if (res?.success === false) return res;
-              // Engaged deleted content stays readable (tombstone).
-              return deletedDetailNavigation(res?.data, "/vacancies", [
-                ["vacancies"],
-              ]);
+              return { redirect: "/vacancies", invalidateQueries: [["vacancies"]] };
             }}
             isOwner={true}
             editLabel="Edit Vacancy"
@@ -146,7 +151,6 @@ const VacancyDetailPage = async ({
           ownerId={vacancy.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={vacancy.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={vacancy.hasActiveAppeal}
         />
       }
@@ -168,7 +172,6 @@ const VacancyDetailPage = async ({
       discussion={
         <CommentSection
           locked={vacancy.isFrozen ?? false}
-          deleted={vacancy.isDeleted}
           comments={vacancy.comments}
           totalComments={vacancy.totalComments}
           targetId={vacancy.id}

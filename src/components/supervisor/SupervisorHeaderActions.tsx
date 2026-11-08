@@ -7,7 +7,7 @@ import { Loader2, MoreHorizontal } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
-import { invalidateProfileTabs, tombstoneInList } from "@/utils/cacheMutation";
+import { invalidateProfileTabs, removeFromList } from "@/utils/cacheMutation";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { deleteRecommendation as deleteRecommendationAction } from "@/app/actions/recommendations";
 import { decrementRecommendation } from "./recommendationCount";
@@ -120,16 +120,16 @@ export function SupervisorHeaderActions({
             toast(actionErrorMessage(response, "Failed to delete recommendation."), "error");
             return;
           }
-          const tombstoned = tombstoneInList<RecommendationWithAuthor>(
+          removeFromList<RecommendationWithAuthor>(
             queryClient,
             ["recommendations", supervisorId],
-            response.data,
+            response.data.deletedId,
           );
           decrementRecommendation(
             queryClient,
             supervisorId,
             response.data.rating,
-            tombstoned,
+            false,
           );
           queryClient.setQueryData(["user_rec_status", supervisorId], null);
           invalidateProfileTabs(queryClient, "content", "activity");

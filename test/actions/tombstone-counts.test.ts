@@ -4,10 +4,9 @@ import { getSupervisorRecommendationMeta } from "@/app/actions/supervisors";
 import { getJournalReviewMeta } from "@/app/actions/journalReviews";
 
 /**
- * The carousel bound is "live rows + engaged tombstones", while the heading and
- * the rating average stay live-only. Using one count for both made the two
- * disagree: the average was dragged down by deleted ratings, or the rail hid a
- * tombstone that page 1 still returned.
+ * Deleted content is gone entirely: lists and detail aggregates only see live
+ * rows (`isDeleted: false`). There are no engaged tombstones to page through,
+ * so `visibleCount` always equals `totalCount`.
  */
 
 vi.mock("@/lib/db", async () => {
@@ -50,9 +49,8 @@ beforeEach(() => {
 const RECOMMENDATIONS = [
   { id: "r1", supervisorId: PARENT_ID, rating: 5, authorId: "u1", isDeleted: false, totalComments: 0 },
   { id: "r2", supervisorId: PARENT_ID, rating: 3, authorId: "u2", isDeleted: false, totalComments: 0 },
-  // Engaged tombstone: reachable, excluded from rating/count.
+  // Deleted rows are excluded entirely — not visible, not counted.
   { id: "r3", supervisorId: PARENT_ID, rating: 4, authorId: "u3", isDeleted: true, totalComments: 2 },
-  // Unengaged tombstone: not reachable at all.
   { id: "r4", supervisorId: PARENT_ID, rating: 5, authorId: "u4", isDeleted: true, totalComments: 0 },
 ];
 
@@ -63,13 +61,13 @@ const REVIEWS = RECOMMENDATIONS.map((row) => ({
 }));
 
 describe("getSupervisorRecommendationMeta", () => {
-  it("counts live rows only but pages through engaged tombstones", async () => {
+  it("counts live rows only; deleted rows are excluded entirely", async () => {
     fakeDb.seed("recommendation", RECOMMENDATIONS);
 
     const meta = await getSupervisorRecommendationMeta(PARENT_ID);
 
     expect(meta.totalCount).toBe(2);
-    expect(meta.visibleCount).toBe(3);
+    expect(meta.visibleCount).toBe(2);
     expect(meta.avgRating).toBe(4);
     expect(meta.ratingDistribution).toEqual([
       { stars: 5, count: 1, percentage: 50 },
@@ -82,13 +80,13 @@ describe("getSupervisorRecommendationMeta", () => {
 });
 
 describe("getJournalReviewMeta", () => {
-  it("counts live rows only but pages through engaged tombstones", async () => {
+  it("counts live rows only; deleted rows are excluded entirely", async () => {
     fakeDb.seed("journalReview", REVIEWS);
 
     const meta = await getJournalReviewMeta(PARENT_ID);
 
     expect(meta.totalCount).toBe(2);
-    expect(meta.visibleCount).toBe(3);
+    expect(meta.visibleCount).toBe(2);
     expect(meta.avgRating).toBe(4);
     expect(meta.hasUserReview).toBe(false);
   });

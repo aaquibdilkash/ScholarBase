@@ -115,11 +115,10 @@ describe("CONTENT_LIST_CONFIGS", () => {
     expect(CONTENT_LIST_CONFIGS.FEED.module).toBe("SOCIAL_POST");
   });
 
-  it.each(entries)("%s filters soft-deleted rows but preserves engaged tombstones", (_key, config) => {
-    // Active rows remain visible, while rows with community activity may be
-    // returned as read-only tombstones for historical context.
+  it.each(entries)("%s filters soft-deleted rows", (_key, config) => {
+    // Deleted content is gone entirely: only live rows are visible in lists.
     expect(containsPredicate(config.where, { isDeleted: false })).toBe(true);
-    expect(containsPredicate(config.where, { isDeleted: true })).toBe(true);
+    expect(containsPredicate(config.where, { isDeleted: true })).toBe(false);
   });
 
   it.each(entries)(

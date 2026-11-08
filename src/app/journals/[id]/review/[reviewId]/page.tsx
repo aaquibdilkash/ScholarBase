@@ -17,9 +17,10 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { StarRating } from "@/components/ui/StarRating";
 import { RichContent } from "@/components/content/RichContent";
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 const OUTCOME_LABELS: Record<JournalOutcome, string> = {
   ACCEPTED: "Accepted",
@@ -36,8 +37,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id, reviewId } = await params;
   const review = await getJournalReview(reviewId).catch(() => null);
-  if (!review || review.journal.id !== id) return { title: "Journal Review" };
-  if (review.isDeleted) return buildNoindexMetadata("Deleted content");
+  if (!review || review.journal.id !== id) {
+    return buildNoindexMetadata("Removed content");
+  }
   return buildMetadata({
     title: `Review of ${review.journal.title}`,
     description: `A ${Number(review.rating).toFixed(1)}/5 peer review of ${review.journal.title}. ${(review.feedback || "").replace(/<[^>]*>/g, " ")}`,
@@ -67,25 +69,38 @@ export default async function JournalReviewDetailPage({
   // page would render — and the "back" link would point at — a journal the
   // review does not belong to.
   if (!review || review.journal.id !== id) {
-    notFound();
+    const removed = await getModeratorDeletedContent("journalReview", {
+      id: reviewId,
+    });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref={`/journals/${id}`}
+        backLabel="Back to Journal"
+        entityId={removed.id}
+        module="JOURNAL_REVIEW"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="journal review"
+      />
+    );
   }
 
   async function handleDelete() {
     "use server";
     const res = await deleteJournalReview(review!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, `/journals/${id}`, [
-      ["journalReviews", id],
-    ]);
+    return {
+      redirect: `/journals/${id}`,
+      invalidateQueries: [["journalReviews", id]],
+    };
   }
 
   const userVote =
     (review.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = review.isDeleted
-    ? []
-    : await getRelatedContent("JOURNAL_REVIEW", review.id);
+  const related = await getRelatedContent("JOURNAL_REVIEW", review.id);
   const isBookmarked =
     Array.isArray(review.bookmarks) && review.bookmarks.length > 0;
   const isFollowing = (review.author?.followers?.length ?? 0) > 0;
@@ -97,9 +112,6 @@ export default async function JournalReviewDetailPage({
         <RelatedContent title="Related journal reviews" items={related} />
       }
       isFrozen={review.isFrozen ?? false}
-      isDeleted={review.isDeleted ?? false}
-      deletedByType={review.deletedByType}
-      deletedNoun="journal review"
       frozenEntityId={review.id}
       frozenModule="JOURNAL_REVIEW"
       frozenEntityType="POST"
@@ -161,7 +173,6 @@ export default async function JournalReviewDetailPage({
           ownerId={review.authorId ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={review.isFrozen}
-          isDeleted={review.isDeleted ?? false}
           hasActiveAppeal={review.hasActiveAppeal}
         />
       }
@@ -171,7 +182,6 @@ export default async function JournalReviewDetailPage({
         <div id="comments">
           <CommentSection
             locked={review.isFrozen ?? false}
-            deleted={review.isDeleted}
             comments={review.comments as CommentWithAuthorAndVotes[]}
             totalComments={review.totalComments}
             targetId={review.id}

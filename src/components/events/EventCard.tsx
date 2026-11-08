@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -45,9 +46,6 @@ export function EventCard({
 
   return (
     <ListPageCardShell
-      isDeleted={event.isDeleted ?? false}
-      deletedByType={event.deletedByType}
-      deletedNoun="event"
       // The list card must surface the same moderation state as /events/[id].
       isFrozen={event.isFrozen ?? false}
       frozenEntityId={event.id}
@@ -77,13 +75,7 @@ export function EventCard({
                   toast(actionErrorMessage(response, "Failed to delete event."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["events"] },
-                  (oldData: EventWithAuthor[] = []) =>
-                    response.data.totalComments > 0
-                      ? oldData.map((e) => e.id === response.data.deletedId ? { ...e, isDeleted: true, deletedByType: response.data.deletedByType } : e)
-                      : oldData.filter((e) => e.id !== response.data.deletedId),
-                );
+                removeFromList<EventWithAuthor>(queryClient, ["events"], response.data.deletedId);
                 toast("Event deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

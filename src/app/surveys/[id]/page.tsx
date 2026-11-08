@@ -26,10 +26,10 @@ const PRIVACY_LABELS: Record<string, string> = {
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -39,15 +39,8 @@ export async function generateMetadata({
   const { id } = await params;
   const survey = await getSurvey(id).catch(() => null);
   if (!survey) {
-    return buildMetadata({
-      title: SEO_PAGES.surveys.title,
-      description: SEO_PAGES.surveys.description,
-      path: SEO_PAGES.surveys.path,
-      type: "website",
-      section: SEO_PAGES.surveys.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (survey.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: survey.title,
     description: survey.description || `Research survey: ${survey.title}.`,
@@ -73,7 +66,20 @@ const SurveyDetailPage = async ({
   const survey = await getSurvey(id, user?.id);
 
   if (!survey) {
-    notFound();
+    const removed = await getModeratorDeletedContent("survey", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/surveys"
+        backLabel="Back to Surveys"
+        entityId={removed.id}
+        module="RESEARCH_SURVEY"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="survey"
+      />
+    );
   }
 
   const response = user ? await getSurveyResponse(id, user.id) : null;
@@ -82,9 +88,7 @@ const SurveyDetailPage = async ({
   const userVote =
     (survey.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = survey.isDeleted
-    ? []
-    : await getRelatedContent("RESEARCH_SURVEY", survey.id);
+  const related = await getRelatedContent("RESEARCH_SURVEY", survey.id);
 
   const isOwner = user?.id === survey.author?.id;
   const isOpen = survey.status === "OPEN";
@@ -117,9 +121,6 @@ const SurveyDetailPage = async ({
           </div>
         ) : null
       }
-      isDeleted={survey.isDeleted}
-      deletedByType={survey.deletedByType}
-      deletedNoun="survey"
       isFrozen={survey.isFrozen ?? false}
       frozenEntityId={survey.id}
       frozenModule="RESEARCH_SURVEY"
@@ -142,8 +143,7 @@ const SurveyDetailPage = async ({
               "use server";
               const res = await deleteSurvey(survey.id);
               if (res?.success === false) return res;
-              // Engaged deleted surveys stay readable (tombstone).
-              return deletedDetailNavigation(res?.data, "/surveys", [["surveys"]]);
+              return { redirect: "/surveys", invalidateQueries: [["surveys"]] };
             }}
             isOwner={true}
             editLabel="Edit Survey"
@@ -195,14 +195,12 @@ const SurveyDetailPage = async ({
           ownerId={survey.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={survey.isFrozen}
-          isDeleted={survey.isDeleted}
           hasActiveAppeal={survey.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={survey.isFrozen ?? false}
-          deleted={survey.isDeleted}
           comments={survey.comments}
           totalComments={survey.totalComments}
           targetId={survey.id}
@@ -255,7 +253,7 @@ const SurveyDetailPage = async ({
       </div>
 
       {/* Owner actions */}
-      {isOwner && !survey.isDeleted && (
+      {isOwner && (
         <SurveyOwnerControls
           surveyId={survey.id}
           initialStatus={survey.status as "OPEN" | "CLOSED"}
@@ -264,7 +262,7 @@ const SurveyDetailPage = async ({
       )}
 
       {/* Survey Response Form */}
-      {isOpen && !survey.isDeleted && (
+      {isOpen && (
         <div className="mt-8 border-t border-slate-200 pt-8">
           <h2 className="text-xl font-bold text-slate-950 mb-6">
             {hasResponded ? "Update Your Response" : "Fill Out This Survey"}
@@ -280,12 +278,6 @@ const SurveyDetailPage = async ({
             consentRequired={survey.consentRequired === true}
             consentText={survey.consentText}
           />
-        </div>
-      )}
-
-      {isOpen && survey.isDeleted && (
-        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500">
-          This survey is preserved for its response data, but accepting new responses is disabled.
         </div>
       )}
 

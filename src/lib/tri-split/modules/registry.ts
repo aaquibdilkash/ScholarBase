@@ -98,17 +98,6 @@ const COMMON_TAIL = {
   deletedByType: true,
 } as const;
 
-/** Keep engaged soft-deleted rows addressable without counting relations. */
-const engagedContentWhere = (...counterKeys: string[]) => ({
-  OR: [
-    { isDeleted: false },
-    {
-      isDeleted: true,
-      OR: counterKeys.map((key) => ({ [key]: { gt: 0 } })),
-    },
-  ],
-});
-
 const DATES = ["createdAt", "updatedAt", "editedAt"] as const;
 
 /** Shorthand: author block appended to a projection. */
@@ -145,14 +134,7 @@ export const CONTENT_LIST_CONFIGS = {
     module: "SOCIAL_POST",
     trending: "socialPosts",
     tag: "feed-public",
-    // Preserve an engaged post as a tombstone. Empty deletions stay out of the
-    // public feed, while comment-bearing rows keep their discussion addressable.
-    where: {
-      OR: [
-        { isDeleted: false },
-        { isDeleted: true, totalComments: { gt: 0 } },
-      ],
-    },
+    where: { isDeleted: false },
     select: PUBLIC_SOCIAL_POST_SELECT as unknown as Record<string, unknown>,
     // `unstable_cache` serialises via JSON.stringify, so dates become ISO
     // strings; the shared `reviveDates` (driven by this same list) revives them.
@@ -182,7 +164,7 @@ export const CONTENT_LIST_CONFIGS = {
     module: "ARTICLE",
     trending: "articles",
     tag: "articles-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: ARTICLE_SELECT as unknown as Record<string, unknown>,
     dateKeys: ["createdAt", "updatedAt", "editedAt"],
     searchFields: [{ field: "title" }, { field: "name", relation: "author" }],
@@ -239,7 +221,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "helpPosts",
     tag: "help-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -268,7 +250,7 @@ export const CONTENT_LIST_CONFIGS = {
     tag: "contributions-public",
     // Only approved contributions are public; the rest stay out of the feed.
     where: {
-      AND: [{ status: "APPROVED" }, engagedContentWhere("totalComments")],
+      AND: [{ status: "APPROVED" }, { isDeleted: false }],
     },
     select: {
       id: true,
@@ -292,7 +274,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "publications",
     tag: "publications-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -337,7 +319,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "researchTools",
     tag: "research-tools-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       name: true,
@@ -365,7 +347,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "grants",
     tag: "research-grants-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -395,7 +377,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "courses",
     tag: "courses-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -430,7 +412,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "journals",
     tag: "journals-public",
-    where: engagedContentWhere("totalComments", "reviewCount"),
+    where: { isDeleted: false },
     // The card renders the average rating, so both aggregates ride the live
     // overlay: a posted/edited/deleted review is reflected on the next page
     // load without purging this shared batch for every visitor.
@@ -471,7 +453,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "results",
     tag: "results-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -504,7 +486,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "surveys",
     tag: "surveys-public",
-    where: engagedContentWhere("totalComments", "totalResponses"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -533,7 +515,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "events",
     tag: "events-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -563,7 +545,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "admissions",
     tag: "admissions-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       university: true,
@@ -592,7 +574,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "vacancies",
     tag: "vacancies-public",
-    where: engagedContentWhere("totalComments"),
+    where: { isDeleted: false },
     select: {
       id: true,
       title: true,
@@ -625,7 +607,7 @@ export const CONTENT_LIST_CONFIGS = {
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "supervisors",
     tag: "supervisors-public",
-    where: engagedContentWhere("totalComments", "recommendationCount"),
+    where: { isDeleted: false },
     // Zero-compute materialized aggregates (RULE 2): the count and the average
     // rating derive from these scalars, so no recommendation rows are fetched.
     select: {

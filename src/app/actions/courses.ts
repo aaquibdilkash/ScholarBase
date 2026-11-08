@@ -18,7 +18,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export async function createCourse(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a course.");
@@ -254,7 +253,7 @@ export async function getCourses(
 export const getCourseById = cache(
   async (courseId: string, userId?: string) => {
     return prisma.course.findUnique({
-      where: { id: courseId, ...engagedContentWhere("totalComments") },
+      where: { id: courseId, isDeleted: false },
       select: {
         id: true,
         title: true,

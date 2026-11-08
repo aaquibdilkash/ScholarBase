@@ -28,7 +28,6 @@ import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
 import { redactRespondentIdentity } from "@/lib/surveys/export";
 import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import type { SurveyBlockInput } from "@/types/survey";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 const MAX_RESPONSE_DURATION_MS = 24 * 60 * 60 * 1000;
 
@@ -153,7 +152,7 @@ export async function getSurveys(
 
 export const getSurvey = cache(async (id: string, userId?: string) => {
   return prisma.researchSurvey.findUnique({
-    where: { id, ...engagedContentWhere("totalComments", "totalResponses") },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       title: true,

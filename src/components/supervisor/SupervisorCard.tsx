@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
@@ -59,9 +60,6 @@ export function SupervisorCard({
 
   return (
     <ListPageCardShell
-      isDeleted={supervisor.isDeleted ?? false}
-      deletedByType={supervisor.deletedByType}
-      deletedNoun="supervisor profile"
       authorHref={`/scholars/${supervisor.author?.id}`}
       authorName={supervisor.author?.name || "Supervisor"}
       authorId={supervisor.authorId}
@@ -95,12 +93,10 @@ export function SupervisorCard({
                   );
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["supervisors"] },
-                  (oldData: SupervisorWithAuthor[] = []) =>
-                    response.data.totalComments > 0 || response.data.recommendationCount > 0
-                      ? oldData.map((s) => s.id === response.data.deletedId ? { ...s, isDeleted: true, deletedByType: response.data.deletedByType } : s)
-                      : oldData.filter((s) => s.id !== response.data.deletedId),
+                removeFromList<SupervisorWithAuthor>(
+                  queryClient,
+                  ["supervisors"],
+                  response.data.deletedId,
                 );
                 toast("Supervisor deleted successfully.", "success");
                 return { refresh: false };
@@ -150,7 +146,6 @@ export function SupervisorCard({
         />
       }
       noBodyLink={true}
-      preservedContent={supervisor.isDeleted ? ratingSummary : null}
     >
       <Link href={`/supervisor/${supervisor.id}`} prefetch={false} className="block group">
         <div className="min-w-0 w-full">

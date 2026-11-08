@@ -12,7 +12,7 @@ import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import { Clock } from "lucide-react";
 import type { AdmissionWithAuthor } from "@/types/cards";
-import { tombstoneInList } from "@/utils/cacheMutation";
+import { removeFromList } from "@/utils/cacheMutation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
@@ -44,9 +44,6 @@ export function AdmissionCard({
 
   return (
     <ListPageCardShell
-      isDeleted={admission.isDeleted ?? false}
-      deletedByType={admission.deletedByType}
-      deletedNoun="admission"
       authorHref={`/scholars/${admission.author?.id}`}
       authorName={admission.author?.name || "Scholar"}
       authorId={admission.author?.id}
@@ -71,10 +68,10 @@ export function AdmissionCard({
             onDelete={async () => {
               const res = await deletePhdAdmission(admission.id);
               if (res?.success) {
-                tombstoneInList<AdmissionWithAuthor>(
+                removeFromList<AdmissionWithAuthor>(
                   queryClient,
                   ["admissions"],
-                  res.data,
+                  res.data.deletedId,
                 );
                 toast("Admission deleted successfully.", "success");
               }

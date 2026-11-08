@@ -25,10 +25,10 @@ const PUBLICATION_TYPE_LABELS: Record<string, string> = {
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -38,15 +38,8 @@ export async function generateMetadata({
   const { id } = await params;
   const p = await getPublicationById(id).catch(() => null);
   if (!p) {
-    return buildMetadata({
-      title: SEO_PAGES.publications.title,
-      description: SEO_PAGES.publications.description,
-      path: SEO_PAGES.publications.path,
-      type: "website",
-      section: SEO_PAGES.publications.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (p.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: p.title,
     description: (p.abstract || p.title).replace(/<[^>]*>/g, " "),
@@ -78,22 +71,34 @@ const PublicationDetailPage = async ({
 
   const publication = await getPublicationById(id, user?.id);
 
-  if (!publication) notFound();
+  if (!publication) {
+    const removed = await getModeratorDeletedContent("publication", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/publications"
+        backLabel="Back to Publications"
+        entityId={removed.id}
+        module="PUBLICATION"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="publication"
+      />
+    );
+  }
 
   const p = publication;
   const userVote =
     (p.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = p.isDeleted
-    ? []
-    : await getRelatedContent("PUBLICATION", p.id);
+  const related = await getRelatedContent("PUBLICATION", p.id);
 
   async function handleDelete() {
     "use server";
     const res = await deletePublication(p.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/publications", [["publications"]]);
+    return { redirect: "/publications", invalidateQueries: [["publications"]] };
   }
 
   return (
@@ -101,9 +106,6 @@ const PublicationDetailPage = async ({
       relatedContent={
         <RelatedContent title="Related publications" items={related} />
       }
-      isDeleted={p.isDeleted}
-      deletedByType={p.deletedByType}
-      deletedNoun="publication"
       isFrozen={p.isFrozen ?? false}
       frozenEntityId={p.id}
       frozenModule="PUBLICATION"
@@ -165,14 +167,12 @@ const PublicationDetailPage = async ({
           ownerId={p.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={p.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={p.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={p.isFrozen ?? false}
-          deleted={p.isDeleted}
           comments={p.comments}
           totalComments={p.totalComments}
           targetId={p.id}

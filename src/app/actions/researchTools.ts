@@ -18,7 +18,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESEARCH_TOOL_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 export async function createResearchTool(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
@@ -203,7 +202,7 @@ export async function getResearchTools(
 export const getResearchToolById = cache(
   async (toolId: string, userId?: string) => {
     return prisma.researchTool.findUnique({
-      where: { id: toolId, ...engagedContentWhere("totalComments") },
+      where: { id: toolId, isDeleted: false },
       select: {
         id: true,
         name: true,

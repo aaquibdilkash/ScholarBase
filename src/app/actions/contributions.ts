@@ -21,7 +21,6 @@ import {
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of contribution rows for the
@@ -46,7 +45,7 @@ export async function getContributions(
 
 export const getContribution = cache(async (id: string, userId?: string) => {
   return prisma.contribution.findUnique({
-    where: { id, ...engagedContentWhere("totalComments") },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       title: true,

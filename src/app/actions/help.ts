@@ -17,7 +17,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of help post rows for the
@@ -49,7 +48,7 @@ export const getHelpPost = cache(async (id: string, userId?: string) => {
   // has been removed. The client is now responsible for deriving state
   // like `isFollowing` and `userVote` from the raw `followers` and `votes` arrays.
   return prisma.helpPost.findUnique({
-    where: { id, ...engagedContentWhere("totalComments") },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       title: true,

@@ -17,9 +17,10 @@ import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -28,8 +29,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id, recommendationId } = await params;
   const rec = await getRecommendation(recommendationId).catch(() => null);
-  if (!rec || rec.supervisor.id !== id) return { title: "Recommendation" };
-  if (rec.isDeleted) return buildNoindexMetadata("Deleted content");
+  if (!rec || rec.supervisor.id !== id) {
+    return buildNoindexMetadata("Removed content");
+  }
   return buildMetadata({
     title: `Recommendation for ${rec.supervisor.name || "Supervisor"}`,
     description: `A ${rec.rating ? `${rec.rating}/5 ` : ""}mentorship recommendation. ${(rec.feedback || "").replace(/<[^>]*>/g, " ")}`,
@@ -51,17 +53,32 @@ export default async function RecommendationDetailPage({
   const recommendation = await getRecommendation(recommendationId, user?.id);
 
   if (!recommendation || recommendation.supervisor.id !== id) {
-    notFound();
+    const removed = await getModeratorDeletedContent("recommendation", {
+      id: recommendationId,
+    });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref={`/supervisor/${id}`}
+        backLabel="Back to Supervisor Profile"
+        entityId={removed.id}
+        module="RECOMMENDATION"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="recommendation"
+      />
+    );
   }
 
   async function handleDelete() {
     "use server";
     const res = await deleteRecommendation(recommendation!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, `/supervisor/${id}`, [
-      ["recommendations", id],
-    ]);
+    return {
+      redirect: `/supervisor/${id}`,
+      invalidateQueries: [["recommendations", id]],
+    };
   }
 
   // Filtered select in getRecommendation returns at most one row (the
@@ -70,9 +87,7 @@ export default async function RecommendationDetailPage({
     (recommendation.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ??
     null;
 
-  const related = recommendation.isDeleted
-    ? []
-    : await getRelatedContent("RECOMMENDATION", recommendation.id);
+  const related = await getRelatedContent("RECOMMENDATION", recommendation.id);
 
   return (
     <DetailPageCardShell
@@ -80,9 +95,6 @@ export default async function RecommendationDetailPage({
         <RelatedContent title="Related recommendations" items={related} />
       }
       isFrozen={recommendation.isFrozen ?? false}
-      isDeleted={recommendation.isDeleted ?? false}
-      deletedByType={recommendation.deletedByType}
-      deletedNoun="recommendation"
       frozenEntityId={recommendation.id}
       frozenModule="RECOMMENDATION"
       frozenEntityType="POST"
@@ -147,14 +159,12 @@ export default async function RecommendationDetailPage({
           ownerId={recommendation.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={recommendation.isFrozen}
-          isDeleted={recommendation.isDeleted ?? false}
           hasActiveAppeal={recommendation.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={recommendation.isFrozen ?? false}
-          deleted={recommendation.isDeleted}
           comments={recommendation.comments as CommentWithAuthorAndVotes[]}
           totalComments={recommendation.totalComments}
           targetId={recommendation.id}

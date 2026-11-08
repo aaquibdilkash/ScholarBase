@@ -20,7 +20,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION, MAX_VACANCY_DEPARTMENT, MAX_VACANCY_SUBJECT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Normalizes an optional short-text field: trims, enforces the max length,
@@ -63,7 +62,7 @@ export async function getVacancies(
 
 export const getVacancyById = cache(async (id: string, userId?: string) => {
   return prisma.jobVacancy.findUnique({
-    where: { id: id, ...engagedContentWhere("totalComments") },
+    where: { id: id, isDeleted: false },
     select: {
       id: true,
       title: true,

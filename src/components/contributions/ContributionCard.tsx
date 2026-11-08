@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -36,9 +37,6 @@ export function ContributionCard({
 
   return (
     <ListPageCardShell
-      isDeleted={contribution.isDeleted ?? false}
-      deletedByType={contribution.deletedByType}
-      deletedNoun="contribution"
       authorHref={`/scholars/${contribution.author?.id}`}
       authorName={contribution.author?.name || "Scholar"}
       authorId={contribution.authorId}
@@ -69,13 +67,7 @@ export function ContributionCard({
                   toast(actionErrorMessage(response, "Failed to delete contribution."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["contributions"] },
-                  (oldData: ContributionWithAuthor[] = []) =>
-                    response.data.totalComments > 0
-                      ? oldData.map((c) => c.id === response.data.deletedId ? { ...c, isDeleted: true, deletedByType: response.data.deletedByType } : c)
-                      : oldData.filter((c) => c.id !== response.data.deletedId),
-                );
+                removeFromList<ContributionWithAuthor>(queryClient, ["contributions"], response.data.deletedId);
                 toast("Contribution deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

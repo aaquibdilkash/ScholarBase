@@ -34,8 +34,6 @@ interface CommentSectionProps {
   totalComments?: number;
   /** Read-only mode (frozen post): hides the composer and reply buttons. */
   locked?: boolean;
-  /** Deleted content remains readable, but uses a deletion-specific notice. */
-  deleted?: boolean;
 }
 
 export function CommentSection({
@@ -46,7 +44,6 @@ export function CommentSection({
   postAuthorId,
   totalComments,
   locked = false,
-  deleted = false,
 }: CommentSectionProps) {
   // Parent slice ONLY. Replies live inside each CommentThread's local state.
   // Dedupe by id so offset pagination (which can overlap when a new comment is
@@ -276,12 +273,7 @@ export function CommentSection({
         Discussion
       </h2>
       <div className="space-y-4 md:space-y-6">
-        {deleted ? (
-          <p className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-400">
-            <span aria-hidden>ⓘ</span>
-            Commenting is disabled because this content has been deleted. The discussion remains available.
-          </p>
-        ) : locked ? (
+        {locked ? (
           <p className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400">
             <span aria-hidden>❄</span>
             Commenting is disabled while this post is under moderation.
@@ -331,10 +323,7 @@ export function CommentSection({
                 targetId={targetId}
                 currentUserId={currentUserId}
                 postAuthorId={postAuthorId}
-                // Deleted content keeps its discussion readable, but every
-                // comment row must be read-only and must not identify the
-                // deleted post's author with the "Author" badge.
-                locked={locked || deleted}
+                locked={locked}
                 onCountDelta={handleCountDelta}
                 onRemoved={() => removeParent(comment.id)}
               />

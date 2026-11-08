@@ -12,6 +12,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { deleteSocialPost } from "@/app/actions/feed";
+import { removeFromList } from "@/utils/cacheMutation";
 import { renderMentionContent } from "@/components/interactions/MentionComposer";
 import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import type { SocialPostWithAuthor as PostWithDetails } from "@/types/cards";
@@ -66,7 +67,7 @@ export function SocialPostCard({
   // Track the previous expansion state so we only scroll on the
   // expanded → collapsed transition (when "View less" is clicked).
   const prevExpanded = useRef(isExpanded);
-  const isOwner = !post.isDeleted && currentUserId === post.authorId;
+  const isOwner = currentUserId === post.authorId;
   const isFollowing = (post.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null = Array.isArray(post.votes)
     ? (post.votes[0]?.voteType ?? null)
@@ -171,9 +172,6 @@ export function SocialPostCard({
       authorHandle={post.author?.handle || undefined}
       authorAvatarUrl={post.author?.avatarUrl || undefined} authorVerified={!!(post.author?.institutionVerifiedAt)}
       detailPageHref={`/feed/${post.id}`}
-      isDeleted={post.isDeleted ?? false}
-      deletedByType={post.deletedByType}
-      deletedNoun="post"
       // Without these the shell renders no frozen notice at all: the post looks
       // normal in the feed while its detail page says "frozen by moderators".
       isFrozen={post.isFrozen ?? false}
@@ -196,22 +194,10 @@ export function SocialPostCard({
             onDelete={async () => {
               const response = await deleteSocialPost(post.id);
               if (response?.success && response.data) {
-                const deletedPost = response.data;
-                queryClient.setQueriesData<PostWithDetails[]>(
-                  { queryKey: ["feed"] },
-                  (oldData = []) =>
-                    deletedPost.totalComments > 0
-                      ? oldData.map((item) =>
-                          item.id === deletedPost.id
-                            ? {
-                                ...item,
-                                isDeleted: true,
-                                deletedByType: deletedPost.deletedByType,
-                                totalComments: deletedPost.totalComments,
-                              }
-                            : item,
-                        )
-                      : oldData.filter((item) => item.id !== deletedPost.id),
+                removeFromList<PostWithDetails>(
+                  queryClient,
+                  ["feed"],
+                  response.data.id,
                 );
                 toast("Post deleted successfully.", "success");
               }
@@ -228,7 +214,7 @@ export function SocialPostCard({
       }
       footerVoteButton={(
         <VoteButton
-          frozen={post.isFrozen === true || post.isDeleted === true}
+          frozen={post.isFrozen === true}
           targetId={post.id}
           module="SOCIAL_POST"
           initialTotalVotes={post.totalVotes ?? 0}
@@ -238,7 +224,7 @@ export function SocialPostCard({
       )}
       footerBookmarkButton={(
         <BookmarkButton
-          frozen={post.isFrozen === true || post.isDeleted === true}
+          frozen={post.isFrozen === true}
           targetId={post.id}
           module="SOCIAL_POST"
           initialTotalBookmarks={post.totalBookmarks ?? 0}
@@ -255,7 +241,6 @@ export function SocialPostCard({
           ownerId={post.author?.id ?? post.authorId ?? null}
           currentUserId={currentUserId ?? null}
           isFrozen={post.isFrozen ?? false}
-          isDeleted={post.isDeleted ?? false}
           hasActiveAppeal={post.hasActiveAppeal ?? false}
         />
       )}
@@ -348,7 +333,7 @@ export function SocialPostCard({
         )}
       </Link>
 
-      {!post.isDeleted && showToggle && (
+      {showToggle && (
         <button
           ref={toggleButtonRef}
           type="button"

@@ -20,7 +20,6 @@ import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT, MAX_PUBLICATION_KEYWORDS, MAX_PUBLICATION_KEYWORD_COUNT, MAX_PUBLICATION_KEYWORD_LENGTH } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 function readLinkedIds(formData: FormData, key: string): string[] {
   return [...new Set((readOptionalFormValue(formData, key) ?? "").split(",").map((id) => id.trim()).filter(Boolean))].slice(0, 20);
@@ -379,7 +378,7 @@ export const getPublicationById = cache(
     return prisma.publication.findUnique({
       where: {
         id: publicationId,
-        ...engagedContentWhere("totalComments"),
+        isDeleted: false,
       },
       select: {
         id: true,

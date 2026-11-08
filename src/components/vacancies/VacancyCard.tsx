@@ -2,6 +2,7 @@
 
 import { Clock, BookOpen } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -60,9 +61,6 @@ export function VacancyCard({ vacancy,
 
   return (
     <ListPageCardShell
-      isDeleted={vacancy.isDeleted ?? false}
-      deletedByType={vacancy.deletedByType}
-      deletedNoun="vacancy"
       authorHref={`/scholars/${vacancy.author?.id}`}
       authorName={vacancy.author?.name || "Scholar"}
       authorId={vacancy.authorId}
@@ -93,13 +91,7 @@ export function VacancyCard({ vacancy,
                   toast(actionErrorMessage(response, "Failed to delete vacancy."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["vacancies"] },
-                  (oldData: VacancyWithAuthor[] = []) =>
-                  response.data.totalComments > 0
-                    ? oldData.map((v) => v.id === response.data.deletedId ? { ...v, isDeleted: true, deletedByType: response.data.deletedByType } : v)
-                    : oldData.filter((v) => v.id !== response.data.deletedId),
-                );
+                removeFromList<VacancyWithAuthor>(queryClient, ["vacancies"], response.data.deletedId);
                 toast("Vacancy deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

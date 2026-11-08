@@ -16,7 +16,6 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of supervisor rows for the
@@ -41,7 +40,7 @@ export async function getSupervisors(
 
 export const getSupervisor = cache(async (id: string, userId?: string) => {
   return prisma.supervisor.findUnique({
-    where: { id, ...engagedContentWhere("totalComments", "recommendationCount") },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       name: true,
@@ -73,7 +72,7 @@ export const getSupervisor = cache(async (id: string, userId?: string) => {
       votes: userId ? { where: { userId }, select: { voteType: true } } : false,
       bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
       recommendations: {
-        where: engagedContentWhere("totalComments"),
+        where: { isDeleted: false },
         orderBy: { createdAt: "desc" },
         take: 1,
         select: {
@@ -165,7 +164,7 @@ export async function getSupervisorRecommendations(
   const userId = user?.id;
 
   return prisma.recommendation.findMany({
-    where: { supervisorId, ...engagedContentWhere("totalComments") },
+    where: { supervisorId, isDeleted: false },
     skip,
     take,
     orderBy: { createdAt: "desc" },
@@ -217,7 +216,7 @@ export async function getSupervisorRecommendationMeta(
   const recommendations = await prisma.recommendation.findMany({
     // Live rows plus engaged tombstones. The tombstone is reachable in the
     // carousel, but it must not count toward the rating or the heading.
-    where: { supervisorId, ...engagedContentWhere("totalComments") },
+    where: { supervisorId, isDeleted: false },
     select: { id: true, rating: true, authorId: true, isDeleted: true },
   });
 

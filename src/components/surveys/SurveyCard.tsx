@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -46,9 +47,6 @@ export function SurveyCard({
 
   return (
     <ListPageCardShell
-      isDeleted={survey.isDeleted ?? false}
-      deletedByType={survey.deletedByType}
-      deletedNoun="survey"
       authorHref={`/scholars/${survey.author?.id}`}
       authorName={survey.author?.name || "Scholar"}
       authorId={survey.authorId}
@@ -78,13 +76,7 @@ export function SurveyCard({
                   toast(actionErrorMessage(response, "Failed to delete survey."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["surveys"] },
-                  (oldData: SurveyWithAuthor[] = []) =>
-                    response.data.totalComments > 0 || response.data.totalResponses > 0
-                      ? oldData.map((s) => s.id === response.data.deletedId ? { ...s, isDeleted: true, deletedByType: response.data.deletedByType } : s)
-                      : oldData.filter((s) => s.id !== response.data.deletedId),
-                );
+                removeFromList<SurveyWithAuthor>(queryClient, ["surveys"], response.data.deletedId);
                 toast("Survey deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

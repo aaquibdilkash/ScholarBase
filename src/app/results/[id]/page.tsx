@@ -13,10 +13,10 @@ import { RichContent } from "@/components/content/RichContent";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -26,15 +26,8 @@ export async function generateMetadata({
   const { id } = await params;
   const result = await getResult(id).catch(() => null);
   if (!result) {
-    return buildMetadata({
-      title: SEO_PAGES.results.title,
-      description: SEO_PAGES.results.description,
-      path: SEO_PAGES.results.path,
-      type: "website",
-      section: SEO_PAGES.results.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (result.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: result.title,
     description: result.description.slice(0, 160),
@@ -57,7 +50,20 @@ const ResultDetailPage = async ({
   const result = await getResult(id, user?.id);
 
   if (!result) {
-    notFound();
+    const removed = await getModeratorDeletedContent("result", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/results"
+        backLabel="Back to Results"
+        entityId={removed.id}
+        module="RESULT"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="result"
+      />
+    );
   }
 
   const TYPE_LABELS: Record<string, string> = {
@@ -71,17 +77,12 @@ const ResultDetailPage = async ({
   const userVote =
     (result.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = result.isDeleted
-    ? []
-    : await getRelatedContent("RESULT", result.id);
+  const related = await getRelatedContent("RESULT", result.id);
 
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related results" items={related} />}
       isFrozen={result.isFrozen ?? false}
-      isDeleted={result.isDeleted}
-      deletedByType={result.deletedByType}
-      deletedNoun="result"
       frozenEntityId={result.id}
       frozenModule="RESULT"
       frozenEntityType="POST"
@@ -102,8 +103,7 @@ const ResultDetailPage = async ({
               "use server";
               const res = await deleteResult(result.id);
               if (res?.success === false) return res;
-              // Engaged deleted content stays readable (tombstone).
-              return deletedDetailNavigation(res?.data, "/results", [["results"]]);
+              return { redirect: "/results", invalidateQueries: [["results"]] };
             }}
             isOwner={true}
             editLabel="Edit Result"
@@ -155,14 +155,12 @@ const ResultDetailPage = async ({
           ownerId={result.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={result.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={result.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={result.isFrozen ?? false}
-          deleted={result.isDeleted}
           comments={result.comments}
           totalComments={result.totalComments}
           targetId={result.id}

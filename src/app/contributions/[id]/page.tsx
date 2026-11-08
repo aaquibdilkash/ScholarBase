@@ -19,9 +19,10 @@ import type { Metadata } from "next";
 import { SEO_PAGES } from "@/constants/seo";
 import { ComingSoon } from "@/components/contributions/ComingSoon";
 import { isComingSoon } from "@/lib/feature-flags";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -41,15 +42,8 @@ export async function generateMetadata({
   const { id } = await params;
   const contribution = await getContribution(id).catch(() => null);
   if (!contribution) {
-    return buildMetadata({
-      title: SEO_PAGES.contributions.title,
-      description: SEO_PAGES.contributions.description,
-      path: SEO_PAGES.contributions.path,
-      type: "website",
-      section: SEO_PAGES.contributions.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (contribution.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: contribution.title || "ScholarBase Contribution",
     description:
@@ -81,22 +75,32 @@ const ContributionDetailPage = async ({
   const contribution = await getContribution(id, user?.id);
 
   if (!contribution) {
-    notFound();
+    const removed = await getModeratorDeletedContent("contribution", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/contributions"
+        backLabel="Back to Contributions"
+        entityId={removed.id}
+        module="CONTRIBUTION"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="contribution"
+      />
+    );
   }
 
   const userVote =
     (contribution.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = contribution.isDeleted
-    ? []
-    : await getRelatedContent("CONTRIBUTION", contribution.id);
+  const related = await getRelatedContent("CONTRIBUTION", contribution.id);
 
   const handleDelete = async () => {
     "use server";
     const res = await deleteContribution(id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/contributions", [["contributions"]]);
+    return { redirect: "/contributions", invalidateQueries: [["contributions"]] };
   };
 
   return (
@@ -105,9 +109,6 @@ const ContributionDetailPage = async ({
         <RelatedContent title="Related contributions" items={related} />
       }
       isFrozen={contribution.isFrozen ?? false}
-      isDeleted={contribution.isDeleted}
-      deletedByType={contribution.deletedByType}
-      deletedNoun="contribution"
       frozenEntityId={contribution.id}
       frozenModule="CONTRIBUTION"
       frozenEntityType="POST"
@@ -176,14 +177,12 @@ const ContributionDetailPage = async ({
           ownerId={contribution.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={contribution.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={contribution.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={contribution.isFrozen ?? false}
-          deleted={contribution.isDeleted}
           comments={contribution.comments}
           totalComments={contribution.totalComments}
           targetId={contribution.id}

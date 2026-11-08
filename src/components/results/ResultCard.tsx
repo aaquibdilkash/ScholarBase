@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -43,9 +44,6 @@ export function ResultCard({
 
   return (
     <ListPageCardShell
-      isDeleted={result.isDeleted ?? false}
-      deletedByType={result.deletedByType}
-      deletedNoun="result"
       authorHref={`/scholars/${result.author?.id}`}
       authorName={result.author?.name || "Scholar"}
       authorId={result.authorId}
@@ -74,13 +72,7 @@ export function ResultCard({
                   toast(actionErrorMessage(response, "Failed to delete result."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["results"] },
-                  (oldData: ResultWithAuthor[] = []) =>
-                    response.data.totalComments > 0
-                      ? oldData.map((r) => r.id === response.data.deletedId ? { ...r, isDeleted: true, deletedByType: response.data.deletedByType } : r)
-                      : oldData.filter((r) => r.id !== response.data.deletedId),
-                );
+                removeFromList<ResultWithAuthor>(queryClient, ["results"], response.data.deletedId);
                 toast("Result deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

@@ -18,7 +18,6 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_RESULT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { engagedContentWhere } from "@/lib/content-tombstone";
 
 /**
  * Loads one page of result rows for the
@@ -43,7 +42,7 @@ export async function getResults(
 
 export const getResult = cache(async (id: string, userId?: string) => {
   return prisma.result.findUnique({
-    where: { id, ...engagedContentWhere("totalComments") },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       title: true,

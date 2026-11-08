@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { VoteButton } from "@/components/interactions/VoteButton";
@@ -17,10 +18,10 @@ import { RichContent } from "@/components/content/RichContent";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -30,15 +31,8 @@ export async function generateMetadata({
   const { id } = await params;
   const supervisor = await getSupervisor(id).catch(() => null);
   if (!supervisor) {
-    return buildMetadata({
-      title: SEO_PAGES.supervisor.title,
-      description: SEO_PAGES.supervisor.description,
-      path: SEO_PAGES.supervisor.path,
-      type: "website",
-      section: SEO_PAGES.supervisor.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (supervisor.isDeleted) return buildNoindexMetadata("Deleted content");
   const name = supervisor.name || "PhD Supervisor";
   const university = supervisor.university
     ? ` at ${supervisor.university}`
@@ -67,12 +61,22 @@ export default async function SupervisorPage({
 
   const supervisor = await getSupervisor(id, user?.id);
 
-  if (!supervisor)
+  if (!supervisor) {
+    const removed = await getModeratorDeletedContent("supervisor", { id });
+    if (!removed) notFound();
     return (
-      <div className="p-8 text-center text-slate-500 font-medium">
-        Supervisor not found
-      </div>
+      <RemovedContentNotice
+        backHref="/supervisor"
+        backLabel="Back to Search"
+        entityId={removed.id}
+        module="SUPERVISOR"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="supervisor profile"
+      />
     );
+  }
 
   const recMeta = await getSupervisorRecommendationMeta(id);
 
@@ -80,8 +84,7 @@ export default async function SupervisorPage({
     "use server";
     const res = await deleteSupervisor(supervisor!.id);
     if (res?.success === false) return res;
-    // Engaged deleted profiles stay readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/supervisor", [["supervisors"]]);
+    return { redirect: "/supervisor", invalidateQueries: [["supervisors"]] };
   }
 
   const userVote =
@@ -90,9 +93,7 @@ export default async function SupervisorPage({
   const hasUserRecommendation = recMeta.hasUserRecommendation;
   const isFollowing = (supervisor.author?.followers?.length ?? 0) > 0;
 
-  const related = supervisor.isDeleted
-    ? []
-    : await getRelatedContent("SUPERVISOR", supervisor.id);
+  const related = await getRelatedContent("SUPERVISOR", supervisor.id);
 
   const recommendationCount = recMeta.totalCount;
   const avgRating = recMeta.avgRating;
@@ -124,9 +125,6 @@ export default async function SupervisorPage({
           />
         </>
       }
-      isDeleted={supervisor.isDeleted}
-      deletedByType={supervisor.deletedByType}
-      deletedNoun="supervisor profile"
       isFrozen={supervisor.isFrozen ?? false}
       frozenEntityId={supervisor.id}
       frozenModule="SUPERVISOR"
@@ -166,7 +164,6 @@ export default async function SupervisorPage({
           ownerId={supervisor.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={supervisor.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={supervisor.hasActiveAppeal}
         />
       }
@@ -182,7 +179,6 @@ export default async function SupervisorPage({
       discussion={
         <CommentSection
           locked={supervisor.isFrozen ?? false}
-          deleted={supervisor.isDeleted}
           comments={supervisor.comments}
           totalComments={supervisor.totalComments}
           targetId={supervisor.id}
@@ -217,7 +213,6 @@ export default async function SupervisorPage({
                 onDeleteSupervisor={handleDelete}
                 initialHasRecommendation={hasUserRecommendation}
                 initialUserRecommendationId={recMeta.userRecommendationId}
-                isDeleted={supervisor.isDeleted}
               />
             </div>
           </div>

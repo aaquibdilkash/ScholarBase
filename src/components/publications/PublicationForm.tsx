@@ -106,7 +106,7 @@ export default function PublicationForm({
     keywords: initialValues?.keywords ?? "",
     domain: initialValues?.domain ?? "",
     abstract: initialValues?.abstract ?? "",
-    isUserAuthor: initialValues?.isUserAuthor ? "true" : "false",
+    isUserAuthor: initialValues?.isUserAuthor === "true" ? "true" : "false",
     journalId: initialValues?.journalId ?? "",
     authorIds: initialValues?.authorIds ?? [],
   };

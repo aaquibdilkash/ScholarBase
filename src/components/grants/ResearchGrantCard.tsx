@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -36,9 +37,6 @@ export function ResearchGrantCard({
 
   return (
     <ListPageCardShell
-      isDeleted={grant.isDeleted ?? false}
-      deletedByType={grant.deletedByType}
-      deletedNoun="grant"
       // The list card must surface the same moderation state as /grants/[id].
       isFrozen={grant.isFrozen ?? false}
       frozenEntityId={grant.id}
@@ -67,13 +65,7 @@ export function ResearchGrantCard({
                   toast(actionErrorMessage(response, "Failed to delete grant."), "error");
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["grants"] },
-                  (oldData: ResearchGrantWithAuthor[] = []) =>
-                    response.data.totalComments > 0
-                      ? oldData.map((g) => g.id === response.data.deletedId ? { ...g, isDeleted: true, deletedByType: response.data.deletedByType } : g)
-                      : oldData.filter((g) => g.id !== response.data.deletedId),
-                );
+                removeFromList<ResearchGrantWithAuthor>(queryClient, ["grants"], response.data.deletedId);
                 toast("Grant deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

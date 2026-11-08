@@ -156,14 +156,7 @@ export async function fetchFeedPage(
 
 export const getPost = cache(async (id: string, userId?: string) => {
   return prisma.socialPost.findUnique({
-    where: {
-      id,
-      OR: [
-        { isDeleted: false },
-        // Keep only engaged deleted posts addressable as tombstones.
-        { isDeleted: true, totalComments: { gt: 0 } },
-      ],
-    },
+    where: { id, isDeleted: false },
     select: {
       id: true,
       content: true,
@@ -247,13 +240,7 @@ export const getPost = cache(async (id: string, userId?: string) => {
  */
 export async function getPostMetadata(id: string) {
   return prisma.socialPost.findUnique({
-    where: {
-      id,
-      OR: [
-        { isDeleted: false },
-        { isDeleted: true, totalComments: { gt: 0 } },
-      ],
-    },
+    where: { id, isDeleted: false },
     select: POST_METADATA_SELECT,
   });
 }
@@ -471,7 +458,7 @@ export async function getPostEditData(id: string) {
   const user = await requireCurrentUser("Log in to edit this post.");
 
   const post = await prisma.socialPost.findUnique({
-    where: { id },
+    where: { id, isDeleted: false },
     select: {
       content: true,
       imageUrl: true,

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { removeFromList } from "@/utils/cacheMutation";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -50,9 +51,6 @@ export function CourseCard({
 
   return (
     <ListPageCardShell
-      isDeleted={course.isDeleted ?? false}
-      deletedByType={course.deletedByType}
-      deletedNoun="course"
       // The list card must surface the same moderation state as /learn/[id].
       isFrozen={course.isFrozen ?? false}
       frozenEntityId={course.id}
@@ -84,13 +82,7 @@ export function CourseCard({
                   );
                   return { refresh: false };
                 }
-                queryClient.setQueriesData(
-                  { queryKey: ["courses"] },
-                  (oldData: CourseWithAuthor[] = []) =>
-                    response.data.totalComments > 0
-                      ? oldData.map((c) => c.id === response.data.deletedId ? { ...c, isDeleted: true, deletedByType: response.data.deletedByType } : c)
-                      : oldData.filter((c) => c.id !== response.data.deletedId),
-                );
+                removeFromList<CourseWithAuthor>(queryClient, ["courses"], response.data.deletedId);
                 toast("Course deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {

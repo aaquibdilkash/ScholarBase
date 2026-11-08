@@ -12,10 +12,10 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { Metadata } from "next";
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
-import { SEO_PAGES } from "@/constants/seo";
-import { deletedDetailNavigation } from "@/lib/content-tombstone";
 import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
+import { getModeratorDeletedContent } from "@/lib/deleted-content";
+import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
 
 export async function generateMetadata({
   params,
@@ -25,15 +25,8 @@ export async function generateMetadata({
   const { id } = await params;
   const tool = await getResearchToolById(id).catch(() => null);
   if (!tool) {
-    return buildMetadata({
-      title: SEO_PAGES.researchTools.title,
-      description: SEO_PAGES.researchTools.description,
-      path: SEO_PAGES.researchTools.path,
-      type: "website",
-      section: SEO_PAGES.researchTools.section,
-    });
+    return buildNoindexMetadata("Removed content");
   }
-  if (tool.isDeleted) return buildNoindexMetadata("Deleted content");
   return buildMetadata({
     title: tool.name,
     description: `${tool.name} helps researchers with ${tool.use}.`,
@@ -56,23 +49,33 @@ const ResearchToolDetailPage = async ({
   const tool = await getResearchToolById(id, user?.id);
 
   if (!tool) {
-    notFound();
+    const removed = await getModeratorDeletedContent("researchTool", { id });
+    if (!removed) notFound();
+    return (
+      <RemovedContentNotice
+        backHref="/research-tools"
+        backLabel="Back to Research Tools"
+        entityId={removed.id}
+        module="RESEARCH_TOOL"
+        ownerId={removed.authorId}
+        currentUserId={user?.id}
+        hasActiveAppeal={removed.hasActiveAppeal}
+        noun="research tool"
+      />
+    );
   }
 
   const userVote =
     (tool.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = tool.isDeleted
-    ? []
-    : await getRelatedContent("RESEARCH_TOOL", tool.id);
+  const related = await getRelatedContent("RESEARCH_TOOL", tool.id);
 
   // Define the delete action outside of the JSX
   async function handleDelete() {
     "use server";
     const res = await deleteResearchTool(tool!.id);
     if (res?.success === false) return res;
-    // Engaged deleted content stays readable (tombstone); stay on the page.
-    return deletedDetailNavigation(res?.data, "/research-tools", [["researchTools"]]);
+    return { redirect: "/research-tools", invalidateQueries: [["researchTools"]] };
   }
 
   return (
@@ -80,9 +83,6 @@ const ResearchToolDetailPage = async ({
       relatedContent={
         <RelatedContent title="Related research tools" items={related} />
       }
-      isDeleted={tool.isDeleted}
-      deletedByType={tool.deletedByType}
-      deletedNoun="research tool"
       isFrozen={tool.isFrozen ?? false}
       frozenEntityId={tool.id}
       frozenModule="RESEARCH_TOOL"
@@ -146,14 +146,12 @@ const ResearchToolDetailPage = async ({
           ownerId={tool.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={tool.isFrozen}
-          isDeleted={false}
           hasActiveAppeal={tool.hasActiveAppeal}
         />
       }
       discussion={
         <CommentSection
           locked={tool.isFrozen ?? false}
-          deleted={tool.isDeleted}
           comments={tool.comments}
           totalComments={tool.totalComments}
           targetId={tool.id}

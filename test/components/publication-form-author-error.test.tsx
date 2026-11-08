@@ -144,3 +144,55 @@ describe("PublicationForm validation errors", () => {
     expect(button.disabled).toBe(false);
   });
 });
+
+describe("PublicationForm author checkbox prefill", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    localStorage.clear();
+    submit.mockClear();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it("does not pre-check the box when isUserAuthor is the string 'false'", async () => {
+    await act(async () => {
+      root.render(
+        <PublicationForm
+          mode="edit"
+          publicationId="pub_1"
+          initialValues={{ isUserAuthor: "false" }}
+        />,
+      );
+    });
+
+    const checkbox = container.querySelector(
+      '#isUserAuthor',
+    ) as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+  });
+
+  it("pre-checks the box when isUserAuthor is the string 'true'", async () => {
+    await act(async () => {
+      root.render(
+        <PublicationForm
+          mode="edit"
+          publicationId="pub_1"
+          initialValues={{ isUserAuthor: "true" }}
+        />,
+      );
+    });
+
+    const checkbox = container.querySelector(
+      '#isUserAuthor',
+    ) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+  });
+});
