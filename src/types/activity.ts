@@ -14,6 +14,12 @@ export interface ActivityItem {
     /** Uppercase module key, e.g. 'SOCIAL_POST' | 'ARTICLE'. */
     moduleType: string;
     entityId: string;
+    /** Route-ready parent content id (e.g. `supervisorId/recommendationId` for nested content). */
+    parentEntityId?: string | null;
+    /** Comment id for COMMENTED / REPLIED / comment-vote rows. */
+    entityChildId?: string | null;
+    hiddenByContent?: boolean | null;
+    hiddenByComment?: boolean | null;
     entityTitle: string;
     createdAt: Date;
 }

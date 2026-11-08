@@ -238,6 +238,39 @@ export type ReportsPage = {
   nextCursor: string | null;
 };
 
+/** Scholar Shield surfaces shown as the two admin tabs. */
+export type AdminShieldTool = "DETECTOR" | "REWRITER";
+
+/** One Scholar Shield use row: the cuid doubles as the PDF report ID. */
+export type AdminShieldUsageItem = {
+  id: string;
+  tool: AdminShieldTool;
+  /** Engine that produced the result, e.g. `on-device/tmr-raid` or `groq/...`. */
+  model: string;
+  overallScore: number | null;
+  neuralScore: number | null;
+  cadenceScore: number | null;
+  createdAt: Date;
+  user: {
+    id: string;
+    name: string | null;
+    handle: string | null;
+    email: string | null;
+  } | null;
+};
+
+/** Per-tool usage totals for the summary cards. */
+export type AdminShieldToolSummary = {
+  total: number;
+  last7Days: number;
+};
+
+export type AdminShieldSummary = {
+  detector: AdminShieldToolSummary;
+  rewriter: AdminShieldToolSummary;
+  total: number;
+};
+
 export interface ContentModel {
   findMany: (args: {
     include: { author: true }

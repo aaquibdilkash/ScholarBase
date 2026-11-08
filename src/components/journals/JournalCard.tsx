@@ -154,26 +154,15 @@ export function JournalCard({
         />
       }
       bodyBottomContent={
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          {typeof websiteUrl === "string" && websiteUrl ? (
-            <SafeExternalLink
-              url={websiteUrl}
-              onClick={(e) => e.stopPropagation()}
-              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-            >
-              View Website
-            </SafeExternalLink>
-          ) : (
-            <Link
-              href={`/journals/${journal.id}`}
-              prefetch={false}
-              onClick={(e) => e.stopPropagation()}
-              className="sb-button-secondary flex-1 px-4 py-2 text-center text-xs text-slate-500 dark:text-slate-400"
-            >
-              View Journal
-            </Link>
-          )}
-        </div>
+        typeof websiteUrl === "string" && websiteUrl ? (
+          <SafeExternalLink
+            url={websiteUrl}
+            onClick={(e) => e.stopPropagation()}
+            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+          >
+            View Website
+          </SafeExternalLink>
+        ) : null
       }
     >
       <Link href={`/journals/${journal.id}`} prefetch={false} className="block group">

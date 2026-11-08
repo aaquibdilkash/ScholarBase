@@ -139,7 +139,7 @@ export function CourseCard({
           url={course.link}
           className="mt-6 block rounded-lg bg-slate-950 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-slate-800"
         >
-          Open Course
+          View Course
         </SafeExternalLink>
       }
     >

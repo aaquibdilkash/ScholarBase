@@ -25,6 +25,7 @@ vi.mock("@/lib/db", async () => {
 
 vi.mock("@/lib/tri-split/modules/profile-tab", () => ({
   revalidateProfileContent: vi.fn(),
+  revalidateBookmarkersForDeletedContent: vi.fn(),
 }))
 
 let mockCurrentUser: { id: string } | null = null

@@ -6,6 +6,8 @@ import {
   loadContentPage,
   revalidateContent,
 } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 import { cache } from "react";
 
@@ -468,10 +470,18 @@ export async function deleteSupervisor(supervisorId: string) {
         data: { reputation: { decrement: supervisor.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted supervisor stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "SUPERVISOR", supervisorId)
   });
 
   // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("SUPERVISOR", supervisor.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted supervisor stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("SUPERVISOR", supervisorId);
 
   return { success: true as const, data: { deletedId: supervisorId, isDeleted: true as const, deletedByType, totalComments: supervisor.totalComments, recommendationCount: supervisor.recommendationCount } } as unknown as
     | { success: true; data: { deletedId: string; isDeleted: true; deletedByType: typeof deletedByType; totalComments: number; recommendationCount: number } }

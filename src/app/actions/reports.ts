@@ -11,6 +11,14 @@ import type {
 } from "@/types/reports";
 import { MAX_REPORT_DETAILS } from "@/lib/constants";
 import { revalidateContent } from "@/lib/tri-split/modules/registry";
+import {
+  hideCommentActivity,
+  hideContentActivity,
+  restoreCommentActivity,
+  restoreContentActivity,
+  COMMENT_CONTENT_TYPE_TO_ACTIVITY,
+  CONTENT_TYPE_TO_ACTIVITY_MODULE,
+} from "@/lib/activity";
 import { Prisma } from "@prisma/client";
 import { queueNotification } from "@/lib/qstash";
 
@@ -232,6 +240,18 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     reportCountField: "reportCount",
   },
 };
+/**
+ * Human-readable subject for the duplicate-report message, chosen from what was
+ * actually reported rather than the coarse `entityType` (which lumps posts and
+ * scholar profiles together as "content"). A scholar profile is a "user", a
+ * comment is a "comment", and everything else is "content".
+ */
+function reportSubject(entityType: ReportEntityType, module: ReportModule): string {
+  if (module === "SCHOLAR_PROFILE") return "user";
+  if (entityType === "COMMENT") return "comment";
+  return "content";
+}
+
 // submitReport — creates a Report row + atomically bumps the materialized
 // reportCount on the target entity (RULE 3: Atomic Transactions).
 // -----------------------------------------------------------------------------
@@ -326,10 +346,9 @@ export async function submitReport(
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
     ) {
-      const subject = entityType === "COMMENT" ? "comment" : "content";
       return {
         success: false,
-        message: `You have already reported this ${subject}.`,
+        message: `You have already reported this ${reportSubject(entityType, mod)}.`,
       };
     }
     console.error("[SubmitReportAction Error]:", err);
@@ -724,12 +743,13 @@ export async function moderateContent(
           // delete flow in deleteCommentTransaction.
           const full = (await txCommentDelegate!.findUnique({
             where: { id: contentId },
-            select: COMMENT_MODERATION_SELECT,
+            select: { ...COMMENT_MODERATION_SELECT, content: true },
           })) as {
             id: string;
             totalVotes: number;
             authorId: string | null;
             parentId: string | null;
+            content: string;
           } | null;
           moderatedAuthorId = full?.authorId;
           if (!full) throw new Error("Content not found");
@@ -775,6 +795,15 @@ export async function moderateContent(
               reportCount: 0,
             },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+          // Hide this comment's activity so a deleted comment stops showing in
+          // the activity feed at once (mirrors the user delete flow).
+          const commentModuleKey = COMMENT_CONTENT_TYPE_TO_ACTIVITY[contentType];
+          if (commentModuleKey && full.authorId) {
+            await hideCommentActivity(tx, commentModuleKey, contentId, {
+              userId: full.authorId,
+              content: full.content,
+            });
+          }
           await tx.report.updateMany({
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "DISMISSED" },
@@ -807,7 +836,7 @@ export async function moderateContent(
           // parents that are themselves soft-deleted).
           const full = (await txCommentDelegate!.findUnique({
             where: { id: contentId },
-            select: COMMENT_MODERATION_SELECT,
+            select: { ...COMMENT_MODERATION_SELECT, content: true },
           })) as {
             id: string;
             isFrozen: boolean;
@@ -815,6 +844,7 @@ export async function moderateContent(
             totalVotes: number;
             authorId: string | null;
             parentId: string | null;
+            content: string;
           } | null;
           moderatedAuthorId = full?.authorId;
           if (!full) throw new Error("Content not found");
@@ -860,6 +890,14 @@ export async function moderateContent(
               hasActiveAppeal: false,
             },
           })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+          // Re-show this comment's activity now that it is recovered.
+          const recoverCommentModuleKey = COMMENT_CONTENT_TYPE_TO_ACTIVITY[contentType];
+          if (recoverCommentModuleKey && full.authorId) {
+            await restoreCommentActivity(tx, recoverCommentModuleKey, contentId, {
+              userId: full.authorId,
+              content: full.content,
+            });
+          }
           await tx.appeal.updateMany({
             where: { entityId: contentId, status: "PENDING" },
             data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },
@@ -1114,6 +1152,23 @@ export async function moderateContent(
             reportCount: 0,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+        // Hide this content's activity so a deleted row stops showing in the
+        // activity feed at once (mirrors the user delete flow).
+        const contentModuleKey = CONTENT_TYPE_TO_ACTIVITY_MODULE[contentType];
+        if (contentModuleKey) {
+          const extra =
+            contentType === "recommendation" && (full as { supervisorId?: string }).supervisorId
+              ? `${(full as { supervisorId?: string }).supervisorId}/${contentId}`
+              : contentType === "journalReview" && (full as { journalId?: string }).journalId
+                ? `${(full as { journalId?: string }).journalId}/${contentId}`
+                : undefined;
+          await hideContentActivity(
+              tx,
+              contentModuleKey,
+              contentId,
+              ...(extra ? [extra] : [])
+            );
+        }
         await tx.report.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "DISMISSED" },
@@ -1223,6 +1278,22 @@ export async function moderateContent(
             deletedById: null,
           },
         })) as { id: string; isFrozen: boolean; isDeleted: boolean };
+        // Re-show this content's activity now that it is recovered.
+        const recoverContentModuleKey = CONTENT_TYPE_TO_ACTIVITY_MODULE[contentType];
+        if (recoverContentModuleKey) {
+          const extra =
+            contentType === "recommendation" && (full as { supervisorId?: string }).supervisorId
+              ? `${(full as { supervisorId?: string }).supervisorId}/${contentId}`
+              : contentType === "journalReview" && (full as { journalId?: string }).journalId
+                ? `${(full as { journalId?: string }).journalId}/${contentId}`
+                : undefined;
+          await restoreContentActivity(
+            tx,
+            recoverContentModuleKey,
+            contentId,
+            ...(extra ? [extra] : [])
+          );
+        }
         await tx.appeal.updateMany({
           where: { entityId: contentId, status: "PENDING" },
           data: { status: "ACTIONED", reviewedById: user.id, reviewedAt: new Date() },

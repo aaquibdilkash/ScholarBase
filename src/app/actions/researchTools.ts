@@ -6,6 +6,8 @@ import {
   loadContentPage,
   revalidateContent,
 } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 import { cache } from "react";
 
@@ -170,10 +172,18 @@ export async function deleteResearchTool(toolId: string) {
         data: { reputation: { decrement: tool.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted research tool stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "RESEARCH_TOOL", toolId)
   });
 
   // Purge the cached research tool pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("RESEARCH_TOOL", tool.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted post stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("RESEARCH_TOOL", toolId);
 
   return { success: true, data: { deletedId: toolId, isDeleted: true as const, deletedByType, totalComments: tool.totalComments } };
 }

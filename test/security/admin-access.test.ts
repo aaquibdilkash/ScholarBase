@@ -56,6 +56,8 @@ const CALLS: { name: string; invoke: () => Promise<unknown> }[] = [
   { name: "toggleContentFreeze", invoke: () => admin.toggleContentFreeze("article", "c1") },
   { name: "toggleAuthorFreeze", invoke: () => admin.toggleAuthorFreeze("u-author") },
   { name: "getAdminStats", invoke: () => admin.getAdminStats() },
+  { name: "getAdminShieldSummary", invoke: () => admin.getAdminShieldSummary() },
+  { name: "getAdminShieldUsage", invoke: () => admin.getAdminShieldUsage() },
   { name: "getAdminInstitutionDomainRequests", invoke: () => admin.getAdminInstitutionDomainRequests() },
   { name: "getAdminInstitutionDomains", invoke: () => admin.getAdminInstitutionDomains() },
   { name: "reviewInstitutionDomainRequest", invoke: () => admin.reviewInstitutionDomainRequest("r1", "APPROVED") },

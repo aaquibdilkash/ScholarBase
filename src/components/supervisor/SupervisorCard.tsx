@@ -162,7 +162,7 @@ export function SupervisorCard({
           )}
 
         {ratingSummary ?? (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+          <div className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
             No recommendations yet.
           </div>
         )}

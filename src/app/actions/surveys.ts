@@ -6,6 +6,8 @@ import {
   loadContentPage,
   revalidateContent,
 } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 import { cache } from "react";
 
@@ -837,19 +839,17 @@ export async function deleteSurvey(surveyId: string) {
       });
     }
 
-  // Reverse the activity row created on publish.
-  await tx.userActivity.deleteMany({
-    where: {
-      userId: survey.authorId,
-      moduleType: "RESEARCH_SURVEY",
-      action: "PUBLISHED",
-    },
-  });
-
+    // Hide this content's activity so a deleted survey stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "RESEARCH_SURVEY", surveyId)
   });
 
   // Purge the cached survey pages: soft delete must be visible at once.
   revalidateContent("RESEARCH_SURVEY", survey.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted survey stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("RESEARCH_SURVEY", surveyId);
 
   return { success: true, data: { deletedId: surveyId, isDeleted: true as const, deletedByType, totalComments: survey.totalComments, totalResponses: survey.totalResponses } };
 }

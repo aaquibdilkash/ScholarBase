@@ -30,6 +30,7 @@ import { getChromeRewriterAvailability, rewriteWithChrome } from "@/lib/shield/c
 import { checkLocalModelCache, clearLocalModelCache, initializeLocalModel, isLocalGpuAvailable, rewriteWithLocalModel, type LocalDevice } from "@/lib/shield/local-rewriter";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import { useToast } from "@/components/ui/Toast";
+import { recordShieldUse } from "@/app/actions/shield";
 type ShieldTab = "detector" | "rewriter";
 type DetectionMode = "quick" | "deep";
 type RewriteProvider = "chrome" | "local-cpu" | "local-gpu" | "groq";
@@ -175,6 +176,11 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
   );
   const [documentTitle, setDocumentTitle] = useState("Academic Manuscript");
   const [uploadedFilename, setUploadedFilename] = useState<string | null>(null);
+  // Report id (cuid) for the most recent detector scan, used as the PDF
+  // submission ID. The pending promise lets the download await the write so the
+  // PDF never prints an ID that no database row owns.
+  const [detectorUsageId, setDetectorUsageId] = useState<string | null>(null);
+  const pendingUsageIdRef = useRef<Promise<string | null> | null>(null);
   const [isParsingDoc, setIsParsingDoc] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -211,7 +217,10 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     try {
       const { pdf } = await import("@react-pdf/renderer");
       const { AuditReportDocument } = await import("@/components/shield/pdf/AuditReportDocument");
-      const submissionId = `ssh:oid:::${Math.floor(1000 + Math.random() * 9000)}:${Date.now().toString().slice(-8)}`;
+      const submissionId =
+        detectorUsageId ??
+        (await pendingUsageIdRef.current) ??
+        crypto.randomUUID();
       const timestamp = new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
       const blob = await pdf(
         <AuditReportDocument
@@ -238,7 +247,7 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     } finally {
       setIsGeneratingPdf(false);
     }
-  }, [statReport, inputText, isGeneratingPdf, documentTitle, neuralScore, toast, ensemble]);
+  }, [statReport, inputText, isGeneratingPdf, documentTitle, neuralScore, toast, ensemble, detectorUsageId]);
   const doDeepScan = useCallback((text: string) => {
     if (!text.trim()) return;
     setIsScanning(true); setErr(null);
@@ -261,6 +270,19 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     // No hard flag: Quick Audit is cadence-only and misses vocabulary depth.
     // Rich scholarly prose (Guiraud R≥6.5) damps the structural score.
     const preview = calculateBalancedEnsemble(null, report.overallCadenceRisk, report.burstinessSigma, report.guiraudIndex, report.sentences.length);
+    const pendingUsage = recordShieldUse({
+      tool: "DETECTOR",
+      model: "on-device/cadence",
+      overallScore: preview.finalScore,
+      cadenceScore: report.overallCadenceRisk,
+      neuralScore: null,
+    })
+      .then((result) => (result.success ? result.data.id : null))
+      .catch(() => null);
+    pendingUsageIdRef.current = pendingUsage;
+    void pendingUsage.then((id) => {
+      if (id) setDetectorUsageId(id);
+    });
     if (preview.classification === "high") {
       toast({ title: "Uniform cadence noted", description: `σ=${report.burstinessSigma}, R=${report.guiraudIndex}. Cadence-only signal — run Deep Scan to check vocabulary before judging.` });
     } else if (preview.classification === "amber") {
@@ -358,6 +380,19 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
         // Cadence NEVER overrides the neural score — disagreement lands amber.
         const report = analyzeCadenceAndEntropy(textRef.current);
         const fused = calculateBalancedEnsemble(avg, report.overallCadenceRisk, report.burstinessSigma, report.guiraudIndex, report.sentences.length);
+        const pendingUsage = recordShieldUse({
+          tool: "DETECTOR",
+          model: "on-device/tmr-raid",
+          overallScore: fused.finalScore,
+          neuralScore: avg,
+          cadenceScore: fused.cadenceScore,
+        })
+          .then((result) => (result.success ? result.data.id : null))
+          .catch(() => null);
+        pendingUsageIdRef.current = pendingUsage;
+        void pendingUsage.then((id) => {
+          if (id) setDetectorUsageId(id);
+        });
         if (fused.classification === "amber" && (fused.signalDivergence ?? 0) > 40) {
           toast({ title: "Mixed signals — inconclusive, not AI-confirmed", description: `Neural ${avg}% vs cadence ${fused.cadenceScore}% (σ=${report.burstinessSigma}, R=${report.guiraudIndex}). ${fused.explanation}` });
         } else {
@@ -447,19 +482,23 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
     try {
       let rewrittenText: string;
       let provider: string;
+      let shieldModel: string;
       if (rewriteProvider === "chrome") {
         rewrittenText = await rewriteWithChrome(rewriteInput, setChromeProgress);
         provider = "Gemini Nano (on-device)";
+        shieldModel = "nano";
       } else if (rewriteProvider === "local-cpu" || rewriteProvider === "local-gpu") {
         const device: LocalDevice = rewriteProvider === "local-gpu" ? "webgpu" : "wasm";
         rewrittenText = await rewriteWithLocalModel(rewriteInput, device, setLocalProgress);
         provider = `FLAN-T5 Small (experimental on-device ${device === "webgpu" ? "GPU" : "CPU"})`;
+        shieldModel = rewriteProvider;
       } else {
         const res = await fetch("/api/shield/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paragraph: rewriteInput }) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Rewrite failed");
         rewrittenText = data.rewrittenText;
         provider = `${data.providerUsed} ${data.modelUsed}`;
+        shieldModel = `groq/${data.modelUsed ?? "openai/gpt-oss-120b"}`;
       }
       // Deterministic burstiness pass for EVERY provider, applied per paragraph
       // so the `\n\n` structure survives (the passes re-punctuate sentences, and
@@ -479,6 +518,8 @@ export function ShieldStudioInner({ initialTab = "detector" }: { initialTab?: Sh
       const postRewriteReport = analyzeCadenceAndEntropy(rewrittenText);
       setRewriteOutput(rewrittenText);
       setRewriteMeta({ originalScore: statReport ? ensemble() : null, postRewriteCadence: postRewriteReport.overallCadenceRisk, originalSigma, postRewriteSigma: postRewriteReport.burstinessSigma, provider });
+      // Usage analytics only — a failed write must never block the rewrite.
+      void recordShieldUse({ tool: "REWRITER", model: shieldModel }).catch(() => {});
       const sigmaDelta = (postRewriteReport.burstinessSigma - originalSigma).toFixed(1);
       toast({ title: "Rewrite complete", description: `Cadence raised σ ${originalSigma} → ${postRewriteReport.burstinessSigma} (${sigmaDelta.startsWith("-") ? "" : "+"}${sigmaDelta}). Review every factual change; the cadence number is a diagnostic, not proof of authorship.`, duration: 6000 });
     } catch (e: unknown) {

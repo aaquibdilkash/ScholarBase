@@ -12,9 +12,9 @@ import { useCallback, useEffect, useState } from "react";
  * then a mount effect reads localStorage and syncs state — never mutating
  * URL query strings.
  */
-const DEFAULT_SECTION = "institutionRequests";
+const DEFAULT_SECTION = "institutionDomains";
 
-// v2 resets the prior Feed default so Institution Requests opens first after
+// v2 resets the prior Feed default so Institution Domains opens first after
 // this dashboard navigation change.
 const STORAGE_KEY = "sb_admin_nav_v2";
 
@@ -24,9 +24,12 @@ function readStoredSection(): string | undefined {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return undefined;
     const parsed = JSON.parse(raw) as { activeSection?: unknown };
-    return typeof parsed.activeSection === "string" && parsed.activeSection
-      ? parsed.activeSection
-      : undefined;
+    const stored =
+      typeof parsed.activeSection === "string" && parsed.activeSection
+        ? parsed.activeSection
+        : undefined;
+    // Requests and approved domains were merged into a single tabbed section.
+    return stored === "institutionRequests" ? DEFAULT_SECTION : stored;
   } catch {
     return undefined;
   }

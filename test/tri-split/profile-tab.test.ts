@@ -45,10 +45,15 @@ const activityFindMany = vi.fn(async () => [
   },
 ]);
 
+// Bookmark rows for a deleted entity, keyed so the test can control the
+// bookmarkers whose tabs must be purged.
+const socialPostBookmarkFindMany = vi.fn(async () => [] as Array<{ userId: string }>);
+
 vi.mock("@/lib/db", () => ({
   default: {
     user: { findUnique: userFindUnique },
     userActivity: { findMany: activityFindMany },
+    socialPostBookmark: { findMany: socialPostBookmarkFindMany },
   },
 }));
 
@@ -112,6 +117,7 @@ const {
   profileContentTag,
   revalidateProfileBookmarks,
   revalidateProfileContent,
+  revalidateBookmarkersForDeletedContent,
 } = await import("@/lib/tri-split/modules/profile-tab");
 
 const VIEWER = "u-viewer";
@@ -289,5 +295,42 @@ describe("profile tab purges", () => {
     for (const [tag, options] of revalidateTag.mock.calls) {
       expect(options, String(tag)).toEqual({ expire: 0 });
     }
+  });
+
+  it("purges every bookmarker's tab once when their bookmarked content is deleted", async () => {
+    // Alice bookmarked the post twice (two rows, same user) and Bob once —
+    // each bookmarker's tab must be evicted exactly once.
+    socialPostBookmarkFindMany.mockResolvedValue([
+      { userId: ALICE },
+      { userId: BOB },
+      { userId: ALICE },
+    ]);
+
+    await revalidateBookmarkersForDeletedContent("SOCIAL_POST", "post-1");
+
+    expect(socialPostBookmarkFindMany).toHaveBeenCalledTimes(1);
+    expect(socialPostBookmarkFindMany).toHaveBeenCalledWith({
+      where: { socialPostId: "post-1" },
+      select: { userId: true },
+    });
+    expect(revalidateTag).toHaveBeenCalledTimes(2);
+    expect(revalidateTag).toHaveBeenCalledWith(
+      `${PROFILE_BOOKMARKS_TAG}:${ALICE}`,
+      { expire: 0 },
+    );
+    expect(revalidateTag).toHaveBeenCalledWith(
+      `${PROFILE_BOOKMARKS_TAG}:${BOB}`,
+      { expire: 0 },
+    );
+  });
+
+  it("does not purge anything for an unknown module", async () => {
+    await revalidateBookmarkersForDeletedContent(
+      "UNKNOWN_MODULE" as never,
+      "post-1",
+    );
+
+    expect(socialPostBookmarkFindMany).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 });

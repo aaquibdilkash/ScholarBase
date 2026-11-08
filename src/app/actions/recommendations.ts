@@ -10,7 +10,8 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
-import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
+import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -430,9 +431,28 @@ export async function deleteRecommendation(recommendationId: string) {
         data: { reputation: { decrement: recommendation.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted recommendation stops appearing in
+    // anyone's activity feed at once (not after the cache TTL). COMMENTED rows
+    // store the bare id while publish / vote rows store the nested route id,
+    // so hide against both.
+    const recommendationNested =
+      recommendation.supervisorId
+        ? `${recommendation.supervisorId}/${recommendationId}`
+        : undefined;
+    await hideContentActivity(
+      tx,
+      "RECOMMENDATION",
+      recommendationId,
+      ...(recommendationNested ? [recommendationNested] : [])
+    )
   });
 
   revalidateProfileContent(recommendation.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted recommendation
+  // stops inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("RECOMMENDATION", recommendationId);
 
   return {
     success: true,

@@ -19,6 +19,9 @@ import {
   ContentMap,
   ReportWithReporter,
   ReportsPage,
+  AdminShieldSummary,
+  AdminShieldTool,
+  AdminShieldUsageItem,
 } from "@/types/admin";
 import { ADMIN_PAGE_SIZE, MODULE_TO_CONTENT_TYPE } from "@/lib/constants";
 
@@ -159,7 +162,8 @@ export async function getAdminStats() {
         'Recommendation',
         'ResearchSurvey',
         'JournalReview',
-        'InstitutionDomainRequest'
+        'InstitutionDomainRequest',
+        'ShieldUsage'
       )
   `;
 
@@ -189,18 +193,98 @@ export async function getAdminStats() {
     recommendations: estimate("Recommendation"),
     surveys: estimate("ResearchSurvey"),
     journalReviews: estimate("JournalReview"),
-    institutionRequests: estimate("InstitutionDomainRequest"),
+    institutionDomains: estimate("InstitutionDomainRequest"),
+    shield: estimate("ShieldUsage"),
   };
 
   const totalContent =
     Object.values(sections).reduce((a, b) => a + b, 0) -
     sections.users -
-    sections.institutionRequests;
+    sections.institutionDomains -
+    sections.shield;
 
   return {
     totalUsers: sections.users,
     totalContent,
     sections,
+  };
+}
+
+// Scholar Shield usage summary for the admin Detector/Rewriter tabs.
+// Counts ride the `[tool, createdAt]` index, so the per-tool totals and the
+// trailing-7-day figures never scan the whole usage log.
+export async function getAdminShieldSummary(): Promise<AdminShieldSummary> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [detectorTotal, rewriterTotal, detectorRecent, rewriterRecent] =
+    await Promise.all([
+      prisma.shieldUsage.count({ where: { tool: "DETECTOR" } }),
+      prisma.shieldUsage.count({ where: { tool: "REWRITER" } }),
+      prisma.shieldUsage.count({
+        where: { tool: "DETECTOR", createdAt: { gte: since } },
+      }),
+      prisma.shieldUsage.count({
+        where: { tool: "REWRITER", createdAt: { gte: since } },
+      }),
+    ]);
+
+  return {
+    detector: { total: detectorTotal, last7Days: detectorRecent },
+    rewriter: { total: rewriterTotal, last7Days: rewriterRecent },
+    total: detectorTotal + rewriterTotal,
+  };
+}
+
+// One tool's newest Scholar Shield uses across all scholars. The `id` is the
+// cuid printed on the PDF, so a row here can be matched to a downloaded report.
+export async function getAdminShieldUsage(
+  tool: AdminShieldTool = "DETECTOR",
+  page = 1,
+  pageSize: number = ADMIN_PAGE_SIZE,
+): Promise<AdminPage<AdminShieldUsageItem>> {
+  const user = await requireCurrentUser("Log in to access admin.");
+
+  if (!(await isUserAdmin(user.id))) {
+    throw new Error("Not authorized.");
+  }
+
+  // The two tabs are the only valid views — a stray value falls back to
+  // Detector instead of querying an unknown enum.
+  const safeTool: AdminShieldTool = tool === "REWRITER" ? "REWRITER" : "DETECTOR";
+  const safePage = Math.max(1, Math.trunc(page) || 1);
+  const where = { tool: safeTool };
+
+  const [items, total] = await Promise.all([
+    prisma.shieldUsage.findMany({
+      where,
+      select: {
+        id: true,
+        tool: true,
+        model: true,
+        overallScore: true,
+        neuralScore: true,
+        cadenceScore: true,
+        createdAt: true,
+        user: { select: { id: true, name: true, handle: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (safePage - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.shieldUsage.count({ where }),
+  ]);
+
+  return {
+    items,
+    total,
+    page: safePage,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
 }
 
@@ -318,11 +402,16 @@ export async function reviewInstitutionDomainRequest(
   return { success: true, data: updated as InstitutionDomainRequestItem };
 }
 
-// List all approved institution domains (active + inactive), paginated.
+export type InstitutionDomainStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+
+// List approved institution domains, paginated and optionally filtered by
+// active state. Mirrors getAdminInstitutionDomainRequests so the two admin
+// views share the same filter-then-paginate contract.
 export async function getAdminInstitutionDomains(
   page = 1,
+  status: InstitutionDomainStatusFilter = "ALL",
   pageSize: number = ADMIN_PAGE_SIZE,
-): Promise<{ items: InstitutionDomainItem[]; total: number; page: number; pageSize: number; totalPages: number }> {
+): Promise<AdminPage<InstitutionDomainItem>> {
   const user = await requireCurrentUser("Log in to access admin.");
 
   if (!(await isUserAdmin(user.id))) {
@@ -332,14 +421,19 @@ export async function getAdminInstitutionDomains(
   const safePage = Math.max(1, Number(page));
   const safePageSize = Math.min(100, Math.max(1, Number(pageSize)));
   const skip = (safePage - 1) * safePageSize;
+  const safeStatus: InstitutionDomainStatusFilter =
+    status === "ACTIVE" || status === "INACTIVE" ? status : "ALL";
+  const where =
+    safeStatus === "ALL" ? undefined : { isActive: safeStatus === "ACTIVE" };
 
   const [rows, total] = await Promise.all([
     prisma.institutionDomain.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       skip,
       take: safePageSize,
     }),
-    prisma.institutionDomain.count(),
+    prisma.institutionDomain.count({ where }),
   ]);
 
   return {

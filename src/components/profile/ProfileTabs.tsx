@@ -785,7 +785,7 @@ const ACTIVITY_META: Record<
   { label: string; href?: (entityId: string) => string | undefined }
 > = {
   SOCIAL_POST: { label: "feed post", href: (id) => `/feed/${id}` },
-  ARTICLE: { label: "article", href: (id) => `/blog/${id}` },
+  ARTICLE: { label: "blog", href: (id) => `/blog/${id}` },
   PUBLICATION: { label: "publication", href: (id) => `/publications/${id}` },
   JOURNAL: { label: "journal", href: (id) => `/journals/${id}` },
   // A review vote writes the nested `journalId/reviewId` id (see
@@ -852,7 +852,41 @@ const ACTIVITY_ACTION: Record<string, string> = {
   PARTICIPATED: "participated in",
 };
 
-function ActivityItemCard({ item }: { item: ActivityItem }) {
+/** Route prefix used to build a clickable link from an activity row's module. */
+const MODULE_ROUTE: Record<string, string> = {
+  SOCIAL_POST: "/feed",
+  ARTICLE: "/blog",
+  PUBLICATION: "/publications",
+  JOURNAL: "/journals",
+  RESEARCH_TOOL: "/research-tools",
+  RESEARCH_GRANT: "/grants",
+  COURSE: "/learn",
+  PHD_ADMISSION: "/admissions",
+  RESEARCH_EVENT: "/events",
+  JOB_VACANCY: "/vacancies",
+  HELP_POST: "/help",
+  RESULT: "/results",
+  CONTRIBUTION: "/contributions",
+  SUPERVISOR: "/supervisor",
+  RECOMMENDATION: "/supervisor",
+  RESEARCH_SURVEY: "/surveys",
+};
+
+function baseModule(moduleType: string): string {
+  return moduleType.replace(/_COMMENT$/, "");
+}
+
+/** Build the route-ready href for a comment / comment-vote activity row. */
+function commentHref(item: ActivityItem): string | undefined {
+  const parent = item.parentEntityId;
+  if (!parent) return undefined;
+  const prefix = MODULE_ROUTE[baseModule(item.moduleType)];
+  const base = prefix ? `${prefix}/${parent}` : parent;
+  const child = item.entityChildId ? `#comment-${item.entityChildId}` : "";
+  return `${base}${child}`;
+}
+
+export function ActivityItemCard({ item }: { item: ActivityItem }) {
   const meta = ACTIVITY_META[item.moduleType] ?? { label: "content" };
   const label = meta.label;
 
@@ -860,10 +894,13 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
   // href comes from ACTIVITY_META; we append the `#comments` anchor the post
   // pages already expose (see DetailPageCardShell footerCommentsHref).
   const baseHref = meta.href?.(item.entityId);
-  const href =
-    (item.action === "COMMENTED" || item.action === "REPLIED") && baseHref
-      ? `${baseHref}#comments`
-      : baseHref;
+  const isCommentAction =
+    item.action === "COMMENTED" ||
+    item.action === "REPLIED" ||
+    item.moduleType.endsWith("_COMMENT");
+  // Comment / comment-vote rows link straight to the comment anchor on the
+  // parent page; everything else links to the content page as before.
+  const href = isCommentAction ? commentHref(item) : baseHref;
 
   const Icon =
     item.action === "COMMENTED"
@@ -1083,6 +1120,47 @@ function ActivityItemCard({ item }: { item: ActivityItem }) {
               ) : (
                 <span className={boldCls}>{supervisorName || "scholar"}</span>
               )}
+            </>
+          );
+        }
+        if (item.moduleType === "JOURNAL_REVIEW") {
+          // Format: journalTitle ||| feedback (rich-text HTML). A review has
+          // no title of its own, so link a plain-text excerpt of the feedback
+          // and name the journal it belongs to instead of leaking the raw
+          // delimiter into the headline.
+          const [journalTitle, feedback] = parts;
+          const [journalId] = item.entityId.split("/");
+          const excerpt = stripHtmlTags(feedback || "").substring(0, 120);
+          const journalName = stripHtmlTags(journalTitle || "");
+          return (
+            <>
+              {" "}
+              <span className={boldCls}>a journal review</span>{" "}
+              {excerpt ? (
+                href ? (
+                  <Link prefetch={false} href={href} className={linkCls}>
+                    &ldquo;{excerpt}&rdquo;
+                  </Link>
+                ) : (
+                  <span className={plainCls}>&ldquo;{excerpt}&rdquo;</span>
+                )
+              ) : null}
+              {journalName ? (
+                <>
+                  {" "}in the journal{" "}
+                  {journalId ? (
+                    <Link
+                      prefetch={false}
+                      href={`/journals/${journalId}`}
+                      className={linkCls}
+                    >
+                      &ldquo;{journalName}&rdquo;
+                    </Link>
+                  ) : (
+                    <span className={plainCls}>&ldquo;{journalName}&rdquo;</span>
+                  )}
+                </>
+              ) : null}
             </>
           );
         }

@@ -29,9 +29,9 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminToolbar } from "@/components/admin/AdminToolbar";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminTable } from "@/components/admin/AdminTable";
-import { InstitutionDomainRequestsPanel } from "@/components/admin/InstitutionDomainRequestsPanel";
-import { InstitutionDomainsPanel } from "@/components/admin/InstitutionDomainsPanel";
+import { InstitutionDomainAdminPanel } from "@/components/admin/InstitutionDomainAdminPanel";
 import { OutreachPanel } from "@/components/admin/OutreachPanel";
+import { ShieldUsagePanel } from "@/components/admin/ShieldUsagePanel";
 import {
   buildContentColumns,
   buildUsersColumns,
@@ -98,9 +98,9 @@ export function AdminDashboard({
 
   const ui = sectionStates[activeTab] ?? DEFAULT_SECTION_STATE;
   const { view, page, sortBy, statusFilter, entityStatusFilter } = ui;
-  const isInstitutionRequestsTab = activeTab === "institutionRequests";
   const isInstitutionDomainsTab = activeTab === "institutionDomains";
   const isInviteTab = activeTab === "invites";
+  const isShieldTab = activeTab === "shield";
 
   const setUi = (patch: Partial<SectionUiState>) =>
     setSectionState(activeTab, patch);
@@ -159,7 +159,7 @@ export function AdminDashboard({
           ),
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000,
-    enabled: !isInstitutionRequestsTab && !isInviteTab,
+    enabled: !isInstitutionDomainsTab && !isInviteTab && !isShieldTab,
     // SSR-hydrated first page of the default Feed view — zero fetch on mount.
     // Must match the default sort ("reportCount") used by admin/page.tsx.
     initialData:
@@ -351,7 +351,10 @@ export function AdminDashboard({
   };
 
   const isPending =
-    (!isInstitutionRequestsTab && !isInviteTab && contentQuery.isPending) ||
+    (!isInstitutionDomainsTab &&
+      !isInviteTab &&
+      !isShieldTab &&
+      contentQuery.isPending) ||
     statsQuery.isPending ||
     contributionMutation.isPending;
 
@@ -416,19 +419,19 @@ export function AdminDashboard({
             viewport, so the inner `overflow-x-auto` never scrolls and the last
             (Actions) column gets clipped. */}
         <div className="min-w-0 flex-1">
-          {isInstitutionRequestsTab ? (
+          {isInstitutionDomainsTab ? (
             <div ref={tableRef} className="scroll-mt-20">
-              <InstitutionDomainRequestsPanel
+              <InstitutionDomainAdminPanel
                 initialData={initialInstitutionDomainRequests}
               />
-            </div>
-          ) : isInstitutionDomainsTab ? (
-            <div ref={tableRef} className="scroll-mt-20">
-              <InstitutionDomainsPanel />
             </div>
           ) : isInviteTab ? (
             <div ref={tableRef} className="scroll-mt-20">
               <OutreachPanel />
+            </div>
+          ) : isShieldTab ? (
+            <div ref={tableRef} className="scroll-mt-20">
+              <ShieldUsagePanel />
             </div>
           ) : (
             <div

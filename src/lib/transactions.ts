@@ -6,6 +6,7 @@ import { VoteType } from '@prisma/client'
 import prisma from './db'
 import { resolveCommentDeletePermission } from './deletion'
 import { isUserAdmin } from './auth'
+import { hideCommentActivity } from './activity'
 import type { CommentEntityType } from '@/types/comments'
 
 // Permissive delegate shape.
@@ -632,6 +633,23 @@ export async function handleCommentVoteTransaction(
     })
     const totalVotes = updatedComment.totalVotes as number
 
+    // Route-ready parent for the activity link. For nested content
+    // (recommendation / journal review) the URL needs the supervisor / journal
+    // id too, so resolve it here rather than leaving a bare id that 404s.
+    let parentEntityId: string | null = (comment as any)[config.commentFk] ?? null
+    if (parentEntityId && (moduleKey === 'RECOMMENDATION' || moduleKey === 'JOURNAL_REVIEW')) {
+      const nestedParent = await (tx as any)[
+        moduleKey === 'RECOMMENDATION' ? 'recommendation' : 'journalReview'
+      ].findUnique({
+        where: { id: parentEntityId },
+        select: { supervisorId: true, journalId: true },
+      })
+      const sup = (nestedParent as { supervisorId?: string; journalId?: string } | null)?.supervisorId
+      const jid = (nestedParent as { supervisorId?: string; journalId?: string } | null)?.journalId
+      if (moduleKey === 'RECOMMENDATION' && sup) parentEntityId = `${sup}/${parentEntityId}`
+      if (moduleKey === 'JOURNAL_REVIEW' && jid) parentEntityId = `${jid}/${parentEntityId}`
+    }
+
     if (voteValue !== 0 && comment.authorId) {
       await tx.user.update({
         where: { id: comment.authorId },
@@ -645,6 +663,8 @@ export async function handleCommentVoteTransaction(
         action: 'VOTED',
         moduleType: `${moduleKey}_COMMENT`,
         entityId: commentId,
+        parentEntityId,
+        entityChildId: commentId,
         entityTitle: entityTitle.substring(0, 50),
       },
     })
@@ -672,7 +692,14 @@ export async function createCommentTransaction(
 
     const parentEntity = await parent.findUnique({
       where: { id: entityId },
-      select: { [config.titleField]: true, isFrozen: true },
+      select: {
+        [config.titleField]: true,
+        isFrozen: true,
+        // Nested content routes need the parent's foreign key to build a
+        // clickable activity link (e.g. /supervisor/[id]/recommendation/[id]).
+        ...(moduleName === 'RECOMMENDATION' ? { supervisorId: true } : {}),
+        ...(moduleName === 'JOURNAL_REVIEW' ? { journalId: true } : {}),
+      },
     })
     if (!parentEntity) throw new Error('Parent entity not found.')
     if ((parentEntity as any).isFrozen) throw new Error('This content is frozen by moderators and cannot be commented on.')
@@ -738,12 +765,23 @@ export async function createCommentTransaction(
       })
     }
 
+    // Route-ready parent id for the activity link: nested content (a
+    // recommendation / journal review) exposes its parent in the URL.
+    const parentEntityId =
+      moduleName === 'RECOMMENDATION' && (parentEntity as any)?.supervisorId
+        ? `${(parentEntity as any).supervisorId}/${entityId}`
+        : moduleName === 'JOURNAL_REVIEW' && (parentEntity as any)?.journalId
+          ? `${(parentEntity as any).journalId}/${entityId}`
+          : entityId;
+
     await tx.userActivity.create({
       data: {
         userId: authorId,
         action: replyParentId ? 'REPLIED' : 'COMMENTED',
         moduleType: moduleName,
         entityId,
+        parentEntityId,
+        entityChildId: createdComment.id,
         entityTitle: formatCommentActivityTitle(entityTitle, content, parentCommentContent),
       },
     })
@@ -793,7 +831,15 @@ export async function deleteCommentTransaction(
 
     const comment = await commentModel.findUnique({
       where: { id: commentId },
-      select: { authorId: true, parentId: true, isDeleted: true, [config.parentFk]: true, totalVotes: true, totalReplies: true },
+      select: {
+        authorId: true,
+        parentId: true,
+        isDeleted: true,
+        [config.parentFk]: true,
+        totalVotes: true,
+        totalReplies: true,
+        content: true,
+      },
     })
 
     if (!comment) throw new Error('Comment not found.')
@@ -825,6 +871,14 @@ export async function deleteCommentTransaction(
     await commentModel.update({
       where: { id: commentId },
       data: { isDeleted: true, deletedByType, deletedById: userId },
+    })
+
+    // Hide this comment's activity (its own COMMENTED/REPLIED row and any
+    // comment-vote rows) so a deleted comment stops showing in the activity
+    // feed exactly once the row is tombstoned.
+    await hideCommentActivity(tx, moduleName, commentId, {
+      userId: (comment as any).authorId,
+      content: (comment as any).content,
     })
 
     await parent.update({

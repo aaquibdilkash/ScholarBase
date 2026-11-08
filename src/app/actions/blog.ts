@@ -16,6 +16,8 @@ import {
 import { COMMENT_PAGE_SIZE, MAX_ARTICLE_CONTENT } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 import type { ArticleWithAuthor } from "@/types/cards";
 
 /**
@@ -297,10 +299,18 @@ export async function deleteArticle(articleId: string) {
         data: { reputation: { decrement: article.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted article stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "ARTICLE", articleId)
   });
 
   // Soft delete (RULE 4) must disappear from the cached public pages at once.
   revalidateContent("ARTICLE", article.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted article stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("ARTICLE", articleId);
 
   return { success: true, data: { deletedId: articleId, isDeleted: true as const, deletedByType, totalComments: article.totalComments } };
 }

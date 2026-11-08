@@ -6,6 +6,8 @@ import {
   loadContentPage,
   revalidateContent,
 } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 import { cache } from "react";
 
@@ -330,17 +332,25 @@ export async function deleteContribution(contributionId: string) {
 
      // Reverse the vote-derived reputation so RECOVER can re-grant it exactly
     // (same invariant as every other content type's delete flow).
-    if (contribution.totalVotes !== 0) {
+     if (contribution.totalVotes !== 0) {
       await tx.user.update({
         where: { id: contribution.authorId },
         data: { reputation: { decrement: contribution.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted contribution stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "CONTRIBUTION", contributionId)
   });
 
   // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.
   // Purge the cached contribution pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("CONTRIBUTION", contribution.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted post stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("CONTRIBUTION", contributionId);
 
   return { success: true, data: { deletedId: contributionId, isDeleted: true as const, deletedByType, totalComments: contribution.totalComments } };
 }

@@ -6,6 +6,8 @@ import {
   loadContentPage,
   revalidateContent,
 } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 import { cache } from "react";
 
@@ -188,10 +190,18 @@ export async function deleteResearchGrant(grantId: string) {
         data: { reputation: { decrement: grant.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted grant stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "RESEARCH_GRANT", grantId)
   });
 
   // Purge the cached research grant pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("RESEARCH_GRANT", grant.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted grant stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("RESEARCH_GRANT", grantId);
 
   return { success: true, data: { deletedId: grantId, isDeleted: true as const, deletedByType, totalComments: grant.totalComments } };
 }

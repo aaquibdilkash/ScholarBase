@@ -21,8 +21,19 @@ model UserActivity {
   userId      String
   action      String // e.g., 'COMMENTED', 'REPLIED', 'VOTED', 'PUBLISHED'
   moduleType  String // e.g., 'SOCIAL_POST', 'ARTICLE', 'RESEARCH_EVENT'
-  entityId    String // ID of the specific post/article
+  entityId    String // ID of the specific post/article (route-ready for nested content)
   entityTitle String // Stored statically to avoid JOINs on reads
+  /// Route-ready parent content id for comment / comment-vote activity
+  /// (e.g. `supervisorId/recommendationId` for nested resources). Null for
+  /// top-level publish/vote rows.
+  parentEntityId String?
+  /// Comment id for COMMENTED / REPLIED / comment-vote activity.
+  entityChildId  String?
+  /// Visibility flags. Deleting content sets hiddenByContent; deleting a
+  /// comment sets hiddenByComment. A row is visible only when both are false,
+  /// so recovering one deleted thing cannot resurrect another.
+  hiddenByContent Boolean @default(false)
+  hiddenByComment Boolean @default(false)
   createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -31,6 +42,9 @@ model UserActivity {
   // INDEX: getProfileSections filters the activity log on (userId, action)
   // and orders by createdAt DESC. This composite covers the full read pattern.
   @@index([userId, action, createdAt(sort: Desc)])
+  @@index([userId, hiddenByContent, hiddenByComment, createdAt(sort: Desc)])
+  @@index([parentEntityId])
+  @@index([entityChildId])
 }
 
 enum VoteType {
@@ -152,6 +166,13 @@ enum DigestPreference {
   DAILY
   WEEKLY
   NEVER
+}
+
+/// Scholar Shield surfaces tracked for usage analytics. One `ShieldUsage` row
+/// is written per detector scan / rewriter run.
+enum ShieldTool {
+  DETECTOR
+  REWRITER
 }
 
 model Article {
@@ -1107,6 +1128,10 @@ model User {
   deletedByType                     DeletedByType?
   deletedById                       String?
   reportCount                       Int                        @default(0)
+  // SCHOLAR SHIELD USAGE (materialized; dashboards read these, never the rows)
+  shieldDetectorUses                Int                        @default(0)
+  shieldRewriterUses                Int                        @default(0)
+  shieldTotalUses                   Int                        @default(0)
   activities                        UserActivity[]
   institutionDomainRequestsReviewed InstitutionDomainRequest[] @relation("InstitutionDomainRequestReviewer")
 
@@ -1252,6 +1277,7 @@ model User {
   conversationParticipants ConversationParticipant[]
   messagesSent             Message[]
   pushSubscriptions        PushSubscription[]
+  shieldUsage              ShieldUsage[]
 
   // Appeals — owner-filed appeals on their frozen/deleted content
   appeals         Appeal[] @relation("AppealOwner")
@@ -2759,4 +2785,30 @@ model PushSubscription {
 
   // INDEX: the send worker resolves every subscription for one recipient.
   @@index([userId])
+}
+
+/// Scholar Shield usage log: one row per detector scan or rewriter run. The
+/// `id` (cuid) doubles as the public report ID printed on the PDF, so a report
+/// is fetchable with a plain `findUnique({ where: { id } })`. Per-tool totals
+/// are materialized on `User` for zero-compute dashboard reads.
+///
+/// `model` records which engine produced the result:
+///   detector -> "on-device/cadence" | "on-device/tmr-raid"
+///   rewriter -> "nano" | "local-cpu" | "local-gpu" | "groq/<model>"
+model ShieldUsage {
+  id           String     @id @default(cuid())
+  userId       String
+  tool         ShieldTool
+  model        String
+  overallScore Int?
+  neuralScore  Int?
+  cadenceScore Int?
+  createdAt    DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, tool, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  // INDEX: the admin panel reads one tool's newest rows across all scholars.
+  @@index([tool, createdAt(sort: Desc)])
 }

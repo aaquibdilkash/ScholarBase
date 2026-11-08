@@ -10,8 +10,7 @@ export interface AdminSection {
 /** Sidebar + stats-card sections. Ordered by precedence; "appeals" and
  *  "users" have no public route (they're admin-only). */
 export const ADMIN_SECTIONS: AdminSection[] = [
-  { id: "institutionRequests", title: "Institution Requests", href: "#" },
-  { id: "institutionDomains", title: "Approved Domains", href: "#" },
+  { id: "institutionDomains", title: "Institution Domains", href: "#" },
   { id: "invites", title: "Email Outreach", href: "#" },
   { id: "appeals", title: "Appeals", href: "#" },
   { id: "feed", title: "Feed", href: "/feed" },
@@ -31,6 +30,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "supervisors", title: "Supervisors", href: "/supervisor" },
   { id: "recommendations", title: "Recommendations", href: "/supervisor" },
   { id: "surveys", title: "Surveys", href: "/surveys" },
+  { id: "shield", title: "Scholar Shield", href: "/shield" },
   { id: "users", title: "Users", href: "#" },
 ];
 

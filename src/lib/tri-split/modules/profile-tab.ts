@@ -45,6 +45,7 @@
 import { revalidateTag, unstable_cache as unstableCache } from "next/cache";
 
 import prisma from "@/lib/db";
+import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
 import {
   applySectionsOverlay,
   collectSectionAuthorIds,
@@ -292,14 +293,23 @@ const loadCachedActivityPage = createScopedLoader<
       action: true,
       moduleType: true,
       entityId: true,
+      parentEntityId: true,
+      entityChildId: true,
+      hiddenByContent: true,
+      hiddenByComment: true,
       entityTitle: true,
       createdAt: true,
     },
   });
-  return rows.map((row) => ({
-    ...row,
-    createdAt: row.createdAt.toISOString(),
-  }));
+  return rows
+    // A row is visible only while neither the content it describes nor the
+    // comment it describes is soft-deleted. Recovering one cannot resurrect
+    // the other.
+    .filter((row) => !row.hiddenByContent && !row.hiddenByComment)
+    .map((row) => ({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+    }));
 });
 
 export type ProfileActivityItem = Omit<CachedActivityRow, "createdAt"> & {
@@ -363,4 +373,44 @@ export function revalidateProfileContent(
 /** Purges one user's Bookmarks tab. Called when they bookmark or un-bookmark. */
 export function revalidateProfileBookmarks(ownerId: string): void {
   expireTag(profileBookmarksTag(ownerId));
+}
+
+/**
+ * After content is soft-deleted, purge every bookmarker's Bookmarks tab so a
+ * deleted post stops inflating their bookmark count or showing a phantom
+ * "show more" arrow. The cached bookmark batch already filters
+ * `p."isDeleted" = false`, but it was cached before the delete, so it must be
+ * invalidated; otherwise the heading count and the rendered rows diverge.
+ *
+ * Write-path only: one indexed bookmark lookup plus cheap tag invalidations.
+ * Reads stay zero-compute. A failure here is best-effort and must not roll
+ * back or fail the content delete itself — the 5-minute TTL bounds staleness.
+ */
+export async function revalidateBookmarkersForDeletedContent(
+  moduleName: ModuleKey,
+  entityId: string,
+): Promise<void> {
+  const config = ENTITY_CONFIG[moduleName];
+  if (!config) return;
+
+  try {
+    const bookmarkDelegate = (prisma as unknown as Record<string, {
+      findMany: (args: unknown) => Promise<Array<{ userId: string }>>;
+    }>)[config.bookmarkModel];
+
+    const bookmarks = await bookmarkDelegate.findMany({
+      where: { [config.parentFk]: entityId },
+      select: { userId: true },
+    });
+
+    const userIds = [...new Set(bookmarks.map((b) => b.userId).filter(Boolean))];
+    for (const userId of userIds) {
+      revalidateProfileBookmarks(userId);
+    }
+  } catch (err) {
+    console.error(
+      `Failed to purge bookmark tags for ${moduleName} ${entityId}:`,
+      err,
+    );
+  }
 }

@@ -6,6 +6,8 @@ import {
   loadContentPage,
   revalidateContent,
 } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 
 import { cache } from "react";
 
@@ -215,16 +217,24 @@ export async function deleteCourse(courseId: string) {
        data: { courseCount: { decrement: 1 } },
      });
 
-     if (course.totalVotes !== 0) {
+      if (course.totalVotes !== 0) {
       await tx.user.update({
         where: { id: course.authorId },
         data: { reputation: { decrement: course.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted course stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "COURSE", courseId)
   });
 
   // Purge the cached course pages: soft delete must be visible at once, not after the TTL.
   revalidateContent("COURSE", course.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted course stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("COURSE", courseId);
 
   return { success: true, data: { deletedId: courseId, isDeleted: true as const, deletedByType, totalComments: course.totalComments } };
 }

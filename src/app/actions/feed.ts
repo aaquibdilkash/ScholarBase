@@ -22,6 +22,8 @@ import {
   deleteCommentTransaction,
 } from "@/lib/transactions";
 import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
+import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
+import { hideContentActivity } from "@/lib/activity";
 import { POST_METADATA_SELECT } from "@/types/feed";
 import type { SocialPostFeedItem } from "@/types/feed";
 import { VoteType, DeletedByType } from "@prisma/client";
@@ -526,10 +528,18 @@ export async function deleteSocialPost(postId: string) {
         data: { reputation: { decrement: post.totalVotes } },
       });
     }
+
+    // Hide this content's activity so a deleted post stops appearing in
+    // anyone's activity feed at once (not after the cache TTL).
+    await hideContentActivity(tx, "SOCIAL_POST", postId)
   });
 
   // Soft delete (RULE 4) must disappear from the cached public feed at once.
   revalidateContent("FEED", post.authorId);
+
+  // Purge every bookmarker's Bookmarks tab so a soft-deleted post stops
+  // inflating their bookmark count or showing a phantom "show more" arrow.
+  await revalidateBookmarkersForDeletedContent("SOCIAL_POST", postId);
 
   return {
     success: true,
