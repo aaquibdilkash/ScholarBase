@@ -611,6 +611,10 @@ export const CONTENT_LIST_CONFIGS = {
     where: { isDeleted: false },
     // Zero-compute materialized aggregates (RULE 2): the count and the average
     // rating derive from these scalars, so no recommendation rows are fetched.
+    // Both ride the live overlay (like JOURNAL's reviewCount/ratingSum) so a
+    // posted/edited/deleted recommendation reflects on the next page load
+    // without purging the shared list batch for every visitor.
+    counterKeys: [...CONTENT_COUNTER_KEYS, "recommendationCount", "ratingSum"],
     select: {
       id: true,
       name: true,

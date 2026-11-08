@@ -70,13 +70,19 @@ export function JournalCard({
   return (
     <ListPageCardShell
       authorHref={isAnonymous ? undefined : `/scholars/${journal.author?.id}`}
-      authorName={isAnonymous ? "Anonymous Scholar" : journal.author?.name || "Scholar"}
+      authorName={
+        isAnonymous ? "Anonymous Scholar" : journal.author?.name || "Scholar"
+      }
       authorId={isAnonymous ? undefined : journal.authorId}
       isFollowing={isAnonymous ? false : isFollowing}
       currentUserId={currentUserId}
-      authorHandle={isAnonymous ? undefined : journal.author?.handle || undefined}
-      authorAvatarUrl={isAnonymous ? null : journal.author?.avatarUrl || undefined}
-      authorVerified={!isAnonymous && !!(journal.author?.institutionVerifiedAt)}
+      authorHandle={
+        isAnonymous ? undefined : journal.author?.handle || undefined
+      }
+      authorAvatarUrl={
+        isAnonymous ? null : journal.author?.avatarUrl || undefined
+      }
+      authorVerified={!isAnonymous && !!journal.author?.institutionVerifiedAt}
       isFrozen={journal.isFrozen ?? false}
       frozenEntityId={journal.id}
       frozenModule="JOURNAL"
@@ -98,7 +104,10 @@ export function JournalCard({
               try {
                 const response = await deleteJournal(journal.id);
                 if (!response?.success || !response.data) {
-                  toast(actionErrorMessage(response, "Failed to delete journal."), "error");
+                  toast(
+                    actionErrorMessage(response, "Failed to delete journal."),
+                    "error",
+                  );
                   return { refresh: false };
                 }
                 removeFromList<JournalWithAuthor>(
@@ -109,7 +118,8 @@ export function JournalCard({
                 toast("Journal deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
-                const message = error instanceof Error ? error.message : "Unknown error";
+                const message =
+                  error instanceof Error ? error.message : "Unknown error";
                 toast(message, "error");
                 return { refresh: false };
               }
@@ -119,7 +129,9 @@ export function JournalCard({
       }
       createdDate={journal.createdAt}
       editedDate={
-        journal.editedAt && journal.editedAt > journal.createdAt ? journal.editedAt : undefined
+        journal.editedAt && journal.editedAt > journal.createdAt
+          ? journal.editedAt
+          : undefined
       }
       footerVoteButton={
         <VoteButton
@@ -137,7 +149,9 @@ export function JournalCard({
           targetId={journal.id}
           module="JOURNAL"
           initialTotalBookmarks={journal.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(journal.bookmarks) && journal.bookmarks.length > 0}
+          initialIsBookmarked={
+            Array.isArray(journal.bookmarks) && journal.bookmarks.length > 0
+          }
         />
       }
       footerCommentsHref={`/journals/${journal.id}`}
@@ -154,18 +168,23 @@ export function JournalCard({
         />
       }
       bodyBottomContent={
-        typeof websiteUrl === "string" && websiteUrl ? (
-          <SafeExternalLink
-            url={websiteUrl}
-            onClick={(e) => e.stopPropagation()}
-            className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
-          >
-            View Website
-          </SafeExternalLink>
-        ) : null
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <SafeExternalLink
+              url={websiteUrl}
+              onClick={(e) => e.stopPropagation()}
+              className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
+            >
+              View Website
+            </SafeExternalLink>
+          
+        </div>
       }
     >
-      <Link href={`/journals/${journal.id}`} prefetch={false} className="block group">
+      <Link
+        href={`/journals/${journal.id}`}
+        prefetch={false}
+        className="block group"
+      >
         <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {journal.title}
         </h2>
@@ -238,8 +257,6 @@ export function JournalCard({
             No reviews yet.
           </div>
         )}
-
-
       </Link>
     </ListPageCardShell>
   );
