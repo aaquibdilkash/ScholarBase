@@ -15,7 +15,6 @@ import {
 } from "@/lib/outreach/sender";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
 import {
-  MAX_OUTREACH_IMPORT_ROWS,
   parseOutreachCsv,
   type OutreachImportParse,
   type OutreachImportRow,
@@ -24,6 +23,8 @@ import { parseOutreachWorkbook } from "@/lib/outreach/import-file";
 import {
   MAX_OUTREACH_BATCH_SIZE,
   MAX_OUTREACH_EMAIL,
+  MAX_OUTREACH_IMPORT_FILE_BYTES,
+  MAX_OUTREACH_IMPORT_ROWS,
   MAX_OUTREACH_INSTITUTION,
   MAX_OUTREACH_NAME,
   MAX_OUTREACH_NOTES,
@@ -34,7 +35,7 @@ import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import prisma from "@/lib/db";
 
 const createOutreachContactSchema = z.object({
-  name: z.string().trim().min(1).max(MAX_OUTREACH_NAME),
+  name: z.string().trim().max(MAX_OUTREACH_NAME),
   email: z.string().trim().min(3).max(MAX_OUTREACH_EMAIL),
   institution: z.string().trim().max(MAX_OUTREACH_INSTITUTION).optional().default(""),
   role: z.string().trim().max(MAX_OUTREACH_ROLE).optional().default(""),
@@ -135,7 +136,6 @@ export async function createOutreachContact(
 }
 
 /** 4 MB sits comfortably under the 6 MB Server Action body limit. */
-const MAX_OUTREACH_IMPORT_FILE_BYTES = 4 * 1024 * 1024;
 const IMPORT_FILE_EXTENSIONS = new Set(["csv", "tsv", "txt", "xlsx", "xlsm"]);
 
 function fileExtension(fileName: string): string {
@@ -146,16 +146,30 @@ function fileExtension(fileName: string): string {
 type PreviewOutreachImportResult =
   | {
       success: true;
-      data: { fileName: string; rows: OutreachImportRow[] };
+      data: {
+        fileName: string;
+        /** Workbook tabs in order; empty for CSV/TSV. */
+        sheets: string[];
+        /** Tab that was read; null for CSV/TSV. */
+        sheetName: string | null;
+        rows: OutreachImportRow[];
+      };
     }
-  | { success: false; error: string };
+  | {
+      success: false;
+      error: string;
+      /** Workbook tabs, when the file was readable enough to list them. */
+      sheets?: string[];
+      sheetName?: string | null;
+    };
 
 /**
  * Parse an uploaded CSV/TSV/XLSX file into outreach rows.
  *
  * Parsing happens on the server so `exceljs` never enters the admin bundle and
- * both formats share one code path. The preview is read-only: nothing is
- * persisted until the admin confirms with {@link importOutreachContacts}.
+ * both formats share one code path. `sheet` picks a tab in a multi-sheet
+ * workbook. The preview is read-only: nothing is persisted until the admin
+ * confirms with {@link importOutreachContacts}.
  */
 export async function previewOutreachImport(
   formData: FormData,
@@ -192,13 +206,28 @@ export async function previewOutreachImport(
     };
   }
 
+  const sheetField = formData.get("sheet");
+  const requestedSheet =
+    typeof sheetField === "string" && sheetField.trim() !== ""
+      ? sheetField.trim().slice(0, 120)
+      : undefined;
+
   let parsed: OutreachImportParse;
+  let sheets: string[] = [];
+  let sheetName: string | null = null;
 
   try {
-    parsed =
-      extension === "xlsx" || extension === "xlsm"
-        ? await parseOutreachWorkbook(await file.arrayBuffer())
-        : parseOutreachCsv(await file.text());
+    if (extension === "xlsx" || extension === "xlsm") {
+      const workbook = await parseOutreachWorkbook(
+        await file.arrayBuffer(),
+        requestedSheet,
+      );
+      sheets = workbook.sheets;
+      sheetName = workbook.sheetName;
+      parsed = workbook;
+    } else {
+      parsed = parseOutreachCsv(await file.text());
+    }
   } catch {
     return {
       success: false,
@@ -207,27 +236,28 @@ export async function previewOutreachImport(
   }
 
   if (parsed.error) {
-    return { success: false, error: parsed.error };
+    return { success: false, error: parsed.error, sheets, sheetName };
   }
 
   if (parsed.rows.length > MAX_OUTREACH_IMPORT_ROWS) {
     return {
       success: false,
       error: `This file has ${parsed.rows.length} rows; the limit is ${MAX_OUTREACH_IMPORT_ROWS}. Split it into smaller files.`,
+      sheets,
+      sheetName,
     };
   }
 
   return {
     success: true,
-    data: { fileName: file.name, rows: parsed.rows },
+    data: { fileName: file.name, sheets, sheetName, rows: parsed.rows },
   };
 }
 
 const importOutreachContactsSchema = z.object({
-  rows: z
-    .array(createOutreachContactSchema)
-    .min(1)
-    .max(MAX_OUTREACH_IMPORT_ROWS),
+  // Each row is validated on its own below: one malformed row must be skipped,
+  // never fail the whole batch.
+  rows: z.array(z.unknown()).min(1).max(MAX_OUTREACH_IMPORT_ROWS),
 });
 
 export type ImportOutreachContactsPayload = z.input<
@@ -290,14 +320,19 @@ export async function importOutreachContacts(
   }
 
   // Re-validate and collapse duplicates at the boundary: the preview is not a
-  // security boundary, and one bad row must never fail the batch.
+  // security boundary, and one bad row must never fail the batch. A row that
+  // fails its own schema (too long, missing name, wrong type) is skipped and
+  // counted in `skipped` instead of rejecting the request.
   const rowsByEmail = new Map<string, z.infer<typeof createOutreachContactSchema>>();
 
-  for (const row of parsed.data.rows) {
-    const email = normalizeEmail(row.email);
+  for (const rawRow of parsed.data.rows) {
+    const parsedRow = createOutreachContactSchema.safeParse(rawRow);
+    if (!parsedRow.success) continue;
+
+    const email = normalizeEmail(parsedRow.data.email);
     if (!validateEmailFormat(email)) continue;
     if (rowsByEmail.has(email)) continue;
-    rowsByEmail.set(email, { ...row, email });
+    rowsByEmail.set(email, { ...parsedRow.data, email });
   }
 
   if (rowsByEmail.size === 0) {
@@ -413,7 +448,7 @@ export async function importOutreachContacts(
 
 const updateOutreachContactSchema = z.object({
   contactId: z.string().min(1),
-  name: z.string().trim().min(1).max(MAX_OUTREACH_NAME),
+  name: z.string().trim().max(MAX_OUTREACH_NAME),
   email: z.string().trim().min(3).max(MAX_OUTREACH_EMAIL),
   institution: z.string().trim().max(MAX_OUTREACH_INSTITUTION).optional().default(""),
   role: z.string().trim().max(MAX_OUTREACH_ROLE).optional().default(""),

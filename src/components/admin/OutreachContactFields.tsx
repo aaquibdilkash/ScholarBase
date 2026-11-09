@@ -86,7 +86,6 @@ export function OutreachContactFields({
           maxLength={MAX_OUTREACH_NAME}
           className={outreachInputClassName}
           disabled={disabled}
-          required
           autoFocus={autoFocusName}
         />
         <CharacterCount value={values.name} max={MAX_OUTREACH_NAME} />

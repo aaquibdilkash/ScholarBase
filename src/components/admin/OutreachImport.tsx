@@ -8,6 +8,10 @@ import {
   previewOutreachImport,
 } from "@/app/actions/outreach";
 import type { OutreachImportRow } from "@/lib/outreach/import";
+import {
+  MAX_OUTREACH_IMPORT_FILE_BYTES,
+  MAX_OUTREACH_IMPORT_ROWS,
+} from "@/lib/constants";
 import { FileSpreadsheet, Loader2, Plus, Upload, X } from "lucide-react";
 import {
   OUTREACH_QUERY_KEY,
@@ -19,6 +23,31 @@ import {
 
 const ACCEPTED_EXTENSIONS = ".csv,.tsv,.txt,.xlsx,.xlsm";
 
+/**
+ * Mirrors the header aliases and column order in `@/lib/outreach/import`, so
+ * the admin knows exactly what the parser accepts before uploading a file.
+ */
+const IMPORT_COLUMNS = [
+  {
+    label: "Email",
+    required: true,
+    aliases: ["Email", "E-mail", "Email Address", "Mail"],
+  },
+  {
+    label: "Name",
+    required: false,
+    aliases: ["Name", "Full Name", "Contact"],
+  },
+  {
+    label: "Institution",
+    required: false,
+    aliases: ["Institution", "University", "Affiliation"],
+  },
+  { label: "Role", required: false, aliases: ["Role", "Position", "Title"] },
+  { label: "Source", required: false, aliases: ["Source", "Referral"] },
+  { label: "Notes", required: false, aliases: ["Notes", "Comments"] },
+] as const;
+
 export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -27,6 +56,9 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
   const [importing, setImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<OutreachImportRow[]>([]);
+  const [sheets, setSheets] = useState<string[]>([]);
+  const [sheetName, setSheetName] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   // Imported rows join the top of page 1; that is the cache the optimistic
   // insert patches and the page the panel moves to afterwards.
@@ -35,12 +67,49 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
   const reset = () => {
     setFile(null);
     setRows([]);
+    setSheets([]);
+    setSheetName(null);
+    setPreviewError(null);
   };
 
   const close = () => {
     if (parsing || importing) return;
     setIsOpen(false);
     reset();
+  };
+
+  const loadPreview = async (selectedFile: File, sheet?: string) => {
+    setParsing(true);
+    setPreviewError(null);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    if (sheet) formData.append("sheet", sheet);
+
+    let result: Awaited<ReturnType<typeof previewOutreachImport>>;
+    try {
+      result = await previewOutreachImport(formData);
+    } catch {
+      setParsing(false);
+      setPreviewError("Could not read that file. Please try again.");
+      return;
+    }
+    setParsing(false);
+
+    // Kept inline (not a toast) so a missing header, missing email column, or
+    // empty tab stays on screen while the admin picks another sheet.
+    if (!result.success) {
+      setRows([]);
+      setSheets(result.sheets ?? []);
+      setSheetName(result.sheetName ?? null);
+      setPreviewError(result.error);
+      return;
+    }
+
+    setRows(result.data.rows);
+    setSheets(result.data.sheets);
+    setSheetName(result.data.sheetName);
+    setPreviewError(null);
   };
 
   const handleFileSelect = async (
@@ -53,29 +122,18 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
 
     setFile(selectedFile);
     setRows([]);
-    setParsing(true);
+    setSheets([]);
+    setSheetName(null);
+    await loadPreview(selectedFile);
+  };
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
+  const handleSheetChange = async (
+    event: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const nextSheet = event.target.value;
+    if (!file || !nextSheet || nextSheet === sheetName) return;
 
-    let result: Awaited<ReturnType<typeof previewOutreachImport>>;
-    try {
-      result = await previewOutreachImport(formData);
-    } catch {
-      setParsing(false);
-      setFile(null);
-      toast("Could not read that file. Please try again.", "error");
-      return;
-    }
-    setParsing(false);
-
-    if (!result.success) {
-      toast(result.error, "error");
-      setFile(null);
-      return;
-    }
-
-    setRows(result.data.rows);
+    await loadPreview(file, nextSheet);
   };
 
   const handleImport = async () => {
@@ -174,7 +232,7 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
           onClick={close}
         >
           <div
-            className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900"
+            className="relative max-h-[calc(100vh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-700 dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -192,38 +250,158 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
               </button>
             </div>
 
-            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-              Upload a <code className="text-slate-700 dark:text-slate-300">.csv</code>,{" "}
-              <code className="text-slate-700 dark:text-slate-300">.tsv</code>, or{" "}
-              <code className="text-slate-700 dark:text-slate-300">.xlsx</code> file
-              with <strong>name</strong> and <strong>email</strong> columns. In
-              Google Sheets use <em>File → Download → CSV or Excel</em>. Legacy{" "}
-              <code className="text-slate-700 dark:text-slate-300">.xls</code> files
-              must be re-saved as <code className="text-slate-700 dark:text-slate-300">.xlsx</code>.
-            </p>
+            <div className="mb-4 space-y-3">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Upload a{" "}
+                <code className="text-slate-700 dark:text-slate-300">.csv</code>,{" "}
+                <code className="text-slate-700 dark:text-slate-300">.tsv</code>,{" "}
+                <code className="text-slate-700 dark:text-slate-300">.xlsx</code>, or{" "}
+                <code className="text-slate-700 dark:text-slate-300">.xlsm</code>{" "}
+                file — up to{" "}
+                {MAX_OUTREACH_IMPORT_ROWS.toLocaleString("en-US")} rows and{" "}
+                {MAX_OUTREACH_IMPORT_FILE_BYTES / (1024 * 1024)} MB. In Google
+                Sheets use <em>File → Download → CSV or Excel</em>; legacy{" "}
+                <code className="text-slate-700 dark:text-slate-300">.xls</code>{" "}
+                files must be re-saved as{" "}
+                <code className="text-slate-700 dark:text-slate-300">.xlsx</code>.
+                For a workbook with several tabs, choose the sheet after
+                selecting the file.
+              </p>
+
+              <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+                <p className="border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  Columns — a header row is required
+                </p>
+                <dl className="divide-y divide-slate-100 text-xs dark:divide-slate-800">
+                  {IMPORT_COLUMNS.map((column) => (
+                    <div
+                      key={column.label}
+                      className="flex items-baseline gap-3 px-3 py-1.5"
+                    >
+                      <dt className="w-24 shrink-0 font-semibold text-slate-700 dark:text-slate-300">
+                        {column.label}
+                        {column.required && (
+                          <span className="ml-0.5 text-rose-600 dark:text-rose-400">
+                            *
+                          </span>
+                        )}
+                      </dt>
+                      <dd className="min-w-0 text-slate-500 dark:text-slate-400">
+                        {column.aliases.join(" · ")}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+
+              <pre className="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2 text-xs leading-relaxed text-slate-100 dark:bg-slate-950">
+                {`S. No.,Email,Name,Institution,Role,Source,Notes
+1,jane@university.edu,Jane Doe,Delhi University,Professor,Conference,Met at ICSSR`}
+              </pre>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Only{" "}
+                <strong className="font-semibold text-slate-700 dark:text-slate-300">
+                  Email
+                </strong>{" "}
+                is required — a blank name is left blank and the email greets them
+                as “Scholar”. Header names are case-insensitive, order does not
+                matter, and extra columns (S. No., phone, country…) are ignored.
+                A file without an Email header is rejected; duplicate and invalid
+                rows are listed as skipped while the rest still import.
+              </p>
+            </div>
 
             <div className="space-y-4">
-              <input
-                type="file"
-                accept={ACCEPTED_EXTENSIONS}
-                onChange={(event) => void handleFileSelect(event)}
-                disabled={parsing || importing}
-                className="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/20 dark:file:text-blue-300"
-              />
+              {/* Native file inputs ignore the theme in Chrome, so the input is
+                  hidden and its label is the visible, theme-aware picker. */}
+              {/* `group` sits on the wrapper so the whole picker shares one
+                  hover state. `group-hover:` is used instead of `hover:`
+                  because Tailwind v4 wraps `hover:` in `@media (hover: hover)`,
+                  which never matches on touch-first devices — that is why only
+                  the icon used to react. */}
+              <div className="group relative">
+                <input
+                  id="outreach-import-file"
+                  type="file"
+                  accept={ACCEPTED_EXTENSIONS}
+                  onChange={(event) => void handleFileSelect(event)}
+                  disabled={parsing || importing}
+                  className="peer sr-only"
+                />
+                <label
+                  htmlFor="outreach-import-file"
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition-colors group-hover:border-blue-500 group-hover:bg-blue-50 group-hover:text-blue-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2 dark:border-slate-600 dark:bg-slate-800/40 dark:text-slate-200 dark:group-hover:border-blue-400 dark:group-hover:bg-blue-500/15 dark:group-hover:text-blue-200 dark:peer-focus-visible:ring-offset-slate-900 ${
+                    parsing || importing ? "pointer-events-none opacity-60" : ""
+                  }`}
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition-colors group-hover:text-blue-600 group-hover:ring-blue-300 dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-700 dark:group-hover:text-blue-300 dark:group-hover:ring-blue-700">
+                    <Upload className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 text-left">
+                    <span className="block">Choose a CSV or Excel file</span>
+                    <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">
+                      .csv · .tsv · .xlsx · .xlsm · up to 4 MB
+                    </span>
+                  </span>
+                </label>
+              </div>
 
               {file && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                  <FileSpreadsheet className="h-3.5 w-3.5" />
-                  <span className="truncate">{file.name}</span>
-                  {parsing && (
-                    <span className="ml-auto inline-flex items-center gap-1.5">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Reading…
-                    </span>
-                  )}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
+                    <span className="truncate">{file.name}</span>
+                    {parsing && (
+                      <span className="ml-auto inline-flex items-center gap-1.5">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Reading…
+                      </span>
+                    )}
+                  </div>
+
+                  {sheets.length > 1 ? (
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="outreach-import-sheet"
+                        className="shrink-0 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                      >
+                        Sheet
+                      </label>
+                      <select
+                        id="outreach-import-sheet"
+                        value={sheetName ?? sheets[0]}
+                        onChange={(event) => void handleSheetChange(event)}
+                        disabled={parsing || importing}
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                      >
+                        {sheets.map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : sheetName ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Sheet:{" "}
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        {sheetName}
+                      </span>
+                    </p>
+                  ) : null}
                 </div>
               )}
             </div>
+
+            {previewError && (
+              <p
+                role="alert"
+                className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"
+              >
+                {previewError}
+              </p>
+            )}
 
             {rows.length > 0 && (
               <div className="mt-4 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -255,7 +433,9 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
                           {row.error ? "✗" : "✓"}
                         </span>
                         <span className="truncate text-xs text-slate-700 dark:text-slate-300">
-                          {row.name} &lt;{row.email || "no email"}&gt;
+                          {row.name
+                            ? `${row.name} <${row.email || "no email"}>`
+                            : row.email || "no email"}
                         </span>
                         {row.error && (
                           <span className="ml-auto shrink-0 text-xs text-rose-600 dark:text-rose-400">

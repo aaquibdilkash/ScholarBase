@@ -1,4 +1,12 @@
 import {
+  MAX_OUTREACH_EMAIL,
+  MAX_OUTREACH_INSTITUTION,
+  MAX_OUTREACH_NAME,
+  MAX_OUTREACH_NOTES,
+  MAX_OUTREACH_ROLE,
+  MAX_OUTREACH_SOURCE,
+} from "@/lib/constants";
+import {
   normalizeEmail,
   stripMailtoPrefix,
   validateEmailFormat,
@@ -12,25 +20,16 @@ import {
  *
  * - Delimiter detection (`,` `;` tab) and quote-aware parsing, so a name like
  *   `Doe, Jane` no longer shifts every column.
- * - The header row may sit below a title row, and a column named `Emails`
- *   alongside a real `Email` column is resolved by which column actually holds
- *   addresses.
- * - Headerless files still work: the email column is detected from its values.
+ * - A header row is required. It may sit below a title row, and a column named
+ *   `Emails` alongside a real `Email` column is resolved by which column
+ *   actually holds addresses. A file without a header is rejected with an
+ *   explanation instead of guessing a layout.
  * - Rows that cannot be imported keep an `error` and are simply skipped; one bad
  *   row never blocks the whole batch.
  *
  * No I/O and no `exceljs` here, so the mapping is cheap to test. The workbook
  * reader lives in `./import-file`.
  */
-
-/** Hard cap so a 50k-row export cannot stall the admin page. */
-export const MAX_OUTREACH_IMPORT_ROWS = 1000;
-
-const MAX_NAME_LENGTH = 120;
-const MAX_INSTITUTION_LENGTH = 120;
-const MAX_ROLE_LENGTH = 120;
-const MAX_SOURCE_LENGTH = 80;
-const MAX_NOTES_LENGTH = 2000;
 
 /** Header cells are scanned this far down, so a title row above is tolerated. */
 const HEADER_SCAN_ROWS = 15;
@@ -90,6 +89,23 @@ const ROLE_HEADERS = [
 const SOURCE_HEADERS = [/^sources?$/, /^referrals?$/, /^via$/];
 const NOTES_HEADERS = [/^notes?$/, /^comments?$/, /^remarks?$/];
 
+/**
+ * Every header the importer understands. A file must have a header row with at
+ * least one of these (in practice: Email); otherwise there is no reliable way to
+ * tell a header from data, so the import is rejected.
+ */
+const ALL_HEADER_MATCHERS = [
+  ...EMAIL_HEADERS,
+  ...NAME_HEADERS,
+  ...INSTITUTION_HEADERS,
+  ...ROLE_HEADERS,
+  ...SOURCE_HEADERS,
+  ...NOTES_HEADERS,
+];
+
+const MISSING_HEADER_ERROR =
+  "No header row found. Add a header row with at least an Email column (Name, Institution, Role, Source and Notes are optional).";
+
 type ColumnMap = {
   email: number;
   name: number;
@@ -147,25 +163,8 @@ function extractEmail(rawCell: unknown): string {
   return token ?? value;
 }
 
-/** Best-effort display name when the sheet has no name column (or a blank cell). */
-function nameFromEmail(email: string): string {
-  const local = email.split("@")[0] ?? "";
-  const words = local
-    .replace(/[._-]+/g, " ")
-    .split(/\s+/)
-    .map((word) => word.replace(/[^a-zA-Z]/g, ""))
-    .filter((word) => word.length >= 3)
-    .slice(0, 3);
-
-  if (words.length === 0) return "Scholar";
-
-  return words
-    .map((word) => word[0].toUpperCase() + word.slice(1).toLowerCase())
-    .join(" ");
-}
-
 function isNameLike(value: string): boolean {
-  if (!value || value.includes("@") || value.length > 60) return false;
+  if (!value || value.includes("@") || value.length > MAX_OUTREACH_NAME) return false;
   if (!/[a-z]/i.test(value)) return false;
   // Index columns ("1", "2", "S. No.") are not names.
   return !/^[\d\s.\-/#]+$/.test(value);
@@ -211,7 +210,7 @@ function findHeaderRow(matrix: string[][]): number {
   const limit = Math.min(matrix.length, HEADER_SCAN_ROWS);
 
   for (let index = 0; index < limit; index += 1) {
-    if (matrix[index].some((cell) => matchesHeader(cell, EMAIL_HEADERS))) {
+    if (matrix[index].some((cell) => matchesHeader(cell, ALL_HEADER_MATCHERS))) {
       return index;
     }
   }
@@ -219,66 +218,50 @@ function findHeaderRow(matrix: string[][]): number {
   return -1;
 }
 
-/** Resolve the column layout, either from a header row or from the values. */
+/** True when one of the first rows looks like a header row for this importer. */
+export function hasOutreachHeaderRow(matrix: string[][]): boolean {
+  return findHeaderRow(matrix.map((row) => row.map(cleanCell))) >= 0;
+}
+
+/** Resolve the column layout from the header row (which is mandatory). */
 function resolveColumns(
   matrix: string[][],
   headerRow: number,
 ): { columns: ColumnMap; firstDataRow: number } | { error: string } {
-  const header = headerRow >= 0 ? matrix[headerRow] : [];
-  const firstDataRow = headerRow >= 0 ? headerRow + 1 : 0;
-  const columnCount = matrix.reduce(
-    (widest, row) => Math.max(widest, row.length),
-    header.length,
-  );
+  const header = matrix[headerRow] ?? [];
+  const firstDataRow = headerRow + 1;
 
   const emailCandidates = header
     .map((cell, index) => (matchesHeader(cell, EMAIL_HEADERS) ? index : -1))
     .filter((index) => index >= 0);
 
-  const emailSearchPool =
-    emailCandidates.length > 0
-      ? emailCandidates
-      : Array.from({ length: columnCount }, (_, index) => index);
+  if (emailCandidates.length === 0) {
+    return {
+      error:
+        "No email column found. Add an 'Email' column header (Email, E-mail, Email Address, or Mail).",
+    };
+  }
 
   // A sheet can carry both `Emails` (junk) and `Email`; the column whose values
   // actually parse as addresses wins over header order.
   const detectedEmailColumn = bestColumn(
     matrix,
     firstDataRow,
-    emailSearchPool,
+    emailCandidates,
     (value) => validateEmailFormat(normalizeEmail(value)),
   );
 
   const emailColumn = detectedEmailColumn >= 0
     ? detectedEmailColumn
-    : emailCandidates[0] ?? -1;
-
-  if (emailColumn < 0) {
-    return {
-      error:
-        "No email column found. Add an 'Email' column (or upload a file where one column holds email addresses).",
-    };
-  }
+    : emailCandidates[0];
 
   const headerIndex = (matchers: RegExp[]): number =>
     header.findIndex((cell) => matchesHeader(cell, matchers));
 
-  let nameColumn = headerIndex(NAME_HEADERS);
-  if (nameColumn < 0) {
-    nameColumn = bestColumn(
-      matrix,
-      firstDataRow,
-      Array.from({ length: columnCount }, (_, index) => index).filter(
-        (index) => index !== emailColumn,
-      ),
-      isNameLike,
-    );
-  }
-
   return {
     columns: {
       email: emailColumn,
-      name: nameColumn,
+      name: headerIndex(NAME_HEADERS),
       institution: headerIndex(INSTITUTION_HEADERS),
       role: headerIndex(ROLE_HEADERS),
       source: headerIndex(SOURCE_HEADERS),
@@ -301,6 +284,10 @@ export function outreachRowsFromMatrix(input: unknown[][]): OutreachImportParse 
   }
 
   const headerRow = findHeaderRow(matrix);
+  if (headerRow < 0) {
+    return { rows: [], error: MISSING_HEADER_ERROR };
+  }
+
   const resolved = resolveColumns(matrix, headerRow);
   if ("error" in resolved) return { rows: [], error: resolved.error };
 
@@ -319,29 +306,32 @@ export function outreachRowsFromMatrix(input: unknown[][]): OutreachImportParse 
     let error: string | undefined;
     if (!rawEmail) error = "Missing email";
     else if (!validateEmailFormat(email)) error = "Invalid email";
+    // An over-length address is truncated into a different recipient, so flag
+    // it instead of importing it.
+    else if (email.length > MAX_OUTREACH_EMAIL) error = "Email too long";
 
     let name = columns.name >= 0 ? cleanCell(cells[columns.name]) : "";
     if (!isNameLike(name)) name = "";
 
     rows.push({
       row: index + 1,
-      name: truncate(name, MAX_NAME_LENGTH),
+      name: truncate(name, MAX_OUTREACH_NAME),
       email,
       institution: truncate(
         columns.institution >= 0 ? cleanCell(cells[columns.institution]) : "",
-        MAX_INSTITUTION_LENGTH,
+        MAX_OUTREACH_INSTITUTION,
       ),
       role: truncate(
         columns.role >= 0 ? cleanCell(cells[columns.role]) : "",
-        MAX_ROLE_LENGTH,
+        MAX_OUTREACH_ROLE,
       ),
       source: truncate(
         columns.source >= 0 ? cleanCell(cells[columns.source]) : "",
-        MAX_SOURCE_LENGTH,
+        MAX_OUTREACH_SOURCE,
       ),
       notes: truncate(
         columns.notes >= 0 ? cleanCell(cells[columns.notes]) : "",
-        MAX_NOTES_LENGTH,
+        MAX_OUTREACH_NOTES,
       ),
       error,
     });
@@ -361,10 +351,6 @@ export function outreachRowsFromMatrix(input: unknown[][]): OutreachImportParse 
     if (!row.error) {
       if (seen.has(row.email)) row.error = "Duplicate email";
       else seen.add(row.email);
-    }
-
-    if (!row.name) {
-      row.name = row.email ? nameFromEmail(row.email) : "Scholar";
     }
   }
 

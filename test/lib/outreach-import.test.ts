@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAX_OUTREACH_EMAIL,
+  MAX_OUTREACH_INSTITUTION,
+  MAX_OUTREACH_NOTES,
+  MAX_OUTREACH_ROLE,
+  MAX_OUTREACH_SOURCE,
+} from "@/lib/constants";
+import {
   detectDelimiter,
   outreachRowsFromMatrix,
   parseDelimited,
@@ -85,18 +92,23 @@ describe("parseOutreachCsv", () => {
     });
   });
 
-  it("works without a header row", () => {
-    const result = parseOutreachCsv(
+  it("rejects a file without a header row", () => {
+    const rowsWithoutHeader = parseOutreachCsv(
       ["Jane Doe,jane@university.edu", "John Roe,john@university.edu"].join(
         "\n",
       ),
     );
 
-    expect(result.error).toBeUndefined();
-    expect(result.rows.map((row) => row.name)).toEqual([
-      "Jane Doe",
-      "John Roe",
-    ]);
+    expect(rowsWithoutHeader.rows).toHaveLength(0);
+    expect(rowsWithoutHeader.error).toMatch(/no header row/i);
+
+    // A bare email column is no longer inferred either.
+    const emailsOnly = parseOutreachCsv(
+      ["jane@university.edu", "john@university.edu"].join("\n"),
+    );
+
+    expect(emailsOnly.rows).toHaveLength(0);
+    expect(emailsOnly.error).toMatch(/no header row/i);
   });
 
   it("flags invalid rows without dropping the valid ones", () => {
@@ -121,10 +133,76 @@ describe("parseOutreachCsv", () => {
     expect(result.rows[1].error).toBe("Duplicate email");
   });
 
-  it("derives a readable name when the cell is blank", () => {
-    const result = parseOutreachCsv("Name,Email\n,jane.doe@university.edu");
+  it("flags an over-length email instead of truncating it to a different recipient", () => {
+    const longEmail = `${"a".repeat(MAX_OUTREACH_EMAIL)}@university.edu`;
+    const result = parseOutreachCsv(
+      ["Name,Email", `Jane,${longEmail}`, "Bob,bob@university.edu"].join("\n"),
+    );
 
-    expect(result.rows[0].name).toBe("Jane Doe");
+    expect(result.rows[0].error).toBe("Email too long");
+    // The address is kept whole so the admin can see what was skipped.
+    expect(result.rows[0].email).toBe(longEmail);
+    expect(result.rows[1].error).toBeUndefined();
+  });
+
+  it("truncates long free-text fields to the shared schema limits", () => {
+    const result = parseOutreachCsv(
+      [
+        "Name,Email,Institution,Role,Source,Notes",
+        [
+          "Jane",
+          "jane@university.edu",
+          "i".repeat(MAX_OUTREACH_INSTITUTION + 10),
+          "r".repeat(MAX_OUTREACH_ROLE + 10),
+          "s".repeat(MAX_OUTREACH_SOURCE + 10),
+          "n".repeat(MAX_OUTREACH_NOTES + 10),
+        ].join(","),
+      ].join("\n"),
+    );
+
+    expect(result.rows[0].error).toBeUndefined();
+    expect(result.rows[0].institution).toHaveLength(MAX_OUTREACH_INSTITUTION);
+    expect(result.rows[0].role).toHaveLength(MAX_OUTREACH_ROLE);
+    expect(result.rows[0].source).toHaveLength(MAX_OUTREACH_SOURCE);
+    expect(result.rows[0].notes).toHaveLength(MAX_OUTREACH_NOTES);
+  });
+
+  it("leaves the name blank when the cell is empty", () => {
+    const result = parseOutreachCsv("name,email\n,jane.doe@university.edu");
+
+    expect(result.rows[0].name).toBe("");
+    expect(result.rows[0].email).toBe("jane.doe@university.edu");
+    expect(result.rows[0].error).toBeUndefined();
+  });
+
+  it("does not mistake an institution column for a name", () => {
+    const result = parseOutreachCsv(
+      ["Email,Institution", "jane.doe@university.edu,Delhi University"].join(
+        "\n",
+      ),
+    );
+
+    expect(result.rows[0].institution).toBe("Delhi University");
+    expect(result.rows[0].name).toBe("");
+  });
+
+  it("ignores columns it does not recognize", () => {
+    const result = parseOutreachCsv(
+      [
+        "S. No.,Name,Email,Phone,Country,Department",
+        "1,Jane,jane@university.edu,9999999999,India,Physics",
+      ].join("\n"),
+    );
+
+    expect(result.rows[0]).toMatchObject({
+      name: "Jane",
+      email: "jane@university.edu",
+      institution: "",
+      role: "",
+      source: "",
+      notes: "",
+      error: undefined,
+    });
   });
 
   it("reports a missing email column instead of importing garbage", () => {

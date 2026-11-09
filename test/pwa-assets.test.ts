@@ -61,16 +61,22 @@ describe("manifest.json", () => {
 
   // Without this entry `getInstalledRelatedApps` cannot report an existing
   // install, so the app keeps offering a download for something already
-  // installed. The entry MUST reference this origin's own manifest by absolute
-  // URL with `platform: "webapp"` — that exact shape is what Chromium matches
-  // for self-detection; `platform: "web"` with a relative URL never reports,
-  // which is why uninstalls stayed invisible even after the probe was added.
-  it("declares related_applications so install detection can match", () => {
+  // installed. The entry must use `platform: "webapp"` and point at THIS
+  // origin's own manifest. It is deliberately RELATIVE: Chromium's in-scope
+  // self-detection requires the page and the related manifest to share an
+  // origin. An absolute production URL turns the entry into a different-origin
+  // related app on every other host (staging, previews, localhost), which needs
+  // an `assetlinks.json` on the other origin and otherwise reports `[]` — a
+  // false "not installed" that clears the tick.
+  it("declares a same-origin related app so install detection can match", () => {
     const related = manifest.related_applications ?? [];
     expect(related.length).toBeGreaterThan(0);
     const selfEntry = related.find((entry) => entry.platform === "webapp");
     expect(selfEntry).toBeTruthy();
-    expect(selfEntry?.url).toBe("https://scholarbase.app/manifest.json");
+    expect(selfEntry?.url).toBe("/manifest.json");
+    // The web app id declared in the manifest, so the installed app can be
+    // matched on desktop Chromium as well as Android.
+    expect(selfEntry?.id).toBe(manifest.id);
   });
 });
 

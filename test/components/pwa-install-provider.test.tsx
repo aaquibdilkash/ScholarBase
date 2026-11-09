@@ -32,6 +32,12 @@ function makeBeforeInstallPromptEvent(): Event & {
   return event;
 }
 
+/**
+ * Captured at module load so `stubMatchMedia` can be undone. jsdom does not
+ * implement `matchMedia`, so this is normally `undefined`.
+ */
+const realMatchMedia = window.matchMedia;
+
 /** Renders the real button + note so we assert on actual output, not context. */
 function Harness() {
   const { status } = usePwaInstall();
@@ -100,6 +106,12 @@ describe("PwaInstallProvider (event timing)", () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     delete (window as unknown as { __sbInstallPrompt?: unknown }).__sbInstallPrompt;
+    delete (window as unknown as { __sbAppInstalled?: unknown }).__sbAppInstalled;
+    if (realMatchMedia) {
+      window.matchMedia = realMatchMedia;
+    } else {
+      delete (window as unknown as { matchMedia?: unknown }).matchMedia;
+    }
     window.localStorage.clear();
     for (const [key, descriptor] of originals.splice(0)) {
       if (descriptor) {
@@ -109,6 +121,37 @@ describe("PwaInstallProvider (event timing)", () => {
       }
     }
   });
+
+  /**
+   * Minimal `matchMedia` stand-in with a mutable standalone flag, so the
+   * display-mode listener can be exercised. jsdom does not implement it at all.
+   */
+  const stubMatchMedia = (initialStandalone: boolean) => {
+    let standalone = initialStandalone;
+    const listeners = new Set<() => void>();
+    const make = (query: string) =>
+      ({
+        matches: query.includes("standalone") ? standalone : false,
+        media: query,
+        onchange: null,
+        addEventListener: (_type: string, cb: () => void) => listeners.add(cb),
+        removeEventListener: (_type: string, cb: () => void) =>
+          listeners.delete(cb),
+        addListener: (cb: () => void) => listeners.add(cb),
+        removeListener: (cb: () => void) => listeners.delete(cb),
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList;
+    (
+      window as unknown as { matchMedia: typeof window.matchMedia }
+    ).matchMedia = make as unknown as typeof window.matchMedia;
+
+    return {
+      setStandalone(value: boolean) {
+        standalone = value;
+        for (const listener of listeners) listener();
+      },
+    };
+  };
 
   const draw = () =>
     act(() => {
@@ -322,11 +365,11 @@ describe("PwaInstallProvider (event timing)", () => {
     expect(status()).toBe("checking");
   });
 
-  it("clears ANY recorded install on a same-origin empty result", async () => {
-    // Fully automatic uninstall: no prior-positive flag, no user tap. An
-    // empty same-origin result IS the uninstall signal (localStorage is
-    // per-origin, so this cannot wipe another origin's state). This also
-    // migrates installs recorded before the confirmation flag existed.
+  it("never clears a tick the API itself never confirmed", async () => {
+    // The regression behind the vanishing tick: `[]` ALSO means "this platform
+    // cannot see PWAs" (desktop Chromium before 140, an Android home-screen
+    // shortcut, a different origin). Clearing on it unconditionally made the
+    // tick disappear on the next focus even though the app was installed.
     window.localStorage.setItem("sb:pwa-installed", "1");
     patchNavigator({
       serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
@@ -340,11 +383,107 @@ describe("PwaInstallProvider (event timing)", () => {
       await Promise.resolve();
     });
 
-    // Stale flag cleared — the install is offered again, no site-data clear.
+    expect(status()).toBe("unavailable");
+    expect(text()).toContain("ScholarBase is installed on this device.");
+    expect(window.localStorage.getItem("sb:pwa-installed")).toBe("1");
+  });
+
+  it("ignores a stale probe that started before the install landed", async () => {
+    // A probe begun before `appinstalled` can resolve `[]` after it. Applying
+    // that negative would wipe the tick the user just earned, so it must be
+    // dropped — the install bumped the epoch the probe started with.
+    let pendingEmpty: Promise<{ platform?: string; id?: string; url?: string }[]> | null =
+      null;
+    patchNavigator({
+      serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
+      getInstalledRelatedApps: () =>
+        pendingEmpty ?? Promise.resolve([{ platform: "webapp", id: "/" }]),
+    });
+    draw();
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(status()).toBe("unavailable");
+    expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe("1");
+
+    // Start an uninstall probe, then install again before it resolves.
+    let resolveEmpty!: (apps: { platform?: string; id?: string; url?: string }[]) => void;
+    pendingEmpty = new Promise((resolve) => {
+      resolveEmpty = resolve;
+    });
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    act(() => {
+      window.dispatchEvent(new Event("appinstalled"));
+    });
+    await act(async () => {
+      resolveEmpty([]);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(status()).toBe("unavailable");
+    expect(text()).toContain("ScholarBase is installed on this device.");
+  });
+
+  it("adopts an install that completed before hydration", () => {
+    // The `<head>` script always runs first and sees `appinstalled` even when
+    // React has not mounted yet; it stashes the fact for us.
+    (window as unknown as { __sbAppInstalled?: boolean }).__sbAppInstalled = true;
+    stubWorkerThatNeverActivates();
+    draw();
+
+    expect(status()).toBe("unavailable");
+    expect(text()).toContain("Installed");
+    expect(window.localStorage.getItem("sb:pwa-installed")).toBe("1");
+  });
+
+  it("adopts a display-mode change to standalone immediately", () => {
+    // The installed window opened while this tab was already alive: the media
+    // query flips without any focus/visibility event to piggyback on.
+    stubWorkerThatNeverActivates();
+    const displayMode = stubMatchMedia(false);
+    draw();
+    expect(status()).toBe("checking");
+
+    act(() => {
+      displayMode.setStandalone(true);
+    });
+
+    expect(status()).toBe("unavailable");
+    expect(text()).toContain("Installed");
+  });
+
+  it("polls while visible so a deletion without a focus event is still found", async () => {
+    let installed = true;
+    patchNavigator({
+      serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },
+      getInstalledRelatedApps: () =>
+        Promise.resolve(installed ? [{ platform: "webapp", id: "/" }] : []),
+    });
+    draw();
+
+    await act(async () => {
+      vi.advanceTimersByTime(400);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(status()).toBe("unavailable");
+
+    // No focus/visibility/pageshow here: only the interval can notice.
+    installed = false;
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
     expect(status()).toBe("checking");
     expect(text()).toContain("Install app");
-    expect(window.localStorage.getItem("sb:pwa-installed")).toBe(null);
-    expect(window.localStorage.getItem("sb:pwa-gira-install")).toBe(null);
   });
 
   it("ignores a stale local flag where the install API is absent", () => {
@@ -396,8 +535,8 @@ describe("PwaInstallProvider (event timing)", () => {
   it("re-offers the install after the user deletes the installed app", async () => {
     // The reported bug: uninstalling ScholarBase leaves `sb:pwa-installed`
     // behind, so the site keeps saying "installed" until site data is cleared.
-    // A same-origin empty result IS the uninstall signal — cleared
-    // automatically on the next probe, no user tap needed.
+    // The uninstall signal is a POSITIVE→empty flip from the same API on the
+    // same origin — that is what makes an empty list trustworthy here.
     let installed = true;
     patchNavigator({
       serviceWorker: { ready: new Promise(() => {}), addEventListener: () => {}, removeEventListener: () => {} },

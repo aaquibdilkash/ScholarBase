@@ -506,7 +506,11 @@ html[data-theme="dark"] {
     background: var(--surface-grad);
   }
 
-  .bg-white { background: var(--surface-grad) !important; }
+  /* Never rewrite selects: the `background` shorthand resets the chevron
+     background-image installed by `select:not([multiple])` above, which left
+     every admin `<select>` (the only ones using `bg-white`) with no arrow.
+     Selects already get their surface from the light/dark select rules. */
+  .bg-white:not(select) { background: var(--surface-grad) !important; }
   .bg-white\/55 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 55%, transparent), color-mix(in srgb, var(--surface-stop-2) 65%, transparent)) !important; }
   .bg-white\/60 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 60%, transparent), color-mix(in srgb, var(--surface-stop-2) 70%, transparent)) !important; }
   .bg-white\/65 { background: linear-gradient(0deg, color-mix(in srgb, var(--surface-stop-1) 65%, transparent), color-mix(in srgb, var(--surface-stop-2) 75%, transparent)) !important; }
@@ -586,6 +590,14 @@ html[data-theme="dark"] {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
     color: #e2e8f0;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(2, 6, 23, 0.36);
+  }
+
+  /* Every other single select (sb-input and the admin toolbar filters) gets
+     its chevron from the global rule; swap in the light stroke on dark
+     surfaces so it stays visible. `.sb-select` already stacks its own. */
+  html.dark select:not([multiple]):not(.sb-select),
+  html[data-theme="dark"] select:not([multiple]):not(.sb-select) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
   }
 
   html.dark .sb-select:has(option:checked[value=""]),

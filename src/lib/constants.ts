@@ -201,16 +201,24 @@ export const MAX_INVITE_EMAIL = 64;
 export const MAX_INVITE_MESSAGE = 512;
 
 // Admin outreach contact list (see src/app/actions/outreach.ts). Kept here so
-// the form, the server schema, and the edit modal share one limit.
-export const MAX_OUTREACH_NAME = 32;
-export const MAX_OUTREACH_EMAIL = 32;
+// the form, the server schema, the edit modal, and the CSV/XLSX importer share
+// one limit. The importer truncates free-text fields to these bounds, and the
+// email cap matches the RFC 5321 address length so a long address is flagged
+// instead of truncated into a different recipient.
+export const MAX_OUTREACH_NAME = 120;
+export const MAX_OUTREACH_EMAIL = 254;
 export const MAX_OUTREACH_INSTITUTION = 128;
-export const MAX_OUTREACH_ROLE = 32;
-export const MAX_OUTREACH_SOURCE = 32;
-export const MAX_OUTREACH_NOTES = 64;
+export const MAX_OUTREACH_ROLE = 120;
+export const MAX_OUTREACH_SOURCE = 80;
+export const MAX_OUTREACH_NOTES = 2000;
 // Most contacts one batch send may email. Matches the admin table page size so
 // "select all" is always a valid batch.
 export const MAX_OUTREACH_BATCH_SIZE = 10;
+
+// Importer bounds shared by the upload modal and the server action. 4 MB sits
+// comfortably under the 6 MB Server Action body limit.
+export const MAX_OUTREACH_IMPORT_ROWS = 1000;
+export const MAX_OUTREACH_IMPORT_FILE_BYTES = 4 * 1024 * 1024;
 
 export const MAX_AUTH_EMAIL = 32;
 export const MAX_AUTH_PASSWORD = 16;

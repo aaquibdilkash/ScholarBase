@@ -47,7 +47,7 @@ const INSTALL_PROMPT_CAPTURE = `
   });
   window.addEventListener("appinstalled", function () {
     window.__sbInstallPrompt = null;
-    window.dispatchEvent(new Event("sb:appinstalled"));
+    window.__sbAppInstalled = true;
   });
 })();
 `;

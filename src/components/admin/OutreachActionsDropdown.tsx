@@ -304,6 +304,11 @@ export function OutreachActionsDropdown({
   }, [open]);
 
   const status = contact.status as OutreachStatus;
+  // Imported contacts may have no name; fall back to the address so menus and
+  // confirmations never read " (email)" or "Actions for ".
+  const contactLabel = contact.name
+    ? `${contact.name} (${contact.email})`
+    : contact.email;
   const canSend = status === "PENDING";
   const canResend = status !== "PENDING" && status !== "UNSUBSCRIBED";
   const canOptOut = status !== "UNSUBSCRIBED";
@@ -333,28 +338,28 @@ export function OutreachActionsDropdown({
   > = {
     resend: {
       title: "Resend outreach email?",
-      message: `Another email will be sent to ${contact.name} (${contact.email}), using the next template in the rotation.`,
+      message: `Another email will be sent to ${contactLabel}, using the next template in the rotation.`,
       confirmLabel: "Resend email",
       confirmingLabel: "Sending…",
       confirmVariant: "default",
     },
     subscribe: {
       title: "Mark contact as subscribed?",
-      message: `${contact.name} (${contact.email}) will be able to receive outreach emails from this list again.`,
+      message: `${contactLabel} will be able to receive outreach emails from this list again.`,
       confirmLabel: "Mark as subscribed",
       confirmingLabel: "Updating…",
       confirmVariant: "default",
     },
     unsubscribe: {
       title: "Mark contact as unsubscribed?",
-      message: `This stops future outreach emails to ${contact.name} (${contact.email}) from this list. It does not change the recipient's own unsubscribe preference.`,
+      message: `This stops future outreach emails to ${contactLabel} from this list. It does not change the recipient's own unsubscribe preference.`,
       confirmLabel: "Mark unsubscribed",
       confirmingLabel: "Updating…",
       confirmVariant: "default",
     },
     delete: {
       title: "Remove outreach contact?",
-      message: `This will delete ${contact.name} (${contact.email}) from your outreach list. This cannot be undone.`,
+      message: `This will delete ${contactLabel} from your outreach list. This cannot be undone.`,
       confirmLabel: "Delete contact",
       confirmingLabel: "Deleting…",
       confirmVariant: "destructive",
@@ -413,7 +418,7 @@ export function OutreachActionsDropdown({
             setOpen((value) => !value);
           }}
           className="sb-menu-trigger"
-          aria-label={`Actions for ${contact.name}`}
+          aria-label={`Actions for ${contact.name || contact.email}`}
         >
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />

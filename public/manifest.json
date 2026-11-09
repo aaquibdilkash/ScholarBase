@@ -29,7 +29,7 @@
     {
       "platform": "webapp",
       "id": "/",
-      "url": "https://scholarbase.app/manifest.json"
+      "url": "/manifest.json"
     }
   ]
 }

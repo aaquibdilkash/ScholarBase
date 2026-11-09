@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -14,7 +15,7 @@ import { useToast } from "@/components/ui/Toast";
 /**
  * Single source of truth for "can this browser install ScholarBase as an app?".
  *
- * Three things make this more than a `matchMedia` check:
+ * A few things make this more than a `matchMedia` check:
  *
  * 1. **`beforeinstallprompt` must be captured.** The event fires once, early, and
  *    is not re-issued — if no listener is attached when it fires, the prompt is
@@ -35,18 +36,32 @@ import { useToast } from "@/components/ui/Toast";
  *    neither of the first two) rather than trusting a one-shot probe at
  *    mount. A fresh `beforeinstallprompt` arriving while we claim "installed"
  *    is itself an uninstall signal: Chromium only re-issues it when the app
- *    becomes installable again, so the stale local flag yields to it.
+ *    becomes installable again, so the stale local flag yields to it. No
+ *    browser exposes an `appuninstalled` event, so the related-app probe below
+ *    is the closest thing to one.
  *
- * 4. **An empty result IS authoritative — where the API exists.** `localStorage`
- *    is per-origin, so a `localhost`/dev tab can never wipe a production
- *    install, and with the manifest's `webapp` + absolute-URL entry a
- *    same-origin empty list means the app is genuinely gone (deleted or never
- *    installed). So when `getInstalledRelatedApps()` resolves to `[]` and we
- *    are not `standalone`, the recorded install is cleared unconditionally —
- *    no prior-positive flag, no user tap, no site-data clear needed.
- *    Where the API is ABSENT (Firefox/Safari) the local flag is ignored
- *    entirely and only `standalone` counts, so a deleted iOS app opened in a
- *    normal tab automatically falls back to the share-sheet instructions.
+ * 4. **A positive is proof; an empty result is not.** `getInstalledRelatedApps()`
+ *    returning `[]` is ambiguous: the same empty list also means the API cannot
+ *    see PWAs on this platform (desktop Chrome before 140, Android home-screen
+ *    shortcuts rather than WebAPKs), that the recorded install belongs to a
+ *    different origin (localhost vs production, staging vs production), or that
+ *    the installed app has not registered yet. Treating `[]` as authoritative
+ *    is what made the tick appear and then vanish on the next focus. So an
+ *    empty list clears the recorded install ONLY after this same origin has
+ *    seen this same API report the app installed (`sb:pwa-gira-install`): a
+ *    flip from positive to empty on one origin is a genuine deletion.
+ *    Where the API is ABSENT (Firefox/Safari) it returns `null` and nothing is
+ *    cleared; only `standalone` counts, so a deleted iOS app opened in a
+ *    normal tab falls back to the share-sheet instructions, and a deleted app
+ *    on a platform with no API waits for Chromium to re-issue
+ *    `beforeinstallprompt` (the same uninstall signal as above).
+ *
+ * 5. **A probe that started before an install must never undo it.** The probe
+ *    is asynchronous and several events (focus, visibilitychange, pageshow)
+ *    can fire at once, so a `[]` captured before `appinstalled` may resolve
+ *    after it. Every install bumps an epoch and every probe carries the epoch
+ *    it started with; a negative that crosses an install (or a newer probe) is
+ *    dropped instead of clearing the tick the user just earned.
  *
  * This is entirely *device* state, exactly like the push subscription in
  * `PushNotificationProvider` — no server round-trip, nothing to persist.
@@ -187,6 +202,14 @@ async function isInstalledAsRelatedApp(): Promise<boolean | null> {
  */
 const INSTALLED_FLAG = "sb:pwa-installed";
 
+/**
+ * How often the visible page re-probes for an uninstall. The API is local and
+ * cheap; the interval only exists so a deletion that produced no focus or
+ * visibility transition is noticed without waiting for the next manual tab
+ * switch. Hidden tabs skip it entirely.
+ */
+const INSTALL_POLL_MS = 30_000;
+
 function readInstalledFlag(): boolean {
   try {
     return window.localStorage.getItem(INSTALLED_FLAG) === "1";
@@ -209,12 +232,25 @@ function writeInstalledFlag(value: boolean) {
  * Records that THIS origin's `getInstalledRelatedApps()` positively reported
  * the install.
  *
- * Kept for diagnostics only: the uninstall probe below clears the recorded
- * install on ANY same-origin empty result, so this flag is no longer a
- * precondition for forgetting. Written on positive sightings, cleared on
- * empty ones, never read for decisions.
+ * This is the precondition for ever treating an empty result as an uninstall.
+ * It is what distinguishes a platform where the API genuinely tracks PWAs
+ * (Android Chrome 84+, desktop Chromium 140+) from one where it always
+ * returns `[]` (older desktop Chromium, home-screen shortcuts, a different
+ * origin). Without it, a positive-then-empty flip cannot be told apart from
+ * "this browser never reports anything", and the tick would be wiped on every
+ * focus.
  */
 const GIRA_INSTALLED_FLAG = "sb:pwa-gira-install";
+
+function readGiraInstalledFlag(): boolean {
+  try {
+    return window.localStorage.getItem(GIRA_INSTALLED_FLAG) === "1";
+  } catch {
+    // Private mode / storage disabled: uninstall detection stays off rather
+    // than guessing from an ambiguous empty result.
+    return false;
+  }
+}
 
 function writeGiraInstalledFlag(value: boolean) {
   try {
@@ -243,7 +279,15 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   // Every path to "installed" goes through this, so the local flag can never
   // disagree with the state the UI renders.
   const [installed, setInstalledState] = useState(false);
+  // Monotonic counters that make the asynchronous probe safe:
+  //   - `installEpoch` is bumped by every install/clear, so a negative probe
+  //     that started BEFORE the install cannot clear it when it resolves;
+  //   - `probeSeq` identifies the newest probe, so overlapping probes cannot
+  //     apply out of order.
+  const installEpochRef = useRef(0);
+  const probeSeqRef = useRef(0);
   const markInstalled = useCallback((value: boolean) => {
+    installEpochRef.current += 1;
     setInstalledState(value);
     writeInstalledFlag(value);
   }, []);
@@ -256,11 +300,12 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
   const [canNeverInstall, setCanNeverInstall] = useState(false);
 
   /**
-   * Clears every local trace of a recorded install. Shared by the
-   * uninstall probes below and the manual "not on this device anymore"
-   * affordance, so they can never disagree about what "forget" means.
+   * Clears every local trace of a recorded install. Kept as the single
+   * "forget" primitive so the probe and the early-install paths can never
+   * disagree about what it means.
    */
   const resetInstalledState = useCallback(() => {
+    installEpochRef.current += 1;
     setInstalledState(false);
     writeInstalledFlag(false);
     writeGiraInstalledFlag(false);
@@ -302,36 +347,32 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
         }
       ).getInstalledRelatedApps === "function";
     if (hasInstallApi && readInstalledFlag()) setInstalledState(true);
-    if (isRunningStandalone()) setInstalledState(true);
+    if (isRunningStandalone()) markInstalled(true);
 
-    // Pick up anything the inline `<head>` capture script already stashed. The
-    // event can fire before this effect runs — especially on a fast load or a
-    // warm cache — and because it is issued only once, a listener that attaches
-    // late misses it for the lifetime of the page. That race is what made the
-    // button read "How to install" and then flip to working after a navigation.
+    // Pick up anything the inline `<head>` capture script already stashed. Both
+    // events can fire before this effect runs — especially on a fast load or a
+    // warm cache — and because they are issued only once, a listener that
+    // attaches late misses them for the lifetime of the page. That race is what
+    // made the button read "How to install" and then flip to working after a
+    // navigation.
     const stashed = (window as Window & { __sbInstallPrompt?: BeforeInstallPromptEvent | null })
       .__sbInstallPrompt;
     if (stashed) setDeferredPrompt(stashed);
+    if ((window as Window & { __sbAppInstalled?: boolean }).__sbAppInstalled) {
+      markInstalled(true);
+    }
 
-    // The capture script re-broadcasts on a custom event, so this still works
-    // when the real event arrives after we mount.
+    // The capture script re-broadcasts the prompt on a custom event, so this
+    // still works when the real event arrives after we mount.
     const onCaptured = () => {
       const event = (
         window as Window & { __sbInstallPrompt?: BeforeInstallPromptEvent | null }
       ).__sbInstallPrompt;
       if (event) {
-        // A fresh prompt while we claim "installed" means the app was deleted
-        // without any API telling us (or was installed before the manifest
-        // fix, so no API can confirm it). Chromium re-issues the event after
-        // a deletion; the stale flag must yield to it, not suppress it.
-        setInstalledState((wasInstalled) => {
-          if (wasInstalled) {
-            writeInstalledFlag(false);
-            writeGiraInstalledFlag(false);
-            return false;
-          }
-          return wasInstalled;
-        });
+        // A fresh prompt means the app is installable again: Chromium only
+        // re-issues it after a deletion. That is a true uninstall signal, so
+        // the stale flag must yield rather than suppress it.
+        resetInstalledState();
         setDeferredPrompt(event);
       }
     };
@@ -342,14 +383,7 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       // we are being asked to replace with a persistent button.
       event.preventDefault();
       // Same uninstall signal as above, for prompts that arrive after mount.
-      setInstalledState((wasInstalled) => {
-        if (wasInstalled) {
-          writeInstalledFlag(false);
-          writeGiraInstalledFlag(false);
-          return false;
-        }
-        return wasInstalled;
-      });
+      resetInstalledState();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
 
@@ -381,42 +415,67 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     setIsManualOnlyPlatform(detectIOS());
     setCanNeverInstall(!navigator.serviceWorker);
 
-    // Re-check periodically and whenever the tab regains focus. The user may
+    /**
+     * The only uninstall probe any browser offers. See doc note 4: a positive
+     * is applied unconditionally, an empty result only clears a state that
+     * this origin previously confirmed through the very same API.
+     */
+    const probeInstalled = async () => {
+      const epoch = installEpochRef.current;
+      const seq = ++probeSeqRef.current;
+      const result = await isInstalledAsRelatedApp();
+
+      // `true` is proof and is always safe to apply, even if another probe is
+      // in flight: the browser can only name an install that exists.
+      if (result === true) {
+        markInstalled(true);
+        writeGiraInstalledFlag(true);
+        setDeferredPrompt(null);
+        return;
+      }
+
+      // `null` = API absent (Firefox/Safari) or the call failed. Unknown is
+      // not "uninstalled": keep the recorded state and let the manual
+      // instructions cover this platform.
+      if (result !== false) return;
+
+      // Only the newest probe may act on an empty list, and only if no
+      // install or clear happened while it was in flight. A `[]` captured
+      // before `appinstalled` must not undo the install when it resolves.
+      if (seq !== probeSeqRef.current) return;
+      if (epoch !== installEpochRef.current) return;
+
+      // An empty list only means "deleted" on a platform where this API has
+      // already reported the app installed from this origin. Everywhere else
+      // `[]` is the permanent answer — desktop Chromium before 140, Android
+      // home-screen shortcuts, a different origin — and clearing on it is what
+      // made the tick vanish right after install.
+      if (!readGiraInstalledFlag()) return;
+
+      // We ARE the installed app; it cannot have been deleted while this
+      // window is still running in standalone mode.
+      if (isRunningStandalone()) return;
+
+      resetInstalledState();
+    };
+
+    // Re-check whenever the page can have changed underneath us. The user may
     // install the app from the browser's own menu while this page sits in a
     // background tab, and nothing else would tell us.
+    //
+    // No visibility guard here on purpose: `focus` can fire a beat before
+    // `visibilityState` flips back to "visible" on mobile, and dropping that
+    // signal would leave a deleted app showing as installed until the next
+    // tab switch. The probe is local and cheap, so it is safe to run whenever
+    // the page is actually in front of the user.
     const syncInstalled = () => {
-      if (document.visibilityState !== "visible") return;
-
       if (isRunningStandalone()) {
         markInstalled(true);
         setDeferredPrompt(null);
       }
-
-      // Three outcomes from the related-app probe:
-      //
-      //  * `true` — a definitive install. Record it and drop any held prompt.
-      //  * `false` — NO related app on this same origin, and we are not
-      //    `standalone`: the app is gone (deleted or never installed), so any
-      //    recorded install is cleared unconditionally. `localStorage` is
-      //    per-origin, so this cannot wipe another origin's state, and no
-      //    prior-positive flag is needed — the empty result itself is the
-      //    uninstall signal. Both flags are cleared but any held prompt is
-      //    kept: after a deletion Chromium may re-issue one, making the
-      //    button one-click again.
-      //  * `null` — API absent (Firefox/Safari): do nothing here. The seed
-      //    above already ignored the local flag, and only `standalone`
-      //    marks installed, so a deleted iOS app in a normal tab
-      //    automatically falls back to the share-sheet instructions.
-      void isInstalledAsRelatedApp().then((result) => {
-        if (result === true) {
-          markInstalled(true);
-          setDeferredPrompt(null);
-          writeGiraInstalledFlag(true);
-        } else if (result === false && !isRunningStandalone()) {
-          resetInstalledState();
-        }
-      });
+      void probeInstalled();
     };
+
     document.addEventListener("visibilitychange", syncInstalled);
     // Window focus covers the desktop case visibilitychange misses: the tab
     // never hides while the user deletes the app from chrome://apps or the OS
@@ -430,6 +489,33 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
     // survives until the next manual tab switch.
     window.addEventListener("pageshow", syncInstalled);
 
+    // A display-mode flip is the install itself: the standalone window opened
+    // while this tab was already alive. Listening for the change (rather than
+    // re-reading it on the next event) makes that instant.
+    const standaloneQuery =
+      typeof window.matchMedia === "function"
+        ? window.matchMedia("(display-mode: standalone)")
+        : null;
+    const onDisplayModeChange = () => {
+      if (isRunningStandalone()) {
+        markInstalled(true);
+        setDeferredPrompt(null);
+        return;
+      }
+      void probeInstalled();
+    };
+    standaloneQuery?.addEventListener?.("change", onDisplayModeChange);
+
+    // Bounded responsiveness for the platforms that report reliably: while the
+    // page is visible, re-probe on a slow cadence so a deletion that did not
+    // come with a focus/visibility transition is still noticed. Hidden tabs
+    // are skipped — they are throttled anyway, and the events above run the
+    // probe the moment they become visible again.
+    const pollInstalled = () => {
+      if (document.visibilityState === "visible") void probeInstalled();
+    };
+    const poll = window.setInterval(pollInstalled, INSTALL_POLL_MS);
+
     // Run once on mount, after a short delay so it does not compete with
     // hydration for the main thread on a slow device.
     const initialCheck = window.setTimeout(syncInstalled, 400);
@@ -441,6 +527,8 @@ export function PwaInstallProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", syncInstalled);
       window.removeEventListener("focus", syncInstalled);
       window.removeEventListener("pageshow", syncInstalled);
+      standaloneQuery?.removeEventListener?.("change", onDisplayModeChange);
+      window.clearInterval(poll);
       window.clearTimeout(initialCheck);
     };
   }, [markInstalled, resetInstalledState]);

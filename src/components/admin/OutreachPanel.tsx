@@ -270,7 +270,7 @@ export function OutreachPanel() {
         return (
           <input
             type="checkbox"
-            aria-label={`Select ${item.name}`}
+            aria-label={`Select ${item.name || item.email}`}
             checked={selectable && selectedIds.has(item.id)}
             disabled={!selectable || batchSendMutation.isPending}
             title={selectable ? undefined : unselectableReason(item, sendMode)}
@@ -286,7 +286,7 @@ export function OutreachPanel() {
       header: "Name",
       render: (item: OutreachRow) => (
         <div className="font-medium text-slate-900 dark:text-slate-100">
-          {item.name}
+          {item.name || "—"}
         </div>
       ),
     },

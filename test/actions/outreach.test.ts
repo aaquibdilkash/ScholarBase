@@ -3,7 +3,7 @@ import ExcelJS from "exceljs";
 
 import * as emailModule from "@/lib/email";
 import * as rateLimitModule from "@/lib/rate-limit";
-import { MAX_OUTREACH_BATCH_SIZE } from "@/lib/constants";
+import { MAX_OUTREACH_BATCH_SIZE, MAX_OUTREACH_NOTES } from "@/lib/constants";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
 const ADMIN = "u-admin";
@@ -863,9 +863,10 @@ describe("deleteOutreachContact", () => {
 const csvFile = (name: string, contents: string) =>
   new File([contents], name, { type: "text/csv" });
 
-const uploadFormData = (file: File) => {
+const uploadFormData = (file: File, sheet?: string) => {
   const formData = new FormData();
   formData.append("file", file);
+  if (sheet) formData.append("sheet", sheet);
   return formData;
 };
 
@@ -885,6 +886,8 @@ describe("previewOutreachImport", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.fileName).toBe("contacts.csv");
+      expect(result.data.sheets).toEqual([]);
+      expect(result.data.sheetName).toBeNull();
       expect(result.data.rows).toHaveLength(2);
       expect(result.data.rows[0]).toMatchObject({
         name: "Jane",
@@ -909,7 +912,48 @@ describe("previewOutreachImport", () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
+      expect(result.data.sheets).toEqual(["Contacts"]);
+      expect(result.data.sheetName).toBe("Contacts");
       expect(result.data.rows).toHaveLength(1);
+    }
+  });
+
+  it("reads the worksheet chosen by the admin", async () => {
+    const workbook = new ExcelJS.Workbook();
+    const october = workbook.addWorksheet("October");
+    october.addRow(["Name", "Email"]);
+    october.addRow(["Jane", "jane@university.edu"]);
+    const november = workbook.addWorksheet("November");
+    november.addRow(["Name", "Email"]);
+    november.addRow(["Bob", "bob@university.edu"]);
+    const written = (await workbook.xlsx.writeBuffer()) as unknown as Uint8Array;
+
+    const { previewOutreachImport } = await import("@/app/actions/outreach");
+    const result = await previewOutreachImport(
+      uploadFormData(
+        new File([new Uint8Array(written).buffer], "contacts.xlsx"),
+        "November",
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sheets).toEqual(["October", "November"]);
+      expect(result.data.sheetName).toBe("November");
+      expect(result.data.rows[0].email).toBe("bob@university.edu");
+    }
+  });
+
+  it("reports a file without a header row", async () => {
+    const { previewOutreachImport } = await import("@/app/actions/outreach");
+
+    const result = await previewOutreachImport(
+      uploadFormData(csvFile("contacts.csv", "Jane,jane@university.edu")),
+    );
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/no header row/i);
     }
   });
 
@@ -1057,6 +1101,51 @@ describe("importOutreachContacts", () => {
     expect(result).toEqual({
       success: true,
       data: { created: 1, updated: 0, skipped: 1 },
+    });
+  });
+
+  it("skips a malformed row instead of failing the whole batch", async () => {
+    const { importOutreachContacts } = await import("@/app/actions/outreach");
+
+    const result = await importOutreachContacts({
+      rows: [
+        { name: "Jane", email: "jane@university.edu" },
+        { name: "Missing Email" },
+        { name: "Bad Email", email: "not-an-email" },
+        {
+          name: "Long Notes",
+          email: "bob@university.edu",
+          notes: "n".repeat(MAX_OUTREACH_NOTES + 1),
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { created: 1, updated: 0, skipped: 3 },
+    });
+
+    const rows = fakeDb.store.table("outreach");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ email: "jane@university.edu" });
+  });
+
+  it("imports an email-only row with a blank name", async () => {
+    const { importOutreachContacts } = await import("@/app/actions/outreach");
+
+    const result = await importOutreachContacts({
+      rows: [{ name: "", email: "nameless@university.edu" }],
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { created: 1, updated: 0, skipped: 0 },
+    });
+
+    expect(fakeDb.store.table("outreach")[0]).toMatchObject({
+      name: "",
+      email: "nameless@university.edu",
+      status: "PENDING",
     });
   });
 

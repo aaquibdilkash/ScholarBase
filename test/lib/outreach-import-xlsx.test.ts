@@ -81,4 +81,90 @@ describe("parseOutreachWorkbook", () => {
       source: "2026-02-03",
     });
   });
+
+  it("defaults to the first sheet that has a header row", async () => {
+    const buffer = await workbookBuffer([
+      {
+        name: "Instructions",
+        rows: [["How to use this file"], ["Keep the Email column intact"]],
+      },
+      {
+        name: "Contacts",
+        rows: [
+          ["Name", "Email"],
+          ["Jane", "jane@university.edu"],
+        ],
+      },
+    ]);
+
+    const result = await parseOutreachWorkbook(buffer);
+
+    expect(result.error).toBeUndefined();
+    expect(result.sheets).toEqual(["Instructions", "Contacts"]);
+    expect(result.sheetName).toBe("Contacts");
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0].email).toBe("jane@university.edu");
+  });
+
+  it("reads the sheet the admin selects by name", async () => {
+    const buffer = await workbookBuffer([
+      {
+        name: "October",
+        rows: [
+          ["Name", "Email"],
+          ["Jane", "jane@university.edu"],
+        ],
+      },
+      {
+        name: "November",
+        rows: [
+          ["Name", "Email"],
+          ["Bob", "bob@university.edu"],
+        ],
+      },
+    ]);
+
+    const result = await parseOutreachWorkbook(buffer, "November");
+
+    expect(result.error).toBeUndefined();
+    expect(result.sheetName).toBe("November");
+    expect(result.rows[0].email).toBe("bob@university.edu");
+  });
+
+  it("lists the available sheets when the requested one is missing", async () => {
+    const buffer = await workbookBuffer([
+      {
+        name: "Contacts",
+        rows: [
+          ["Name", "Email"],
+          ["Jane", "jane@university.edu"],
+        ],
+      },
+    ]);
+
+    const result = await parseOutreachWorkbook(buffer, "Missing");
+
+    expect(result.rows).toHaveLength(0);
+    expect(result.sheets).toEqual(["Contacts"]);
+    expect(result.error).toMatch(/sheet "missing" not found/i);
+    expect(result.error).toContain("Contacts");
+  });
+
+  it("rejects a headerless sheet", async () => {
+    const buffer = await workbookBuffer([
+      {
+        name: "Contacts",
+        rows: [
+          ["Jane", "jane@university.edu"],
+          ["Bob", "bob@university.edu"],
+        ],
+      },
+    ]);
+
+    const result = await parseOutreachWorkbook(buffer);
+
+    expect(result.rows).toHaveLength(0);
+    expect(result.sheetName).toBe("Contacts");
+    expect(result.error).toMatch(/no header row/i);
+  });
 });
