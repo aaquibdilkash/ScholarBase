@@ -2,8 +2,17 @@
 
 import { z } from "zod";
 import { getCurrentUser, isUserAdmin } from "@/lib/auth";
-import { sendScholarOutreachEmail } from "@/lib/email";
-import { pickScholarOutreachVariant } from "@/lib/emails/scholarInvite";
+import {
+  assignOutreachVariants,
+  DEFAULT_SCHOLAR_OUTREACH_VARIANT,
+  pickScholarOutreachVariant,
+} from "@/lib/emails/scholarInvite";
+import {
+  claimOutreachSendSlot,
+  deliverOutreachEmail,
+  outreachSkipReason,
+  type OutreachSendCandidate,
+} from "@/lib/outreach/sender";
 import { normalizeEmail, validateEmailFormat } from "@/lib/email-normalizer";
 import {
   MAX_OUTREACH_IMPORT_ROWS,
@@ -13,6 +22,7 @@ import {
 } from "@/lib/outreach/import";
 import { parseOutreachWorkbook } from "@/lib/outreach/import-file";
 import {
+  MAX_OUTREACH_BATCH_SIZE,
   MAX_OUTREACH_EMAIL,
   MAX_OUTREACH_INSTITUTION,
   MAX_OUTREACH_NAME,
@@ -20,10 +30,7 @@ import {
   MAX_OUTREACH_ROLE,
   MAX_OUTREACH_SOURCE,
 } from "@/lib/constants";
-import {
-  checkRateLimit,
-  RATE_LIMIT_ERROR,
-} from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import prisma from "@/lib/db";
 
 const createOutreachContactSchema = z.object({
@@ -660,26 +667,7 @@ export async function sendOutreachEmail(
 
   const { contactId, resend } = parsed.data;
 
-  const rateLimit = await checkRateLimit({
-    namespace: "admin:outreach:send",
-    key: currentUser.id,
-    limit: 30,
-    window: "1 h",
-    onDegraded: "closed",
-  });
-
-  if (rateLimit.degraded) {
-    return {
-      success: false,
-      error: "Request protection is temporarily unavailable. Please try again later.",
-    };
-  }
-
-  if (!rateLimit.allowed) {
-    return { success: false, error: RATE_LIMIT_ERROR };
-  }
-
-  // Load the contact and its created-by admin in one query.
+  // Load the contact; no join needed, the sender is always the team.
   const contact = await prisma.outreach.findUnique({
     where: { id: contactId },
     select: {
@@ -688,7 +676,7 @@ export async function sendOutreachEmail(
       email: true,
       status: true,
       sendCount: true,
-      createdById: true,
+      userId: true,
     },
   });
 
@@ -696,89 +684,257 @@ export async function sendOutreachEmail(
     return { success: false, error: "Outreach contact not found." };
   }
 
-  // Idempotency: a plain Send must not re-email an already-outreached contact;
-  // Resend opts in explicitly.
-  if (contact.status === "OUTREACHED" && !resend) {
-    return {
-      success: false,
-      error: "This contact has already been emailed.",
-    };
-  }
+  // Respect the global unsubscribe list, and never cold-email an address that
+  // already has a ScholarBase account.
+  const [unsubscribed, existingMember] = await Promise.all([
+    prisma.outreachEmailUnsubscribe.findUnique({
+      where: { email: contact.email },
+      select: { id: true },
+    }),
+    prisma.user.findFirst({
+      where: { email: contact.email, isDeleted: false },
+      select: { id: true },
+    }),
+  ]);
 
-  if (contact.status === "UNSUBSCRIBED") {
-    return {
-      success: false,
-      error: "This email has opted out of outreach emails.",
-    };
-  }
-
-  // Respect the global unsubscribe list.
-  const unsubscribed = await prisma.outreachEmailUnsubscribe.findUnique({
-    where: { email: contact.email },
-    select: { id: true },
+  const skipReason = outreachSkipReason(contact, {
+    resend,
+    optedOut: unsubscribed !== null,
+    member: contact.userId !== null || existingMember !== null,
   });
 
-  if (unsubscribed) {
-    await prisma.outreach.update({
-      where: { id: contactId },
-      data: { status: "UNSUBSCRIBED" },
-    });
-    return {
-      success: false,
-      error: "This email has opted out of outreach emails.",
-    };
+  if (skipReason) {
+    if (unsubscribed) {
+      await prisma.outreach.update({
+        where: { id: contactId },
+        data: { status: "UNSUBSCRIBED" },
+      });
+    }
+
+    return { success: false, error: skipReason };
   }
+
+  // Only a contact that passed every eligibility rule spends a rate-limit slot.
+  const slot = await claimOutreachSendSlot(currentUser.id);
+  if (!slot.allowed) {
+    return { success: false, error: slot.error };
+  }
+
 
   // Rotate the shared template library: the email picks a stable variant and
   // advances to the next one on every resend.
   const variant = pickScholarOutreachVariant(contact.email, contact.sendCount);
 
-  const result = await sendScholarOutreachEmail({
-    recipientEmail: contact.email,
-    scholarName: contact.name,
-    subject: variant.subject,
-    // `greeting` is prepended to the recipient name by the template, and the
-    // signature is rendered separately — never repeat either in the body.
-    greeting: variant.greeting,
-    headline: variant.headline,
-    body: variant.body,
-    ctaLabel: variant.ctaLabel,
-    inviteUrl: `${(process.env.NEXT_PUBLIC_SITE_URL || "https://scholarbase.app").replace(/\/+$/, "")}`,
-    // Outreach goes out as the team, never as the signed-in admin.
-    senderName: "Outreach Team",
-    senderRole: "ScholarBase",
-    footerText: variant.footerText,
-  });
+  return deliverOutreachEmail(contact, variant);
+}
 
-  if (!result.success) {
-    return { success: false, error: result.error || "Failed to send email." };
+const sendOutreachBatchSchema = z.object({
+  contactIds: z
+    .array(z.string().min(1))
+    .min(1)
+    .max(MAX_OUTREACH_BATCH_SIZE),
+  /** Allow re-sending to already-contacted recipients. */
+  resend: z.boolean().optional().default(false),
+});
+
+export type SendOutreachBatchPayload = z.input<typeof sendOutreachBatchSchema>;
+
+export type OutreachBatchResultItem = {
+  id: string;
+  name: string;
+  email: string;
+  status: "sent" | "skipped" | "failed";
+  error?: string;
+};
+
+type SendOutreachBatchResult =
+  | {
+      success: true;
+      data: {
+        sent: number;
+        skipped: number;
+        failed: number;
+        results: OutreachBatchResultItem[];
+      };
+    }
+  | { success: false; error: string };
+
+/**
+ * Send the outreach email to several contacts in one action.
+ *
+ * Each recipient gets a different template: the variant library is shuffled
+ * once per batch, because a per-recipient pick would still produce duplicates.
+ * Skips are reported per contact, and only delivered emails are recorded, so a
+ * partial failure leaves the rest PENDING.
+ */
+export async function sendOutreachBatch(
+  payload: SendOutreachBatchPayload,
+): Promise<SendOutreachBatchResult> {
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser || !(await isUserAdmin(currentUser.id))) {
+    return { success: false, error: "You are not authorized to send outreach emails." };
   }
 
-  // Mark the contact as outreached.
-  const now = new Date();
-  const updated = await prisma.outreach.update({
-    where: { id: contactId },
-    data: {
-      status: "OUTREACHED",
-      outreachedAt: now,
-      emailSentAt: now,
-      sendCount: { increment: 1 },
-    },
+  const parsed = sendOutreachBatchSchema.safeParse(payload);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: `Select between 1 and ${MAX_OUTREACH_BATCH_SIZE} contacts.`,
+    };
+  }
+
+  const { resend } = parsed.data;
+  const contactIds = [...new Set(parsed.data.contactIds)];
+
+  if (contactIds.length === 0) {
+    return { success: false, error: "Select at least one contact." };
+  }
+
+  const contacts = await prisma.outreach.findMany({
+    where: { id: { in: contactIds } },
     select: {
       id: true,
+      name: true,
+      email: true,
       status: true,
-      emailSentAt: true,
+      sendCount: true,
+      userId: true,
     },
   });
 
-  return {
-    success: true,
-    data: {
-      id: updated.id,
-      status: updated.status,
-      emailSentAt: updated.emailSentAt,
+  const contactsById = new Map(
+    contacts.map((contact) => [contact.id, contact]),
+  );
+  const ordered = contactIds.flatMap((id) => {
+    const contact = contactsById.get(id);
+    return contact ? [contact] : [];
+  });
+
+  if (ordered.length === 0) {
+    return { success: false, error: "Contact not found." };
+  }
+
+  const unsubscribed = await prisma.outreachEmailUnsubscribe.findMany({
+    where: { email: { in: ordered.map((contact) => contact.email) } },
+    select: { email: true },
+  });
+  const optedOutEmails = new Set(unsubscribed.map((entry) => entry.email));
+
+  // A contact who already has an account should get product email, never cold
+  // outreach. One indexed lookup for the whole batch.
+  const members = await prisma.user.findMany({
+    where: {
+      email: { in: ordered.map((contact) => contact.email) },
+      isDeleted: false,
     },
-  };
+    select: { email: true },
+  });
+  const memberEmails = new Set(members.map((entry) => entry.email));
+
+  const results: OutreachBatchResultItem[] = [];
+  const pending: OutreachSendCandidate[] = [];
+  const optedOutIds: string[] = [];
+
+  for (const contact of ordered) {
+    const optedOut = optedOutEmails.has(contact.email);
+    // A batch send is PENDING-only; anything already contacted needs the
+    // explicit resend mode. The single-row action keeps its own history-aware
+    // rule, while the UI only ever offers Send on pending rows.
+    const skipReason =
+      !resend && contact.status !== "PENDING"
+        ? "Only pending contacts can be sent. Use resend for already-contacted recipients."
+        : outreachSkipReason(contact, {
+            resend,
+            optedOut,
+            member: contact.userId !== null || memberEmails.has(contact.email),
+          });
+
+    if (skipReason) {
+      results.push({
+        id: contact.id,
+        name: contact.name,
+        email: contact.email,
+        status: "skipped",
+        error: skipReason,
+      });
+      if (optedOut) optedOutIds.push(contact.id);
+      continue;
+    }
+
+    pending.push(contact);
+  }
+
+  // Mirror the single send: an address on the unsubscribe list is marked
+  // unsubscribed in the contact list too.
+  if (optedOutIds.length > 0) {
+    await prisma.outreach.updateMany({
+      where: { id: { in: optedOutIds } },
+      data: { status: "UNSUBSCRIBED" },
+    });
+  }
+
+  // One shuffled pool per batch, so no two recipients get the same copy.
+  const variants = assignOutreachVariants(pending.length);
+
+  let blockedError: string | null = null;
+
+  for (let index = 0; index < pending.length; index += 1) {
+    const contact = pending[index]!;
+
+    // Once the limiter blocks (or Redis is down), the rest of the batch cannot
+    // send either; report them without touching the provider.
+    if (blockedError === null) {
+      const slot = await claimOutreachSendSlot(currentUser.id);
+      if (!slot.allowed) blockedError = slot.error;
+    }
+
+    if (blockedError !== null) {
+      results.push({
+        id: contact.id,
+        name: contact.name,
+        email: contact.email,
+        status: "failed",
+        error: blockedError,
+      });
+      continue;
+    }
+
+    const delivery = await deliverOutreachEmail(
+      contact,
+      variants[index] ?? DEFAULT_SCHOLAR_OUTREACH_VARIANT,
+    );
+
+    results.push(
+      delivery.success
+        ? {
+            id: contact.id,
+            name: contact.name,
+            email: contact.email,
+            status: "sent",
+          }
+        : {
+            id: contact.id,
+            name: contact.name,
+            email: contact.email,
+            status: "failed",
+            error: delivery.error,
+          },
+    );
+  }
+
+  const sent = results.filter((result) => result.status === "sent").length;
+  const failed = results.filter((result) => result.status === "failed").length;
+  const skipped = results.filter((result) => result.status === "skipped").length;
+
+  if (sent === 0 && failed > 0) {
+    return {
+      success: false,
+      error: blockedError ?? "Could not send any emails. Please try again.",
+    };
+  }
+
+  return { success: true, data: { sent, skipped, failed, results } };
 }
 
 const markOutreachStatusSchema = z.object({

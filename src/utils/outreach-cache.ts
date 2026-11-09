@@ -142,6 +142,32 @@ export function patchOutreachContactInList(
   };
 }
 
+/** Apply a patch (or per-row patch) to several cached contacts (bulk send). */
+export function patchOutreachContactsInList(
+  data: OutreachListData | undefined,
+  ids: Iterable<string>,
+  patch:
+    | Partial<OutreachContactItem>
+    | ((item: OutreachContactItem) => Partial<OutreachContactItem>),
+): OutreachListData | undefined {
+  if (!data) return data;
+
+  const targets = new Set(ids);
+  if (targets.size === 0) return data;
+
+  return {
+    ...data,
+    items: data.items.map((item) =>
+      targets.has(item.id)
+        ? {
+            ...item,
+            ...(typeof patch === "function" ? patch(item) : patch),
+          }
+        : item,
+    ),
+  };
+}
+
 /** Drop a row that failed to persist (also used for the delete rollback). */
 export function removeOutreachContactFromList(
   data: OutreachListData | undefined,

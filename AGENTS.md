@@ -98,7 +98,7 @@ CI order is `lint -> typecheck -> test:coverage`, then a production build on pul
 
 ## Background jobs and deployment
 
-- Cron routes in `src/app/api/cron/{daily-digest,weekly-digest,trim-maintenance,trim-soft-deleted-posts,embed-content}` must call `verifyCronSecret()` (Bearer `CRON_SECRET`). `update-trending` is a Postgres function documented in `src/app/api/cron/update-trending/update-trending.md`, not an app route.
+- Cron routes in `src/app/api/cron/{daily-digest,weekly-digest,trim-maintenance,trim-soft-deleted-posts,embed-content,send-outreach}` must call `verifyCronSecret()` (Bearer `CRON_SECRET`). `update-trending` is a Postgres function documented in `src/app/api/cron/update-trending/update-trending.md`, not an app route.
 - QStash jobs in `src/app/api/jobs/*` are wrapped with `verifySignatureAppRouter`; do not bypass signature verification.
 - CI on pushes to `staging`/`production` builds an ARM64 image, pushes it to GHCR, and triggers Coolify; `main`/`development` do not auto-deploy. The Docker `migrate` stage runs `prisma migrate deploy`.
 

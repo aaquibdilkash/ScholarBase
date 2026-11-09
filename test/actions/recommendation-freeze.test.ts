@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
 import { createRecommendation } from "@/app/actions/recommendations";
+import { notifyFollowersOfActivity } from "@/lib/notifications";
 
 vi.mock("@/lib/db", async () => {
   const { fakeDb } = await import("../fake-prisma/instance");
@@ -34,6 +35,10 @@ vi.mock("@/lib/tri-split/modules/profile-tab", () => ({
   revalidateProfileContent: vi.fn(),
 }));
 
+vi.mock("@/lib/notifications", () => ({
+  notifyFollowersOfActivity: vi.fn(async () => {}),
+}));
+
 function validForm(): FormData {
   const formData = new FormData();
   formData.set("feedback", "A thoughtful recommendation.");
@@ -46,6 +51,7 @@ function validForm(): FormData {
 
 beforeEach(() => {
   resetFakeDb();
+  vi.clearAllMocks();
 });
 
 describe("createRecommendation freeze gating", () => {
@@ -75,5 +81,53 @@ describe("createRecommendation freeze gating", () => {
     expect(result.success).toBe(false);
     if (result.success) throw new Error("expected the write to be rejected");
     expect(result.error).toMatch(/not found/i);
+  });
+});
+
+describe("createRecommendation follower notifications", () => {
+  beforeEach(() => {
+    fakeDb.seed("user", {
+      id: AUTHOR,
+      email: "ada@example.org",
+      recommendationCount: 0,
+    });
+    fakeDb.seed("supervisor", {
+      id: SUPERVISOR,
+      name: "Prof Ada",
+      isFrozen: false,
+      isDeleted: false,
+      recommendationCount: 0,
+      ratingSum: 0,
+    });
+  });
+
+  it("a public recommendation notifies followers", async () => {
+    const result = await createRecommendation(validForm(), SUPERVISOR);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected the write to succeed");
+    expect(fakeDb.rows("recommendation")).toHaveLength(1);
+    const recommendationId = String(fakeDb.rows("recommendation")[0]?.id);
+    expect(notifyFollowersOfActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: AUTHOR,
+        type: "content-published",
+        targetType: "Recommendation",
+        targetId: `${SUPERVISOR}/${recommendationId}`,
+        title: expect.stringContaining("added a new supervisor recommendation"),
+        body: "Prof Ada — 5/5",
+      }),
+    );
+  });
+
+  it("an anonymous recommendation does not notify followers", async () => {
+    const formData = validForm();
+    formData.append("isAnonymous", "on");
+
+    const result = await createRecommendation(formData, SUPERVISOR);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error("expected the write to succeed");
+    expect(notifyFollowersOfActivity).not.toHaveBeenCalled();
   });
 });

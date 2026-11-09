@@ -208,6 +208,9 @@ export const MAX_OUTREACH_INSTITUTION = 128;
 export const MAX_OUTREACH_ROLE = 32;
 export const MAX_OUTREACH_SOURCE = 32;
 export const MAX_OUTREACH_NOTES = 64;
+// Most contacts one batch send may email. Matches the admin table page size so
+// "select all" is always a valid batch.
+export const MAX_OUTREACH_BATCH_SIZE = 10;
 
 export const MAX_AUTH_EMAIL = 32;
 export const MAX_AUTH_PASSWORD = 16;

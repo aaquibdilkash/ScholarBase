@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ExcelJS from "exceljs";
 
 import * as emailModule from "@/lib/email";
+import * as rateLimitModule from "@/lib/rate-limit";
+import { MAX_OUTREACH_BATCH_SIZE } from "@/lib/constants";
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
 const ADMIN = "u-admin";
@@ -79,9 +81,33 @@ const seedContact = (overrides: Record<string, unknown> = {}) => {
   });
 };
 
+const seedContacts = (count: number): string[] =>
+  Array.from({ length: count }, (_, index) => {
+    const id = `c-${index + 1}`;
+    fakeDb.store.seed("outreach", {
+      id,
+      name: `Scholar ${index + 1}`,
+      email: `scholar${index + 1}@university.edu`,
+      institution: null,
+      role: null,
+      source: null,
+      notes: null,
+      status: "PENDING",
+      sendCount: 0,
+      outreachedAt: null,
+      emailSentAt: null,
+      createdById: ADMIN,
+      userId: null,
+      createdAt: new Date("2026-01-02"),
+      updatedAt: new Date("2026-01-02"),
+    });
+    return id;
+  });
+
 beforeEach(() => {
   resetFakeDb();
   vi.mocked(emailModule.sendScholarOutreachEmail).mockClear();
+  vi.mocked(rateLimitModule.checkRateLimit).mockClear();
   isAdminResult = true;
   rateLimitAllowed = true;
   rateLimitDegraded = false;
@@ -433,6 +459,29 @@ describe("sendOutreachEmail", () => {
     expect(rows[0].sendCount).toBe(1);
     expect(rows[0].outreachedAt).toBeInstanceOf(Date);
     expect(rows[0].emailSentAt).toBeInstanceOf(Date);
+  });
+
+  it("rejects a contact who already has an account", async () => {
+    seedContact({ email: "member@university.edu" });
+    fakeDb.store.seed("user", {
+      id: "u-member",
+      email: "member@university.edu",
+      name: "Existing Member",
+      isAdmin: false,
+      isDeleted: false,
+      isFrozen: false,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-01"),
+    });
+    const { sendOutreachEmail } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachEmail({ contactId: CONTACT_ID });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/already belongs to a ScholarBase member/i);
+    }
+    expect(emailModule.sendScholarOutreachEmail).not.toHaveBeenCalled();
   });
 
   it("rejects a non-admin", async () => {
@@ -1033,6 +1082,204 @@ describe("importOutreachContacts", () => {
     const result = await importOutreachContacts({
       rows: [{ name: "Jane", email: "jane@university.edu" }],
     });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/not authorized/i);
+    }
+  });
+});
+
+describe("sendOutreachBatch", () => {
+  it("sends to every pending contact with a different template each", async () => {
+    const ids = seedContacts(MAX_OUTREACH_BATCH_SIZE);
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+    const mock = vi.mocked(emailModule.sendScholarOutreachEmail);
+
+    const result = await sendOutreachBatch({ contactIds: ids });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({
+        sent: MAX_OUTREACH_BATCH_SIZE,
+        skipped: 0,
+        failed: 0,
+      });
+    }
+
+    const subjects = mock.mock.calls.map(([payload]) => payload.subject);
+    expect(subjects).toHaveLength(MAX_OUTREACH_BATCH_SIZE);
+    expect(new Set(subjects).size).toBe(MAX_OUTREACH_BATCH_SIZE);
+
+    const rows = fakeDb.store.table("outreach");
+    expect(rows.every((row) => row.status === "OUTREACHED")).toBe(true);
+    expect(rows.every((row) => row.sendCount === 1)).toBe(true);
+  });
+
+  it("claims one rate-limit slot per delivered email", async () => {
+    const ids = seedContacts(3);
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    await sendOutreachBatch({ contactIds: ids });
+
+    expect(rateLimitModule.checkRateLimit).toHaveBeenCalledTimes(3);
+  });
+
+  it("skips contacts that are already emailed or opted out", async () => {
+    seedContact({ status: "OUTREACHED", sendCount: 1 });
+    fakeDb.store.seed("outreach", {
+      id: "c-2",
+      name: "Opted Out",
+      email: "opted-out@university.edu",
+      institution: null,
+      role: null,
+      source: null,
+      notes: null,
+      status: "PENDING",
+      sendCount: 0,
+      outreachedAt: null,
+      emailSentAt: null,
+      createdById: ADMIN,
+      userId: null,
+      createdAt: new Date("2026-01-02"),
+      updatedAt: new Date("2026-01-02"),
+    });
+    fakeDb.store.seed("outreachEmailUnsubscribe", {
+      id: "u-1",
+      email: "opted-out@university.edu",
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-01"),
+    });
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({
+      contactIds: [CONTACT_ID, "c-2"],
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({ sent: 0, skipped: 2, failed: 0 });
+    }
+    expect(emailModule.sendScholarOutreachEmail).not.toHaveBeenCalled();
+
+    const rows = fakeDb.store.table("outreach");
+    expect(rows.find((row) => row.id === "c-2")?.status).toBe("UNSUBSCRIBED");
+    expect(rows.find((row) => row.id === CONTACT_ID)?.status).toBe("OUTREACHED");
+  });
+
+  it("skips contacts who already have an account", async () => {
+    const ids = seedContacts(2);
+    fakeDb.store.seed("user", {
+      id: "u-member",
+      email: "scholar1@university.edu",
+      name: "Existing Member",
+      isAdmin: false,
+      isDeleted: false,
+      isFrozen: false,
+      createdAt: new Date("2026-01-01"),
+      updatedAt: new Date("2026-01-01"),
+    });
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({ contactIds: ids });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({ sent: 1, skipped: 1, failed: 0 });
+      expect(
+        result.data.results.find((item) => item.id === ids[0])?.error,
+      ).toMatch(/already belongs to a ScholarBase member/i);
+    }
+  });
+
+  it("resends to already-contacted recipients when asked", async () => {
+    seedContact({ status: "OUTREACHED", sendCount: 1 });
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({
+      contactIds: [CONTACT_ID],
+      resend: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sent).toBe(1);
+    }
+
+    const rows = fakeDb.store.table("outreach");
+    expect(rows[0]).toMatchObject({ status: "OUTREACHED", sendCount: 2 });
+  });
+
+  it("records only the emails that were delivered", async () => {
+    const ids = seedContacts(2);
+    const mock = vi.mocked(emailModule.sendScholarOutreachEmail);
+    mock.mockImplementationOnce(async () => ({
+      success: false,
+      error: "Provider error",
+    }));
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({ contactIds: ids });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({ sent: 1, failed: 1, skipped: 0 });
+      const failedItem = result.data.results.find(
+        (item) => item.status === "failed",
+      );
+      expect(failedItem?.error).toBe("Provider error");
+    }
+
+    const rows = fakeDb.store.table("outreach");
+    expect(rows.find((row) => row.id === ids[0])?.status).toBe("PENDING");
+    expect(rows.find((row) => row.id === ids[1])?.status).toBe("OUTREACHED");
+  });
+
+  it("stops the batch when the rate limiter blocks", async () => {
+    const ids = seedContacts(2);
+    rateLimitAllowed = false;
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({ contactIds: ids });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBe("Rate limit exceeded");
+    }
+    expect(emailModule.sendScholarOutreachEmail).not.toHaveBeenCalled();
+  });
+
+  it("only sends to pending contacts outside resend mode", async () => {
+    seedContact({ status: "REPLIED", sendCount: 1 });
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({ contactIds: [CONTACT_ID] });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({ sent: 0, skipped: 1, failed: 0 });
+    }
+    expect(emailModule.sendScholarOutreachEmail).not.toHaveBeenCalled();
+  });
+
+  it("rejects more contacts than one batch allows", async () => {
+    const ids = seedContacts(MAX_OUTREACH_BATCH_SIZE + 1);
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({ contactIds: ids });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/between 1 and/i);
+    }
+  });
+
+  it("rejects a non-admin", async () => {
+    isAdminResult = false;
+    seedContact();
+    const { sendOutreachBatch } = await import("@/app/actions/outreach");
+
+    const result = await sendOutreachBatch({ contactIds: [CONTACT_ID] });
 
     expect(result.success).toBe(false);
     if (!result.success) {

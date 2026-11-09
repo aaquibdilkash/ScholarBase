@@ -183,6 +183,50 @@ export function pickScholarOutreachVariant(
   return pickVariant(key, offset);
 }
 
+function shuffleVariants(random: () => number): OutreachVariant[] {
+  const pool = [...SCHOLAR_OUTREACH_VARIANTS];
+
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swap = Math.floor(random() * (index + 1));
+    [pool[index], pool[swap]] = [pool[swap]!, pool[index]!];
+  }
+
+  return pool;
+}
+
+/**
+ * Give a batch of recipients a shuffled, non-repeating set of templates.
+ *
+ * A per-recipient random pick still collides: 10 templates for 10 recipients
+ * produces roughly 3-4 duplicates. Shuffling the pool instead means every
+ * recipient in the batch gets different copy until the library is exhausted,
+ * then the pool is reshuffled (with the round boundary swapped away from a
+ * repeat).
+ */
+export function assignOutreachVariants(
+  count: number,
+  random: () => number = Math.random,
+): OutreachVariant[] {
+  const assignments: OutreachVariant[] = [];
+  let pool: OutreachVariant[] = [];
+
+  for (let index = 0; index < Math.max(0, Math.trunc(count)); index += 1) {
+    if (pool.length === 0) {
+      pool = shuffleVariants(random);
+      const previous = assignments[assignments.length - 1];
+
+      if (previous && pool.length > 1 && pool[0] === previous) {
+        [pool[0], pool[1]] = [pool[1]!, pool[0]!];
+      }
+    }
+
+    const variant = pool.shift();
+    if (variant) assignments.push(variant);
+  }
+
+  return assignments;
+}
+
 function normalizeForTemplateMatch(value: string): string {
   return value
     .trim()

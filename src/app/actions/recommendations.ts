@@ -12,6 +12,7 @@ import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants"
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
+import { notifyFollowersOfActivity } from "@/lib/notifications";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -107,7 +108,7 @@ export async function createRecommendation(
   // rejected here too (not only in the UI).
   const supervisor = await prisma.supervisor.findUnique({
     where: { id: supervisorId, isDeleted: false },
-    select: { isFrozen: true },
+    select: { isFrozen: true, name: true },
   });
   if (!supervisor) {
     return { success: false, error: "Supervisor not found." };
@@ -203,7 +204,7 @@ export async function createRecommendation(
             moduleType: "RECOMMENDATION",
             entityId: `${supervisorId}/${newRecommendation.id}`,
             entityTitle:
-              `${newRecommendation.supervisor.name}|||${feedback.substring(0, 512)}`,
+              `${supervisor.name}|||${feedback.substring(0, 512)}`,
           },
         });
       }
@@ -238,6 +239,19 @@ export async function createRecommendation(
       };
     }
     throw error;
+  }
+
+  // Anonymous recommendations stay out of follower feeds, mirroring the
+  // supervisor/journal contract.
+  if (!isAnonymous) {
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "Recommendation",
+      targetId: `${supervisorId}/${recommendation.id}`,
+      title: `${user.email?.split("@")[0] || "Someone"} added a new supervisor recommendation`,
+      body: `${supervisor.name} — ${rating}/5`,
+    });
   }
 
   return { success: true, data: recommendation };

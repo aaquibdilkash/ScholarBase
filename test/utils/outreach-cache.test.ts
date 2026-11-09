@@ -9,6 +9,7 @@ import {
   OUTREACH_QUERY_KEY,
   outreachQueryKey,
   patchOutreachContactInList,
+  patchOutreachContactsInList,
   removeOutreachContactFromList,
   type OutreachListData,
 } from "@/utils/outreach-cache";
@@ -135,6 +136,35 @@ describe("patchOutreachContactInList", () => {
       status: "OUTREACHED",
       sendCount: 1,
     });
+  });
+});
+
+describe("patchOutreachContactsInList", () => {
+  it("patches every selected row and leaves the rest alone", () => {
+    const next = patchOutreachContactsInList(
+      list([
+        contact({ id: "c-1", sendCount: 1 }),
+        contact({ id: "c-2", sendCount: 2 }),
+        contact({ id: "c-3", sendCount: 3 }),
+      ]),
+      ["c-1", "c-3"],
+      (item) => ({ status: "OUTREACHED", sendCount: item.sendCount + 1 }),
+    );
+
+    expect(next?.items.map((item) => item.sendCount)).toEqual([2, 2, 4]);
+    expect(next?.items.map((item) => item.status)).toEqual([
+      "OUTREACHED",
+      "PENDING",
+      "OUTREACHED",
+    ]);
+  });
+
+  it("returns the same cache when nothing is selected", () => {
+    const data = list([contact()]);
+
+    expect(patchOutreachContactsInList(data, [], { status: "OUTREACHED" })).toBe(
+      data,
+    );
   });
 });
 

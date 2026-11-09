@@ -12,6 +12,7 @@ import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants"
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
+import { notifyFollowersOfActivity } from "@/lib/notifications";
 
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
@@ -238,7 +239,7 @@ export async function createJournalReview(
   // action is reachable directly, so reject it here too.
   const journal = await prisma.journal.findFirst({
     where: { id: journalId, isDeleted: false },
-    select: { id: true },
+    select: { id: true, title: true },
   });
   if (!journal) {
     return {
@@ -320,7 +321,7 @@ export async function createJournalReview(
             action: "PUBLISHED",
             moduleType: "JOURNAL_REVIEW",
             entityId: `${journalId}/${newReview.id}`,
-            entityTitle: `${newReview.journal.title}|||${feedback.substring(0, 512)}`,
+            entityTitle: `${journal.title}|||${feedback.substring(0, 512)}`,
           },
         });
       }
@@ -354,6 +355,19 @@ export async function createJournalReview(
       };
     }
     throw error;
+  }
+
+  // Anonymous reviews stay out of follower feeds, mirroring the
+  // supervisor/journal contract.
+  if (!isAnonymous) {
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "content-published",
+      targetType: "JournalReview",
+      targetId: `${journalId}/${review.id}`,
+      title: `${user.email?.split("@")[0] || "Someone"} reviewed a journal`,
+      body: `${journal.title} — ${rating}/5`,
+    });
   }
 
   return { success: true as const, data: review as JournalReviewWithAuthor };

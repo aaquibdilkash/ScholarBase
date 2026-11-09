@@ -18,6 +18,17 @@ const OUTREACH_REPLY_TO = 'updates@scholarbase.app';
 
 const OUTREACH_LIST_ID = 'scholarbase-updates';
 
+/**
+ * CAN-SPAM requires a physical postal address in every commercial email. This
+ * is the address already published on the Terms and Privacy pages. It lives in
+ * code because it is not a secret and must never be missing from a send.
+ */
+const OUTREACH_POSTAL_ADDRESS = 'ScholarBase, New Delhi, India';
+
+function appendOutreachPostalAddress(footerText: string): string {
+  return `${footerText}\n\nScholarBase\n${OUTREACH_POSTAL_ADDRESS}`;
+}
+
 import type { CommentNotificationProps, ScholarInviteProps } from '@/types/email';
 import {
   generateScholarInviteHtml,
@@ -132,6 +143,7 @@ export async function sendScholarOutreachEmail({
 }) {
   const unsubscribeUrl = getOutreachUnsubscribeUrl(recipientEmail);
   const resend = getResendClient();
+  const footerText = appendOutreachPostalAddress(emailProps.footerText);
 
   try {
     const { data, error } = await resend.emails.send({
@@ -141,8 +153,8 @@ export async function sendScholarOutreachEmail({
       subject: isTestSend
         ? `[TEST] ${emailProps.subject}`
         : emailProps.subject,
-      html: generateScholarInviteHtml({ ...emailProps, unsubscribeUrl }),
-      text: generateScholarInvitePlainText({ ...emailProps, unsubscribeUrl }),
+      html: generateScholarInviteHtml({ ...emailProps, footerText, unsubscribeUrl }),
+      text: generateScholarInvitePlainText({ ...emailProps, footerText, unsubscribeUrl }),
       headers: {
         'List-ID': `${OUTREACH_LIST_ID} <${OUTREACH_LIST_ID}.scholarbase.app>`,
         'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:${OUTREACH_REPLY_TO}?subject=Unsubscribe>`,
