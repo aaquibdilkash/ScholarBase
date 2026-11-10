@@ -1614,7 +1614,9 @@ model Course {
   format          String?
   level           String?
   price           Int?
-  duration        String?
+  currency        String    @default("INR")
+  durationValue   Int?
+  durationUnit    String?
   link            String
   description     String
   authorId        String

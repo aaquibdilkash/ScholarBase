@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useOptimistic, useState, useTransition } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -357,7 +358,7 @@ export function InstitutionDomainAdminPanel({
               <label className="sr-only" htmlFor="institution-request-status">
                 Filter institution requests
               </label>
-              <select
+              <Select
                 id="institution-request-status"
                 value={requestStatus}
                 onChange={(event) => {
@@ -370,14 +371,14 @@ export function InstitutionDomainAdminPanel({
                 <option value="APPROVED">Approved</option>
                 <option value="REJECTED">Rejected</option>
                 <option value="ALL">All</option>
-              </select>
+              </Select>
             </>
           ) : (
             <>
               <label className="sr-only" htmlFor="institution-domain-status">
                 Filter approved institution domains
               </label>
-              <select
+              <Select
                 id="institution-domain-status"
                 value={domainStatus}
                 onChange={(event) => {
@@ -391,7 +392,7 @@ export function InstitutionDomainAdminPanel({
                 <option value="ALL">All</option>
                 <option value="ACTIVE">Active</option>
                 <option value="INACTIVE">Inactive</option>
-              </select>
+              </Select>
             </>
           )}
         </div>

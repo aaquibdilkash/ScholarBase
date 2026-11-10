@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useRouter } from "next/navigation";
 import { createJournal, updateJournal } from "@/app/actions/journals";
@@ -211,7 +212,7 @@ export default function JournalForm({
             WoS Index
             <InfoTooltip message={JOURNAL_WOS_INDEX_TIP} />
           </label>
-          <select
+          <Select
             name="wosIndex"
             value={draftFields.wosIndex}
             onChange={(e) => updateDraftField("wosIndex", e.target.value)}
@@ -222,14 +223,14 @@ export default function JournalForm({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             WoS Quartile
             <InfoTooltip message={JOURNAL_WOS_QUARTILE_TIP} />
           </label>
-          <select
+          <Select
             name="wosQuartile"
             value={draftFields.wosQuartile}
             onChange={(e) => updateDraftField("wosQuartile", e.target.value)}
@@ -240,7 +241,7 @@ export default function JournalForm({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -250,7 +251,7 @@ export default function JournalForm({
             Scopus Quartile
             <InfoTooltip message={JOURNAL_SCOPUS_QUARTILE_TIP} />
           </label>
-          <select
+          <Select
             name="scopusQuartile"
             value={draftFields.scopusQuartile}
             onChange={(e) => updateDraftField("scopusQuartile", e.target.value)}
@@ -261,14 +262,14 @@ export default function JournalForm({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             ABDC Ranking
             <InfoTooltip message={JOURNAL_ABDC_RANKING_TIP} />
           </label>
-          <select
+          <Select
             name="abdcRanking"
             value={draftFields.abdcRanking}
             onChange={(e) => updateDraftField("abdcRanking", e.target.value)}
@@ -279,7 +280,7 @@ export default function JournalForm({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -289,7 +290,7 @@ export default function JournalForm({
             SJR Quartile
             <InfoTooltip message={JOURNAL_SJR_QUARTILE_TIP} />
           </label>
-          <select
+          <Select
             name="sjrQuartile"
             value={draftFields.sjrQuartile}
             onChange={(e) => updateDraftField("sjrQuartile", e.target.value)}
@@ -300,7 +301,7 @@ export default function JournalForm({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
@@ -392,7 +393,7 @@ export default function JournalForm({
             <label className="sb-label">Open Access Status</label>
             <InfoTooltip message={JOURNAL_OPEN_ACCESS_TIP} />
           </div>
-          <select
+          <Select
             name="openAccess"
             value={draftFields.openAccess}
             onChange={(e) => updateDraftField("openAccess", e.target.value)}
@@ -403,14 +404,14 @@ export default function JournalForm({
                 {opt.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <div className="flex items-center gap-1.5 mb-1">
             <label className="sb-label">Frequency</label>
             <InfoTooltip message={JOURNAL_FREQUENCY_TIP} />
           </div>
-          <select
+          <Select
             name="frequency"
             className="sb-select"
             value={
@@ -445,7 +446,7 @@ export default function JournalForm({
                   {draftFields.frequency} (legacy)
                 </option>
               )}
-          </select>
+          </Select>
         </div>
       </div>
 

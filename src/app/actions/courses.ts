@@ -20,6 +20,13 @@ import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
+import {
+  DEFAULT_COURSE_CURRENCY,
+  isCourseCurrency,
+} from "@/lib/course-currency";
+import {
+  isCourseDurationUnit,
+} from "@/lib/course-duration";
 
 export async function createCourse(formData: FormData) {
   const auth = await getActiveUser("Please log in to share a course.");
@@ -33,6 +40,7 @@ export async function createCourse(formData: FormData) {
   const format = readFormValue(formData, "format");
   const level = readFormValue(formData, "level");
   const priceRaw = readFormValue(formData, "price");
+  const currencyRaw = readFormValue(formData, "currency");
   const durationValueRaw = readFormValue(formData, "durationValue");
   const durationUnit = readFormValue(formData, "durationUnit");
   const link = readFormValue(formData, "link");
@@ -43,6 +51,10 @@ export async function createCourse(formData: FormData) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }
   let price: number | null = null;
+  const currency = currencyRaw || DEFAULT_COURSE_CURRENCY;
+  if (!isCourseCurrency(currency)) {
+    return { success: false, message: "Currency must be supported." };
+  }
   if (priceRaw.length > 0) {
     const parsed = Number(priceRaw);
     if (Number.isNaN(parsed) || parsed < 0) {
@@ -51,13 +63,19 @@ export async function createCourse(formData: FormData) {
     price = Math.floor(parsed);
   }
 
-  let duration: string | null = null;
-  if (durationValueRaw.length > 0 && durationUnit.length > 0) {
+  let durationValue: number | null = null;
+  let normalizedDurationUnit: string | null = null;
+  if (durationUnit.length > 0 || (durationValueRaw.length > 0 && durationValueRaw !== "0")) {
     const dv = Number(durationValueRaw);
-    if (Number.isNaN(dv) || dv < 0) {
+    if (
+      Number.isNaN(dv) ||
+      dv < 0 ||
+      !isCourseDurationUnit(durationUnit)
+    ) {
       return { success: false, message: "Duration must be a valid number." };
     }
-    duration = `${Math.floor(dv)} ${durationUnit}`;
+    durationValue = Math.floor(dv);
+    normalizedDurationUnit = durationUnit;
   }
 
   const description = readFormValue(formData, "description");
@@ -72,7 +90,9 @@ export async function createCourse(formData: FormData) {
         format: format || null,
         level: level || null,
         price,
-        duration,
+        currency,
+        durationValue,
+        durationUnit: normalizedDurationUnit,
         link: safeLink ?? "",
         description,
         authorId: user.id,
@@ -124,6 +144,7 @@ export async function updateCourse(formData: FormData, courseId: string) {
   const format = readFormValue(formData, "format");
   const level = readFormValue(formData, "level");
   const priceRaw = readFormValue(formData, "price");
+  const currencyRaw = readFormValue(formData, "currency");
   const durationValueRaw = readFormValue(formData, "durationValue");
   const durationUnit = readFormValue(formData, "durationUnit");
   const link = readFormValue(formData, "link");
@@ -134,6 +155,10 @@ export async function updateCourse(formData: FormData, courseId: string) {
     return { success: false, message: err instanceof Error ? err.message : "Invalid URL." };
   }
   let price: number | null = null;
+  const currency = currencyRaw || DEFAULT_COURSE_CURRENCY;
+  if (!isCourseCurrency(currency)) {
+    return { success: false, message: "Currency must be supported." };
+  }
   if (priceRaw.length > 0) {
     const parsed = Number(priceRaw);
     if (Number.isNaN(parsed) || parsed < 0) {
@@ -142,13 +167,19 @@ export async function updateCourse(formData: FormData, courseId: string) {
     price = Math.floor(parsed);
   }
 
-  let duration: string | null = null;
-  if (durationValueRaw.length > 0 && durationUnit.length > 0) {
+  let durationValue: number | null = null;
+  let normalizedDurationUnit: string | null = null;
+  if (durationUnit.length > 0 || (durationValueRaw.length > 0 && durationValueRaw !== "0")) {
     const dv = Number(durationValueRaw);
-    if (Number.isNaN(dv) || dv < 0) {
+    if (
+      Number.isNaN(dv) ||
+      dv < 0 ||
+      !isCourseDurationUnit(durationUnit)
+    ) {
       return { success: false, message: "Duration must be a valid number." };
     }
-    duration = `${Math.floor(dv)} ${durationUnit}`;
+    durationValue = Math.floor(dv);
+    normalizedDurationUnit = durationUnit;
   }
 
   const description = readFormValue(formData, "description");
@@ -175,7 +206,9 @@ export async function updateCourse(formData: FormData, courseId: string) {
       format: format || null,
       level: level || null,
       price,
-      duration,
+      currency,
+      durationValue,
+      durationUnit: normalizedDurationUnit,
       link: safeLink ?? "",
       description,
       editedAt: new Date(),
@@ -272,7 +305,9 @@ export const getCourseById = cache(
         format: true,
         level: true,
         price: true,
-        duration: true,
+        currency: true,
+        durationValue: true,
+        durationUnit: true,
         link: true,
         description: true,
         createdAt: true,

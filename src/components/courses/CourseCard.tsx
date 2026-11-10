@@ -14,6 +14,8 @@ import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import type { CourseWithAuthor } from "@/types/cards";
+import { formatCoursePrice } from "@/lib/course-currency";
+import { formatCourseDuration } from "@/lib/course-duration";
 
 export function CourseCard({
   course,
@@ -28,12 +30,7 @@ export function CourseCard({
   const isFollowing = (course.author?.followers?.length ?? 0) > 0;
   const userVote =
     (course.votes || [])[0]?.voteType ?? null;
-  const priceLabel =
-    course.price === 0
-      ? "Free"
-      : course.price != null
-      ? String(course.price)
-      : null;
+  const priceLabel = formatCoursePrice(course.price, course.currency);
 
   const details = [
     ["Provider", course.provider],
@@ -41,7 +38,7 @@ export function CourseCard({
     ["Format", course.format],
     ["Level", course.level],
     ["Price", priceLabel],
-    ["Duration", course.duration],
+    ["Duration", formatCourseDuration(course.durationValue, course.durationUnit)],
   ].filter(([, value]) => Boolean(value)) as [string, string][];
   // Share payload: title + the same detail line the card renders.
   const shareTitle = course.title;

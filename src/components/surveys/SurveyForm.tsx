@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -812,7 +813,7 @@ export default function SurveyForm({
             </button>
           </div>
           <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-            <select
+            <Select
               value={selectedDemographic}
               onChange={(e) => setSelectedDemographic(e.target.value)}
               className="sb-select min-w-0 w-full text-sm sm:max-w-56 !pr-10"
@@ -824,8 +825,8 @@ export default function SurveyForm({
                   {b.label} ({b.description})
                 </option>
               ))}
-            </select>
-            <select
+            </Select>
+            <Select
               value={demographicTargetBlock}
               onChange={(e) => setDemographicTargetBlock(e.target.value)}
               className="sb-select min-w-0 w-full text-sm sm:max-w-56 !pr-10"
@@ -837,7 +838,7 @@ export default function SurveyForm({
                   Into: {block.title}
                 </option>
               ))}
-            </select>
+            </Select>
             <button
               type="button"
               onClick={() => {

@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useRouter } from "next/navigation";
 import { createResult, updateResult } from "@/app/actions/results";
@@ -157,7 +158,7 @@ export default function ResultForm({
             Result Type
             <InfoTooltip message={RESULT_TYPE_TIP} />
           </label>
-          <select
+          <Select
             name="type"
             className="sb-select"
             required
@@ -169,7 +170,7 @@ export default function ResultForm({
                 {t.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">

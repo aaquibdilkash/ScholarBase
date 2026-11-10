@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import {
   createJournalReview,
@@ -150,7 +151,7 @@ export default function JournalReviewForm({
           Overall Rating
           <InfoTooltip message={JOURNAL_REVIEW_RATING_TIP} />
         </label>
-        <select
+        <Select
           name="rating"
           value={draftFields.rating}
           onChange={(e) => updateDraftField("rating", e.target.value)}
@@ -162,7 +163,7 @@ export default function JournalReviewForm({
           <option value="3">3 - Average</option>
           <option value="2">2 - Below Average</option>
           <option value="1">1 - Poor</option>
-        </select>
+        </Select>
       </div>
 
       <div>
@@ -170,7 +171,7 @@ export default function JournalReviewForm({
           Outcome
           <InfoTooltip message={JOURNAL_REVIEW_OUTCOME_TIP} />
         </label>
-        <select
+        <Select
           name="outcome"
           value={draftFields.outcome}
           onChange={(e) => updateDraftField("outcome", e.target.value)}
@@ -182,7 +183,7 @@ export default function JournalReviewForm({
               {o.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
       {/* __JR_FORM_PART_1__ */}
 
@@ -213,7 +214,7 @@ export default function JournalReviewForm({
             Editorial Quality (1-5)
             <InfoTooltip message={JOURNAL_REVIEW_EDITORIAL_TIP} />
           </label>
-          <select
+          <Select
             name="editorialQualityScore"
             value={draftFields.editorialQualityScore}
             onChange={(e) =>
@@ -227,7 +228,7 @@ export default function JournalReviewForm({
             <option value="3">3 - Average</option>
             <option value="2">2 - Below Average</option>
             <option value="1">1 - Poor</option>
-          </select>
+          </Select>
         </div>
 
         <div className="md:col-span-2">
@@ -235,7 +236,7 @@ export default function JournalReviewForm({
             Peer Review Rigor (1-5)
             <InfoTooltip message={JOURNAL_REVIEW_PEER_REVIEW_TIP} />
           </label>
-          <select
+          <Select
             name="peerReviewRigorScore"
             value={draftFields.peerReviewRigorScore}
             onChange={(e) =>
@@ -249,7 +250,7 @@ export default function JournalReviewForm({
             <option value="3">3 - Average</option>
             <option value="2">2 - Superficial</option>
             <option value="1">1 - Minimal</option>
-          </select>
+          </Select>
         </div>
       </div>
 

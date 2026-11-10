@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { createHelpPost, updateHelpPost } from "@/app/actions/help";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -143,7 +144,7 @@ export default function HelpPostForm({
              Category
              <InfoTooltip message={HELP_CATEGORY_TIP} />
            </label>
-          <select
+          <Select
             name="category"
             className="sb-select"
             required
@@ -155,7 +156,7 @@ export default function HelpPostForm({
             <option value="feature">Feature Request</option>
             <option value="improvement">Site Improvement</option>
             <option value="other">Other</option>
-          </select>
+          </Select>
         </div>
 
          <div>

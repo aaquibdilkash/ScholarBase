@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -219,12 +220,7 @@ export default function ContributionForm({
               Payment Method
               <InfoTooltip message={CONTRIBUTION_PAYMENT_METHOD_TIP} />
             </label>
-            <input
-              type="hidden"
-              name="paymentMethod"
-              value={draftFields.paymentMethod}
-            />
-            <select
+            <Select
               name="paymentMethod"
               className="sb-select"
               required
@@ -238,7 +234,7 @@ export default function ContributionForm({
                   {pm.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

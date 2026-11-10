@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -368,7 +369,7 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
                       >
                         Sheet
                       </label>
-                      <select
+                      <Select
                         id="outreach-import-sheet"
                         value={sheetName ?? sheets[0]}
                         onChange={(event) => void handleSheetChange(event)}
@@ -380,7 +381,7 @@ export function OutreachImport({ onCreated }: { onCreated?: () => void }) {
                             {name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   ) : sheetName ? (
                     <p className="text-xs text-slate-500 dark:text-slate-400">

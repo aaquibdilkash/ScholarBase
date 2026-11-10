@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import {
   createRecommendation,
@@ -138,7 +139,7 @@ export default function RecommendationForm({
           Mentorship Rating
           <InfoTooltip message={RECOMMENDATION_RATING_TIP} />
         </label>
-        <select
+        <Select
           name="rating"
           value={draftFields.rating}
           onChange={(e) => updateDraftField("rating", e.target.value)}
@@ -150,7 +151,7 @@ export default function RecommendationForm({
           <option value="3">3 - Average</option>
           <option value="2">2 - Below Average</option>
           <option value="1">1 - Poor (Not Recommended)</option>
-        </select>
+        </Select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -179,7 +180,7 @@ export default function RecommendationForm({
             Responsiveness (1-5)
             <InfoTooltip message={RECOMMENDATION_RESPONSIVENESS_TIP} />
           </label>
-          <select
+          <Select
             name="responsivenessScore"
             value={draftFields.responsivenessScore}
             onChange={(e) =>
@@ -193,7 +194,7 @@ export default function RecommendationForm({
             <option value="3">3 - Average</option>
             <option value="2">2 - Slow</option>
             <option value="1">1 - Very slow</option>
-          </select>
+          </Select>
         </div>
 
         <div className="md:col-span-2">
@@ -201,7 +202,7 @@ export default function RecommendationForm({
             Guidance Quality (1-5)
             <InfoTooltip message={RECOMMENDATION_GUIDANCE_TIP} />
           </label>
-          <select
+          <Select
             name="guidanceScore"
             value={draftFields.guidanceScore}
             onChange={(e) => updateDraftField("guidanceScore", e.target.value)}
@@ -213,7 +214,7 @@ export default function RecommendationForm({
             <option value="3">3 - Adequate</option>
             <option value="2">2 - Limited guidance</option>
             <option value="1">1 - Poor guidance</option>
-          </select>
+          </Select>
         </div>
       </div>
 

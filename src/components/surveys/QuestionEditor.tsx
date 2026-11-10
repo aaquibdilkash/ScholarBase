@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useEffect, useState } from "react";
 import { X, ChevronDown, ChevronUp, Trash2, GripVertical } from "lucide-react";
@@ -178,7 +179,7 @@ export function QuestionEditor({
         </div>
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
           {blocks.length > 0 && (
-            <select
+            <Select
               value={question.blockId ?? ""}
               onChange={(e) => onMoveToSection(e.target.value || null)}
               className="sb-select min-w-0 w-full text-xs sm:max-w-40 !pr-10"
@@ -190,7 +191,7 @@ export function QuestionEditor({
                                   {b.title}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
           <div className="flex w-full justify-end gap-3 sm:w-auto">
             <button
@@ -262,7 +263,7 @@ export function QuestionEditor({
               Question Type
               <InfoTooltip message={SURVEY_QUESTION_TYPE_TIP} />
             </label>
-            <select
+            <Select
               value={question.type}
               onChange={(e) => {
                 const newType = e.target.value;
@@ -339,7 +340,7 @@ export function QuestionEditor({
                   {t.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex min-h-10 items-start sm:items-end">
@@ -608,7 +609,7 @@ export function QuestionEditor({
               {(question.skipLogic ?? []).map((rule, ri) => (
                 <div key={ri} className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                   <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">If</span>
-                  <select
+                  <Select
                     value={rule.operator}
                     onChange={(e) => {
                       const next = [...(question.skipLogic ?? [])];
@@ -625,8 +626,8 @@ export function QuestionEditor({
                     {question.type === "CHECKBOXES" && (
                       <option value="includes">includes</option>
                     )}
-                  </select>
-                  <select
+                  </Select>
+                  <Select
                     value={rule.value}
                     onChange={(e) => {
                       const next = [...(question.skipLogic ?? [])];
@@ -641,9 +642,9 @@ export function QuestionEditor({
                         {opt.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">skip to</span>
-                  <select
+                  <Select
                     value={String(rule.skipToOrder)}
                     onChange={(e) => {
                       const next = [...(question.skipLogic ?? [])];
@@ -662,7 +663,7 @@ export function QuestionEditor({
                         {q.title.length > 40 ? "…" : ""}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   <button
                     type="button"
                     onClick={() =>

@@ -366,6 +366,32 @@ html[data-theme="dark"] {
   .sb-select:hover { border-color: var(--border-strong); }
   .sb-select option { background-color: var(--input-bg); color: #0f172a; }
 
+  .sb-select-trigger {
+    @apply flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:px-4 sm:py-3;
+    min-height: 45px;
+    background: var(--surface-grad);
+    border-color: var(--card-border);
+  }
+
+  .sb-select-trigger:hover { border-color: var(--border-strong); }
+  .sb-select-trigger:disabled { cursor: not-allowed; opacity: 0.6; }
+  .sb-select-chevron { color: var(--muted); line-height: 1; }
+  .sb-select-menu {
+    @apply absolute right-0 mt-1 max-h-48 w-full min-w-full overflow-y-auto rounded-xl border p-1 shadow-xl;
+    z-index: var(--z-index-menu);
+    background: var(--surface-strong);
+    border-color: var(--border-strong);
+  }
+  .sb-select-option {
+    @apply block w-full rounded-lg px-2 py-2 text-left text-sm transition;
+    color: var(--foreground);
+  }
+  .sb-select-option:hover,
+  .sb-select-option[aria-selected="true"] {
+    background: color-mix(in srgb, var(--border-strong) 55%, transparent);
+  }
+  .sb-select-option:disabled { cursor: not-allowed; opacity: 0.5; }
+
   /* Light theme: give every text-entry control the same cream→slate gradient
      that dark mode gets from its own broad input/textarea/select rule below.
      Selects only get background-color here so the chevron background-image on
@@ -610,6 +636,17 @@ html[data-theme="dark"] {
 
   html.dark .sb-select:hover, html[data-theme="dark"] .sb-select:hover { border-color: rgba(148, 163, 184, 0.42); }
   html.dark .sb-select option, html[data-theme="dark"] .sb-select option { background: #0f172a; color: #e2e8f0; }
+  html.dark .sb-select-trigger,
+  html[data-theme="dark"] .sb-select-trigger {
+    border-color: rgba(148, 163, 184, 0.24);
+    background: var(--surface-grad);
+    color: #e2e8f0;
+  }
+  html.dark .sb-select-menu,
+  html[data-theme="dark"] .sb-select-menu {
+    border-color: rgba(148, 163, 184, 0.24);
+    background: rgba(15, 23, 42, 0.98);
+  }
 
   /* Keep all text-entry controls on the same dark surface as dropdowns. */
   html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="color"]),

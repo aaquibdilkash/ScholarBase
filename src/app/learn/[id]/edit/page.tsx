@@ -10,6 +10,7 @@ import { requireCurrentUser } from "@/lib/auth";
 import CourseForm from "@/components/courses/CourseForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { EDIT_PAGE_TEXT } from "@/constants/seo";
+import { DEFAULT_COURSE_CURRENCY } from "@/lib/course-currency";
 
 export default async function EditCoursePage({
   params,
@@ -31,7 +32,9 @@ export default async function EditCoursePage({
       format: true,
       level: true,
       price: true,
-      duration: true,
+      currency: true,
+      durationValue: true,
+      durationUnit: true,
       link: true,
       description: true,
       authorId: true,
@@ -41,12 +44,6 @@ export default async function EditCoursePage({
   if (!course) notFound();
   if (course.authorId !== user.id)
     throw new Error("You are not authorized to edit this course.");
-
-  const durationParts = (course.duration ?? "").split(" ");
-  const durationValue =
-    durationParts.length >= 2 ? Number(durationParts[0]) || 0 : 0;
-  const durationUnit =
-    durationParts.length >= 2 ? durationParts.slice(1).join(" ") : "";
 
   return (
     <CreateOrEditPageShell
@@ -65,8 +62,9 @@ export default async function EditCoursePage({
           format: course.format ?? "",
           level: course.level ?? "",
           price: typeof course.price === "number" ? course.price : 0,
-          durationValue: Number.isFinite(durationValue) ? durationValue : 0,
-          durationUnit,
+          currency: course.currency ?? DEFAULT_COURSE_CURRENCY,
+          durationValue: course.durationValue ?? 0,
+          durationUnit: course.durationUnit ?? "",
           link: course.link,
           description: course.description,
         }}

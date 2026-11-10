@@ -1,4 +1,5 @@
 import { Flag } from "lucide-react";
+import { Select } from "@/components/ui/Select";
 import type { ContentView } from "@/lib/adminConfig";
 
 export type AdminStatusFilter =
@@ -90,7 +91,7 @@ export function AdminToolbar({
             <label className="sr-only" htmlFor="admin-status-filter">
               Filter by admin status
             </label>
-            <select
+            <Select
               id="admin-status-filter"
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(cast(e.target.value))}
@@ -100,11 +101,11 @@ export function AdminToolbar({
               <option value="active">Admin: Pending</option>
               <option value="frozen">Admin: Actioned</option>
               <option value="deleted">Admin: Dismissed</option>
-            </select>
+            </Select>
             <label className="sr-only" htmlFor="entity-status-filter">
               Filter by entity status
             </label>
-            <select
+            <Select
               id="entity-status-filter"
               value={entityStatusFilter}
               onChange={(e) => onEntityStatusFilterChange(cast(e.target.value))}
@@ -114,7 +115,7 @@ export function AdminToolbar({
               <option value="active">Entity: Active</option>
               <option value="frozen">Entity: Frozen</option>
               <option value="deleted">Entity: Deleted</option>
-            </select>
+            </Select>
           </>
         )}
 
@@ -123,7 +124,7 @@ export function AdminToolbar({
             <label className="sr-only" htmlFor="status-filter">
               Filter by status
             </label>
-            <select
+            <Select
               id="status-filter"
               value={statusFilter}
               onChange={(e) => onStatusFilterChange(cast(e.target.value))}
@@ -133,7 +134,7 @@ export function AdminToolbar({
               <option value="active">Status: Active</option>
               <option value="frozen">Status: Frozen</option>
               <option value="deleted">Status: Deleted</option>
-            </select>
+            </Select>
           </>
         )}
 

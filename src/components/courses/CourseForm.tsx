@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,6 +22,11 @@ import { getRichTextLength } from "@/lib/html";
 import type { CourseWithAuthor } from "@/types/cards";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
+  COURSE_CURRENCIES,
+  DEFAULT_COURSE_CURRENCY,
+} from "@/lib/course-currency";
+import { COURSE_DURATION_UNITS } from "@/lib/course-duration";
+import {
   COURSE_TITLE_TIP,
   COURSE_PROVIDER_TIP,
   COURSE_INSTRUCTOR_TIP,
@@ -39,6 +45,7 @@ export type CourseFormValues = {
   format: string;
   level: string;
   price: number;
+  currency: string;
   durationValue: number;
   durationUnit: string;
   link: string;
@@ -62,8 +69,12 @@ export default function CourseForm({
     format: initialValues?.format ?? "",
     level: initialValues?.level ?? "",
     price: typeof initialValues?.price === "number" ? initialValues.price : 0,
-    durationValue: 0,
-    durationUnit: "",
+    currency: initialValues?.currency ?? DEFAULT_COURSE_CURRENCY,
+    durationValue:
+      typeof initialValues?.durationValue === "number"
+        ? initialValues.durationValue
+        : 0,
+    durationUnit: initialValues?.durationUnit ?? "",
     link: initialValues?.link ?? "",
     description: initialValues?.description ?? "",
   };
@@ -184,7 +195,7 @@ export default function CourseForm({
             Format
             <InfoTooltip message={COURSE_FORMAT_TIP} />
           </label>
-          <select
+          <Select
             name="format"
             className="sb-input"
             value={draftFields.format}
@@ -197,14 +208,14 @@ export default function CourseForm({
             <option value="Text / Reading">Text / Reading</option>
             <option value="Interactive / Project-based">Interactive / Project-based</option>
             <option value="Workshop / Bootcamp">Workshop / Bootcamp</option>
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Level
             <InfoTooltip message={COURSE_LEVEL_TIP} />
           </label>
-          <select
+          <Select
             name="level"
             className="sb-input"
             value={draftFields.level}
@@ -214,7 +225,7 @@ export default function CourseForm({
             <option value="Beginner">Beginner</option>
             <option value="Intermediate">Intermediate</option>
             <option value="Advanced">Advanced</option>
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
@@ -222,67 +233,81 @@ export default function CourseForm({
             <InfoTooltip message={COURSE_DURATION_TIP} />
           </label>
           <div className="flex gap-2">
-            <input
-              name="durationValue"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="0"
-              className="sb-input flex-1"
-              value={String(draftFields.durationValue ?? 0)}
-              onChange={(e) => {
-                const parsed = Number(e.target.value.slice(0, 3));
-                updateDraftField(
-                  "durationValue",
-                  Number.isNaN(parsed) ? 0 : parsed,
-                );
-              }}
-            />
-            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {String(draftFields.durationValue ?? 0).length}/3
+            <div className="min-w-0 flex-1">
+              <input
+                name="durationValue"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="0"
+                className="sb-input"
+                value={String(draftFields.durationValue ?? 0)}
+                onChange={(e) => {
+                  const parsed = Number(e.target.value.slice(0, 3));
+                  updateDraftField(
+                    "durationValue",
+                    Number.isNaN(parsed) ? 0 : parsed,
+                  );
+                }}
+              />
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {String(draftFields.durationValue ?? 0).length}/3 characters
+              </div>
             </div>
-            <select
+            <Select
               name="durationUnit"
-              className="sb-input flex-1"
+              className="sb-input flex-1 self-start"
               value={draftFields.durationUnit}
               onChange={(e) => updateDraftField("durationUnit", e.target.value)}
             >
               <option value="">Unit</option>
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
-              <option value="weeks">Weeks</option>
-              <option value="months">Months</option>
-            </select>
+              {COURSE_DURATION_UNITS.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit[0].toUpperCase() + unit.slice(1)}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-4">
-        <div>
+        <div className="md:col-span-2">
           <label className="sb-label inline-flex items-center gap-1.5">
             Price
             <InfoTooltip message={COURSE_PRICE_TIP} />
           </label>
-          <input
-            name="price"
-            type="number"
-            min="0"
-            step="1"
-            placeholder="0"
-            className="sb-input"
-            maxLength={10}
-            value={String(draftFields.price ?? 0)}
-            onChange={(e) => {
-              const parsed = Number(e.target.value.slice(0, 10));
-              updateDraftField("price", Number.isNaN(parsed) ? 0 : parsed);
-            }}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {String(draftFields.price ?? 0).length}/10
+          <div className="flex gap-2">
+            <input
+              name="price"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="0"
+              className="sb-input flex-1"
+              maxLength={10}
+              value={String(draftFields.price ?? 0)}
+              onChange={(e) => {
+                const parsed = Number(e.target.value.slice(0, 10));
+                updateDraftField("price", Number.isNaN(parsed) ? 0 : parsed);
+              }}
+            />
+            <Select
+              name="currency"
+              value={draftFields.currency}
+              className="w-32 shrink-0"
+              aria-label="Price currency"
+              onChange={(e) => updateDraftField("currency", e.target.value)}
+            >
+              {COURSE_CURRENCIES.map(({ code, label }) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-2">
           <label className="sb-label inline-flex items-center gap-1.5">
             Course Link
             <InfoTooltip message={COURSE_LINK_TIP} />

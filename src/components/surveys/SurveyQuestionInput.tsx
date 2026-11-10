@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import {
   MAX_SURVEY_ANSWER_SHORT,
@@ -150,7 +151,7 @@ export function SurveyQuestionInput({
 );
 case "DROPDOWN":
       return (
-        <select
+        <Select
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="sb-select"
@@ -162,7 +163,7 @@ case "DROPDOWN":
               {opt.label}
             </option>
           ))}
-        </select>
+        </Select>
       );
 
     case "MATRIX_LIKERT": {

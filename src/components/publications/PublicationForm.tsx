@@ -1,4 +1,5 @@
 "use client";
+import { Select } from "@/components/ui/Select";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -235,7 +236,7 @@ export default function PublicationForm({
             Publication Type *
             <InfoTooltip message={PUBLICATION_TYPE_TIP} />
           </label>
-          <select
+          <Select
             name="publicationType"
             className="sb-select"
             required
@@ -249,14 +250,14 @@ export default function PublicationForm({
                 {type.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
             Year
             <InfoTooltip message={PUBLICATION_YEAR_TIP} />
           </label>
-          <select
+          <Select
             name="year"
             className="sb-select"
             value={draftFields.year}
@@ -270,7 +271,7 @@ export default function PublicationForm({
                 </option>
               ),
             )}
-          </select>
+          </Select>
         </div>
       </div>
 
