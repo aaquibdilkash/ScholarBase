@@ -1,6 +1,34 @@
+import type { Metadata } from "next";
+
 export const SITE_NAME = "ScholarBase";
 export const SITE_URL = "https://scholarbase.app";
 export const DEFAULT_SEO_IMAGE = "/og-image.png";
+
+/**
+ * The `<link rel="icon">` set, in one place.
+ *
+ * Every entry must be square, opaque, and declare its real pixel size: Google
+ * reads `sizes` when it picks the favicon shown in Search results and in the
+ * "About this source" panel, and a mismatch (declaring 48x48 for a 192x192 PNG)
+ * makes it fall back to a smaller or letterboxed image.
+ *
+ * `sizes` is deliberately kept exact rather than aspirational; `test/pwa-assets`
+ * reads the PNG/ICO headers and fails when the two disagree.
+ */
+export const SITE_ICONS = {
+    icon: [
+        // Google looks for /favicon.ico first. The file carries 16, 32 and 48 px.
+        { url: "/favicon.ico", sizes: "16x16 32x32 48x48", type: "image/x-icon" },
+        // Scalable, so it stays sharp at any tab size.
+        { url: "/favicon.svg", type: "image/svg+xml" },
+        // 192 is a multiple of 48, which is the size Google's favicon spec wants.
+        { url: "/icon.png", sizes: "192x192", type: "image/png" },
+    ],
+    // iOS ignores the manifest and will not letterbox this one.
+    apple: [
+        { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+} satisfies Metadata["icons"];
 
 export const formatPageTitle = (title: string): string => {
     const clean = title.trim();
@@ -195,11 +223,11 @@ export const SEO_PAGES = {
         section: "Journals",
     },
     learn: {
-        title: "Learn | ScholarBase",
+        title: "Learning Zone | ScholarBase",
         description:
             "Explore courses, learning resources, and research study material for scholars and academics.",
         path: "/learn",
-        section: "Learn",
+        section: "Learning Zone",
     },
     grants: {
         title: "Research Grants | ScholarBase",

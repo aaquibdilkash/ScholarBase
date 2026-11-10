@@ -71,7 +71,7 @@ export default async function SupervisorPage({
     return (
       <RemovedContentNotice
         backHref="/supervisor"
-        backLabel="Back to Search"
+        backLabel="Back to Supervisors"
         entityId={removed.id}
         module="SUPERVISOR"
         ownerId={removed.authorId}
@@ -136,7 +136,7 @@ export default async function SupervisorPage({
       frozenOwnerId={supervisor.author?.id ?? null}
       frozenHasActiveAppeal={supervisor.hasActiveAppeal ?? false}
       backHref="/supervisor"
-      backLabel="Back to Search"
+      backLabel="Back to Supervisors"
       authorId={supervisor.isAnonymous ? undefined : supervisor.authorId}
       isFollowing={supervisor.isAnonymous ? false : isFollowing}
       currentUserId={user?.id}

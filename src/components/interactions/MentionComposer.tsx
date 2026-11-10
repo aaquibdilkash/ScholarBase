@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { searchScholarsForPicker } from "@/app/actions/scholars";
+import { useScholarSearch } from "@/hooks/useScholarSearch";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ScholarSuggestionDropdown } from "@/components/interactions/ScholarSuggestionDropdown";
 
@@ -37,32 +38,23 @@ export function MentionComposer({
   rows?: number;
   showPreview?: boolean;
 }) {
-  const [suggestions, setSuggestions] = useState<ScholarSuggestion[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  // The trailing `@term` is what the typeahead searches. `useScholarSearch`
+  // owns the debounce, the shared minimum length, and stale-response handling,
+  // so this component cannot drift from the message recipient picker.
+  const term = value.match(/(?:^|\s)@([a-z0-9_]{1,})$/i)?.[1] ?? "";
+  const { results: suggestions, isSearching } = useScholarSearch(term, 5);
+  // Escape dismisses the current term's dropdown; typing again reopens it.
+  const [dismissedTerm, setDismissedTerm] = useState<string | null>(null);
+  const visibleSuggestions = dismissedTerm === term ? [] : suggestions;
+
+  // Keep the keyboard cursor inside the current list when the term changes.
   useEffect(() => {
-    const match = value.match(/(?:^|\s)@([a-z0-9_]{1,})$/i);
-    const term = match?.[1] ?? "";
-    if (term.length < 2) {
-      setSuggestions([]);
-      return;
-    }
-    let active = true;
-    const handle = window.setTimeout(() => {
-      searchScholarsForPicker(term, 5)
-        .then((users) => {
-          if (active) setSuggestions(users);
-        })
-        .catch((error) => {
-          console.error("Failed to load mention suggestions:", error);
-          if (active) setSuggestions([]);
-        });
-    }, 300);
-    return () => {
-      active = false;
-      window.clearTimeout(handle);
-    };
-  }, [value]);
+    setActiveIndex((current) =>
+      current < visibleSuggestions.length ? current : 0,
+    );
+  }, [visibleSuggestions.length]);
 
   const insertSuggestion = (user: ScholarSuggestion) => {
     const trimmed = value.replace(
@@ -70,7 +62,6 @@ export function MentionComposer({
       ` @${user.handle || user.name || "scholar"} `,
     );
     onChange(trimmed.replace(/^ /, ""));
-    setSuggestions([]);
     setActiveIndex(0);
     if (!mentionedUsers.find((u) => u.id === user.id)) {
       onMentionedUsersChange([
@@ -100,21 +91,24 @@ export function MentionComposer({
         className="w-full break-words resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-600 md:p-4 md:text-base dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-100"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
-          if (!suggestions.length) return;
+          if (!visibleSuggestions.length) return;
           if (e.key === "ArrowDown") {
             e.preventDefault();
-            setActiveIndex((current) => (current + 1) % suggestions.length);
+            setActiveIndex((current) => (current + 1) % visibleSuggestions.length);
           } else if (e.key === "ArrowUp") {
             e.preventDefault();
             setActiveIndex(
               (current) =>
-                (current - 1 + suggestions.length) % suggestions.length,
+                (current - 1 + visibleSuggestions.length) %
+                visibleSuggestions.length,
             );
           } else if (e.key === "Enter" && !e.shiftKey) {
+            const selected = visibleSuggestions[activeIndex];
+            if (!selected) return;
             e.preventDefault();
-            insertSuggestion(suggestions[activeIndex]);
+            insertSuggestion(selected);
           } else if (e.key === "Escape") {
-            setSuggestions([]);
+            setDismissedTerm(term);
           }
         }}
       />
@@ -122,8 +116,9 @@ export function MentionComposer({
         {value.length}/{maxLength} characters
       </div>
       <ScholarSuggestionDropdown
-        suggestions={suggestions}
+        suggestions={visibleSuggestions}
         activeIndex={activeIndex}
+        loading={isSearching && visibleSuggestions.length === 0}
         onSelect={insertSuggestion}
       />
       {showPreview && (

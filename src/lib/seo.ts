@@ -90,6 +90,54 @@ export function buildMetadata(options: BuildMetadataOptions): Metadata {
   };
 }
 
+/**
+ * Organisation + WebSite identity, serialised for the root layout.
+ *
+ * Google builds the logo tile in its "About the source" panel from the favicon
+ * and `Organization.logo` — never from `og:image`, which is the 1200x630 card
+ * used for link previews. So the square 512x512 `logo.png` is advertised here
+ * with explicit dimensions; that is the largest first-party asset it can pick.
+ *
+ * Deliberately no `sameAs` and no `potentialAction` search box: there are no
+ * verified profile URLs or a public search endpoint to point at, and inventing
+ * them is worse than omitting them.
+ *
+ * Returns a string because the caller injects it with `dangerouslySetInnerHTML`.
+ * `<` is escaped so a value can never terminate the surrounding `<script>` tag.
+ */
+export function buildSiteJsonLd(): string {
+  const graph = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        name: SITE_NAME,
+        url: SITE_URL,
+        description: SEO_SITE.description,
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/logo.png`,
+          width: 512,
+          height: 512,
+        },
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: SITE_NAME,
+        publisher: { "@id": `${SITE_URL}/#organization` },
+      },
+    ],
+  };
+
+  return JSON.stringify(graph).replace(/</g, "\\u003c");
+}
+
+/** Static, so it is serialised once per server process rather than per request. */
+export const SITE_JSON_LD = buildSiteJsonLd();
+
 /** Metadata for private / auth-gated / form pages that should never be indexed. */
 export function buildNoindexMetadata(title = SITE_NAME): Metadata {
   return {

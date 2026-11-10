@@ -19,6 +19,8 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({}),
+  useQuery: () => ({ data: undefined, isFetching: false, isError: false }),
+  keepPreviousData: undefined,
 }));
 
 const submit = vi.fn();

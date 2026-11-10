@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 
 /**
- * Reproduces the "SB" text icon from `src/app/icon.tsx`:
+ * Reproduces the "SB" favicon (`public/favicon.svg` / `public/icon.png`):
  *  - Dark slate-950 (#020617) circular background
  *  - "S" in white
  *  - "B" in blue-500 (#3b82f6)

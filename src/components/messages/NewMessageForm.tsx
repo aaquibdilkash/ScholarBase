@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getScholars } from "@/app/actions/scholars";
 import {
   startConversation,
   findDirectConversation,
@@ -12,11 +11,11 @@ import { useUser } from "@/hooks/useUser";
 import { useAuthModal } from "@/components/interactions/AuthModal";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
+import { useScholarSearch } from "@/hooks/useScholarSearch";
 import { MAX_MESSAGE_BODY } from "@/lib/constants";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { MESSAGE_BODY_TIP, MESSAGE_SEARCH_TIP } from "@/constants/tooltips";
 
-type Scholar = Awaited<ReturnType<typeof getScholars>>[0];
 type Recipient = {
   id: string;
   name: string | null;
@@ -98,11 +97,10 @@ export function NewMessageForm({
   });
 
   const [search, setSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<Scholar[]>([]);
+  const { results: searchResults, isSearching } = useScholarSearch(search, 10);
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
     initialRecipient,
   );
-  const [isSearching, setIsSearching] = useState(false);
   const [body, setBody] = useState("");
 
   // ⚡ Ref mirror of the recipient: `onSuccess` fires async after the server
@@ -132,28 +130,6 @@ export function NewMessageForm({
     writeDraft({ body, recipient: selectedRecipient });
   }, [body, selectedRecipient]);
 
-  useEffect(() => {
-    if (search.length > 2) {
-      setIsSearching(true);
-      const debounce = setTimeout(() => {
-        getScholars(search)
-          .then((users) => {
-            setSearchResults(users);
-          })
-          .catch((error) => {
-            console.error("Failed to search scholars:", error);
-            setSearchResults([]);
-          })
-          .finally(() => {
-            setIsSearching(false);
-          });
-      }, 500);
-      return () => clearTimeout(debounce);
-    } else {
-      setSearchResults([]);
-    }
-  }, [search]);
-
   const handleSelectRecipient = async (recipient: Recipient) => {
     if (recipient.id === user?.id) {
       toast("You cannot message yourself.", "error");
@@ -169,7 +145,6 @@ export function NewMessageForm({
     }
     setSelectedRecipient(recipient);
     setSearch("");
-    setSearchResults([]);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -245,7 +220,7 @@ export function NewMessageForm({
               className="sb-input"
               placeholder="Search for a scholar by name or handle..."
             />
-            {isSearching && (
+            {isSearching && searchResults.length === 0 && (
               <p className="p-4 text-sm text-slate-500">Searching...</p>
             )}
             {searchResults.length > 0 && (

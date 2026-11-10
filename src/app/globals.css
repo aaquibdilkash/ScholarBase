@@ -598,6 +598,9 @@ html[data-theme="dark"] {
   html.dark select:not([multiple]):not(.sb-select),
   html[data-theme="dark"] select:not([multiple]):not(.sb-select) {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23cbd5e1' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.15rem;
   }
 
   html.dark .sb-select:has(option:checked[value=""]),

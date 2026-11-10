@@ -60,65 +60,51 @@ export type ScholarPickerResult = {
   name: string | null;
   handle: string | null;
   avatarUrl: string | null;
-  institutionVerifiedAt: Date | null;
 };
 
-/** Lightweight, indexed picker search used by mentions and publication authors. */
+/**
+ * Lightweight, indexed picker search used by mentions, message recipients, and
+ * publication authors.
+ *
+ * Mirrors the user search on `/messages` and `/scholars`: one Prisma `OR` over
+ * `name` and `handle` with an insensitive `contains`, which PostgreSQL serves
+ * from `User_name_trgm_idx` / `User_handle_trgm_idx`.
+ *
+ * Deliberately no `similarity()` / `word_similarity()` branches: those are
+ * function calls a pg_trgm GIN index cannot answer, and inside an `OR` a single
+ * non-indexable branch forces the whole statement into a sequential scan over
+ * `User`. No `bio`/`interests` branch either — a picker asks for a person by
+ * name or handle, and matching long text makes common terms return most of the
+ * table.
+ */
 export async function searchScholarsForPicker(
   query: string,
   limit = 6,
 ): Promise<ScholarPickerResult[]> {
   const term = query.trim();
-  // P0-3: shared floor (3), not a local 2 — raw-SQL trigram search over every
-  // user row, so it must not be easier to spam than the feed search.
+  // P0-3: shared floor (3), not a local 2 — every search surface uses the same
+  // minimum so the pickers cannot be easier to spam than the feed search.
   if (!isSearchableQuery(term)) return [];
   if (!(await allowSearchRequest("picker:scholar", (await getCurrentUser())?.id))) {
     return [];
   }
 
   const safeLimit = Math.min(10, Math.max(1, Math.floor(limit)));
-  try {
-    return await prisma.$queryRaw<ScholarPickerResult[]>`
-      SELECT "id", "name", "handle", "avatarUrl", "institutionVerifiedAt"
-      FROM "User"
-      WHERE "isDeleted" = false
-        AND (
-          LOWER("handle") = LOWER(${term})
-          OR LOWER("handle") LIKE LOWER(${term}) || '%'
-          OR similarity("handle", ${term}) > 0.25
-          OR similarity("name", ${term}) > 0.25
-          OR to_tsvector('simple', COALESCE("name", '') || ' ' || COALESCE("bio", '') || ' ' || COALESCE("interests", ''))
-             @@ plainto_tsquery('simple', ${term})
-        )
-      ORDER BY
-        CASE WHEN LOWER("handle") = LOWER(${term}) THEN 0
-             WHEN LOWER("handle") LIKE LOWER(${term}) || '%' THEN 1
-             WHEN LOWER("name") LIKE LOWER(${term}) || '%' THEN 2
-             ELSE 3 END,
-        GREATEST(similarity("handle", ${term}), similarity("name", ${term})) DESC,
-        "createdAt" DESC
-      LIMIT ${safeLimit}
-    `;
-  } catch (error) {
-    // Keep the picker usable if a deployment has not yet installed pg_trgm.
-    console.error("Optimized scholar picker search failed; using fallback:", error);
-    return prisma.user.findMany({
-      where: {
-        isDeleted: false,
-        OR: [
-          { name: { contains: term, mode: "insensitive" } },
-          { handle: { contains: term, mode: "insensitive" } },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        handle: true,
-        avatarUrl: true,
-        institutionVerifiedAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: safeLimit,
-    });
-  }
+  return prisma.user.findMany({
+    where: {
+      isDeleted: false,
+      OR: [
+        { name: { contains: term, mode: "insensitive" } },
+        { handle: { contains: term, mode: "insensitive" } },
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      handle: true,
+      avatarUrl: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: safeLimit,
+  });
 }

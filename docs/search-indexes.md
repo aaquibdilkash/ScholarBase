@@ -37,14 +37,25 @@ WHERE name IN ('pg_trgm', 'vector');
 | `User_bio_trgm_idx` | `User` | GIN trigram | Scholar bio substring matching |
 | `User_search_text_gin_idx` | `User` | GIN expression/full text | Name, bio, and interests matching |
 | `User_handle_lower_prefix_idx` | `User` | B-tree expression/prefix | Fast lower-case handle equality/prefix lookup |
-| `Journal_title_trgm_idx` | `Journal` | GIN trigram | Fuzzy journal-title matching |
-| `Journal_publisher_trgm_idx` | `Journal` | GIN trigram | Fuzzy publisher matching |
+| `Journal_title_trgm_idx` | `Journal` | GIN trigram | Journal-title substring matching |
+| `Journal_publisher_trgm_idx` | `Journal` | GIN trigram | Journal-publisher substring matching |
 | `Journal_about_trgm_idx` | `Journal` | GIN trigram | Journal description substring matching |
-| `Journal_issn_trgm_idx` | `Journal` | GIN trigram | Fuzzy ISSN matching |
+| `Journal_issn_trgm_idx` | `Journal` | GIN trigram | Journal-ISSN substring matching |
 | `Journal_search_text_gin_idx` | `Journal` | GIN expression/full text | Title, publisher, description, and subject search |
 | `Journal_issn_lower_prefix_idx` | `Journal` | B-tree expression/prefix | Fast lower-case ISSN equality/prefix lookup |
 
-The raw picker SQL also ranks with `similarity()` / `word_similarity()`. Those function calls are not index-backed by `pg_trgm`; the indexable branches in the same `OR` are `ILIKE`, `LOWER(...) LIKE prefix`, and the `to_tsvector(...) @@ plainto_tsquery(...)` expression. The planner can use those branches and recheck the similarity branches.
+Both pickers use plain insensitive `contains` on the columns that identify the
+row — `name`/`handle` for scholars, `title`/`publisher`/`issn` for journals — the
+same predicate as the `/scholars`, `/messages`, and `/journals` searches. A
+single non-indexable branch inside an `OR` (a `similarity()` call, say) forces
+the whole statement into a sequential scan, because the planner cannot use the
+indexable branches alone without missing rows. Any future picker that wants
+fuzzy ranking must express it with the indexable `%` / `%>` operators, not the
+`similarity()` functions.
+
+`Journal_search_text_gin_idx` and `Journal_issn_lower_prefix_idx` were built for
+the old raw-SQL picker; no application query uses them any more. Dropping them
+is a follow-up migration, not a code change.
 
 ## List-search indexes
 
@@ -64,7 +75,7 @@ indexes every declared field, not only the high-traffic ones.
 | Research tools | `ResearchTool` | `name`, `website`, `use`, `description` |
 | Grants | `ResearchGrant` | `title`, `amount`, `description`, `applyLink`, `infoLink` |
 | Courses | `Course` | `title`, `provider`, `instructor`, `format`, `level`, `description` |
-| Journals | `Journal` | `title`, `publisher`, `about`, `issn`; picker text expression |
+| Journals | `Journal` | `title`, `publisher`, `about`, `issn` |
 | Results | `Result` | `title`, `description`, `category`, `conductingBody`, `session` |
 | Surveys | `ResearchSurvey` | `title`, `description` |
 | Events | `ResearchEvent` | `title`, `location`, `description` |
@@ -78,9 +89,10 @@ Index names follow `<Table>_<column>_trgm_idx`. The migration is
 ### Why per-column instead of one concatenated index
 
 A single `search_text` generated column per table with one GIN index would be
-cheaper to write, but it changes the query shape for every module and cannot
-express the picker's per-field similarity ranking. The per-column inventory is
-the smallest change that keeps the existing Prisma queries and result semantics.
+cheaper to write, but it changes the query shape for every module: the planner
+could no longer answer a per-column `contains` from that column's own index. The
+per-column inventory is the smallest change that keeps the existing Prisma
+queries and result semantics.
 If write amplification becomes a problem, consolidate a module's long free-text
 columns first and measure `pg_indexes_size()` before and after.
 

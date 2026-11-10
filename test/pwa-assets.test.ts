@@ -20,6 +20,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { IOS_STARTUP_IMAGES } from "@/lib/ios-startup-images";
+import { SITE_ICONS } from "@/constants/seo";
 
 const ROOT = join(process.cwd(), "public");
 
@@ -282,46 +283,53 @@ describe("iOS startup images", () => {
  * whether a file *can* carry alpha, which avoids adding an image-decoding
  * dependency to the suite for two integers and a chunk name.
  */
+
+/** PNG colour types that store per-pixel transparency. */
+const PNG_ALPHA_COLOR_TYPES = new Set([
+  4, // greyscale + alpha
+  6, // truecolour + alpha
+]);
+
+/**
+ * Reads the IHDR colour type out of a PNG buffer.
+ *
+ * Layout: 8-byte signature, then the IHDR chunk's 4-byte length and 4-byte
+ * type, then 4-byte width and 4-byte height, then 1-byte bit depth, and
+ * finally the colour type at offset 25.
+ */
+function pngColorType(bytes: Buffer): number {
+  const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  expect(
+    bytes.subarray(0, 8),
+    "not a PNG",
+  ).toEqual(Buffer.from(SIGNATURE));
+  expect(bytes.subarray(12, 16).toString("latin1"), "missing IHDR").toBe("IHDR");
+  return bytes.readUInt8(25);
+}
+
+/** PNG pixel width/height, read straight from the IHDR chunk. */
+function pngDimensions(bytes: Buffer): { width: number; height: number } {
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** Splits an .ico into the buffers of its embedded images. */
+function icoImageBuffers(bytes: Buffer): Buffer[] {
+  // 6-byte header (reserved, type, count), then a 16-byte directory entry per
+  // image giving width, height, and the byte offset + length of its payload.
+  const count = bytes.readUInt16LE(4);
+  const images: Buffer[] = [];
+
+  for (let i = 0; i < count; i += 1) {
+    const entry = 6 + i * 16;
+    const size = bytes.readUInt32LE(entry + 8);
+    const offset = bytes.readUInt32LE(entry + 12);
+    images.push(bytes.subarray(offset, offset + size));
+  }
+
+  return images;
+}
+
 describe("icons carry no alpha channel", () => {
-  /** PNG colour types that store per-pixel transparency. */
-  const PNG_ALPHA_COLOR_TYPES = new Set([
-    4, // greyscale + alpha
-    6, // truecolour + alpha
-  ]);
-
-  /**
-   * Reads the IHDR colour type out of a PNG buffer.
-   *
-   * Layout: 8-byte signature, then the IHDR chunk's 4-byte length and 4-byte
-   * type, then 4-byte width and 4-byte height, then 1-byte bit depth, and
-   * finally the colour type at offset 25.
-   */
-  function pngColorType(bytes: Buffer): number {
-    const SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-    expect(
-      bytes.subarray(0, 8),
-      "not a PNG",
-    ).toEqual(Buffer.from(SIGNATURE));
-    expect(bytes.subarray(12, 16).toString("latin1"), "missing IHDR").toBe("IHDR");
-    return bytes.readUInt8(25);
-  }
-
-  /** Splits an .ico into the buffers of its embedded images. */
-  function icoImageBuffers(bytes: Buffer): Buffer[] {
-    // 6-byte header (reserved, type, count), then a 16-byte directory entry per
-    // image giving width, height, and the byte offset + length of its payload.
-    const count = bytes.readUInt16LE(4);
-    const images: Buffer[] = [];
-
-    for (let i = 0; i < count; i += 1) {
-      const entry = 6 + i * 16;
-      const size = bytes.readUInt32LE(entry + 8);
-      const offset = bytes.readUInt32LE(entry + 12);
-      images.push(bytes.subarray(offset, offset + size));
-    }
-
-    return images;
-  }
 
   const ICONS = [
     "favicon.ico",
@@ -349,6 +357,61 @@ describe("icons carry no alpha channel", () => {
           PNG_ALPHA_COLOR_TYPES.has(pngColorType(image)),
           `${name} has a PNG alpha channel; Google will flatten it onto white`,
         ).toBe(false);
+      }
+    });
+  }
+});
+
+/**
+ * Declared icon sizes.
+ *
+ * The regression this pins: `layout.tsx` advertised `/icon.png` as `48x48`
+ * while the file on disk was 192x192. Google reads the `sizes` attribute when it
+ * picks the favicon for Search and its "About the source" panel, so a mismatch
+ * is not cosmetic -- it can make Google fall back to a smaller or letterboxed
+ * image. Nothing else in the suite looks at the declaration, so it silently
+ * drifted.
+ *
+ * The declaration now lives in one constant (`SITE_ICONS`) which both the layout
+ * and this test consume, so the two cannot disagree again.
+ */
+describe("declared icon sizes match the files", () => {
+  const declared = [...SITE_ICONS.icon, ...(SITE_ICONS.apple ?? [])];
+  // The "multiple of 48" part of Google's favicon contract applies to
+  // rel="icon". iOS owns the apple-touch-icon geometry (180x180) instead.
+  const appleUrls = new Set((SITE_ICONS.apple ?? []).map((icon) => icon.url));
+
+  for (const icon of declared) {
+    it(`${icon.url} exists and declares its real size`, () => {
+      const file = join(ROOT, icon.url.replace(/^\//, ""));
+      expect(existsSync(file), `missing icon: ${icon.url}`).toBe(true);
+
+      // An SVG is resolution-independent; Next emits `sizes="any"` for it, and a
+      // fixed declaration would be wrong.
+      if (icon.url.endsWith(".svg")) {
+        expect(icon.sizes).toBeUndefined();
+        return;
+      }
+
+      const bytes = readFileSync(file);
+      const declaredSizes = (icon.sizes ?? "").split(/\s+/).filter(Boolean);
+
+      if (icon.url.endsWith(".ico")) {
+        // Every embedded size is a separately selectable favicon.
+        const actual = icoImageBuffers(bytes)
+          .map((image) => pngDimensions(image))
+          .map(({ width, height }) => `${width}x${height}`)
+          .sort();
+        expect(declaredSizes.sort()).toEqual(actual);
+        return;
+      }
+
+      const { width, height } = pngDimensions(bytes);
+      expect(declaredSizes).toEqual([`${width}x${height}`]);
+      expect(width).toBe(height);
+      if (!appleUrls.has(icon.url)) {
+        // Google's favicon contract: square, and a multiple of 48px.
+        expect(width % 48).toBe(0);
       }
     });
   }

@@ -488,63 +488,46 @@ export type JournalPickerResult = {
   issn: string | null;
 };
 
-/** Lightweight, indexed picker search used when linking a publication. */
+/**
+ * Lightweight, indexed picker search used when linking a publication.
+ *
+ * Mirrors `searchScholarsForPicker` and the `/journals` list search: one Prisma
+ * `OR` over the fields that identify a journal — title, publisher, ISSN — with
+ * an insensitive `contains`, which PostgreSQL serves from
+ * `Journal_title_trgm_idx` / `Journal_publisher_trgm_idx` /
+ * `Journal_issn_trgm_idx` as a `BitmapOr`.
+ *
+ * Deliberately no `similarity()` / `word_similarity()` / `to_tsvector(...)`
+ * branches: a function call is not index-backed by `pg_trgm`, and one
+ * non-indexable branch inside an `OR` forces the whole statement into a
+ * sequential scan over `Journal`. No `about`/`subjectArea` branch either —
+ * those are prose, and matching them in a picker returns most of the table for
+ * a common word. A picker identifies a journal by name, publisher, or ISSN.
+ */
 export async function searchJournalsForPicker(
   query: string,
   limit = 6,
 ): Promise<JournalPickerResult[]> {
   const term = query.trim();
-  // P0-3: shared floor (3), not a local 2 — this is a raw-SQL trigram search,
-  // the most expensive query shape on the free tier, so it must not be easier
-  // to spam than the feed search.
+  // P0-3: shared floor (3), not a local 2 — every search surface uses the same
+  // minimum so the picker cannot be easier to spam than the feed search.
   if (!isSearchableQuery(term)) return [];
   if (!(await allowSearchRequest("picker:journal", (await getCurrentUser())?.id))) {
     return [];
   }
 
   const safeLimit = Math.min(10, Math.max(1, Math.floor(limit)));
-  try {
-    return await prisma.$queryRaw<JournalPickerResult[]>`
-      SELECT "id", "title", "publisher", "issn"
-      FROM "Journal"
-      WHERE "isDeleted" = false
-        AND (
-          LOWER("issn") = LOWER(${term})
-          OR LOWER("issn") LIKE LOWER(${term}) || '%'
-          OR LOWER("title") LIKE LOWER(${term}) || '%'
-          OR LOWER("publisher") LIKE LOWER(${term}) || '%'
-          OR similarity("title", ${term}) > 0.18
-          OR word_similarity(${term}, "title") > 0.18
-          OR word_similarity(${term}, "publisher") > 0.18
-          OR similarity("publisher", ${term}) > 0.18
-          OR to_tsvector('simple', COALESCE("title", '') || ' ' || COALESCE("publisher", '') || ' ' || COALESCE("about", '') || ' ' || COALESCE("subjectArea", ''))
-             @@ plainto_tsquery('simple', ${term})
-        )
-      ORDER BY
-        CASE WHEN LOWER("issn") = LOWER(${term}) THEN 0
-             WHEN LOWER("issn") LIKE LOWER(${term}) || '%' THEN 1
-             WHEN LOWER("title") = LOWER(${term}) THEN 2
-             WHEN LOWER("title") LIKE LOWER(${term}) || '%' THEN 3
-             ELSE 4 END,
-        GREATEST(similarity("title", ${term}), similarity("publisher", ${term})) DESC,
-        "createdAt" DESC
-      LIMIT ${safeLimit}
-    `;
-  } catch (error) {
-    // Keep the picker usable if a deployment has not yet installed pg_trgm.
-    console.error("Optimized journal picker search failed; using fallback:", error);
-    return prisma.journal.findMany({
-      where: {
-        isDeleted: false,
-        OR: [
-          { title: { contains: term, mode: "insensitive" } },
-          { publisher: { contains: term, mode: "insensitive" } },
-          { issn: { contains: term, mode: "insensitive" } },
-        ],
-      },
-      select: { id: true, title: true, publisher: true, issn: true },
-      orderBy: { createdAt: "desc" },
-      take: safeLimit,
-    });
-  }
+  return prisma.journal.findMany({
+    where: {
+      isDeleted: false,
+      OR: [
+        { title: { contains: term, mode: "insensitive" } },
+        { publisher: { contains: term, mode: "insensitive" } },
+        { issn: { contains: term, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, title: true, publisher: true, issn: true },
+    orderBy: { createdAt: "desc" },
+    take: safeLimit,
+  });
 }

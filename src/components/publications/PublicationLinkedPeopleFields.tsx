@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BookPlus, Search, UserPlus, X } from "lucide-react";
 import { searchJournalsForPicker } from "@/app/actions/journals";
 import { searchScholarsForPicker } from "@/app/actions/scholars";
 import { ScholarSuggestionDropdown } from "@/components/interactions/ScholarSuggestionDropdown";
 import { ShareButton } from "@/components/interactions/ShareButton";
+import { useJournalSearch } from "@/hooks/useJournalSearch";
+import { useScholarSearch } from "@/hooks/useScholarSearch";
+import { MIN_SEARCH_LENGTH } from "@/lib/search-guard";
 
 type Scholar = Awaited<ReturnType<typeof searchScholarsForPicker>>[number];
 type Journal = Awaited<ReturnType<typeof searchJournalsForPicker>>[number];
@@ -34,85 +37,24 @@ export function PublicationLinkedPeopleFields({
 }) {
   const [authorSearch, setAuthorSearch] = useState("");
   const [journalSearch, setJournalSearch] = useState("");
-  const [authorResults, setAuthorResults] = useState<Scholar[]>([]);
-  const [authorSearching, setAuthorSearching] = useState(false);
-  const [authorSearchError, setAuthorSearchError] = useState(false);
-  const [journalResults, setJournalResults] = useState<Journal[]>([]);
-  const [journalSearching, setJournalSearching] = useState(false);
-  const [journalSearchError, setJournalSearchError] = useState(false);
+  // Both pickers share one debounced, cached typeahead primitive, so they
+  // behave exactly like the message and mention pickers.
+  const {
+    results: authorResults,
+    isSearching: authorSearching,
+    isError: authorSearchError,
+  } = useScholarSearch(authorSearch, 6);
+  const {
+    results: journalResults,
+    isSearching: journalSearching,
+    isError: journalSearchError,
+  } = useJournalSearch(journalSearch, 6);
   const selectedAuthorIds = authorIds;
   const selectedJournalId = journalId;
-
-  useEffect(() => {
-    if (authorSearch.trim().length < 2) {
-      setAuthorResults([]);
-      setAuthorSearching(false);
-      setAuthorSearchError(false);
-      return;
-    }
-
-    let active = true;
-    setAuthorSearching(true);
-    setAuthorSearchError(false);
-    const timer = window.setTimeout(() => {
-      searchScholarsForPicker(authorSearch, 6)
-        .then((results) => {
-          if (active) {
-            setAuthorResults(results);
-            setAuthorSearching(false);
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setAuthorResults([]);
-            setAuthorSearching(false);
-            setAuthorSearchError(true);
-          }
-        });
-    }, 250);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [authorSearch]);
-
-  useEffect(() => {
-    if (journalSearch.trim().length < 2) {
-      setJournalResults([]);
-      setJournalSearching(false);
-      setJournalSearchError(false);
-      return;
-    }
-
-    let active = true;
-    setJournalSearching(true);
-    setJournalSearchError(false);
-    const timer = window.setTimeout(() => {
-      searchJournalsForPicker(journalSearch, 6)
-        .then((results) => {
-          if (active) {
-            setJournalResults(results);
-            setJournalSearching(false);
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setJournalResults([]);
-            setJournalSearching(false);
-            setJournalSearchError(true);
-          }
-        });
-    }, 250);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
-  }, [journalSearch]);
 
   const selectAuthor = (scholar: Scholar) => {
     if (selectedAuthorIds.includes(scholar.id)) {
       setAuthorSearch("");
-      setAuthorResults([]);
       return;
     }
 
@@ -120,7 +62,6 @@ export function PublicationLinkedPeopleFields({
     onAuthorIdsChange([...selectedAuthorIds, scholar.id]);
     onAuthorNamesChange([...authorNames, name]);
     setAuthorSearch("");
-    setAuthorResults([]);
   };
 
   const removeAuthor = (authorId: string) => {
@@ -134,7 +75,6 @@ export function PublicationLinkedPeopleFields({
     onJournalIdChange(item.id);
     onJournalChange(item.title);
     setJournalSearch("");
-    setJournalResults([]);
   };
 
   return (
@@ -176,7 +116,7 @@ export function PublicationLinkedPeopleFields({
             emptyMessage={
               authorSearchError
                 ? "Scholar search is temporarily unavailable. Try again."
-                : authorSearch.length > 1
+                : authorSearch.trim().length >= MIN_SEARCH_LENGTH
                   ? "No matching scholars. Invite them using the link below."
                   : undefined
             }
@@ -262,7 +202,7 @@ export function PublicationLinkedPeopleFields({
             autoComplete="off"
             aria-label="Search ScholarBase journals"
           />
-          {journalSearch.length > 1 ? (
+          {journalSearch.trim().length >= MIN_SEARCH_LENGTH ? (
             <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
               {journalSearching ? (
                 <p className="px-3 py-3 text-sm text-slate-500">
