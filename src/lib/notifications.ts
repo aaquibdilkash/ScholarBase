@@ -166,8 +166,13 @@ type NotifyFollowersOfActivityParams = {
 
 export async function notifyFollowersOfActivity(
   params: NotifyFollowersOfActivityParams,
-) {
-  void queueNotification({ mode: "FAN_OUT", ...params }).catch((error) => {
+): Promise<void> {
+  try {
+    await queueNotification({ mode: "FAN_OUT", ...params });
+  } catch (error) {
+    // Notification delivery must not roll back the content mutation. Callers
+    // that await this helper still receive a successful content response while
+    // enqueue failures remain visible in server logs.
     console.error("QStash fan-out notification error:", error);
-  });
+  }
 }

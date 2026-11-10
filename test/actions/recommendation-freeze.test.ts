@@ -8,7 +8,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { fakeDb, resetFakeDb } from "../fake-prisma";
 
-import { createRecommendation } from "@/app/actions/recommendations";
+import {
+  createRecommendation,
+  updateRecommendation,
+} from "@/app/actions/recommendations";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 
 vi.mock("@/lib/db", async () => {
@@ -129,5 +132,37 @@ describe("createRecommendation follower notifications", () => {
     expect(result.success).toBe(true);
     if (!result.success) throw new Error("expected the write to succeed");
     expect(notifyFollowersOfActivity).not.toHaveBeenCalled();
+  });
+
+  it("keeps the supervisor aggregate count when a recommendation becomes anonymous", async () => {
+    fakeDb.rows("supervisor")[0].recommendationCount = 2;
+    fakeDb.rows("supervisor")[0].ratingSum = 9;
+    fakeDb.seed("recommendation", {
+      id: "rec-1",
+      authorId: AUTHOR,
+      supervisorId: SUPERVISOR,
+      rating: 5,
+      isAnonymous: false,
+      isDeleted: false,
+    });
+
+    const formData = validForm();
+    formData.append("isAnonymous", "on");
+    const result = await updateRecommendation(formData, "rec-1");
+
+    expect(result.success).toBe(true);
+    expect(fakeDb.rows("supervisor")[0].recommendationCount).toBe(2);
+    expect(fakeDb.rows("supervisor")[0].ratingSum).toBe(9);
+  });
+
+  it("rejects ratings outside the five-point scale", async () => {
+    const formData = validForm();
+    formData.set("rating", "10");
+
+    const result = await createRecommendation(formData, SUPERVISOR);
+
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error("expected the rating to be rejected");
+    expect(result.error).toBe("Rating must be between 1 and 5.");
   });
 });

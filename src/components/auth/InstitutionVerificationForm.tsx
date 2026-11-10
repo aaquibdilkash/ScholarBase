@@ -15,6 +15,7 @@ type InstitutionVerificationFormProps = {
   institutionVerifiedAt: Date | null;
   pendingInstitutionEmail: string | null;
   institutionVerificationExpiresAt: Date | null;
+  verificationStatus?: string;
 };
 
 export function InstitutionVerificationForm({
@@ -22,6 +23,7 @@ export function InstitutionVerificationForm({
   institutionVerifiedAt,
   pendingInstitutionEmail,
   institutionVerificationExpiresAt,
+  verificationStatus,
 }: InstitutionVerificationFormProps) {
   const { toast } = useToast();
   const [institutionEmail, setInstitutionEmail] = useState(
@@ -140,6 +142,34 @@ export function InstitutionVerificationForm({
           <p className="font-semibold">Institutional email verified</p>
           <p className="mt-1">{verifiedInstitutionEmail}</p>
         </div>
+      )}
+
+      {verificationStatus === "verified" && institutionVerifiedAt && (
+        <p
+          role="status"
+          className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-300"
+        >
+          Institutional email verified successfully.
+        </p>
+      )}
+
+      {verificationStatus === "expired" && (
+        <p
+          role="alert"
+          className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300"
+        >
+          This verification link has expired. Send a new verification email.
+        </p>
+      )}
+
+      {verificationStatus === "invalid" && (
+        <p
+          role="alert"
+          className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-300"
+        >
+          This verification link is invalid or has already been used. Send a
+          new verification email if needed.
+        </p>
       )}
 
       {pendingInstitutionEmail && !institutionVerifiedAt && !pendingExpired && (

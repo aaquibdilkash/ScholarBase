@@ -61,30 +61,3 @@ export function patchAdminAppealsCache(
     },
   );
 }
-
-/**
- * Optimistically adjust the admin stats header cards after a hard list
- * change (e.g. a row was removed by delete). No server round-trip.
- */
-export function adjustAdminStatsCache(
-  queryClient: QueryClient,
-  sectionId: string,
-  delta: number,
-) {
-  queryClient.setQueriesData<{
-    totalUsers: number;
-    totalContent: number;
-    sections: Record<string, number>;
-  }>({ queryKey: ["admin-stats"] }, (old) => {
-    if (!old) return old;
-    const isUsers = sectionId === "users";
-    return {
-      totalUsers: old.totalUsers + (isUsers ? delta : 0),
-      totalContent: old.totalContent + (isUsers ? 0 : delta),
-      sections: {
-        ...old.sections,
-        [sectionId]: Math.max(0, (old.sections[sectionId] ?? 0) + delta),
-      },
-    };
-  });
-}

@@ -189,7 +189,7 @@ describe("GET /auth/verify-institution", () => {
     );
 
     expect(location).toBe(
-      `${PUBLIC_ORIGIN}/scholars/${OWNER}/settings?institution=verified`,
+      `${PUBLIC_ORIGIN}/scholars/${OWNER}/settings?tab=security&institution=verified`,
     );
   });
 

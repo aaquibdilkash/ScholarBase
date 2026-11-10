@@ -16,6 +16,7 @@ import { createClient } from "@/utils/supabase/server";
  */
 async function redirectToSettings(userId: string, result: string) {
   const url = new URL(`/scholars/${userId}/settings`, await getBaseUrl());
+  url.searchParams.set("tab", "security");
   url.searchParams.set("institution", result);
   return NextResponse.redirect(url);
 }

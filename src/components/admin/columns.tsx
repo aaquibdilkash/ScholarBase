@@ -173,7 +173,6 @@ function renderActions(item: AdminContentItem, ctx: AdminColumnsCtx): ReactNode 
         <AdminActionsDropdown
           contentType="SCHOLAR_PROFILE"
           contentId={item.id}
-          sectionId="users"
           reportCount={item.reportCount ?? 0}
           showFreeze={!item.isDeleted}
           isFrozen={item.isFrozen}
@@ -226,7 +225,6 @@ function renderActions(item: AdminContentItem, ctx: AdminColumnsCtx): ReactNode 
                 : "Content"
           }
           disabled={isPending}
-          sectionId={activeTab}
           onMutated={
             activeTab === "appeals"
               ? (info) => onAppealMutated(item.entityId || item.id, info)

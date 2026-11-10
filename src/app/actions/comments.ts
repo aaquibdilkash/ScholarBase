@@ -22,6 +22,7 @@ import {
 } from "@/lib/transactions";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { visibleParentCommentWhere } from "@/lib/comment-visibility";
+import { revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 
 // ============================================
 // LAZY PAGINATION (Zero-Compute Reads)
@@ -253,6 +254,7 @@ export async function createComment(
     parentId,
     mentions,
   );
+  revalidateProfileContent(user.id);
 
   const [actor, parentAuthorId] = await Promise.all([
     prisma.user.findUnique({

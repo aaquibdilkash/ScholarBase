@@ -237,6 +237,43 @@ export async function sendInstitutionVerificationEmail({
   }
 }
 
+export async function sendAccountRecoveredEmail({
+    recipientEmail,
+    recipientName,
+  }: {
+    recipientEmail: string;
+    recipientName?: string | null;
+  }) {
+    const safeName = escapeHtml(recipientName?.trim() || "Scholar");
+    const resend = getResendClient();
+
+    try {
+      const data = await resend.emails.send({
+        from: "ScholarBase <notifications@scholarbase.app>",
+        to: [recipientEmail],
+        subject: "Your ScholarBase account was recovered",
+        html: `
+          ${renderScholarBaseResponsiveStyles()}
+          <div class="sb-email-shell" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+            ${renderScholarBaseCompactHeader("Account recovered")}
+            <div class="sb-email-panel" style="background-color: #ffffff; padding: 32px; border-radius: 8px; border-top: 4px solid #2563eb;">
+              <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Welcome back, ${safeName}</h2>
+              <p class="sb-email-copy" style="color: #475569; font-size: 16px; line-height: 1.6;">Your ScholarBase account was recovered successfully when you signed in. Your profile and content are available again.</p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a class="sb-email-button" href="https://scholarbase.app" style="background-color: #2563eb; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Open ScholarBase</a>
+              </div>
+            </div>
+          </div>
+        `,
+      });
+
+      return { success: true, data };
+    } catch (error) {
+      console.error("Failed to send account recovery email:", error);
+      return { success: false, error };
+  }
+}
+
 /** Sends the final decision for an institutional-domain review to the submitter's chosen contact. */
 export async function sendInstitutionDomainDecisionEmail({
   recipientEmail,

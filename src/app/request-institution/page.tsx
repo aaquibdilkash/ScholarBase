@@ -29,8 +29,8 @@ export default async function RequestInstitutionPage({
     <CreateOrEditPageShell
       title="Request institution access"
       description="If your institution or research lab is not in our approved directory, send us its details for review."
-      backHref="/login"
-      backLabel="Back to sign in"
+      backHref="/"
+      backLabel="Back"
       maxWidth="sm"
       // ⚡ No `max-w-md`/`mx-auto` wrapper: that capped the card at 448px on
       // every screen wider than a phone, so it never grew with the viewport and

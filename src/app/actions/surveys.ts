@@ -1229,6 +1229,14 @@ export async function submitSurveyResponse(
       title: "Someone posted a response to your survey",
       body: surveyForValidation.title,
     });
+    await notifyFollowersOfActivity({
+      actorId: user.id,
+      type: "survey-response",
+      targetType: "survey",
+      targetId: surveyId,
+      title: "Someone participated in a survey",
+      body: surveyForValidation.title,
+    });
   }
 
   // Purge the cached survey pages: new response (totalResponses is on the card)

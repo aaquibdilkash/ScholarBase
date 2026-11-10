@@ -30,7 +30,6 @@ import { useToast } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 import {
   patchAdminContentCache,
-  adjustAdminStatsCache,
 } from "@/lib/adminCache";
 import type { AdminContentItem } from "@/types/admin";
 import type { ModerationAction } from "@/types/reports";
@@ -41,8 +40,6 @@ const clsx = (...inputs: Array<string | false | null | undefined>) =>
 interface AdminActionsDropdownProps {
   contentType: string;
   contentId: string;
-  /** Admin sidebar section id — used to patch stats cards optimistically. */
-  sectionId: string;
   /** Current report count — shown as a badge in the trigger */
   reportCount?: number;
   /** Comments have no isFrozen flag — hide the Freeze option for them. */
@@ -76,7 +73,6 @@ interface AdminActionsDropdownProps {
 export function AdminActionsDropdown({
   contentType,
   contentId,
-  sectionId,
   reportCount = 0,
   showFreeze = true,
   disabled = false,
@@ -213,11 +209,8 @@ export function AdminActionsDropdown({
       if (Object.keys(syncPatch).length > 0) {
         patchAdminContentCache(queryClient, contentId, syncPatch);
       }
-      if (result.action === "DELETE") {
-        adjustAdminStatsCache(queryClient, sectionId, -1);
-      } else if (result.action === "RECOVER") {
-        adjustAdminStatsCache(queryClient, sectionId, 1);
-      }
+      // Moderation is a soft delete. Admin stats count persisted rows, so a
+      // delete/recovery does not change the server-side section total.
       // Notify the parent (used by the Appeals tab to sync entityStatus).
       onMutated?.({
         action: result.action,

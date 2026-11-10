@@ -52,6 +52,9 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: vi.fn(),
   loadContentPage: vi.fn(async () => []),
 }));
+vi.mock("@/lib/tri-split/modules/profile-tab", () => ({
+  revalidateProfileContent: vi.fn(),
+}));
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: true })),
   enforceRateLimit: vi.fn(async () => {}),

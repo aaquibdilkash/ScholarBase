@@ -717,6 +717,14 @@ describe("submitSurveyResponse — first submission", () => {
       title: "Someone posted a response to your survey",
       body: "Research survey",
     });
+    expect(notifyFollowersOfActivity).toHaveBeenCalledWith({
+      actorId: RESPONDENT,
+      type: "survey-response",
+      targetType: "survey",
+      targetId: "survey-1",
+      title: "Someone participated in a survey",
+      body: "Research survey",
+    });
   });
 
   it("does NOT notify the author when the response is anonymous", async () => {
@@ -725,6 +733,7 @@ describe("submitSurveyResponse — first submission", () => {
     await submit(responseForm([{ questionId: "q1", value: "a" }], { isAnonymous: "true" }));
 
     expect(notifyUserById).not.toHaveBeenCalled();
+    expect(notifyFollowersOfActivity).not.toHaveBeenCalled();
   });
 
   it("does NOT notify the author when the survey is ANONYMOUS", async () => {
@@ -733,6 +742,7 @@ describe("submitSurveyResponse — first submission", () => {
     await submit(responseForm([{ questionId: "q1", value: "a" }], { isAnonymous: "false" }));
 
     expect(notifyUserById).not.toHaveBeenCalled();
+    expect(notifyFollowersOfActivity).not.toHaveBeenCalled();
   });
 
   it("does not award reputation when the write fails part-way", async () => {

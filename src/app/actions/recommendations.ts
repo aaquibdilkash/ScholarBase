@@ -124,6 +124,9 @@ export async function createRecommendation(
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { success: false, error: "Rating must be between 1 and 5." };
+  }
 
   const turnaroundTimeDays = Number.parseInt(
     readFormValue(formData, "turnaroundTimeDays"),
@@ -254,6 +257,7 @@ export async function createRecommendation(
     });
   }
 
+  revalidateProfileContent(user.id);
   return { success: true, data: recommendation };
 }
 
@@ -268,6 +272,9 @@ export async function updateRecommendation(
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_RECOMMENDATION_FEEDBACK, "Feedback");
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { success: false as const, error: "Rating must be between 1 and 5." };
+  }
 
   const turnaroundTimeDays = Number.parseInt(
     readFormValue(formData, "turnaroundTimeDays"),
@@ -359,18 +366,14 @@ export async function updateRecommendation(
       }
 
       // Materialized supervisor aggregates (Rule 2/3): a rating edit shifts
-      // the running sum; an anonymity flip shifts the count.
+      // the running sum. Anonymity only affects the author's profile surface,
+      // not the supervisor's total recommendation aggregate.
       const ratingDelta = rating - recommendation.rating;
-      const countDelta =
-        recommendation.isAnonymous === isAnonymous ? 0 : isAnonymous ? -1 : 1;
       await tx.supervisor.update({
         where: { id: recommendation.supervisorId },
         data: {
           ...(ratingDelta !== 0
             ? { ratingSum: { increment: ratingDelta } }
-            : {}),
-          ...(countDelta !== 0
-            ? { recommendationCount: { increment: countDelta } }
             : {}),
         },
       });
@@ -378,6 +381,7 @@ export async function updateRecommendation(
       return updated;
     });
 
+    revalidateProfileContent(recommendation.authorId);
     return { success: true as const, data: updatedRecommendation };
   } catch (error) {
     if (

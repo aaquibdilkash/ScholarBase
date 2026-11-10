@@ -30,11 +30,17 @@ export default async function ScholarSettingsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ tab?: string | string[] }>;
+  searchParams?: Promise<{
+    tab?: string | string[];
+    institution?: string | string[];
+  }>;
 }) {
   const { id } = await params;
-  const { tab } = (await searchParams) ?? {};
+  const { tab, institution } = (await searchParams) ?? {};
   const activeTab = resolveSettingsTab(tab);
+  const verificationStatus = Array.isArray(institution)
+    ? institution[0]
+    : institution;
   const supabase = await createClient();
   const {
     data: { user },
@@ -114,6 +120,7 @@ export default async function ScholarSettingsPage({
               institutionVerificationExpiresAt={
                 profile.institutionVerificationExpiresAt
               }
+              verificationStatus={verificationStatus}
             />
             <DeleteAccountForm />
           </section>

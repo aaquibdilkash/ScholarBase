@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import {
   getMoreMessages,
   editMessage,
@@ -121,126 +127,131 @@ function MessageThread({
   );
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-   const observerTarget = useRef<HTMLDivElement | null>(null);
-   const containerRef = useRef<HTMLDivElement | null>(null);
-   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-   const sentinelWasVisibleRef = useRef(false);
-   const userId = user?.id;
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const sentinelWasVisibleRef = useRef(false);
+  const userId = user?.id;
 
-    const getScrollContainer = useCallback(() => {
-      const container = containerRef.current;
-      if (!container) return null;
-      let el: HTMLElement | null = container.parentElement;
-      while (el) {
-        const style = getComputedStyle(el);
-        if (
-          style.overflowY === "auto" ||
-          style.overflowY === "scroll" ||
-          style.overflow === "auto" ||
-          style.overflow === "scroll"
-        ) {
-          return el;
-        }
-        el = el.parentElement;
+  const getScrollContainer = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return null;
+    let el: HTMLElement | null = container.parentElement;
+    while (el) {
+      const style = getComputedStyle(el);
+      if (
+        style.overflowY === "auto" ||
+        style.overflowY === "scroll" ||
+        style.overflow === "auto" ||
+        style.overflow === "scroll"
+      ) {
+        return el;
       }
-      return null;
-    }, []);
+      el = el.parentElement;
+    }
+    return null;
+  }, []);
 
-   const initialRenderRef = useRef(true);
-   const previousMessageCount = useRef(initialMessages.length);
-   const currentMessagesRef = useRef<SentMessage[]>([]);
-   // Whether the NEXT messages update is a prepend of older history rather than
-   // an append. This used to be inferred from
-   // `messages.length > previousMessageCount`, which is true for BOTH a prepend
-   // and a newly arrived message — so an incoming message took the prepend
-   // branch and ran `scrollTop = heightDiff`, scrolling up by the height of the
-   // new bubble instead of down to it. loadMore() now sets the flag explicitly.
-   const pendingPrependRef = useRef(false);
-   const prependedScrollHeightRef = useRef<number | null>(null);
-   // Synchronous twin of `isLoadingMore`: two intersection callbacks can run in
-   // the same tick, before React re-renders, and both would fetch the same page.
-   const isLoadingMoreRef = useRef(false);
+  const initialRenderRef = useRef(true);
+  const previousMessageCount = useRef(initialMessages.length);
+  const currentMessagesRef = useRef<SentMessage[]>([]);
+  // Whether the NEXT messages update is a prepend of older history rather than
+  // an append. This used to be inferred from
+  // `messages.length > previousMessageCount`, which is true for BOTH a prepend
+  // and a newly arrived message — so an incoming message took the prepend
+  // branch and ran `scrollTop = heightDiff`, scrolling up by the height of the
+  // new bubble instead of down to it. loadMore() now sets the flag explicitly.
+  const pendingPrependRef = useRef(false);
+  const prependedScrollHeightRef = useRef<number | null>(null);
+  // Synchronous twin of `isLoadingMore`: two intersection callbacks can run in
+  // the same tick, before React re-renders, and both would fetch the same page.
+  const isLoadingMoreRef = useRef(false);
 
-   useEffect(() => {
-     currentMessagesRef.current = messages;
-   }, [messages]);
+  useEffect(() => {
+    currentMessagesRef.current = messages;
+  }, [messages]);
 
-   useLayoutEffect(() => {
-     const scrollContainer = getScrollContainer();
+  useLayoutEffect(() => {
+    const scrollContainer = getScrollContainer();
 
-     if (initialRenderRef.current) {
-       if (scrollContainer) {
-         scrollContainer.scrollTop = scrollContainer.scrollHeight;
-       }
-       initialRenderRef.current = false;
-       return;
-     }
-
-     if (!scrollContainer) {
-       previousMessageCount.current = messages.length;
-       return;
-     }
-
-     if (pendingPrependRef.current) {
-       // Older history was prepended above the viewport. Anchor the reader to
-       // the same message by compensating for the height added above them.
-       pendingPrependRef.current = false;
-       const oldScrollHeight = prependedScrollHeightRef.current;
-       prependedScrollHeightRef.current = null;
-       if (oldScrollHeight !== null) {
-         scrollContainer.scrollTop +=
-           scrollContainer.scrollHeight - oldScrollHeight;
-       }
-       previousMessageCount.current = messages.length;
-       return;
-     }
-
-     if (messages.length > previousMessageCount.current) {
-       // A message was appended — sent by us, or received from the other
-       // participant. Bring it into view instead of leaving it off-screen.
-       scrollContainer.scrollTop = scrollContainer.scrollHeight;
-     }
-
-     previousMessageCount.current = messages.length;
-   }, [messages, getScrollContainer]);
-
-    const loadMore = useCallback(async () => {
-      if (isLoadingMoreRef.current || isLoadingMore || !hasMore || messages.length === 0)
-        return;
-      isLoadingMoreRef.current = true;
-      setIsLoadingMore(true);
-
-      const scrollContainer = getScrollContainer();
+    if (initialRenderRef.current) {
       if (scrollContainer) {
-        prependedScrollHeightRef.current = scrollContainer.scrollHeight;
-        pendingPrependRef.current = true;
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
+      initialRenderRef.current = false;
+      return;
+    }
 
-      try {
-        const cursor = messages[0].id;
-        const olderMessages = await getMoreMessages(conversationId, cursor);
-        if (olderMessages.length < MESSAGE_THREAD_PAGE_SIZE) setHasMore(false);
+    if (!scrollContainer) {
+      previousMessageCount.current = messages.length;
+      return;
+    }
 
-        setMessages((prev) => {
-          const formattedOlder = [...olderMessages].reverse() as SentMessage[];
-          const next = prependOlderMessages(prev, formattedOlder);
-          if (next === prev) {
-            // Everything in the page was already rendered: drop the pending
-            // prepend marker so the next append is not mistaken for history.
-            pendingPrependRef.current = false;
-            prependedScrollHeightRef.current = null;
-          }
-          return next;
-        });
-      } catch (error) {
-        pendingPrependRef.current = false;
-        prependedScrollHeightRef.current = null;
-        console.error("Failed to load more messages", error);
-      } finally {
-        isLoadingMoreRef.current = false;
-        setIsLoadingMore(false);
+    if (pendingPrependRef.current) {
+      // Older history was prepended above the viewport. Anchor the reader to
+      // the same message by compensating for the height added above them.
+      pendingPrependRef.current = false;
+      const oldScrollHeight = prependedScrollHeightRef.current;
+      prependedScrollHeightRef.current = null;
+      if (oldScrollHeight !== null) {
+        scrollContainer.scrollTop +=
+          scrollContainer.scrollHeight - oldScrollHeight;
       }
-    }, [isLoadingMore, hasMore, messages, conversationId, getScrollContainer]);
+      previousMessageCount.current = messages.length;
+      return;
+    }
+
+    if (messages.length > previousMessageCount.current) {
+      // A message was appended — sent by us, or received from the other
+      // participant. Bring it into view instead of leaving it off-screen.
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    }
+
+    previousMessageCount.current = messages.length;
+  }, [messages, getScrollContainer]);
+
+  const loadMore = useCallback(async () => {
+    if (
+      isLoadingMoreRef.current ||
+      isLoadingMore ||
+      !hasMore ||
+      messages.length === 0
+    )
+      return;
+    isLoadingMoreRef.current = true;
+    setIsLoadingMore(true);
+
+    const scrollContainer = getScrollContainer();
+    if (scrollContainer) {
+      prependedScrollHeightRef.current = scrollContainer.scrollHeight;
+      pendingPrependRef.current = true;
+    }
+
+    try {
+      const cursor = messages[0].id;
+      const olderMessages = await getMoreMessages(conversationId, cursor);
+      if (olderMessages.length < MESSAGE_THREAD_PAGE_SIZE) setHasMore(false);
+
+      setMessages((prev) => {
+        const formattedOlder = [...olderMessages].reverse() as SentMessage[];
+        const next = prependOlderMessages(prev, formattedOlder);
+        if (next === prev) {
+          // Everything in the page was already rendered: drop the pending
+          // prepend marker so the next append is not mistaken for history.
+          pendingPrependRef.current = false;
+          prependedScrollHeightRef.current = null;
+        }
+        return next;
+      });
+    } catch (error) {
+      pendingPrependRef.current = false;
+      prependedScrollHeightRef.current = null;
+      console.error("Failed to load more messages", error);
+    } finally {
+      isLoadingMoreRef.current = false;
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, messages, conversationId, getScrollContainer]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -401,9 +412,7 @@ function MessageThread({
     // outbox instead of being hydrated next to its confirmed copy.
     const outbox = getOutboxForConversation(conversationId).filter(
       (pending) => {
-        if (
-          isPendingMessageDelivered(pending, currentMessagesRef.current)
-        ) {
+        if (isPendingMessageDelivered(pending, currentMessagesRef.current)) {
           removePendingMessage(conversationId, pending.id);
           return false;
         }
@@ -501,11 +510,12 @@ function MessageThread({
       const previous = messages.find((m) => m.id === messageId);
       // Optimistic UI: update instantly, reconcile with the server result.
       setMessages((current) =>
-        current.map((m) =>
-          m.id === messageId
-            ? { ...m, body: newBody, editedAt: new Date() }
-            : m,
-        ),
+        applyMessageUpdate(current, {
+          id: messageId,
+          body: newBody,
+          editedAt: new Date(),
+          isDeleted: false,
+        }),
       );
       const result = await editMessage(messageId, newBody);
       if (result && "error" in result) {

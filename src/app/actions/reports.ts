@@ -21,6 +21,7 @@ import {
 } from "@/lib/activity";
 import { Prisma } from "@prisma/client";
 import { queueNotification } from "@/lib/qstash";
+import { sendAccountRecoveredEmail } from "@/lib/email";
 
 // -----------------------------------------------------------------------------
 // MODULE MODEL MAP
@@ -656,6 +657,7 @@ export async function moderateContent(
    * target's id and never the moderator's.
    */
   let moderatedAuthorId: string | null | undefined;
+  let recoveredProfile = false;
 
   try {
     const isCommentType = Object.prototype.hasOwnProperty.call(
@@ -1228,6 +1230,7 @@ export async function moderateContent(
         if (!full) throw new Error("Content not found");
 
         if (entity.isDeleted) {
+          recoveredProfile = contentType === "SCHOLAR_PROFILE";
           if (full.authorId) {
             // Re-grant exactly what the delete reversed: the vote-derived
             // reputation for every content type…
@@ -1378,6 +1381,21 @@ export async function moderateContent(
       action === "RECOVER")
   ) {
     revalidateContent(listKey, moderatedAuthorId);
+  }
+
+  if (recoveredProfile) {
+    const recoveredUser = await prisma.user.findUnique({
+      where: { id: contentId },
+      select: { email: true, name: true },
+    });
+    if (recoveredUser?.email) {
+      void sendAccountRecoveredEmail({
+        recipientEmail: recoveredUser.email,
+        recipientName: recoveredUser.name,
+      }).catch((error) => {
+        console.error("Account recovery email error:", error);
+      });
+    }
   }
 
   return result;

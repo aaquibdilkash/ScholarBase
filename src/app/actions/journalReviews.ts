@@ -249,6 +249,9 @@ export async function createJournalReview(
   }
 
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { success: false as const, error: "Rating must be between 1 and 5." };
+  }
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_JOURNAL_REVIEW_FEEDBACK, "Feedback");
   const outcome = readFormValue(formData, "outcome") as JournalOutcome;
@@ -391,6 +394,9 @@ export async function updateJournalReview(
   });
 
   const rating = Number.parseInt(readFormValue(formData, "rating"), 10);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return { success: false as const, error: "Rating must be between 1 and 5." };
+  }
   const feedback = readFormValue(formData, "feedback");
   assertRichTextWithinLimit(feedback, MAX_JOURNAL_REVIEW_FEEDBACK, "Feedback");
   const outcome = readFormValue(formData, "outcome") as JournalOutcome;
