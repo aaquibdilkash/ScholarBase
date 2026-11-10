@@ -62,6 +62,9 @@ export function CommentSection({
     initialComments.length > COMMENT_PAGE_SIZE,
   );
   const [parentsExpanded, setParentsExpanded] = useState(false);
+  const [canCollapseParents, setCanCollapseParents] = useState(
+    initialComments.length > COMMENT_PAGE_SIZE,
+  );
 
   const [content, setContent] = useState("");
   const [mentionedUsers, setMentionedUsers] = useState<MentionUser[]>([]);
@@ -95,6 +98,7 @@ export function CommentSection({
         ? current.map((comment) => comment.id === anchor.id ? { ...comment, replies: anchor.replies } : comment)
         : [anchor, ...current]);
       setParentsExpanded(true);
+      setCanCollapseParents(true);
       requestAnimationFrame(() => setTimeout(() => document.getElementById(`comment-${commentId}`)?.scrollIntoView({ block: "center" }), 0));
     }).catch(() => {
       anchorLoaded.current = null;
@@ -180,6 +184,7 @@ export function CommentSection({
       const next = await fetchParentComments(module, targetId, parentSkip);
       if (next && next.length > 0) {
         setParentsExpanded(true);
+        setCanCollapseParents(true);
         // Drop any rows we already hold (offset overlap after a head insert).
         setParents((prev) => {
           const seen = new Set(prev.map((c) => c.id));
@@ -338,7 +343,7 @@ export function CommentSection({
             </div>
           )}
 
-          {(hasMore || parentsExpanded || parents.length > COMMENT_PAGE_SIZE) && (
+          {(hasMore || canCollapseParents) && (
             <button
               type="button"
               onClick={() => {

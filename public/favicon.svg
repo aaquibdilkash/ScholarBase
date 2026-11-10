@@ -7,8 +7,8 @@
     dominant-baseline="central"
     font-family="'DejaVu Sans', system-ui, sans-serif"
     font-weight="bold"
-    font-size="24"
-    letter-spacing="-1.5"
+    font-size="31"
+    letter-spacing="-2"
   >
     <tspan fill="#ffffff">S</tspan><tspan fill="#3b82f6">B</tspan>
   </text>

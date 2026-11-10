@@ -42,12 +42,15 @@ export async function getArticles(
   }) as Promise<ArticleWithAuthor[]>;
 }
 
-export const getArticle = cache(async (slug: string, userId?: string) => {
+export const getArticle = cache(async (slugOrId: string, userId?: string) => {
   // RULE 6: The query is already optimized. All server-side data mapping
   // has been removed. The client is now responsible for deriving state
   // like `isFollowing` and `userVote` from the raw `followers` and `votes` arrays.
-  return prisma.article.findUnique({
-    where: { slug, isDeleted: false },
+  return prisma.article.findFirst({
+    where: {
+      isDeleted: false,
+      OR: [{ slug: slugOrId }, { id: slugOrId }],
+    },
     select: {
       id: true,
       slug: true,
@@ -186,7 +189,7 @@ export async function createArticle(formData: FormData) {
       actorId: user.id,
       type: "content-published",
       targetType: "Article",
-      targetId: article.slug,
+      targetId: article.id,
       title: `${user.user_metadata?.name || user.email?.split("@")[0] || "Someone"} published a new article`,
       body: article.title,
     }),
@@ -195,7 +198,7 @@ export async function createArticle(formData: FormData) {
       content: `${title}\n${content}`,
       type: "mention",
       targetType: "Article",
-      targetId: article.slug,
+      targetId: article.id,
       titleFactory: (handle) => `@${handle} was mentioned in an article`,
       bodyFactory: () => article.title,
     }),
