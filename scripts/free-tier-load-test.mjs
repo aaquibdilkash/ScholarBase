@@ -24,7 +24,7 @@ const getRoutes = [
   "/publications",
   "/grants",
   "/careers",
-  "/events",
+  "/call-for-papers",
   "/results",
   "/blog",
   "/learn",

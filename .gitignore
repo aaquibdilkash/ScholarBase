@@ -69,3 +69,7 @@ skills-lock.json
 
 # python venv for scripts/
 .venv/
+
+# local opportunity importer and generated review data
+/scripts/opportunity-importer/
+/opportunity-review.json

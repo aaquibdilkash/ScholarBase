@@ -11,7 +11,7 @@ import {
   buildPhdAdmissionText,
   buildPublicationText,
   buildRecommendationText,
-  buildResearchEventText,
+  buildCallForPaperText,
   buildResearchGrantText,
   buildResearchSurveyText,
   buildResearchToolText,
@@ -203,7 +203,7 @@ describe("semantic text projections", () => {
 
   it("combines event fields", () => {
     expect(
-      buildResearchEventText({
+      buildCallForPaperText({
         title: "Graphs workshop",
         location: "Bengaluru",
         description: "Two days of applied graph theory.",

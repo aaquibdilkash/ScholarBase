@@ -45,7 +45,7 @@ export async function toggleContentFreeze(
     researchGrant: prisma.researchGrant,
     course: prisma.course,
     admission: prisma.phdAdmission,
-    event: prisma.researchEvent,
+    event: prisma.callForPaper,
     vacancy: prisma.jobVacancy,
     help: prisma.helpPost,
     result: prisma.result,
@@ -153,7 +153,7 @@ export async function getAdminStats() {
         'ResearchGrant',
         'Course',
         'PhdAdmission',
-        'ResearchEvent',
+        'CallForPaper',
         'JobVacancy',
         'HelpPost',
         'Result',
@@ -184,7 +184,7 @@ export async function getAdminStats() {
     researchGrants: estimate("ResearchGrant"),
     courses: estimate("Course"),
     admissions: estimate("PhdAdmission"),
-    events: estimate("ResearchEvent"),
+    events: estimate("CallForPaper"),
     vacancies: estimate("JobVacancy"),
     help: estimate("HelpPost"),
     results: estimate("Result"),
@@ -539,7 +539,7 @@ export async function getAdminAppeals(
     result: prisma.result,
     contribution: prisma.contribution,
     help: prisma.helpPost,
-    event: prisma.researchEvent,
+    event: prisma.callForPaper,
     admission: prisma.phdAdmission,
     vacancy: prisma.jobVacancy,
     supervisor: prisma.supervisor,
@@ -557,7 +557,7 @@ export async function getAdminAppeals(
     journalComment: prisma.journalComment,
     resultComment: prisma.resultComment,
     surveyComment: prisma.surveyComment,
-    researchEventComment: prisma.researchEventComment,
+    callForPaperComment: prisma.callForPaperComment,
     admissionComment: prisma.phdAdmissionComment,
     vacancyComment: prisma.jobVacancyComment,
     supervisorComment: prisma.supervisorComment,
@@ -578,7 +578,7 @@ export async function getAdminAppeals(
     journalComment: { fk: "journalId", parentCt: "journal" },
     resultComment: { fk: "resultId", parentCt: "result" },
     surveyComment: { fk: "surveyId", parentCt: "survey" },
-    researchEventComment: { fk: "researchEventId", parentCt: "event" },
+    callForPaperComment: { fk: "callForPaperId", parentCt: "event" },
     admissionComment: { fk: "phdAdmissionId", parentCt: "admission" },
     vacancyComment: { fk: "jobVacancyId", parentCt: "vacancy" },
     supervisorComment: { fk: "supervisorId", parentCt: "supervisor" },
@@ -669,7 +669,7 @@ export async function getAdminAppeals(
       else if (linkCt === "researchGrant")
         detailHref = `/grants/${linkId}`;
       else if (linkCt === "course") detailHref = `/learn/${linkId}`;
-      else if (linkCt === "event") detailHref = `/events/${linkId}`;
+      else if (linkCt === "event") detailHref = `/call-for-papers/${linkId}`;
       else if (linkCt === "vacancy") detailHref = `/vacancies/${linkId}`;
       else if (linkCt === "admission")
         detailHref = `/admissions/${linkId}`;
@@ -885,7 +885,7 @@ export async function getAdminContent(
       researchGrants: { modelKey: "researchGrantComment", model: prisma.researchGrantComment as unknown as AdminCommentModel },
       courses: { modelKey: "courseComment", model: prisma.courseComment as unknown as AdminCommentModel },
       admissions: { modelKey: "admissionComment", model: prisma.phdAdmissionComment as unknown as AdminCommentModel },
-      events: { modelKey: "researchEventComment", model: prisma.researchEventComment as unknown as AdminCommentModel },
+      events: { modelKey: "callForPaperComment", model: prisma.callForPaperComment as unknown as AdminCommentModel },
       vacancies: { modelKey: "vacancyComment", model: prisma.jobVacancyComment as unknown as AdminCommentModel },
       help: { modelKey: "helpComment", model: prisma.helpPostComment as unknown as AdminCommentModel },
       results: { modelKey: "resultComment", model: prisma.resultComment as unknown as AdminCommentModel },
@@ -974,8 +974,8 @@ export async function getAdminContent(
         detailHref: (item) => `/admissions/${item.id}`,
       },
       events: {
-        model: prisma.researchEvent,
-        detailHref: (item) => `/events/${item.id}`,
+        model: prisma.callForPaper,
+        detailHref: (item) => `/call-for-papers/${item.id}`,
       },
       vacancies: {
         model: prisma.jobVacancy,

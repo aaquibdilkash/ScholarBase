@@ -3,22 +3,22 @@ import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: SEO_PAGES.events.title,
-  description: SEO_PAGES.events.description,
-  path: SEO_PAGES.events.path,
-  section: SEO_PAGES.events.section,
+  title: SEO_PAGES.callForPapers.title,
+  description: SEO_PAGES.callForPapers.description,
+  path: SEO_PAGES.callForPapers.path,
+  section: SEO_PAGES.callForPapers.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
-import { EventsList } from "@/components/events/EventsList";
-import { getTrendingEvents } from "@/lib/trending";
+import { CallForPapersList } from "@/components/call-for-papers/CallForPapersList";
+import { getTrendingCallForPapers } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { getEvents } from "@/app/actions/events";
+import { getCallForPapers } from "@/app/actions/call-for-papers";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 
-export default async function EventsPage({
+export default async function CallForPapersPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
@@ -30,14 +30,14 @@ export default async function EventsPage({
 
   return (
     <ListPageShell
-      title={LIST_PAGE_TEXT.events.title}
-      description={LIST_PAGE_TEXT.events.description}
-      addHref="/events/add"
-      addLabel="+ Add Event"
+      title={LIST_PAGE_TEXT.callForPapers.title}
+      description={LIST_PAGE_TEXT.callForPapers.description}
+      addHref="/call-for-papers/add"
+      addLabel="+ Add Call for Papers"
       tab={tab}
       enableTrending={true}
-      allHref="/events"
-      trendingHref="/events?tab=trending"
+      allHref="/call-for-papers"
+      trendingHref="/call-for-papers?tab=trending"
       trending={
         <AsyncListRegion
           fetcher={async () => {
@@ -46,7 +46,7 @@ export default async function EventsPage({
               data: { user },
             } = await supabase.auth.getUser();
             const items =
-              (await getTrendingEvents()) as unknown as TrendingItem[];
+              (await getTrendingCallForPapers()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -63,13 +63,13 @@ export default async function EventsPage({
             const {
               data: { user },
             } = await supabase.auth.getUser();
-            const events = await getEvents(q ?? "", 10);
-            return { events, userId: user?.id };
+            const callForPapers = await getCallForPapers(q ?? "", 10);
+            return { callForPapers, userId: user?.id };
           }}
         >
-          {({ events, userId }) => (
-            <EventsList
-              events={events}
+          {({ callForPapers, userId }) => (
+            <CallForPapersList
+              callForPapers={callForPapers}
               currentUserId={userId}
               initialQuery={q ?? ""}
             />

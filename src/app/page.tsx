@@ -87,9 +87,9 @@ export default async function HomePage() {
       icon: <Star className="h-8 w-8" />,
     },
     {
-      title: "Events",
+      title: "Call for Papers",
       description: "Academic conferences, workshops, and seminars.",
-      href: "/events",
+      href: "/call-for-papers",
       icon: <Calendar className="h-8 w-8" />,
     },
     {

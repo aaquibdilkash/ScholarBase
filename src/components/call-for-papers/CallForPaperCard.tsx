@@ -7,7 +7,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
-import { deleteResearchEvent } from "@/app/actions/events";
+import { deleteCallForPaper } from "@/app/actions/call-for-papers";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
@@ -16,14 +16,15 @@ import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import { Calendar, Clock, MapPin } from "lucide-react";
-import type { EventWithAuthor } from "@/types/cards";
+import type { CallForPaperWithAuthor } from "@/types/cards";
 import { RichContent } from "../content/RichContent";
+import { getCallForPaperCategoryLabel } from "@/lib/call-for-papers";
 
-export function EventCard({
+export function CallForPaperCard({
   event,
   currentUserId,
 }: {
-  event: EventWithAuthor;
+  event: CallForPaperWithAuthor;
   currentUserId?: string;
 }) {
   const queryClient = useQueryClient();
@@ -36,20 +37,22 @@ export function EventCard({
   // Share payload: mirror events/[id]/page.tsx generateMetadata().
   const shareTitle = event.title;
   const eventLocation = event.location ? ` at ${event.location}` : "";
-  const shareText = `Academic event / conference${eventLocation}. ${new Date(
-    event.date,
-  ).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })}.`;
+  const shareText = `Call for papers${eventLocation}. ${
+    event.eventDate
+      ? new Date(event.eventDate).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "Date to be announced"
+  }.`;
 
   return (
     <ListPageCardShell
-      // The list card must surface the same moderation state as /events/[id].
+      // The list card must surface the same moderation state as /call-for-papers/[id].
       isFrozen={event.isFrozen ?? false}
       frozenEntityId={event.id}
-      frozenModule="RESEARCH_EVENT"
+      frozenModule="CALL_FOR_PAPER"
       frozenEntityType="POST"
       frozenOwnerId={event.author?.id ?? null}
       frozenHasActiveAppeal={event.hasActiveAppeal ?? false}
@@ -60,22 +63,22 @@ export function EventCard({
       currentUserId={currentUserId}
       authorHandle={event.author?.handle || undefined}
       authorAvatarUrl={event.author?.avatarUrl || undefined} authorVerified={!!(event.author?.institutionVerifiedAt)}
-      detailPageHref={`/events/${event.id}`}
+      detailPageHref={`/call-for-papers/${event.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
-            editHref={`/events/${event.id}/edit`}
+            editHref={`/call-for-papers/${event.id}/edit`}
             isOwner={true}
             onDelete={async () => {
               try {
-                const response = await deleteResearchEvent(event.id);
+                const response = await deleteCallForPaper(event.id);
                 if (!response?.success || !response.data) {
                   toast(actionErrorMessage(response, "Failed to delete event."), "error");
                   return { refresh: false };
                 }
-                removeFromList<EventWithAuthor>(queryClient, ["events"], response.data.deletedId);
+                removeFromList<CallForPaperWithAuthor>(queryClient, ["call-for-papers"], response.data.deletedId);
                 toast("Event deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
@@ -84,7 +87,7 @@ export function EventCard({
                 return { refresh: false };
               }
             }}
-            editLabel="Edit Event"
+            editLabel="Edit Call for Papers"
             deleteLabel="Delete"
           />
         )
@@ -97,7 +100,7 @@ export function EventCard({
         <VoteButton
           frozen={event.isFrozen === true}
           targetId={event.id}
-          module="RESEARCH_EVENT"
+          module="CALL_FOR_PAPER"
           initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
           isOwnContent={isOwner}
@@ -107,18 +110,18 @@ export function EventCard({
         <BookmarkButton
           frozen={event.isFrozen === true}
           targetId={event.id}
-          module="RESEARCH_EVENT"
+          module="CALL_FOR_PAPER"
           initialTotalBookmarks={event.totalBookmarks ?? 0}
           initialIsBookmarked={Array.isArray(event.bookmarks) && event.bookmarks.length > 0}
         />
       }
-      footerCommentsHref={`/events/${event.id}`}
+      footerCommentsHref={`/call-for-papers/${event.id}`}
       footerCommentsCount={event.totalComments}
       footerReportMenu={
         <ReportMenu
           entityId={event.id}
           entityType="POST"
-          module="RESEARCH_EVENT"
+          module="CALL_FOR_PAPER"
           ownerId={event.author?.id ?? event.authorId ?? null}
           currentUserId={currentUserId ?? null}
           isFrozen={event.isFrozen ?? false}
@@ -144,7 +147,7 @@ export function EventCard({
         </div>
       }
     >
-      <Link href={`/events/${event.id}`} prefetch={false} className="block group">
+      <Link href={`/call-for-papers/${event.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {urgency && (
             <span
@@ -154,16 +157,27 @@ export function EventCard({
               {urgency.label}
             </span>
           )}
+          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+            {getCallForPaperCategoryLabel(event.category)}
+          </span>
         </div>
 
         <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
           {event.title}
         </h2>
+        {(event.publisher || event.journal) && (
+          <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
+            {event.journal?.title ?? event.publisher}
+            {event.journal?.title && event.publisher ? ` · ${event.publisher}` : ""}
+          </p>
+        )}
 
         <div className="mb-3 space-y-1.5">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
-            <span className="font-medium">{formatDate(event.date)}</span>
+            <span className="font-medium">
+              {event.eventDate ? formatDate(event.eventDate) : "Date not specified"}
+            </span>
           </div>
           {event.location && (
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">

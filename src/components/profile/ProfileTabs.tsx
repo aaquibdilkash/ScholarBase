@@ -29,7 +29,7 @@ import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
 import { VacancyCard } from "@/components/vacancies/VacancyCard";
 import { AdmissionCard } from "@/components/admissions/AdmissionCard";
-import { EventCard } from "@/components/events/EventCard";
+import { CallForPaperCard } from "@/components/call-for-papers/CallForPaperCard";
 import { HelpPostCard } from "@/components/help/HelpPostCard";
 import { JournalCard } from "@/components/journals/JournalCard";
 import { ResearchToolCard } from "@/components/research-tools/ResearchToolCard";
@@ -52,7 +52,7 @@ import {
   SocialPostType,
   VacancyType,
   AdmissionType,
-  EventType,
+  CallForPaperType,
   HelpPostType,
   JournalType,
   ResearchToolType,
@@ -159,12 +159,12 @@ const SECTIONS: SectionWithCount[] = [
       )),
   },
   {
-    key: "events",
-    title: "Research Events",
-    emptyMessage: "No research events posted yet.",
-    renderItems: (items: EventType[], currentUserId) =>
+    key: "callForPapers",
+    title: "Call for Papers",
+    emptyMessage: "No call for papers posted yet.",
+    renderItems: (items: CallForPaperType[], currentUserId) =>
       items.map((e) => (
-        <EventCard key={e.id} event={e} currentUserId={currentUserId} />
+        <CallForPaperCard key={e.id} event={e} currentUserId={currentUserId} />
       )),
   },
   {
@@ -376,7 +376,7 @@ function ProfileSectionList({
                   {section.renderItems(items as any, currentUserId)}
                 </Carousel>
                 {loadingMore === section.key && (
-                  <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+                  <div className="pointer-callForPapers-none absolute inset-0 z-10 flex items-center justify-center">
                     <div className="flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-sm font-medium text-white shadow-lg">
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       Loading more...
@@ -806,7 +806,7 @@ const ACTIVITY_META: Record<
     href: (id) => `/research-tools/${id}`,
   },
   PHD_ADMISSION: { label: "PhD admission", href: (id) => `/admissions/${id}` },
-  RESEARCH_EVENT: { label: "research event", href: (id) => `/events/${id}` },
+  CALL_FOR_PAPER: { label: "research event", href: (id) => `/call-for-papers/${id}` },
   JOB_VACANCY: { label: "job vacancy", href: (id) => `/vacancies/${id}` },
   HELP_POST: { label: "help post", href: (id) => `/help/${id}` },
   RESULT: { label: "result", href: (id) => `/results/${id}` },
@@ -829,7 +829,7 @@ const ACTIVITY_META: Record<
   ARTICLE_COMMENT: { label: "comment" },
   JOB_VACANCY_COMMENT: { label: "comment" },
   PHD_ADMISSION_COMMENT: { label: "comment" },
-  RESEARCH_EVENT_COMMENT: { label: "comment" },
+  CALL_FOR_PAPER_COMMENT: { label: "comment" },
   SUPERVISOR_COMMENT: { label: "comment" },
   RECOMMENDATION_COMMENT: { label: "comment" },
   HELP_POST_COMMENT: { label: "comment" },
@@ -862,7 +862,7 @@ const MODULE_ROUTE: Record<string, string> = {
   RESEARCH_GRANT: "/grants",
   COURSE: "/learn",
   PHD_ADMISSION: "/admissions",
-  RESEARCH_EVENT: "/events",
+  CALL_FOR_PAPER: "/call-for-papers",
   JOB_VACANCY: "/vacancies",
   HELP_POST: "/help",
   RESULT: "/results",

@@ -5,28 +5,28 @@ import { useIsFetching } from "@tanstack/react-query";
 import { useListSearch } from "@/hooks/useListSearch";
 import { listEmptyMessage } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { EventCard } from "./EventCard";
-import type { EventWithAuthor } from "@/types/cards";
+import { CallForPaperCard } from "./CallForPaperCard";
+import type { CallForPaperWithAuthor } from "@/types/cards";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
-import { getEvents } from "@/app/actions/events";
+import { getCallForPapers } from "@/app/actions/call-for-papers";
 
-export function EventsList({
-  events,
+export function CallForPapersList({
+  callForPapers,
   currentUserId,
   initialQuery,
 }: {
-  events: EventWithAuthor[];
+  callForPapers: CallForPaperWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {
   const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } = useListSearch(
-    "/events",
+    "/call-for-papers",
     initialQuery,
   );
   // Client-side search: the key tracks the applied term, so a new term fetches
   // its own first page instead of navigating and remounting the page.
   const queryKey = useMemo(
-    () => ["events", appliedQuery] as const,
+    () => ["callForPapers", appliedQuery] as const,
     [appliedQuery],
   );
   const isFetching = useIsFetching({ queryKey, exact: true }) > 0;
@@ -47,20 +47,20 @@ export function EventsList({
           className="mb-4"
         />
       </form>
-      <CacheBackedList<EventWithAuthor>
+      <CacheBackedList<CallForPaperWithAuthor>
         queryKey={queryKey}
-        initialItems={isServerQuery ? events : undefined}
+        initialItems={isServerQuery ? callForPapers : undefined}
         keepPreviousOnKeyChange
-        fetchPage={(cursor) => getEvents(appliedQuery, 10, cursor)}
+        fetchPage={(cursor) => getCallForPapers(appliedQuery, 10, cursor)}
         renderItem={(event) => (
-          <EventCard
+          <CallForPaperCard
             key={event.id}
             event={event}
             currentUserId={currentUserId}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage={listEmptyMessage(appliedQuery, "No research events posted yet.")}
+        emptyMessage={listEmptyMessage(appliedQuery, "No call for papers posted yet.")}
       />
     </div>
   );

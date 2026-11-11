@@ -134,9 +134,9 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "helpPost",
     reportCountField: "reportCount",
   },
-  RESEARCH_EVENT: {
-    delegate: prisma.researchEvent as unknown as ModuleConfig["delegate"],
-    model: "researchEvent",
+  CALL_FOR_PAPER: {
+    delegate: prisma.callForPaper as unknown as ModuleConfig["delegate"],
+    model: "callForPaper",
     reportCountField: "reportCount",
   },
   PHD_ADMISSION: {
@@ -210,9 +210,9 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "surveyComment",
     reportCountField: "reportCount",
   },
-  RESEARCH_EVENT_COMMENT: {
-    delegate: prisma.researchEventComment as unknown as ModuleConfig["delegate"],
-    model: "researchEventComment",
+  CALL_FOR_PAPER_COMMENT: {
+    delegate: prisma.callForPaperComment as unknown as ModuleConfig["delegate"],
+    model: "callForPaperComment",
     reportCountField: "reportCount",
   },
   PHD_ADMISSION_COMMENT: {

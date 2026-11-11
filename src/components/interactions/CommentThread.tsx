@@ -52,7 +52,7 @@ const COMMENT_REPORT_MODULE: Record<CommentEntityType, ReportModule> = {
   article: "ARTICLE_COMMENT",
   vacancy: "JOB_VACANCY_COMMENT",
   admission: "PHD_ADMISSION_COMMENT",
-  event: "RESEARCH_EVENT_COMMENT",
+  event: "CALL_FOR_PAPER_COMMENT",
   supervisor: "SUPERVISOR_COMMENT",
     recommendation: "RECOMMENDATION_COMMENT",
   journalReview: "JOURNAL_REVIEW_COMMENT",

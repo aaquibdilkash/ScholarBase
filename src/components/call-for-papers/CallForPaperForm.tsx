@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { updateResearchEvent, createResearchEvent } from "@/app/actions/events";
+import { updateCallForPaper, createCallForPaper } from "@/app/actions/call-for-papers";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { useFormSubmit } from "@/hooks/useFormSubmit";
@@ -13,16 +13,19 @@ import { CautionNote } from "@/components/ui/CautionNote";
 import { getTodayString } from "@/lib/date";
 import {
   MAX_EVENT_TITLE,
+  MAX_EVENT_PUBLISHER,
   MAX_EVENT_LOCATION,
   MAX_EVENT_NOTIFICATION_LINK,
   MAX_EVENT_APPLY_LINK,
   MAX_EVENT_DESCRIPTION,
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
-import type { EventWithAuthor } from "@/types/cards";
+import type { CallForPaperWithAuthor } from "@/types/cards";
+import { JournalPicker } from "./JournalPicker";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   EVENT_TITLE_TIP,
+  EVENT_PUBLISHER_TIP,
   EVENT_DATE_TIP,
   EVENT_LOCATION_TIP,
   EVENT_DEADLINE_TIP,
@@ -31,9 +34,13 @@ import {
   EVENT_APPLY_LINK_TIP,
 } from "@/constants/tooltips";
 
-export type EventFormValues = {
+export type CallForPaperFormValues = {
   title: string;
-  date: string;
+  category: string;
+  publisher: string;
+  journalId: string;
+  journal: string;
+  eventDate: string;
   location: string;
   description: string;
   deadline: string;
@@ -41,19 +48,23 @@ export type EventFormValues = {
   applyLink: string;
 };
 
-export default function EventForm({
+export default function CallForPaperForm({
   mode,
   eventId,
   initialValues,
 }: {
   mode: "create" | "edit";
   eventId?: string;
-  initialValues?: Partial<EventFormValues>;
+  initialValues?: Partial<CallForPaperFormValues>;
 }) {
   const router = useRouter();
   const initial = {
     title: initialValues?.title ?? "",
-    date: initialValues?.date ?? "",
+    category: initialValues?.category ?? "CONFERENCE",
+    publisher: initialValues?.publisher ?? "",
+    journalId: initialValues?.journalId ?? "",
+    journal: initialValues?.journal ?? "",
+    eventDate: initialValues?.eventDate ?? "",
     location: initialValues?.location ?? "",
     description: initialValues?.description ?? "",
     deadline: initialValues?.deadline ?? "",
@@ -74,22 +85,22 @@ export default function EventForm({
     resetOnSuccess: mode !== "edit",
     successMessage:
       mode === "create"
-        ? "Event published successfully!"
+        ? "Call for papers published successfully!"
         : "Event updated successfully!",
     errorMessage:
       mode === "create"
-        ? "Failed to publish event."
+        ? "Failed to publish call for papers."
         : "Failed to update event.",
     onSuccess: (response) => {
       if (response.success && response.data) {
-        const event = response.data as EventWithAuthor;
-        upsertToList<EventWithAuthor>(
+        const event = response.data as CallForPaperWithAuthor;
+        upsertToList<CallForPaperWithAuthor>(
           queryClient,
-          ["events"],
+          ["call-for-papers"],
           event,
           mode,
         );
-        router.push(`/events/${event.id}`);
+        router.push(`/call-for-papers/${event.id}`);
       }
     },
   });
@@ -106,9 +117,9 @@ export default function EventForm({
 
     await submit(() => {
       if (mode === "edit" && eventId) {
-        return updateResearchEvent(formData, eventId);
+        return updateCallForPaper(formData, eventId);
       } else {
-        return createResearchEvent(formData);
+        return createCallForPaper(formData);
       }
     });
   }
@@ -121,7 +132,7 @@ export default function EventForm({
       <CautionNote />
       <div>
         <label className="sb-label inline-flex items-center gap-1.5">
-          Conference Title
+          Call for Papers Title
           <InfoTooltip message={EVENT_TITLE_TIP} />
         </label>
 <input
@@ -138,32 +149,72 @@ export default function EventForm({
           </div>
         </div>
 
+        <div>
+          <label className="sb-label">Call Type</label>
+          <select
+            name="category"
+            className="sb-input"
+            value={draftFields.category}
+            onChange={(e) => updateDraftField("category", e.target.value)}
+          >
+            <option value="CONFERENCE">Conference</option>
+            <option value="BOOK_CHAPTER">Book chapter</option>
+            <option value="JOURNAL">Journal</option>
+            <option value="WORKSHOP">Workshop</option>
+            <option value="SYMPOSIUM">Symposium</option>
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Publisher (Optional)
+              <InfoTooltip message={EVENT_PUBLISHER_TIP} />
+            </label>
+            <input
+              name="publisher"
+              className="sb-input"
+              placeholder="e.g., Elsevier, Springer, Routledge"
+              maxLength={MAX_EVENT_PUBLISHER}
+              value={draftFields.publisher}
+              onChange={(e) => updateDraftField("publisher", e.target.value)}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.publisher.length}/{MAX_EVENT_PUBLISHER} characters
+            </div>
+          </div>
+          <JournalPicker
+            journal={draftFields.journal}
+            journalId={draftFields.journalId}
+            onJournalChange={(value) => updateDraftField("journal", value)}
+            onJournalIdChange={(value) => updateDraftField("journalId", value)}
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="sb-label inline-flex items-center gap-1.5">
-              Event Date
+              Event / Publication Date (Optional)
               <InfoTooltip message={EVENT_DATE_TIP} />
             </label>
             <input
               type="date"
-              name="date"
+              name="eventDate"
               className="sb-input"
-              required
               min={today}
-              value={draftFields.date}
-              onChange={(e) => updateDraftField("date", e.target.value)}
+              value={draftFields.eventDate}
+              onChange={(e) => updateDraftField("eventDate", e.target.value)}
             />
           </div>
           <div>
             <label className="sb-label inline-flex items-center gap-1.5">
-              Location
+              Location (Optional)
               <InfoTooltip message={EVENT_LOCATION_TIP} />
             </label>
             <input
               name="location"
               placeholder="e.g., New Delhi, India or Virtual"
               className="sb-input"
-              required
               maxLength={MAX_EVENT_LOCATION}
               value={draftFields.location}
               onChange={(e) => updateDraftField("location", e.target.value)}
@@ -191,7 +242,7 @@ export default function EventForm({
 
         <div>
           <label className="sb-label inline-flex items-center gap-1.5">
-            Description / Tracks
+            Scope, Themes, or Submission Guidelines
             <InfoTooltip message={EVENT_DESCRIPTION_TIP} />
           </label>
           <Editor
@@ -208,7 +259,7 @@ export default function EventForm({
 
       <div>
         <label className="sb-label inline-flex items-center gap-1.5">
-          Official Brochure URL
+          Official Call URL
           <InfoTooltip message={EVENT_NOTIFICATION_LINK_TIP} />
         </label>
 <input
@@ -254,7 +305,7 @@ export default function EventForm({
           disabled={submitting || isFormOverLimit}
           loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
         >
-          {mode === "edit" ? "Save Changes" : "Publish Event"}
+          {mode === "edit" ? "Save Changes" : "Publish Call for Papers"}
         </SubmitBtnWithAuth>
       </div>
     </form>

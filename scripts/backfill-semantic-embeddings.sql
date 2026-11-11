@@ -321,7 +321,7 @@ WHERE survey."isDeleted" = false
   )) <> ''
 ON CONFLICT ("entityType", "entityId") DO NOTHING;
 
-\echo 'Enqueuing events (ResearchEvent)'
+\echo 'Enqueuing events (CallForPaper)'
 INSERT INTO "public"."EmbeddingJob" (
     "id",
     "entityType",
@@ -331,11 +331,11 @@ INSERT INTO "public"."EmbeddingJob" (
 )
 SELECT
     gen_random_uuid()::text,
-    'RESEARCH_EVENT',
+    'CALL_FOR_PAPER',
     event."id",
     now(),
     now()
-FROM "public"."ResearchEvent" AS event
+FROM "public"."CallForPaper" AS event
 WHERE event."isDeleted" = false
   AND event."embedding" IS NULL
   AND btrim(concat_ws(

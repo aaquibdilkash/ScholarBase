@@ -44,7 +44,7 @@ const ROUTES = [
   "/search",
   "/publications",
   "/journals",
-  "/events",
+  "/call-for-papers",
   "/courses",
   "/results",
   "/help",

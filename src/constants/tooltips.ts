@@ -76,6 +76,8 @@ export const PUBLICATION_IS_USER_AUTHOR_TIP = "Check this if you are an author o
 // EVENTS MODULE
 // -----------------------------------------------------------------------------
 export const EVENT_TITLE_TIP = "The official name of the conference, workshop, or seminar.";
+export const EVENT_PUBLISHER_TIP = "The publishing organization or academic press associated with this call.";
+export const EVENT_JOURNAL_TIP = "Optionally link the existing ScholarBase journal this call is associated with.";
 export const EVENT_DATE_TIP = "The date when the event is scheduled to take place.";
 export const EVENT_LOCATION_TIP = "The city and venue, or 'Virtual' for online events.";
 export const EVENT_DEADLINE_TIP = "The deadline for paper submissions or abstract submissions.";

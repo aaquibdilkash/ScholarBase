@@ -6,7 +6,7 @@ import { deletePublication } from "@/app/actions/publications"
 import { deleteHelpPost } from "@/app/actions/help"
 import { deleteJobVacancy } from "@/app/actions/vacancies"
 import { deletePhdAdmission } from "@/app/actions/admissions"
-import { deleteResearchEvent } from "@/app/actions/events"
+import { deleteCallForPaper } from "@/app/actions/call-for-papers"
 import { deleteResearchGrant } from "@/app/actions/grants"
 import { deleteResearchTool } from "@/app/actions/researchTools"
 import { deleteCourse } from "@/app/actions/courses"
@@ -121,10 +121,10 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
       seedExtra: { university: "Oxford" },
     },
     {
-      name: "ResearchEvent",
-      model: "researchEvent",
-      counter: "researchEventCount",
-      deleter: (id: string) => deleteResearchEvent(id),
+      name: "CallForPaper",
+      model: "callForPaper",
+      counter: "callForPaperCount",
+      deleter: (id: string) => deleteCallForPaper(id),
       seedExtra: { title: "AI Conf" },
     },
     {

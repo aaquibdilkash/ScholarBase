@@ -26,7 +26,7 @@ DECLARE
     'ResearchGrant',
     'Course',
     'Result',
-    'ResearchEvent',
+    'CallForPaper',
     'PhdAdmission',
     'JobVacancy',
     'Recommendation',
@@ -158,7 +158,7 @@ BEGIN
           COALESCE("socialPostCount", 0) +
           COALESCE("jobVacancyCount", 0) +
           COALESCE("phdAdmissionCount", 0) +
-          COALESCE("researchEventCount", 0) +
+          COALESCE("callForPaperCount", 0) +
           COALESCE("helpPostCount", 0) +
           COALESCE("journalCount", 0) +
           COALESCE("journalReviewCount", 0) +     -- Added missing journalReviewCount

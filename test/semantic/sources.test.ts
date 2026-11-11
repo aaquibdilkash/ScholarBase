@@ -26,7 +26,7 @@ vi.mock("@/lib/db", () => {
       journal: delegate("journal"),
       result: delegate("result"),
       researchSurvey: delegate("researchSurvey"),
-      researchEvent: delegate("researchEvent"),
+      callForPaper: delegate("callForPaper"),
       phdAdmission: delegate("phdAdmission"),
       jobVacancy: delegate("jobVacancy"),
       supervisor: delegate("supervisor"),
@@ -192,8 +192,8 @@ const CASES: Case[] = [
     text: "Lab safety\nTen minutes.",
   },
   {
-    entityType: "RESEARCH_EVENT",
-    delegate: "researchEvent",
+    entityType: "CALL_FOR_PAPER",
+    delegate: "callForPaper",
     row: {
       id: "e1",
       isDeleted: false,

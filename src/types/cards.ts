@@ -7,7 +7,7 @@ import type {
     Article,
     JobVacancy,
     PhdAdmission,
-    ResearchEvent,
+    CallForPaper,
     HelpPost,
     ResearchTool,
     ResearchGrant,
@@ -103,12 +103,15 @@ export type AdmissionWithAuthor = Partial<PhdAdmission> & {
     bookmarks: UserBookmark;
 };
 
-export type EventWithAuthor = Partial<ResearchEvent> & {
+export type CallForPaperWithAuthor = Partial<CallForPaper> & {
     id: string;
     createdAt: Date;
     title: string;
-    date: Date;
-    location: string;
+    eventDate: Date | null;
+    location: string | null;
+    publisher?: string | null;
+    journalId?: string | null;
+    journal?: { id: string; title: string } | null;
     deadline: Date | null;
     author: AuthorWithFollowers;
     totalVotes: number;

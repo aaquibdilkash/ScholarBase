@@ -38,7 +38,7 @@ const activityFindMany = vi.fn(async () => [
   {
     id: "act-1",
     action: "PUBLISHED",
-    moduleType: "RESEARCH_EVENT",
+    moduleType: "CALL_FOR_PAPER",
     entityId: "ev-1",
     entityTitle: "A conference",
     createdAt: new Date("2026-01-02T03:04:05.000Z"),

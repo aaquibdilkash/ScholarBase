@@ -24,7 +24,15 @@ const MIGRATION_PATH = join(
   process.cwd(),
   "prisma/migrations/20261031120000_search_trgm_indexes/migration.sql",
 );
-const MIGRATION = readFileSync(MIGRATION_PATH, "utf8");
+const MIGRATION =
+  readFileSync(MIGRATION_PATH, "utf8") +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261110180000_rename_research_events_to_call_for_papers/migration.sql",
+    ),
+    "utf8",
+  );
 
 function hasIndex(name: string): boolean {
   return new RegExp(`CREATE INDEX IF NOT EXISTS "${name}"`).test(MIGRATION);

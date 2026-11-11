@@ -17,24 +17,24 @@ enum DeletedByType {
 }
 
 model UserActivity {
-  id          String   @id @default(cuid())
-  userId      String
-  action      String // e.g., 'COMMENTED', 'REPLIED', 'VOTED', 'PUBLISHED'
-  moduleType  String // e.g., 'SOCIAL_POST', 'ARTICLE', 'RESEARCH_EVENT'
-  entityId    String // ID of the specific post/article (route-ready for nested content)
-  entityTitle String // Stored statically to avoid JOINs on reads
+  id              String   @id @default(cuid())
+  userId          String
+  action          String // e.g., 'COMMENTED', 'REPLIED', 'VOTED', 'PUBLISHED'
+  moduleType      String // e.g., 'SOCIAL_POST', 'ARTICLE', ' CALL_FOR_PAPER'
+  entityId        String // ID of the specific post/article (route-ready for nested content)
+  entityTitle     String // Stored statically to avoid JOINs on reads
   /// Route-ready parent content id for comment / comment-vote activity
   /// (e.g. `supervisorId/recommendationId` for nested resources). Null for
   /// top-level publish/vote rows.
-  parentEntityId String?
+  parentEntityId  String?
   /// Comment id for COMMENTED / REPLIED / comment-vote activity.
-  entityChildId  String?
+  entityChildId   String?
   /// Visibility flags. Deleting content sets hiddenByContent; deleting a
   /// comment sets hiddenByComment. A row is visible only when both are false,
   /// so recovering one deleted thing cannot resurrect another.
-  hiddenByContent Boolean @default(false)
-  hiddenByComment Boolean @default(false)
-  createdAt   DateTime @default(now())
+  hiddenByContent Boolean  @default(false)
+  hiddenByComment Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -154,12 +154,20 @@ enum EmbeddingEntityType {
   JOURNAL
   RESULT
   RESEARCH_SURVEY
-  RESEARCH_EVENT
+  CALL_FOR_PAPER
   PHD_ADMISSION
   JOB_VACANCY
   SUPERVISOR
   RECOMMENDATION
   JOURNAL_REVIEW
+}
+
+enum CallForPaperCategory {
+  CONFERENCE
+  BOOK_CHAPTER
+  JOURNAL
+  WORKSHOP
+  SYMPOSIUM
 }
 
 enum DigestPreference {
@@ -249,8 +257,7 @@ model Supervisor {
   /// docs/semantic-embeddings.md.
   embedding           Unsupported("vector(384)")?
 
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
-
+  author          User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
   votes           SupervisorVote[]
   bookmarks       SupervisorBookmark[]
   comments        SupervisorComment[]
@@ -563,16 +570,16 @@ model SurveyBookmark {
   @@index([userId, createdAt(sort: Desc)])
 }
 
-model ResearchEventBookmark {
-  id              String   @id @default(cuid())
-  researchEventId String
-  userId          String
-  createdAt       DateTime @default(now())
+model CallForPaperBookmark {
+  id             String   @id @default(cuid())
+  callForPaperId String
+  userId         String
+  createdAt      DateTime @default(now())
 
-  researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  callForPaper CallForPaper @relation(fields: [callForPaperId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([researchEventId, userId])
+  @@unique([callForPaperId, userId])
   @@index([userId, createdAt(sort: Desc)])
 }
 
@@ -688,14 +695,14 @@ model InstitutionDomainRequest {
 }
 
 model InstitutionDomain {
-  id          String   @id @default(cuid())
-  domain      String   @unique
-  name        String
-  isActive    Boolean  @default(true)
+  id           String   @id @default(cuid())
+  domain       String   @unique
+  name         String
+  isActive     Boolean  @default(true)
   approvedById String
-  approvedAt  DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  approvedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   approvedBy User @relation("InstitutionDomainApprovedBy", fields: [approvedById], references: [id], onDelete: Cascade)
 
@@ -1139,7 +1146,7 @@ model User {
   socialPostCount          Int @default(0)
   jobVacancyCount          Int @default(0)
   phdAdmissionCount        Int @default(0)
-  researchEventCount       Int @default(0)
+  callForPaperCount        Int @default(0)
   helpPostCount            Int @default(0)
   journalCount             Int @default(0)
   journalReviewCount       Int @default(0)
@@ -1169,7 +1176,7 @@ model User {
   journalBookmarks        JournalBookmark[]
   resultBookmarks         ResultBookmark[]
   surveyBookmarks         SurveyBookmark[]
-  researchEventBookmarks  ResearchEventBookmark[]
+  callForPaperBookmarks   CallForPaperBookmark[]
   phdAdmissionBookmarks   PhdAdmissionBookmark[]
   jobVacancyBookmarks     JobVacancyBookmark[]
   recommendationBookmarks RecommendationBookmark[]
@@ -1184,7 +1191,7 @@ model User {
 
   vacancies  JobVacancy[]
   admissions PhdAdmission[]
-  events     ResearchEvent[]
+  events     CallForPaper[]
 
   socialComments     SocialComment[]
   socialVotes        SocialVote[]
@@ -1200,9 +1207,9 @@ model User {
   phdAdmissionComments     PhdAdmissionComment[]
   phdAdmissionCommentVotes PhdAdmissionCommentVote[]
 
-  researchEventVotes        ResearchEventVote[]
-  researchEventComments     ResearchEventComment[]
-  researchEventCommentVotes ResearchEventCommentVote[]
+  callForPaperVotes        CallForPaperVote[]
+  callForPaperComments     CallForPaperComment[]
+  callForPaperCommentVotes CallForPaperCommentVote[]
 
   supervisorVotes        SupervisorVote[]
   supervisorComments     SupervisorComment[]
@@ -1287,7 +1294,7 @@ model User {
   institutionDomainsApproved InstitutionDomain[] @relation("InstitutionDomainApprovedBy")
 
   // Outreach contacts added by this admin, and contacts linked to this account.
-  outreachCreatedBy Outreach[] @relation("OutreachCreatedBy")
+  outreachCreatedBy  Outreach[] @relation("OutreachCreatedBy")
   outreachLinkedUser Outreach[] @relation("OutreachLinkedUser")
 
   trendingScore Float @default(0)
@@ -1318,24 +1325,24 @@ enum OutreachStatus {
 }
 
 model Outreach {
-  id          String         @id @default(cuid())
-  name        String
-  email       String         @unique
-  institution String?
-  role        String?
-  source      String?
-  notes       String?        @db.Text
-  status      OutreachStatus @default(PENDING)
-  sendCount   Int            @default(0)
+  id           String         @id @default(cuid())
+  name         String
+  email        String         @unique
+  institution  String?
+  role         String?
+  source       String?
+  notes        String?        @db.Text
+  status       OutreachStatus @default(PENDING)
+  sendCount    Int            @default(0)
   outreachedAt DateTime?
-  emailSentAt DateTime?
-  createdById String
-  userId      String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  emailSentAt  DateTime?
+  createdById  String
+  userId       String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  createdBy   User           @relation("OutreachCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
-  user        User?          @relation("OutreachLinkedUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy User  @relation("OutreachCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  user      User? @relation("OutreachLinkedUser", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt(sort: Desc)])
   @@index([createdById, createdAt(sort: Desc)])
@@ -1755,13 +1762,14 @@ model Journal {
   reviewCount Int @default(0)
   ratingSum   Int @default(0)
 
-  author       User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments     JournalComment[]
-  votes        JournalVote[]
-  bookmarks    JournalBookmark[]
-  reviews      JournalReview[]
-  publications Publication[]
-  about        String?
+  author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments      JournalComment[]
+  votes         JournalVote[]
+  bookmarks     JournalBookmark[]
+  reviews       JournalReview[]
+  publications  Publication[]
+  callForPapers CallForPaper[]
+  about         String?
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
@@ -2293,21 +2301,24 @@ model Block {
   @@index([blockedId])
 }
 
-model ResearchEvent {
-  id               String    @id @default(cuid())
+model CallForPaper {
+  id               String               @id @default(cuid())
   title            String
-  date             DateTime
-  location         String
+  category         CallForPaperCategory @default(CONFERENCE)
+  eventDate        DateTime?
+  location         String?
   description      String
   deadline         DateTime?
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  publisher        String?
+  journalId        String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean   @default(false)
-  hasActiveAppeal  Boolean   @default(false)
+  isFrozen         Boolean              @default(false)
+  hasActiveAppeal  Boolean              @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int                         @default(0)
@@ -2323,37 +2334,38 @@ model ResearchEvent {
   /// docs/semantic-embeddings.md.
   embedding      Unsupported("vector(384)")?
 
-  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author  User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  journal Journal? @relation(fields: [journalId], references: [id], onDelete: SetNull)
 
-  votes     ResearchEventVote[]
-  bookmarks ResearchEventBookmark[]
-  comments  ResearchEventComment[]
+  votes     CallForPaperVote[]
+  bookmarks CallForPaperBookmark[]
+  comments  CallForPaperComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
-model ResearchEventVote {
-  id              String        @id @default(cuid())
-  researchEventId String
-  userId          String
-  voteType        VoteType
-  createdAt       DateTime      @default(now())
-  researchEvent   ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+model CallForPaperVote {
+  id             String       @id @default(cuid())
+  callForPaperId String
+  userId         String
+  voteType       VoteType
+  createdAt      DateTime     @default(now())
+  callForPaper   CallForPaper @relation(fields: [callForPaperId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([researchEventId, userId])
+  @@unique([callForPaperId, userId])
 }
 
-model ResearchEventComment {
-  id              String    @id @default(cuid())
-  content         String
-  researchEventId String
-  parentId        String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  editedAt        DateTime?
+model CallForPaperComment {
+  id             String    @id @default(cuid())
+  content        String
+  callForPaperId String
+  parentId       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  editedAt       DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId        String
@@ -2366,26 +2378,26 @@ model ResearchEventComment {
   isFrozen        Boolean        @default(false)
   hasActiveAppeal Boolean        @default(false)
 
-  researchEvent ResearchEvent @relation(fields: [researchEventId], references: [id], onDelete: Cascade)
-  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  callForPaper CallForPaper @relation(fields: [callForPaperId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  parent  ResearchEventComment?  @relation("ResearchEventReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies ResearchEventComment[] @relation("ResearchEventReplies")
+  parent  CallForPaperComment?  @relation("CallForPaperReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies CallForPaperComment[] @relation("CallForPaperReplies")
 
-  votes    ResearchEventCommentVote[]
+  votes    CallForPaperCommentVote[]
   mentions Json?
 
-  @@index([researchEventId, createdAt(sort: Desc)])
+  @@index([callForPaperId, createdAt(sort: Desc)])
 }
 
-model ResearchEventCommentVote {
-  id        String               @id @default(cuid())
+model CallForPaperCommentVote {
+  id        String              @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
-  createdAt DateTime             @default(now())
-  comment   ResearchEventComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime            @default(now())
+  comment   CallForPaperComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
 }

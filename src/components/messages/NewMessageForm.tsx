@@ -166,7 +166,7 @@ export function NewMessageForm({
   };
 
   return (
-    // ⚡ Matches the sibling add/edit forms (EventForm, ResearchGrantForm, ...):
+    // ⚡ Matches the sibling add/edit forms (CallForPaperForm, ResearchGrantForm, ...):
     // `sb-surface-strong` with `p-4 sm:p-6 md:p-10`. It previously used
     // `sb-card ... px-0 md:px-6`, so on phones the inputs sat flush against the
     // viewport edges.

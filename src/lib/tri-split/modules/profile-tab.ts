@@ -2,7 +2,7 @@
  * Server cache for the three data tabs on a scholar profile.
  *
  * Content, Bookmarks and Activity are list surfaces like any other, so they get
- * the same treatment as `/events` and friends: a cached, viewer-agnostic batch
+ * the same treatment as `/call-for-papers` and friends: a cached, viewer-agnostic batch
  * under a tag, a 5-minute TTL from the shared `LIST_REVALIDATE_SECONDS` policy,
  * and a hard-expire purge on the mutations that change them.
  *
@@ -126,7 +126,7 @@ const USER_COUNTER_SELECT = {
   socialPostCount: true,
   jobVacancyCount: true,
   phdAdmissionCount: true,
-  researchEventCount: true,
+  callForPaperCount: true,
   helpPostCount: true,
   journalCount: true,
   journalReviewCount: true,
@@ -148,7 +148,7 @@ const COUNT_SOURCE = {
   socialPosts: "socialPostCount",
   vacancies: "jobVacancyCount",
   admissions: "phdAdmissionCount",
-  events: "researchEventCount",
+  callForPapers: "callForPaperCount",
   helpPosts: "helpPostCount",
   journals: "journalCount",
   researchTools: "researchToolCount",
@@ -175,7 +175,7 @@ type ContentBatch = {
  * The cached, viewer-agnostic half of the Content tab.
  *
  * The counters ride along because they are materialized `User` scalars (RULE 2)
- * and because they move on exactly the events that purge this tag — publish,
+ * and because they move on exactly the callForPapers that purge this tag — publish,
  * edit, delete. Reading them live instead would add a round trip per tab load
  * to buy freshness that a purge already guarantees.
  */
@@ -355,7 +355,7 @@ function uniqueIds(ids: readonly (string | null | undefined)[]): string[] {
  * `revalidateArticles`, `revalidatePublicFeed`) with the author id of the row
  * that changed. Activity rides along because every content action writes a
  * `UserActivity` row in the same transaction, so the two tabs go stale for
- * exactly the same events.
+ * exactly the same callForPapers.
  *
  * A profile left out here is not purged; the 5-minute TTL bounds it. That is
  * deliberate rather than a fallback: the same TTL already governs embedded

@@ -49,7 +49,7 @@ const SECTION_MODULE = {
   socialPosts: "SOCIAL_POST",
   vacancies: "JOB_VACANCY",
   admissions: "PHD_ADMISSION",
-  events: "RESEARCH_EVENT",
+  callForPapers: "CALL_FOR_PAPER",
   helpPosts: "HELP_POST",
   journals: "JOURNAL",
   researchTools: "RESEARCH_TOOL",
@@ -471,7 +471,7 @@ export type SectionPayloads = {
   socialPosts: Prisma.SocialPostGetPayload<{ include: ViewerInclude }>;
   vacancies: Prisma.JobVacancyGetPayload<{ include: ViewerInclude }>;
   admissions: Prisma.PhdAdmissionGetPayload<{ include: ViewerInclude }>;
-  events: Prisma.ResearchEventGetPayload<{ include: ViewerInclude }>;
+  callForPapers: Prisma.CallForPaperGetPayload<{ include: ViewerInclude }>;
   helpPosts: Prisma.HelpPostGetPayload<{ include: ViewerInclude }>;
   journals: Prisma.JournalGetPayload<{ include: ViewerInclude }>;
   researchTools: Prisma.ResearchToolGetPayload<{ include: ViewerInclude }>;

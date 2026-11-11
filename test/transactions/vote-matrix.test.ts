@@ -39,7 +39,7 @@ const EXPECTED_TARGET_TYPE: Record<ModuleKey, string> = {
   JOURNAL: "journal",
   RESULT: "result",
   RESEARCH_SURVEY: "survey",
-  RESEARCH_EVENT: "event",
+  CALL_FOR_PAPER: "event",
   PHD_ADMISSION: "admission",
   JOB_VACANCY: "vacancy",
   SUPERVISOR: "supervisor",

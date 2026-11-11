@@ -326,7 +326,7 @@ export default function Sidebar({ user, defaultCollapsed }: SidebarProps) {
       { name: "Research Survey", href: "/surveys", icon: <ClipboardList className="h-6 w-6 shrink-0" /> },
       { name: "Admissions", href: "/admissions", icon: <GraduationCap className="h-6 w-6 shrink-0" /> },
       { name: "Vacancies", href: "/vacancies", icon: <Briefcase className="h-6 w-6 shrink-0" /> },
-      { name: "Research Events", href: "/events", icon: <Calendar className="h-6 w-6 shrink-0" /> },
+      { name: "Call for Papers", href: "/call-for-papers", icon: <Calendar className="h-6 w-6 shrink-0" /> },
       { name: "Results", href: "/results", icon: <BarChart2 className="h-6 w-6 shrink-0" /> },
       { name: "Research Grants", href: "/grants", icon: <HandCoins className="h-6 w-6 shrink-0" /> },
       { name: "Research Blog", href: "/blog", icon: <FileText className="h-6 w-6 shrink-0" /> },

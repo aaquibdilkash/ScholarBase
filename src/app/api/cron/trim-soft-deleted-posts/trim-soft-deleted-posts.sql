@@ -17,13 +17,13 @@ DECLARE
   content_tables text[] := ARRAY[
     'Article', 'SocialPost', 'HelpPost', 'Contribution',
     'Publication', 'ResearchTool', 'ResearchGrant', 'Course',
-    'Journal', 'Result', 'ResearchSurvey', 'ResearchEvent',
+    'Journal', 'Result', 'ResearchSurvey', 'CallForPaper',
     'PhdAdmission', 'JobVacancy', 'Recommendation', 'Supervisor'
   ];
 
   comment_tables text[] := ARRAY[
     'ArticleComment', 'SocialComment', 'HelpPostComment', 'ContributionComment',
-    'JobVacancyComment', 'PhdAdmissionComment', 'ResearchEventComment', 'SupervisorComment',
+    'JobVacancyComment', 'PhdAdmissionComment', 'CallForPaperComment', 'SupervisorComment',
     'RecommendationComment', 'ResearchToolComment', 'ResearchGrantComment', 'CourseComment',
     'JournalComment', 'ResultComment', 'PublicationComment', 'SurveyComment', 'Reply'
   ];

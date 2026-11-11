@@ -19,7 +19,7 @@ import {
   buildPhdAdmissionText,
   buildPublicationText,
   buildRecommendationText,
-  buildResearchEventText,
+  buildCallForPaperText,
   buildResearchGrantText,
   buildResearchSurveyText,
   buildResearchToolText,
@@ -236,18 +236,20 @@ export async function loadEmbeddingSources(
       return collect(rows, buildResearchSurveyText);
     }
 
-    case "RESEARCH_EVENT": {
-      const rows = await prisma.researchEvent.findMany({
+    case "CALL_FOR_PAPER": {
+      const rows = await prisma.callForPaper.findMany({
         where,
         select: {
           id: true,
           isDeleted: true,
           title: true,
+          category: true,
+          eventDate: true,
           location: true,
           description: true,
         },
       });
-      return collect(rows, buildResearchEventText);
+      return collect(rows, buildCallForPaperText);
     }
 
     case "PHD_ADMISSION": {

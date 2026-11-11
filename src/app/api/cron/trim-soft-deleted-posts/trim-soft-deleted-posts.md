@@ -25,14 +25,14 @@ DECLARE
   content_tables text[] := ARRAY[
     'Article', 'SocialPost', 'HelpPost', 'Contribution',
     'Publication', 'ResearchTool', 'ResearchGrant', 'Course',
-    'Result', 'ResearchSurvey', 'ResearchEvent',
+    'Result', 'ResearchSurvey', 'CallForPaper',
     'PhdAdmission', 'JobVacancy', 'Recommendation', 'JournalReview'
   ];
 
   -- All comment tables (No phantom 'Reply' table)
   comment_tables text[] := ARRAY[
     'ArticleComment', 'SocialComment', 'HelpPostComment', 'ContributionComment',
-    'JobVacancyComment', 'PhdAdmissionComment', 'ResearchEventComment', 'SupervisorComment',
+    'JobVacancyComment', 'PhdAdmissionComment', 'CallForPaperComment', 'SupervisorComment',
     'RecommendationComment', 'ResearchToolComment', 'ResearchGrantComment', 'CourseComment',
     'JournalComment', 'JournalReviewComment', 'ResultComment', 'PublicationComment', 'SurveyComment'
   ];

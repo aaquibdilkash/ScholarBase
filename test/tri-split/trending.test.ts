@@ -43,7 +43,7 @@ const eventFindMany = vi.fn(async (_args?: FindManyArgs) => [
 
 vi.mock("@/lib/db", () => ({
   default: {
-    researchEvent: { findMany: eventFindMany },
+    callForPaper: { findMany: eventFindMany },
     article: { findMany: articleFindMany },
   },
 }));
@@ -70,8 +70,8 @@ describe("content trending", () => {
 
   it("ranks by the materialized score, not by a computed one", async () => {
     await createContentTrending({
-      module: "RESEARCH_EVENT",
-      tag: "events",
+      module: "CALL_FOR_PAPER",
+      tag: "callForPapers",
       type: "event",
     }).fetch();
 
@@ -96,8 +96,8 @@ describe("content trending", () => {
 
   it("requests no viewer state in the cached batch", async () => {
     await createContentTrending({
-      module: "RESEARCH_EVENT",
-      tag: "events",
+      module: "CALL_FOR_PAPER",
+      tag: "callForPapers",
       type: "event",
     }).fetch();
 
@@ -109,8 +109,8 @@ describe("content trending", () => {
 
   it("stamps the TrendingItem discriminator and the raw score", async () => {
     const [item] = await createContentTrending({
-      module: "RESEARCH_EVENT",
-      tag: "events",
+      module: "CALL_FOR_PAPER",
+      tag: "callForPapers",
       type: "event",
     }).fetch();
 
@@ -120,8 +120,8 @@ describe("content trending", () => {
 
   it("overlays the session viewer's state after the cached read", async () => {
     const [item] = await createContentTrending({
-      module: "RESEARCH_EVENT",
-      tag: "events",
+      module: "CALL_FOR_PAPER",
+      tag: "callForPapers",
       type: "event",
     }).fetch();
 
@@ -135,8 +135,8 @@ describe("content trending", () => {
   it("spends no overlay query on an empty batch", async () => {
     eventFindMany.mockResolvedValueOnce([]);
     const items = await createContentTrending({
-      module: "RESEARCH_EVENT",
-      tag: "events",
+      module: "CALL_FOR_PAPER",
+      tag: "callForPapers",
       type: "event",
     }).fetch();
 
@@ -146,11 +146,11 @@ describe("content trending", () => {
 
   it("hard-expires its own tag, distinct from the All-tab tag", () => {
     createContentTrending({
-      module: "RESEARCH_EVENT",
-      tag: "events",
+      module: "CALL_FOR_PAPER",
+      tag: "callForPapers",
       type: "event",
     }).revalidate();
 
-    expect(revalidateTag).toHaveBeenCalledWith("events-trending", { expire: 0 });
+    expect(revalidateTag).toHaveBeenCalledWith(    "callForPapers-trending", { expire: 0 });
   });
 });

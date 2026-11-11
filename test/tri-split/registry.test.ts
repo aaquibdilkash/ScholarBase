@@ -49,6 +49,7 @@ describe("CONTENT_LIST_CONFIGS", () => {
     expect(CONTENT_LIST_KEYS.length).toBe(16);
     expect([...CONTENT_KEYS].sort()).toEqual([
       "ARTICLE",
+      "CALL_FOR_PAPER",
       "CONTRIBUTION",
       "COURSE",
       "FEED",
@@ -57,7 +58,6 @@ describe("CONTENT_LIST_CONFIGS", () => {
       "JOURNAL",
       "PHD_ADMISSION",
       "PUBLICATION",
-      "RESEARCH_EVENT",
       "RESEARCH_GRANT",
       "RESEARCH_SURVEY",
       "RESEARCH_TOOL",
@@ -317,4 +317,3 @@ describe("SCHOLAR_DIRECTORY config", () => {
     },
   );
 });
-

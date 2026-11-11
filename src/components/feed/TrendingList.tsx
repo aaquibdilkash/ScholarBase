@@ -1,6 +1,6 @@
 import { VacancyCard } from "@/components/vacancies/VacancyCard";
 import { AdmissionCard } from "@/components/admissions/AdmissionCard";
-import { EventCard } from "@/components/events/EventCard";
+import { CallForPaperCard } from "@/components/call-for-papers/CallForPaperCard";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SupervisorCard } from "@/components/supervisor/SupervisorCard";
 import { TrendingItem } from "@/types/trending";
@@ -52,7 +52,7 @@ export function TrendingList({
             );
           case "event":
             return (
-              <EventCard
+              <CallForPaperCard
                 key={item.id}
                 event={item}
                 currentUserId={currentUserId}

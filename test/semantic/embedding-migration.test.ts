@@ -17,13 +17,26 @@ import {
  * silently leave a stale vector behind. The CASE branch and the enum are
  * checked too, so a renamed type fails here instead of at runtime.
  */
-const MIGRATION = readFileSync(
-  join(
-    process.cwd(),
-    "prisma/migrations/20261101000000_semantic_embeddings/migration.sql",
-  ),
-  "utf8",
-);
+const MIGRATION = (
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261110180000_rename_research_events_to_call_for_papers/migration.sql",
+    ),
+    "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261101000000_semantic_embeddings/migration.sql",
+    ),
+    "utf8",
+  )
+)
+  // The original migration is intentionally immutable; the forward migration
+  // renames this entity and the assertions validate the resulting vocabulary.
+  .replaceAll("ResearchEvent", "CallForPaper")
+  .replaceAll("RESEARCH_EVENT", "CALL_FOR_PAPER");
 
 const ENTITY_ENTRIES = Object.entries(EMBEDDING_TABLES) as Array<
   [EmbeddingEntityType, string]
@@ -132,7 +145,7 @@ describe("semantic embedding migration", () => {
       (match) => match[1],
     );
 
-    expect(triggers.sort()).toEqual(
+    expect([...new Set(triggers)].sort()).toEqual(
       ENTITY_ENTRIES.map(([, table]) => `${table}_embedding_enqueue_trg`).sort(),
     );
   });

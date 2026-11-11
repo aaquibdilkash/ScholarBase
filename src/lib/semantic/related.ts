@@ -439,8 +439,8 @@ async function hydrateItems(
       break;
     }
 
-    case "RESEARCH_EVENT": {
-      const rows = await prisma.researchEvent.findMany({
+    case "CALL_FOR_PAPER": {
+      const rows = await prisma.callForPaper.findMany({
         where,
         select: {
           id: true,
@@ -451,8 +451,8 @@ async function hydrateItems(
       });
 
       for (const row of rows) {
-        setItem(items, row.id, `/events/${row.id}`, row.title, {
-          subtitle: row.location,
+        setItem(items, row.id, `/call-for-papers/${row.id}`, row.title, {
+          subtitle: row.location ?? undefined,
           avatarUrl: row.author?.avatarUrl ?? null,
           authorName: row.author?.name ?? undefined,
           authorHandle: row.author?.handle ?? undefined,

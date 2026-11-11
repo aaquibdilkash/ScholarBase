@@ -7,7 +7,7 @@ import {
   PhdAdmission,
   Publication,
   Recommendation,
-  ResearchEvent,
+  CallForPaper,
   ResearchGrant,
   ResearchSurvey,
   ResearchTool,
@@ -27,7 +27,7 @@ import {
   JournalComment,
   ResultComment,
   SurveyComment,
-  ResearchEventComment,
+  CallForPaperComment,
   PhdAdmissionComment,
   JobVacancyComment,
   SupervisorComment,
@@ -66,7 +66,7 @@ export type CommentItem =
   | JournalComment
   | ResultComment
   | SurveyComment
-  | ResearchEventComment
+  | CallForPaperComment
   | PhdAdmissionComment
   | JobVacancyComment
   | SupervisorComment
@@ -82,7 +82,7 @@ export type ContentItem =
   | (JournalReview & { author: User })
   | (ResearchTool & { author: User })
   | (PhdAdmission & { author: User })
-  | (ResearchEvent & { author: User })
+  | (CallForPaper & { author: User })
   | (ResearchGrant & { author: User })
   | (Course & { author: User })
   | (JobVacancy & { author: User })

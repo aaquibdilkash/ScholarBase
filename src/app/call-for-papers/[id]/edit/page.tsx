@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { buildNoindexMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildNoindexMetadata(
-  "Edit Event - ScholarBase",
+  "Edit Call for Papers - ScholarBase",
 );
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
-import EventForm from "@/components/events/EventForm";
+import CallForPaperForm from "@/components/call-for-papers/CallForPaperForm";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { EDIT_PAGE_TEXT } from "@/constants/seo";
 import { stripMailtoPrefix } from "@/lib/email-normalizer";
@@ -23,17 +23,21 @@ export default async function EditEventPage({
   );
 
   // Fetch only the raw field data required to populate the form inputs
-  const event = await prisma.researchEvent.findUnique({
+  const event = await prisma.callForPaper.findUnique({
     where: { id },
     select: {
       id: true,
       title: true,
-      date: true,
+      eventDate: true,
+      category: true,
       location: true,
       description: true,
       deadline: true,
       notificationLink: true,
       applyLink: true,
+      publisher: true,
+      journalId: true,
+      journal: { select: { id: true, title: true } },
       authorId: true,
     },
   });
@@ -49,18 +53,24 @@ export default async function EditEventPage({
 
   return (
     <CreateOrEditPageShell
-      title={EDIT_PAGE_TEXT.events.title}
-      description={EDIT_PAGE_TEXT.events.description}
-      backHref={`/events/${event.id}`}
-      backLabel="Cancel and Back to Event"
+      title={EDIT_PAGE_TEXT.callForPapers.title}
+      description={EDIT_PAGE_TEXT.callForPapers.description}
+      backHref={`/call-for-papers/${event.id}`}
+      backLabel="Cancel and Back to Call for Papers"
     >
-      <EventForm
+      <CallForPaperForm
         mode="edit"
         eventId={event.id}
         initialValues={{
           title: event.title,
-          date: new Date(event.date).toISOString().slice(0, 10),
-          location: event.location,
+          category: event.category,
+          publisher: event.publisher ?? "",
+          journalId: event.journalId ?? "",
+          journal: event.journal?.title ?? "",
+          eventDate: event.eventDate
+            ? new Date(event.eventDate).toISOString().slice(0, 10)
+            : "",
+          location: event.location ?? "",
           description: event.description,
           deadline: event.deadline
             ? new Date(event.deadline).toISOString().slice(0, 10)

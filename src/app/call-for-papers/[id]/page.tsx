@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
-import { deleteResearchEvent, getEvent } from "@/app/actions/events";
+import { deleteCallForPaper, getEvent } from "@/app/actions/call-for-papers";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
@@ -18,6 +18,7 @@ import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
+import { getCallForPaperCategoryLabel } from "@/lib/call-for-papers";
 
 export async function generateMetadata({
   params,
@@ -30,13 +31,16 @@ export async function generateMetadata({
     return buildNoindexMetadata("Removed content");
   }
   const location = event.location ? ` at ${event.location}` : "";
+  const dateText = event.eventDate
+    ? new Date(event.eventDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : "Date to be announced";
   return buildMetadata({
     title: event.title,
-    description: `Academic event / conference${location}. ${new Date(event.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
-    path: `/events/${event.id}`,
+    description: `Call for papers${location}. ${dateText}.`,
+    path: `/call-for-papers/${event.id}`,
     type: "article",
     publishedTime: event.createdAt,
-    section: "Academic Events",
+    section: "Call for Papers",
   });
 }
 
@@ -58,10 +62,10 @@ const EventDetailPage = async ({
     if (!removed) notFound();
     return (
       <RemovedContentNotice
-        backHref="/events"
-        backLabel="Back to Events"
+        backHref="/call-for-papers"
+        backLabel="Back to Call for Papers"
         entityId={removed.id}
-        module="RESEARCH_EVENT"
+        module="CALL_FOR_PAPER"
         ownerId={removed.authorId}
         currentUserId={user?.id}
         hasActiveAppeal={removed.hasActiveAppeal}
@@ -73,19 +77,19 @@ const EventDetailPage = async ({
   const userVote =
     (event.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = await getRelatedContent("RESEARCH_EVENT", event.id);
+  const related = await getRelatedContent("CALL_FOR_PAPER", event.id);
 
   return (
     <DetailPageCardShell
       relatedContent={<RelatedContent title="Related events" items={related} />}
       isFrozen={event.isFrozen ?? false}
       frozenEntityId={event.id}
-      frozenModule="RESEARCH_EVENT"
+      frozenModule="CALL_FOR_PAPER"
       frozenEntityType="POST"
       frozenOwnerId={event.author?.id ?? null}
       frozenHasActiveAppeal={event.hasActiveAppeal ?? false}
-      backHref="/events"
-      backLabel="Back to Events"
+      backHref="/call-for-papers"
+      backLabel="Back to Call for Papers"
       authorHref={`/scholars/${event.author?.id}`}
       authorName={event.author?.name || "Scholar"}
       authorHandle={event.author?.handle || undefined}
@@ -94,15 +98,15 @@ const EventDetailPage = async ({
       managementControls={
         user?.id === event.author?.id ? (
           <OwnerActionsDropdown
-            editHref={`/events/${event.id}/edit`}
+            editHref={`/call-for-papers/${event.id}/edit`}
             onDelete={async () => {
               "use server";
-              const res = await deleteResearchEvent(event.id);
+              const res = await deleteCallForPaper(event.id);
               if (res?.success === false) return res;
-              return { redirect: "/events", invalidateQueries: [["events"]] };
+              return { redirect: "/call-for-papers", invalidateQueries: [["call-for-papers"]] };
             }}
             isOwner={true}
-            editLabel="Edit Event"
+            editLabel="Edit Call for Papers"
             deleteLabel="Delete"
           />
         ) : null
@@ -119,7 +123,7 @@ const EventDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={event.id}
-          module="RESEARCH_EVENT"
+          module="CALL_FOR_PAPER"
           initialTotalVotes={event.totalVotes}
           initialUserVote={userVote}
           isOwnContent={user?.id === event.author?.id}
@@ -129,20 +133,20 @@ const EventDetailPage = async ({
         <BookmarkButton
           frozen={event.isFrozen === true}
           targetId={event.id}
-          module="RESEARCH_EVENT"
+          module="CALL_FOR_PAPER"
           initialTotalBookmarks={event.totalBookmarks ?? 0}
           initialIsBookmarked={
             Array.isArray(event.bookmarks) && event.bookmarks.length > 0
           }
         />
       }
-      footerCommentsHref={`/events/${event.id}#comments`}
+      footerCommentsHref={`/call-for-papers/${event.id}#comments`}
       footerCommentsCount={event.totalComments}
       footerReportMenu={
         <ReportMenu
           entityId={event.id}
           entityType="POST"
-          module="RESEARCH_EVENT"
+          module="CALL_FOR_PAPER"
           ownerId={event.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={event.isFrozen}
@@ -176,6 +180,11 @@ const EventDetailPage = async ({
         />
       }
     >
+      <div className="mb-4">
+        <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+          {getCallForPaperCategoryLabel(event.category)}
+        </span>
+      </div>
       <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
         {event.title}
       </h1>
@@ -183,16 +192,24 @@ const EventDetailPage = async ({
       <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3">
         <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
           <Calendar className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />
-          <span className="font-semibold">Event Date:</span>
+          <span className="font-semibold">Date:</span>
           <span>
-            {new Date(event.date).toLocaleDateString("en-US", {
+            {event.eventDate ? new Date(event.eventDate).toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
               day: "numeric",
               year: "numeric",
-            })}
+            }) : "Date to be announced"}
           </span>
         </div>
+        {(event.publisher || event.journal) && (
+          <div className="text-xs sm:text-sm text-slate-600">
+            <span className="font-semibold">Publisher / Journal:</span>{" "}
+            {event.journal?.title ?? ""}
+            {event.journal?.title && event.publisher ? " · " : ""}
+            {event.publisher ?? ""}
+          </div>
+        )}
         {event.location && (
           <div className="flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
             <MapPin className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-slate-400" />

@@ -27,7 +27,7 @@ import { createPublication } from "@/app/actions/publications";
 import { createHelpPost } from "@/app/actions/help";
 import { createJobVacancy } from "@/app/actions/vacancies";
 import { createPhdAdmission } from "@/app/actions/admissions";
-import { createResearchEvent } from "@/app/actions/events";
+import { createCallForPaper } from "@/app/actions/call-for-papers";
 import { createResearchGrant } from "@/app/actions/grants";
 import { createResearchTool } from "@/app/actions/researchTools";
 import { createCourse } from "@/app/actions/courses";
@@ -176,17 +176,23 @@ const SPECS = [
     expectRow: { university: "Oxford" },
   },
   {
-    name: "ResearchEvent",
-    model: "researchEvent",
-    create: createResearchEvent,
+    name: "CallForPaper",
+    model: "callForPaper",
+    create: createCallForPaper,
     fields: {
       title: "AI Conf",
       description: "<p>Event</p>",
-      startDate: "2030-01-01",
+      category: "JOURNAL",
+      eventDate: "2030-01-01",
+      publisher: "Academic Press",
       notificationLink: URL_FIELD.value,
       applyLink: URL_FIELD.value,
     },
-    expectRow: { title: "AI Conf" },
+    expectRow: {
+      title: "AI Conf",
+      category: "JOURNAL",
+      publisher: "Academic Press",
+    },
   },
   {
     name: "ResearchGrant",
@@ -327,6 +333,7 @@ describe("RULE 1: create actions return the complete new object", () => {
         for (const [key, value] of Object.entries(spec.expectRow)) {
           expect(data[key]).toBe(value);
         }
+
       });
 
       it("attributes the new row to the session user, not a client argument", async () => {
@@ -351,6 +358,71 @@ describe("RULE 1: create actions return the complete new object", () => {
       });
     });
   }
+
+  describe("CallForPaper optional metadata", () => {
+    it("stores publisher and a validated linked journal", async () => {
+      fakeDb.seed("journal", {
+        id: "journal-1",
+        title: "Journal of AI Research",
+        isDeleted: false,
+      });
+
+      const data = created(
+        await createCallForPaper(
+          formOf({
+            title: "Journal CFP",
+            category: "JOURNAL",
+            publisher: "Academic Press",
+            journalId: "journal-1",
+            description: "<p>Submissions open.</p>",
+            notificationLink: URL_FIELD.value,
+            applyLink: URL_FIELD.value,
+          }),
+        ),
+      );
+
+      expect(data).toMatchObject({
+        publisher: "Academic Press",
+        journalId: "journal-1",
+      });
+    });
+
+    it("stores null publisher and journal fields when omitted", async () => {
+      const data = created(
+        await createCallForPaper(
+          formOf({
+            title: "Conference CFP",
+            category: "CONFERENCE",
+            description: "<p>Event</p>",
+            notificationLink: URL_FIELD.value,
+            applyLink: URL_FIELD.value,
+          }),
+        ),
+      );
+
+      expect(data.publisher).toBeNull();
+      expect(data.journalId).toBeNull();
+    });
+
+    it("rejects a linked journal that is missing or deleted", async () => {
+      const result = await createCallForPaper(
+        formOf({
+          title: "Invalid Journal CFP",
+          category: "JOURNAL",
+          journalId: "missing-journal",
+          description: "<p>Event</p>",
+          notificationLink: URL_FIELD.value,
+          applyLink: URL_FIELD.value,
+        }),
+      );
+
+      expect(result).toMatchObject({
+        success: false,
+        message: "Selected journal is no longer available.",
+      });
+      expect(fakeDb.rows("callForPaper")).toHaveLength(0);
+    });
+  });
 
   it("rejects a publication whose abstract has no visible text", async () => {
     // The abstract is required and is stored as rich-text HTML, so an empty

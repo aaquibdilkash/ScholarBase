@@ -27,7 +27,7 @@ vi.mock("@/lib/db", () => {
       journal: delegate("journal"),
       result: delegate("result"),
       researchSurvey: delegate("researchSurvey"),
-      researchEvent: delegate("researchEvent"),
+      callForPaper: delegate("callForPaper"),
       phdAdmission: delegate("phdAdmission"),
       jobVacancy: delegate("jobVacancy"),
       supervisor: delegate("supervisor"),
@@ -215,7 +215,7 @@ describe("related content lookup", () => {
       { id: "e3", title: "Graphs workshop", location: "Bengaluru" },
     ]);
 
-    const items = await getRelatedContent("RESEARCH_EVENT", "e1");
+    const items = await getRelatedContent("CALL_FOR_PAPER", "e1");
 
     expect(items.map((item) => item.id)).toEqual(["e3"]);
   });

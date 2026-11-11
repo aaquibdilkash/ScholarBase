@@ -30,7 +30,7 @@ export type EmbeddingEntityType =
   | "JOURNAL"
   | "RESULT"
   | "RESEARCH_SURVEY"
-  | "RESEARCH_EVENT"
+  | "CALL_FOR_PAPER"
   | "PHD_ADMISSION"
   | "JOB_VACANCY"
   | "SUPERVISOR"
@@ -55,7 +55,7 @@ export const EMBEDDING_TABLES = {
   JOURNAL: "Journal",
   RESULT: "Result",
   RESEARCH_SURVEY: "ResearchSurvey",
-  RESEARCH_EVENT: "ResearchEvent",
+  CALL_FOR_PAPER: "CallForPaper",
   PHD_ADMISSION: "PhdAdmission",
   JOB_VACANCY: "JobVacancy",
   SUPERVISOR: "Supervisor",
@@ -88,7 +88,7 @@ export const EMBEDDING_TRIGGER_FIELDS = {
   JOURNAL: ["title", "publisher", "about", "subjectArea"],
   RESULT: ["title", "description", "category", "conductingBody", "session"],
   RESEARCH_SURVEY: ["title", "description"],
-  RESEARCH_EVENT: ["title", "location", "description"],
+  CALL_FOR_PAPER: ["title", "category", "eventDate", "location", "description"],
   PHD_ADMISSION: ["university", "department", "description"],
   JOB_VACANCY: ["title", "institution", "department", "subject", "description"],
   SUPERVISOR: ["name", "university", "department", "about"],
@@ -174,9 +174,11 @@ export type ResearchSurveyTextSource = {
   description: string | null;
 };
 
-export type ResearchEventTextSource = {
+export type CallForPaperTextSource = {
   title: string;
-  location: string;
+  category?: string;
+  eventDate?: Date | null;
+  location: string | null;
   description: string;
 };
 
@@ -286,10 +288,10 @@ export function buildResearchSurveyText(
   return joinFields(source, EMBEDDING_TRIGGER_FIELDS.RESEARCH_SURVEY);
 }
 
-export function buildResearchEventText(
-  source: ResearchEventTextSource,
+export function buildCallForPaperText(
+  source: CallForPaperTextSource,
 ): string {
-  return joinFields(source, EMBEDDING_TRIGGER_FIELDS.RESEARCH_EVENT);
+  return joinFields(source, EMBEDDING_TRIGGER_FIELDS.CALL_FOR_PAPER);
 }
 
 export function buildPhdAdmissionText(

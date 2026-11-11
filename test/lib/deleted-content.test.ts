@@ -5,7 +5,7 @@ const rows = vi.hoisted(() => ({
   socialPost: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
   article: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
   journal: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
-  researchEvent: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
+  callForPaper: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
   researchGrant: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
   helpPost: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,
   result: [] as Array<{ id: string; authorId: string | null; isDeleted: boolean; deletedByType: string | null; hasActiveAppeal: boolean }>,

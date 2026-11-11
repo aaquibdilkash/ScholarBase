@@ -51,9 +51,9 @@ const loaders = {
     tag: "admissions",
     type: "admission",
   }),
-  events: createContentTrending({
-    module: "RESEARCH_EVENT",
-    tag: "events",
+  callForPapers: createContentTrending({
+    module: "CALL_FOR_PAPER",
+    tag: "callForPapers",
     type: "event",
   }),
   journals: createContentTrending({
@@ -117,7 +117,7 @@ export const getTrendingArticles = () => loaders.articles.fetch();
 export const getTrendingSocialPosts = () => loaders.socialPosts.fetch();
 export const getTrendingVacancies = () => loaders.vacancies.fetch();
 export const getTrendingAdmissions = () => loaders.admissions.fetch();
-export const getTrendingEvents = () => loaders.events.fetch();
+export const getTrendingCallForPapers = () => loaders.callForPapers.fetch();
 export const getTrendingJournals = () => loaders.journals.fetch();
 export const getTrendingResearchTools = () => loaders.researchTools.fetch();
 export const getTrendingHelpPosts = () => loaders.helpPosts.fetch();

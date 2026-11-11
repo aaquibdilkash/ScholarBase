@@ -2,7 +2,7 @@
 
 import { getCurrentUser } from "@/lib/auth";
 
-import type { EventWithAuthor } from "@/types/cards";
+import type { CallForPaperWithAuthor } from "@/types/cards";
 
 import {
   loadContentPage,
@@ -34,28 +34,32 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
  * The cached viewer-agnostic batch plus the single-statement live overlay live
  * in `@/lib/tri-split/modules/registry`.
  */
-export async function getEvents(
+export async function getCallForPapers(
   q?: string,
   limit = 10,
   cursor?: string,
 ) {
-  return loadContentPage("RESEARCH_EVENT", { query: q, pageSize: limit, cursor }) as Promise<
-  EventWithAuthor[]
+  return loadContentPage("CALL_FOR_PAPER", { query: q, pageSize: limit, cursor }) as Promise<
+  CallForPaperWithAuthor[]
 >;
 }
 
 export const getEvent = cache(async (id: string, userId?: string) => {
-  return prisma.researchEvent.findUnique({
+  return prisma.callForPaper.findUnique({
     where: { id: id, isDeleted: false },
     select: {
       id: true,
       title: true,
-      date: true,
+      eventDate: true,
+      category: true,
       location: true,
       description: true,
       deadline: true,
       notificationLink: true,
       applyLink: true,
+      publisher: true,
+      journalId: true,
+      journal: { select: { id: true, title: true } },
       createdAt: true,
       authorId: true,
       author: {
@@ -114,14 +118,16 @@ export const getEvent = cache(async (id: string, userId?: string) => {
   });
 });
 
-export async function createResearchEvent(formData: FormData) {
+export async function createCallForPaper(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
   await enforceRateLimit({ namespace: "event:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
-  const date = new Date(readFormValue(formData, "date"));
+  const category = readFormValue(formData, "category");
+  const eventDateInput = readOptionalFormValue(formData, "eventDate");
+  const eventDate = eventDateInput ? new Date(eventDateInput) : null;
   const location = readFormValue(formData, "location");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_EVENT_DESCRIPTION, "Description");
@@ -129,6 +135,8 @@ export async function createResearchEvent(formData: FormData) {
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const publisher = readOptionalFormValue(formData, "publisher");
+  const journalId = readOptionalFormValue(formData, "journalId");
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -141,18 +149,25 @@ export async function createResearchEvent(formData: FormData) {
   if (!notificationLink || !applyLink) {
     throw new Error("Notification and Apply links are required.");
   }
+  if (journalId) {
+    const journal = await prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } });
+    if (!journal) return { success: false, message: "Selected journal is no longer available." };
+  }
 
   const event = await prisma.$transaction(async (tx) => {
-    const newEvent = await tx.researchEvent.create({
+    const newEvent = await tx.callForPaper.create({
       data: {
         title,
-        date,
+        category: category as "CONFERENCE" | "BOOK_CHAPTER" | "JOURNAL" | "WORKSHOP" | "SYMPOSIUM",
+        eventDate,
         location,
         description,
         deadline,
         notificationLink: safeNotificationLink,
         applyLink: safeApplyLink,
         authorId: user.id,
+        publisher,
+        journalId,
       },
       include: {
         author: {
@@ -167,6 +182,7 @@ export async function createResearchEvent(formData: FormData) {
             },
           },
         },
+        journal: { select: { id: true, title: true } },
         votes: { where: { userId: user.id }, select: { voteType: true } }, bookmarks: { where: { userId: user.id }, select: { id: true } },
       },
     });
@@ -175,7 +191,7 @@ export async function createResearchEvent(formData: FormData) {
       data: {
         userId: user.id,
         action: "PUBLISHED",
-        moduleType: "RESEARCH_EVENT",
+        moduleType: "CALL_FOR_PAPER",
         entityId: newEvent.id,
         entityTitle: newEvent.title,
       },
@@ -183,7 +199,7 @@ export async function createResearchEvent(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { researchEventCount: { increment: 1 } },
+      data: { callForPaperCount: { increment: 1 } },
     });
 
     return newEvent;
@@ -192,25 +208,29 @@ export async function createResearchEvent(formData: FormData) {
   await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
-    targetType: "ResearchEvent",
+    targetType: "CallForPaper",
     targetId: event.id,
     title: `${user.email?.split("@")[0] || "Someone"} posted a new research event`,
-    body: `"${title}" - ${new Date(date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`,
+    body: eventDate
+      ? `"${title}" - ${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+      : title,
   });
 
   // Purge the cached research event pages: publish must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_EVENT", user.id);
+  revalidateContent("CALL_FOR_PAPER", user.id);
 
   return { success: true, data: event };
 }
 
-export async function updateResearchEvent(formData: FormData, eventId: string) {
+export async function updateCallForPaper(formData: FormData, eventId: string) {
   // Frozen owners may edit (to correct content before appealing).
   const user = await requireCurrentUser("Log in to edit this event.");
   await enforceRateLimit({ namespace: "event:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
-  const date = new Date(readFormValue(formData, "date"));
+  const category = readFormValue(formData, "category");
+  const eventDateInput = readOptionalFormValue(formData, "eventDate");
+  const eventDate = eventDateInput ? new Date(eventDateInput) : null;
   const location = readFormValue(formData, "location");
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_EVENT_DESCRIPTION, "Description");
@@ -218,6 +238,8 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   const deadline = deadlineInput ? new Date(deadlineInput) : null;
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
+  const publisher = readOptionalFormValue(formData, "publisher");
+  const journalId = readOptionalFormValue(formData, "journalId");
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -231,7 +253,7 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
     throw new Error("Notification and Apply links are required.");
   }
 
-  const event = await prisma.researchEvent.findUnique({
+  const event = await prisma.callForPaper.findUnique({
     where: { id: eventId },
     select: { authorId: true },
   });
@@ -242,33 +264,40 @@ export async function updateResearchEvent(formData: FormData, eventId: string) {
   if (!(await isAuthorizedOrAdmin(event.authorId, user.id))) {
     throw new Error("Not authorized to edit this event.");
   }
+  if (journalId) {
+    const journal = await prisma.journal.findFirst({ where: { id: journalId, isDeleted: false }, select: { id: true } });
+    if (!journal) return { success: false, message: "Selected journal is no longer available." };
+  }
 
-  const updatedEvent = await prisma.researchEvent.update({
+  const updatedEvent = await prisma.callForPaper.update({
     where: { id: eventId },
     data: {
       title,
-      date,
+      category: category as "CONFERENCE" | "BOOK_CHAPTER" | "JOURNAL" | "WORKSHOP" | "SYMPOSIUM",
+      eventDate,
       location,
       description,
       deadline,
       notificationLink: safeNotificationLink,
       applyLink: safeApplyLink,
+      publisher,
+      journalId,
       editedAt: new Date(),
     },
   });
 
   // Purge the cached research event pages: edit must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_EVENT", event.authorId);
+  revalidateContent("CALL_FOR_PAPER", event.authorId);
 
   return { success: true, data: updatedEvent };
 }
 
-export async function deleteResearchEvent(eventId: string) {
+export async function deleteCallForPaper(eventId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this event.");
   await enforceRateLimit({ namespace: "event:delete", key: user.id, limit: 20, window: "10 m" });
 
-  const event = await prisma.researchEvent.findUnique({
+  const event = await prisma.callForPaper.findUnique({
     where: { id: eventId },
     select: { authorId: true, totalVotes: true, totalComments: true },
   });
@@ -276,20 +305,21 @@ export async function deleteResearchEvent(eventId: string) {
   if (!event) {
     throw new Error("Event not found.");
   }
+
   const deletedByType = await resolvePostDeletePermission(
     user.id,
     event.authorId,
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.researchEvent.update({
+    await tx.callForPaper.update({
       where: { id: eventId },
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
     await tx.user.update({
       where: { id: event.authorId },
-      data: { researchEventCount: { decrement: 1 } },
+      data: { callForPaperCount: { decrement: 1 } },
     });
 
     if (event.totalVotes !== 0) {
@@ -301,15 +331,15 @@ export async function deleteResearchEvent(eventId: string) {
 
     // Hide this content's activity so a deleted event stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
-    await hideContentActivity(tx, "RESEARCH_EVENT", eventId)
+    await hideContentActivity(tx, "CALL_FOR_PAPER", eventId)
   });
 
   // Purge the cached research event pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("RESEARCH_EVENT", event.authorId);
+  revalidateContent("CALL_FOR_PAPER", event.authorId);
 
   // Purge every bookmarker's Bookmarks tab so a soft-deleted event stops
   // inflating their bookmark count or showing a phantom "show more" arrow.
-  await revalidateBookmarkersForDeletedContent("RESEARCH_EVENT", eventId);
+  await revalidateBookmarkersForDeletedContent("CALL_FOR_PAPER", eventId);
 
   return { success: true, data: { deletedId: eventId, isDeleted: true as const, deletedByType, totalComments: event.totalComments } };
 }
@@ -322,19 +352,20 @@ export async function getUpcomingEvents(count: number) {
   const user = await getCurrentUser();
   const userId = user?.id;
 
-  return prisma.researchEvent.findMany({
+  return prisma.callForPaper.findMany({
     where: {
-      date: {
+      eventDate: {
         gte: new Date(),
       },
       isDeleted: false,
     },
     take: count,
-    orderBy: { date: "asc" },
+    orderBy: { eventDate: "asc" },
     select: {
       id: true,
       title: true,
-      date: true,
+      eventDate: true,
+      category: true,
       location: true,
       createdAt: true,
       author: {
@@ -358,3 +389,8 @@ export async function getUpcomingEvents(count: number) {
     },
   });
 }
+
+/** @deprecated Use the CallForPaper-named actions. */
+export const createResearchEvent = createCallForPaper;
+/** @deprecated Use the CallForPaper-named actions. */
+export const deleteResearchEvent = deleteCallForPaper;

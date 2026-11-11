@@ -513,17 +513,21 @@ export const CONTENT_LIST_CONFIGS = {
     dateKeys: DATES,
   },
 
-  RESEARCH_EVENT: {
-    module: "RESEARCH_EVENT",
+  CALL_FOR_PAPER: {
+    module: "CALL_FOR_PAPER",
     // Which Trending tab lists this module, so one mutation purges both.
-    trending: "events",
-    tag: "events-public",
+    trending: "callForPapers",
+    tag: "callForPapers-public",
     where: { isDeleted: false },
     select: {
       id: true,
       title: true,
-      date: true,
+      category: true,
+      eventDate: true,
       location: true,
+      publisher: true,
+      journalId: true,
+      journal: { select: { id: true, title: true } },
       deadline: true,
       description: true,
       notificationLink: true,
@@ -724,7 +728,7 @@ export const CONTENT_LIST_KEYS = Object.keys(
  * Takes no identity — the factory resolves it from the session.
  *
  * This is the ONE entry point for all 13 configured content modules
- * (publications, events, grants, surveys, admissions, courses, vacancies,
+ * (publications, callForPapers, grants, surveys, admissions, courses, vacancies,
  * journals, research tools, results, contributions, supervisors, help), so the
  * search throttle lives here rather than being repeated in 13 action files that
  * would inevitably drift apart.

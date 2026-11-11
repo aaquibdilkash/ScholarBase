@@ -56,7 +56,7 @@ export const SEO_SITE = {
         "scholar network",
         "phd supervisors",
         "phd admissions",
-        "research events",
+        "call for papers",
         "academic jobs",
         "research publications",
         "scholars",
@@ -208,12 +208,12 @@ export const SEO_PAGES = {
         path: "/vacancies",
         section: "Vacancies",
     },
-    events: {
-        title: "Academic Events | ScholarBase",
+    callForPapers: {
+        title: "Call for Papers | ScholarBase",
         description:
             "Discover conferences, workshops, calls for papers, and academic events from around the world.",
-        path: "/events",
-        section: "Events",
+        path: "/call-for-papers",
+        section: "Call for Papers",
     },
     journals: {
         title: "Academic Journals | ScholarBase",
@@ -275,7 +275,7 @@ export const SEO_CREATE_PAGES = {
         description:
             "Share PhD admissions, calls for applications, and intake notices with researchers and scholars.",
     },
-    events: {
+    callForPapers: {
         title: "List an academic event | ScholarBase",
         description:
             "Add conferences, calls for papers, and academic events that matter to researchers.",
@@ -346,7 +346,7 @@ export const CREATE_PAGE_TEXT = {
         description:
             "Share PhD admissions, calls for applications, and intake notices with researchers and scholars.",
     },
-    events: {
+    callForPapers: {
         title: "List an Academic Event",
         description:
             "Add conferences, calls for papers, and academic events that matter to researchers.",
@@ -430,8 +430,8 @@ export const EDIT_PAGE_TEXT = {
     blog: {
         title: "Edit Article",
     },
-    events: {
-        title: "Edit Research Event",
+    callForPapers: {
+        title: "Edit Call for Paper",
         description:
             "Update the conference dates, links, or description.",
     },
@@ -518,8 +518,8 @@ export const LIST_PAGE_TEXT = {
         description:
             "Contract, guest, and permanent openings across institutions.",
     },
-    events: {
-        title: "Research Events & Conference",
+    callForPapers: {
+        title: "Call for Papers & Conference",
         description:
             "Conferences, calls, and academic gatherings worth tracking.",
     },

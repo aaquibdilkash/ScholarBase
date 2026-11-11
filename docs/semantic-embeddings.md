@@ -21,7 +21,7 @@ trigram + `tsvector` indexes, and no search query reads an embedding.
 | Journal | `Journal` | `title`, `publisher`, `about`, `subjectArea` |
 | Result | `Result` | `title`, `description`, `category`, `conductingBody`, `session` |
 | Survey | `ResearchSurvey` | `title`, `description` |
-| Event | `ResearchEvent` | `title`, `location`, `description` |
+| Event | `CallForPaper` | `title`, `location`, `description` |
 | PhD admission | `PhdAdmission` | `university`, `department`, `description` |
 | Vacancy | `JobVacancy` | `title`, `institution`, `department`, `subject`, `description` |
 | Supervisor | `Supervisor` | `name`, `university`, `department`, `about` |
@@ -215,7 +215,7 @@ card via `<RelatedContent>`:
 | `/journals/[id]` | `JOURNAL` | Related journals |
 | `/results/[id]` | `RESULT` | Related results |
 | `/surveys/[id]` | `RESEARCH_SURVEY` | Related surveys |
-| `/events/[id]` | `RESEARCH_EVENT` | Related events |
+| `/call-for-papers/[id]` | `CALL_FOR_PAPER` | Related events |
 | `/admissions/[id]` | `PHD_ADMISSION` | Related PhD admissions |
 | `/vacancies/[id]` | `JOB_VACANCY` | Related vacancies |
 | `/supervisor/[id]` | `SUPERVISOR` | Related supervisors |
