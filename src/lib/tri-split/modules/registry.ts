@@ -590,6 +590,7 @@ export const CONTENT_LIST_CONFIGS = {
       department: true,
       subject: true,
       positionType: true,
+      employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
       startDate: true,

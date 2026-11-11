@@ -15,7 +15,7 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
 import { getAdmissionLevelLabel, parseAdmissionLevel } from "@/lib/admissions";
@@ -287,6 +287,9 @@ export async function deleteAdmission(admissionId: string) {
     // Hide this content's activity so a deleted admission stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "ADMISSION", admissionId)
+
+    // Delete every notification pointing at this admission and its comments.
+    await deleteAllNotificationsForContent(tx, "ADMISSION", admissionId)
   });
 
   // Purge the cached admission pages: soft delete must be visible at once, not after the TTL.

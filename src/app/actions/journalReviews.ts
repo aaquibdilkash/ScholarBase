@@ -12,7 +12,7 @@ import { COMMENT_PAGE_SIZE, MAX_JOURNAL_REVIEW_FEEDBACK } from "@/lib/constants"
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 
 import type { JournalReviewWithAuthor } from "@/types/cards";
 
@@ -481,6 +481,13 @@ export async function updateJournalReview(
             ],
           },
         });
+        // Identity toggle: remove the author's own notifications for this
+        // review so a non-anon → anon switch doesn't leak who published it.
+        await deleteAuthorNotificationsForContent(
+          tx,
+          review.authorId,
+          [reviewId, `${review.journalId}/${reviewId}`],
+        );
       } else if (review.isAnonymous && !isAnonymous) {
         await tx.user.update({
           where: { id: review.authorId },
@@ -599,6 +606,10 @@ export async function deleteJournalReview(reviewId: string) {
       reviewId,
       ...(reviewNested ? [reviewNested] : [])
     )
+
+    // Delete every notification pointing at this review and its comments,
+    // using both the bare id and the nested journalId/reviewId composite.
+    await deleteAllNotificationsForContent(tx, "JOURNAL_REVIEW", reviewId)
   });
 
   revalidateProfileContent(review.authorId);

@@ -1,4 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// `any` is intentional here: `ENTITY_CONFIG` maps each module to a union of
+// concrete Prisma delegates, and Prisma 7's strict client types forbid calling
+// methods directly on that union. We route through a permissive structural type.
 import { Prisma } from "@prisma/client";
+import type { ModuleKey } from "@/lib/transactions";
+import { ENTITY_CONFIG, deleteNotificationsForContent, resolveNestedNotificationTargetId } from "@/lib/transactions";
 import { getModuleLabel } from "@/lib/notification-links";
 import prisma from "@/lib/db";
 import { queueNotification } from "@/lib/qstash";
@@ -175,4 +181,70 @@ export async function notifyFollowersOfActivity(
     // enqueue failures remain visible in server logs.
     console.error("QStash fan-out notification error:", error);
   }
+}
+
+// ============================================================================
+// Notification cleanup on delete / anonymity toggle.
+//
+// Notifications are denormalized rows keyed by `targetType` + `targetId`, so
+// deleting content means deleting every notification whose `targetId` points at
+// it. These helpers run inside the same transaction that already soft-deletes
+// the row — no extra pool checkout, no extra round trip.
+//
+// `targetId` shapes:
+//   * content-level (publish / vote / mention):    entityId
+//   * nested rec/review:                           supervisorId/recId, journalId/reviewId
+//   * comment / reply:                             <parentTargetId>::comment::<commentId>
+// ============================================================================
+
+/** Delete only notifications authored by `actorId` that point at these target
+ * ids. Used on the non-anon → anon toggle so identity-bearing rows the author
+ * published (fan-out "content-published", their mentions) disappear, while
+ * votes/comments by other people on the same content stay. */
+export async function deleteAuthorNotificationsForContent(
+  tx: Prisma.TransactionClient,
+  actorId: string,
+  targetIds: string[],
+): Promise<void> {
+  if (targetIds.length === 0) return;
+  await tx.notification.deleteMany({
+    where: { targetId: { in: targetIds }, actorId },
+  });
+}
+
+/** Delete every notification that points at this content row, including
+ * comment/reply notifications (`<parentTargetId>::comment::<commentId>`) and
+ * nested composite ids (`supervisorId/recId`, `journalId/reviewId`).
+ *
+ * Runs inside the caller's transaction. Fetches comment ids once and builds
+ * the exact `::comment::` target ids so every deletion is an indexed lookup —
+ * no `startsWith` guesswork, no prefix collisions (e.g. `post-1` vs `post-10`). */
+export async function deleteAllNotificationsForContent(
+  tx: Prisma.TransactionClient,
+  moduleKey: ModuleKey,
+  entityId: string,
+): Promise<void> {
+  const parentTargetId = await resolveNestedNotificationTargetId(
+    tx,
+    moduleKey,
+    entityId,
+  );
+
+  const targetIds: string[] = [entityId];
+  if (parentTargetId !== entityId) {
+    targetIds.push(parentTargetId);
+  }
+
+  const config = ENTITY_CONFIG[moduleKey];
+  if (config) {
+    const comments = await (tx as any)[config.commentModel].findMany({
+      where: { [config.commentFk]: entityId },
+      select: { id: true },
+    });
+    for (const comment of comments) {
+      targetIds.push(`${parentTargetId}::comment::${comment.id}`);
+    }
+  }
+
+  await deleteNotificationsForContent(tx, targetIds);
 }

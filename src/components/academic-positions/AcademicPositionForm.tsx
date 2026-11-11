@@ -22,7 +22,7 @@ import {
   MAX_POSITION_APPLY_LINK,
   MAX_POSITION_DESCRIPTION,
 } from "@/lib/constants";
-import { POSITION_TYPES } from "@/lib/academic-positions";
+import { POSITION_TYPES, EMPLOYMENT_TYPES } from "@/lib/academic-positions";
 import { getRichTextLength } from "@/lib/html";
 import { actionErrorMessage } from "@/lib/utils";
 import type { AcademicPositionWithAuthor } from "@/types/cards";
@@ -30,6 +30,7 @@ import { upsertToList } from "@/utils/cacheMutation";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   POSITION_TYPE_TIP,
+  EMPLOYMENT_TYPE_TIP,
   POSITION_TITLE_TIP,
   POSITION_INSTITUTION_TIP,
   POSITION_DEPARTMENT_TIP,
@@ -51,6 +52,7 @@ export type AcademicPositionFormValues = {
   department: string;
   subject: string;
   positionType: string;
+  employmentType: string;
   salaryOrStipend: string;
   contractDuration: string;
   startDate: string;
@@ -77,6 +79,7 @@ export default function AcademicPositionForm({
     department: initialValues?.department ?? "",
     subject: initialValues?.subject ?? "",
     positionType: initialValues?.positionType ?? "POSTDOC",
+    employmentType: initialValues?.employmentType ?? "OTHER",
     salaryOrStipend: initialValues?.salaryOrStipend ?? "",
     contractDuration: initialValues?.contractDuration ?? "",
     startDate: initialValues?.startDate ?? "",
@@ -209,6 +212,26 @@ return (
           disabled={isPending}
         >
           {POSITION_TYPES.map((type) => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Employment Type
+          <InfoTooltip message={EMPLOYMENT_TYPE_TIP} />
+        </label>
+        <select
+          name="employmentType"
+          className="sb-input"
+          value={draftFields.employmentType}
+          onChange={(e) => updateDraftField("employmentType", e.target.value)}
+          disabled={isPending}
+        >
+          {EMPLOYMENT_TYPES.map((type) => (
             <option key={type.value} value={type.value}>
               {type.label}
             </option>

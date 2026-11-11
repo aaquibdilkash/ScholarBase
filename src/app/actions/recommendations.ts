@@ -12,7 +12,7 @@ import { COMMENT_PAGE_SIZE, MAX_RECOMMENDATION_FEEDBACK } from "@/lib/constants"
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { revalidateBookmarkersForDeletedContent, revalidateProfileContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 
 export const getRecommendation = cache(
   async (recommendationId: string, userId?: string) => {
@@ -349,6 +349,13 @@ export async function updateRecommendation(
             ],
           },
         });
+        // Identity toggle: remove the author's own notifications for this
+        // recommendation so a non-anon → anon switch doesn't leak who published it.
+        await deleteAuthorNotificationsForContent(
+          tx,
+          recommendation.authorId,
+          [recommendationId, `${recommendation.supervisorId}/${recommendationId}`],
+        );
       } else if (recommendation.isAnonymous && !isAnonymous) {
         await tx.user.update({
           where: { id: recommendation.authorId },
@@ -464,6 +471,10 @@ export async function deleteRecommendation(recommendationId: string) {
       recommendationId,
       ...(recommendationNested ? [recommendationNested] : [])
     )
+
+    // Delete every notification pointing at this recommendation and its comments,
+    // using both the bare id and the nested supervisorId/recommendationId composite.
+    await deleteAllNotificationsForContent(tx, "RECOMMENDATION", recommendationId)
   });
 
   revalidateProfileContent(recommendation.authorId);

@@ -2,7 +2,7 @@
 // `any` is intentional here: the ENTITY_CONFIG maps each module to a union of
 // concrete Prisma delegates, and Prisma 7's strict client types forbid calling
 // methods directly on that union. We route through a permissive structural type.
-import { VoteType } from '@prisma/client'
+import { VoteType, Prisma } from '@prisma/client'
 import prisma from './db'
 import { resolveCommentDeletePermission } from './deletion'
 import { isUserAdmin } from './auth'
@@ -900,6 +900,17 @@ export async function deleteCommentTransaction(
       })
     }
 
+    // Delete this comment's notifications (mentions + parent-author alert).
+    // targetId is `<parentTargetId>::comment::<commentId>`.
+    const parentNotificationTargetId = await resolveNestedNotificationTargetId(
+      tx,
+      moduleName,
+      parentEntityId,
+    )
+    await deleteNotificationsForContent(tx, [
+      `${parentNotificationTargetId}::comment::${commentId}`,
+    ])
+
     const showTombstone = comment.parentId === null && comment.totalReplies > 0
 
     return { showTombstone, parentId: comment.parentId, deletedByType }
@@ -927,4 +938,43 @@ export const COMMENT_TYPE_TO_MODULE: Record<string, ModuleKey> = {
   contribution: 'CONTRIBUTION',
   publication: 'PUBLICATION',
   survey: 'RESEARCH_SURVEY',
+}
+
+/** Build the notification target id for a parent entity: the bare id, or the
+ * nested `parentId/childId` composite for recommendations and journal reviews.
+ * Tx-aware so it can run inside an existing transaction (no second pool
+ * checkout). Mirrors the shape used at comment-creation time. */
+export async function resolveNestedNotificationTargetId(
+  tx: Prisma.TransactionClient,
+  moduleKey: ModuleKey,
+  targetId: string,
+): Promise<string> {
+  if (targetId.includes("/")) return targetId;
+  if (moduleKey === "RECOMMENDATION") {
+    const rec = await (tx as any).recommendation.findUnique({
+      where: { id: targetId },
+      select: { supervisorId: true },
+    });
+    if (rec?.supervisorId) return `${rec.supervisorId}/${targetId}`;
+  } else if (moduleKey === "JOURNAL_REVIEW") {
+    const review = await (tx as any).journalReview.findUnique({
+      where: { id: targetId },
+      select: { journalId: true },
+    });
+    if (review?.journalId) return `${review.journalId}/${targetId}`;
+  }
+  return targetId;
+}
+
+/** Delete every notification (read or unread) that points at these target ids.
+ * All-or-nothing: used when content is soft-deleted so no notification can
+ * leak identity or link to a tombstone. */
+export async function deleteNotificationsForContent(
+  tx: Prisma.TransactionClient,
+  targetIds: string[],
+): Promise<void> {
+  if (targetIds.length === 0) return;
+  await tx.notification.deleteMany({
+    where: { targetId: { in: targetIds } },
+  });
 }

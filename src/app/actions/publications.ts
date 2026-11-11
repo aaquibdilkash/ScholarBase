@@ -18,7 +18,7 @@ import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/au
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { getRichTextLength } from "@/lib/html";
-import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_PUBLICATION_ABSTRACT, MAX_PUBLICATION_KEYWORDS, MAX_PUBLICATION_KEYWORD_COUNT, MAX_PUBLICATION_KEYWORD_LENGTH } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -350,6 +350,9 @@ export async function deletePublication(publicationId: string) {
     // Hide this content's activity so a deleted publication stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "PUBLICATION", publicationId)
+
+    // Delete every notification pointing at this publication and its comments.
+    await deleteAllNotificationsForContent(tx, "PUBLICATION", publicationId)
   });
 
   // Purge the cached publication pages: soft delete must be visible at once, not after the TTL.

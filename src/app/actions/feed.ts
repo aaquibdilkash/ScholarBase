@@ -32,6 +32,7 @@ import {
   notifyFollowersOfActivity,
   notifyMentionedUsers,
   resolveMentionedUsers,
+  deleteAllNotificationsForContent,
 } from "@/lib/notifications";
 import {
   deleteCloudinaryAsset,
@@ -532,6 +533,10 @@ export async function deleteSocialPost(postId: string) {
     // Hide this content's activity so a deleted post stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "SOCIAL_POST", postId)
+
+    // Delete every notification pointing at this post (votes, publishes,
+    // mentions, and every comment/reply on it) so nothing links to a tombstone.
+    await deleteAllNotificationsForContent(tx, "SOCIAL_POST", postId)
   });
 
   // Soft delete (RULE 4) must disappear from the cached public feed at once.

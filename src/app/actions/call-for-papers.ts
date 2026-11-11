@@ -16,7 +16,7 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_EVENT_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -330,6 +330,9 @@ export async function deleteCallForPaper(eventId: string) {
     // Hide this content's activity so a deleted event stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "CALL_FOR_PAPER", eventId)
+
+    // Delete every notification pointing at this event and its comments.
+    await deleteAllNotificationsForContent(tx, "CALL_FOR_PAPER", eventId)
   });
 
   // Purge the cached research event pages: soft delete must be visible at once, not after the TTL.

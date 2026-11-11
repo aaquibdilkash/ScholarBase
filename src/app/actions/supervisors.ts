@@ -14,7 +14,7 @@ import { cache } from "react";
 import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin, getCurrentUser } from "@/lib/auth";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_SUPERVISOR_ABOUT } from "@/lib/constants";
@@ -396,6 +396,13 @@ export async function updateSupervisor(
           entityId: supervisorId,
         },
       });
+      // Identity toggle: remove the author's own notifications for this
+      // supervisor so a non-anon → anon switch doesn't leak who published it.
+      await deleteAuthorNotificationsForContent(
+        tx,
+        supervisor.authorId,
+        [supervisorId],
+      );
     } else if (supervisor.isAnonymous && !isAnonymous) {
       await tx.user.update({
         where: { id: supervisor.authorId },
@@ -474,6 +481,9 @@ export async function deleteSupervisor(supervisorId: string) {
     // Hide this content's activity so a deleted supervisor stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "SUPERVISOR", supervisorId)
+
+    // Delete every notification pointing at this supervisor and its comments.
+    await deleteAllNotificationsForContent(tx, "SUPERVISOR", supervisorId)
   });
 
   // Purge the cached supervisor pages: soft delete must be visible at once, not after the TTL.

@@ -19,6 +19,7 @@ import {
   createCommentTransaction,
   deleteCommentTransaction,
   ENTITY_CONFIG,
+  resolveNestedNotificationTargetId,
 } from "@/lib/transactions";
 import { checkRateLimit, RATE_LIMIT_DEGRADED_ERROR, RATE_LIMIT_ERROR } from "@/lib/rate-limit";
 import { visibleParentCommentWhere } from "@/lib/comment-visibility";
@@ -173,34 +174,6 @@ async function getParentAuthorId(
   }
 }
 
-/**
- * Nested targets (RECOMMENDATION, JOURNAL_REVIEW) live under a parent route,
- * so every stored notification targetId must be the composite
- * `parentId/childId` that getNotificationLink() expects (same convention as
- * handleVoteTransaction and userActivity rows). One indexed PK lookup; every
- * other module returns the bare id untouched.
- */
-async function resolveNestedNotificationTargetId(
-  moduleKey: string,
-  targetId: string,
-): Promise<string> {
-  if (targetId.includes("/")) return targetId;
-  if (moduleKey === "RECOMMENDATION") {
-    const rec = await (prisma.recommendation as any).findUnique({
-      where: { id: targetId },
-      select: { supervisorId: true },
-    });
-    if (rec?.supervisorId) return `${rec.supervisorId}/${targetId}`;
-  } else if (moduleKey === "JOURNAL_REVIEW") {
-    const review = await (prisma.journalReview as any).findUnique({
-      where: { id: targetId },
-      select: { journalId: true },
-    });
-    if (review?.journalId) return `${review.journalId}/${targetId}`;
-  }
-  return targetId;
-}
-
 export async function createComment(
   formData: FormData,
   targetId: string,
@@ -242,7 +215,11 @@ export async function createComment(
   // composite `parentId/childId` (same as vote notifications and activity
   // rows). A bare child id makes getNotificationLink() return null and the
   // card renders as a dead div instead of a Link.
-  const notificationTargetId = await resolveNestedNotificationTargetId(moduleKey, targetId);
+  const notificationTargetId = await resolveNestedNotificationTargetId(
+    prisma,
+    moduleKey,
+    targetId,
+  );
 
   const mentions = await resolveMentionedUsers(content);
 
@@ -377,7 +354,11 @@ export async function editComment(
   );
 
   const targetId = (comment as any)[ENTITY_CONFIG[moduleKey].parentFk] as string;
-  const notificationTargetId = await resolveNestedNotificationTargetId(moduleKey, targetId);
+  const notificationTargetId = await resolveNestedNotificationTargetId(
+    prisma,
+    moduleKey,
+    targetId,
+  );
 
   if (newMentions.length > 0) {
     await notifyMentionedUsers({

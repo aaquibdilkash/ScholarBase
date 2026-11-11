@@ -191,6 +191,15 @@ enum PositionType {
   OTHER
 }
 
+enum EmploymentType {
+  PERMANENT
+  CONTRACTUAL
+  ADHOC
+  VISITING
+  GUEST
+  OTHER
+}
+
 enum DigestPreference {
   DAILY
   WEEKLY
@@ -1391,6 +1400,7 @@ model Notification {
   @@index([recipientId, createdAt])
   @@index([recipientId, readAt, createdAt(sort: Desc)])
   @@index([recipientId, targetId, type, readAt])
+  @@index([targetId])
   // CRITICAL: Isolates unsent notifications per user via B-Tree lookup,
   // preventing CPU-spiking sequential scans during digest cron runs.
   @@index([recipientId, isEmailed])
@@ -2527,6 +2537,7 @@ model AcademicPosition {
   department       String?
   subject          String?
   positionType     PositionType @default(OTHER)
+  employmentType   EmploymentType @default(OTHER)
   salaryOrStipend  String?
   contractDuration String?
   startDate        DateTime?

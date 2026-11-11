@@ -396,6 +396,7 @@ WHERE academicPosition."isDeleted" = false
       academicPosition."department",
       academicPosition."subject",
       academicPosition."positionType",
+      academicPosition."employmentType",
       academicPosition."salaryOrStipend",
       academicPosition."contractDuration",
       academicPosition."location",

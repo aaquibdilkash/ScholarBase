@@ -96,12 +96,16 @@ vi.mock("@/lib/cloudinary", () => ({
   extractCloudinaryPublicId: vi.fn(() => null),
 }));
 vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));
-vi.mock("@/lib/notifications", () => ({
-  notifyFollowersOfActivity: vi.fn(async () => {}),
-  notifyMentionedUsers: vi.fn(async () => {}),
-  notifyUserById: vi.fn(async () => {}),
-  resolveMentionedUsers: vi.fn(async () => []),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyFollowersOfActivity: vi.fn(async () => {}),
+    notifyMentionedUsers: vi.fn(async () => {}),
+    notifyUserById: vi.fn(async () => {}),
+    resolveMentionedUsers: vi.fn(async () => []),
+  };
+});
 
 /** Valid external URL — the URL guards reject bare strings. */
 const URL_FIELD = { value: "https://example.org/apply" };
@@ -155,12 +159,13 @@ const SPECS = [
       title: "Postdoc open",
       institution: "Oxford",
       positionType: "POSTDOC",
+      employmentType: "PERMANENT",
       description: "<p>Role</p>",
       deadline: "2030-01-01",
       notificationLink: URL_FIELD.value,
       applyLink: URL_FIELD.value,
     },
-    expectRow: { title: "Postdoc open", positionType: "POSTDOC" },
+    expectRow: { title: "Postdoc open", positionType: "POSTDOC", employmentType: "PERMANENT" },
   },
   {
     name: "Admission",

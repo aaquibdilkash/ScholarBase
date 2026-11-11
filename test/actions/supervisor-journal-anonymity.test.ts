@@ -54,9 +54,13 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   loadContentPage: vi.fn(async () => []),
 }));
 
-vi.mock("@/lib/notifications", () => ({
-  notifyFollowersOfActivity: vi.fn(async () => {}),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyFollowersOfActivity: vi.fn(async () => {}),
+  };
+});
 
 function form(fields: Record<string, string>, anonymous = false): FormData {
   const data = new FormData();

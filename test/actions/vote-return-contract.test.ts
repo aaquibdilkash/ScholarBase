@@ -50,12 +50,16 @@ vi.mock("@/lib/rate-limit", () => ({
 vi.mock("@/lib/qstash", () => ({
   queueNotification: (...args: unknown[]) => queueNotification(...(args as [])),
 }));
-vi.mock("@/lib/notifications", () => ({
-  notifyFollowersOfActivity: vi.fn(async () => {}),
-  notifyMentionedUsers: vi.fn(async () => {}),
-  notifyUserById: vi.fn(async () => {}),
-  resolveMentionedUsers: vi.fn(async () => []),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyFollowersOfActivity: vi.fn(async () => {}),
+    notifyMentionedUsers: vi.fn(async () => {}),
+    notifyUserById: vi.fn(async () => {}),
+    resolveMentionedUsers: vi.fn(async () => []),
+  };
+});
 
 beforeEach(() => {
   resetFakeDb();

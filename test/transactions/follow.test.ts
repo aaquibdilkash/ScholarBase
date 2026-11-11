@@ -31,9 +31,13 @@ const notifyUserById = vi.fn(async (_args: Record<string, unknown>) => {});
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: vi.fn(async () => mockCurrentUser),
 }));
-vi.mock("@/lib/notifications", () => ({
-  notifyUserById: (args: Record<string, unknown>) => notifyUserById(args),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyUserById: (args: Record<string, unknown>) => notifyUserById(args),
+  };
+});
 vi.mock("@/lib/rate-limit", () => ({
   checkRateLimit: vi.fn(async () => ({ allowed: rateLimitAllowed })),
   enforceRateLimit: vi.fn(async () => {}),

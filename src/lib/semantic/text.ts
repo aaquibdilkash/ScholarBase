@@ -96,6 +96,7 @@ export const EMBEDDING_TRIGGER_FIELDS = {
     "department",
     "subject",
     "positionType",
+    "employmentType",
     "salaryOrStipend",
     "contractDuration",
     "location",
@@ -205,6 +206,7 @@ export type AcademicPositionTextSource = {
   department: string | null;
   subject: string | null;
   positionType?: string | null;
+  employmentType?: string | null;
   salaryOrStipend?: string | null;
   contractDuration?: string | null;
   location?: string | null;

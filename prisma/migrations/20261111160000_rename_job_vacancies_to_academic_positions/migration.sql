@@ -3,6 +3,7 @@
 -- the `OTHER` default so pre-existing rows stay valid without guessing intent.
 
 CREATE TYPE "PositionType" AS ENUM ('POSTDOC', 'RESEARCH_ASSISTANT', 'RESEARCH_ASSOCIATE', 'FACULTY', 'PHD_RESEARCHER', 'OTHER');
+CREATE TYPE "EmploymentType" AS ENUM ('PERMANENT', 'CONTRACTUAL', 'ADHOC', 'VISITING', 'GUEST', 'OTHER');
 
 ALTER TYPE "EmbeddingEntityType" RENAME VALUE 'JOB_VACANCY' TO 'ACADEMIC_POSITION';
 
@@ -23,6 +24,7 @@ ALTER TABLE "public"."User"
 
 ALTER TABLE "public"."AcademicPosition"
   ADD COLUMN "positionType" "PositionType" NOT NULL DEFAULT 'OTHER',
+  ADD COLUMN "employmentType" "EmploymentType" NOT NULL DEFAULT 'OTHER',
   ADD COLUMN "salaryOrStipend" TEXT,
   ADD COLUMN "contractDuration" TEXT,
   ADD COLUMN "startDate" TIMESTAMP(3),
@@ -72,7 +74,7 @@ BEGIN
   function_definition := replace(
     function_definition,
     E'                NEW."title",\n                NEW."institution",\n                NEW."department",\n                NEW."subject",\n                NEW."description"',
-    E'                NEW."title",\n                NEW."institution",\n                NEW."department",\n                NEW."subject",\n                NEW."positionType",\n                NEW."salaryOrStipend",\n                NEW."contractDuration",\n                NEW."location",\n                NEW."description"'
+    E'                NEW."title",\n                NEW."institution",\n                NEW."department",\n                NEW."subject",\n                NEW."positionType",\n                NEW."employmentType",\n                NEW."salaryOrStipend",\n                NEW."contractDuration",\n                NEW."location",\n                NEW."description"'
   );
   EXECUTE function_definition;
 END $$;
@@ -85,6 +87,7 @@ BEFORE INSERT OR UPDATE OF
   "department",
   "subject",
   "positionType",
+  "employmentType",
   "salaryOrStipend",
   "contractDuration",
   "location",

@@ -15,7 +15,7 @@ import prisma from "@/lib/db";
 import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { assertRichTextWithinLimit } from "@/lib/form";
 import { COMMENT_PAGE_SIZE, MAX_HELP_POST_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -270,6 +270,9 @@ export async function deleteHelpPost(helpPostId: string) {
     // Hide this content's activity so a deleted help post stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "HELP_POST", helpPostId)
+
+    // Delete every notification pointing at this help post and its comments.
+    await deleteAllNotificationsForContent(tx, "HELP_POST", helpPostId)
   });
 
   // Purge the cached help post pages: soft delete must be visible at once, not after the TTL.

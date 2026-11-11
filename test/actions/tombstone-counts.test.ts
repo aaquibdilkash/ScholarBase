@@ -33,12 +33,16 @@ vi.mock("@/lib/qstash", () => ({
   queueNotification: vi.fn(async () => {}),
 }));
 
-vi.mock("@/lib/notifications", () => ({
-  notifyFollowersOfActivity: vi.fn(async () => {}),
-  notifyMentionedUsers: vi.fn(async () => {}),
-  notifyUserById: vi.fn(async () => {}),
-  resolveMentionedUsers: vi.fn(async () => []),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyFollowersOfActivity: vi.fn(async () => {}),
+    notifyMentionedUsers: vi.fn(async () => {}),
+    notifyUserById: vi.fn(async () => {}),
+    resolveMentionedUsers: vi.fn(async () => []),
+  };
+});
 
 const PARENT_ID = "parent-1";
 

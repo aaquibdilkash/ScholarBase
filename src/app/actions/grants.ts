@@ -16,7 +16,7 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import {
   COMMENT_PAGE_SIZE,
@@ -194,6 +194,9 @@ export async function deleteResearchGrant(grantId: string) {
     // Hide this content's activity so a deleted grant stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "RESEARCH_GRANT", grantId)
+
+    // Delete every notification pointing at this grant and its comments.
+    await deleteAllNotificationsForContent(tx, "RESEARCH_GRANT", grantId)
   });
 
   // Purge the cached research grant pages: soft delete must be visible at once, not after the TTL.

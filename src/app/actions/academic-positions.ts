@@ -16,7 +16,7 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import {
   COMMENT_PAGE_SIZE,
@@ -27,7 +27,7 @@ import {
   MAX_POSITION_DURATION,
   MAX_POSITION_LOCATION,
 } from "@/lib/constants";
-import { parsePositionType } from "@/lib/academic-positions";
+import { parsePositionType, parseEmploymentType } from "@/lib/academic-positions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 /**
@@ -93,6 +93,7 @@ export const getAcademicPositionById = cache(async (id: string, userId?: string)
       department: true,
       subject: true,
       positionType: true,
+      employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
       startDate: true,
@@ -172,6 +173,7 @@ export async function createAcademicPosition(formData: FormData) {
   const department = readOptionalShortText(formData, "department", MAX_POSITION_DEPARTMENT, "Department");
   const subject = readOptionalShortText(formData, "subject", MAX_POSITION_SUBJECT, "Subject");
   const positionType = parsePositionType(readFormValue(formData, "positionType"));
+  const employmentType = parseEmploymentType(readFormValue(formData, "employmentType"));
   const salaryOrStipend = readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary");
   const contractDuration = readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration");
   const startDate = readOptionalDate(formData, "startDate");
@@ -203,6 +205,7 @@ export async function createAcademicPosition(formData: FormData) {
         department,
         subject,
         positionType,
+        employmentType,
         salaryOrStipend,
         contractDuration,
         startDate,
@@ -221,6 +224,7 @@ export async function createAcademicPosition(formData: FormData) {
         department: true,
         subject: true,
         positionType: true,
+        employmentType: true,
         salaryOrStipend: true,
         contractDuration: true,
         startDate: true,
@@ -298,6 +302,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
   const department = readOptionalShortText(formData, "department", MAX_POSITION_DEPARTMENT, "Department");
   const subject = readOptionalShortText(formData, "subject", MAX_POSITION_SUBJECT, "Subject");
   const positionType = parsePositionType(readFormValue(formData, "positionType"));
+  const employmentType = parseEmploymentType(readFormValue(formData, "employmentType"));
   const salaryOrStipend = readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary");
   const contractDuration = readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration");
   const startDate = readOptionalDate(formData, "startDate");
@@ -339,6 +344,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       department,
       subject,
       positionType,
+      employmentType,
       salaryOrStipend,
       contractDuration,
       startDate,
@@ -357,6 +363,7 @@ export async function updateAcademicPosition(formData: FormData, academicPositio
       department: true,
       subject: true,
       positionType: true,
+      employmentType: true,
       salaryOrStipend: true,
       contractDuration: true,
       startDate: true,
@@ -423,6 +430,9 @@ export async function deleteAcademicPosition(academicPositionId: string) {
     // Hide this content's activity so a deleted position stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "ACADEMIC_POSITION", academicPositionId)
+
+    // Delete every notification pointing at this position and its comments.
+    await deleteAllNotificationsForContent(tx, "ACADEMIC_POSITION", academicPositionId)
   });
 
   // Purge the cached academic position pages: soft delete must be visible at once, not after the TTL.

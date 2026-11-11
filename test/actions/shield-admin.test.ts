@@ -36,9 +36,13 @@ vi.mock("@/lib/tri-split/modules/registry", () => ({
   loadContentPage: vi.fn(async () => []),
 }));
 vi.mock("@/lib/qstash", () => ({ queueNotification: vi.fn(async () => {}) }));
-vi.mock("@/lib/notifications", () => ({
-  notifyUserById: vi.fn(async () => {}),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyUserById: vi.fn(async () => {}),
+  };
+});
 
 import {
   getAdminShieldSummary,

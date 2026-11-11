@@ -38,9 +38,13 @@ vi.mock("@/lib/tri-split/modules/profile-tab", () => ({
   revalidateProfileContent: vi.fn(),
 }));
 
-vi.mock("@/lib/notifications", () => ({
-  notifyFollowersOfActivity: vi.fn(async () => {}),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyFollowersOfActivity: vi.fn(async () => {}),
+  };
+});
 
 function validForm(): FormData {
   const formData = new FormData();

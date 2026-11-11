@@ -18,7 +18,7 @@ import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
-import { getPositionTypeLabel } from "@/lib/academic-positions";
+import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-positions";
 
 export async function generateMetadata({
   params,
@@ -191,6 +191,9 @@ const AcademicPositionDetailPage = async ({
       <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
           {getPositionTypeLabel(academicPosition.positionType)}
+        </span>
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          {getEmploymentTypeLabel(academicPosition.employmentType)}
         </span>
         {(academicPosition.location || academicPosition.isRemote) && (
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">

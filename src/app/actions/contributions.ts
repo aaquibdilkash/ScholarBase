@@ -20,7 +20,7 @@ import {
   deleteCloudinaryAsset,
   promoteDraftCloudinaryAsset,
 } from "@/lib/cloudinary";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_CONTRIBUTION_MESSAGE } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
@@ -342,6 +342,9 @@ export async function deleteContribution(contributionId: string) {
     // Hide this content's activity so a deleted contribution stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "CONTRIBUTION", contributionId)
+
+    // Delete every notification pointing at this contribution and its comments.
+    await deleteAllNotificationsForContent(tx, "CONTRIBUTION", contributionId)
   });
 
   // The screenshot is intentionally NOT deleted from Cloudinary on soft delete.

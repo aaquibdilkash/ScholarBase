@@ -23,7 +23,7 @@ import {
   RATE_LIMIT_ERROR,
 } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity, notifyUserById } from "@/lib/notifications";
+import { notifyFollowersOfActivity, notifyUserById, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { COMMENT_PAGE_SIZE, MAX_SURVEY_DESCRIPTION, MAX_SURVEY_CONSENT_TEXT, MAX_SURVEY_BLOCKS, MAX_MATRIX_COLUMNS, MAX_SURVEY_QUESTION_OPTION, MAX_SURVEY_QUESTION_TITLE, MAX_SURVEY_LINEAR_SCALE_VALUE, NEW_QUESTION_ID_PREFIX } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { parseSkipLogic, computeSkippedQuestionIds } from "@/lib/surveys/logic";
@@ -842,6 +842,9 @@ export async function deleteSurvey(surveyId: string) {
     // Hide this content's activity so a deleted survey stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "RESEARCH_SURVEY", surveyId)
+
+    // Delete every notification pointing at this survey and its comments.
+    await deleteAllNotificationsForContent(tx, "RESEARCH_SURVEY", surveyId)
   });
 
   // Purge the cached survey pages: soft delete must be visible at once.

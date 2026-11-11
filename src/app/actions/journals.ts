@@ -18,7 +18,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { isSearchableQuery } from "@/lib/search-guard";
 import { allowSearchRequest } from "@/lib/search-rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent, deleteAuthorNotificationsForContent } from "@/lib/notifications";
 import type {
   Quartile,
   AbdcTier,
@@ -272,6 +272,13 @@ export async function updateJournal(formData: FormData, journalId: string) {
           entityId: journalId,
         },
       });
+      // Identity toggle: remove the author's own notifications for this
+      // journal so a non-anon → anon switch doesn't leak who published it.
+      await deleteAuthorNotificationsForContent(
+        tx,
+        journal.authorId,
+        [journalId],
+      );
     } else if (journal.isAnonymous && !isAnonymous) {
       await tx.user.update({
         where: { id: journal.authorId },
@@ -350,6 +357,9 @@ export async function deleteJournal(journalId: string) {
     // Hide this content's activity so a deleted journal stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "JOURNAL", journalId)
+
+    // Delete every notification pointing at this journal and its comments.
+    await deleteAllNotificationsForContent(tx, "JOURNAL", journalId)
   });
 
   // Purge the cached journal pages: soft delete must be visible at once, not after the TTL.

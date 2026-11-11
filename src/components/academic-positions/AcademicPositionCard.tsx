@@ -17,7 +17,7 @@ import { actionErrorMessage } from "@/lib/utils";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
 import type { AcademicPositionWithAuthor } from "@/types/cards";
-import { getPositionTypeLabel } from "@/lib/academic-positions";
+import { getPositionTypeLabel, getEmploymentTypeLabel } from "@/lib/academic-positions";
 
 export function AcademicPositionCard({ academicPosition,
   currentUserId,
@@ -33,6 +33,7 @@ export function AcademicPositionCard({ academicPosition,
     (academicPosition.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(academicPosition.deadline);
   const positionTypeLabel = getPositionTypeLabel(academicPosition.positionType);
+  const employmentTypeLabel = getEmploymentTypeLabel(academicPosition.employmentType);
   // Compact affiliation line: "Dept. of Physics • Quantum Optics". Renders
   // whichever parts exist; hidden when both are null (pre-migration rows).
   const deptSubject = [academicPosition.department, academicPosition.subject]
@@ -163,6 +164,9 @@ export function AcademicPositionCard({ academicPosition,
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
             {positionTypeLabel}
+          </span>
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            {employmentTypeLabel}
           </span>
           {urgency && (
             <span

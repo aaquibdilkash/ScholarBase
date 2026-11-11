@@ -16,7 +16,7 @@ import { resolvePostDeletePermission } from "@/lib/deletion";
 import { getActiveUser, requireCurrentUser, isAuthorizedOrAdmin } from "@/lib/auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
-import { notifyFollowersOfActivity } from "@/lib/notifications";
+import { notifyFollowersOfActivity, deleteAllNotificationsForContent } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_COURSE_DESCRIPTION } from "@/lib/constants";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
@@ -260,6 +260,9 @@ export async function deleteCourse(courseId: string) {
     // Hide this content's activity so a deleted course stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
     await hideContentActivity(tx, "COURSE", courseId)
+
+    // Delete every notification pointing at this course and its comments.
+    await deleteAllNotificationsForContent(tx, "COURSE", courseId)
   });
 
   // Purge the cached course pages: soft delete must be visible at once, not after the TTL.

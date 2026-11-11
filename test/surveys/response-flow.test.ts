@@ -69,12 +69,16 @@ vi.mock("@/lib/rate-limit", () => ({
   enforceRateLimit: vi.fn(async () => undefined),
   RATE_LIMIT_ERROR: "Too many requests. Please slow down.",
 }));
-vi.mock("@/lib/notifications", () => ({
-  notifyFollowersOfActivity: (...args: unknown[]) =>
-    notifyFollowersOfActivity(...(args as [])),
-  notifyUserById: (...args: unknown[]) =>
-    notifyUserById(...(args as [])),
-}));
+vi.mock("@/lib/notifications", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    notifyFollowersOfActivity: (...args: unknown[]) =>
+      notifyFollowersOfActivity(...(args as [])),
+    notifyUserById: (...args: unknown[]) =>
+      notifyUserById(...(args as [])),
+  };
+});
 vi.mock("@/lib/tri-split/modules/registry", () => ({
   revalidateContent: (...args: unknown[]) => revalidateContent(...(args as [])),
   loadContentPage: vi.fn(async () => ({ items: [], nextCursor: null })),
