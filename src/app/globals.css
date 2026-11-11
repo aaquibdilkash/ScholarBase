@@ -1067,13 +1067,19 @@ html[data-theme="dark"] .sb-rich-content a {
 
 /* Inline images in stored rich content (blog bodies). Responsive: never
    overflow the column, and the aspect ratio is preserved on the element
-   because the editor stores width/height attributes. */
+   because the editor stores width/height attributes. Clicking one opens the
+   shared ImageLightbox, so it reads as clickable. */
 .sb-rich-content img {
   max-width: 100%;
   height: auto;
   display: block;
   margin: 1em 0;
   border-radius: 0.75rem;
+  cursor: zoom-in;
+  transition: opacity 0.2s;
+}
+.sb-rich-content img:hover {
+  opacity: 0.9;
 }
 
 /* Images inside the Tiptap editor (blog composer). Same responsive rules
@@ -1085,6 +1091,11 @@ html[data-theme="dark"] .sb-rich-content a {
   display: block;
   margin: 0.75em 0;
   border-radius: 0.75rem;
+  cursor: zoom-in;
+  transition: opacity 0.2s;
+}
+.sb-editor img:hover {
+  opacity: 0.9;
 }
 
 /* ============================================================

@@ -183,7 +183,7 @@ export function ArticleComposer({
   return (
     <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-6">
       <CautionNote />
-      <div className="grid gap-6 lg:h-[800px] lg:grid-cols-[1fr_1.05fr] lg:items-stretch lg:gap-8 xl:h-[840px]">
+      <div className="grid gap-6 lg:h-[920px] lg:grid-cols-[1fr_1.05fr] lg:items-stretch lg:gap-8 xl:h-[980px]">
         {/* Left column: form fields. */}
         <div className="flex min-h-0 min-w-0 flex-col gap-6">
           <div>

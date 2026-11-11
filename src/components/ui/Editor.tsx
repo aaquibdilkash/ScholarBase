@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 
 import { compressImageToBudget } from "@/utils/image-compression";
+import { extractImageUrlsFromHtml } from "@/lib/html";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 import { useToast } from "@/components/ui/Toast";
 
 interface EditorProps {
@@ -59,6 +61,15 @@ const Editor = ({
   const isEditorDriven = useRef(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  // Index of the inline image open in the lightbox, or null.
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Every inline image in the document, in order — the lightbox pages through
+  // these so a figure can be inspected without leaving the editor.
+  const inlineImageUrls = useMemo(
+    () => extractImageUrlsFromHtml(value),
+    [value],
+  );
 
   const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!onImageUpload || !editor) return;
@@ -375,7 +386,28 @@ const Editor = ({
             ? "min-h-0 flex-1 overflow-y-auto px-5 py-4 [&_.tiptap]:min-h-[120px] [&_.tiptap]:focus:outline-none"
             : "px-5 py-4 [&_.tiptap]:min-h-[120px] [&_.tiptap]:focus:outline-none"
         }
+        onClick={(e) => {
+          // Clicking an inline image opens the shared lightbox. The editor
+          // stays mounted underneath, so the scholar keeps their place.
+          const target = e.target as HTMLElement;
+          if (target.tagName !== "IMG") return;
+          const src = target.getAttribute("src");
+          if (!src) return;
+          const index = inlineImageUrls.indexOf(src);
+          if (index === -1) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setLightboxIndex(index);
+        }}
       />
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={inlineImageUrls}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={(idx) => setLightboxIndex(idx)}
+        />
+      )}
       {showCharCount && (
         <div
           className={`shrink-0 border-t border-slate-200 px-2 py-1 text-xs dark:border-slate-800 ${

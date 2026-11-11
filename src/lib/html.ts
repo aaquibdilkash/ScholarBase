@@ -42,3 +42,33 @@ export function isRichTextOverLimit(
   if (!maxLength || maxLength <= 0) return false;
   return getRichTextLength(html) > maxLength;
 }
+
+/**
+ * Extracts the `src` of every  element in an HTML string, in document
+ * order and without duplicates.
+ *
+ * Used to build the gallery for the shared ImageLightbox from rich content:
+ * the lightbox needs the list of images (to page through them) and the index
+ * of the one that was clicked.
+ *
+ * Server-safe (pure string parsing, no DOM).
+ */
+export function extractImageUrlsFromHtml(html: string): string[] {
+  if (!html) return [];
+
+  const urls: string[] = [];
+  const seen = new Set<string>();
+  // Both quote styles: Tiptap serialises double quotes, but stored content can
+  // come from elsewhere.
+  const regex = /<img\b[^>]*\bsrc=(?:"([^"]+)"|'([^']+)')/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(html)) !== null) {
+    const src = (match[1] ?? match[2] ?? "").trim();
+    if (!src || seen.has(src)) continue;
+    seen.add(src);
+    urls.push(src);
+  }
+
+  return urls;
+}
