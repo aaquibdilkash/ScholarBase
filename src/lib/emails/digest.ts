@@ -30,6 +30,8 @@ const MODULE_ICONS: Record<string, string> = {
   Admissions: "🎓",
   "Learning Zone": "🎓",
   "Research Grants": "🎓",
+  "Call for Papers": "📝",
+  "Academic Positions": "💼",
 };
 
 function iconFor(label: string): string {

@@ -346,7 +346,7 @@ WHERE event."isDeleted" = false
   )) <> ''
 ON CONFLICT ("entityType", "entityId") DO NOTHING;
 
-\echo 'Enqueuing PhD admissions (PhdAdmission)'
+\echo 'Enqueuing admissions (Admission)'
 INSERT INTO "public"."EmbeddingJob" (
     "id",
     "entityType",
@@ -356,22 +356,23 @@ INSERT INTO "public"."EmbeddingJob" (
 )
 SELECT
     gen_random_uuid()::text,
-    'PHD_ADMISSION',
+    'ADMISSION',
     admission."id",
     now(),
     now()
-FROM "public"."PhdAdmission" AS admission
+FROM "public"."Admission" AS admission
 WHERE admission."isDeleted" = false
   AND admission."embedding" IS NULL
   AND btrim(concat_ws(
       ' ',
       admission."university",
       admission."department",
+      admission."level",
       admission."description"
   )) <> ''
 ON CONFLICT ("entityType", "entityId") DO NOTHING;
 
-\echo 'Enqueuing vacancies (JobVacancy)'
+\echo 'Enqueuing academic positions (AcademicPosition)'
 INSERT INTO "public"."EmbeddingJob" (
     "id",
     "entityType",
@@ -381,20 +382,24 @@ INSERT INTO "public"."EmbeddingJob" (
 )
 SELECT
     gen_random_uuid()::text,
-    'JOB_VACANCY',
-    vacancy."id",
+    'ACADEMIC_POSITION',
+    academicPosition."id",
     now(),
     now()
-FROM "public"."JobVacancy" AS vacancy
-WHERE vacancy."isDeleted" = false
-  AND vacancy."embedding" IS NULL
+FROM "public"."AcademicPosition" AS academicPosition
+WHERE academicPosition."isDeleted" = false
+  AND academicPosition."embedding" IS NULL
   AND btrim(concat_ws(
       ' ',
-      vacancy."title",
-      vacancy."institution",
-      vacancy."department",
-      vacancy."subject",
-      vacancy."description"
+      academicPosition."title",
+      academicPosition."institution",
+      academicPosition."department",
+      academicPosition."subject",
+      academicPosition."positionType",
+      academicPosition."salaryOrStipend",
+      academicPosition."contractDuration",
+      academicPosition."location",
+      academicPosition."description"
   )) <> ''
 ON CONFLICT ("entityType", "entityId") DO NOTHING;
 

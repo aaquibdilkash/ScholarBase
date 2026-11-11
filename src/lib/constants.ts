@@ -18,13 +18,16 @@ export const MAX_PUBLICATION_VOLUME = 4;
 export const MAX_PUBLICATION_ISSUE = 4;
 export const MAX_PUBLICATION_PAGES = 12;
 
-export const MAX_VACANCY_TITLE = 64;
-export const MAX_VACANCY_INSTITUTION = 64;
-export const MAX_VACANCY_DEPARTMENT = 64;
-export const MAX_VACANCY_SUBJECT = 32;
-export const MAX_VACANCY_NOTIFICATION_LINK = 128;
-export const MAX_VACANCY_APPLY_LINK = 128;
-export const MAX_VACANCY_DESCRIPTION = 256;
+export const MAX_POSITION_TITLE = 64;
+export const MAX_POSITION_INSTITUTION = 64;
+export const MAX_POSITION_DEPARTMENT = 64;
+export const MAX_POSITION_SUBJECT = 32;
+export const MAX_POSITION_SALARY = 64;
+export const MAX_POSITION_DURATION = 32;
+export const MAX_POSITION_LOCATION = 64;
+export const MAX_POSITION_NOTIFICATION_LINK = 128;
+export const MAX_POSITION_APPLY_LINK = 128;
+export const MAX_POSITION_DESCRIPTION = 256;
 
 export const MAX_EVENT_TITLE = 64;
 export const MAX_EVENT_PUBLISHER = 64;
@@ -262,9 +265,9 @@ export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   RESULT: "result",
   CONTRIBUTION: "contribution",
   HELP_POST: "help",
-  CALL_FOR_PAPER: "event",
-  PHD_ADMISSION: "admission",
-  JOB_VACANCY: "vacancy",
+  CALL_FOR_PAPER: "callForPaper",
+  ADMISSION: "admission",
+  ACADEMIC_POSITION: "academicPosition",
   SUPERVISOR: "supervisor",
   RECOMMENDATION: "recommendation",
   JOURNAL_REVIEW: "journalReview",
@@ -282,8 +285,8 @@ export const MODULE_TO_CONTENT_TYPE: Record<string, string> = {
   RESULT_COMMENT: "resultComment",
   SURVEY_COMMENT: "surveyComment",
   CALL_FOR_PAPER_COMMENT: "callForPaperComment",
-  PHD_ADMISSION_COMMENT: "admissionComment",
-  JOB_VACANCY_COMMENT: "vacancyComment",
+  ADMISSION_COMMENT: "admissionComment",
+  ACADEMIC_POSITION_COMMENT: "academicPositionComment",
   SUPERVISOR_COMMENT: "supervisorComment",
   RECOMMENDATION_COMMENT: "recommendationComment",
   JOURNAL_REVIEW_COMMENT: "journalReviewComment",

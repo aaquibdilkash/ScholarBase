@@ -6,9 +6,9 @@ import type { Prisma } from "@prisma/client";
 export type CommentEntityType =
   | "article"
   | "post"
-  | "vacancy"
+  | "academicPosition"
   | "admission"
-  | "event"
+  | "callForPaper"
   | "supervisor"
   | "recommendation"
   | "journalReview"

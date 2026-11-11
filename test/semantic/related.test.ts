@@ -28,8 +28,8 @@ vi.mock("@/lib/db", () => {
       result: delegate("result"),
       researchSurvey: delegate("researchSurvey"),
       callForPaper: delegate("callForPaper"),
-      phdAdmission: delegate("phdAdmission"),
-      jobVacancy: delegate("jobVacancy"),
+      admission: delegate("admission"),
+      academicPosition: delegate("academicPosition"),
       supervisor: delegate("supervisor"),
       recommendation: delegate("recommendation"),
       journalReview: delegate("journalReview"),
@@ -234,7 +234,7 @@ describe("related content lookup", () => {
   it("caps the caller's limit at the shared match ceiling", async () => {
     db.queryRaw.mockResolvedValue([]);
 
-    await getRelatedContent("JOB_VACANCY", "v1", 500);
+    await getRelatedContent("ACADEMIC_POSITION", "v1", 500);
 
     const values = (db.queryRaw.mock.calls[0][0] as { values: number[] }).values;
 

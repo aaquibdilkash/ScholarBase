@@ -5,7 +5,7 @@ import ListPageCardShell from "@/components/cards/ListPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
-import { deletePhdAdmission } from "@/app/actions/admissions";
+import { deleteAdmission } from "@/app/actions/admissions";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { getTimeLeft } from "@/utils/time-ago";
@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast";
 import { SafeExternalLink } from "@/components/ui/SafeExternalLink";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
+import { getAdmissionLevelLabel } from "@/lib/admissions";
 
 export function AdmissionCard({
   admission,
@@ -33,8 +34,9 @@ export function AdmissionCard({
     (admission.votes || [])[0]?.voteType ?? null;
   const urgency = getTimeLeft(admission.deadline);
   // Share payload: mirror admissions/[id]/page.tsx generateMetadata().
-  const shareTitle = `${admission.university} - ${admission.department} PhD Admission`;
-  const shareText = `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(
+  const levelLabel = getAdmissionLevelLabel(admission.level);
+  const shareTitle = `${admission.university} - ${admission.department} ${levelLabel} Admission`;
+  const shareText = `Apply for ${levelLabel} admission at ${admission.university} (${admission.department}). Deadline: ${new Date(
     admission.deadline,
   ).toLocaleDateString("en-US", {
     year: "numeric",
@@ -53,7 +55,7 @@ export function AdmissionCard({
       authorAvatarUrl={admission.author?.avatarUrl || undefined} authorVerified={!!(admission.author?.institutionVerifiedAt)}
       isFrozen={admission.isFrozen ?? false}
       frozenEntityId={admission.id}
-      frozenModule="PHD_ADMISSION"
+      frozenModule="ADMISSION"
       frozenEntityType="POST"
       frozenOwnerId={admission.author?.id ?? null}
       frozenHasActiveAppeal={admission.hasActiveAppeal ?? false}
@@ -66,7 +68,7 @@ export function AdmissionCard({
             editHref={`/admissions/${admission.id}/edit`}
             isOwner={true}
             onDelete={async () => {
-              const res = await deletePhdAdmission(admission.id);
+              const res = await deleteAdmission(admission.id);
               if (res?.success) {
                 removeFromList<AdmissionWithAuthor>(
                   queryClient,
@@ -87,7 +89,7 @@ export function AdmissionCard({
         <VoteButton
           frozen={admission.isFrozen === true}
           targetId={admission.id}
-          module="PHD_ADMISSION"
+          module="ADMISSION"
           initialTotalVotes={admission.totalVotes ?? 0}
           initialUserVote={userVote}
           isOwnContent={isOwner}
@@ -97,7 +99,7 @@ export function AdmissionCard({
         <BookmarkButton
           frozen={admission.isFrozen === true}
           targetId={admission.id}
-          module="PHD_ADMISSION"
+          module="ADMISSION"
           initialTotalBookmarks={admission.totalBookmarks ?? 0}
           initialIsBookmarked={Array.isArray(admission.bookmarks) && admission.bookmarks.length > 0}
         />
@@ -108,7 +110,7 @@ export function AdmissionCard({
         <ReportMenu
           entityId={admission.id}
           entityType="POST"
-          module="PHD_ADMISSION"
+          module="ADMISSION"
           ownerId={admission.author?.id ?? admission.authorId ?? null}
           currentUserId={currentUserId ?? null}
           isFrozen={admission.isFrozen ?? false}
@@ -136,6 +138,9 @@ export function AdmissionCard({
     >
       <Link href={`/admissions/${admission.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+            {levelLabel}
+          </span>
           {urgency && (
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}

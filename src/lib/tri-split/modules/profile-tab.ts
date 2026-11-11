@@ -124,8 +124,8 @@ function createScopedLoader<TValue, TId extends string, TRest extends unknown[]>
 const USER_COUNTER_SELECT = {
   articleCount: true,
   socialPostCount: true,
-  jobVacancyCount: true,
-  phdAdmissionCount: true,
+  academicPositionCount: true,
+  admissionCount: true,
   callForPaperCount: true,
   helpPostCount: true,
   journalCount: true,
@@ -146,8 +146,8 @@ const USER_COUNTER_SELECT = {
 const COUNT_SOURCE = {
   articles: "articleCount",
   socialPosts: "socialPostCount",
-  vacancies: "jobVacancyCount",
-  admissions: "phdAdmissionCount",
+  academicPositions: "academicPositionCount",
+  admissions: "admissionCount",
   callForPapers: "callForPaperCount",
   helpPosts: "helpPostCount",
   journals: "journalCount",

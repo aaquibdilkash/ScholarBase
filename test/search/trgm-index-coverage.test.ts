@@ -32,6 +32,20 @@ const MIGRATION =
       "prisma/migrations/20261110180000_rename_research_events_to_call_for_papers/migration.sql",
     ),
     "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261111150000_rename_phd_admissions_to_admissions/migration.sql",
+    ),
+    "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261111160000_rename_job_vacancies_to_academic_positions/migration.sql",
+    ),
+    "utf8",
   );
 
 function hasIndex(name: string): boolean {

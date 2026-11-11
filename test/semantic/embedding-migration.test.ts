@@ -21,6 +21,20 @@ const MIGRATION = (
   readFileSync(
     join(
       process.cwd(),
+      "prisma/migrations/20261111150000_rename_phd_admissions_to_admissions/migration.sql",
+    ),
+    "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
+      "prisma/migrations/20261111160000_rename_job_vacancies_to_academic_positions/migration.sql",
+    ),
+    "utf8",
+  ) +
+  readFileSync(
+    join(
+      process.cwd(),
       "prisma/migrations/20261110180000_rename_research_events_to_call_for_papers/migration.sql",
     ),
     "utf8",
@@ -33,10 +47,14 @@ const MIGRATION = (
     "utf8",
   )
 )
-  // The original migration is intentionally immutable; the forward migration
-  // renames this entity and the assertions validate the resulting vocabulary.
+  // The original migrations are intentionally immutable; the forward migrations
+  // rename these entities and the assertions validate the resulting vocabulary.
   .replaceAll("ResearchEvent", "CallForPaper")
-  .replaceAll("RESEARCH_EVENT", "CALL_FOR_PAPER");
+  .replaceAll("RESEARCH_EVENT", "CALL_FOR_PAPER")
+  .replaceAll("PhdAdmission", "Admission")
+  .replaceAll("PHD_ADMISSION", "ADMISSION")
+  .replaceAll("JobVacancy", "AcademicPosition")
+  .replaceAll("JOB_VACANCY", "ACADEMIC_POSITION");
 
 const ENTITY_ENTRIES = Object.entries(EMBEDDING_TABLES) as Array<
   [EmbeddingEntityType, string]

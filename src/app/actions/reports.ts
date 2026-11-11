@@ -139,14 +139,14 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "callForPaper",
     reportCountField: "reportCount",
   },
-  PHD_ADMISSION: {
-    delegate: prisma.phdAdmission as unknown as ModuleConfig["delegate"],
-    model: "phdAdmission",
+  ADMISSION: {
+    delegate: prisma.admission as unknown as ModuleConfig["delegate"],
+    model: "admission",
     reportCountField: "reportCount",
   },
-  JOB_VACANCY: {
-    delegate: prisma.jobVacancy as unknown as ModuleConfig["delegate"],
-    model: "jobVacancy",
+  ACADEMIC_POSITION: {
+    delegate: prisma.academicPosition as unknown as ModuleConfig["delegate"],
+    model: "academicPosition",
     reportCountField: "reportCount",
   },
   RESEARCH_SURVEY: {
@@ -215,14 +215,14 @@ const MODULE_MODEL_MAP: Record<ReportModule, ModuleConfig> = {
     model: "callForPaperComment",
     reportCountField: "reportCount",
   },
-  PHD_ADMISSION_COMMENT: {
-    delegate: prisma.phdAdmissionComment as unknown as ModuleConfig["delegate"],
-    model: "phdAdmissionComment",
+  ADMISSION_COMMENT: {
+    delegate: prisma.admissionComment as unknown as ModuleConfig["delegate"],
+    model: "admissionComment",
     reportCountField: "reportCount",
   },
-  JOB_VACANCY_COMMENT: {
-    delegate: prisma.jobVacancyComment as unknown as ModuleConfig["delegate"],
-    model: "jobVacancyComment",
+  ACADEMIC_POSITION_COMMENT: {
+    delegate: prisma.academicPositionComment as unknown as ModuleConfig["delegate"],
+    model: "academicPositionComment",
     reportCountField: "reportCount",
   },
   SUPERVISOR_COMMENT: {

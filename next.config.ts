@@ -87,6 +87,22 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
+  async redirects() {
+    return [
+      // Vacancies became Academic Positions; keep old links, bookmarks and
+      // search results working.
+      {
+        source: "/vacancies",
+        destination: "/academic-positions",
+        permanent: true,
+      },
+      {
+        source: "/vacancies/:path*",
+        destination: "/academic-positions/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

@@ -41,20 +41,20 @@ const loaders = {
     tag: "feed",
     type: "social-post",
   }),
-  vacancies: createContentTrending({
-    module: "JOB_VACANCY",
-    tag: "vacancies",
-    type: "vacancy",
+  academicPositions: createContentTrending({
+    module: "ACADEMIC_POSITION",
+    tag: "academicPositions",
+    type: "academicPosition",
   }),
   admissions: createContentTrending({
-    module: "PHD_ADMISSION",
+    module: "ADMISSION",
     tag: "admissions",
     type: "admission",
   }),
   callForPapers: createContentTrending({
     module: "CALL_FOR_PAPER",
     tag: "callForPapers",
-    type: "event",
+    type: "callForPaper",
   }),
   journals: createContentTrending({
     module: "JOURNAL",
@@ -115,7 +115,7 @@ export type TrendingModule = keyof typeof loaders;
 
 export const getTrendingArticles = () => loaders.articles.fetch();
 export const getTrendingSocialPosts = () => loaders.socialPosts.fetch();
-export const getTrendingVacancies = () => loaders.vacancies.fetch();
+export const getTrendingAcademicPositions = () => loaders.academicPositions.fetch();
 export const getTrendingAdmissions = () => loaders.admissions.fetch();
 export const getTrendingCallForPapers = () => loaders.callForPapers.fetch();
 export const getTrendingJournals = () => loaders.journals.fetch();

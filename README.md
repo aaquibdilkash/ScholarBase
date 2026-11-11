@@ -7,7 +7,7 @@ A high-performance academic networking platform built with Next.js 16, TypeScrip
 ScholarBase is a research-community platform combining social feed functionality with research infrastructure:
 
 - **Social Feed** - Posts, comments, votes, bookmarks, follows
-- **Research Infrastructure** - Journals, supervisors, publications, surveys, PhD admissions, vacancies, events, grants
+- **Research Infrastructure** - Journals, supervisors, publications, surveys, admissions, academic positions, call for papers, grants
 - **Communication** - Messaging, notifications, push notifications
 - **Content** - Blog, research tools, learning resources
 

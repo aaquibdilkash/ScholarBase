@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
             <li>
               <strong>Content You Post:</strong> Publications, blog posts, feed
               updates, comments, survey responses, event listings, admission
-              posts, vacancy listings, and any other content you submit.
+              posts, academic position listings, and any other content you submit.
             </li>
             <li>
               <strong>Communications:</strong> When you contact us, we collect

@@ -44,9 +44,9 @@ export async function toggleContentFreeze(
     researchTool: prisma.researchTool,
     researchGrant: prisma.researchGrant,
     course: prisma.course,
-    admission: prisma.phdAdmission,
+    admission: prisma.admission,
     event: prisma.callForPaper,
-    vacancy: prisma.jobVacancy,
+    academicPosition: prisma.academicPosition,
     help: prisma.helpPost,
     result: prisma.result,
     contribution: prisma.contribution,
@@ -152,9 +152,9 @@ export async function getAdminStats() {
         'ResearchTool',
         'ResearchGrant',
         'Course',
-        'PhdAdmission',
+        'Admission',
         'CallForPaper',
-        'JobVacancy',
+        'AcademicPosition',
         'HelpPost',
         'Result',
         'Contribution',
@@ -183,9 +183,9 @@ export async function getAdminStats() {
     researchTools: estimate("ResearchTool"),
     researchGrants: estimate("ResearchGrant"),
     courses: estimate("Course"),
-    admissions: estimate("PhdAdmission"),
+    admissions: estimate("Admission"),
     events: estimate("CallForPaper"),
-    vacancies: estimate("JobVacancy"),
+    academicPositions: estimate("AcademicPosition"),
     help: estimate("HelpPost"),
     results: estimate("Result"),
     contributions: estimate("Contribution"),
@@ -540,8 +540,8 @@ export async function getAdminAppeals(
     contribution: prisma.contribution,
     help: prisma.helpPost,
     event: prisma.callForPaper,
-    admission: prisma.phdAdmission,
-    vacancy: prisma.jobVacancy,
+    admission: prisma.admission,
+    academicPosition: prisma.academicPosition,
     supervisor: prisma.supervisor,
     recommendation: prisma.recommendation,
     survey: prisma.researchSurvey,
@@ -558,8 +558,8 @@ export async function getAdminAppeals(
     resultComment: prisma.resultComment,
     surveyComment: prisma.surveyComment,
     callForPaperComment: prisma.callForPaperComment,
-    admissionComment: prisma.phdAdmissionComment,
-    vacancyComment: prisma.jobVacancyComment,
+    admissionComment: prisma.admissionComment,
+    academicPositionComment: prisma.academicPositionComment,
     supervisorComment: prisma.supervisorComment,
     recommendationComment: prisma.recommendationComment,
   };
@@ -578,9 +578,9 @@ export async function getAdminAppeals(
     journalComment: { fk: "journalId", parentCt: "journal" },
     resultComment: { fk: "resultId", parentCt: "result" },
     surveyComment: { fk: "surveyId", parentCt: "survey" },
-    callForPaperComment: { fk: "callForPaperId", parentCt: "event" },
-    admissionComment: { fk: "phdAdmissionId", parentCt: "admission" },
-    vacancyComment: { fk: "jobVacancyId", parentCt: "vacancy" },
+    callForPaperComment: { fk: "callForPaperId", parentCt: "callForPaper" },
+    admissionComment: { fk: "admissionId", parentCt: "admission" },
+    academicPositionComment: { fk: "academicPositionId", parentCt: "academicPosition" },
     supervisorComment: { fk: "supervisorId", parentCt: "supervisor" },
     recommendationComment: { fk: "recommendationId", parentCt: "recommendation" },
   };
@@ -669,8 +669,8 @@ export async function getAdminAppeals(
       else if (linkCt === "researchGrant")
         detailHref = `/grants/${linkId}`;
       else if (linkCt === "course") detailHref = `/learn/${linkId}`;
-      else if (linkCt === "event") detailHref = `/call-for-papers/${linkId}`;
-      else if (linkCt === "vacancy") detailHref = `/vacancies/${linkId}`;
+      else if (linkCt === "callForPaper") detailHref = `/call-for-papers/${linkId}`;
+      else if (linkCt === "academicPosition") detailHref = `/academic-positions/${linkId}`;
       else if (linkCt === "admission")
         detailHref = `/admissions/${linkId}`;
       else if (linkCt === "help") detailHref = `/help/${linkId}`;
@@ -884,9 +884,9 @@ export async function getAdminContent(
       researchTools: { modelKey: "researchToolComment", model: prisma.researchToolComment as unknown as AdminCommentModel },
       researchGrants: { modelKey: "researchGrantComment", model: prisma.researchGrantComment as unknown as AdminCommentModel },
       courses: { modelKey: "courseComment", model: prisma.courseComment as unknown as AdminCommentModel },
-      admissions: { modelKey: "admissionComment", model: prisma.phdAdmissionComment as unknown as AdminCommentModel },
+      admissions: { modelKey: "admissionComment", model: prisma.admissionComment as unknown as AdminCommentModel },
       events: { modelKey: "callForPaperComment", model: prisma.callForPaperComment as unknown as AdminCommentModel },
-      vacancies: { modelKey: "vacancyComment", model: prisma.jobVacancyComment as unknown as AdminCommentModel },
+      academicPositions: { modelKey: "academicPositionComment", model: prisma.academicPositionComment as unknown as AdminCommentModel },
       help: { modelKey: "helpComment", model: prisma.helpPostComment as unknown as AdminCommentModel },
       results: { modelKey: "resultComment", model: prisma.resultComment as unknown as AdminCommentModel },
       contributions: { modelKey: "contributionComment", model: prisma.contributionComment as unknown as AdminCommentModel },
@@ -970,16 +970,16 @@ export async function getAdminContent(
         detailHref: (item) => `/learn/${item.id}`,
       },
       admissions: {
-        model: prisma.phdAdmission,
+        model: prisma.admission,
         detailHref: (item) => `/admissions/${item.id}`,
       },
       events: {
         model: prisma.callForPaper,
         detailHref: (item) => `/call-for-papers/${item.id}`,
       },
-      vacancies: {
-        model: prisma.jobVacancy,
-        detailHref: (item) => `/vacancies/${item.id}`,
+      academicPositions: {
+        model: prisma.academicPosition,
+        detailHref: (item) => `/academic-positions/${item.id}`,
       },
       help: {
         model: prisma.helpPost,

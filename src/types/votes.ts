@@ -7,9 +7,9 @@ export type VoteType = "UPVOTE" | "DOWNVOTE";
 export type VoteTargetType =
     | "article"
     | "post"
-    | "vacancy"
+    | "academicPosition"
     | "admission"
-    | "event"
+    | "callForPaper"
     | "supervisor"
     | "recommendation"
     | "help"

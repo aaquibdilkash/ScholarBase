@@ -76,7 +76,7 @@ export default async function EditEventPage({
             ? new Date(event.deadline).toISOString().slice(0, 10)
             : "",
           notificationLink: event.notificationLink ?? "",
-          // Mirror vacancies: prefill the bare email so the user never
+          // Mirror academic positions: prefill the bare email so the user never
           // sees/edits `mailto:` text.
           applyLink: event.applyLink ? stripMailtoPrefix(event.applyLink) : "",
         }}

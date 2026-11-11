@@ -8,8 +8,8 @@ Implementation: [`scripts/opportunity-importer/import-opportunities.mjs`](../scr
 
 The importer implementation is intentionally kept local and ignored by Git.
 Install or restore the files in `scripts/opportunity-importer/` before using
-the npm commands in this document. Generated review data in
-`opportunity-review.json` is ignored for the same reason.
+the npm commands in this document. Generated module-specific review files are
+also ignored by Git.
 
 ## Supported modules
 
@@ -18,8 +18,8 @@ create page:
 
 | Command | Module | Create page |
 | --- | --- | --- |
-| `npm run import:vacancies` | Job vacancies | `/vacancies/add` |
-| `npm run import:phd-admissions` | PhD admissions | `/admissions/add` |
+| `npm run import:academic-positions` | Academic positions | `/academic-positions/add` |
+| `npm run import:admissions` | Admissions | `/admissions/add` |
 | `npm run import:call-for-paper` | Call for papers | `/call-for-papers/add` |
 | `npm run import:research-grants` | Research grants | `/grants/add` |
 
@@ -27,26 +27,46 @@ Courses and other modules are intentionally not included yet.
 
 ## Source-only workflow
 
-The importer does not search the web and does not require Tavily. Add one or
-more sources by repeating `--source`:
+The importer does not search the web and does not require Tavily. The
+module-specific commands use these default sources:
+
+| Module | Sources | Review output |
+| --- | --- | --- |
+| Academic positions | `servicesetu.org/jobs`, `servicesetu.org/programs/postdoc-positions` | `opportunity-review-academic-positions.json` |
+| Admissions | `servicesetu.org/programs/phd-admission` | `opportunity-review-admissions.json` |
+| Call for papers | `servicesetu.org/call-for-paper` | `opportunity-review-call-for-papers.json` |
+
+Only records identified as still open and not past their deadline are written.
+Records with closed, expired, filled, withdrawn, cancelled, or past-deadline
+status are excluded.
 
 ```bash
-npm run import:vacancies -- \
+npm run import:academic-positions
+npm run import:admissions
+npm run import:call-for-paper
+```
+
+These commands write separate files and do not apply records:
+
+```text
+opportunity-review-academic-positions.json
+opportunity-review-admissions.json
+opportunity-review-call-for-papers.json
+```
+
+Override the defaults by adding one or more sources with repeated `--source`:
+
+```bash
+npm run import:academic-positions -- \
   --source https://www.servicesetu.org/jobs \
   --source https://example.edu/university-jobs \
   --limit 5
 ```
 
-Each source is processed independently. The output is:
-
-```text
-opportunity-review.json
-```
-
 ServiceSetu's client-rendered jobs page is supported through Playwright:
 
 ```bash
-npm run import:vacancies -- \
+npm run import:academic-positions -- \
   --source https://www.servicesetu.org/jobs
 ```
 
@@ -54,7 +74,7 @@ For the other modules, supply authoritative pages or feeds for that specific
 module:
 
 ```bash
-npm run import:phd-admissions -- --source https://example.edu/phd-admissions
+npm run import:admissions -- --source https://example.edu/admissions
 npm run import:call-for-paper -- --source https://example.edu/call-for-papers
 npm run import:research-grants -- --source https://example.edu/grants
 ```
@@ -98,12 +118,12 @@ database drafts.
 
 ## Apply to staging
 
-After reviewing `opportunity-review.json`:
+After reviewing the module-specific review file:
 
 ```bash
 npm run import:opportunities -- \
-  --module vacancy \
-  --review opportunity-review.json \
+  --module academic-position \
+  --review opportunity-review-academic-positions.json \
   --apply \
   --confirm
 ```
@@ -117,8 +137,8 @@ APPLY
 For a module-specific command, the module flag is already supplied:
 
 ```bash
-npm run import:vacancies -- \
-  --review opportunity-review.json \
+npm run import:academic-positions -- \
+  --review opportunity-review-academic-positions.json \
   --apply \
   --confirm
 ```
@@ -129,8 +149,8 @@ Production uses separate credentials and a stronger confirmation:
 
 ```bash
 npm run import:opportunities:production -- \
-  --module vacancy \
-  --review opportunity-review.json \
+  --module academic-position \
+  --review opportunity-review-academic-positions.json \
   --apply \
   --confirm-production
 ```
@@ -141,7 +161,7 @@ Type:
 PUBLISH TO PRODUCTION
 ```
 
-Use the equivalent `--module phd-admission`, `--module call-for-paper`, or
+Use the equivalent `--module admission`, `--module call-for-paper`, or
 `--module research-grant` only after reviewing records for that module.
 
 ## Safety and errors

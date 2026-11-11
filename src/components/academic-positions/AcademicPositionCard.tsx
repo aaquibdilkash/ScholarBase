@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, BookOpen } from "lucide-react";
+import { Clock, BookOpen, MapPin, Banknote, CalendarClock } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { removeFromList } from "@/utils/cacheMutation";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
@@ -11,48 +11,50 @@ import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { RichContent } from "@/components/content/RichContent";
 import Link from "next/link";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
-import { deleteJobVacancy } from "@/app/actions/vacancies";
+import { deleteAcademicPosition } from "@/app/actions/academic-positions";
 import { useToast } from "@/components/ui/Toast";
 import { actionErrorMessage } from "@/lib/utils";
 import { getTimeLeft } from "@/utils/time-ago";
 import { formatDate } from "@/utils/date";
-import type { VacancyWithAuthor } from "@/types/cards";
+import type { AcademicPositionWithAuthor } from "@/types/cards";
+import { getPositionTypeLabel } from "@/lib/academic-positions";
 
-export function VacancyCard({ vacancy,
+export function AcademicPositionCard({ academicPosition,
   currentUserId,
 }: {
-  vacancy: VacancyWithAuthor;
+  academicPosition: AcademicPositionWithAuthor;
   currentUserId?: string;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isOwner = currentUserId === vacancy.authorId;
-  const isFollowing = (vacancy.author?.followers?.length ?? 0) > 0;
+  const isOwner = currentUserId === academicPosition.authorId;
+  const isFollowing = (academicPosition.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    (vacancy.votes || [])[0]?.voteType ?? null;
-  const urgency = getTimeLeft(vacancy.deadline);
+    (academicPosition.votes || [])[0]?.voteType ?? null;
+  const urgency = getTimeLeft(academicPosition.deadline);
+  const positionTypeLabel = getPositionTypeLabel(academicPosition.positionType);
   // Compact affiliation line: "Dept. of Physics • Quantum Optics". Renders
   // whichever parts exist; hidden when both are null (pre-migration rows).
-  const deptSubject = [vacancy.department, vacancy.subject]
+  const deptSubject = [academicPosition.department, academicPosition.subject]
     .map((part) => part?.trim())
     .filter((part): part is string => !!part)
     .join(" • ");
-  // Share payload: mirror vacancies/[id]/page.tsx generateMetadata().
-  const shareAffiliation = [vacancy.department, vacancy.subject]
+  // Share payload: mirror academicPositions/[id]/page.tsx generateMetadata().
+  const shareAffiliation = [academicPosition.department, academicPosition.subject]
     .map((part) => part?.trim())
     .filter((part): part is string => !!part)
     .join(" • ");
-  const shareTitle = `${vacancy.title} at ${vacancy.institution}`;
+  const shareTitle = `${academicPosition.title} at ${academicPosition.institution}`;
   const shareText = shareAffiliation
-    ? `${vacancy.title} at ${vacancy.institution} (${shareAffiliation}). Last date to apply: ${
-    new Date(vacancy.deadline).toLocaleDateString("en-US", {
+    ? `${academicPosition.title} at ${academicPosition.institution} (${shareAffiliation}). Last date to apply: ${
+    new Date(academicPosition.deadline).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     })
   }.`
-    : `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${
-    new Date(vacancy.deadline).toLocaleDateString("en-US", {
+    : `${academicPosition.title} at ${academicPosition.institution}. Last date to apply: ${
+    new Date(academicPosition.deadline).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -61,38 +63,38 @@ export function VacancyCard({ vacancy,
 
   return (
     <ListPageCardShell
-      authorHref={`/scholars/${vacancy.author?.id}`}
-      authorName={vacancy.author?.name || "Scholar"}
-      authorId={vacancy.authorId}
+      authorHref={`/scholars/${academicPosition.author?.id}`}
+      authorName={academicPosition.author?.name || "Scholar"}
+      authorId={academicPosition.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={vacancy.author?.handle || undefined}
-      authorAvatarUrl={vacancy.author?.avatarUrl || undefined} authorVerified={!!(vacancy.author?.institutionVerifiedAt)}
-      isFrozen={vacancy.isFrozen ?? false}
-      frozenEntityId={vacancy.id}
-      frozenModule="JOB_VACANCY"
+      authorHandle={academicPosition.author?.handle || undefined}
+      authorAvatarUrl={academicPosition.author?.avatarUrl || undefined} authorVerified={!!(academicPosition.author?.institutionVerifiedAt)}
+      isFrozen={academicPosition.isFrozen ?? false}
+      frozenEntityId={academicPosition.id}
+      frozenModule="ACADEMIC_POSITION"
       frozenEntityType="POST"
-      frozenOwnerId={vacancy.author?.id ?? null}
-      frozenHasActiveAppeal={vacancy.hasActiveAppeal ?? false}
-      detailPageHref={`/vacancies/${vacancy.id}`}
+      frozenOwnerId={academicPosition.author?.id ?? null}
+      frozenHasActiveAppeal={academicPosition.hasActiveAppeal ?? false}
+      detailPageHref={`/academic-positions/${academicPosition.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
-            editHref={`/vacancies/${vacancy.id}/edit`}
+            editHref={`/academic-positions/${academicPosition.id}/edit`}
             isOwner={true}
-            editLabel="Edit Vacancy"
+            editLabel="Edit Academic Position"
             deleteLabel="Delete"
             onDelete={async () => {
               try {
-                const response = await deleteJobVacancy(vacancy.id);
+                const response = await deleteAcademicPosition(academicPosition.id);
                 if (!response?.success || !response.data) {
-                  toast(actionErrorMessage(response, "Failed to delete vacancy."), "error");
+                  toast(actionErrorMessage(response, "Failed to delete this position."), "error");
                   return { refresh: false };
                 }
-                removeFromList<VacancyWithAuthor>(queryClient, ["vacancies"], response.data.deletedId);
-                toast("Vacancy deleted successfully.", "success");
+                removeFromList<AcademicPositionWithAuthor>(queryClient, ["academicPositions"], response.data.deletedId);
+                toast("Position deleted successfully.", "success");
                 return { refresh: false };
               } catch (error) {
                 const message = error instanceof Error ? error.message : "Unknown error";
@@ -103,40 +105,40 @@ export function VacancyCard({ vacancy,
           />
         )
       }
-      createdDate={vacancy.createdAt}
+      createdDate={academicPosition.createdAt}
       editedDate={
-        vacancy.editedAt && vacancy.editedAt > vacancy.createdAt ? vacancy.editedAt : undefined
+        academicPosition.editedAt && academicPosition.editedAt > academicPosition.createdAt ? academicPosition.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
-          frozen={vacancy.isFrozen === true}
-          targetId={vacancy.id}
-          module="JOB_VACANCY"
-          initialTotalVotes={vacancy.totalVotes ?? 0}
+          frozen={academicPosition.isFrozen === true}
+          targetId={academicPosition.id}
+          module="ACADEMIC_POSITION"
+          initialTotalVotes={academicPosition.totalVotes ?? 0}
           initialUserVote={userVote}
           isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={
         <BookmarkButton
-          frozen={vacancy.isFrozen === true}
-          targetId={vacancy.id}
-          module="JOB_VACANCY"
-          initialTotalBookmarks={vacancy.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(vacancy.bookmarks) && vacancy.bookmarks.length > 0}
+          frozen={academicPosition.isFrozen === true}
+          targetId={academicPosition.id}
+          module="ACADEMIC_POSITION"
+          initialTotalBookmarks={academicPosition.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(academicPosition.bookmarks) && academicPosition.bookmarks.length > 0}
         />
       }
-      footerCommentsHref={`/vacancies/${vacancy.id}`}
-      footerCommentsCount={vacancy.totalComments}
+      footerCommentsHref={`/academic-positions/${academicPosition.id}`}
+      footerCommentsCount={academicPosition.totalComments}
       footerReportMenu={
         <ReportMenu
-          entityId={vacancy.id}
+          entityId={academicPosition.id}
           entityType="POST"
-          module="JOB_VACANCY"
-          ownerId={vacancy.author?.id ?? vacancy.authorId ?? null}
+          module="ACADEMIC_POSITION"
+          ownerId={academicPosition.author?.id ?? academicPosition.authorId ?? null}
           currentUserId={currentUserId ?? null}
-          isFrozen={vacancy.isFrozen ?? false}
-          hasActiveAppeal={vacancy.hasActiveAppeal ?? false}
+          isFrozen={academicPosition.isFrozen ?? false}
+          hasActiveAppeal={academicPosition.hasActiveAppeal ?? false}
         />
       }
       noBodyLink={true}
@@ -144,12 +146,12 @@ export function VacancyCard({ vacancy,
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <SmartExternalLink
-                      url={vacancy.notificationLink}
+                      url={academicPosition.notificationLink}
                       className="flex-1 sb-button-soft"
                       urlLabel="View Details"
                     />
                     <SmartExternalLink
-                      url={vacancy.applyLink}
+                      url={academicPosition.applyLink}
                       className="flex-1 sb-button-primary"
                       urlLabel="Apply Now"
                       emailLabel="Email to Apply"
@@ -157,8 +159,11 @@ export function VacancyCard({ vacancy,
         </div>
       }
     >
-      <Link href={`/vacancies/${vacancy.id}`} prefetch={false} className="block group">
+      <Link href={`/academic-positions/${academicPosition.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+            {positionTypeLabel}
+          </span>
           {urgency && (
             <span
               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${urgency.className}`}
@@ -169,10 +174,10 @@ export function VacancyCard({ vacancy,
           )}
         </div>
         <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {vacancy.title}
+          {academicPosition.title}
         </h2>
         <p className="mb-2 break-words text-sm font-medium text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
-          {vacancy.institution}
+          {academicPosition.institution}
         </p>
         {deptSubject && (
           <p className="mb-2 flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
@@ -183,18 +188,48 @@ export function VacancyCard({ vacancy,
           </p>
         )}
 
+        {(academicPosition.salaryOrStipend ||
+          academicPosition.contractDuration ||
+          academicPosition.location ||
+          academicPosition.isRemote) && (
+          <div className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
+            {academicPosition.salaryOrStipend && (
+              <span className="inline-flex items-center gap-1.5">
+                <Banknote className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                {academicPosition.salaryOrStipend}
+              </span>
+            )}
+            {academicPosition.contractDuration && (
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarClock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                {academicPosition.contractDuration}
+              </span>
+            )}
+            {(academicPosition.location || academicPosition.isRemote) && (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
+                {academicPosition.isRemote
+                  ? academicPosition.location
+                    ? `Remote — ${academicPosition.location}`
+                    : "Remote"
+                  : academicPosition.location}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="mb-2 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
           <Clock className="h-4 w-4 shrink-0 text-slate-400" strokeWidth={2} />
           <span>
             Last Date:{" "}
             <span className="font-medium">
-              {formatDate(vacancy.deadline)}
+              {formatDate(academicPosition.deadline)}
             </span>
           </span>
         </div>
 
         <RichContent
-          content={vacancy.description}
+          content={academicPosition.description}
           className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>

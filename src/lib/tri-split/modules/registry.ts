@@ -544,11 +544,11 @@ export const CONTENT_LIST_CONFIGS = {
       { field: "location" },
       { field: "description" },
     ],
-    dateKeys: [...DATES, "date", "deadline"] as const,
+    dateKeys: [...DATES, "eventDate", "deadline"] as const,
   },
 
-  PHD_ADMISSION: {
-    module: "PHD_ADMISSION",
+  ADMISSION: {
+    module: "ADMISSION",
     // Which Trending tab lists this module, so one mutation purges both.
     trending: "admissions",
     tag: "admissions-public",
@@ -557,6 +557,7 @@ export const CONTENT_LIST_CONFIGS = {
       id: true,
       university: true,
       department: true,
+      level: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -576,11 +577,11 @@ export const CONTENT_LIST_CONFIGS = {
     dateKeys: [...DATES, "deadline"] as const,
   },
 
-  JOB_VACANCY: {
-    module: "JOB_VACANCY",
+  ACADEMIC_POSITION: {
+    module: "ACADEMIC_POSITION",
     // Which Trending tab lists this module, so one mutation purges both.
-    trending: "vacancies",
-    tag: "vacancies-public",
+    trending: "academicPositions",
+    tag: "academicPositions-public",
     where: { isDeleted: false },
     select: {
       id: true,
@@ -588,6 +589,12 @@ export const CONTENT_LIST_CONFIGS = {
       institution: true,
       department: true,
       subject: true,
+      positionType: true,
+      salaryOrStipend: true,
+      contractDuration: true,
+      startDate: true,
+      location: true,
+      isRemote: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -604,9 +611,10 @@ export const CONTENT_LIST_CONFIGS = {
       { field: "institution" },
       { field: "department" },
       { field: "subject" },
+      { field: "location" },
       { field: "description" },
     ],
-    dateKeys: [...DATES, "deadline"] as const,
+    dateKeys: [...DATES, "startDate", "deadline"] as const,
   },
 
   SUPERVISOR: {
@@ -728,7 +736,7 @@ export const CONTENT_LIST_KEYS = Object.keys(
  * Takes no identity — the factory resolves it from the session.
  *
  * This is the ONE entry point for all 13 configured content modules
- * (publications, callForPapers, grants, surveys, admissions, courses, vacancies,
+ * (publications, callForPapers, grants, surveys, admissions, courses, academicPositions,
  * journals, research tools, results, contributions, supervisors, help), so the
  * search throttle lives here rather than being repeated in 13 action files that
  * would inevitably drift apart.

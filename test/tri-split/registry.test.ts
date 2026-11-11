@@ -48,15 +48,15 @@ describe("CONTENT_LIST_CONFIGS", () => {
   it("wires up every listing surface: 15 content modules + the scholar directory", () => {
     expect(CONTENT_LIST_KEYS.length).toBe(16);
     expect([...CONTENT_KEYS].sort()).toEqual([
+      "ACADEMIC_POSITION",
+      "ADMISSION",
       "ARTICLE",
       "CALL_FOR_PAPER",
       "CONTRIBUTION",
       "COURSE",
       "FEED",
       "HELP_POST",
-      "JOB_VACANCY",
       "JOURNAL",
-      "PHD_ADMISSION",
       "PUBLICATION",
       "RESEARCH_GRANT",
       "RESEARCH_SURVEY",

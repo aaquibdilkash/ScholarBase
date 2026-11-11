@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  updatePhdAdmission,
-  createPhdAdmission,
+  updateAdmission,
+  createAdmission,
 } from "@/app/actions/admissions";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
 import { useFormDraft } from "@/hooks/useFormDraft";
@@ -23,10 +23,12 @@ import {
 } from "@/lib/constants";
 import { getRichTextLength } from "@/lib/html";
 import type { AdmissionWithAuthor } from "@/types/cards";
+import { ADMISSION_LEVELS } from "@/lib/admissions";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import {
   ADMISSION_UNIVERSITY_TIP,
   ADMISSION_DEPARTMENT_TIP,
+  ADMISSION_LEVEL_TIP,
   ADMISSION_DEADLINE_TIP,
   ADMISSION_DESCRIPTION_TIP,
   ADMISSION_NOTIFICATION_LINK_TIP,
@@ -36,6 +38,7 @@ import {
 export type AdmissionFormValues = {
   university: string;
   department: string;
+  level: string;
   deadline: string;
   description: string;
   notificationLink: string;
@@ -56,6 +59,7 @@ export default function AdmissionForm({
   const initial = {
     university: initialValues?.university ?? "",
     department: initialValues?.department ?? "",
+    level: initialValues?.level ?? "PHD",
     deadline: initialValues?.deadline ?? "",
     description: initialValues?.description ?? "",
     notificationLink: initialValues?.notificationLink ?? "",
@@ -105,9 +109,9 @@ export default function AdmissionForm({
 
     await submit(() => {
       if (mode === "edit" && admissionId) {
-        return updatePhdAdmission(formData, admissionId);
+        return updateAdmission(formData, admissionId);
       } else {
-        return createPhdAdmission(formData);
+        return createAdmission(formData);
       }
     });
   }
@@ -154,6 +158,26 @@ export default function AdmissionForm({
         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           {draftFields.department.length}/{MAX_ADMISSION_DEPARTMENT} characters
         </div>
+      </div>
+
+
+      <div>
+        <label className="sb-label inline-flex items-center gap-1.5">
+          Degree Level
+          <InfoTooltip message={ADMISSION_LEVEL_TIP} />
+        </label>
+        <select
+          name="level"
+          className="sb-input"
+          value={draftFields.level}
+          onChange={(e) => updateDraftField("level", e.target.value)}
+        >
+          {ADMISSION_LEVELS.map((level) => (
+            <option key={level.value} value={level.value}>
+              {level.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>

@@ -50,9 +50,9 @@ type ToastFn = (options: {
 const COMMENT_REPORT_MODULE: Record<CommentEntityType, ReportModule> = {
   post: "SOCIAL_COMMENT",
   article: "ARTICLE_COMMENT",
-  vacancy: "JOB_VACANCY_COMMENT",
-  admission: "PHD_ADMISSION_COMMENT",
-  event: "CALL_FOR_PAPER_COMMENT",
+  academicPosition: "ACADEMIC_POSITION_COMMENT",
+  admission: "ADMISSION_COMMENT",
+  callForPaper: "CALL_FOR_PAPER_COMMENT",
   supervisor: "SUPERVISOR_COMMENT",
     recommendation: "RECOMMENDATION_COMMENT",
   journalReview: "JOURNAL_REVIEW_COMMENT",

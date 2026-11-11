@@ -105,9 +105,9 @@ export default async function HomePage() {
       icon: <BookMarked className="h-8 w-8" />, // Reusing BookMarked for learn
     },
     {
-      title: "Vacancies",
-      description: "Academic job openings and research positions.",
-      href: "/vacancies",
+      title: "Academic Positions",
+      description: "Postdocs, research staff, and faculty openings.",
+      href: "/academic-positions",
       icon: <Briefcase className="h-8 w-8" />,
     },
     {
@@ -262,7 +262,7 @@ export default async function HomePage() {
                 icon={<HandCoins className="h-5 w-5" />}
                 accent="emerald"
                 title="Opportunities"
-                value="Grants & vacancies"
+                value="Grants & positions"
                 hint="Funding calls and research positions, in one place"
               />
             </div>
@@ -339,8 +339,8 @@ export default async function HomePage() {
           </h2>
           <div className="mt-6 space-y-4 text-base md:text-lg leading-relaxed text-slate-600 dark:text-slate-400">
             <p>
-              Every researcher knows the struggle. PhD admissions, journal
-              calls, conference deadlines, research vacancies scattered across
+              Every researcher knows the struggle. Admissions, journal calls,
+              conference deadlines, academic positions scattered across
               dozens of websites, mailing lists, and screenshots that get lost
               in the noise.
             </p>

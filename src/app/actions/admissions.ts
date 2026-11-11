@@ -1,9 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/lib/auth";
-
 import type { AdmissionWithAuthor } from "@/types/cards";
-
 import {
   loadContentPage,
   revalidateContent,
@@ -21,10 +18,11 @@ import { readFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
 import { COMMENT_PAGE_SIZE, MAX_ADMISSION_DESCRIPTION } from "@/lib/constants";
+import { getAdmissionLevelLabel, parseAdmissionLevel } from "@/lib/admissions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 /**
- * Loads one page of phd admission rows for the
+ * Loads one page of admission rows for the
  * *current* viewer.
  *
  * Identity comes from the session, server-side — never from a client argument.
@@ -39,18 +37,19 @@ export async function getAdmissions(
   limit = 10,
   cursor?: string,
 ) {
-  return loadContentPage("PHD_ADMISSION", { query: q, pageSize: limit, cursor }) as Promise<
+  return loadContentPage("ADMISSION", { query: q, pageSize: limit, cursor }) as Promise<
   AdmissionWithAuthor[]
 >;
 }
 
 export const getAdmission = cache(async (id: string, userId?: string) => {
-  return prisma.phdAdmission.findUnique({
+  return prisma.admission.findUnique({
     where: { id, isDeleted: false },
     select: {
       id: true,
       university: true,
       department: true,
+      level: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -113,7 +112,7 @@ export const getAdmission = cache(async (id: string, userId?: string) => {
   });
 });
 
-export async function createPhdAdmission(formData: FormData) {
+export async function createAdmission(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
@@ -121,6 +120,7 @@ export async function createPhdAdmission(formData: FormData) {
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
+  const level = parseAdmissionLevel(readFormValue(formData, "level"));
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
@@ -140,10 +140,11 @@ export async function createPhdAdmission(formData: FormData) {
   }
 
   const admission = await prisma.$transaction(async (tx) => {
-    const newAdmission = await tx.phdAdmission.create({
+    const newAdmission = await tx.admission.create({
       data: {
         university,
         department,
+        level,
         deadline,
         description,
         notificationLink: safeNotificationLink,
@@ -157,7 +158,7 @@ export async function createPhdAdmission(formData: FormData) {
       data: {
         userId: user.id,
         action: "PUBLISHED",
-        moduleType: "PHD_ADMISSION",
+        moduleType: "ADMISSION",
         entityId: newAdmission.id,
         entityTitle: `${newAdmission.department} at ${newAdmission.university}`,
       },
@@ -165,7 +166,7 @@ export async function createPhdAdmission(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { phdAdmissionCount: { increment: 1 } },
+      data: { admissionCount: { increment: 1 } },
     });
 
     return newAdmission;
@@ -174,19 +175,19 @@ export async function createPhdAdmission(formData: FormData) {
   await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
-    targetType: "PhdAdmission",
+    targetType: "Admission",
     targetId: admission.id,
-    title: `${user.email?.split("@")[0] || "Someone"} posted a new PhD admission`,
+    title: `${user.email?.split("@")[0] || "Someone"} posted a new ${getAdmissionLevelLabel(level)} admission`,
     body: `${department} at ${university} - Deadline: ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
   });
 
-  // Purge the cached phd admission pages: publish must be visible at once, not after the TTL.
-  revalidateContent("PHD_ADMISSION", user.id);
+  // Purge the cached admission pages: publish must be visible at once, not after the TTL.
+  revalidateContent("ADMISSION", user.id);
 
   return { success: true, data: admission };
 }
 
-export async function updatePhdAdmission(
+export async function updateAdmission(
   formData: FormData,
   admissionId: string,
 ) {
@@ -196,6 +197,7 @@ export async function updatePhdAdmission(
 
   const university = readFormValue(formData, "university");
   const department = readFormValue(formData, "department");
+  const level = parseAdmissionLevel(readFormValue(formData, "level"));
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
   assertRichTextWithinLimit(description, MAX_ADMISSION_DESCRIPTION, "Description");
@@ -214,7 +216,7 @@ export async function updatePhdAdmission(
     throw new Error("Notification and Apply links are required.");
   }
 
-  const admission = await prisma.phdAdmission.findUnique({
+  const admission = await prisma.admission.findUnique({
     where: { id: admissionId },
     select: { authorId: true },
   });
@@ -226,11 +228,12 @@ export async function updatePhdAdmission(
     throw new Error("Not authorized to edit this admission.");
   }
 
-  const updatedAdmission = await prisma.phdAdmission.update({
+  const updatedAdmission = await prisma.admission.update({
     where: { id: admissionId },
     data: {
       university,
       department,
+      level,
       deadline,
       description,
       notificationLink: safeNotificationLink,
@@ -239,18 +242,18 @@ export async function updatePhdAdmission(
     },
   });
 
-  // Purge the cached phd admission pages: edit must be visible at once, not after the TTL.
-  revalidateContent("PHD_ADMISSION", admission.authorId);
+  // Purge the cached admission pages: edit must be visible at once, not after the TTL.
+  revalidateContent("ADMISSION", admission.authorId);
 
   return { success: true, data: updatedAdmission };
 }
 
-export async function deletePhdAdmission(admissionId: string) {
+export async function deleteAdmission(admissionId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
   const user = await requireCurrentUser("Log in to delete this admission.");
   await enforceRateLimit({ namespace: "admission:delete", key: user.id, limit: 20, window: "10 m" });
 
-  const admission = await prisma.phdAdmission.findUnique({
+  const admission = await prisma.admission.findUnique({
     where: { id: admissionId },
     select: { authorId: true, totalVotes: true, totalComments: true },
   });
@@ -264,14 +267,14 @@ export async function deletePhdAdmission(admissionId: string) {
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.phdAdmission.update({
+    await tx.admission.update({
       where: { id: admissionId },
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
      await tx.user.update({
        where: { id: admission.authorId },
-       data: { phdAdmissionCount: { decrement: 1 } },
+       data: { admissionCount: { decrement: 1 } },
      });
 
      if (admission.totalVotes !== 0) {
@@ -283,61 +286,15 @@ export async function deletePhdAdmission(admissionId: string) {
 
     // Hide this content's activity so a deleted admission stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
-    await hideContentActivity(tx, "PHD_ADMISSION", admissionId)
+    await hideContentActivity(tx, "ADMISSION", admissionId)
   });
 
-  // Purge the cached phd admission pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("PHD_ADMISSION", admission.authorId);
+  // Purge the cached admission pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("ADMISSION", admission.authorId);
 
   // Purge every bookmarker's Bookmarks tab so a soft-deleted admission stops
   // inflating their bookmark count or showing a phantom "show more" arrow.
-  await revalidateBookmarkersForDeletedContent("PHD_ADMISSION", admissionId);
+  await revalidateBookmarkersForDeletedContent("ADMISSION", admissionId);
 
   return { success: true, data: { deletedId: admissionId, isDeleted: true as const, deletedByType, totalComments: admission.totalComments } };
-}
-
-export async function getLatestAdmissions(count: number) {
-  // Identity comes from the session, server-side — never from a client
-  // argument. This used to accept `userId` and filter the author's
-  // `followers` relation by it, so any caller could read another user's
-  // follow relationships.
-  const user = await getCurrentUser();
-  const userId = user?.id;
-
-  return prisma.phdAdmission.findMany({
-    where: {
-      deadline: {
-        gte: new Date(),
-      },
-      isDeleted: false,
-    },
-    take: count,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      university: true,
-      department: true,
-      deadline: true,
-      createdAt: true,
-      authorId: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
 }

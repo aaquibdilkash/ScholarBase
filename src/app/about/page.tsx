@@ -24,7 +24,7 @@ const features = [
     icon: BookOpen,
     title: "Share What Matters",
     description:
-      "Publish articles, PhD admission updates, journal calls, vacancies, events, and results — all in one place, visible to scholars everywhere.",
+      "Publish articles, admission updates, journal calls, academic positions, events, and results — all in one place, visible to scholars everywhere.",
   },
   {
     icon: Users,
@@ -76,8 +76,8 @@ export default function AboutPage() {
             <div className="space-y-4 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
               <p>
                 Every researcher knows the struggle. Important opportunities —
-                PhD admissions, journal calls, conference deadlines, research
-                vacancies — are scattered across dozens of websites, WhatsApp
+                Admissions, journal calls, conference deadlines, academic positions
+                — are scattered across dozens of websites, WhatsApp
                 groups, mailing lists, and screenshots that get lost in the
                 noise. Meanwhile, academic social networks that do exist are
                 either paywalled, ad-heavy, or designed for institutions rather

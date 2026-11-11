@@ -72,7 +72,7 @@ describe("content trending", () => {
     await createContentTrending({
       module: "CALL_FOR_PAPER",
       tag: "callForPapers",
-      type: "event",
+      type: "callForPaper",
     }).fetch();
 
     const args = eventFindMany.mock.calls[0][0]!;
@@ -98,7 +98,7 @@ describe("content trending", () => {
     await createContentTrending({
       module: "CALL_FOR_PAPER",
       tag: "callForPapers",
-      type: "event",
+      type: "callForPaper",
     }).fetch();
 
     const args = eventFindMany.mock.calls[0][0]!;
@@ -111,10 +111,10 @@ describe("content trending", () => {
     const [item] = await createContentTrending({
       module: "CALL_FOR_PAPER",
       tag: "callForPapers",
-      type: "event",
+      type: "callForPaper",
     }).fetch();
 
-    expect(item.type).toBe("event");
+    expect(item.type).toBe("callForPaper");
     expect(item.score).toBe(42);
   });
 
@@ -122,7 +122,7 @@ describe("content trending", () => {
     const [item] = await createContentTrending({
       module: "CALL_FOR_PAPER",
       tag: "callForPapers",
-      type: "event",
+      type: "callForPaper",
     }).fetch();
 
     // `stitchLiveState` puts the overlay back, so the card still knows the
@@ -137,7 +137,7 @@ describe("content trending", () => {
     const items = await createContentTrending({
       module: "CALL_FOR_PAPER",
       tag: "callForPapers",
-      type: "event",
+      type: "callForPaper",
     }).fetch();
 
     expect(items).toEqual([]);
@@ -148,7 +148,7 @@ describe("content trending", () => {
     createContentTrending({
       module: "CALL_FOR_PAPER",
       tag: "callForPapers",
-      type: "event",
+      type: "callForPaper",
     }).revalidate();
 
     expect(revalidateTag).toHaveBeenCalledWith(    "callForPapers-trending", { expire: 0 });

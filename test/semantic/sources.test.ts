@@ -27,8 +27,8 @@ vi.mock("@/lib/db", () => {
       result: delegate("result"),
       researchSurvey: delegate("researchSurvey"),
       callForPaper: delegate("callForPaper"),
-      phdAdmission: delegate("phdAdmission"),
-      jobVacancy: delegate("jobVacancy"),
+      admission: delegate("admission"),
+      academicPosition: delegate("academicPosition"),
       supervisor: delegate("supervisor"),
       recommendation: delegate("recommendation"),
       journalReview: delegate("journalReview"),
@@ -204,8 +204,8 @@ const CASES: Case[] = [
     text: "Workshop\nBengaluru\nGraph theory.",
   },
   {
-    entityType: "PHD_ADMISSION",
-    delegate: "phdAdmission",
+    entityType: "ADMISSION",
+    delegate: "admission",
     row: {
       id: "ad1",
       isDeleted: false,
@@ -216,8 +216,8 @@ const CASES: Case[] = [
     text: "IISc\nCSE\nAutumn intake.",
   },
   {
-    entityType: "JOB_VACANCY",
-    delegate: "jobVacancy",
+    entityType: "ACADEMIC_POSITION",
+    delegate: "academicPosition",
     row: {
       id: "v1",
       isDeleted: false,

@@ -4,12 +4,12 @@ import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 
-import { deleteJobVacancy, getVacancyById } from "@/app/actions/vacancies";
+import { deleteAcademicPosition, getAcademicPositionById } from "@/app/actions/academic-positions";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import { RichContent } from "@/components/content/RichContent";
-import { Clock, Building2, BookOpen } from "lucide-react";
+import { Clock, Building2, BookOpen, MapPin, Banknote, CalendarClock } from "lucide-react";
 import { SmartExternalLink } from "@/components/ui/SmartExternalLink";
 
 import { buildMetadata, buildNoindexMetadata } from "@/lib/seo";
@@ -18,6 +18,7 @@ import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
+import { getPositionTypeLabel } from "@/lib/academic-positions";
 
 export async function generateMetadata({
   params,
@@ -25,26 +26,26 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const vacancy = await getVacancyById(id).catch(() => null);
-  if (!vacancy) return buildNoindexMetadata("Removed content");
-  const affiliation = [vacancy.department, vacancy.subject]
+  const academicPosition = await getAcademicPositionById(id).catch(() => null);
+  if (!academicPosition) return buildNoindexMetadata("Removed content");
+  const affiliation = [academicPosition.department, academicPosition.subject]
     .map((part) => part?.trim())
     .filter((part): part is string => !!part)
     .join(" • ");
   const description = affiliation
-    ? `${vacancy.title} at ${vacancy.institution} (${affiliation}). Last date to apply: ${new Date(vacancy.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
-    : `${vacancy.title} at ${vacancy.institution}. Last date to apply: ${new Date(vacancy.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`;
+    ? `${academicPosition.title} at ${academicPosition.institution} (${affiliation}). Last date to apply: ${new Date(academicPosition.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`
+    : `${academicPosition.title} at ${academicPosition.institution}. Last date to apply: ${new Date(academicPosition.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`;
   return buildMetadata({
-    title: `${vacancy.title} at ${vacancy.institution}`,
+    title: `${academicPosition.title} at ${academicPosition.institution}`,
     description,
-    path: `/vacancies/${vacancy.id}`,
+    path: `/academic-positions/${academicPosition.id}`,
     type: "article",
-    publishedTime: vacancy.createdAt,
-    section: "Academic Vacancies",
+    publishedTime: academicPosition.createdAt,
+    section: "Academic Positions",
   });
 }
 
-const VacancyDetailPage = async ({
+const AcademicPositionDetailPage = async ({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -55,114 +56,114 @@ const VacancyDetailPage = async ({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const vacancy = await getVacancyById(id, user?.id);
+  const academicPosition = await getAcademicPositionById(id, user?.id);
 
-  if (!vacancy) {
-    const removed = await getModeratorDeletedContent("vacancy", { id });
+  if (!academicPosition) {
+    const removed = await getModeratorDeletedContent("academicPosition", { id });
     if (!removed) notFound();
     return (
       <RemovedContentNotice
-        backHref="/vacancies"
-        backLabel="Back to Academic Vacancies"
+        backHref="/academic-positions"
+        backLabel="Back to Academic Positions"
         entityId={removed.id}
-        module="JOB_VACANCY"
+        module="ACADEMIC_POSITION"
         ownerId={removed.authorId}
         currentUserId={user?.id}
         hasActiveAppeal={removed.hasActiveAppeal}
-        noun="vacancy"
+        noun="position"
       />
     );
   }
 
   const userVote =
-    (vacancy.votes?.[0]?.voteType as
+    (academicPosition.votes?.[0]?.voteType as
       "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = await getRelatedContent("JOB_VACANCY", vacancy.id);
+  const related = await getRelatedContent("ACADEMIC_POSITION", academicPosition.id);
 
   return (
     <DetailPageCardShell
       relatedContent={
-        <RelatedContent title="Related vacancies" items={related} />
+        <RelatedContent title="Related academic positions" items={related} />
       }
-      isFrozen={vacancy.isFrozen ?? false}
-      frozenEntityId={vacancy.id}
-      frozenModule="JOB_VACANCY"
+      isFrozen={academicPosition.isFrozen ?? false}
+      frozenEntityId={academicPosition.id}
+      frozenModule="ACADEMIC_POSITION"
       frozenEntityType="POST"
-      frozenOwnerId={vacancy.author?.id ?? null}
-      frozenHasActiveAppeal={vacancy.hasActiveAppeal ?? false}
-      backHref="/vacancies"
-      backLabel="Back to Academic Vacancies"
-      authorHref={`/scholars/${vacancy.author?.id}`}
-      authorName={vacancy.author?.name || "Scholar"}
-      authorHandle={vacancy.author?.handle || undefined}
-      authorAvatarUrl={vacancy.author?.avatarUrl || undefined} authorVerified={!!(vacancy.author?.institutionVerifiedAt)}
+      frozenOwnerId={academicPosition.author?.id ?? null}
+      frozenHasActiveAppeal={academicPosition.hasActiveAppeal ?? false}
+      backHref="/academic-positions"
+      backLabel="Back to Academic Positions"
+      authorHref={`/scholars/${academicPosition.author?.id}`}
+      authorName={academicPosition.author?.name || "Scholar"}
+      authorHandle={academicPosition.author?.handle || undefined}
+      authorAvatarUrl={academicPosition.author?.avatarUrl || undefined} authorVerified={!!(academicPosition.author?.institutionVerifiedAt)}
       managementControls={
-        user?.id === vacancy.author?.id ? (
+        user?.id === academicPosition.author?.id ? (
           <OwnerActionsDropdown
-            editHref={`/vacancies/${vacancy.id}/edit`}
+            editHref={`/academic-positions/${academicPosition.id}/edit`}
             onDelete={async () => {
               "use server";
-              const res = await deleteJobVacancy(vacancy.id);
+              const res = await deleteAcademicPosition(academicPosition.id);
               if (res?.success === false) return res;
-              return { redirect: "/vacancies", invalidateQueries: [["vacancies"]] };
+              return { redirect: "/academic-positions", invalidateQueries: [["academicPositions"]] };
             }}
             isOwner={true}
-            editLabel="Edit Vacancy"
+            editLabel="Edit Academic Position"
             deleteLabel="Delete"
           />
         ) : null
       }
-      authorId={vacancy.author?.id}
+      authorId={academicPosition.author?.id}
       isFollowing={
-        (vacancy.author as { followers?: { followerId: string }[] })?.followers
+        (academicPosition.author as { followers?: { followerId: string }[] })?.followers
           ?.length
           ? true
           : false
       }
       currentUserId={user?.id}
-      createdDate={vacancy.createdAt}
-      editedDate={vacancy.editedAt ?? undefined}
+      createdDate={academicPosition.createdAt}
+      editedDate={academicPosition.editedAt ?? undefined}
       footerVoteButton={
         <VoteButton
-          targetId={vacancy.id}
-          module="JOB_VACANCY"
-          initialTotalVotes={vacancy.totalVotes}
+          targetId={academicPosition.id}
+          module="ACADEMIC_POSITION"
+          initialTotalVotes={academicPosition.totalVotes}
           initialUserVote={userVote}
-          isOwnContent={user?.id === vacancy.author?.id}
+          isOwnContent={user?.id === academicPosition.author?.id}
         />
       }
       footerBookmarkButton={
         <BookmarkButton
-          frozen={vacancy.isFrozen === true}
-          targetId={vacancy.id}
-          module="JOB_VACANCY"
-          initialTotalBookmarks={vacancy.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(vacancy.bookmarks) && vacancy.bookmarks.length > 0}
+          frozen={academicPosition.isFrozen === true}
+          targetId={academicPosition.id}
+          module="ACADEMIC_POSITION"
+          initialTotalBookmarks={academicPosition.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(academicPosition.bookmarks) && academicPosition.bookmarks.length > 0}
         />
       }
-      footerCommentsHref={`/vacancies/${vacancy.id}#comments`}
-      footerCommentsCount={vacancy.totalComments}
+      footerCommentsHref={`/academic-positions/${academicPosition.id}#comments`}
+      footerCommentsCount={academicPosition.totalComments}
       footerReportMenu={
         <ReportMenu
-          entityId={vacancy.id}
+          entityId={academicPosition.id}
           entityType="POST"
-          module="JOB_VACANCY"
-          ownerId={vacancy.author?.id ?? null}
+          module="ACADEMIC_POSITION"
+          ownerId={academicPosition.author?.id ?? null}
           currentUserId={user?.id ?? null}
-          isFrozen={vacancy.isFrozen}
-          hasActiveAppeal={vacancy.hasActiveAppeal}
+          isFrozen={academicPosition.isFrozen}
+          hasActiveAppeal={academicPosition.hasActiveAppeal}
         />
       }
       bodyBottomContent={
         <div className="flex gap-3 sm:gap-4 mt-3 sm:mt-4">
           <SmartExternalLink
-            url={vacancy.notificationLink}
+            url={academicPosition.notificationLink}
             className="flex-1 sb-button-soft"
             urlLabel="View Details"
           />
           <SmartExternalLink
-            url={vacancy.applyLink}
+            url={academicPosition.applyLink}
             className="flex-1 sb-button-primary"
             urlLabel="Apply Now"
             emailLabel="Email to Apply"
@@ -171,38 +172,79 @@ const VacancyDetailPage = async ({
       }
       discussion={
         <CommentSection
-          locked={vacancy.isFrozen ?? false}
-          comments={vacancy.comments}
-          totalComments={vacancy.totalComments}
-          targetId={vacancy.id}
-          module="vacancy"
+          locked={academicPosition.isFrozen ?? false}
+          comments={academicPosition.comments}
+          totalComments={academicPosition.totalComments}
+          targetId={academicPosition.id}
+          module="academicPosition"
           currentUserId={user?.id || null}
-          postAuthorId={vacancy.author?.id}
+          postAuthorId={academicPosition.author?.id}
         />
       }
     >
       <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
-        {vacancy.title}
+        {academicPosition.title}
       </h1>
-      <p className="mb-3 sm:mb-4 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-600 [overflow-wrap:anywhere]">
-        {vacancy.institution}
+      <p className="mb-2 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-600 [overflow-wrap:anywhere]">
+        {academicPosition.institution}
       </p>
-      {(vacancy.department || vacancy.subject) && (
+      <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+          {getPositionTypeLabel(academicPosition.positionType)}
+        </span>
+        {(academicPosition.location || academicPosition.isRemote) && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <MapPin className="h-3 w-3" />
+            {academicPosition.isRemote
+              ? academicPosition.location
+                ? `Remote — ${academicPosition.location}`
+                : "Remote"
+              : academicPosition.location}
+          </span>
+        )}
+      </div>
+      {(academicPosition.department || academicPosition.subject) && (
         <div className="mb-3 sm:mb-4 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-600">
-          {vacancy.department && (
+          {academicPosition.department && (
             <span className="inline-flex min-w-0 items-center gap-1.5">
               <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
               <span className="break-words [overflow-wrap:anywhere]">
-                {vacancy.department}
+                {academicPosition.department}
               </span>
             </span>
           )}
-          {vacancy.subject && (
+          {academicPosition.subject && (
             <span className="inline-flex min-w-0 items-center gap-1.5">
               <BookOpen className="h-4 w-4 shrink-0 text-slate-400" />
               <span className="break-words font-medium [overflow-wrap:anywhere]">
-                {vacancy.subject}
+                {academicPosition.subject}
               </span>
+            </span>
+          )}
+        </div>
+      )}
+
+      {(academicPosition.salaryOrStipend || academicPosition.contractDuration || academicPosition.startDate) && (
+        <div className="mb-3 sm:mb-4 flex flex-wrap gap-x-5 gap-y-1 text-xs sm:text-sm text-slate-600">
+          {academicPosition.salaryOrStipend && (
+            <span className="inline-flex items-center gap-1.5">
+              <Banknote className="h-4 w-4 shrink-0 text-slate-400" />
+              {academicPosition.salaryOrStipend}
+            </span>
+          )}
+          {academicPosition.contractDuration && (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarClock className="h-4 w-4 shrink-0 text-slate-400" />
+              {academicPosition.contractDuration}
+            </span>
+          )}
+          {academicPosition.startDate && (
+            <span className="inline-flex items-center gap-1.5">
+              Starts {new Date(academicPosition.startDate).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
             </span>
           )}
         </div>
@@ -212,7 +254,7 @@ const VacancyDetailPage = async ({
         <Clock className="h-5 w-5 shrink-0 text-slate-400" />
         <span className="shrink-0">Last Date to Apply:</span>
         <span className="min-w-0 flex-1 break-words font-medium [overflow-wrap:anywhere]">
-          {new Date(vacancy.deadline).toLocaleDateString("en-US", {
+          {new Date(academicPosition.deadline).toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
             day: "numeric",
@@ -221,11 +263,11 @@ const VacancyDetailPage = async ({
         </span>
       </div>
       <RichContent
-        content={vacancy.description}
+        content={academicPosition.description}
         className="text-slate-800 leading-relaxed"
       />
     </DetailPageCardShell>
   );
 };
 
-export default VacancyDetailPage;
+export default AcademicPositionDetailPage;

@@ -34,7 +34,7 @@ const qaLearnings = [
 ];
 
 const curationLearnings = [
-  "How to hunt down and verify genuine opportunities — PhD admissions, research vacancies, academic events, and exam results — from official sources only.",
+  "How to hunt down and verify genuine opportunities — admissions, academic positions, events, and exam results — from official sources only.",
   "Fact-checking discipline: cross-referencing deadlines, eligibility, and links so scholars never chase stale or fake opportunities.",
   "Building structured directories — PhD supervisors, research grants, research tools, the learning zone, and research journals — entry by verified entry.",
   "Organising academic information the way scholars actually search for it, so ScholarBase becomes the first place they check.",
@@ -235,7 +235,7 @@ export default function CareersPage() {
                 </strong>
                 . That means finding and verifying opportunities in{" "}
                 <strong className="text-slate-900 dark:text-slate-200">
-                  admissions, vacancies, events, and results
+                  admissions, academic positions, events, and results
                 </strong>
                 , and building our directories —{" "}
                 <strong className="text-slate-900 dark:text-slate-200">

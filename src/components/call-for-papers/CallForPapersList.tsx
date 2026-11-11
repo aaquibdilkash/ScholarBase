@@ -52,10 +52,10 @@ export function CallForPapersList({
         initialItems={isServerQuery ? callForPapers : undefined}
         keepPreviousOnKeyChange
         fetchPage={(cursor) => getCallForPapers(appliedQuery, 10, cursor)}
-        renderItem={(event) => (
+        renderItem={(callForPaper) => (
           <CallForPaperCard
-            key={event.id}
-            event={event}
+            key={callForPaper.id}
+            callForPaper={callForPaper}
             currentUserId={currentUserId}
           />
         )}

@@ -13,10 +13,10 @@ import {
   buildContributionText,
   buildCourseText,
   buildHelpPostText,
-  buildJobVacancyText,
+  buildAcademicPositionText,
   buildJournalReviewText,
   buildJournalText,
-  buildPhdAdmissionText,
+  buildAdmissionText,
   buildPublicationText,
   buildRecommendationText,
   buildCallForPaperText,
@@ -252,22 +252,23 @@ export async function loadEmbeddingSources(
       return collect(rows, buildCallForPaperText);
     }
 
-    case "PHD_ADMISSION": {
-      const rows = await prisma.phdAdmission.findMany({
+    case "ADMISSION": {
+      const rows = await prisma.admission.findMany({
         where,
         select: {
           id: true,
           isDeleted: true,
           university: true,
           department: true,
+          level: true,
           description: true,
         },
       });
-      return collect(rows, buildPhdAdmissionText);
+      return collect(rows, buildAdmissionText);
     }
 
-    case "JOB_VACANCY": {
-      const rows = await prisma.jobVacancy.findMany({
+    case "ACADEMIC_POSITION": {
+      const rows = await prisma.academicPosition.findMany({
         where,
         select: {
           id: true,
@@ -276,10 +277,14 @@ export async function loadEmbeddingSources(
           institution: true,
           department: true,
           subject: true,
+          positionType: true,
+          salaryOrStipend: true,
+          contractDuration: true,
+          location: true,
           description: true,
         },
       });
-      return collect(rows, buildJobVacancyText);
+      return collect(rows, buildAcademicPositionText);
     }
 
     case "SUPERVISOR": {

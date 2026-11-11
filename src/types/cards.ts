@@ -5,8 +5,8 @@
  */
 import type {
     Article,
-    JobVacancy,
-    PhdAdmission,
+    AcademicPosition,
+    Admission,
     CallForPaper,
     HelpPost,
     ResearchTool,
@@ -74,7 +74,7 @@ export type ArticleWithAuthor = Partial<Article> & {
     bookmarks: UserBookmark;
 };
 
-export type VacancyWithAuthor = Partial<JobVacancy> & {
+export type AcademicPositionWithAuthor = Partial<AcademicPosition> & {
     id: string;
     createdAt: Date;
     deadline: Date;
@@ -89,7 +89,7 @@ export type VacancyWithAuthor = Partial<JobVacancy> & {
     bookmarks: UserBookmark;
 };
 
-export type AdmissionWithAuthor = Partial<PhdAdmission> & {
+export type AdmissionWithAuthor = Partial<Admission> & {
     id: string;
     createdAt: Date;
     deadline: Date;

@@ -1,7 +1,7 @@
 /**
  * Shared wiring for the standard content modules.
  *
- * Nearly every module (article, vacancy, admission, event, ...) has the same
+ * Nearly every module (article, academic position, admission, call for paper, ...) has the same
  * shape: an author relation, a `createdAt desc` feed, three materialized
  * counters, and votes/bookmarks/follows. Only the table names and the
  * search fields differ. This helper derives all of that from `ENTITY_CONFIG`,

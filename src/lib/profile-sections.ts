@@ -47,8 +47,8 @@ import { ENTITY_CONFIG, type ModuleKey } from "@/lib/transactions";
 const SECTION_MODULE = {
   articles: "ARTICLE",
   socialPosts: "SOCIAL_POST",
-  vacancies: "JOB_VACANCY",
-  admissions: "PHD_ADMISSION",
+  academicPositions: "ACADEMIC_POSITION",
+  admissions: "ADMISSION",
   callForPapers: "CALL_FOR_PAPER",
   helpPosts: "HELP_POST",
   journals: "JOURNAL",
@@ -469,8 +469,8 @@ type JournalInclude = { journal: { select: { id: true; title: true } } };
 export type SectionPayloads = {
   articles: Prisma.ArticleGetPayload<{ include: ViewerInclude }>;
   socialPosts: Prisma.SocialPostGetPayload<{ include: ViewerInclude }>;
-  vacancies: Prisma.JobVacancyGetPayload<{ include: ViewerInclude }>;
-  admissions: Prisma.PhdAdmissionGetPayload<{ include: ViewerInclude }>;
+  academicPositions: Prisma.AcademicPositionGetPayload<{ include: ViewerInclude }>;
+  admissions: Prisma.AdmissionGetPayload<{ include: ViewerInclude }>;
   callForPapers: Prisma.CallForPaperGetPayload<{ include: ViewerInclude }>;
   helpPosts: Prisma.HelpPostGetPayload<{ include: ViewerInclude }>;
   journals: Prisma.JournalGetPayload<{ include: ViewerInclude }>;

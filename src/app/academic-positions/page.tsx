@@ -3,22 +3,22 @@ import { buildMetadata } from "@/lib/seo";
 import { SEO_PAGES, LIST_PAGE_TEXT } from "@/constants/seo";
 
 export const metadata: Metadata = buildMetadata({
-  title: SEO_PAGES.vacancies.title,
-  description: SEO_PAGES.vacancies.description,
-  path: SEO_PAGES.vacancies.path,
-  section: SEO_PAGES.vacancies.section,
+  title: SEO_PAGES.academicPositions.title,
+  description: SEO_PAGES.academicPositions.description,
+  path: SEO_PAGES.academicPositions.path,
+  section: SEO_PAGES.academicPositions.section,
 });
 import { createClient } from "@/utils/supabase/server";
 import ListPageShell from "@/components/layout/ListPageShell";
-import { VacanciesList } from "@/components/vacancies/VacanciesList";
-import { getTrendingVacancies } from "@/lib/trending";
+import { AcademicPositionsList } from "@/components/academic-positions/AcademicPositionsList";
+import { getTrendingAcademicPositions } from "@/lib/trending";
 import { TrendingList } from "@/components/feed/TrendingList";
-import { getVacancies } from "@/app/actions/vacancies";
+import { getAcademicPositions } from "@/app/actions/academic-positions";
 import { AsyncListRegion } from "@/components/cards/AsyncListRegion";
 
 type TrendingItem = import("@/types/trending").TrendingItem;
 
-export default async function VacanciesPage({
+export default async function AcademicPositionsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; tab?: string }>;
@@ -28,14 +28,14 @@ export default async function VacanciesPage({
 
   return (
     <ListPageShell
-      title={LIST_PAGE_TEXT.vacancies.title}
-      description={LIST_PAGE_TEXT.vacancies.description}
-      addHref="/vacancies/add"
-      addLabel="+ Post Vacancy"
+      title={LIST_PAGE_TEXT.academicPositions.title}
+      description={LIST_PAGE_TEXT.academicPositions.description}
+      addHref="/academic-positions/add"
+      addLabel="+ Post Position"
       tab={tab}
       enableTrending={true}
-      allHref="/vacancies"
-      trendingHref="/vacancies?tab=trending"
+      allHref="/academic-positions"
+      trendingHref="/academic-positions?tab=trending"
       trending={
         <AsyncListRegion
           fetcher={async () => {
@@ -44,7 +44,7 @@ export default async function VacanciesPage({
               data: { user },
             } = await supabase.auth.getUser();
             const items =
-              (await getTrendingVacancies()) as unknown as TrendingItem[];
+              (await getTrendingAcademicPositions()) as unknown as TrendingItem[];
             return { items, userId: user?.id };
           }}
         >
@@ -61,13 +61,13 @@ export default async function VacanciesPage({
             const {
               data: { user },
             } = await supabase.auth.getUser();
-            const vacancies = await getVacancies(q ?? "", 10);
-            return { vacancies, userId: user?.id };
+            const positions = await getAcademicPositions(q ?? "", 10);
+            return { positions, userId: user?.id };
           }}
         >
-          {({ vacancies, userId }) => (
-            <VacanciesList
-              vacancies={vacancies}
+          {({ positions, userId }) => (
+            <AcademicPositionsList
+              positions={positions}
               currentUserId={userId}
               initialQuery={q ?? ""}
             />

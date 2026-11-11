@@ -4,8 +4,8 @@ import { deleteSocialPost } from "@/app/actions/feed"
 import { deleteArticle } from "@/app/actions/blog"
 import { deletePublication } from "@/app/actions/publications"
 import { deleteHelpPost } from "@/app/actions/help"
-import { deleteJobVacancy } from "@/app/actions/vacancies"
-import { deletePhdAdmission } from "@/app/actions/admissions"
+import { deleteAcademicPosition } from "@/app/actions/academic-positions"
+import { deleteAdmission } from "@/app/actions/admissions"
 import { deleteCallForPaper } from "@/app/actions/call-for-papers"
 import { deleteResearchGrant } from "@/app/actions/grants"
 import { deleteResearchTool } from "@/app/actions/researchTools"
@@ -107,17 +107,17 @@ describe("RULE 3 & RULE 4: Top-level entity deletion and reputation reversal acr
       seedExtra: { title: "Help needed" },
     },
     {
-      name: "JobVacancy",
-      model: "jobVacancy",
-      counter: "jobVacancyCount",
-      deleter: (id: string) => deleteJobVacancy(id),
+      name: "AcademicPosition",
+      model: "academicPosition",
+      counter: "academicPositionCount",
+      deleter: (id: string) => deleteAcademicPosition(id),
       seedExtra: { title: "Postdoc open" },
     },
     {
-      name: "PhdAdmission",
-      model: "phdAdmission",
-      counter: "phdAdmissionCount",
-      deleter: (id: string) => deletePhdAdmission(id),
+      name: "Admission",
+      model: "admission",
+      counter: "admissionCount",
+      deleter: (id: string) => deleteAdmission(id),
       seedExtra: { university: "Oxford" },
     },
     {

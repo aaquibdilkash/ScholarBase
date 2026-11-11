@@ -5,10 +5,10 @@ import {
   buildContributionText,
   buildCourseText,
   buildHelpPostText,
-  buildJobVacancyText,
+  buildAcademicPositionText,
   buildJournalReviewText,
   buildJournalText,
-  buildPhdAdmissionText,
+  buildAdmissionText,
   buildPublicationText,
   buildRecommendationText,
   buildCallForPaperText,
@@ -213,7 +213,7 @@ describe("semantic text projections", () => {
 
   it("combines PhD admission fields", () => {
     expect(
-      buildPhdAdmissionText({
+      buildAdmissionText({
         university: "IISc",
         department: "Computer Science",
         description: "Applications open for the autumn session.",
@@ -223,9 +223,9 @@ describe("semantic text projections", () => {
     );
   });
 
-  it("combines vacancy fields", () => {
+  it("combines academicPosition fields", () => {
     expect(
-      buildJobVacancyText({
+      buildAcademicPositionText({
         title: "Assistant Professor",
         institution: "IIT Bombay",
         department: "CSE",

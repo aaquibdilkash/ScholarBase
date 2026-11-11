@@ -155,8 +155,8 @@ enum EmbeddingEntityType {
   RESULT
   RESEARCH_SURVEY
   CALL_FOR_PAPER
-  PHD_ADMISSION
-  JOB_VACANCY
+  ADMISSION
+  ACADEMIC_POSITION
   SUPERVISOR
   RECOMMENDATION
   JOURNAL_REVIEW
@@ -168,6 +168,27 @@ enum CallForPaperCategory {
   JOURNAL
   WORKSHOP
   SYMPOSIUM
+}
+
+/// Degree level of an admission notice. `PHD` is the backfill for rows created
+/// before admissions were generalized beyond PhD programs.
+enum AdmissionLevel {
+  PHD
+  MASTERS
+  UNDERGRADUATE
+  MPHIL
+  OTHER
+}
+
+/// Kind of academic position. `POSTDOC` is listed first because it is the
+/// primary use case; `OTHER` is the DB default so pre-existing rows stay valid.
+enum PositionType {
+  POSTDOC
+  RESEARCH_ASSISTANT
+  RESEARCH_ASSOCIATE
+  FACULTY
+  PHD_RESEARCHER
+  OTHER
 }
 
 enum DigestPreference {
@@ -583,29 +604,29 @@ model CallForPaperBookmark {
   @@index([userId, createdAt(sort: Desc)])
 }
 
-model PhdAdmissionBookmark {
-  id             String   @id @default(cuid())
-  phdAdmissionId String
-  userId         String
-  createdAt      DateTime @default(now())
+model AdmissionBookmark {
+  id          String   @id @default(cuid())
+  admissionId String
+  userId      String
+  createdAt   DateTime @default(now())
 
-  phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([phdAdmissionId, userId])
+  @@unique([admissionId, userId])
   @@index([userId, createdAt(sort: Desc)])
 }
 
-model JobVacancyBookmark {
-  id           String   @id @default(cuid())
-  jobVacancyId String
-  userId       String
-  createdAt    DateTime @default(now())
+model AcademicPositionBookmark {
+  id                 String   @id @default(cuid())
+  academicPositionId String
+  userId             String
+  createdAt          DateTime @default(now())
 
-  jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  academicPosition AcademicPosition @relation(fields: [academicPositionId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([jobVacancyId, userId])
+  @@unique([academicPositionId, userId])
   @@index([userId, createdAt(sort: Desc)])
 }
 
@@ -1144,8 +1165,8 @@ model User {
 
   articleCount             Int @default(0)
   socialPostCount          Int @default(0)
-  jobVacancyCount          Int @default(0)
-  phdAdmissionCount        Int @default(0)
+  academicPositionCount    Int @default(0)
+  admissionCount           Int @default(0)
   callForPaperCount        Int @default(0)
   helpPostCount            Int @default(0)
   journalCount             Int @default(0)
@@ -1161,26 +1182,26 @@ model User {
   researchGrantCount       Int @default(0)
   courseCount              Int @default(0)
 
-  articles                Article[]
-  articleComments         ArticleComment[]
-  articleVotes            ArticleVote[]
-  articleBookmarks        ArticleBookmark[]
-  supervisorBookmarks     SupervisorBookmark[]
-  socialPostBookmarks     SocialPostBookmark[]
-  helpPostBookmarks       HelpPostBookmark[]
-  contributionBookmarks   ContributionBookmark[]
-  publicationBookmarks    PublicationBookmark[]
-  researchToolBookmarks   ResearchToolBookmark[]
-  researchGrantBookmarks  ResearchGrantBookmark[]
-  courseBookmarks         CourseBookmark[]
-  journalBookmarks        JournalBookmark[]
-  resultBookmarks         ResultBookmark[]
-  surveyBookmarks         SurveyBookmark[]
-  callForPaperBookmarks   CallForPaperBookmark[]
-  phdAdmissionBookmarks   PhdAdmissionBookmark[]
-  jobVacancyBookmarks     JobVacancyBookmark[]
-  recommendationBookmarks RecommendationBookmark[]
-  journalReviewBookmarks  JournalReviewBookmark[]
+  articles                  Article[]
+  articleComments           ArticleComment[]
+  articleVotes              ArticleVote[]
+  articleBookmarks          ArticleBookmark[]
+  supervisorBookmarks       SupervisorBookmark[]
+  socialPostBookmarks       SocialPostBookmark[]
+  helpPostBookmarks         HelpPostBookmark[]
+  contributionBookmarks     ContributionBookmark[]
+  publicationBookmarks      PublicationBookmark[]
+  researchToolBookmarks     ResearchToolBookmark[]
+  researchGrantBookmarks    ResearchGrantBookmark[]
+  courseBookmarks           CourseBookmark[]
+  journalBookmarks          JournalBookmark[]
+  resultBookmarks           ResultBookmark[]
+  surveyBookmarks           SurveyBookmark[]
+  callForPaperBookmarks     CallForPaperBookmark[]
+  admissionBookmarks        AdmissionBookmark[]
+  academicPositionBookmarks AcademicPositionBookmark[]
+  recommendationBookmarks   RecommendationBookmark[]
+  journalReviewBookmarks    JournalReviewBookmark[]
 
   articleCommentVotes ArticleCommentVote[]
 
@@ -1189,9 +1210,9 @@ model User {
   blocks    Block[]   @relation("UserBlocks")
   blockedBy Block[]   @relation("UserBlocked")
 
-  vacancies  JobVacancy[]
-  admissions PhdAdmission[]
-  events     CallForPaper[]
+  academicPositions AcademicPosition[]
+  admissions        Admission[]
+  events            CallForPaper[]
 
   socialComments     SocialComment[]
   socialVotes        SocialVote[]
@@ -1199,13 +1220,13 @@ model User {
   socialPosts        SocialPost[]
   reports            Report[]
 
-  jobVacancyVotes        JobVacancyVote[]
-  jobVacancyComments     JobVacancyComment[]
-  jobVacancyCommentVotes JobVacancyCommentVote[]
+  academicPositionVotes        AcademicPositionVote[]
+  academicPositionComments     AcademicPositionComment[]
+  academicPositionCommentVotes AcademicPositionCommentVote[]
 
-  phdAdmissionVotes        PhdAdmissionVote[]
-  phdAdmissionComments     PhdAdmissionComment[]
-  phdAdmissionCommentVotes PhdAdmissionCommentVote[]
+  admissionVotes        AdmissionVote[]
+  admissionComments     AdmissionComment[]
+  admissionCommentVotes AdmissionCommentVote[]
 
   callForPaperVotes        CallForPaperVote[]
   callForPaperComments     CallForPaperComment[]
@@ -2402,20 +2423,21 @@ model CallForPaperCommentVote {
   @@unique([commentId, userId])
 }
 
-model PhdAdmission {
-  id               String    @id @default(cuid())
+model Admission {
+  id               String         @id @default(cuid())
   university       String
   department       String
+  level            AdmissionLevel @default(PHD)
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean   @default(false)
-  hasActiveAppeal  Boolean   @default(false)
+  isFrozen         Boolean        @default(false)
+  hasActiveAppeal  Boolean        @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int                         @default(0)
@@ -2433,35 +2455,35 @@ model PhdAdmission {
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes     PhdAdmissionVote[]
-  bookmarks PhdAdmissionBookmark[]
-  comments  PhdAdmissionComment[]
+  votes     AdmissionVote[]
+  bookmarks AdmissionBookmark[]
+  comments  AdmissionComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
-model PhdAdmissionVote {
-  id             String       @id @default(cuid())
-  phdAdmissionId String
-  userId         String
-  voteType       VoteType
-  createdAt      DateTime     @default(now())
-  phdAdmission   PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+model AdmissionVote {
+  id          String    @id @default(cuid())
+  admissionId String
+  userId      String
+  voteType    VoteType
+  createdAt   DateTime  @default(now())
+  admission   Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([phdAdmissionId, userId])
+  @@unique([admissionId, userId])
 }
 
-model PhdAdmissionComment {
-  id             String    @id @default(cuid())
-  content        String
-  phdAdmissionId String
-  parentId       String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  editedAt       DateTime?
+model AdmissionComment {
+  id          String    @id @default(cuid())
+  content     String
+  admissionId String
+  parentId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  editedAt    DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId        String
@@ -2474,46 +2496,52 @@ model PhdAdmissionComment {
   isFrozen        Boolean        @default(false)
   hasActiveAppeal Boolean        @default(false)
 
-  phdAdmission PhdAdmission @relation(fields: [phdAdmissionId], references: [id], onDelete: Cascade)
-  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  admission Admission @relation(fields: [admissionId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  parent  PhdAdmissionComment?  @relation("PhdAdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies PhdAdmissionComment[] @relation("PhdAdmissionReplies")
+  parent  AdmissionComment?  @relation("AdmissionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies AdmissionComment[] @relation("AdmissionReplies")
 
-  votes    PhdAdmissionCommentVote[]
+  votes    AdmissionCommentVote[]
   mentions Json?
 
-  @@index([phdAdmissionId, createdAt(sort: Desc)])
+  @@index([admissionId, createdAt(sort: Desc)])
 }
 
-model PhdAdmissionCommentVote {
-  id        String              @id @default(cuid())
+model AdmissionCommentVote {
+  id        String           @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
-  createdAt DateTime            @default(now())
-  comment   PhdAdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  comment   AdmissionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
 }
 
-model JobVacancy {
-  id               String    @id @default(cuid())
+model AcademicPosition {
+  id               String       @id @default(cuid())
   title            String
   institution      String
   department       String?
   subject          String?
+  positionType     PositionType @default(OTHER)
+  salaryOrStipend  String?
+  contractDuration String?
+  startDate        DateTime?
+  location         String?
+  isRemote         Boolean      @default(false)
   deadline         DateTime
   description      String
   notificationLink String?
   applyLink        String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   editedAt         DateTime?
   authorId         String
-  isFrozen         Boolean   @default(false)
-  hasActiveAppeal  Boolean   @default(false)
+  isFrozen         Boolean      @default(false)
+  hasActiveAppeal  Boolean      @default(false)
 
   // ZERO-COMPUTE FIELDS
   totalVotes     Int                         @default(0)
@@ -2531,35 +2559,35 @@ model JobVacancy {
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  votes     JobVacancyVote[]
-  bookmarks JobVacancyBookmark[]
-  comments  JobVacancyComment[]
+  votes     AcademicPositionVote[]
+  bookmarks AcademicPositionBookmark[]
+  comments  AcademicPositionComment[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId, createdAt(sort: Desc)])
   @@index([trendingScore(sort: Desc)])
 }
 
-model JobVacancyVote {
-  id           String     @id @default(cuid())
-  jobVacancyId String
-  userId       String
-  voteType     VoteType
-  createdAt    DateTime   @default(now())
-  jobVacancy   JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+model AcademicPositionVote {
+  id                 String           @id @default(cuid())
+  academicPositionId String
+  userId             String
+  voteType           VoteType
+  createdAt          DateTime         @default(now())
+  academicPosition   AcademicPosition @relation(fields: [academicPositionId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([jobVacancyId, userId])
+  @@unique([academicPositionId, userId])
 }
 
-model JobVacancyComment {
-  id           String    @id @default(cuid())
-  content      String
-  jobVacancyId String
-  parentId     String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  editedAt     DateTime?
+model AcademicPositionComment {
+  id                 String    @id @default(cuid())
+  content            String
+  academicPositionId String
+  parentId           String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  editedAt           DateTime?
 
   // TOMBSTONING & COUNTERS
   authorId        String
@@ -2572,26 +2600,26 @@ model JobVacancyComment {
   isFrozen        Boolean        @default(false)
   hasActiveAppeal Boolean        @default(false)
 
-  jobVacancy JobVacancy @relation(fields: [jobVacancyId], references: [id], onDelete: Cascade)
-  author     User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  academicPosition AcademicPosition @relation(fields: [academicPositionId], references: [id], onDelete: Cascade)
+  author           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  parent  JobVacancyComment?  @relation("JobVacancyReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies JobVacancyComment[] @relation("JobVacancyReplies")
+  parent  AcademicPositionComment?  @relation("AcademicPositionReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies AcademicPositionComment[] @relation("AcademicPositionReplies")
 
-  votes    JobVacancyCommentVote[]
+  votes    AcademicPositionCommentVote[]
   mentions Json?
 
-  @@index([jobVacancyId, createdAt(sort: Desc)])
+  @@index([academicPositionId, createdAt(sort: Desc)])
 }
 
-model JobVacancyCommentVote {
-  id        String            @id @default(cuid())
+model AcademicPositionCommentVote {
+  id        String                  @id @default(cuid())
   commentId String
   userId    String
   voteType  VoteType
-  createdAt DateTime          @default(now())
-  comment   JobVacancyComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime                @default(now())
+  comment   AcademicPositionComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, userId])
 }

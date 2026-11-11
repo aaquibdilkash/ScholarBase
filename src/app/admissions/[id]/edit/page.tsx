@@ -22,12 +22,13 @@ export default async function EditAdmissionPage({
   );
 
   // Fetch only the raw field data required to populate the form inputs
-  const admission = await prisma.phdAdmission.findUnique({
+  const admission = await prisma.admission.findUnique({
     where: { id },
     select: {
       id: true,
       university: true,
       department: true,
+      level: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -58,6 +59,7 @@ export default async function EditAdmissionPage({
         initialValues={{
           university: admission.university,
           department: admission.department,
+          level: admission.level,
           deadline: new Date(admission.deadline).toISOString().slice(0, 10),
           description: admission.description,
           notificationLink: admission.notificationLink ?? "",

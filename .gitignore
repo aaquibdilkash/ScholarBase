@@ -72,4 +72,4 @@ skills-lock.json
 
 # local opportunity importer and generated review data
 /scripts/opportunity-importer/
-/opportunity-review.json
+/opportunity-review*.json

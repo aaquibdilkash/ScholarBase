@@ -47,6 +47,7 @@ export const JOURNAL_REVIEW_ANONYMOUS_TIP = "Post this review without revealing 
 // -----------------------------------------------------------------------------
 export const ADMISSION_UNIVERSITY_TIP = "The full name of the university or institute offering the program.";
 export const ADMISSION_DEPARTMENT_TIP = "The specific department, faculty, or school within the university.";
+export const ADMISSION_LEVEL_TIP = "The degree level this admission is for: PhD, Master's, undergraduate, MPhil, or another program.";
 export const ADMISSION_DEADLINE_TIP = "The last date to submit the application for this admission cycle.";
 export const ADMISSION_DESCRIPTION_TIP = "Seat matrix, eligibility criteria, and any special notes about the program.";
 export const ADMISSION_NOTIFICATION_LINK_TIP = "URL to the official admission notification or information brochure.";
@@ -86,16 +87,22 @@ export const EVENT_NOTIFICATION_LINK_TIP = "URL to the official call for papers 
 export const EVENT_APPLY_LINK_TIP = "URL to the submission portal / registration page, or an email address for submissions.";
 
 // -----------------------------------------------------------------------------
-// VACANCIES MODULE
+// ACADEMIC POSITIONS MODULE
 // -----------------------------------------------------------------------------
-export const VACANCY_TITLE_TIP = "The official job title or position designation.";
-export const VACANCY_INSTITUTION_TIP = "The name of the institution or organization hiring.";
-export const VACANCY_DEPARTMENT_TIP = "The hiring department or unit (e.g., Department of Physics). Optional.";
-export const VACANCY_SUBJECT_TIP = "The subject or specialization area (e.g., Quantum Optics, Machine Learning). Optional.";
-export const VACANCY_DEADLINE_TIP = "The last date to submit the job application.";
-export const VACANCY_DESCRIPTION_TIP = "Pay scale, qualifications required, and job responsibilities.";
-export const VACANCY_NOTIFICATION_LINK_TIP = "URL to the official job advertisement or notification.";
-export const VACANCY_APPLY_LINK_TIP = "URL to the application portal or email address for applications.";
+export const POSITION_TYPE_TIP = "Choose the kind of appointment: postdoctoral, research staff, faculty, PhD researcher, or other.";
+export const POSITION_TITLE_TIP = "The official position title or designation.";
+export const POSITION_INSTITUTION_TIP = "The name of the institution or organization hiring.";
+export const POSITION_DEPARTMENT_TIP = "The hiring department or unit (e.g., Department of Physics). Optional.";
+export const POSITION_SUBJECT_TIP = "The research group, supervisor, or specialization area (e.g., Quantum Optics). Optional.";
+export const POSITION_SALARY_TIP = "The salary, stipend, or fellowship amount, including currency and period (e.g., USD 45,000/year). Optional.";
+export const POSITION_DURATION_TIP = "The contract length (e.g., 2 years, 12 months). Optional.";
+export const POSITION_START_DATE_TIP = "The expected start date for the appointment. Optional.";
+export const POSITION_LOCATION_TIP = "The city and country where the position is based. Optional.";
+export const POSITION_REMOTE_TIP = "Tick if the position can be done remotely or is fully online.";
+export const POSITION_DEADLINE_TIP = "The last date to submit the application.";
+export const POSITION_DESCRIPTION_TIP = "Required qualifications, responsibilities, and other details.";
+export const POSITION_NOTIFICATION_LINK_TIP = "URL to the official advertisement or notification.";
+export const POSITION_APPLY_LINK_TIP = "URL to the application portal or email address for applications.";
 
 // -----------------------------------------------------------------------------
 // COURSES MODULE

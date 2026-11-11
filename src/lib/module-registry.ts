@@ -7,8 +7,8 @@
 export const PROFILE_SECTION_CONFIG = {
   articles: { model: "article", bookmarkModel: "articleBookmark", bookmarkParent: "article" },
   socialPosts: { model: "socialPost", bookmarkModel: "socialPostBookmark", bookmarkParent: "socialPost" },
-  vacancies: { model: "jobVacancy", bookmarkModel: "jobVacancyBookmark", bookmarkParent: "jobVacancy" },
-  admissions: { model: "phdAdmission", bookmarkModel: "phdAdmissionBookmark", bookmarkParent: "phdAdmission" },
+  academicPositions: { model: "academicPosition", bookmarkModel: "academicPositionBookmark", bookmarkParent: "academicPosition" },
+  admissions: { model: "admission", bookmarkModel: "admissionBookmark", bookmarkParent: "admission" },
   callForPapers: { model: "callForPaper", bookmarkModel: "callForPaperBookmark", bookmarkParent: "callForPaper" },
   helpPosts: { model: "helpPost", bookmarkModel: "helpPostBookmark", bookmarkParent: "helpPost" },
   journals: { model: "journal", bookmarkModel: "journalBookmark", bookmarkParent: "journal" },
@@ -40,8 +40,8 @@ export const CONTENT_TABLES = [
   "Result",
   "ResearchSurvey",
   "CallForPaper",
-  "PhdAdmission",
-  "JobVacancy",
+  "Admission",
+  "AcademicPosition",
   "Recommendation",
   "JournalReview",
 ] as const;

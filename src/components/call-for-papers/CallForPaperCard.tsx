@@ -21,25 +21,25 @@ import { RichContent } from "../content/RichContent";
 import { getCallForPaperCategoryLabel } from "@/lib/call-for-papers";
 
 export function CallForPaperCard({
-  event,
+  callForPaper,
   currentUserId,
 }: {
-  event: CallForPaperWithAuthor;
+  callForPaper: CallForPaperWithAuthor;
   currentUserId?: string;
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const isOwner = currentUserId === event.authorId;
-  const isFollowing = (event.author?.followers?.length ?? 0) > 0;
+  const isOwner = currentUserId === callForPaper.authorId;
+  const isFollowing = (callForPaper.author?.followers?.length ?? 0) > 0;
   const userVote: "UPVOTE" | "DOWNVOTE" | null =
-    (event.votes || [])[0]?.voteType ?? null;
-  const urgency = getTimeLeft(event.deadline);
+    (callForPaper.votes || [])[0]?.voteType ?? null;
+  const urgency = getTimeLeft(callForPaper.deadline);
   // Share payload: mirror events/[id]/page.tsx generateMetadata().
-  const shareTitle = event.title;
-  const eventLocation = event.location ? ` at ${event.location}` : "";
+  const shareTitle = callForPaper.title;
+  const eventLocation = callForPaper.location ? ` at ${callForPaper.location}` : "";
   const shareText = `Call for papers${eventLocation}. ${
-    event.eventDate
-      ? new Date(event.eventDate).toLocaleDateString("en-US", {
+    callForPaper.eventDate
+      ? new Date(callForPaper.eventDate).toLocaleDateString("en-US", {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -50,32 +50,32 @@ export function CallForPaperCard({
   return (
     <ListPageCardShell
       // The list card must surface the same moderation state as /call-for-papers/[id].
-      isFrozen={event.isFrozen ?? false}
-      frozenEntityId={event.id}
+      isFrozen={callForPaper.isFrozen ?? false}
+      frozenEntityId={callForPaper.id}
       frozenModule="CALL_FOR_PAPER"
       frozenEntityType="POST"
-      frozenOwnerId={event.author?.id ?? null}
-      frozenHasActiveAppeal={event.hasActiveAppeal ?? false}
-      authorHref={`/scholars/${event.author?.id}`}
-      authorName={event.author?.name || "Scholar"}
-      authorId={event.authorId}
+      frozenOwnerId={callForPaper.author?.id ?? null}
+      frozenHasActiveAppeal={callForPaper.hasActiveAppeal ?? false}
+      authorHref={`/scholars/${callForPaper.author?.id}`}
+      authorName={callForPaper.author?.name || "Scholar"}
+      authorId={callForPaper.authorId}
       isFollowing={isFollowing}
       currentUserId={currentUserId}
-      authorHandle={event.author?.handle || undefined}
-      authorAvatarUrl={event.author?.avatarUrl || undefined} authorVerified={!!(event.author?.institutionVerifiedAt)}
-      detailPageHref={`/call-for-papers/${event.id}`}
+      authorHandle={callForPaper.author?.handle || undefined}
+      authorAvatarUrl={callForPaper.author?.avatarUrl || undefined} authorVerified={!!(callForPaper.author?.institutionVerifiedAt)}
+      detailPageHref={`/call-for-papers/${callForPaper.id}`}
       shareTitle={shareTitle}
       shareText={shareText}
       managementControls={
         isOwner && (
           <OwnerActionsDropdown
-            editHref={`/call-for-papers/${event.id}/edit`}
+            editHref={`/call-for-papers/${callForPaper.id}/edit`}
             isOwner={true}
             onDelete={async () => {
               try {
-                const response = await deleteCallForPaper(event.id);
+                const response = await deleteCallForPaper(callForPaper.id);
                 if (!response?.success || !response.data) {
-                  toast(actionErrorMessage(response, "Failed to delete event."), "error");
+                  toast(actionErrorMessage(response, "Failed to delete callForPaper."), "error");
                   return { refresh: false };
                 }
                 removeFromList<CallForPaperWithAuthor>(queryClient, ["call-for-papers"], response.data.deletedId);
@@ -92,40 +92,40 @@ export function CallForPaperCard({
           />
         )
       }
-      createdDate={event.createdAt}
+      createdDate={callForPaper.createdAt}
       editedDate={
-        event.editedAt && event.editedAt > event.createdAt ? event.editedAt : undefined
+        callForPaper.editedAt && callForPaper.editedAt > callForPaper.createdAt ? callForPaper.editedAt : undefined
       }
       footerVoteButton={
         <VoteButton
-          frozen={event.isFrozen === true}
-          targetId={event.id}
+          frozen={callForPaper.isFrozen === true}
+          targetId={callForPaper.id}
           module="CALL_FOR_PAPER"
-          initialTotalVotes={event.totalVotes}
+          initialTotalVotes={callForPaper.totalVotes}
           initialUserVote={userVote}
           isOwnContent={isOwner}
         />
       }
       footerBookmarkButton={
         <BookmarkButton
-          frozen={event.isFrozen === true}
-          targetId={event.id}
+          frozen={callForPaper.isFrozen === true}
+          targetId={callForPaper.id}
           module="CALL_FOR_PAPER"
-          initialTotalBookmarks={event.totalBookmarks ?? 0}
-          initialIsBookmarked={Array.isArray(event.bookmarks) && event.bookmarks.length > 0}
+          initialTotalBookmarks={callForPaper.totalBookmarks ?? 0}
+          initialIsBookmarked={Array.isArray(callForPaper.bookmarks) && callForPaper.bookmarks.length > 0}
         />
       }
-      footerCommentsHref={`/call-for-papers/${event.id}`}
-      footerCommentsCount={event.totalComments}
+      footerCommentsHref={`/call-for-papers/${callForPaper.id}`}
+      footerCommentsCount={callForPaper.totalComments}
       footerReportMenu={
         <ReportMenu
-          entityId={event.id}
+          entityId={callForPaper.id}
           entityType="POST"
           module="CALL_FOR_PAPER"
-          ownerId={event.author?.id ?? event.authorId ?? null}
+          ownerId={callForPaper.author?.id ?? callForPaper.authorId ?? null}
           currentUserId={currentUserId ?? null}
-          isFrozen={event.isFrozen ?? false}
-          hasActiveAppeal={event.hasActiveAppeal ?? false}
+          isFrozen={callForPaper.isFrozen ?? false}
+          hasActiveAppeal={callForPaper.hasActiveAppeal ?? false}
         />
       }
       noBodyLink={true}
@@ -133,13 +133,13 @@ export function CallForPaperCard({
       bodyBottomContent={
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <SafeExternalLink
-            url={event.notificationLink}
+            url={callForPaper.notificationLink}
             className="sb-button-soft flex-1 px-4 py-2 text-center text-xs"
           >
             View Brochure
           </SafeExternalLink>
           <SmartExternalLink
-            url={event.applyLink}
+            url={callForPaper.applyLink}
             className="sb-button-primary flex-1 px-4 py-2 text-center text-xs"
             urlLabel="Register Now"
             emailLabel="Email to Register"
@@ -147,7 +147,7 @@ export function CallForPaperCard({
         </div>
       }
     >
-      <Link href={`/call-for-papers/${event.id}`} prefetch={false} className="block group">
+      <Link href={`/call-for-papers/${callForPaper.id}`} prefetch={false} className="block group">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {urgency && (
             <span
@@ -158,17 +158,17 @@ export function CallForPaperCard({
             </span>
           )}
           <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
-            {getCallForPaperCategoryLabel(event.category)}
+            {getCallForPaperCategoryLabel(callForPaper.category)}
           </span>
         </div>
 
         <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {event.title}
+          {callForPaper.title}
         </h2>
-        {(event.publisher || event.journal) && (
+        {(callForPaper.publisher || callForPaper.journal) && (
           <p className="mb-3 text-sm text-slate-600 dark:text-slate-300">
-            {event.journal?.title ?? event.publisher}
-            {event.journal?.title && event.publisher ? ` · ${event.publisher}` : ""}
+            {callForPaper.journal?.title ?? callForPaper.publisher}
+            {callForPaper.journal?.title && callForPaper.publisher ? ` · ${callForPaper.publisher}` : ""}
           </p>
         )}
 
@@ -176,22 +176,22 @@ export function CallForPaperCard({
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
             <span className="font-medium">
-              {event.eventDate ? formatDate(event.eventDate) : "Date not specified"}
+              {callForPaper.eventDate ? formatDate(callForPaper.eventDate) : "Date not specified"}
             </span>
           </div>
-          {event.location && (
+          {callForPaper.location && (
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
-              <span className="break-words [overflow-wrap:anywhere]">{event.location}</span>
+              <span className="break-words [overflow-wrap:anywhere]">{callForPaper.location}</span>
             </div>
           )}
-          {event.deadline && (
+          {callForPaper.deadline && (
             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <Clock className="h-4 w-4 shrink-0 text-slate-400" />
               <span>
                 Deadline:{" "}
                 <span className="font-medium">
-                  {formatDate(event.deadline)}
+                  {formatDate(callForPaper.deadline)}
                 </span>
               </span>
             </div>
@@ -199,7 +199,7 @@ export function CallForPaperCard({
         </div>
 
         <RichContent
-          content={event.description}
+          content={callForPaper.description}
           className="text-sm leading-relaxed text-slate-600 dark:text-slate-300"
         />
       </Link>

@@ -27,8 +27,8 @@ DECLARE
     'Course',
     'Result',
     'CallForPaper',
-    'PhdAdmission',
-    'JobVacancy',
+    'Admission',
+    'AcademicPosition',
     'Recommendation',
     'JournalReview'   -- Added JournalReview
   ];
@@ -156,8 +156,8 @@ BEGIN
         (
           COALESCE("articleCount", 0) +
           COALESCE("socialPostCount", 0) +
-          COALESCE("jobVacancyCount", 0) +
-          COALESCE("phdAdmissionCount", 0) +
+          COALESCE("academicPositionCount", 0) +
+          COALESCE("admissionCount", 0) +
           COALESCE("callForPaperCount", 0) +
           COALESCE("helpPostCount", 0) +
           COALESCE("journalCount", 0) +

@@ -27,7 +27,7 @@ import {
 import { formatTimeAgo } from "@/utils/time-ago";
 import { ArticleCard } from "@/components/blog/ArticleCard";
 import { SocialPostCard } from "@/components/feed/SocialPostCard";
-import { VacancyCard } from "@/components/vacancies/VacancyCard";
+import { AcademicPositionCard } from "@/components/academic-positions/AcademicPositionCard";
 import { AdmissionCard } from "@/components/admissions/AdmissionCard";
 import { CallForPaperCard } from "@/components/call-for-papers/CallForPaperCard";
 import { HelpPostCard } from "@/components/help/HelpPostCard";
@@ -50,7 +50,7 @@ import {
   SectionKey,
   ArticleType,
   SocialPostType,
-  VacancyType,
+  AcademicPositionType,
   AdmissionType,
   CallForPaperType,
   HelpPostType,
@@ -141,18 +141,18 @@ const SECTIONS: SectionWithCount[] = [
       )),
   },
   {
-    key: "vacancies",
-    title: "Job Vacancies",
-    emptyMessage: "No job vacancies posted yet.",
-    renderItems: (items: VacancyType[], currentUserId) =>
+    key: "academicPositions",
+    title: "Academic Positions",
+    emptyMessage: "No academic positions posted yet.",
+    renderItems: (items: AcademicPositionType[], currentUserId) =>
       items.map((v) => (
-        <VacancyCard key={v.id} vacancy={v} currentUserId={currentUserId} />
+        <AcademicPositionCard key={v.id} academicPosition={v} currentUserId={currentUserId} />
       )),
   },
   {
     key: "admissions",
-    title: "PhD Admissions",
-    emptyMessage: "No PhD admissions posted yet.",
+    title: "Admissions",
+    emptyMessage: "No admissions posted yet.",
     renderItems: (items: AdmissionType[], currentUserId) =>
       items.map((a) => (
         <AdmissionCard key={a.id} admission={a} currentUserId={currentUserId} />
@@ -164,7 +164,7 @@ const SECTIONS: SectionWithCount[] = [
     emptyMessage: "No call for papers posted yet.",
     renderItems: (items: CallForPaperType[], currentUserId) =>
       items.map((e) => (
-        <CallForPaperCard key={e.id} event={e} currentUserId={currentUserId} />
+        <CallForPaperCard key={e.id} callForPaper={e} currentUserId={currentUserId} />
       )),
   },
   {
@@ -805,9 +805,9 @@ const ACTIVITY_META: Record<
     label: "research tool",
     href: (id) => `/research-tools/${id}`,
   },
-  PHD_ADMISSION: { label: "PhD admission", href: (id) => `/admissions/${id}` },
+  ADMISSION: { label: "Admission", href: (id) => `/admissions/${id}` },
   CALL_FOR_PAPER: { label: "research event", href: (id) => `/call-for-papers/${id}` },
-  JOB_VACANCY: { label: "job vacancy", href: (id) => `/vacancies/${id}` },
+  ACADEMIC_POSITION: { label: "academic position", href: (id) => `/academic-positions/${id}` },
   HELP_POST: { label: "help post", href: (id) => `/help/${id}` },
   RESULT: { label: "result", href: (id) => `/results/${id}` },
   CONTRIBUTION: { label: "contribution", href: (id) => `/contributions/${id}` },
@@ -827,8 +827,8 @@ const ACTIVITY_META: Record<
   USER: { label: "scholar", href: (id) => `/scholars/${id}` },
   SOCIAL_POST_COMMENT: { label: "comment" },
   ARTICLE_COMMENT: { label: "comment" },
-  JOB_VACANCY_COMMENT: { label: "comment" },
-  PHD_ADMISSION_COMMENT: { label: "comment" },
+  ACADEMIC_POSITION_COMMENT: { label: "comment" },
+  ADMISSION_COMMENT: { label: "comment" },
   CALL_FOR_PAPER_COMMENT: { label: "comment" },
   SUPERVISOR_COMMENT: { label: "comment" },
   RECOMMENDATION_COMMENT: { label: "comment" },
@@ -861,9 +861,9 @@ const MODULE_ROUTE: Record<string, string> = {
   RESEARCH_TOOL: "/research-tools",
   RESEARCH_GRANT: "/grants",
   COURSE: "/learn",
-  PHD_ADMISSION: "/admissions",
+  ADMISSION: "/admissions",
   CALL_FOR_PAPER: "/call-for-papers",
-  JOB_VACANCY: "/vacancies",
+  ACADEMIC_POSITION: "/academic-positions",
   HELP_POST: "/help",
   RESULT: "/results",
   CONTRIBUTION: "/contributions",

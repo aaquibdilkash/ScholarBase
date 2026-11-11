@@ -21,9 +21,9 @@ trigram + `tsvector` indexes, and no search query reads an embedding.
 | Journal | `Journal` | `title`, `publisher`, `about`, `subjectArea` |
 | Result | `Result` | `title`, `description`, `category`, `conductingBody`, `session` |
 | Survey | `ResearchSurvey` | `title`, `description` |
-| Event | `CallForPaper` | `title`, `location`, `description` |
-| PhD admission | `PhdAdmission` | `university`, `department`, `description` |
-| Vacancy | `JobVacancy` | `title`, `institution`, `department`, `subject`, `description` |
+| Call for papers | `CallForPaper` | `title`, `location`, `description` |
+| Admission | `Admission` | `university`, `department`, `level`, `description` |
+| Academic position | `AcademicPosition` | `title`, `institution`, `department`, `subject`, `positionType`, `salaryOrStipend`, `contractDuration`, `location`, `description` |
 | Supervisor | `Supervisor` | `name`, `university`, `department`, `about` |
 | Recommendation | `Recommendation` | `feedback` + parent supervisor `name`, `university`, `department`, `about` |
 | Journal review | `JournalReview` | `feedback` + parent journal `title`, `publisher`, `subjectArea`, `about` |
@@ -216,8 +216,8 @@ card via `<RelatedContent>`:
 | `/results/[id]` | `RESULT` | Related results |
 | `/surveys/[id]` | `RESEARCH_SURVEY` | Related surveys |
 | `/call-for-papers/[id]` | `CALL_FOR_PAPER` | Related events |
-| `/admissions/[id]` | `PHD_ADMISSION` | Related PhD admissions |
-| `/vacancies/[id]` | `JOB_VACANCY` | Related vacancies |
+| `/admissions/[id]` | `ADMISSION` | Related admissions |
+| `/academic-positions/[id]` | `ACADEMIC_POSITION` | Related academic positions |
 | `/supervisor/[id]` | `SUPERVISOR` | Related supervisors |
 | `/supervisor/[id]/recommendation/[recommendationId]` | `RECOMMENDATION` | Related recommendations |
 | `/journals/[id]/review/[reviewId]` | `JOURNAL_REVIEW` | Related journal reviews |
@@ -233,7 +233,7 @@ section rather than a page error.
 Every one of the 18 tables has a partial HNSW index using `vector_cosine_ops`
 with `m = 16`, `ef_construction = 64`, named
 `<Table>_embedding_hnsw_idx` (for example `User_embedding_hnsw_idx`,
-`JobVacancy_embedding_hnsw_idx`).
+`AcademicPosition_embedding_hnsw_idx`).
 
 The predicate is `WHERE "embedding" IS NOT NULL`, which matches the matching
 queries and keeps soft-deleted rows out. HNSW is approximate: top-N recall can be

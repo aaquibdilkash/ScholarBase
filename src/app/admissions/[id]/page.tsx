@@ -3,7 +3,7 @@ import { CommentSection } from "@/components/interactions/CommentSection";
 import { createClient } from "@/utils/supabase/server";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
-import { deletePhdAdmission, getAdmission } from "@/app/actions/admissions";
+import { deleteAdmission, getAdmission } from "@/app/actions/admissions";
 import DetailPageCardShell from "@/components/cards/DetailPageCardShell";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -17,6 +17,7 @@ import RelatedContent from "@/components/content/RelatedContent";
 import { getRelatedContent } from "@/lib/semantic/related";
 import { getModeratorDeletedContent } from "@/lib/deleted-content";
 import { RemovedContentNotice } from "@/components/moderation/RemovedContentNotice";
+import { getAdmissionLevelLabel } from "@/lib/admissions";
 
 export async function generateMetadata({
   params,
@@ -28,13 +29,14 @@ export async function generateMetadata({
   if (!admission) {
     return buildNoindexMetadata("Removed content");
   }
+  const levelLabel = getAdmissionLevelLabel(admission.level);
   return buildMetadata({
-    title: `${admission.university} - ${admission.department} PhD Admission`,
-    description: `Apply for PhD admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
+    title: `${admission.university} - ${admission.department} ${levelLabel} Admission`,
+    description: `Apply for ${levelLabel} admission at ${admission.university} (${admission.department}). Deadline: ${new Date(admission.deadline).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`,
     path: `/admissions/${admission.id}`,
     type: "article",
     publishedTime: admission.createdAt,
-    section: "PhD Admissions",
+    section: "Admissions",
   });
 }
 
@@ -57,9 +59,9 @@ const AdmissionDetailPage = async ({
     return (
       <RemovedContentNotice
         backHref="/admissions"
-        backLabel="Back to PhD Admissions"
+        backLabel="Back to Admissions"
         entityId={removed.id}
-        module="PHD_ADMISSION"
+        module="ADMISSION"
         ownerId={removed.authorId}
         currentUserId={user?.id}
         hasActiveAppeal={removed.hasActiveAppeal}
@@ -71,11 +73,11 @@ const AdmissionDetailPage = async ({
   const userVote =
     (admission.votes?.[0]?.voteType as "UPVOTE" | "DOWNVOTE" | null) ?? null;
 
-  const related = await getRelatedContent("PHD_ADMISSION", admission.id);
+  const related = await getRelatedContent("ADMISSION", admission.id);
 
   async function handleDelete() {
     "use server";
-    const res = await deletePhdAdmission(admission!.id);
+    const res = await deleteAdmission(admission!.id);
     if (res?.success === false) return res;
     return { redirect: "/admissions", invalidateQueries: [["admissions"]] };
   }
@@ -83,16 +85,16 @@ const AdmissionDetailPage = async ({
   return (
     <DetailPageCardShell
       relatedContent={
-        <RelatedContent title="Related PhD admissions" items={related} />
+        <RelatedContent title="Related admissions" items={related} />
       }
       isFrozen={admission.isFrozen ?? false}
       frozenEntityId={admission.id}
-      frozenModule="PHD_ADMISSION"
+      frozenModule="ADMISSION"
       frozenEntityType="POST"
       frozenOwnerId={admission.author?.id ?? null}
       frozenHasActiveAppeal={admission.hasActiveAppeal ?? false}
       backHref="/admissions"
-      backLabel="Back to PhD Admissions"
+      backLabel="Back to Admissions"
       authorHref={`/scholars/${admission.author?.id}`}
       authorName={admission.author?.name || "Scholar"}
       authorHandle={admission.author?.handle || undefined}
@@ -121,7 +123,7 @@ const AdmissionDetailPage = async ({
       footerVoteButton={
         <VoteButton
           targetId={admission.id}
-          module="PHD_ADMISSION"
+          module="ADMISSION"
           initialTotalVotes={admission.totalVotes}
           initialUserVote={userVote}
           isOwnContent={user?.id === admission.author?.id}
@@ -131,7 +133,7 @@ const AdmissionDetailPage = async ({
         <BookmarkButton
           frozen={admission.isFrozen === true}
           targetId={admission.id}
-          module="PHD_ADMISSION"
+          module="ADMISSION"
           initialTotalBookmarks={admission.totalBookmarks ?? 0}
           initialIsBookmarked={
             Array.isArray(admission.bookmarks) && admission.bookmarks.length > 0
@@ -144,7 +146,7 @@ const AdmissionDetailPage = async ({
         <ReportMenu
           entityId={admission.id}
           entityType="POST"
-          module="PHD_ADMISSION"
+          module="ADMISSION"
           ownerId={admission.author?.id ?? null}
           currentUserId={user?.id ?? null}
           isFrozen={admission.isFrozen}
@@ -181,9 +183,14 @@ const AdmissionDetailPage = async ({
       <h1 className="mb-1.5 sm:mb-2 min-w-0 max-w-full break-words text-lg sm:text-xl md:text-2xl font-bold text-slate-950 [overflow-wrap:anywhere]">
         {admission.university}
       </h1>
-      <p className="mb-3 sm:mb-4 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-950 [overflow-wrap:anywhere]">
+      <p className="mb-2 min-w-0 max-w-full break-words text-sm sm:text-base font-medium text-slate-950 [overflow-wrap:anywhere]">
         {admission.department}
       </p>
+      <div className="mb-3 sm:mb-4 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+          {getAdmissionLevelLabel(admission.level)}
+        </span>
+      </div>
 
       <div className="mb-3 sm:mb-4 flex min-w-0 items-center gap-2 text-xs sm:text-sm text-slate-600">
         <Clock className="h-5 w-5 shrink-0 text-slate-400" />

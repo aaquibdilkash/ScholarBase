@@ -78,9 +78,9 @@ indexes every declared field, not only the high-traffic ones.
 | Journals | `Journal` | `title`, `publisher`, `about`, `issn` |
 | Results | `Result` | `title`, `description`, `category`, `conductingBody`, `session` |
 | Surveys | `ResearchSurvey` | `title`, `description` |
-| Events | `CallForPaper` | `title`, `location`, `description` |
-| PhD admissions | `PhdAdmission` | `university`, `department`, `description` |
-| Vacancies | `JobVacancy` | `title`, `institution`, `department`, `subject`, `description` |
+| Calls for papers | `CallForPaper` | `title`, `location`, `description` |
+| Admissions | `Admission` | `university`, `department`, `description` |
+| Academic positions | `AcademicPosition` | `title`, `institution`, `department`, `subject`, `location`, `description` |
 | Supervisors | `Supervisor` | `name` |
 
 Index names follow `<Table>_<column>_trgm_idx`. The migration is

@@ -1,7 +1,5 @@
 "use server";
 
-import { getCurrentUser } from "@/lib/auth";
-
 import type { CallForPaperWithAuthor } from "@/types/cards";
 
 import {
@@ -343,54 +341,3 @@ export async function deleteCallForPaper(eventId: string) {
 
   return { success: true, data: { deletedId: eventId, isDeleted: true as const, deletedByType, totalComments: event.totalComments } };
 }
-
-export async function getUpcomingEvents(count: number) {
-  // Identity comes from the session, server-side — never from a client
-  // argument. This used to accept `userId` and filter the author's
-  // `followers` relation by it, so any caller could read another user's
-  // follow relationships.
-  const user = await getCurrentUser();
-  const userId = user?.id;
-
-  return prisma.callForPaper.findMany({
-    where: {
-      eventDate: {
-        gte: new Date(),
-      },
-      isDeleted: false,
-    },
-    take: count,
-    orderBy: { eventDate: "asc" },
-    select: {
-      id: true,
-      title: true,
-      eventDate: true,
-      category: true,
-      location: true,
-      createdAt: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          followers: userId
-            ? { where: { followerId: userId }, select: { followerId: true } }
-            : false,
-        },
-      },
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
-}
-
-/** @deprecated Use the CallForPaper-named actions. */
-export const createResearchEvent = createCallForPaper;
-/** @deprecated Use the CallForPaper-named actions. */
-export const deleteResearchEvent = deleteCallForPaper;

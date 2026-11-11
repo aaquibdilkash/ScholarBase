@@ -4,7 +4,7 @@
  * Every list page in the app is built from this, so the identity contract is
  * enforced in one place: **the returned loader resolves the viewer from the
  * session and exposes no identity parameter.** The pre-factory loaders
- * (`getVacancies(q, userId, …)` and 17 siblings) took a `userId` straight from
+ * (`getAcademicPositions(q, userId, …)` and 17 siblings) took a `userId` straight from
  * the browser, so any caller could read another user's vote / bookmark /
  * follow state. That parameter simply does not exist here, so the bug cannot
  * be reintroduced in new code.
@@ -28,9 +28,9 @@ import { stitchLiveState, type StitchOptions } from "./stitch";
 
 /** Config for one module's list. */
 export type TriSplitConfig<TCached, TItem> = {
-  /** Cache tag, e.g. `"vacancies-public"`. Purge it on content mutations. */
+  /** Cache tag, e.g. `"academicPositions-public"`. Purge it on content mutations. */
   tag: string;
-  /** Prisma delegate name on the client, e.g. `"jobVacancy"`. */
+  /** Prisma delegate name on the client, e.g. `"academicPosition"`. */
   model: string;
   /** Extra cache-key discriminators (ordering, sort mode, ...). */
   keyParts?: readonly string[];

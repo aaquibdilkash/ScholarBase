@@ -18,12 +18,12 @@ DECLARE
     'Article', 'SocialPost', 'HelpPost', 'Contribution',
     'Publication', 'ResearchTool', 'ResearchGrant', 'Course',
     'Journal', 'Result', 'ResearchSurvey', 'CallForPaper',
-    'PhdAdmission', 'JobVacancy', 'Recommendation', 'Supervisor'
+    'Admission', 'AcademicPosition', 'Recommendation', 'Supervisor'
   ];
 
   comment_tables text[] := ARRAY[
     'ArticleComment', 'SocialComment', 'HelpPostComment', 'ContributionComment',
-    'JobVacancyComment', 'PhdAdmissionComment', 'CallForPaperComment', 'SupervisorComment',
+    'AcademicPositionComment', 'AdmissionComment', 'CallForPaperComment', 'SupervisorComment',
     'RecommendationComment', 'ResearchToolComment', 'ResearchGrantComment', 'CourseComment',
     'JournalComment', 'ResultComment', 'PublicationComment', 'SurveyComment', 'Reply'
   ];

@@ -58,7 +58,7 @@ const EventDetailPage = async ({
   const event = await getEvent(id, user?.id);
 
   if (!event) {
-    const removed = await getModeratorDeletedContent("event", { id });
+    const removed = await getModeratorDeletedContent("callForPaper", { id });
     if (!removed) notFound();
     return (
       <RemovedContentNotice
@@ -174,7 +174,7 @@ const EventDetailPage = async ({
           comments={event.comments}
           totalComments={event.totalComments}
           targetId={event.id}
-          module="event"
+          module="callForPaper"
           currentUserId={user?.id || null}
           postAuthorId={event.author?.id}
         />

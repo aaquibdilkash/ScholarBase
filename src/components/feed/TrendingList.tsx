@@ -1,4 +1,4 @@
-import { VacancyCard } from "@/components/vacancies/VacancyCard";
+import { AcademicPositionCard } from "@/components/academic-positions/AcademicPositionCard";
 import { AdmissionCard } from "@/components/admissions/AdmissionCard";
 import { CallForPaperCard } from "@/components/call-for-papers/CallForPaperCard";
 import { ArticleCard } from "@/components/blog/ArticleCard";
@@ -34,11 +34,11 @@ export function TrendingList({
         </div>
       ) : items.map((item) => {
         switch (item.type) {
-          case "vacancy":
+          case "academicPosition":
             return (
-              <VacancyCard
+              <AcademicPositionCard
                 key={item.id}
-                vacancy={item}
+                academicPosition={item}
                 currentUserId={currentUserId}
               />
             );
@@ -50,11 +50,11 @@ export function TrendingList({
                 currentUserId={currentUserId}
               />
             );
-          case "event":
+          case "callForPaper":
             return (
               <CallForPaperCard
                 key={item.id}
-                event={item}
+                callForPaper={item}
                 currentUserId={currentUserId}
               />
             );

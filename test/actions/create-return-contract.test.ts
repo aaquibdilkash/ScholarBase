@@ -25,8 +25,8 @@ import { createSocialPost } from "@/app/actions/feed";
 import { createArticle } from "@/app/actions/blog";
 import { createPublication } from "@/app/actions/publications";
 import { createHelpPost } from "@/app/actions/help";
-import { createJobVacancy } from "@/app/actions/vacancies";
-import { createPhdAdmission } from "@/app/actions/admissions";
+import { createAcademicPosition } from "@/app/actions/academic-positions";
+import { createAdmission } from "@/app/actions/admissions";
 import { createCallForPaper } from "@/app/actions/call-for-papers";
 import { createResearchGrant } from "@/app/actions/grants";
 import { createResearchTool } from "@/app/actions/researchTools";
@@ -148,32 +148,34 @@ const SPECS = [
     expectRow: { title: "Help needed" },
   },
   {
-    name: "JobVacancy",
-    model: "jobVacancy",
-    create: createJobVacancy,
+    name: "AcademicPosition",
+    model: "academicPosition",
+    create: createAcademicPosition,
     fields: {
       title: "Postdoc open",
       institution: "Oxford",
+      positionType: "POSTDOC",
       description: "<p>Role</p>",
       deadline: "2030-01-01",
       notificationLink: URL_FIELD.value,
       applyLink: URL_FIELD.value,
     },
-    expectRow: { title: "Postdoc open" },
+    expectRow: { title: "Postdoc open", positionType: "POSTDOC" },
   },
   {
-    name: "PhdAdmission",
-    model: "phdAdmission",
-    create: createPhdAdmission,
+    name: "Admission",
+    model: "admission",
+    create: createAdmission,
     fields: {
       university: "Oxford",
-      program: "PhD",
+      department: "Computer Science",
+      level: "PHD",
       description: "<p>Program</p>",
       deadline: "2030-01-01",
       notificationLink: URL_FIELD.value,
       applyLink: URL_FIELD.value,
     },
-    expectRow: { university: "Oxford" },
+    expectRow: { university: "Oxford", level: "PHD" },
   },
   {
     name: "CallForPaper",

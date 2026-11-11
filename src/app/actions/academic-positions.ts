@@ -1,8 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/lib/auth";
-
-import type { VacancyWithAuthor } from "@/types/cards";
+import type { AcademicPositionWithAuthor } from "@/types/cards";
 
 import {
   loadContentPage,
@@ -20,7 +18,16 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { readFormValue, readOptionalFormValue, assertRichTextWithinLimit } from "@/lib/form";
 import { notifyFollowersOfActivity } from "@/lib/notifications";
 import { validateExternalUrl } from "@/lib/external-url";
-import { COMMENT_PAGE_SIZE, MAX_VACANCY_DESCRIPTION, MAX_VACANCY_DEPARTMENT, MAX_VACANCY_SUBJECT } from "@/lib/constants";
+import {
+  COMMENT_PAGE_SIZE,
+  MAX_POSITION_DESCRIPTION,
+  MAX_POSITION_DEPARTMENT,
+  MAX_POSITION_SUBJECT,
+  MAX_POSITION_SALARY,
+  MAX_POSITION_DURATION,
+  MAX_POSITION_LOCATION,
+} from "@/lib/constants";
+import { parsePositionType } from "@/lib/academic-positions";
 import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 
 /**
@@ -42,7 +49,21 @@ function readOptionalShortText(
 }
 
 /**
- * Loads one page of job vacancy rows for the
+ * Optional ISO date field: empty/missing maps to `null`, anything unparsable
+ * is rejected instead of being persisted as an Invalid Date.
+ */
+function readOptionalDate(formData: FormData, key: string): Date | null {
+  const raw = readOptionalFormValue(formData, key)?.trim() ?? "";
+  if (!raw) return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid start date.");
+  }
+  return date;
+}
+
+/**
+ * Loads one page of academic position rows for the
  * *current* viewer.
  *
  * Identity comes from the session, server-side — never from a client argument.
@@ -52,18 +73,18 @@ function readOptionalShortText(
  * The cached viewer-agnostic batch plus the single-statement live overlay live
  * in `@/lib/tri-split/modules/registry`.
  */
-export async function getVacancies(
+export async function getAcademicPositions(
   q?: string,
   limit = 10,
   cursor?: string,
 ) {
-  return loadContentPage("JOB_VACANCY", { query: q, pageSize: limit, cursor }) as Promise<
-  VacancyWithAuthor[]
+  return loadContentPage("ACADEMIC_POSITION", { query: q, pageSize: limit, cursor }) as Promise<
+  AcademicPositionWithAuthor[]
 >;
 }
 
-export const getVacancyById = cache(async (id: string, userId?: string) => {
-  return prisma.jobVacancy.findUnique({
+export const getAcademicPositionById = cache(async (id: string, userId?: string) => {
+  return prisma.academicPosition.findUnique({
     where: { id: id, isDeleted: false },
     select: {
       id: true,
@@ -71,6 +92,12 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
       institution: true,
       department: true,
       subject: true,
+      positionType: true,
+      salaryOrStipend: true,
+      contractDuration: true,
+      startDate: true,
+      location: true,
+      isRemote: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -134,19 +161,25 @@ export const getVacancyById = cache(async (id: string, userId?: string) => {
   });
 });
 
-export async function createJobVacancy(formData: FormData) {
+export async function createAcademicPosition(formData: FormData) {
   const auth = await getActiveUser("Please log in to submit details.");
   if (auth.frozen) return { success: false, error: auth.message, message: auth.message };
   const user = auth.user;
-  await enforceRateLimit({ namespace: "vacancy:create", key: user.id, limit: 10, window: "10 m" });
+  await enforceRateLimit({ namespace: "academicPosition:create", key: user.id, limit: 10, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
-  const department = readOptionalShortText(formData, "department", MAX_VACANCY_DEPARTMENT, "Department");
-  const subject = readOptionalShortText(formData, "subject", MAX_VACANCY_SUBJECT, "Subject");
+  const department = readOptionalShortText(formData, "department", MAX_POSITION_DEPARTMENT, "Department");
+  const subject = readOptionalShortText(formData, "subject", MAX_POSITION_SUBJECT, "Subject");
+  const positionType = parsePositionType(readFormValue(formData, "positionType"));
+  const salaryOrStipend = readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary");
+  const contractDuration = readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration");
+  const startDate = readOptionalDate(formData, "startDate");
+  const location = readOptionalShortText(formData, "location", MAX_POSITION_LOCATION, "Location");
+  const isRemote = readFormValue(formData, "isRemote") === "on";
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
-  assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
+  assertRichTextWithinLimit(description, MAX_POSITION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
   let safeNotificationLink: string | null;
@@ -162,13 +195,19 @@ export async function createJobVacancy(formData: FormData) {
     throw new Error("Notification and Apply links are required.");
   }
 
-  const vacancy = await prisma.$transaction(async (tx) => {
-    const newVacancy = await tx.jobVacancy.create({
+  const academicPosition = await prisma.$transaction(async (tx) => {
+    const newPosition = await tx.academicPosition.create({
       data: {
         title,
         institution,
         department,
         subject,
+        positionType,
+        salaryOrStipend,
+        contractDuration,
+        startDate,
+        location,
+        isRemote,
         deadline,
         description,
         notificationLink: safeNotificationLink,
@@ -181,6 +220,12 @@ export async function createJobVacancy(formData: FormData) {
         institution: true,
         department: true,
         subject: true,
+        positionType: true,
+        salaryOrStipend: true,
+        contractDuration: true,
+        startDate: true,
+        location: true,
+        isRemote: true,
         deadline: true,
         description: true,
         notificationLink: true,
@@ -212,49 +257,55 @@ export async function createJobVacancy(formData: FormData) {
 
     await tx.user.update({
       where: { id: user.id },
-      data: { jobVacancyCount: { increment: 1 } },
+      data: { academicPositionCount: { increment: 1 } },
     });
 
     await tx.userActivity.create({
       data: {
         userId: user.id,
         action: "PUBLISHED",
-        moduleType: "JOB_VACANCY",
-        entityId: newVacancy.id,
-        entityTitle: newVacancy.title,
+        moduleType: "ACADEMIC_POSITION",
+        entityId: newPosition.id,
+        entityTitle: newPosition.title,
       },
     });
 
-    return newVacancy;
+    return newPosition;
   });
 
   await notifyFollowersOfActivity({
     actorId: user.id,
     type: "content-published",
-    targetType: "vacancy",
-    targetId: vacancy.id,
-    title: `${user.email?.split("@")[0] || "Someone"} posted a new academic vacancy`,
+    targetType: "academicPosition",
+    targetId: academicPosition.id,
+    title: `${user.email?.split("@")[0] || "Someone"} posted a new academic position`,
     body: `${title} at ${institution} - Apply by ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
   });
 
-  // Purge the cached job vacancy pages: publish must be visible at once, not after the TTL.
-  revalidateContent("JOB_VACANCY", user.id);
+  // Purge the cached academic position pages: publish must be visible at once, not after the TTL.
+  revalidateContent("ACADEMIC_POSITION", user.id);
 
-  return { success: true, data: vacancy };
+  return { success: true, data: academicPosition };
 }
 
-export async function updateJobVacancy(formData: FormData, vacancyId: string) {
+export async function updateAcademicPosition(formData: FormData, academicPositionId: string) {
   // Frozen owners may edit (to correct content before appealing).
-  const user = await requireCurrentUser("Log in to edit this vacancy.");
-  await enforceRateLimit({ namespace: "vacancy:edit", key: user.id, limit: 20, window: "10 m" });
+  const user = await requireCurrentUser("Log in to edit this position.");
+  await enforceRateLimit({ namespace: "academicPosition:edit", key: user.id, limit: 20, window: "10 m" });
 
   const title = readFormValue(formData, "title");
   const institution = readFormValue(formData, "institution");
-  const department = readOptionalShortText(formData, "department", MAX_VACANCY_DEPARTMENT, "Department");
-  const subject = readOptionalShortText(formData, "subject", MAX_VACANCY_SUBJECT, "Subject");
+  const department = readOptionalShortText(formData, "department", MAX_POSITION_DEPARTMENT, "Department");
+  const subject = readOptionalShortText(formData, "subject", MAX_POSITION_SUBJECT, "Subject");
+  const positionType = parsePositionType(readFormValue(formData, "positionType"));
+  const salaryOrStipend = readOptionalShortText(formData, "salaryOrStipend", MAX_POSITION_SALARY, "Salary");
+  const contractDuration = readOptionalShortText(formData, "contractDuration", MAX_POSITION_DURATION, "Contract duration");
+  const startDate = readOptionalDate(formData, "startDate");
+  const location = readOptionalShortText(formData, "location", MAX_POSITION_LOCATION, "Location");
+  const isRemote = readFormValue(formData, "isRemote") === "on";
   const deadline = new Date(readFormValue(formData, "deadline"));
   const description = readFormValue(formData, "description");
-  assertRichTextWithinLimit(description, MAX_VACANCY_DESCRIPTION, "Description");
+  assertRichTextWithinLimit(description, MAX_POSITION_DESCRIPTION, "Description");
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
   let safeNotificationLink: string | null;
@@ -270,23 +321,29 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
     throw new Error("Notification and Apply links are required.");
   }
 
-  const vacancy = await prisma.jobVacancy.findUnique({
-    where: { id: vacancyId },
+  const academicPosition = await prisma.academicPosition.findUnique({
+    where: { id: academicPositionId },
     select: { authorId: true },
   });
 
-  if (!vacancy) return;
-  if (!(await isAuthorizedOrAdmin(vacancy.authorId, user.id))) {
-    throw new Error("Not authorized to edit this vacancy.");
+  if (!academicPosition) return;
+  if (!(await isAuthorizedOrAdmin(academicPosition.authorId, user.id))) {
+    throw new Error("Not authorized to edit this position.");
   }
 
-  const updatedVacancy = await prisma.jobVacancy.update({
-    where: { id: vacancyId },
+  const updatedPosition = await prisma.academicPosition.update({
+    where: { id: academicPositionId },
     data: {
       title,
       institution,
       department,
       subject,
+      positionType,
+      salaryOrStipend,
+      contractDuration,
+      startDate,
+      location,
+      isRemote,
       deadline,
       description,
       notificationLink: safeNotificationLink,
@@ -299,6 +356,12 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
       institution: true,
       department: true,
       subject: true,
+      positionType: true,
+      salaryOrStipend: true,
+      contractDuration: true,
+      startDate: true,
+      location: true,
+      isRemote: true,
       deadline: true,
       description: true,
       notificationLink: true,
@@ -317,114 +380,57 @@ export async function updateJobVacancy(formData: FormData, vacancyId: string) {
     },
   });
 
-  // Purge the cached job vacancy pages: edit must be visible at once, not after the TTL.
-  revalidateContent("JOB_VACANCY", vacancy.authorId);
+  // Purge the cached academic position pages: edit must be visible at once, not after the TTL.
+  revalidateContent("ACADEMIC_POSITION", academicPosition.authorId);
 
-  return { success: true, data: updatedVacancy };
+  return { success: true, data: updatedPosition };
 }
 
-export async function deleteJobVacancy(vacancyId: string) {
+export async function deleteAcademicPosition(academicPositionId: string) {
   // Frozen owners may delete own content (read/edit/delete allowed, create blocked).
-  const user = await requireCurrentUser("Log in to delete this vacancy.");
-  await enforceRateLimit({ namespace: "vacancy:delete", key: user.id, limit: 20, window: "10 m" });
+  const user = await requireCurrentUser("Log in to delete this position.");
+  await enforceRateLimit({ namespace: "academicPosition:delete", key: user.id, limit: 20, window: "10 m" });
 
-  const vacancy = await prisma.jobVacancy.findUnique({
-    where: { id: vacancyId },
+  const academicPosition = await prisma.academicPosition.findUnique({
+    where: { id: academicPositionId },
     select: { authorId: true, totalVotes: true, totalComments: true },
   });
 
-  if (!vacancy) return;
+  if (!academicPosition) return;
   const deletedByType = await resolvePostDeletePermission(
     user.id,
-    vacancy.authorId,
+    academicPosition.authorId,
   );
 
   await prisma.$transaction(async (tx) => {
-    await tx.jobVacancy.update({
-      where: { id: vacancyId },
+    await tx.academicPosition.update({
+      where: { id: academicPositionId },
       data: { isDeleted: true, deletedByType, deletedById: user.id },
     });
 
      await tx.user.update({
-       where: { id: vacancy.authorId },
-       data: { jobVacancyCount: { decrement: 1 } },
+       where: { id: academicPosition.authorId },
+       data: { academicPositionCount: { decrement: 1 } },
      });
 
-     if (vacancy.totalVotes !== 0) {
+     if (academicPosition.totalVotes !== 0) {
       await tx.user.update({
-        where: { id: vacancy.authorId },
-        data: { reputation: { decrement: vacancy.totalVotes } },
+        where: { id: academicPosition.authorId },
+        data: { reputation: { decrement: academicPosition.totalVotes } },
       });
     }
 
-    // Hide this content's activity so a deleted vacancy stops appearing in
+    // Hide this content's activity so a deleted position stops appearing in
     // anyone's activity feed at once (not after the cache TTL).
-    await hideContentActivity(tx, "JOB_VACANCY", vacancyId)
+    await hideContentActivity(tx, "ACADEMIC_POSITION", academicPositionId)
   });
 
-  // Purge the cached job vacancy pages: soft delete must be visible at once, not after the TTL.
-  revalidateContent("JOB_VACANCY", vacancy.authorId);
+  // Purge the cached academic position pages: soft delete must be visible at once, not after the TTL.
+  revalidateContent("ACADEMIC_POSITION", academicPosition.authorId);
 
   // Purge every bookmarker's Bookmarks tab so a soft-deleted post stops
   // inflating their bookmark count or showing a phantom "show more" arrow.
-  await revalidateBookmarkersForDeletedContent("JOB_VACANCY", vacancyId);
+  await revalidateBookmarkersForDeletedContent("ACADEMIC_POSITION", academicPositionId);
 
-  return { success: true, data: { deletedId: vacancyId, isDeleted: true as const, deletedByType, totalComments: vacancy.totalComments } };
-}
-
-export async function getLatestVacancies(count: number) {
-  // Identity comes from the session, server-side — never from a client
-  // argument. This used to accept `userId` and filter the author's
-  // `followers` relation by it, so any caller could read another user's
-  // follow relationships.
-  const user = await getCurrentUser();
-  const userId = user?.id;
-
-  return prisma.jobVacancy.findMany({
-    where: {
-      isDeleted: false,
-      deadline: {
-        gte: new Date(),
-      },
-    },
-    take: count,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      institution: true,
-      department: true,
-      subject: true,
-      deadline: true,
-      description: true,
-      notificationLink: true,
-      applyLink: true,
-      createdAt: true,
-      updatedAt: true,
-      editedAt: true,
-      totalVotes: true,
-      totalBookmarks: true,
-      isFrozen: true,
-      hasActiveAppeal: true,
-      totalComments: true,
-      author: {
-        select: {
-          id: true,
-          name: true,
-          handle: true,
-          avatarUrl: true, institutionVerifiedAt: true,
-          ...(userId
-            ? {
-                followers: {
-                  where: { followerId: userId },
-                  select: { followerId: true },
-                },
-              }
-            : {}),
-        },
-      },
-      votes: userId ? { where: { userId }, select: { voteType: true } } : false,
-      bookmarks: userId ? { where: { userId }, select: { id: true } } : false,
-    },
-  });
+  return { success: true, data: { deletedId: academicPositionId, isDeleted: true as const, deletedByType, totalComments: academicPosition.totalComments } };
 }

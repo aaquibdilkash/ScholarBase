@@ -461,8 +461,8 @@ async function hydrateItems(
       break;
     }
 
-    case "PHD_ADMISSION": {
-      const rows = await prisma.phdAdmission.findMany({
+    case "ADMISSION": {
+      const rows = await prisma.admission.findMany({
         where,
         select: {
           id: true,
@@ -483,8 +483,8 @@ async function hydrateItems(
       break;
     }
 
-    case "JOB_VACANCY": {
-      const rows = await prisma.jobVacancy.findMany({
+    case "ACADEMIC_POSITION": {
+      const rows = await prisma.academicPosition.findMany({
         where,
         select: {
           id: true,
@@ -495,7 +495,7 @@ async function hydrateItems(
       });
 
       for (const row of rows) {
-        setItem(items, row.id, `/vacancies/${row.id}`, row.title, {
+        setItem(items, row.id, `/academic-positions/${row.id}`, row.title, {
           subtitle: row.institution,
           avatarUrl: row.author?.avatarUrl ?? null,
           authorName: row.author?.name ?? undefined,

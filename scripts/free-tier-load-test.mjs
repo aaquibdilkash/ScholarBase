@@ -28,7 +28,7 @@ const getRoutes = [
   "/results",
   "/blog",
   "/learn",
-  "/vacancies",
+  "/academic-positions",
   "/login",
   "/terms",
   "/privacy",

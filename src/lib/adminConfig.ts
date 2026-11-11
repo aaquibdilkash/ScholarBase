@@ -23,7 +23,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
   { id: "courses", title: "Learning Zone", href: "/learn" },
   { id: "admissions", title: "Admissions", href: "/admissions" },
   { id: "events", title: "Call for Papers", href: "/call-for-papers" },
-  { id: "vacancies", title: "Vacancies", href: "/vacancies" },
+  { id: "academicPositions", title: "Academic Positions", href: "/academic-positions" },
   { id: "help", title: "Help", href: "/help" },
   { id: "results", title: "Results", href: "/results" },
   { id: "contributions", title: "Contributions", href: "/contributions" },
@@ -36,7 +36,7 @@ export const ADMIN_SECTIONS: AdminSection[] = [
 
 // Section id -> contentType key expected by toggleContentFreeze /
 // moderateContent (reports.ts). Do NOT derive these by stripping the
-// trailing "s" — feed/help/blog have no plural, vacancies → vacancie, etc.
+// trailing "s" — feed/help/blog have no plural, so do not derive these by stripping the "s".
 export const SECTION_CONTENT_TYPES: Record<string, string> = {
   feed: "feed",
   blog: "blog",
@@ -47,8 +47,8 @@ export const SECTION_CONTENT_TYPES: Record<string, string> = {
   researchGrants: "researchGrant",
   courses: "course",
   admissions: "admission",
-  events: "event",
-  vacancies: "vacancy",
+  events: "callForPaper",
+  academicPositions: "academicPosition",
   help: "help",
   results: "result",
   contributions: "contribution",

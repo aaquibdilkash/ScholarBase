@@ -31,8 +31,8 @@ export type EmbeddingEntityType =
   | "RESULT"
   | "RESEARCH_SURVEY"
   | "CALL_FOR_PAPER"
-  | "PHD_ADMISSION"
-  | "JOB_VACANCY"
+  | "ADMISSION"
+  | "ACADEMIC_POSITION"
   | "SUPERVISOR"
   | "RECOMMENDATION"
   | "JOURNAL_REVIEW";
@@ -56,8 +56,8 @@ export const EMBEDDING_TABLES = {
   RESULT: "Result",
   RESEARCH_SURVEY: "ResearchSurvey",
   CALL_FOR_PAPER: "CallForPaper",
-  PHD_ADMISSION: "PhdAdmission",
-  JOB_VACANCY: "JobVacancy",
+  ADMISSION: "Admission",
+  ACADEMIC_POSITION: "AcademicPosition",
   SUPERVISOR: "Supervisor",
   RECOMMENDATION: "Recommendation",
   JOURNAL_REVIEW: "JournalReview",
@@ -89,8 +89,18 @@ export const EMBEDDING_TRIGGER_FIELDS = {
   RESULT: ["title", "description", "category", "conductingBody", "session"],
   RESEARCH_SURVEY: ["title", "description"],
   CALL_FOR_PAPER: ["title", "category", "eventDate", "location", "description"],
-  PHD_ADMISSION: ["university", "department", "description"],
-  JOB_VACANCY: ["title", "institution", "department", "subject", "description"],
+  ADMISSION: ["university", "department", "level", "description"],
+  ACADEMIC_POSITION: [
+    "title",
+    "institution",
+    "department",
+    "subject",
+    "positionType",
+    "salaryOrStipend",
+    "contractDuration",
+    "location",
+    "description",
+  ],
   SUPERVISOR: ["name", "university", "department", "about"],
   RECOMMENDATION: ["feedback"],
   JOURNAL_REVIEW: ["feedback"],
@@ -182,17 +192,22 @@ export type CallForPaperTextSource = {
   description: string;
 };
 
-export type PhdAdmissionTextSource = {
+export type AdmissionTextSource = {
   university: string;
   department: string;
+  level?: string | null;
   description: string;
 };
 
-export type JobVacancyTextSource = {
+export type AcademicPositionTextSource = {
   title: string;
   institution: string;
   department: string | null;
   subject: string | null;
+  positionType?: string | null;
+  salaryOrStipend?: string | null;
+  contractDuration?: string | null;
+  location?: string | null;
   description: string;
 };
 
@@ -294,14 +309,14 @@ export function buildCallForPaperText(
   return joinFields(source, EMBEDDING_TRIGGER_FIELDS.CALL_FOR_PAPER);
 }
 
-export function buildPhdAdmissionText(
-  source: PhdAdmissionTextSource,
+export function buildAdmissionText(
+  source: AdmissionTextSource,
 ): string {
-  return joinFields(source, EMBEDDING_TRIGGER_FIELDS.PHD_ADMISSION);
+  return joinFields(source, EMBEDDING_TRIGGER_FIELDS.ADMISSION);
 }
 
-export function buildJobVacancyText(source: JobVacancyTextSource): string {
-  return joinFields(source, EMBEDDING_TRIGGER_FIELDS.JOB_VACANCY);
+export function buildAcademicPositionText(source: AcademicPositionTextSource): string {
+  return joinFields(source, EMBEDDING_TRIGGER_FIELDS.ACADEMIC_POSITION);
 }
 
 export function buildSupervisorText(source: SupervisorTextSource): string {

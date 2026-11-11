@@ -5,28 +5,28 @@ import { useIsFetching } from "@tanstack/react-query";
 import { useListSearch } from "@/hooks/useListSearch";
 import { listEmptyMessage } from "@/lib/list-search";
 import { SearchInput } from "@/components/ui/SearchInput";
-import { VacancyCard } from "./VacancyCard";
-import type { VacancyWithAuthor } from "@/types/cards";
+import { AcademicPositionCard } from "./AcademicPositionCard";
+import type { AcademicPositionWithAuthor } from "@/types/cards";
 import { CacheBackedList } from "@/components/layout/CacheBackedList";
-import { getVacancies } from "@/app/actions/vacancies";
+import { getAcademicPositions } from "@/app/actions/academic-positions";
 
-export function VacanciesList({
-  vacancies,
+export function AcademicPositionsList({
+  positions,
   currentUserId,
   initialQuery,
 }: {
-  vacancies: VacancyWithAuthor[];
+  positions: AcademicPositionWithAuthor[];
   currentUserId?: string;
   initialQuery?: string;
 }) {
   const { query, setQuery, appliedQuery, isDebouncing, handleSearch, handleClear } = useListSearch(
-    "/vacancies",
+    "/academic-positions",
     initialQuery,
   );
   // Client-side search: the key tracks the applied term, so a new term fetches
   // its own first page instead of navigating and remounting the page.
   const queryKey = useMemo(
-    () => ["vacancies", appliedQuery] as const,
+    () => ["academicPositions", appliedQuery] as const,
     [appliedQuery],
   );
   const isFetching = useIsFetching({ queryKey, exact: true }) > 0;
@@ -47,20 +47,20 @@ export function VacanciesList({
           className="mb-4"
         />
       </form>
-      <CacheBackedList<VacancyWithAuthor>
+      <CacheBackedList<AcademicPositionWithAuthor>
         queryKey={queryKey}
-        initialItems={isServerQuery ? vacancies : undefined}
+        initialItems={isServerQuery ? positions : undefined}
         keepPreviousOnKeyChange
-        fetchPage={(cursor) => getVacancies(appliedQuery, 10, cursor)}
-        renderItem={(job) => (
-          <VacancyCard
-            key={job.id}
-            vacancy={job}
+        fetchPage={(cursor) => getAcademicPositions(appliedQuery, 10, cursor)}
+        renderItem={(position) => (
+          <AcademicPositionCard
+            key={position.id}
+            academicPosition={position}
             currentUserId={currentUserId}
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage={listEmptyMessage(appliedQuery, "No job vacancies posted yet.")}
+        emptyMessage={listEmptyMessage(appliedQuery, "No academic positions posted yet.")}
       />
     </div>
   );

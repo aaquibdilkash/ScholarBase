@@ -49,13 +49,16 @@ export const SEO_SITE = {
     imageAlt: `${SITE_NAME} - Academic community for scholars and researchers`,
     category: "Education",
     description:
-        "Discover research communities, PhD supervisors, admissions, academic events, and opportunities on ScholarBase.",
+        "Discover research communities, PhD supervisors, admissions, academic positions, events, and opportunities on ScholarBase.",
     keywords: [
         "academic community",
         "research platform",
         "scholar network",
         "phd supervisors",
         "phd admissions",
+        "masters admissions",
+        "academic positions",
+        "postdoctoral positions",
         "call for papers",
         "academic jobs",
         "research publications",
@@ -78,7 +81,7 @@ export const SEO_PAGES = {
     home: {
         title: "Research Community Platform | ScholarBase",
         description:
-            "Join ScholarBase to share research, find PhD supervisors, and discover admissions, events, vacancies, and academic opportunities — including on-device AI detection with Scholar Shield.",
+            "Join ScholarBase to share research, find PhD supervisors, and discover admissions, academic positions, events, and opportunities — including on-device AI detection with Scholar Shield.",
         path: "/",
     },
     login: {
@@ -197,16 +200,16 @@ export const SEO_PAGES = {
     admissions: {
         title: "Admissions | ScholarBase",
         description:
-            "Discover PhD admissions, funding opportunities, and academic intake information from the academic community.",
+            "Discover PhD, Master's, undergraduate, and MPhil admissions, funding opportunities, and intake information from the academic community.",
         path: "/admissions",
         section: "Admissions",
     },
-    vacancies: {
-        title: "Academic Vacancies | ScholarBase",
+    academicPositions: {
+        title: "Academic Positions | ScholarBase",
         description:
-            "Find research roles, academic jobs, and opportunities shared across the ScholarBase network.",
-        path: "/vacancies",
-        section: "Vacancies",
+            "Find postdoctoral positions, research assistants, faculty openings, PhD researcher roles, and other academic appointments.",
+        path: "/academic-positions",
+        section: "Academic Positions",
     },
     callForPapers: {
         title: "Call for Papers | ScholarBase",
@@ -271,9 +274,9 @@ export const SEO_CREATE_PAGES = {
         description: "Support ScholarBase development and help grow a research-first academic community.",
     },
     admissions: {
-        title: "Post a PhD admission | ScholarBase",
+        title: "Post an admission | ScholarBase",
         description:
-            "Share PhD admissions, calls for applications, and intake notices with researchers and scholars.",
+            "Share PhD, Master's, undergraduate, MPhil, and other degree admissions with researchers and scholars.",
     },
     callForPapers: {
         title: "List an academic event | ScholarBase",
@@ -324,10 +327,10 @@ export const SEO_CREATE_PAGES = {
         description:
             "Launch a survey to gather responses and research insights from the ScholarBase community.",
     },
-    vacancies: {
-        title: "Post a vacancy | ScholarBase",
+    academicPositions: {
+        title: "Post an academic position | ScholarBase",
         description:
-            "Share a research or academic opportunity with scholars, students, and faculty on ScholarBase.",
+            "Share postdoctoral, research staff, faculty, and PhD researcher positions with scholars on ScholarBase.",
     },
 } as const;
 
@@ -342,9 +345,9 @@ export const CREATE_PAGE_TEXT = {
         description: "Support ScholarBase development and help grow a research-first academic community.",
     },
     admissions: {
-        title: "Post a PhD Admission",
+        title: "Post an Admission",
         description:
-            "Share PhD admissions, calls for applications, and intake notices with researchers and scholars.",
+            "Share PhD, Master's, undergraduate, MPhil, and other degree admissions with researchers and scholars.",
     },
     callForPapers: {
         title: "List an Academic Event",
@@ -395,10 +398,10 @@ export const CREATE_PAGE_TEXT = {
         description:
             "Launch a survey to gather responses and research insights from the ScholarBase community.",
     },
-    vacancies: {
-        title: "Post a Vacancy",
+    academicPositions: {
+        title: "Post an Academic Position",
         description:
-            "Share a research or academic opportunity with scholars, students, and faculty on ScholarBase.",
+            "Share postdoctoral, research staff, faculty, and PhD researcher positions with scholars on ScholarBase.",
     },
 } as const;
 
@@ -422,10 +425,10 @@ export const EDIT_PAGE_TEXT = {
         description:
             "Update the course details, learning outcomes, or link.",
     },
-    vacancies: {
-        title: "Edit Academic Vacancy",
+    academicPositions: {
+        title: "Edit Academic Position",
         description:
-            "Update the job details, application deadlines, or links.",
+            "Update the position details, salary, deadlines, or links.",
     },
     blog: {
         title: "Edit Article",
@@ -464,9 +467,9 @@ export const EDIT_PAGE_TEXT = {
         title: "Edit Supervisor",
     },
     admissions: {
-        title: "Edit PhD Admission Notification",
+        title: "Edit Admission Notification",
         description:
-            "Update the admission criteria, deadlines, or seat matrix requirements.",
+            "Update the degree level, admission criteria, deadlines, or seat matrix requirements.",
     },
     feed: {
         title: "Edit Post",
@@ -513,10 +516,10 @@ export const LIST_PAGE_TEXT = {
         description:
             "Browse and discover academic publications — research papers, conference proceedings, books, and more.",
     },
-    vacancies: {
-        title: "Academic Vacancies",
+    academicPositions: {
+        title: "Academic Positions",
         description:
-            "Contract, guest, and permanent openings across institutions.",
+            "Postdocs, research staff, and faculty openings across institutions.",
     },
     callForPapers: {
         title: "Call for Papers & Conference",
@@ -544,9 +547,9 @@ export const LIST_PAGE_TEXT = {
             "Short research updates from the community.",
     },
     admissions: {
-        title: "PhD Admissions",
+        title: "Admissions",
         description:
-            "Admissions and seat notifications from universities.",
+            "PhD, Master's, undergraduate, and MPhil admissions from universities.",
     },
     contributions: {
         title: "Contributions",

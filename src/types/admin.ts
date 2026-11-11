@@ -2,9 +2,9 @@ import {
   Article,
   Contribution,
   HelpPost,
-  JobVacancy,
+  AcademicPosition,
   Journal,
-  PhdAdmission,
+  Admission,
   Publication,
   Recommendation,
   CallForPaper,
@@ -28,8 +28,8 @@ import {
   ResultComment,
   SurveyComment,
   CallForPaperComment,
-  PhdAdmissionComment,
-  JobVacancyComment,
+  AdmissionComment,
+  AcademicPositionComment,
   SupervisorComment,
   RecommendationComment,
   JournalReview,
@@ -67,8 +67,8 @@ export type CommentItem =
   | ResultComment
   | SurveyComment
   | CallForPaperComment
-  | PhdAdmissionComment
-  | JobVacancyComment
+  | AdmissionComment
+  | AcademicPositionComment
   | SupervisorComment
   | RecommendationComment
   | JournalReviewComment
@@ -81,11 +81,11 @@ export type ContentItem =
   | (Journal & { author: User })
   | (JournalReview & { author: User })
   | (ResearchTool & { author: User })
-  | (PhdAdmission & { author: User })
+  | (Admission & { author: User })
   | (CallForPaper & { author: User })
   | (ResearchGrant & { author: User })
   | (Course & { author: User })
-  | (JobVacancy & { author: User })
+  | (AcademicPosition & { author: User })
   | (HelpPost & { author: User })
   | (Result & { author: User })
   | (Contribution & { author: User })

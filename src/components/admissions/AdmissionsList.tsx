@@ -60,7 +60,7 @@ export function AdmissionsList({
           />
         )}
         className="grid gap-6 md:grid-cols xl:grid-cols"
-        emptyMessage={listEmptyMessage(appliedQuery, "No PhD admissions posted yet.")}
+        emptyMessage={listEmptyMessage(appliedQuery, "No admissions posted yet.")}
       />
     </div>
   );
