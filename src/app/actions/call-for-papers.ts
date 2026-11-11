@@ -134,7 +134,9 @@ export async function createCallForPaper(formData: FormData) {
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
   const publisher = readOptionalFormValue(formData, "publisher");
-  const journalId = readOptionalFormValue(formData, "journalId");
+  let journalId = readOptionalFormValue(formData, "journalId");
+  // Empty string from an unselected journal is not a valid FK — coerce to null.
+  if (journalId === "") journalId = null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {
@@ -208,10 +210,12 @@ export async function createCallForPaper(formData: FormData) {
     type: "content-published",
     targetType: "CallForPaper",
     targetId: event.id,
-    title: `${user.email?.split("@")[0] || "Someone"} posted a new research event`,
-    body: eventDate
-      ? `"${title}" - ${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-      : title,
+    title: `${user.email?.split("@")[0] || "Someone"} posted a new call for papers`,
+    body: deadline
+      ? `"${title}" - Apply by ${deadline.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+      : eventDate
+        ? `"${title}" - ${eventDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+        : title,
   });
 
   // Purge the cached research event pages: publish must be visible at once, not after the TTL.
@@ -237,7 +241,9 @@ export async function updateCallForPaper(formData: FormData, eventId: string) {
   const notificationLink = readFormValue(formData, "notificationLink");
   const applyLink = readFormValue(formData, "applyLink");
   const publisher = readOptionalFormValue(formData, "publisher");
-  const journalId = readOptionalFormValue(formData, "journalId");
+  let journalId = readOptionalFormValue(formData, "journalId");
+  // Empty string from an unselected journal is not a valid FK — coerce to null.
+  if (journalId === "") journalId = null;
   let safeNotificationLink: string | null;
   let safeApplyLink: string | null;
   try {

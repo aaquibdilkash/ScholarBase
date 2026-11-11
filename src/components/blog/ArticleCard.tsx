@@ -1,8 +1,8 @@
 "use client";
-import Link from "next/link";
 import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import ListPageCardShell from "@/components/cards/ListPageCardShell";
+import { CollapsibleMediaBody } from "@/components/cards/CollapsibleMediaBody";
 import { ReportMenu } from "@/components/cards/ReportMenu";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
 import { deleteArticle } from "@/app/actions/blog";
@@ -114,15 +114,20 @@ export function ArticleCard({
         article.editedAt && article.editedAt > article.createdAt ? article.editedAt : undefined
       }
       noBodyLink={true}
+      constrainBody={false}
     >
-      <Link href={`/blog/${article.slug}`} prefetch={false} className="block group">
-        <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
-          {article.title}
-        </h2>
-        <p className="text-sm break-words leading-relaxed text-slate-600 [overflow-wrap:anywhere] dark:text-slate-300">
-          {article.excerpt}
-        </p>
-      </Link>
+      <CollapsibleMediaBody
+        href={`/blog/${article.slug}`}
+        imageUrl={article.imageUrl}
+        header={
+          <h2 className="mb-2 break-words [overflow-wrap:anywhere] text-lg font-semibold leading-tight text-slate-950 transition-colors group-hover:text-blue-700 dark:text-slate-50 dark:group-hover:text-blue-300">
+            {article.title}
+          </h2>
+        }
+        text={article.excerpt ?? ""}
+        contentKey={`${article.excerpt ?? ""}|${article.imageUrl ?? ""}`}
+        textClassName="text-sm text-slate-600 dark:text-slate-300"
+      />
     </ListPageCardShell>
   );
 }

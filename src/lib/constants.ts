@@ -27,14 +27,14 @@ export const MAX_POSITION_DURATION = 32;
 export const MAX_POSITION_LOCATION = 64;
 export const MAX_POSITION_NOTIFICATION_LINK = 128;
 export const MAX_POSITION_APPLY_LINK = 128;
-export const MAX_POSITION_DESCRIPTION = 256;
+export const MAX_POSITION_DESCRIPTION = 1024;
 
 export const MAX_EVENT_TITLE = 64;
 export const MAX_EVENT_PUBLISHER = 64;
 export const MAX_EVENT_LOCATION = 32;
 export const MAX_EVENT_NOTIFICATION_LINK = 128;
 export const MAX_EVENT_APPLY_LINK = 128;
-export const MAX_EVENT_DESCRIPTION = 256;
+export const MAX_EVENT_DESCRIPTION = 1024;
 
 export const MAX_HELP_POST_TITLE = 64;
 export const MAX_HELP_POST_SUBJECT = 128;
@@ -42,7 +42,7 @@ export const MAX_HELP_POST_MESSAGE = 256;
 
 export const MAX_JOURNAL_TITLE = 64;
 export const MAX_JOURNAL_ISSN = 16;
-export const MAX_JOURNAL_DESCRIPTION = 512;
+export const MAX_JOURNAL_DESCRIPTION = 1024;
 export const MAX_JOURNAL_PUBLISHER = 64;
 export const MAX_JOURNAL_WEBSITE = 128;
 export const MAX_JOURNAL_SUBJECT_AREA = 64;
@@ -51,7 +51,7 @@ export const MAX_RESULT_TITLE = 64;
 export const MAX_RESULT_CATEGORY = 32;
 export const MAX_RESULT_CONDUCTING_BODY = 32;
 export const MAX_RESULT_SESSION = 32;
-export const MAX_RESULT_DESCRIPTION = 512;
+export const MAX_RESULT_DESCRIPTION = 1024;
 export const MAX_RESULT_NOTIFICATION_LINK = 128;
 export const MAX_RESULT_RESULT_LINK = 128;
 
@@ -61,22 +61,21 @@ export const MAX_SUPERVISOR_DEPARTMENT = 32;
 export const MAX_SUPERVISOR_ABOUT = 512;
 
 export const MAX_RESEARCH_TOOL_NAME = 64;
-export const MAX_RESEARCH_TOOL_DESCRIPTION = 512;
+export const MAX_RESEARCH_TOOL_DESCRIPTION = 1024;
 export const MAX_RESEARCH_TOOL_WEBSITE = 128;
 export const MAX_RESEARCH_TOOL_USE = 64;
 
 export const MAX_RESEARCH_GRANT_TITLE = 64;
 export const MAX_RESEARCH_GRANT_AMOUNT = 16;
-export const MAX_RESEARCH_GRANT_DESCRIPTION = 512;
+export const MAX_RESEARCH_GRANT_DESCRIPTION = 1024;
 export const MAX_RESEARCH_GRANT_APPLY_LINK = 128;
 export const MAX_RESEARCH_GRANT_INFO_LINK = 128;
 
 export const MAX_COURSE_TITLE = 64;
 export const MAX_COURSE_PROVIDER = 32;
 export const MAX_COURSE_INSTRUCTOR = 32;
-
 export const MAX_COURSE_URL = 128;
-export const MAX_COURSE_DESCRIPTION = 512;
+export const MAX_COURSE_DESCRIPTION = 1024;
 
 export const MAX_SURVEY_TITLE = 256;
 export const MAX_SURVEY_DESCRIPTION = 1024;
@@ -182,7 +181,7 @@ export const MAX_JOURNAL_REVIEW_FEEDBACK = 512;
 
 export const MAX_ADMISSION_UNIVERSITY = 64;
 export const MAX_ADMISSION_DEPARTMENT = 64;
-export const MAX_ADMISSION_DESCRIPTION = 512;
+export const MAX_ADMISSION_DESCRIPTION = 1024;
 export const MAX_ADMISSION_NOTIFICATION_LINK = 128;
 export const MAX_ADMISSION_APPLY_LINK = 128;
 
@@ -209,19 +208,19 @@ export const MAX_INVITE_MESSAGE = 512;
 // one limit. The importer truncates free-text fields to these bounds, and the
 // email cap matches the RFC 5321 address length so a long address is flagged
 // instead of truncated into a different recipient.
-export const MAX_OUTREACH_NAME = 120;
-export const MAX_OUTREACH_EMAIL = 254;
+export const MAX_OUTREACH_NAME = 32;
+export const MAX_OUTREACH_EMAIL = 64;
 export const MAX_OUTREACH_INSTITUTION = 128;
-export const MAX_OUTREACH_ROLE = 120;
-export const MAX_OUTREACH_SOURCE = 80;
-export const MAX_OUTREACH_NOTES = 2000;
+export const MAX_OUTREACH_ROLE = 64;
+export const MAX_OUTREACH_SOURCE = 32;
+export const MAX_OUTREACH_NOTES = 512;
 // Most contacts one batch send may email. Matches the admin table page size so
 // "select all" is always a valid batch.
 export const MAX_OUTREACH_BATCH_SIZE = 10;
 
 // Importer bounds shared by the upload modal and the server action. 4 MB sits
 // comfortably under the 6 MB Server Action body limit.
-export const MAX_OUTREACH_IMPORT_ROWS = 1000;
+export const MAX_OUTREACH_IMPORT_ROWS = 1024;
 export const MAX_OUTREACH_IMPORT_FILE_BYTES = 4 * 1024 * 1024;
 
 export const MAX_AUTH_EMAIL = 32;
@@ -237,9 +236,9 @@ export const MAX_CONTRIBUTION_TITLE = 64;
 export const MAX_CONTRIBUTION_UPI_ID = 64;
 export const MAX_CONTRIBUTION_MESSAGE = 512;
 
-export const MAX_SOCIAL_POST_CONTENT = 256;
+export const MAX_SOCIAL_POST_CONTENT = 512;
 
-export const MAX_MESSAGE_BODY = 256;
+export const MAX_MESSAGE_BODY = 512;
 
 export const MAX_COMMENT_BODY = 256;
 

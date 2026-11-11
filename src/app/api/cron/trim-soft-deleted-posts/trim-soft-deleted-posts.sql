@@ -56,15 +56,29 @@ BEGIN
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;
 
-  -- From Article (coverImage / imageUrl)
+  -- From Article (imageUrl - Supabase)
   BEGIN
     INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
-    SELECT gen_random_uuid()::text, "coverImage", NOW()
+    SELECT gen_random_uuid()::text, "imageUrl", NOW()
     FROM "Article"
     WHERE "isDeleted" = true 
       AND "updatedAt" < NOW() - INTERVAL '30 days'
-      AND "coverImage" IS NOT NULL
-      AND "coverImage" LIKE '%res.cloudinary.com%';
+      AND "imageUrl" IS NOT NULL
+      AND "imageUrl" LIKE '%supabase.co/storage/v1/object/public/blog-images%';
+    GET DIAGNOSTICS assets_count = ROW_COUNT;
+    total_assets_queued := total_assets_queued + assets_count;
+  EXCEPTION WHEN OTHERS THEN NULL; END;
+
+  -- From Article description (inline images - Supabase)
+  -- Extracts every Supabase Storage URL referenced in the article body HTML.
+  BEGIN
+    INSERT INTO "OrphanedAsset" ("id", "url", "createdAt")
+    SELECT gen_random_uuid()::text, (m)[1], NOW()
+    FROM "Article",
+    LATERAL regexp_matches("content", '(https://[^"]*supabase\.co/storage/v1/object/public/blog-images/[^"]+)', 'g') AS m
+    WHERE "isDeleted" = true 
+      AND "updatedAt" < NOW() - INTERVAL '30 days'
+      AND "content" LIKE '%supabase.co/storage/v1/object/public/blog-images%';
     GET DIAGNOSTICS assets_count = ROW_COUNT;
     total_assets_queued := total_assets_queued + assets_count;
   EXCEPTION WHEN OTHERS THEN NULL; END;

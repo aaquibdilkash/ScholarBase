@@ -37,6 +37,7 @@ const ARTICLE_SELECT = {
   title: true,
   slug: true,
   excerpt: true,
+  imageUrl: true,
   createdAt: true,
   updatedAt: true,
   editedAt: true,

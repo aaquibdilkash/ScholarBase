@@ -85,7 +85,7 @@ export function AcademicPositionCard({ academicPosition,
           <OwnerActionsDropdown
             editHref={`/academic-positions/${academicPosition.id}/edit`}
             isOwner={true}
-            editLabel="Edit Academic Position"
+            editLabel="Edit Position"
             deleteLabel="Delete"
             onDelete={async () => {
               try {

@@ -1065,6 +1065,28 @@ html[data-theme="dark"] .sb-rich-content a {
   color: #93c5fd;
 }
 
+/* Inline images in stored rich content (blog bodies). Responsive: never
+   overflow the column, and the aspect ratio is preserved on the element
+   because the editor stores width/height attributes. */
+.sb-rich-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em 0;
+  border-radius: 0.75rem;
+}
+
+/* Images inside the Tiptap editor (blog composer). Same responsive rules
+   so the WYSIWYG view matches the published page. */
+.sb-editor img,
+.sb-editor .sb-editor-image {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.75em 0;
+  border-radius: 0.75rem;
+}
+
 /* ============================================================
    Global button cursors (unlayered so it beats Tailwind layers):
    - enabled buttons → hand (pointer) on hover

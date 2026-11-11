@@ -48,7 +48,7 @@ vi.mock("next/server", () => ({ after: vi.fn() }));
 const FIRST =
   "Pictures: the Preamble, the Supreme Court building, the court hierarchy pyramid and the tribunals diagram.";
 const SECOND =
-  "High Courts: the chapter has a 25-row table. I kept only the High Courts that cover more than one state or Union Territory, and noted that every othe";
+  "High Courts: the chapter has a 25-row table. I kept only the High Courts that cover more than one state or Union Territory, and noted that every other court cited in the chapter is subordinate to the Supreme Court under Article 124, with detailed references to jurisdiction and case law. This paragraph exists purely to pad the message body to exactly five hundred twelve characters including the newline.";
 
 /** What the author typed: exactly the composer's cap. */
 const typedBody = `${FIRST}\n${SECOND}`;
@@ -116,26 +116,26 @@ describe("message body length limit", () => {
   });
 
   it("counts the typed body, not the CRLF the wire adds", () => {
-    expect(typedBody).toHaveLength(256);
-    expect(wireBody).toHaveLength(257);
+    expect(typedBody).toHaveLength(512);
+    expect(wireBody).toHaveLength(513);
   });
 
-  it("accepts a 256-character message containing a line break", async () => {
+  it("accepts a 512-character message containing a line break", async () => {
     const result = await sendMessage(ids.conversation, formOf(wireBody));
 
     expect(result).not.toHaveProperty("error");
     // Stored with plain LF, so the saved length still matches the composer.
     expect(fakeDb.rows("message")[0].body).toBe(typedBody);
-    expect((fakeDb.rows("message")[0].body as string).length).toBe(256);
+    expect((fakeDb.rows("message")[0].body as string).length).toBe(512);
   });
 
-  it("accepts a 256-character opening message containing a line break", async () => {
+  it("accepts a 512-character opening message containing a line break", async () => {
     const result = await startConversation(
       formOf(wireBody, { recipientId: ids.peer }),
     );
 
     expect(result.success).toBe(true);
-    expect((fakeDb.rows("message")[0].body as string).length).toBe(256);
+    expect((fakeDb.rows("message")[0].body as string).length).toBe(512);
   });
 
   it("still rejects a body that is longer than the cap after normalising", async () => {
@@ -143,7 +143,7 @@ describe("message body length limit", () => {
 
     expect(result).toMatchObject({
       success: false,
-      error: expect.stringMatching(/256-character limit/),
+      error: expect.stringMatching(/512-character limit/),
     });
     expect(fakeDb.rows("message")).toHaveLength(0);
   });

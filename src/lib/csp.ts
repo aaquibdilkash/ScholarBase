@@ -89,7 +89,7 @@ export function buildCsp(nonce: string): string {
     }`,
     // See the note above: required by Tailwind/React attributes and TopLoader.
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com",
+    `img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com ${SUPABASE_HTTP_ORIGIN}`,
     // Supabase client auth runs in the browser.
     //
     // `wss://` is NOT optional here. Supabase Realtime (message + notification

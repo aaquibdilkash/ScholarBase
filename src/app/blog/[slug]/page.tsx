@@ -5,6 +5,8 @@ import { VoteButton } from "@/components/interactions/VoteButton";
 import { BookmarkButton } from "@/components/interactions/BookmarkButton";
 import { CommentSection } from "@/components/interactions/CommentSection";
 import { RichContent } from "@/components/content/RichContent";
+import { FeedImage } from "@/components/feed/FeedImage";
+import { isValidImageUrl } from "@/lib/image-constants";
 import { getCurrentUser } from "@/lib/auth";
 import { deleteArticle, getArticle } from "@/app/actions/blog";
 import OwnerActionsDropdown from "@/components/cards/OwnerActionsDropdown";
@@ -174,6 +176,16 @@ export default async function ArticlePage({
           })}
         </span>
       </div>
+
+      {isValidImageUrl(article.imageUrl) && (
+        <div className="mb-8">
+          <FeedImage
+            src={article.imageUrl}
+            alt={article.title}
+            className="block w-full object-cover rounded-xl"
+          />
+        </div>
+      )}
 
       {/* RichContent already renders its own single `prose` wrapper — do not nest
           another one here or typography sizes compound (double-prose bug). */}

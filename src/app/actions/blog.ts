@@ -18,6 +18,9 @@ import { VISIBLE_PARENT_COMMENT_WHERE } from "@/lib/comment-visibility";
 import { loadContentPage, revalidateContent } from "@/lib/tri-split/modules/registry";
 import { revalidateBookmarkersForDeletedContent } from "@/lib/tri-split/modules/profile-tab";
 import { hideContentActivity } from "@/lib/activity";
+import { promoteBlogImages } from "@/lib/blog-images";
+import { repairLegacyInlineImages } from "@/lib/article-content";
+import { deleteDraftBlogImage } from "@/app/actions/blog-images";
 import type { ArticleWithAuthor } from "@/types/cards";
 
 /**
@@ -46,7 +49,7 @@ export const getArticle = cache(async (slugOrId: string, userId?: string) => {
   // RULE 6: The query is already optimized. All server-side data mapping
   // has been removed. The client is now responsible for deriving state
   // like `isFollowing` and `userVote` from the raw `followers` and `votes` arrays.
-  return prisma.article.findFirst({
+  const article = await prisma.article.findFirst({
     where: {
       isDeleted: false,
       OR: [{ slug: slugOrId }, { id: slugOrId }],
@@ -57,6 +60,7 @@ export const getArticle = cache(async (slugOrId: string, userId?: string) => {
       title: true,
       excerpt: true,
       content: true,
+      imageUrl: true,
       createdAt: true,
       updatedAt: true,
       editedAt: true,
@@ -111,6 +115,15 @@ export const getArticle = cache(async (slugOrId: string, userId?: string) => {
       },
     },
   });
+
+  if (!article) return article;
+
+  // Legacy rows stored inline images as escaped text; repair them on read so
+  // the image renders instead of the URL.
+  return {
+    ...article,
+    content: repairLegacyInlineImages(article.content),
+  };
 });
 
 export async function createArticle(formData: FormData) {
@@ -122,6 +135,7 @@ export async function createArticle(formData: FormData) {
   const title = readFormValue(formData, "title");
   const content = readFormValue(formData, "content");
   const excerpt = readFormValue(formData, "excerpt");
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
 
   if (!title || !content) {
     throw new Error("Title and content are required.");
@@ -130,6 +144,13 @@ export async function createArticle(formData: FormData) {
   // Validate the plain-text length (never the raw HTML) and store the full,
   // un-truncated HTML payload.
   assertRichTextWithinLimit(content, MAX_ARTICLE_CONTENT, "Article content");
+
+  // Promote draft images (cover + inline) to published before creating the article.
+  const { coverUrl, publishedHtml } = await promoteBlogImages({
+    imageUrl: coverImageUrl || undefined,
+    html: content,
+    userId: user.id,
+  });
 
   const baseSlug = slugify(title) || "article";
   let slug = baseSlug;
@@ -143,8 +164,9 @@ export async function createArticle(formData: FormData) {
     const newArticle = await tx.article.create({
       data: {
         title,
-        content,
+        content: publishedHtml,
         excerpt,
+        imageUrl: coverUrl,
         slug,
         authorId: user.id,
         published: true,
@@ -195,7 +217,7 @@ export async function createArticle(formData: FormData) {
     }),
     notifyMentionedUsers({
       actorId: user.id,
-      content: `${title}\n${content}`,
+      content: `${title}\n${publishedHtml}`,
       type: "mention",
       targetType: "Article",
       targetId: article.id,
@@ -219,6 +241,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
   const title = readFormValue(formData, "title");
   const content = readFormValue(formData, "content");
   const excerpt = readFormValue(formData, "excerpt");
+  const coverImageUrl = formData.get("coverImageUrl") as string | null;
 
   if (!title || !content) {
     throw new Error("Title and content are required.");
@@ -230,7 +253,7 @@ export async function updateArticle(formData: FormData, articleId: string) {
 
   const article = await prisma.article.findUnique({
     where: { id: articleId },
-    select: { authorId: true, slug: true },
+    select: { authorId: true, slug: true, imageUrl: true },
   });
 
   if (!article) {
@@ -238,6 +261,19 @@ export async function updateArticle(formData: FormData, articleId: string) {
   }
   if (!(await isAuthorizedOrAdmin(article.authorId, user.id))) {
     throw new Error("Not authorized to edit this article.");
+  }
+
+  // Promote draft images (cover + inline) to published before updating.
+  const { coverUrl, publishedHtml } = await promoteBlogImages({
+    imageUrl: coverImageUrl || undefined,
+    html: content,
+    userId: user.id,
+  });
+
+  // If the cover image changed, delete the old draft (published assets are
+  // deleted by the 30-day trim cron, not here).
+  if (coverImageUrl && coverImageUrl !== article.imageUrl) {
+    await deleteDraftBlogImage(article.imageUrl, { allowFrozen: true });
   }
 
   const baseSlug = slugify(title) || "article";
@@ -254,8 +290,9 @@ export async function updateArticle(formData: FormData, articleId: string) {
     where: { id: articleId },
     data: {
       title,
-      content,
+      content: publishedHtml,
       excerpt,
+      imageUrl: coverUrl,
       slug: nextSlug,
       editedAt: new Date(),
     },

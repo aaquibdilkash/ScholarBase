@@ -4,7 +4,13 @@ import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { RichContent } from "@/components/content/RichContent";
 import { SubmitBtnWithAuth } from "@/components/ui/SubmitBtnWithAuth";
-import { createArticle, updateArticle } from "@/app/actions/blog";
+import {
+  createArticle,
+  updateArticle,
+} from "@/app/actions/blog";
+import { uploadBlogImageAction } from "@/app/actions/blog-images";
+import { repairLegacyInlineImages } from "@/lib/article-content";
+import { BlogImageUploadField } from "@/components/upload/BlogImageUploadField";
 import { useFormDraft } from "@/hooks/useFormDraft";
 import { FormCancelButton } from "@/components/ui/FormCancelButton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,7 +46,12 @@ type ArticleComposerProps = {
   mode?: "create" | "edit";
   articleId?: string;
   slug?: string;
-  initialValues?: { title: string; excerpt: string; content: string };
+  initialValues?: {
+    title: string;
+    excerpt: string;
+    content: string;
+    imageUrl?: string | null;
+  };
 };
 
 export function ArticleComposer({
@@ -54,6 +65,7 @@ export function ArticleComposer({
     title: initialValues?.title ?? "",
     excerpt: initialValues?.excerpt ?? "",
     content: initialValues?.content ?? "",
+    coverImageUrl: initialValues?.imageUrl ?? "",
   };
 
   const [draftFields, updateDraftField, resetDraft] = useFormDraft(
@@ -65,8 +77,23 @@ export function ArticleComposer({
   const router = useRouter();
   const { toast } = useToast();
 
+  const handleImageUpload = async (formData: FormData): Promise<string | null> => {
+    const data = await uploadBlogImageAction(formData, "inline");
+    if ("success" in data) {
+      toast(data.message, "error");
+      return null;
+    }
+    return data.url;
+  };
+
   const createMutation = useMutation({
-    mutationFn: createArticle,
+    mutationFn: async (formData: FormData) => {
+      // Append cover image URL if present
+      if (draftFields.coverImageUrl) {
+        formData.append("coverImageUrl", draftFields.coverImageUrl);
+      }
+      return createArticle(formData);
+    },
     onSuccess: (response) => {
       if (!response.success || !response.data) {
         toast(actionErrorMessage(response, "Failed to publish article."), "error");
@@ -89,8 +116,12 @@ export function ArticleComposer({
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ formData, id }: { formData: FormData; id: string }) =>
-      updateArticle(formData, id),
+    mutationFn: async ({ formData, id }: { formData: FormData; id: string }) => {
+      if (draftFields.coverImageUrl) {
+        formData.append("coverImageUrl", draftFields.coverImageUrl);
+      }
+      return updateArticle(formData, id);
+    },
     onSuccess: (response) => {
       if (!response.success || !response.data) {
         toast(actionErrorMessage(response, "Failed to update article."), "error");
@@ -118,15 +149,20 @@ export function ArticleComposer({
     },
   });
 
-  const previewContent = useMemo(
-    () =>
-      draftFields.content ||
-      "<p>Start writing to see the live article preview.</p>",
+  // Legacy rows (and local drafts saved before the editor had an image node)
+  // store inline images as escaped text. Repair at a single point so the
+  // preview, the editor and the submitted body all agree.
+  const content = useMemo(
+    () => repairLegacyInlineImages(draftFields.content),
     [draftFields.content],
   );
 
-  const isContentOverLimit =
-    getRichTextLength(draftFields.content) > MAX_ARTICLE_CONTENT;
+  const previewContent = useMemo(
+    () => content || "<p>Start writing to see the live article preview.</p>",
+    [content],
+  );
+
+  const isContentOverLimit = getRichTextLength(content) > MAX_ARTICLE_CONTENT;
   const isFormOverLimit = isContentOverLimit;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -148,110 +184,122 @@ export function ArticleComposer({
     <form onSubmit={onSubmit} className="flex min-w-0 flex-col gap-6">
       <CautionNote />
       <div className="grid gap-6 lg:h-[800px] lg:grid-cols-[1fr_1.05fr] lg:items-stretch lg:gap-8 xl:h-[840px]">
-        {/* Left column: form fields. Content editor is flex-1 so the whole
-            left column stretches to match the right (preview) column height. */}
+        {/* Left column: form fields. */}
         <div className="flex min-h-0 min-w-0 flex-col gap-6">
-         <div>
-           <label className="sb-label inline-flex items-center gap-1.5">
-             Article Title
-             <InfoTooltip message={ARTICLE_TITLE_TIP} />
-           </label>
-          <input
-            name="title"
-            value={draftFields.title}
-            onChange={(event) => updateDraftField("title", event.target.value)}
-            placeholder="e.g., The Ultimate PhD Survival Guide"
-            className="sb-input"
-            required
-            maxLength={MAX_ARTICLE_TITLE}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.title.length}/{MAX_ARTICLE_TITLE} characters
-          </div>
-        </div>
-
-         <div>
-           <label className="sb-label inline-flex items-center gap-1.5">
-             Short Description
-             <InfoTooltip message={ARTICLE_EXCERPT_TIP} />
-           </label>
-          <input
-            name="excerpt"
-            value={draftFields.excerpt}
-            onChange={(event) =>
-              updateDraftField("excerpt", event.target.value)
-            }
-            placeholder="A brief summary of your article..."
-            className="sb-input"
-            required
-            maxLength={MAX_ARTICLE_EXCERPT}
-          />
-          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {draftFields.excerpt.length}/{MAX_ARTICLE_EXCERPT} characters
-          </div>
-        </div>
-
-         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-           <div className="mb-3 flex items-center justify-between gap-3">
-             <label className="sb-label mb-0 inline-flex items-center gap-1.5">
-               Content
-               <InfoTooltip message={ARTICLE_CONTENT_TIP} />
-             </label>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-              SB Editor
-            </span>
-          </div>
-
-          {/* Mobile: flows with the page (no fixed height, no inner scroll).
-              Desktop: lg:flex-1 + min-h-0 makes this box end exactly where the
-              preview column ends, so only very long content scrolls inside. */}
-          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:min-h-0 lg:flex-1">
-            <Editor
-              maxLength={MAX_ARTICLE_CONTENT}
-              value={draftFields.content}
-              onChange={(value: string) => updateDraftField("content", value)}
-              className="min-h-0 lg:flex-1"
-              scrollable
+          <div>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Article Title
+              <InfoTooltip message={ARTICLE_TITLE_TIP} />
+            </label>
+            <input
+              name="title"
+              value={draftFields.title}
+              onChange={(event) => updateDraftField("title", event.target.value)}
+              placeholder="e.g., The Ultimate PhD Survival Guide"
+              className="sb-input"
+              required
+              maxLength={MAX_ARTICLE_TITLE}
             />
-            <input type="hidden" name="content" value={draftFields.content} />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.title.length}/{MAX_ARTICLE_TITLE} characters
+            </div>
+          </div>
+
+          <div>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Short Description
+              <InfoTooltip message={ARTICLE_EXCERPT_TIP} />
+            </label>
+            <input
+              name="excerpt"
+              value={draftFields.excerpt}
+              onChange={(event) =>
+                updateDraftField("excerpt", event.target.value)
+              }
+              placeholder="A brief summary of your article..."
+              className="sb-input"
+              required
+              maxLength={MAX_ARTICLE_EXCERPT}
+            />
+            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {draftFields.excerpt.length}/{MAX_ARTICLE_EXCERPT} characters
+            </div>
+          </div>
+
+          {/* Cover image upload */}
+          <div>
+            <label className="sb-label inline-flex items-center gap-1.5">
+              Cover Image (Optional)
+              <InfoTooltip message="Main image shown on the article list card and detail page header." />
+            </label>
+            <BlogImageUploadField
+              kind="cover"
+              value={draftFields.coverImageUrl}
+              onChange={(url) => updateDraftField("coverImageUrl", url)}
+            />
+          </div>
+
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <label className="sb-label mb-0 inline-flex items-center gap-1.5">
+                Content
+                <InfoTooltip message={ARTICLE_CONTENT_TIP} />
+              </label>
+              <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                SB Editor
+              </span>
+            </div>
+
+            <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white lg:min-h-0 lg:flex-1">
+              <Editor
+                maxLength={MAX_ARTICLE_CONTENT}
+                value={content}
+                onChange={(value: string) => updateDraftField("content", value)}
+                onImageUpload={handleImageUpload}
+                className="min-h-0 lg:flex-1"
+                scrollable
+              />
+              <input type="hidden" name="content" value={content} />
+            </div>
           </div>
         </div>
-        </div>
 
-        {/* Right column: preview card. On mobile it flows with the page (no
-            fixed height, no inner scroll). On desktop it is bounded by the grid
-            row height so only the body below the frozen header scrolls. */}
+        {/* Right column: preview card. */}
         <section className="sb-surface-strong flex min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200/70 lg:min-h-0 lg:flex-1">
-            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 dark:border-slate-800">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  Live Preview
-                </p>
-                <h2 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-                  {draftFields.title || "Your article"}
-                </h2>
-              </div>
-              <div className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300">
-                {mode === "edit" ? "Editing" : "Draft"}
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
-              <p className="break-words text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                {draftFields.excerpt || "Your short description will appear here."}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                Live Preview
               </p>
-
-              <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
-                <RichContent content={previewContent} />
-              </div>
+              <h2 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
+                {draftFields.title || "Your article"}
+              </h2>
             </div>
+            <div className="shrink-0 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300">
+              {mode === "edit" ? "Editing" : "Draft"}
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
+            <p className="break-words text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+              {draftFields.excerpt || "Your short description will appear here."}
+            </p>
+
+            <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:text-slate-950 dark:prose-headings:text-slate-100 prose-a:text-blue-700 dark:prose-a:text-blue-400 hover:prose-a:text-blue-600 hover:dark:prose-a:text-blue-300">
+              <RichContent content={previewContent} />
+            </div>
+          </div>
         </section>
       </div>
 
       {/* Actions on the next line, right-aligned under the preview. */}
       <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
         <FormCancelButton />
-        <SubmitBtnWithAuth disabled={isPending || isFormOverLimit} loadingText={mode === "edit" ? "Saving..." : "Publishing..."} className="sb-button-accent">
+        <SubmitBtnWithAuth
+          disabled={isPending || isFormOverLimit}
+          loadingText={mode === "edit" ? "Saving..." : "Publishing..."}
+          className="sb-button-accent"
+        >
           {isPending
             ? mode === "edit"
               ? "Saving..."

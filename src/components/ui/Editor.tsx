@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
 import {
   Bold,
   Italic,
@@ -15,7 +16,12 @@ import {
   Quote,
   Code,
   Minus,
+  Plus,
+  Loader2,
 } from "lucide-react";
+
+import { compressImageToBudget } from "@/utils/image-compression";
+import { useToast } from "@/components/ui/Toast";
 
 interface EditorProps {
   value: string;
@@ -24,6 +30,7 @@ interface EditorProps {
   showCharCount?: boolean;
   className?: string;
   scrollable?: boolean;
+  onImageUpload?: (formData: FormData) => Promise<string | null>;
 }
 
 const Editor = ({
@@ -33,7 +40,9 @@ const Editor = ({
   showCharCount = true,
   className,
   scrollable = false,
+  onImageUpload,
 }: EditorProps) => {
+  const { toast } = useToast();
   const [pendingStates, setPendingStates] = useState({
     bold: false,
     italic: false,
@@ -48,9 +57,45 @@ const Editor = ({
   });
 
   const isEditorDriven = useRef(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+
+  const handleImageInsert = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!onImageUpload || !editor) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+
+    setImageUploading(true);
+    try {
+      const uploadFile = await compressImageToBudget(file);
+      const fd = new FormData();
+      fd.append("file", uploadFile);
+
+      const url = await onImageUpload(fd);
+      if (url) {
+        editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+        toast("Image inserted.", "success");
+      }
+    } catch (err) {
+      setImageUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+      const message = err instanceof Error ? err.message : "Failed to insert image.";
+      console.error("[Editor Image Insert Error]:", message);
+    } finally {
+      setImageUploading(false);
+      if (imageInputRef.current) imageInputRef.current.value = "";
+    }
+  };
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Image.configure({
+        allowBase64: false,
+        HTMLAttributes: { class: "sb-editor-image" },
+      }),
+    ],
     content: value,
     onUpdate: ({ editor }) => {
       isEditorDriven.current = true;
@@ -300,6 +345,28 @@ const Editor = ({
         >
           <Minus className="h-4 w-4" />
         </button>
+        <div className="h-6 border-l border-slate-200 dark:border-slate-800 mx-2" />
+        <button
+          type="button"
+          onClick={() => imageInputRef.current?.click()}
+          disabled={imageUploading}
+          className={`p-2 rounded-lg transition-all text-slate-600 dark:text-slate-300 ${imageUploading ? "bg-slate-100 dark:bg-slate-700" : "hover:bg-slate-100 dark:hover:bg-slate-700"}`}
+          aria-label="Insert image"
+        >
+          {imageUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+        </button>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageInsert}
+          disabled={imageUploading}
+        />
       </div>
       <EditorContent
         editor={editor}

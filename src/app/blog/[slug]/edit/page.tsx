@@ -7,6 +7,7 @@ export const metadata: Metadata = buildNoindexMetadata(
 import prisma from "@/lib/db";
 import { notFound } from "next/navigation";
 import { requireCurrentUser } from "@/lib/auth";
+import { repairLegacyInlineImages } from "@/lib/article-content";
 import { ArticleComposer } from "@/components/blog/ArticleComposer";
 import CreateOrEditPageShell from "@/components/layout/CreateOrEditPageShell";
 import { EDIT_PAGE_TEXT } from "@/constants/seo";
@@ -28,6 +29,7 @@ export default async function EditArticlePage({
       title: true,
       content: true,
       excerpt: true,
+      imageUrl: true,
       authorId: true,
       slug: true,
     },
@@ -36,6 +38,10 @@ export default async function EditArticlePage({
   if (!article || article.authorId !== user.id) {
     notFound();
   }
+
+  // Legacy rows stored inline images as escaped text; repair them so the
+  // editor loads real image nodes instead of raw markup.
+  const content = repairLegacyInlineImages(article.content);
 
   return (
     <CreateOrEditPageShell
@@ -51,8 +57,9 @@ export default async function EditArticlePage({
         slug={article.slug}
         initialValues={{
           title: article.title,
-          content: article.content,
+          content,
           excerpt: article.excerpt ?? "",
+          imageUrl: article.imageUrl ?? "",
         }}
       />
     </CreateOrEditPageShell>

@@ -219,6 +219,7 @@ model Article {
   slug            String    @unique
   excerpt         String?
   content         String
+  imageUrl        String?
   published       Boolean   @default(false)
   isFrozen        Boolean   @default(false)
   hasActiveAppeal Boolean   @default(false)

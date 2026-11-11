@@ -109,7 +109,7 @@ const AcademicPositionDetailPage = async ({
               return { redirect: "/academic-positions", invalidateQueries: [["academicPositions"]] };
             }}
             isOwner={true}
-            editLabel="Edit Academic Position"
+            editLabel="Edit Position"
             deleteLabel="Delete"
           />
         ) : null
